@@ -1,0 +1,31 @@
+\echo [M] ./kernel/kernel.psql
+
+\echo [M] call dt.sql
+\ir dt.sql
+
+\echo [M] call exception.sql
+\ir exception.sql
+
+\echo [M] call sequence.sql
+\ir sequence.sql
+
+\echo [M] call public.sql
+\ir public.sql
+
+\echo [M] call general.sql
+\ir general.sql
+
+\echo [M] call oauth2.sql
+\ir oauth2.sql
+
+\echo [M] call security.sql
+\ir security.sql
+
+\echo [M] call kladr.sql
+\ir kladr.sql
+
+\echo [M] call workflow.sql
+\ir workflow.sql
+
+\echo [M] call log.sql
+\ir log.sql
