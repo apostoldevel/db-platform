@@ -529,7 +529,7 @@ GRANT EXECUTE ON FUNCTION array_add_text(text[], text) TO PUBLIC;
 -- min -------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE FUNCTION min(integer, integer) RETURNS integer AS $$
+CREATE OR REPLACE FUNCTION min(integer, integer) RETURNS integer AS $$
   SELECT CASE WHEN $1 < $2 THEN $1 ELSE $2 END
 $$ LANGUAGE SQL STRICT;
 
@@ -539,7 +539,7 @@ GRANT EXECUTE ON FUNCTION min(integer, integer) TO PUBLIC;
 -- max -------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE FUNCTION max(integer, integer) RETURNS integer AS $$
+CREATE OR REPLACE FUNCTION max(integer, integer) RETURNS integer AS $$
   SELECT CASE WHEN $1 > $2 THEN $1 ELSE $2 END
 $$ LANGUAGE SQL STRICT;
 
