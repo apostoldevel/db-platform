@@ -794,6 +794,65 @@ BEGIN
       END LOOP;
     END LOOP;
 
+  WHEN '/admin/area/delete' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['id']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric)
+      LOOP
+        PERFORM api.delete_area(r.id);
+        RETURN NEXT json_build_object('id', r.id, 'result', true, 'message', 'Успешно.');
+      END LOOP;
+
+    ELSE
+
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric)
+      LOOP
+        PERFORM api.delete_area(r.id);
+        RETURN NEXT json_build_object('id', r.id, 'result', true, 'message', 'Успешно.');
+      END LOOP;
+
+    END IF;
+
+  WHEN '/admin/area/delete/safely' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['id']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric)
+      LOOP
+        RETURN NEXT json_build_object('id', r.id, 'result', api.safely_delete_area(r.id), 'message', GetErrorMessage());
+      END LOOP;
+
+    ELSE
+
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric)
+      LOOP
+        RETURN NEXT json_build_object('id', r.id, 'result', api.safely_delete_area(r.id), 'message', GetErrorMessage());
+      END LOOP;
+
+    END IF;
+
+  WHEN '/admin/area/clear' THEN
+
+    FOR r IN SELECT * FROM api.clear_area()
+    LOOP
+      RETURN NEXT json_build_object('deleted', r.clear_area);
+    END LOOP;
+
   WHEN '/admin/area/member' THEN
 
     IF pPayload IS NULL THEN

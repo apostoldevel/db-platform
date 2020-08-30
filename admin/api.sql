@@ -725,7 +725,14 @@ CREATE OR REPLACE FUNCTION api.add_area (
   pDescription  text DEFAULT null
 ) RETURNS       numeric
 AS $$
+DECLARE
+  nId           numeric;
 BEGIN
+  SELECT id INTO nId FROM db.area WHERE code = pCode;
+  IF FOUND THEN
+    PERFORM RecordExists(pCode);
+  END IF;
+
   RETURN CreateArea(pParent, pType, pCode, pName, pDescription);
 END;
 $$ LANGUAGE plpgsql
@@ -758,7 +765,22 @@ CREATE OR REPLACE FUNCTION api.update_area (
   pValidToDate      timestamp DEFAULT null
 ) RETURNS           void
 AS $$
+DECLARE
+  vCode             varchar;
 BEGIN
+  SELECT code INTO vCode FROM db.area WHERE id = pId;
+  IF NOT FOUND THEN
+    PERFORM AreaError(pId);
+  END IF;
+
+  pCode := coalesce(pCode, vCode);
+  IF pCode <> vCode THEN
+    SELECT code INTO vCode FROM db.area WHERE code = pCode;
+    IF FOUND THEN
+      PERFORM RecordExists(pCode);
+    END IF;
+  END IF;
+
   PERFORM EditArea(pId, pParent, pType, pCode, pName, pDescription, pValidFromDate, pValidToDate);
 END;
 $$ LANGUAGE plpgsql
@@ -799,15 +821,80 @@ $$ LANGUAGE plpgsql
 /**
  * Удаляет зону.
  * @param {numeric} pId - Идентификатор зоны
- * @out {numeric} id - Идентификатор зоны
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.delete_area (
-  pId         numeric
-) RETURNS     void
+  pId       numeric
+) RETURNS   void
 AS $$
+DECLARE
+  nId       numeric;
 BEGIN
+  SELECT id INTO nId FROM db.area WHERE id = pId;
+  IF NOT FOUND THEN
+    PERFORM ObjectNotFound('подразделение', 'id', pId);
+  END IF;
   PERFORM DeleteArea(pId);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.safely_delete_area ------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Безопасно удаляет зону.
+ * @param {numeric} pId - Идентификатор зоны
+ * @return {void}
+ */
+CREATE OR REPLACE FUNCTION api.safely_delete_area (
+  pId       numeric
+) RETURNS   bool
+AS $$
+DECLARE
+  vMessage  text;
+BEGIN
+  PERFORM SetErrorMessage('Успешно.');
+  PERFORM api.delete_area(pId);
+  RETURN true;
+EXCEPTION
+WHEN others THEN
+  GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT;
+  PERFORM SetErrorMessage(vMessage);
+  RETURN false;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.clear_area --------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Удаляет зоны без документов.
+ * @return {void}
+ */
+CREATE OR REPLACE FUNCTION api.clear_area (
+) RETURNS   int
+AS $$
+DECLARE
+  r         record;
+  nDeleted  int;
+BEGIN
+  nDeleted := 0;
+  FOR r IN
+    SELECT a.id
+      FROM db.area a
+     WHERE a.validtodate IS NOT NULL
+       AND NOT EXISTS (SELECT id FROM db.document WHERE area = a.id)
+  LOOP
+    IF api.safely_delete_area(r.id) THEN
+      nDeleted := nDeleted + 1;
+    END IF;
+  END LOOP;
+
+  RETURN nDeleted;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

@@ -307,7 +307,7 @@ CREATE OR REPLACE FUNCTION ObjectNotFound (
 ) RETURNS	void
 AS $$
 BEGIN
-  RAISE EXCEPTION 'ERR-40033: Не найден(а) % с идентификатором: % (%).', pWho, pId, pParam;
+  RAISE EXCEPTION 'ERR-40033: Не найден(а/о) % с идентификатором: % (%).', pWho, pId, pParam;
 END;
 $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
@@ -487,6 +487,23 @@ CREATE OR REPLACE FUNCTION StateByCodeNotFound (
 AS $$
 BEGIN
   RAISE EXCEPTION 'ERR-40053: Не найдено состояние по коду "%" для объекта "%".', pCode, pObject;
+END;
+$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+
+CREATE OR REPLACE FUNCTION RecordExists (
+  pCode     varchar
+) RETURNS	void
+AS $$
+BEGIN
+  RAISE EXCEPTION 'ERR-40054: Запись с кодом "%" уже существует.', pCode;
+END;
+$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+
+CREATE OR REPLACE FUNCTION OperationNotPossible (
+) RETURNS	void
+AS $$
+BEGIN
+  RAISE EXCEPTION 'ERR-40055: Операция невозможна, есть связанные документы.';
 END;
 $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
