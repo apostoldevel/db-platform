@@ -139,6 +139,7 @@ COMMENT ON COLUMN db.area_type.name IS 'Наименование';
 CREATE UNIQUE INDEX ON db.area_type (code);
 
 INSERT INTO db.area_type (code, name) VALUES ('root', 'Корень');
+INSERT INTO db.area_type (code, name) VALUES ('guest', 'Гостевая зона');
 INSERT INTO db.area_type (code, name) VALUES ('default', 'По умолчанию');
 INSERT INTO db.area_type (code, name) VALUES ('main', 'Головной офис');
 INSERT INTO db.area_type (code, name) VALUES ('department', 'Подразделение');
@@ -646,7 +647,7 @@ DECLARE
   nId		    numeric;
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(1001) THEN
+    IF NOT IsUserRole(GetGroup('administrator')) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -1571,6 +1572,54 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- ExchangeToken ---------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION ExchangeToken (
+  pAudience     numeric,
+  pToken        text,
+  pInterval     interval DEFAULT '1 hour',
+  pType         char DEFAULT 'A'
+) RETURNS       json
+AS $$
+DECLARE
+  nHeader       numeric;
+  nToken        numeric;
+  vType         text;
+BEGIN
+  SELECT h.id, t.id INTO nHeader, nToken
+    FROM db.token_header h INNER JOIN db.token t ON h.id = t.header AND t.type = pType AND NOT (pType = 'C' AND t.used)
+   WHERE t.hash = GetTokenHash(pToken, GetSecretKey())
+     AND t.validFromDate <= Now()
+     AND t.validtoDate > Now();
+
+  IF NOT FOUND THEN
+
+    CASE pType
+    WHEN 'C' THEN
+      vType := 'authorization code.';
+    WHEN 'A' THEN
+      vType := 'access token.';
+    WHEN 'R' THEN
+      vType := 'refresh token.';
+    WHEN 'I' THEN
+      vType := 'id token.';
+    END CASE;
+
+    RETURN json_build_object('error', json_build_object('code', 400, 'error', 'invalid_grant', 'message', 'Malformed ' || vType));
+  END IF;
+
+  IF pType = 'C' THEN
+    UPDATE db.token SET used = true WHERE id = nToken;
+  END IF;
+
+  RETURN NewToken(pAudience, nHeader, Now(), Now() + pInterval);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- CreateToken -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -1580,23 +1629,8 @@ CREATE OR REPLACE FUNCTION CreateToken (
   pInterval     interval DEFAULT '1 hour'
 ) RETURNS       jsonb
 AS $$
-DECLARE
-  nHeader       numeric;
-  nToken        numeric;
 BEGIN
-  SELECT h.id, t.id INTO nHeader, nToken
-    FROM db.token_header h INNER JOIN db.token t ON h.id = t.header AND t.type = 'C' AND NOT t.used
-   WHERE t.hash = GetTokenHash(pCode, GetSecretKey())
-     AND t.validFromDate <= Now()
-     AND t.validtoDate > Now();
-
-  IF NOT FOUND THEN
-    RETURN json_build_object('error', json_build_object('code', 400, 'error', 'invalid_grant', 'message', 'Malformed auth code.'));
-  END IF;
-
-  UPDATE db.token SET used = true WHERE id = nToken;
-
-  RETURN NewToken(pAudience, nHeader, Now(), Now() + pInterval);
+  RETURN ExchangeToken(pAudience, pCode, pInterval, 'C');
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1612,20 +1646,8 @@ CREATE OR REPLACE FUNCTION UpdateToken (
   pInterval     interval DEFAULT '1 hour'
 ) RETURNS       json
 AS $$
-DECLARE
-  nHeader       numeric;
 BEGIN
-  SELECT h.id INTO nHeader
-    FROM db.token_header h INNER JOIN db.token t ON h.id = t.header AND t.type = 'R'
-   WHERE t.hash = GetTokenHash(pRefresh, GetSecretKey())
-     AND t.validFromDate <= Now()
-     AND t.validtoDate > Now();
-
-  IF NOT FOUND THEN
-    RETURN json_build_object('error', json_build_object('code', 400, 'error', 'invalid_grant', 'message', 'Malformed refresh token.'));
-  END IF;
-
-  RETURN NewToken(pAudience, nHeader, Now(), Now() + pInterval);
+  RETURN ExchangeToken(pAudience, pRefresh, pInterval, 'R');
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -2295,7 +2317,7 @@ CREATE OR REPLACE FUNCTION SubstituteUser (
 AS $$
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(1000, session_userid()) THEN
+    IF NOT IsUserRole(GetGroup('system'), session_userid()) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -2729,7 +2751,7 @@ DECLARE
   vSecret               text;
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(1001) THEN
+    IF NOT IsUserRole(GetGroup('administrator')) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -2754,10 +2776,7 @@ BEGIN
   PERFORM SetPassword(nUserId, pPassword);
 
   PERFORM AddMemberToInterface(nUserId, GetInterface('I:1:0:0'));
-
-  IF pArea IS NOT NULL THEN
-    PERFORM AddMemberToArea(nUserId, pArea);
-  END IF;
+  PERFORM AddMemberToArea(nUserId, coalesce(pArea, GetArea('guest')));
 
   RETURN nUserId;
 END;
@@ -2785,7 +2804,7 @@ DECLARE
   nGroupId	    numeric;
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(1001) THEN
+    IF NOT IsUserRole(GetGroup('administrator')) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -2838,7 +2857,7 @@ DECLARE
 BEGIN
   IF session_user <> 'kernel' THEN
     IF pId <> current_userid() THEN
-      IF NOT IsUserRole(1001)  THEN
+      IF NOT IsUserRole(GetGroup('administrator'))  THEN
         PERFORM AccessDenied();
       END IF;
     END IF;
@@ -2902,7 +2921,7 @@ DECLARE
   vGroupName    varchar;
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(1001) THEN
+    IF NOT IsUserRole(GetGroup('administrator')) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -2941,7 +2960,7 @@ DECLARE
   vUserName	varchar;
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(1001) THEN
+    IF NOT IsUserRole(GetGroup('administrator')) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3015,7 +3034,7 @@ DECLARE
   vGroupName    varchar;
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(1001) THEN
+    IF NOT IsUserRole(GetGroup('administrator')) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3132,7 +3151,7 @@ BEGIN
 
   IF session_user <> 'kernel' THEN
     IF pId <> nUserId THEN
-      IF NOT IsUserRole(1001) THEN
+      IF NOT IsUserRole(GetGroup('administrator')) THEN
         PERFORM AccessDenied();
       END IF;
     END IF;
@@ -3222,7 +3241,7 @@ DECLARE
 BEGIN
   IF session_user <> 'kernel' THEN
     IF pId <> current_userid() THEN
-      IF NOT IsUserRole(1001) THEN
+      IF NOT IsUserRole(GetGroup('administrator')) THEN
         PERFORM AccessDenied();
       END IF;
     END IF;
@@ -3256,7 +3275,7 @@ DECLARE
   nId		numeric;
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(1001) THEN
+    IF NOT IsUserRole(GetGroup('administrator')) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3289,7 +3308,7 @@ CREATE OR REPLACE FUNCTION AddMemberToGroup (
 AS $$
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(1001) THEN
+    IF NOT IsUserRole(GetGroup('administrator')) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3316,7 +3335,7 @@ CREATE OR REPLACE FUNCTION DeleteGroupForMember (
 AS $$
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(1001) THEN
+    IF NOT IsUserRole(GetGroup('administrator')) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3343,7 +3362,7 @@ CREATE OR REPLACE FUNCTION DeleteMemberFromGroup (
 AS $$
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(1001) THEN
+    IF NOT IsUserRole(GetGroup('administrator')) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3406,7 +3425,7 @@ DECLARE
   nId		    numeric;
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(1001) THEN
+    IF NOT IsUserRole(GetGroup('administrator')) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3436,7 +3455,7 @@ CREATE OR REPLACE FUNCTION EditArea (
 AS $$
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(1001) THEN
+    IF NOT IsUserRole(GetGroup('administrator')) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3472,7 +3491,7 @@ CREATE OR REPLACE FUNCTION DeleteArea (
 AS $$
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(1001) THEN
+    IF NOT IsUserRole(GetGroup('administrator')) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3548,7 +3567,7 @@ CREATE OR REPLACE FUNCTION AddMemberToArea (
 AS $$
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(1001) THEN
+    IF NOT IsUserRole(GetGroup('administrator')) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3578,7 +3597,7 @@ CREATE OR REPLACE FUNCTION DeleteAreaForMember (
 AS $$
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(1001) THEN
+    IF NOT IsUserRole(GetGroup('administrator')) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3605,7 +3624,7 @@ CREATE OR REPLACE FUNCTION DeleteMemberFromArea (
 AS $$
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(1001) THEN
+    IF NOT IsUserRole(GetGroup('administrator')) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3729,7 +3748,7 @@ DECLARE
   nId		    numeric;
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(1001) THEN
+    IF NOT IsUserRole(GetGroup('administrator')) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3755,7 +3774,7 @@ CREATE OR REPLACE FUNCTION UpdateInterface (
 AS $$
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(1001) THEN
+    IF NOT IsUserRole(GetGroup('administrator')) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3776,7 +3795,7 @@ CREATE OR REPLACE FUNCTION DeleteInterface (
 AS $$
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(1001) THEN
+    IF NOT IsUserRole(GetGroup('administrator')) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3798,7 +3817,7 @@ CREATE OR REPLACE FUNCTION AddMemberToInterface (
 AS $$
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(1001) THEN
+    IF NOT IsUserRole(GetGroup('administrator')) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3820,7 +3839,7 @@ CREATE OR REPLACE FUNCTION DeleteInterfaceForMember (
 AS $$
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(1001) THEN
+    IF NOT IsUserRole(GetGroup('administrator')) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3842,7 +3861,7 @@ CREATE OR REPLACE FUNCTION DeleteMemberFromInterface (
 AS $$
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(1001) THEN
+    IF NOT IsUserRole(GetGroup('administrator')) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3865,7 +3884,7 @@ DECLARE
   vSID		text;
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(1001) THEN
+    IF NOT IsUserRole(GetGroup('administrator')) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -4603,7 +4622,8 @@ CREATE OR REPLACE FUNCTION GetSession (
   pUserName     text,
   pOAuth2       numeric DEFAULT CreateSystemOAuth2(),
   pAgent        text DEFAULT null,
-  pHost         inet DEFAULT null
+  pHost         inet DEFAULT null,
+  pNew          bool DEFAULT false
 ) RETURNS       text
 AS $$
 DECLARE
@@ -4642,7 +4662,7 @@ BEGIN
 
   SELECT code INTO vSession FROM db.session WHERE userid = up.id;
 
-  IF NOT FOUND THEN
+  IF NOT FOUND OR pNew THEN
     nArea := GetDefaultArea(up.id);
     nInterface := GetDefaultInterface(up.id);
 

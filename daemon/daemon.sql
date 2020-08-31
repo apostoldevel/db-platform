@@ -122,7 +122,6 @@ DECLARE
 
   vSecret       text;
   vCode         text;
-  vHash         text;
 
   iss           text;
   aud           text;
@@ -209,7 +208,7 @@ BEGIN
 
     SELECT id INTO nAudience FROM oauth2.audience WHERE provider = GetProvider('default') AND application = GetApplication('web');
 
-    session := GetSession(account.username, CreateOAuth2(nAudience, ARRAY['api']), pAgent, pHost);
+    session := GetSession(account.username, CreateOAuth2(nAudience, ARRAY['api']), pAgent, pHost, true);
 
     IF session IS NULL THEN
       RAISE EXCEPTION '%', GetErrorMessage();
@@ -268,7 +267,12 @@ DECLARE
   auth_code     text;
   scope         text;
   state         text;
-  assertion     text;
+
+  assertion             text;
+  subject_token         text;
+  subject_token_type    text;
+
+  vType         char;
 
   vUsername     text;
   vPassword     text;
@@ -417,6 +421,26 @@ BEGIN
 
     RETURN CreateToken(nAudience, oauth2_current_code(vSession), INTERVAL '1 day');
 
+  ELSIF grant_type = 'urn:ietf:params:oauth:grant-type:token-exchange' THEN
+
+    subject_token := pPayload->>'subject_token';
+    subject_token_type := coalesce(pPayload->>'subject_token_type', 'urn:ietf:params:oauth:token-type:jwt');
+
+    CASE subject_token_type
+    WHEN 'urn:ietf:params:oauth:token-type:jwt' THEN
+      vType := 'A';
+    WHEN 'urn:ietf:params:oauth:token-type:access_token' THEN
+      vType := 'A';
+    WHEN 'urn:ietf:params:oauth:token-type:refresh_token' THEN
+      vType := 'R';
+    WHEN 'urn:ietf:params:oauth:token-type:id_token' THEN
+      vType := 'I';
+    ELSE
+      RETURN json_build_object('error', json_build_object('code', 400, 'error', 'unsupported_token_type', 'message', format('Invalid parameter "subject_token_type": %s.', subject_token_type)));
+    END CASE;
+
+    RETURN ExchangeToken(nAudience, subject_token, INTERVAL '1 hour', vType);
+
   ELSIF grant_type = 'urn:ietf:params:oauth:grant-type:jwt-bearer' THEN
 
     assertion := pPayload->>'assertion';
@@ -424,7 +448,7 @@ BEGIN
     RETURN daemon.signin(assertion, pAgent, pHost);
 
   ELSE
-    RETURN json_build_object('error', json_build_object('code', 400, 'error', 'unsupported_grant_type', 'message', format('Invalid grant type: %s.', grant_type)));
+    RETURN json_build_object('error', json_build_object('code', 400, 'error', 'unsupported_grant_type', 'message', format('Invalid parameter "grant_type": %s.', grant_type)));
   END IF;
 EXCEPTION
 WHEN others THEN

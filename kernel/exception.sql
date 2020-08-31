@@ -507,6 +507,16 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
+CREATE OR REPLACE FUNCTION ViewNotFound (
+  pScheme       text,
+  pTable	text
+) RETURNS	void
+AS $$
+BEGIN
+  RAISE EXCEPTION 'ERR-40056: Представление "%.%" не найдено.', pScheme, pTable;
+END;
+$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+
 CREATE OR REPLACE FUNCTION IncorrectRegistryKey (
   pKey		text,
   pArray	anyarray

@@ -51,7 +51,7 @@ DECLARE
   nId		    numeric;
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(1001) THEN
+    IF NOT IsUserRole(GetGroup('administrator')) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -150,7 +150,7 @@ DECLARE
   nId		    numeric;
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(1001) THEN
+    IF NOT IsUserRole(GetGroup('administrator')) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -249,7 +249,7 @@ DECLARE
   nId		    numeric;
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(1001) THEN
+    IF NOT IsUserRole(GetGroup('administrator')) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -340,7 +340,7 @@ DECLARE
   nId		    numeric;
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(1001) THEN
+    IF NOT IsUserRole(GetGroup('administrator')) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -469,7 +469,7 @@ DECLARE
   nId           numeric;
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(1001) THEN
+    IF NOT IsUserRole(GetGroup('administrator')) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
