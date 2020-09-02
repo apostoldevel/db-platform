@@ -156,7 +156,7 @@ $$ LANGUAGE plpgsql
  * @param {numeric} pId - Идентификатор учетной записи
  * @param {text} pUserName - Пользователь
  * @param {text} pPassword - Пароль
- * @param {text} name - Полное имя
+ * @param {text} pName - Полное имя
  * @param {text} pPhone - Телефон
  * @param {text} pEmail - Электронный адрес
  * @param {text} pDescription - Описание
