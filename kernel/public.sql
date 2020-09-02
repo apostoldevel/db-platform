@@ -425,7 +425,7 @@ BEGIN
   WHEN 'PSX' THEN
     RETURN ' ~ ';
   WHEN 'PSI' THEN
-    RETURN ' !~ ';
+    RETURN ' ~* ';
   WHEN 'PSN' THEN
     RETURN ' !~ ';
   WHEN 'PIN' THEN
