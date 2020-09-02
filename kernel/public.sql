@@ -404,12 +404,6 @@ BEGIN
     RETURN ' >= ';
   WHEN 'GIN' THEN
     RETURN ' @> ';
-  WHEN 'LKE' THEN
-    RETURN ' LIKE ';
-  WHEN 'ISN' THEN
-    RETURN ' IS ';
-  WHEN 'INN' THEN
-    RETURN ' IS NOT ';
   WHEN 'AND' THEN
     RETURN ' & ';
   WHEN 'OR' THEN
@@ -418,6 +412,24 @@ BEGIN
     RETURN ' # ';
   WHEN 'NOT' THEN
     RETURN ' ~ ';
+  WHEN 'LKE' THEN
+    RETURN ' LIKE ';
+  WHEN 'IKE' THEN
+    RETURN ' ILIKE ';
+  WHEN 'SIM' THEN
+    RETURN ' SIMILAR TO ';
+  WHEN 'PSX' THEN
+    RETURN ' ~ ';
+  WHEN 'PSI' THEN
+    RETURN ' !~ ';
+  WHEN 'PSN' THEN
+    RETURN ' !~ ';
+  WHEN 'PIN' THEN
+    RETURN ' !~* ';
+  WHEN 'ISN' THEN
+    RETURN ' IS ';
+  WHEN 'INN' THEN
+    RETURN ' IS NOT ';
   ELSE
     NULL;
   END CASE;

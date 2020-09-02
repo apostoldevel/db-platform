@@ -29,3 +29,6 @@
 
 \echo [M] call log.sql
 \ir log.sql
+
+\echo [M] call api.sql
+\ir api.sql
