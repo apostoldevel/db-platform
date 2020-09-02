@@ -36,12 +36,12 @@
    LKE - LIKE - Значение ключа (value) должно передаваться вместе со знаком '%' в нужном месте
    IKE - ILIKE - Регистр-независимый LIKE.
 
-   SIM - Регулярные выражения SIMILAR TO
+   SIM - Регулярные выражения: SIMILAR TO
 
-   PSX - Регулярное выражение POSIX (~)
-   PSI - Регулярное выражение POSIX (~*)
-   PSN - Регулярное выражение POSIX (!~)
-   PIN - Регулярное выражение POSIX (!~*)
+   PSX - Регулярное выражение POSIX: ~
+   PSI - Регулярное выражение POSIX: ~*
+   PSN - Регулярное выражение POSIX: !~
+   PIN - Регулярное выражение POSIX: !~*
  */
 CREATE OR REPLACE FUNCTION api.sql (
   pScheme       text,
