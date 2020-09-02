@@ -412,6 +412,10 @@ BEGIN
     RETURN ' # ';
   WHEN 'NOT' THEN
     RETURN ' ~ ';
+  WHEN 'ISN' THEN
+    RETURN ' IS ';
+  WHEN 'INN' THEN
+    RETURN ' IS NOT ';
   WHEN 'LKE' THEN
     RETURN ' LIKE ';
   WHEN 'IKE' THEN
@@ -426,10 +430,6 @@ BEGIN
     RETURN ' !~ ';
   WHEN 'PIN' THEN
     RETURN ' !~* ';
-  WHEN 'ISN' THEN
-    RETURN ' IS ';
-  WHEN 'INN' THEN
-    RETURN ' IS NOT ';
   ELSE
     NULL;
   END CASE;
