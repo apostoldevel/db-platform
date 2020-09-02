@@ -3430,6 +3430,11 @@ BEGIN
     END IF;
   END IF;
 
+  SELECT id INTO nId FROM db.area WHERE code = pCode;
+  IF FOUND THEN
+    PERFORM RecordExists(pCode);
+  END IF;
+
   INSERT INTO db.area (parent, type, code, name, description)
   VALUES (coalesce(pParent, GetArea('root')), pType, pCode, pName, pDescription) RETURNING Id INTO nId;
   RETURN nId;
@@ -3453,10 +3458,25 @@ CREATE OR REPLACE FUNCTION EditArea (
   pValidToDate		timestamp DEFAULT null
 ) RETURNS void
 AS $$
+DECLARE
+  vCode             varchar;
 BEGIN
   IF session_user <> 'kernel' THEN
     IF NOT IsUserRole(GetGroup('administrator')) THEN
       PERFORM AccessDenied();
+    END IF;
+  END IF;
+
+  SELECT code INTO vCode FROM db.area WHERE id = pId;
+  IF NOT FOUND THEN
+    PERFORM AreaError(pId);
+  END IF;
+
+  pCode := coalesce(pCode, vCode);
+  IF pCode <> vCode THEN
+    SELECT code INTO vCode FROM db.area WHERE code = pCode;
+    IF FOUND THEN
+      PERFORM RecordExists(pCode);
     END IF;
   END IF;
 
@@ -3489,11 +3509,18 @@ CREATE OR REPLACE FUNCTION DeleteArea (
   pId			numeric
 ) RETURNS       void
 AS $$
+DECLARE
+  nId           numeric;
 BEGIN
   IF session_user <> 'kernel' THEN
     IF NOT IsUserRole(GetGroup('administrator')) THEN
       PERFORM AccessDenied();
     END IF;
+  END IF;
+
+  SELECT id INTO nId FROM db.area WHERE id = pId;
+  IF NOT FOUND THEN
+    PERFORM ObjectNotFound('подразделение', 'id', pId);
   END IF;
 
   DELETE FROM db.area WHERE Id = pId;

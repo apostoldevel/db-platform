@@ -109,30 +109,40 @@ $$ LANGUAGE plpgsql
 -- USER ------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
+CREATE OR REPLACE VIEW api.user
+AS
+  SELECT * FROM users;
+
+GRANT SELECT ON api.user TO administrator;
+
 --------------------------------------------------------------------------------
 -- api.add_user ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
  * Создаёт учётную запись пользователя.
- * @param {varchar} pUserName - Пользователь
+ * @param {text} pUserName - Пользователь
  * @param {text} pPassword - Пароль
- * @param {text} name - Полное имя
+ * @param {text} pName - Полное имя
  * @param {text} pPhone - Телефон
  * @param {text} pEmail - Электронный адрес
  * @param {text} pDescription - Описание
+ * @param {boolean} pPasswordChange - Сменить пароль при следующем входе в систему
+ * @param {boolean} pPasswordNotChange - Установить запрет на смену пароля самим пользователем
  * @return {numeric}
  */
 CREATE OR REPLACE FUNCTION api.add_user (
-  pUserName     varchar,
-  pPassword     text,
-  name          text,
-  pPhone        text DEFAULT null,
-  pEmail        text DEFAULT null,
-  pDescription  text DEFAULT null
-) RETURNS       numeric
+  pUserName             text,
+  pPassword             text,
+  pName                 text,
+  pPhone                text,
+  pEmail                text,
+  pDescription          text,
+  pPasswordChange       boolean,
+  pPasswordNotChange    boolean
+) RETURNS               numeric
 AS $$
 BEGIN
-  RETURN CreateUser(pUserName, pPassword, name, pPhone, pEmail, pDescription);
+  RETURN CreateUser(pUserName, pPassword, pName, pPhone, pEmail, pDescription, pPasswordChange, pPasswordNotChange);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -144,7 +154,7 @@ $$ LANGUAGE plpgsql
 /**
  * Обновляет учётную запись пользователя.
  * @param {numeric} pId - Идентификатор учетной записи
- * @param {varchar} pUserName - Пользователь
+ * @param {text} pUserName - Пользователь
  * @param {text} pPassword - Пароль
  * @param {text} name - Полное имя
  * @param {text} pPhone - Телефон
@@ -155,19 +165,48 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_user (
-  pId                 numeric,
-  pUserName           varchar,
-  pPassword           text,
-  name                text,
-  pPhone              text,
-  pEmail              text,
-  pDescription        text,
-  pPasswordChange     boolean,
-  pPasswordNotChange  boolean
-) RETURNS             void
+  pId                   numeric,
+  pUserName             text,
+  pPassword             text,
+  pName                 text,
+  pPhone                text,
+  pEmail                text,
+  pDescription          text,
+  pPasswordChange       boolean,
+  pPasswordNotChange    boolean
+) RETURNS               void
 AS $$
 BEGIN
-  PERFORM UpdateUser(pId, pUserName, pPassword, name, pPhone, pEmail, pDescription, pPasswordChange, pPasswordNotChange);
+  PERFORM UpdateUser(pId, pUserName, pPassword, pName, pPhone, pEmail, pDescription, pPasswordChange, pPasswordNotChange);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.set_user ----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.set_user (
+  pId                   numeric,
+  pUserName             text,
+  pPassword             text,
+  pName                 text,
+  pPhone                text,
+  pEmail                text,
+  pDescription          text,
+  pPasswordChange       boolean,
+  pPasswordNotChange    boolean
+) RETURNS               SETOF api.user
+AS $$
+BEGIN
+  IF pId IS NULL THEN
+    pId := api.add_user(pUserName, pPassword, pName, pPhone, pEmail, pDescription, pPasswordChange, pPasswordNotChange);
+  ELSE
+    PERFORM api.update_user(pId, pUserName, pPassword, pName, pPhone, pEmail, pDescription, pPasswordChange, pPasswordNotChange);
+  END IF;
+
+  RETURN QUERY SELECT * FROM api.user WHERE id = pId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -197,23 +236,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает учётную запись пользователя.
- * @return {SETOF users} - Учётная запись пользователя
+ * @return {SETOF api.user} - Учётная запись пользователя
  */
 CREATE OR REPLACE FUNCTION api.get_user (
-  pId		numeric DEFAULT current_userid()
-) RETURNS	SETOF users
+  pId         numeric DEFAULT current_userid()
+) RETURNS     SETOF api.user
 AS $$
-DECLARE
-  r         users%rowtype;
-BEGIN
-  FOR r IN SELECT * FROM users WHERE id = pId
-  LOOP
-    RETURN NEXT r;
-  END LOOP;
-
-  RETURN;
-END;
-$$ LANGUAGE plpgsql
+  SELECT * FROM api.user WHERE id = pId;
+$$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -221,22 +251,24 @@ $$ LANGUAGE plpgsql
 -- api.list_user ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает учётные записи пользователей.
- * @return {SETOF users} - Учётные записи пользователей
+ * Возвращает список пользователей.
+ * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
+ * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
+ * @param {integer} pLimit - Лимит по количеству строк
+ * @param {integer} pOffSet - Пропустить указанное число строк
+ * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
+ * @return {SETOF api.user}
  */
 CREATE OR REPLACE FUNCTION api.list_user (
-  pId		numeric DEFAULT null
-) RETURNS	SETOF users
+  pSearch	jsonb DEFAULT null,
+  pFilter	jsonb DEFAULT null,
+  pLimit	integer DEFAULT null,
+  pOffSet	integer DEFAULT null,
+  pOrderBy	jsonb DEFAULT null
+) RETURNS	SETOF api.user
 AS $$
-DECLARE
-  r         users%rowtype;
 BEGIN
-  FOR r IN SELECT * FROM users WHERE id = coalesce(pId, id)
-  LOOP
-    RETURN NEXT r;
-  END LOOP;
-
-  RETURN;
+  RETURN QUERY EXECUTE api.sql('api', 'user', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -392,24 +424,30 @@ $$ LANGUAGE plpgsql
 -- GROUP -----------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
+CREATE OR REPLACE VIEW api.group
+AS
+  SELECT * FROM groups;
+
+GRANT SELECT ON api.group TO administrator;
+
 --------------------------------------------------------------------------------
 -- api.add_group ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
  * Создаёт группу учётных записей пользователя.
  * @param {varchar} pGroupName - Группа
- * @param {text} name - Полное имя
+ * @param {text} pName - Полное имя
  * @param {text} pDescription - Описание
  * @return {numeric}
  */
 CREATE OR REPLACE FUNCTION api.add_group (
-  pGroupName	varchar,
-  name          text,
-  pDescription  text DEFAULT null
+  pGroupName    text,
+  pName         text,
+  pDescription  text
 ) RETURNS       numeric
 AS $$
 BEGIN
-  RETURN CreateGroup(pGroupName, name, pDescription);
+  RETURN CreateGroup(pGroupName, pName, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -422,19 +460,43 @@ $$ LANGUAGE plpgsql
  * Обновляет учётные данные группы.
  * @param {numeric} pId - Идентификатор группы
  * @param {varchar} pGroupName - Группа
- * @param {text} name - Полное имя
+ * @param {text} pName - Полное имя
  * @param {text} pDescription - Описание
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_group (
   pId           numeric,
-  pGroupName    varchar,
-  name          text,
+  pGroupName    text,
+  pName         text,
   pDescription  text
 ) RETURNS       void
 AS $$
 BEGIN
-  PERFORM UpdateGroup(pId, pGroupName, name, pDescription);
+  PERFORM UpdateGroup(pId, pGroupName, pName, pDescription);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.set_group ---------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.set_group (
+  pId           numeric,
+  pGroupName    text,
+  pName         text,
+  pDescription  text
+) RETURNS       SETOF api.group
+AS $$
+BEGIN
+  IF pId IS NULL THEN
+    pId := api.add_group(pGroupName, pName, pDescription);
+  ELSE
+    PERFORM api.update_group(pId, pGroupName, pName, pDescription);
+  END IF;
+
+  RETURN QUERY SELECT * FROM api.group WHERE id = pId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -467,13 +529,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает группу.
- * @return {record} - Группа
+ * @return {SETOF api.group} - Группа
  */
 CREATE OR REPLACE FUNCTION api.get_group (
   pId         numeric
-) RETURNS     SETOF groups
+) RETURNS     SETOF api.group
 AS $$
-  SELECT * FROM groups WHERE id = pId;
+  SELECT * FROM api.group WHERE id = pId;
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -483,13 +545,25 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 /**
  * Возвращает список групп.
- * @return {record} - Группы
+ * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
+ * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
+ * @param {integer} pLimit - Лимит по количеству строк
+ * @param {integer} pOffSet - Пропустить указанное число строк
+ * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
+ * @return {SETOF api.group}
  */
 CREATE OR REPLACE FUNCTION api.list_group (
-) RETURNS     SETOF groups
+  pSearch	jsonb DEFAULT null,
+  pFilter	jsonb DEFAULT null,
+  pLimit	integer DEFAULT null,
+  pOffSet	integer DEFAULT null,
+  pOrderBy	jsonb DEFAULT null
+) RETURNS	SETOF api.group
 AS $$
-  SELECT * FROM groups;
-$$ LANGUAGE SQL
+BEGIN
+  RETURN QUERY EXECUTE api.sql('api', 'group', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+END;
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -579,7 +653,7 @@ CREATE OR REPLACE FUNCTION api.group_member (
   pGroupId    numeric
 ) RETURNS TABLE (
   id          numeric,
-  username    varchar,
+  username    text,
   name        text,
   email       text,
   phone       text,
@@ -605,7 +679,7 @@ CREATE OR REPLACE FUNCTION api.member_group (
   pUserId     numeric DEFAULT current_userid()
 ) RETURNS TABLE (
   id          numeric,
-  username    varchar,
+  username    text,
   name        text,
   description text
 )
@@ -641,7 +715,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.is_user_role ------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * Проверяет роль пользователя.
+ * @param {numeric} pRole - Идентификатор роли (группы)
+ * @param {numeric} pUser - Идентификатор пользователя (учётной записи)
+ * @return {boolean}
+ */
 CREATE OR REPLACE FUNCTION api.is_user_role (
   pRole         numeric,
   pUser         numeric DEFAULT current_userid()
@@ -657,7 +736,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.is_user_role ------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * Проверяет роль пользователя.
+ * @param {text} pRole - Код роли (группы)
+ * @param {text} pUser - Код пользователя (учётной записи)
+ * @return {boolean}
+ */
 CREATE OR REPLACE FUNCTION api.is_user_role (
   pRole         text,
   pUser         text DEFAULT session_username()
@@ -725,14 +809,7 @@ CREATE OR REPLACE FUNCTION api.add_area (
   pDescription  text DEFAULT null
 ) RETURNS       numeric
 AS $$
-DECLARE
-  nId           numeric;
 BEGIN
-  SELECT id INTO nId FROM db.area WHERE code = pCode;
-  IF FOUND THEN
-    PERFORM RecordExists(pCode);
-  END IF;
-
   RETURN CreateArea(pParent, pType, pCode, pName, pDescription);
 END;
 $$ LANGUAGE plpgsql
@@ -765,22 +842,7 @@ CREATE OR REPLACE FUNCTION api.update_area (
   pValidToDate      timestamp DEFAULT null
 ) RETURNS           void
 AS $$
-DECLARE
-  vCode             varchar;
 BEGIN
-  SELECT code INTO vCode FROM db.area WHERE id = pId;
-  IF NOT FOUND THEN
-    PERFORM AreaError(pId);
-  END IF;
-
-  pCode := coalesce(pCode, vCode);
-  IF pCode <> vCode THEN
-    SELECT code INTO vCode FROM db.area WHERE code = pCode;
-    IF FOUND THEN
-      PERFORM RecordExists(pCode);
-    END IF;
-  END IF;
-
   PERFORM EditArea(pId, pParent, pType, pCode, pName, pDescription, pValidFromDate, pValidToDate);
 END;
 $$ LANGUAGE plpgsql
@@ -827,13 +889,7 @@ CREATE OR REPLACE FUNCTION api.delete_area (
   pId       numeric
 ) RETURNS   void
 AS $$
-DECLARE
-  nId       numeric;
 BEGIN
-  SELECT id INTO nId FROM db.area WHERE id = pId;
-  IF NOT FOUND THEN
-    PERFORM ObjectNotFound('подразделение', 'id', pId);
-  END IF;
   PERFORM DeleteArea(pId);
 END;
 $$ LANGUAGE plpgsql
@@ -926,7 +982,7 @@ $$ LANGUAGE SQL
  * @param {integer} pLimit - Лимит по количеству строк
  * @param {integer} pOffSet - Пропустить указанное число строк
  * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.area} - Сотрудникы
+ * @return {SETOF api.area}
  */
 CREATE OR REPLACE FUNCTION api.list_area (
   pSearch	jsonb DEFAULT null,
@@ -1135,6 +1191,29 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- api.set_interface -----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.set_interface (
+  pId           numeric,
+  pName         varchar,
+  pDescription  text DEFAULT null
+) RETURNS       SETOF api.interface
+AS $$
+BEGIN
+  IF pId IS NULL THEN
+    pId := api.add_interface(pName, pDescription);
+  ELSE
+    PERFORM api.update_interface(pId, pName, pDescription);
+  END IF;
+
+  RETURN QUERY SELECT * FROM api.interface WHERE id = pId;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- api.delete_interface --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
@@ -1167,6 +1246,33 @@ CREATE OR REPLACE FUNCTION api.get_interface (
 AS $$
   SELECT * FROM api.interface WHERE id = pId;
 $$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.list_interface ----------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Возвращает список интерфейсов.
+ * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
+ * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
+ * @param {integer} pLimit - Лимит по количеству строк
+ * @param {integer} pOffSet - Пропустить указанное число строк
+ * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
+ * @return {SETOF api.area}
+ */
+CREATE OR REPLACE FUNCTION api.list_interface (
+  pSearch	jsonb DEFAULT null,
+  pFilter	jsonb DEFAULT null,
+  pLimit	integer DEFAULT null,
+  pOffSet	integer DEFAULT null,
+  pOrderBy	jsonb DEFAULT null
+) RETURNS	SETOF api.interface
+AS $$
+BEGIN
+  RETURN QUERY EXECUTE api.sql('api', 'interface', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+END;
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
