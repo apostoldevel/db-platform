@@ -1367,7 +1367,7 @@ BEGIN
 
     END IF;
 
-  WHEN '/admin/member/area' THEN -- Участники зоны
+  WHEN '/admin/member/area' THEN -- Зоны доступные участнику
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
@@ -1438,7 +1438,7 @@ BEGIN
 
     END IF;
 
-  WHEN '/admin/member/interface' THEN -- Участники интерфеса
+  WHEN '/admin/member/interface' THEN -- Интерфейсы доступные участнику
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
