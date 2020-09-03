@@ -1279,7 +1279,7 @@ BEGIN
 
     END IF;
 
-  WHEN '/admin/member/user' THEN -- Пользователи группы
+  WHEN '/admin/member/user' THEN -- Участники (пользователи) группы
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
@@ -1296,7 +1296,7 @@ BEGIN
       END LOOP;
     END LOOP;
 
-  WHEN '/admin/member/group' THEN -- Группы пользователя
+  WHEN '/admin/member/group' THEN -- Группы участника (пользователя)
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
@@ -1367,7 +1367,7 @@ BEGIN
 
     END IF;
 
-  WHEN '/admin/member/area' THEN -- Зоны доступные участнику
+  WHEN '/admin/member/area' THEN -- Зоны участника (пользователя или группы)
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
@@ -1438,7 +1438,7 @@ BEGIN
 
     END IF;
 
-  WHEN '/admin/member/interface' THEN -- Интерфейсы доступные участнику
+  WHEN '/admin/member/interface' THEN -- Интерфейсы участника (пользователя или группы)
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
