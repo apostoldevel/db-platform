@@ -3600,9 +3600,6 @@ BEGIN
   END IF;
 
   INSERT INTO db.member_area (area, member) VALUES (pArea, pMember);
-exception
-  when OTHERS THEN
-    null;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

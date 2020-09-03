@@ -568,6 +568,27 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- api.group_member_add --------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Добавляет пользователя в группу.
+ * @param {numeric} pGroup - Идентификатор группы
+ * @param {numeric} pMember - Идентификатор пользователя
+ * @return {void}
+ */
+CREATE OR REPLACE FUNCTION api.group_member_add (
+  pGroup        numeric,
+  pMember       numeric
+) RETURNS       void
+AS $$
+BEGIN
+  PERFORM AddMemberToGroup(pMember, pGroup);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- api.member_group_add --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
@@ -583,6 +604,27 @@ CREATE OR REPLACE FUNCTION api.member_group_add (
 AS $$
 BEGIN
   PERFORM AddMemberToGroup(pMember, pGroup);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.group_member_delete -----------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Удаляет пользователя из группу.
+ * @param {numeric} pGroup - Идентификатор группы
+ * @param {numeric} pMember - Идентификатор пользователя, при null удаляет всех пользователей из указанной группы
+ * @return {void}
+ */
+CREATE OR REPLACE FUNCTION api.group_member_delete (
+  pGroup        numeric,
+  pMember       numeric DEFAULT null
+) RETURNS       void
+AS $$
+BEGIN
+  PERFORM DeleteMemberFromGroup(pGroup, pMember);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -612,27 +654,6 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- api.group_member_delete -----------------------------------------------------
---------------------------------------------------------------------------------
-/**
- * Удаляет пользователя из группу.
- * @param {numeric} pGroup - Идентификатор группы
- * @param {numeric} pMember - Идентификатор пользователя, при null удаляет всех пользователей из указанной группы
- * @return {void}
- */
-CREATE OR REPLACE FUNCTION api.group_member_delete (
-  pGroup        numeric,
-  pMember       numeric DEFAULT null
-) RETURNS       void
-AS $$
-BEGIN
-  PERFORM DeleteMemberFromGroup(pGroup, pMember);
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
 -- api.member_group ------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -643,13 +664,13 @@ AS
 GRANT SELECT ON api.member_group TO administrator;
 
 --------------------------------------------------------------------------------
--- api.group_member ------------------------------------------------------------
+-- api.member_group ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
  * Возвращает список пользователей группы.
  * @return {TABLE} - Группы
  */
-CREATE OR REPLACE FUNCTION api.group_member (
+CREATE OR REPLACE FUNCTION api.member_group (
   pGroupId    numeric
 ) RETURNS TABLE (
   id          numeric,
@@ -669,13 +690,13 @@ $$ LANGUAGE SQL
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- api.member_group ------------------------------------------------------------
+-- api.group_member ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
  * Возвращает список групп пользователя.
  * @return {TABLE} - Группы
  */
-CREATE OR REPLACE FUNCTION api.member_group (
+CREATE OR REPLACE FUNCTION api.group_member (
   pUserId     numeric DEFAULT current_userid()
 ) RETURNS TABLE (
   id          numeric,
@@ -1000,6 +1021,27 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- api.area_member_add ---------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Добавляет пользователя или группу в зону.
+ * @param {numeric} pArea - Идентификатор зоны
+ * @param {numeric} pMember - Идентификатор пользователя/группы
+ * @return {void}
+ */
+CREATE OR REPLACE FUNCTION api.area_member_add (
+  pArea       numeric,
+  pMember     numeric
+) RETURNS     void
+AS $$
+BEGIN
+  PERFORM AddMemberToArea(pMember, pArea);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- api.member_area_add ---------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
@@ -1021,6 +1063,27 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- api.area_member_delete ------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Удаляет пользователя из зоны.
+ * @param {numeric} pArea - Идентификатор зоны
+ * @param {numeric} pMember - Идентификатор пользователя, при null удаляет всех пользователей из указанной зоны
+ * @return {void}
+ */
+CREATE OR REPLACE FUNCTION api.area_member_delete (
+  pArea       numeric,
+  pMember     numeric DEFAULT null
+) RETURNS     void
+AS $$
+BEGIN
+  PERFORM DeleteMemberFromArea(pArea, pMember);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- api.member_area_delete ------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
@@ -1036,27 +1099,6 @@ CREATE OR REPLACE FUNCTION api.member_area_delete (
 AS $$
 BEGIN
   PERFORM DeleteAreaForMember(pMember, pArea);
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- api.area_member_delete ------------------------------------------------------
---------------------------------------------------------------------------------
-/**
- * Удаляет пользователя из зоны.
- * @param {numeric} pArea - Идентификатор зоны
- * @param {numeric} pMember - Идентификатор пользователя, при null удаляет всех пользователей из указанного зоны
- * @return {void}
- */
-CREATE OR REPLACE FUNCTION api.area_member_delete (
-  pArea       numeric,
-  pMember     numeric DEFAULT null
-) RETURNS     void
-AS $$
-BEGIN
-  PERFORM DeleteMemberFromArea(pArea, pMember);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1277,17 +1319,15 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- api.member_interface_add ----------------------------------------------------
+-- api.interface_member_add ----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Добавляет пользователя или группу к рабочему месту.
- * @param {numeric} pMember - Идентификатор пользователя/группы
+ * Добавляет пользователя или группу к интерфейсу.
  * @param {numeric} pInterface - Идентификатор интерфейса
- * @out param {numeric} result - Результат
- * @out param {text} message - Текст ошибки
+ * @param {numeric} pMember - Идентификатор пользователя/группы
  * @return {void}
  */
-CREATE OR REPLACE FUNCTION api.member_interface_add (
+CREATE OR REPLACE FUNCTION api.interface_member_add (
   pMember       numeric,
   pInterface	numeric
 ) RETURNS       void
@@ -1300,21 +1340,21 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- api.member_interface_delete -------------------------------------------------
+-- api.member_interface_add ----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Удаляет интерфейс для пользователя или группу.
+ * Добавляет пользователя или группу к интерфейсу.
  * @param {numeric} pMember - Идентификатор пользователя/группы
- * @param {numeric} pInterface - Идентификатор интерфейса, при null удаляет все рабочие места для указанного пользователя
+ * @param {numeric} pInterface - Идентификатор интерфейса
  * @return {void}
  */
-CREATE OR REPLACE FUNCTION api.member_interface_delete (
+CREATE OR REPLACE FUNCTION api.member_interface_add (
   pMember       numeric,
   pInterface	numeric
 ) RETURNS       void
 AS $$
 BEGIN
-  PERFORM DeleteInterfaceForMember(pMember, pInterface);
+  PERFORM AddMemberToInterface(pMember, pInterface);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1336,6 +1376,27 @@ CREATE OR REPLACE FUNCTION api.interface_member_delete (
 AS $$
 BEGIN
   PERFORM DeleteMemberFromInterface(pInterface, pMember);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.member_interface_delete -------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Удаляет интерфейс для пользователя или группу.
+ * @param {numeric} pMember - Идентификатор пользователя/группы
+ * @param {numeric} pInterface - Идентификатор интерфейса, при null удаляет все рабочие места для указанного пользователя
+ * @return {void}
+ */
+CREATE OR REPLACE FUNCTION api.member_interface_delete (
+  pMember       numeric,
+  pInterface	numeric
+) RETURNS       void
+AS $$
+BEGIN
+  PERFORM DeleteInterfaceForMember(pMember, pInterface);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

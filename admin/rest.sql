@@ -762,22 +762,76 @@ BEGIN
 
     END IF;
 
-  WHEN '/admin/group/member' THEN
+  WHEN '/admin/group/member' THEN -- Пользователи группы
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
     END IF;
 
-    arKeys := array_cat(arKeys, ARRAY['id', 'groupname']);
+    arKeys := array_cat(arKeys, ARRAY['id', 'name']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, groupname varchar)
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, name varchar)
     LOOP
-      FOR e IN SELECT * FROM api.group_member(coalesce(r.id, GetGroup(r.groupname)))
+      FOR e IN SELECT * FROM api.member_group(coalesce(r.id, GetGroup(r.name)))
       LOOP
         RETURN NEXT row_to_json(e);
       END LOOP;
     END LOOP;
+
+  WHEN '/admin/group/member/add' THEN -- Добавляет пользователя в группу
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['id', 'member']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, member numeric)
+      LOOP
+        PERFORM api.group_member_add(r.id, r.member);
+        RETURN NEXT json_build_object('id', r.id, 'member', r.member, 'result', true, 'message', 'Успешно.');
+      END LOOP;
+
+    ELSE
+
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, member numeric)
+      LOOP
+        PERFORM api.group_member_add(r.id, r.member);
+        RETURN NEXT json_build_object('id', r.id, 'member', r.member, 'result', true, 'message', 'Успешно.');
+      END LOOP;
+
+    END IF;
+
+  WHEN '/admin/group/member/delete' THEN -- Удаляет пользователя из группу
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['id', 'member']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, member numeric)
+      LOOP
+        PERFORM api.group_member_delete(r.id, r.member);
+        RETURN NEXT json_build_object('id', r.id, 'member', r.member, 'result', true, 'message', 'Успешно.');
+      END LOOP;
+
+    ELSE
+
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, member numeric)
+      LOOP
+        PERFORM api.group_member_delete(r.id, r.member);
+        RETURN NEXT json_build_object('id', r.id, 'member', r.member, 'result', true, 'message', 'Успешно.');
+      END LOOP;
+
+    END IF;
 
   WHEN '/admin/area/type' THEN
 
@@ -893,7 +947,7 @@ BEGIN
       END LOOP;
     END LOOP;
 
-  WHEN '/admin/area/delete' THEN
+  WHEN '/admin/area/delete' THEN -- Удаляет зону
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
@@ -968,6 +1022,60 @@ BEGIN
         RETURN NEXT row_to_json(e);
       END LOOP;
     END LOOP;
+
+  WHEN '/admin/area/member/add' THEN -- Добавляет пользователя или группу в зону
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['id', 'member']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, member numeric)
+      LOOP
+        PERFORM api.area_member_add(r.id, r.member);
+        RETURN NEXT json_build_object('id', r.id, 'member', r.member, 'result', true, 'message', 'Успешно.');
+      END LOOP;
+
+    ELSE
+
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, member numeric)
+      LOOP
+        PERFORM api.area_member_add(r.id, r.member);
+        RETURN NEXT json_build_object('id', r.id, 'member', r.member, 'result', true, 'message', 'Успешно.');
+      END LOOP;
+
+    END IF;
+
+  WHEN '/admin/area/member/delete' THEN -- Удаляет пользователя или группу из зоны
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['id', 'member']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, member numeric)
+      LOOP
+        PERFORM api.area_member_delete(r.id, r.member);
+        RETURN NEXT json_build_object('id', r.id, 'member', r.member, 'result', true, 'message', 'Успешно.');
+      END LOOP;
+
+    ELSE
+
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, member numeric)
+      LOOP
+        PERFORM api.area_member_delete(r.id, r.member);
+        RETURN NEXT json_build_object('id', r.id, 'member', r.member, 'result', true, 'message', 'Успешно.');
+      END LOOP;
+
+    END IF;
 
   WHEN '/admin/interface/count' THEN
 
@@ -1073,7 +1181,7 @@ BEGIN
       END LOOP;
     END LOOP;
 
-  WHEN '/admin/interface/delete' THEN
+  WHEN '/admin/interface/delete' THEN -- Удаляет интерфейс
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
@@ -1100,7 +1208,7 @@ BEGIN
 
     END IF;
 
-  WHEN '/admin/interface/member' THEN
+  WHEN '/admin/interface/member' THEN -- Участники интерфейса
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
@@ -1117,73 +1225,289 @@ BEGIN
       END LOOP;
     END LOOP;
 
-  WHEN '/admin/member/user' THEN
+  WHEN '/admin/interface/member/add' THEN -- Добавляет пользователя или группу к интерфейсу
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
     END IF;
 
-    arKeys := array_cat(arKeys, ARRAY['id', 'username']);
+    arKeys := array_cat(arKeys, ARRAY['id', 'member']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, username varchar)
-    LOOP
-      FOR e IN SELECT * FROM api.member_user(coalesce(r.id, GetUser(r.username)))
-      LOOP
-        RETURN NEXT row_to_json(e);
-      END LOOP;
-    END LOOP;
+    IF jsonb_typeof(pPayload) = 'array' THEN
 
-  WHEN '/admin/member/group' THEN
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, member numeric)
+      LOOP
+        PERFORM api.interface_member_add(r.id, r.member);
+        RETURN NEXT json_build_object('id', r.id, 'member', r.member, 'result', true, 'message', 'Успешно.');
+      END LOOP;
+
+    ELSE
+
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, member numeric)
+      LOOP
+        PERFORM api.interface_member_add(r.id, r.member);
+        RETURN NEXT json_build_object('id', r.id, 'member', r.member, 'result', true, 'message', 'Успешно.');
+      END LOOP;
+
+    END IF;
+
+  WHEN '/admin/interface/member/delete' THEN -- Удаляет пользователя или группу из интерфейса
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
     END IF;
 
-    arKeys := array_cat(arKeys, ARRAY['id', 'username']);
+    arKeys := array_cat(arKeys, ARRAY['id', 'member']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, username varchar)
-    LOOP
-      FOR e IN SELECT * FROM api.member_group(coalesce(r.id, GetUser(r.username)))
-      LOOP
-        RETURN NEXT row_to_json(e);
-      END LOOP;
-    END LOOP;
+    IF jsonb_typeof(pPayload) = 'array' THEN
 
-  WHEN '/admin/member/area' THEN
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, member numeric)
+      LOOP
+        PERFORM api.interface_member_delete(r.member, r.id);
+        RETURN NEXT json_build_object('id', r.id, 'member', r.member, 'result', true, 'message', 'Успешно.');
+      END LOOP;
+
+    ELSE
+
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, member numeric)
+      LOOP
+        PERFORM api.interface_member_delete(r.member, r.id);
+        RETURN NEXT json_build_object('id', r.id, 'member', r.member, 'result', true, 'message', 'Успешно.');
+      END LOOP;
+
+    END IF;
+
+  WHEN '/admin/member/user' THEN -- Пользователи группы
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
     END IF;
 
-    arKeys := array_cat(arKeys, ARRAY['id', 'username']);
+    arKeys := array_cat(arKeys, ARRAY['id', 'name']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, username varchar)
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, name varchar)
     LOOP
-      FOR e IN SELECT * FROM api.member_area(coalesce(r.id, GetUser(r.username)))
+      FOR e IN SELECT * FROM api.member_group(coalesce(r.id, GetGroup(r.name)))
       LOOP
         RETURN NEXT row_to_json(e);
       END LOOP;
     END LOOP;
 
-  WHEN '/admin/member/interface' THEN
+  WHEN '/admin/member/group' THEN -- Группы пользователя
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
     END IF;
 
-    arKeys := array_cat(arKeys, ARRAY['id', 'username']);
+    arKeys := array_cat(arKeys, ARRAY['id', 'name']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, username varchar)
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, name varchar)
     LOOP
-      FOR e IN SELECT * FROM api.member_interface(coalesce(r.id, GetUser(r.username)))
+      FOR e IN SELECT * FROM api.group_member(coalesce(r.id, GetUser(r.name)))
       LOOP
         RETURN NEXT row_to_json(e);
       END LOOP;
     END LOOP;
+
+  WHEN '/admin/member/group/add' THEN -- Добавляет пользователя в группу
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['id', 'groupid']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, groupid numeric)
+      LOOP
+        PERFORM api.member_group_add(r.id, r.groupid);
+        RETURN NEXT json_build_object('id', r.id, 'groupid', r.groupid, 'result', true, 'message', 'Успешно.');
+      END LOOP;
+
+    ELSE
+
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, groupid numeric)
+      LOOP
+        PERFORM api.member_group_add(r.id, r.groupid);
+        RETURN NEXT json_build_object('id', r.id, 'groupid', r.groupid, 'result', true, 'message', 'Успешно.');
+      END LOOP;
+
+    END IF;
+
+  WHEN '/admin/member/group/delete' THEN -- Удаляет группу для пользователя
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['id', 'groupid']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, groupid numeric)
+      LOOP
+        PERFORM api.member_group_delete(r.id, r.groupid);
+        RETURN NEXT json_build_object('id', r.id, 'groupid', r.groupid, 'result', true, 'message', 'Успешно.');
+      END LOOP;
+
+    ELSE
+
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, groupid numeric)
+      LOOP
+        PERFORM api.member_group_delete(r.id, r.groupid);
+        RETURN NEXT json_build_object('id', r.id, 'groupid', r.groupid, 'result', true, 'message', 'Успешно.');
+      END LOOP;
+
+    END IF;
+
+  WHEN '/admin/member/area' THEN -- Участники зоны
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['id', 'name']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, name varchar)
+    LOOP
+      FOR e IN SELECT * FROM api.member_area(coalesce(r.id, GetUser(r.name), GetGroup(r.name)))
+      LOOP
+        RETURN NEXT row_to_json(e);
+      END LOOP;
+    END LOOP;
+
+  WHEN '/admin/member/area/add' THEN -- Добавляет пользователя или группу в зону
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['id', 'area']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, area numeric)
+      LOOP
+        PERFORM api.member_area_add(r.id, r.area);
+        RETURN NEXT json_build_object('id', r.id, 'area', r.area, 'result', true, 'message', 'Успешно.');
+      END LOOP;
+
+    ELSE
+
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, area numeric)
+      LOOP
+        PERFORM api.member_area_add(r.id, r.area);
+        RETURN NEXT json_build_object('id', r.id, 'area', r.area, 'result', true, 'message', 'Успешно.');
+      END LOOP;
+
+    END IF;
+
+  WHEN '/admin/member/area/delete' THEN -- Удаляет зону для пользователя или группу
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['id', 'area']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, area numeric)
+      LOOP
+        PERFORM api.member_area_delete(r.id, r.area);
+        RETURN NEXT json_build_object('id', r.id, 'area', r.area, 'result', true, 'message', 'Успешно.');
+      END LOOP;
+
+    ELSE
+
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, area numeric)
+      LOOP
+        PERFORM api.member_area_delete(r.id, r.area);
+        RETURN NEXT json_build_object('id', r.id, 'area', r.area, 'result', true, 'message', 'Успешно.');
+      END LOOP;
+
+    END IF;
+
+  WHEN '/admin/member/interface' THEN -- Участники интерфеса
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['id', 'name']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, name varchar)
+    LOOP
+      FOR e IN SELECT * FROM api.member_interface(coalesce(r.id, GetUser(r.name), GetGroup(r.name)))
+      LOOP
+        RETURN NEXT row_to_json(e);
+      END LOOP;
+    END LOOP;
+
+  WHEN '/admin/member/interface/add' THEN -- Добавляет пользователя или группу к интерфейсу
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['id', 'interface']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, interface numeric)
+      LOOP
+        PERFORM api.member_interface_add(r.id, r.interface);
+        RETURN NEXT json_build_object('id', r.id, 'interface', r.interface, 'result', true, 'message', 'Успешно.');
+      END LOOP;
+
+    ELSE
+
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, interface numeric)
+      LOOP
+        PERFORM api.member_interface_add(r.id, r.interface);
+        RETURN NEXT json_build_object('id', r.id, 'interface', r.interface, 'result', true, 'message', 'Успешно.');
+      END LOOP;
+
+    END IF;
+
+  WHEN '/admin/member/interface/delete' THEN -- Удаляет интерфейс для пользователя или группу
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['id', 'interface']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, interface numeric)
+      LOOP
+        PERFORM api.member_interface_delete(r.id, r.interface);
+        RETURN NEXT json_build_object('id', r.id, 'interface', r.interface, 'result', true, 'message', 'Успешно.');
+      END LOOP;
+
+    ELSE
+
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, interface numeric)
+      LOOP
+        PERFORM api.member_interface_delete(r.id, r.interface);
+        RETURN NEXT json_build_object('id', r.id, 'interface', r.interface, 'result', true, 'message', 'Успешно.');
+      END LOOP;
+
+    END IF;
 
   ELSE
     PERFORM RouteNotFound(pPath);
