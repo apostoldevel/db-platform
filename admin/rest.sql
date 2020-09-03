@@ -1411,7 +1411,7 @@ BEGIN
 
     END IF;
 
-  WHEN '/admin/member/area/delete' THEN -- Удаляет зону для пользователя или группу
+  WHEN '/admin/member/area/delete' THEN -- Удаляет зону для пользователя или группы
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
@@ -1482,7 +1482,7 @@ BEGIN
 
     END IF;
 
-  WHEN '/admin/member/interface/delete' THEN -- Удаляет интерфейс для пользователя или группу
+  WHEN '/admin/member/interface/delete' THEN -- Удаляет интерфейс для пользователя или группы
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
