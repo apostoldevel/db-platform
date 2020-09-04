@@ -2789,13 +2789,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Создаёт группу.
- * @param {text} pGroupName - Группа
+ * @param {text} pRoleName - Группа
  * @param {text} pName - Полное имя
  * @param {text} pDescription - Описание
  * @return {(id|exception)} - Id группы или ошибку
  */
 CREATE OR REPLACE FUNCTION CreateGroup (
-  pGroupName    text,
+  pRoleName     text,
   pName         text,
   pDescription	text
 ) RETURNS	    numeric
@@ -2809,14 +2809,14 @@ BEGIN
     END IF;
   END IF;
 
-  SELECT id INTO nGroupId FROM groups WHERE username = lower(pGroupName);
+  SELECT id INTO nGroupId FROM groups WHERE username = lower(pRoleName);
 
   IF found THEN
-    PERFORM RoleExists(pGroupName);
+    PERFORM RoleExists(pRoleName);
   END IF;
 
   INSERT INTO db.user (type, username, name, description)
-  VALUES ('G', pGroupName, pName, pDescription) RETURNING Id INTO nGroupId;
+  VALUES ('G', pRoleName, pName, pDescription) RETURNING Id INTO nGroupId;
 
   RETURN nGroupId;
 END;
@@ -2905,14 +2905,14 @@ $$ LANGUAGE plpgsql
 /**
  * Обновляет учётные данные группы.
  * @param {id} pId - Идентификатор группы
- * @param {text} pGroupName - Группа
+ * @param {text} pRoleName - Группа
  * @param {text} pName - Полное имя
  * @param {text} pDescription - Описание
  * @return {(void|exception)}
  */
 CREATE OR REPLACE FUNCTION UpdateGroup (
   pId           numeric,
-  pGroupName    text,
+  pRoleName     text,
   pName         text,
   pDescription  text
 ) RETURNS       void
@@ -2928,14 +2928,14 @@ BEGIN
 
   SELECT username INTO vGroupName FROM db.user WHERE id = pId;
 
-  IF vGroupName IN ('administrator', 'operator', 'user') THEN
-    IF vGroupName <> lower(pGroupName) THEN
+  IF vGroupName IN ('administrator', 'guest', 'operator', 'user') THEN
+    IF vGroupName <> lower(pRoleName) THEN
       PERFORM SystemRoleError();
     END IF;
   END IF;
 
   UPDATE db.user
-     SET username = coalesce(pGroupName, username),
+     SET username = coalesce(pRoleName, username),
          name = coalesce(pName, name),
          description = coalesce(pDescription, description)
    WHERE Id = pId;
@@ -3041,7 +3041,7 @@ BEGIN
 
   SELECT username INTO vGroupName FROM db.user WHERE id = pId;
 
-  IF vGroupName IN ('administrator', 'manager', 'operator', 'external') THEN
+  IF vGroupName IN ('administrator', 'guest', 'operator', 'user') THEN
     PERFORM SystemRoleError();
   END IF;
 
@@ -3060,15 +3060,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Удаляет группу.
- * @param {text} pGroupName - Группа
+ * @param {text} pRoleName - Группа
  * @return {(void|exception)}
  */
 CREATE OR REPLACE FUNCTION DeleteGroup (
-  pGroupName    text
+  pRoleName     text
 ) RETURNS       void
 AS $$
 BEGIN
-  PERFORM DeleteGroup(GetGroup(pGroupName));
+  PERFORM DeleteGroup(GetGroup(pRoleName));
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -3106,20 +3106,20 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает идентификатор группы по наименованию.
- * @param {text} pGroupName - Группа
+ * @param {text} pRoleName - Группа
  * @return {id}
  */
 CREATE OR REPLACE FUNCTION GetGroup (
-  pGroupName	text
+  pRoleName     text
 ) RETURNS	    numeric
 AS $$
 DECLARE
   nId		    numeric;
 BEGIN
-  SELECT id INTO nId FROM db.user WHERE type = 'G' AND username = pGroupName;
+  SELECT id INTO nId FROM db.user WHERE type = 'G' AND username = pRoleName;
 
   IF NOT found THEN
-    PERFORM UnknownRoleName(pGroupName);
+    PERFORM UnknownRoleName(pRoleName);
   END IF;
 
   RETURN nId;

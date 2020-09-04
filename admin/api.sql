@@ -310,7 +310,7 @@ $$ LANGUAGE plpgsql
  */
 CREATE OR REPLACE FUNCTION api.user_member (
   pUserId numeric DEFAULT current_userid()
-) RETURNS TABLE (id numeric, username varchar, name text, description text)
+) RETURNS TABLE (id numeric, username text, name text, description text)
 AS $$
   SELECT g.id, g.username, g.name, g.description
     FROM db.member_group m INNER JOIN groups g ON g.id = m.userid
@@ -328,7 +328,7 @@ $$ LANGUAGE SQL
  */
 CREATE OR REPLACE FUNCTION api.member_user (
   pUserId numeric DEFAULT current_userid()
-) RETURNS TABLE (id numeric, username varchar, name text, description text)
+) RETURNS TABLE (id numeric, username text, name text, description text)
 AS $$
   SELECT * FROM api.user_member(pUserId);
 $$ LANGUAGE SQL
@@ -435,19 +435,19 @@ GRANT SELECT ON api.group TO administrator;
 --------------------------------------------------------------------------------
 /**
  * Создаёт группу учётных записей пользователя.
- * @param {varchar} pGroupName - Группа
+ * @param {varchar} pUserName - Группа
  * @param {text} pName - Полное имя
  * @param {text} pDescription - Описание
  * @return {numeric}
  */
 CREATE OR REPLACE FUNCTION api.add_group (
-  pGroupName    text,
+  pUserName     text,
   pName         text,
   pDescription  text
 ) RETURNS       numeric
 AS $$
 BEGIN
-  RETURN CreateGroup(pGroupName, pName, pDescription);
+  RETURN CreateGroup(pUserName, pName, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -459,20 +459,20 @@ $$ LANGUAGE plpgsql
 /**
  * Обновляет учётные данные группы.
  * @param {numeric} pId - Идентификатор группы
- * @param {varchar} pGroupName - Группа
+ * @param {varchar} pUserName - Группа
  * @param {text} pName - Полное имя
  * @param {text} pDescription - Описание
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_group (
   pId           numeric,
-  pGroupName    text,
+  pUserName     text,
   pName         text,
   pDescription  text
 ) RETURNS       void
 AS $$
 BEGIN
-  PERFORM UpdateGroup(pId, pGroupName, pName, pDescription);
+  PERFORM UpdateGroup(pId, pUserName, pName, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -484,16 +484,16 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION api.set_group (
   pId           numeric,
-  pGroupName    text,
+  pUserName     text,
   pName         text,
   pDescription  text
 ) RETURNS       SETOF api.group
 AS $$
 BEGIN
   IF pId IS NULL THEN
-    pId := api.add_group(pGroupName, pName, pDescription);
+    pId := api.add_group(pUserName, pName, pDescription);
   ELSE
-    PERFORM api.update_group(pId, pGroupName, pName, pDescription);
+    PERFORM api.update_group(pId, pUserName, pName, pDescription);
   END IF;
 
   RETURN QUERY SELECT * FROM api.group WHERE id = pId;
@@ -1126,7 +1126,7 @@ CREATE OR REPLACE FUNCTION api.area_member (
 ) RETURNS TABLE (
   id          numeric,
   type        char,
-  username    varchar,
+  username    text,
   name        text,
   email       text,
   description text,
@@ -1424,7 +1424,7 @@ CREATE OR REPLACE FUNCTION api.interface_member (
 ) RETURNS TABLE (
   id            numeric,
   type          char,
-  username      varchar,
+  username      text,
   name          text,
   email         text,
   description   text,
