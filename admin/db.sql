@@ -410,10 +410,138 @@ $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
+--------------------------------------------------------------------------------
+
 CREATE TRIGGER t_profile_before_insert
   BEFORE INSERT ON db.profile
   FOR EACH ROW
   EXECUTE PROCEDURE db.ft_profile_before_insert();
+
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION ft_profile_login_state()
+RETURNS trigger AS $$
+DECLARE
+  i         int;
+
+  arrIp		text[];
+
+  lHost		inet;
+
+  nRange	int;
+
+  vCode		varchar;
+
+  nOnLine	int;
+  nLocal	int;
+  nTrust	int;
+
+  bSuccess	boolean;
+
+  nUserId	numeric;
+
+  vData		Variant;
+
+  r         record;
+BEGIN
+  nUserId := current_userid();
+
+  IF nUserId IS NULL THEN
+    RETURN NEW;
+  END IF;
+
+  nOnLine := 0;
+  nLocal := 0;
+  nTrust := 0;
+
+  NEW.state := B'000';
+
+  FOR r IN SELECT area, host FROM db.session WHERE userid = nUserId GROUP BY area, host
+  LOOP
+    r.host := coalesce(NEW.LC_IP, r.host);
+
+    IF r.host IS NOT NULL THEN
+
+      SELECT code INTO vCode FROM db.area WHERE id = r.area;
+
+      IF found THEN
+
+        vData := RegGetValue(RegOpenKey('CURRENT_CONFIG', 'CONFIG\Department' || E'\u005C' || vCode), 'LocalIP');
+
+        IF vData.vString IS NOT NULL THEN
+          arrIp := string_to_array_trim(vData.vString, ',');
+        ELSE
+          arrIp := string_to_array_trim('127.0.0.1, ::1', ',');
+        END IF;
+
+        bSuccess := false;
+        FOR i IN 1..array_length(arrIp, 1)
+        LOOP
+          SELECT host INTO lHost FROM str_to_inet(arrIp[i]);
+
+          bSuccess := r.host <<= lHost;
+
+          EXIT WHEN coalesce(bSuccess, false);
+        END LOOP;
+
+        IF bSuccess THEN
+          nLocal := nLocal + 1;
+        END IF;
+
+        vData := RegGetValue(RegOpenKey('CURRENT_CONFIG', 'CONFIG\Department' || E'\u005C' || vCode), 'EntrustedIP');
+
+        IF vData.vString IS NOT NULL THEN
+          arrIp := string_to_array_trim(vData.vString, ',');
+
+          bSuccess := false;
+          FOR i IN 1..array_length(arrIp, 1)
+          LOOP
+            SELECT host, range INTO lHost, nRange FROM str_to_inet(arrIp[i]);
+
+            IF nRange IS NOT NULL THEN
+              bSuccess := (r.host >= lHost) AND (r.host <= lHost + (nRange - 1));
+            ELSE
+              bSuccess := r.host <<= lHost;
+            END IF;
+
+            EXIT WHEN coalesce(bSuccess, false);
+          END LOOP;
+
+          IF bSuccess THEN
+            nTrust := nTrust + 1;
+          END IF;
+
+        END IF;
+      END IF;
+    END IF;
+
+    nOnLine := nOnLine + 1;
+  END LOOP;
+
+  IF nTrust > 0 THEN
+    NEW.state := set_bit(NEW.state, 0, 1);
+  END IF;
+
+  IF nLocal > 0 THEN
+    NEW.state := set_bit(NEW.state, 1, 1);
+  END IF;
+
+  IF (nOnLine - (nTrust + nLocal)) > 0 THEN
+    NEW.state := set_bit(NEW.state, 2, 1);
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+
+CREATE TRIGGER t_profile_login_state
+  BEFORE UPDATE ON db.profile
+  FOR EACH ROW
+  EXECUTE PROCEDURE ft_profile_login_state();
 
 --------------------------------------------------------------------------------
 -- users -----------------------------------------------------------------------
