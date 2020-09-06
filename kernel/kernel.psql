@@ -20,9 +20,3 @@
 
 \echo [M] call kladr.sql
 \ir kladr.sql
-
-\echo [M] call log.sql
-\ir log.sql
-
-\echo [M] call api.sql
-\ir api.sql

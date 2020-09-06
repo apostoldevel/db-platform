@@ -189,3 +189,87 @@ END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- API LOG ---------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW api.api_log
+AS
+  SELECT * FROM apiLog;
+
+GRANT SELECT ON api.api_log TO administrator;
+
+--------------------------------------------------------------------------------
+-- api.api_log -----------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Журнал событий текущего пользователя.
+ * @param {char} pType - Тип события: {M|W|E}
+ * @param {integer} pCode - Код
+ * @param {timestamp} pDateFrom - Дата начала периода
+ * @param {timestamp} pDateTo - Дата окончания периода
+ * @return {SETOF api.api_log} - Записи
+ */
+CREATE OR REPLACE FUNCTION api.api_log (
+  pUserName     text DEFAULT null,
+  pPath		    text DEFAULT null,
+  pDateFrom	    timestamp DEFAULT null,
+  pDateTo	    timestamp DEFAULT null
+) RETURNS	    SETOF api.api_log
+AS $$
+  SELECT *
+    FROM api.api_log
+   WHERE username = coalesce(pUserName, username)
+     AND path = coalesce(pPath, path)
+     AND datetime >= coalesce(pDateFrom, MINDATE())
+     AND datetime < coalesce(pDateTo, MAXDATE())
+   ORDER BY datetime DESC, id
+   LIMIT 500
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.get_api_log -------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Возвращает событие
+ * @param {numeric} pId - Идентификатор
+ * @return {api.api}
+ */
+CREATE OR REPLACE FUNCTION api.get_api_log (
+  pId		numeric
+) RETURNS	api.api_log
+AS $$
+  SELECT * FROM api.api_log WHERE id = pId
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.list_api_log ------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Возвращает список событий.
+ * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
+ * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
+ * @param {integer} pLimit - Лимит по количеству строк
+ * @param {integer} pOffSet - Пропустить указанное число строк
+ * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
+ * @return {SETOF api.api}
+ */
+CREATE OR REPLACE FUNCTION api.list_api_log (
+  pSearch	jsonb DEFAULT null,
+  pFilter	jsonb DEFAULT null,
+  pLimit	integer DEFAULT null,
+  pOffSet	integer DEFAULT null,
+  pOrderBy	jsonb DEFAULT null
+) RETURNS	SETOF api.api_log
+AS $$
+BEGIN
+  RETURN QUERY EXECUTE api.sql('api', 'api_log', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
