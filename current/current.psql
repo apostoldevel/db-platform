@@ -1,11 +1,7 @@
-\echo [M] ./admin/admin.psql
-
-\echo [M] call db.sql
-\ir db.sql
+\echo [M] ./current/current.psql
 
 \echo [M] call api.sql
 \ir api.sql
 
 \echo [M] call rest.sql
 \ir rest.sql
-

@@ -4643,7 +4643,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetSession (
-  pUserName     text,
+  pUserId       numeric,
   pOAuth2       numeric DEFAULT CreateSystemOAuth2(),
   pAgent        text DEFAULT null,
   pHost         inet DEFAULT null,
@@ -4662,7 +4662,7 @@ BEGIN
     PERFORM AccessDeniedForUser(session_user);
   END IF;
 
-  SELECT * INTO up FROM db.user WHERE type = 'U' AND username = pUserName;
+  SELECT * INTO up FROM db.user WHERE id = pUserId;
 
   IF NOT found THEN
     PERFORM LoginError();
@@ -4682,6 +4682,10 @@ BEGIN
 
   IF up.expiry_date IS NOT NULL AND up.expiry_date <= now() THEN
     PERFORM PasswordExpired();
+  END IF;
+
+  IF NOT CheckIPTable(up.id, pHost) THEN
+    PERFORM LoginIPTableError(pHost);
   END IF;
 
   SELECT code INTO vSession FROM db.session WHERE userid = up.id;

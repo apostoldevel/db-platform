@@ -117,6 +117,7 @@ DECLARE
   nUserId       numeric;
   nProvider     numeric;
   nAudience     numeric;
+  nApplication  numeric;
 
   jName         jsonb;
 
@@ -144,7 +145,7 @@ BEGIN
     PERFORM IssuerNotFound(iss);
   END IF;
 
-  SELECT a.id, a.secret INTO nAudience, vSecret FROM oauth2.audience a WHERE a.provider = nProvider AND a.code = aud;
+  SELECT a.id, a.secret, a.application INTO nAudience, vSecret, nApplication FROM oauth2.audience a WHERE a.provider = nProvider AND a.code = aud;
 
   IF NOT found THEN
     PERFORM AudienceNotFound();
@@ -162,7 +163,7 @@ BEGIN
       PERFORM TokenExpired();
     END IF;
 
-    vSession := GetSession(claim.aud, CreateOAuth2(nAudience, ARRAY['api']), pAgent, pHost);
+    vSession := GetSession(GetUser(claim.aud), CreateOAuth2(nAudience, ARRAY['api']), pAgent, pHost);
 
     IF vSession IS NULL THEN
       RAISE EXCEPTION '%', GetErrorMessage();
@@ -206,9 +207,9 @@ BEGIN
        WHERE p.userid = nUserId;
     END IF;
 
-    SELECT id INTO nAudience FROM oauth2.audience WHERE provider = GetProvider('default') AND application = GetApplication('web');
+    SELECT id INTO nAudience FROM oauth2.audience WHERE provider = GetProvider('default') AND application = nApplication;
 
-    session := GetSession(account.username, CreateOAuth2(nAudience, ARRAY['api']), pAgent, pHost, true);
+    session := GetSession(nUserId, CreateOAuth2(nAudience, ARRAY['api']), pAgent, pHost, true);
 
     IF session IS NULL THEN
       RAISE EXCEPTION '%', GetErrorMessage();

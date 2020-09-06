@@ -18,14 +18,8 @@
 \echo [M] call oauth2.sql
 \ir oauth2.sql
 
-\echo [M] call security.sql
-\ir security.sql
-
 \echo [M] call kladr.sql
 \ir kladr.sql
-
-\echo [M] call workflow.sql
-\ir workflow.sql
 
 \echo [M] call log.sql
 \ir log.sql

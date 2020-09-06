@@ -2,3 +2,6 @@
 \ir './registry/registry.psql'
 \ir './admin/admin.psql'
 \ir './daemon/daemon.psql'
+\ir './session/session.psql'
+\ir './current/current.psql'
+\ir './workflow/workflow.psql'
