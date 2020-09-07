@@ -3104,12 +3104,17 @@ BEGIN
   END IF;
 
   IF found THEN
+
+    UPDATE db.object SET oper = GetUser('admin') WHERE oper = pId;
+    UPDATE db.object SET owner = GetUser('admin') WHERE owner = pId;
+
     DELETE FROM db.aou WHERE userid = pId;
 
     DELETE FROM db.member_area WHERE member = pId;
     DELETE FROM db.member_interface WHERE member = pId;
     DELETE FROM db.member_group WHERE member = pId;
     DELETE FROM db.auth WHERE userid = pId;
+    DELETE FROM db.session WHERE userid = pId;
     DELETE FROM db.profile WHERE userid = pId;
     DELETE FROM db.user WHERE id = pId;
   ELSE
@@ -3170,7 +3175,7 @@ BEGIN
 
   SELECT username INTO vGroupName FROM db.user WHERE id = pId;
 
-  IF vGroupName IN ('administrator', 'guest', 'operator', 'user') THEN
+  IF vGroupName IN ('system', 'guest', 'administrator', 'operator', 'user') THEN
     PERFORM SystemRoleError();
   END IF;
 
