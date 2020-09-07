@@ -129,7 +129,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION AddClass (
   pParent	numeric,
-  pEssence		numeric,
+  pEssence  numeric,
   pCode		varchar,
   pLabel	text,
   pAbstract	boolean

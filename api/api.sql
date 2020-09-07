@@ -182,7 +182,7 @@ BEGIN
     vSelect := vSelect || E'\nOFFSET ' || pOffSet;
   END IF;
 
---  RAISE NOTICE '%', vSelect;
+  RAISE NOTICE '%', vSelect;
 
   RETURN vSelect;
 END;

@@ -255,22 +255,22 @@ GRANT SELECT ON api.class TO administrator;
 /**
  * Создаёт класс.
  * @param {numeric} pParent - Идентификатор "родителя"
- * @param {numeric} pType - Идентификатор типа класса
+ * @param {numeric} pEssence - Идентификатор сущности
  * @param {varchar} pCode - Код
  * @param {text} pLabel - Наименование
  * @param {boolean} pAbstract - Абстрактный (Да/Нет)
  * @return {numeric}
  */
 CREATE OR REPLACE FUNCTION api.add_class (
-  pParent     numeric,
-  pType       numeric,
-  pCode       varchar,
-  pLabel      text,
-  pAbstract   boolean DEFAULT true
-) RETURNS     numeric
+  pParent       numeric,
+  pEssence      numeric,
+  pCode         varchar,
+  pLabel        text,
+  pAbstract     boolean DEFAULT true
+) RETURNS       numeric
 AS $$
 BEGIN
-  RETURN AddClass(pParent, pType, pCode, pLabel, pAbstract);
+  RETURN AddClass(pParent, pEssence, pCode, pLabel, pAbstract);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -283,7 +283,7 @@ $$ LANGUAGE plpgsql
  * Обновляет класс.
  * @param {numeric} pId - Идентификатор класса
  * @param {numeric} pParent - Идентификатор "родителя"
- * @param {numeric} pType - Идентификатор типа класса
+ * @param {numeric} pEssence - Идентификатор сущности
  * @param {varchar} pCode - Код
  * @param {text} pLabel - Наименование
  * @param {boolean} pAbstract - Абстрактный (Да/Нет)
@@ -293,16 +293,16 @@ $$ LANGUAGE plpgsql
  * @return {record}
  */
 CREATE OR REPLACE FUNCTION api.update_class (
-  pId         numeric,
-  pParent     numeric,
-  pType       numeric,
-  pCode       varchar,
-  pLabel      text,
-  pAbstract   boolean DEFAULT true
-) RETURNS     void
+  pId           numeric,
+  pParent       numeric,
+  pEssence      numeric,
+  pCode         varchar,
+  pLabel        text,
+  pAbstract     boolean DEFAULT true
+) RETURNS       void
 AS $$
 BEGIN
-  PERFORM EditClass(pId, pParent, pType, pCode, pLabel, pAbstract);
+  PERFORM EditClass(pId, pParent, pEssence, pCode, pLabel, pAbstract);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -315,7 +315,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.set_class (
   pId           numeric,
   pParent       numeric,
-  pType         numeric,
+  pEssence      numeric,
   pCode         varchar,
   pLabel        text,
   pAbstract     boolean DEFAULT true
@@ -323,9 +323,9 @@ CREATE OR REPLACE FUNCTION api.set_class (
 AS $$
 BEGIN
   IF pId IS NULL THEN
-    pId := api.add_class(pParent, pType, pCode, pLabel, pAbstract);
+    pId := api.add_class(pParent, pEssence, pCode, pLabel, pAbstract);
   ELSE
-    PERFORM api.update_class(pId, pParent, pType, pCode, pLabel, pAbstract);
+    PERFORM api.update_class(pId, pParent, pEssence, pCode, pLabel, pAbstract);
   END IF;
 
   RETURN QUERY SELECT * FROM api.class WHERE id = pId;
