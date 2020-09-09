@@ -616,10 +616,14 @@ CREATE TRIGGER t_state_insert
 -- VIEW State ------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW State (Id, Class, Type, TypeCode, TypeName, Code, Label, Sequence)
+CREATE OR REPLACE VIEW State (Id, Class, ClassCode, ClassLabel,
+    Type, TypeCode, TypeName, Code, Label, Sequence
+)
 AS
-  SELECT s.id, s.class, s.type, t.code, t.name, s.code, s.label, s.sequence
-    FROM db.state s INNER JOIN db.state_type t ON t.id = s.type;
+  SELECT s.id, s.class, c.code, c.label, s.type,
+         t.code, t.name, s.code, s.label, s.sequence
+    FROM db.state s INNER JOIN db.state_type t ON t.id = s.type
+                    INNER JOIN db.class_tree c on c.id = s.class;
 
 GRANT SELECT ON State TO administrator;
 
@@ -1178,9 +1182,9 @@ AS
          os.id, os.typecode, os.typename, os.code, os.label,
          cm.id, cm.code, cm.label, cm.actioncode, cm.actionname,
          ns.id, ns.typecode, ns.typename, ns.code, ns.label
-    FROM db.transition st  LEFT JOIN State os ON os.id = st.state
-                             INNER JOIN Method cm ON cm.id = st.method
-                             INNER JOIN State ns ON ns.id = st.newstate;
+    FROM db.transition st  LEFT JOIN State  os ON os.id = st.state
+                          INNER JOIN Method cm ON cm.id = st.method
+                          INNER JOIN State  ns ON ns.id = st.newstate;
 
 GRANT SELECT ON Transition TO administrator;
 

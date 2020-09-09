@@ -364,6 +364,16 @@ BEGIN
 
     END IF;
 
+  WHEN '/workflow/state/type' THEN
+
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(fields jsonb)
+    LOOP
+      FOR e IN EXECUTE format('SELECT %s FROM api.state_type', JsonbToFields(r.fields, GetColumns('state_type', 'api')))
+      LOOP
+        RETURN NEXT row_to_json(e);
+      END LOOP;
+    END LOOP;
+
   WHEN '/workflow/state/count' THEN
 
     IF pPayload IS NOT NULL THEN
@@ -835,6 +845,16 @@ BEGIN
       END LOOP;
 
     END IF;
+
+  WHEN '/workflow/event/type' THEN
+
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(fields jsonb)
+    LOOP
+      FOR e IN EXECUTE format('SELECT %s FROM api.event_type', JsonbToFields(r.fields, GetColumns('event_type', 'api')))
+      LOOP
+        RETURN NEXT row_to_json(e);
+      END LOOP;
+    END LOOP;
 
   WHEN '/workflow/event/count' THEN
 
