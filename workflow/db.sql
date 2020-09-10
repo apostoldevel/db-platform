@@ -82,6 +82,8 @@ BEGIN
   IF NEW.parent IS NULL THEN
     INSERT INTO db.acu SELECT NEW.id, GetGroup('system'), B'00000', B'01000';
     INSERT INTO db.acu SELECT NEW.id, GetGroup('administrator'), B'00000', B'11111';
+    INSERT INTO db.acu SELECT NEW.id, GetGroup('operator'), B'00000', B'11110';
+    INSERT INTO db.acu SELECT NEW.id, GetGroup('user'), B'00000', B'11000';
   ELSE
     INSERT INTO db.acu SELECT NEW.id, userid, deny, allow FROM db.acu WHERE class = NEW.parent;
   END IF;

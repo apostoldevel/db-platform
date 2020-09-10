@@ -9,3 +9,5 @@
 \echo [M] call rest.sql
 \ir rest.sql
 
+\echo [M] call security.sql
+\ir security.sql
