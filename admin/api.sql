@@ -1144,18 +1144,11 @@ CREATE OR REPLACE FUNCTION api.area_member (
   type        char,
   username    text,
   name        text,
-  email       text,
-  description text,
-  statustext  text,
-  system      text
+  description text
 )
 AS $$
-  SELECT g.id, 'G' AS type, g.username, g.name, null AS email, g.description, null AS statustext, g.system
-    FROM api.member_area m INNER JOIN groups g ON g.id = m.memberid
-   WHERE m.area = pAreaId
-  UNION ALL
-  SELECT u.id, 'U' AS type, u.username, u.name, u.email, u.description, u.statustext, u.system
-    FROM api.member_area m INNER JOIN users u ON u.id = m.memberid
+  SELECT u.id, u.type, u.username, u.name, u.description
+    FROM api.member_area m INNER JOIN db.user u ON u.id = m.memberid
    WHERE m.area = pAreaId;
 $$ LANGUAGE SQL
    SECURITY DEFINER
@@ -1442,18 +1435,11 @@ CREATE OR REPLACE FUNCTION api.interface_member (
   type          char,
   username      text,
   name          text,
-  email         text,
-  description   text,
-  statustext    text,
-  system        text
+  description   text
 )
 AS $$
-  SELECT g.id, 'G' AS type, g.username, g.name, null AS email, g.description, null AS statustext, g.system
-    FROM api.member_interface m INNER JOIN groups g ON g.id = m.memberid
-   WHERE m.interface = pInterfaceId
-  UNION ALL
-  SELECT u.id, 'U' AS type, u.username, u.name, u.email, u.description, u.statustext, u.system
-    FROM api.member_interface m INNER JOIN users u ON u.id = m.memberid
+  SELECT u.id, u.type, u.username, u.name, u.description
+    FROM api.member_interface m INNER JOIN db.user u ON u.id = m.memberid
    WHERE m.interface = pInterfaceId;
 $$ LANGUAGE SQL
    SECURITY DEFINER
