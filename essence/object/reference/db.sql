@@ -51,24 +51,6 @@ CREATE TRIGGER t_reference_before_insert
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION db.ft_reference_after_insert()
-RETURNS trigger AS $$
-DECLARE
-BEGIN
-  INSERT INTO db.aou SELECT NEW.ID, GetGroup('user'), B'000', B'110';
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
-CREATE TRIGGER t_reference_after_insert
-  AFTER INSERT ON db.reference
-  FOR EACH ROW
-  EXECUTE PROCEDURE db.ft_reference_after_insert();
-
---------------------------------------------------------------------------------
-
 CREATE OR REPLACE FUNCTION db.ft_reference_update()
 RETURNS trigger AS $$
 DECLARE

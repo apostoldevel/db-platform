@@ -82,10 +82,16 @@ BEGIN
   IF NEW.parent IS NULL THEN
     INSERT INTO db.acu SELECT NEW.id, GetGroup('system'), B'00000', B'01000';
     INSERT INTO db.acu SELECT NEW.id, GetGroup('administrator'), B'00000', B'11111';
-    INSERT INTO db.acu SELECT NEW.id, GetGroup('operator'), B'00000', B'11110';
-    INSERT INTO db.acu SELECT NEW.id, GetGroup('user'), B'00000', B'11000';
   ELSE
     INSERT INTO db.acu SELECT NEW.id, userid, deny, allow FROM db.acu WHERE class = NEW.parent;
+
+    IF NEW.code = 'document' THEN
+      INSERT INTO db.acu SELECT NEW.id, GetGroup('operator'), B'00000', B'11110';
+      INSERT INTO db.acu SELECT NEW.id, GetGroup('user'), B'00000', B'11000';
+    ELSIF NEW.code = 'reference' THEN
+      INSERT INTO db.acu SELECT NEW.id, GetGroup('operator'), B'00000', B'11110';
+      INSERT INTO db.acu SELECT NEW.id, GetGroup('user'), B'00000', B'10100';
+    END IF;
   END IF;
 
   RETURN NEW;
@@ -540,7 +546,7 @@ BEGIN
   bAllow := NULLIF(SubString(pMask FROM 6 FOR 5), B'00000');
 
   IF pMask IS NOT NULL THEN
-    UPDATE db.acu SET mask = pMask WHERE class = pClass AND userid = pUserId;
+    UPDATE db.acu SET deny = bDeny, allow = bAllow WHERE class = pClass AND userid = pUserId;
     IF not found THEN
       INSERT INTO db.acu SELECT pClass, pUserId, bDeny, bAllow;
     END IF;
@@ -1617,7 +1623,7 @@ BEGIN
     bDeny := NULLIF(SubString(pMask FROM 1 FOR 3), B'000');
     bAllow := NULLIF(SubString(pMask FROM 4 FOR 3), B'000');
 
-    UPDATE db.amu SET mask = pMask WHERE method = pMethod AND userid = pUserId;
+    UPDATE db.amu SET deny = bDeny, allow = bAllow WHERE method = pMethod AND userid = pUserId;
     IF NOT FOUND THEN
       INSERT INTO db.amu SELECT pMethod, pUserId, bDeny, bAllow;
     END IF;
