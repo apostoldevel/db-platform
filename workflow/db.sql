@@ -80,6 +80,7 @@ CREATE OR REPLACE FUNCTION ft_class_tree_after_insert()
 RETURNS trigger AS $$
 BEGIN
   IF NEW.parent IS NULL THEN
+    INSERT INTO db.acu SELECT NEW.id, GetGroup('system'), B'00000', B'01000';
     INSERT INTO db.acu SELECT NEW.id, GetGroup('administrator'), B'00000', B'11111';
   ELSE
     INSERT INTO db.acu SELECT NEW.id, userid, deny, allow FROM db.acu WHERE class = NEW.parent;

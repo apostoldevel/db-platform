@@ -20,7 +20,7 @@ GRANT SELECT ON api.event_log TO administrator;
  * @return {SETOF api.event_log} - Записи
  */
 CREATE OR REPLACE FUNCTION api.event_log (
-  pUserName     text DEFAULT null,
+  pUserName         text DEFAULT null,
   pType		    char DEFAULT null,
   pCode		    numeric DEFAULT null,
   pDateFrom	    timestamp DEFAULT null,
@@ -66,7 +66,7 @@ $$ LANGUAGE plpgsql
 /**
  * Возвращает событие
  * @param {numeric} pId - Идентификатор
- * @return {api.event}
+ * @return {api.event_log}
  */
 CREATE OR REPLACE FUNCTION api.get_event_log (
   pId		numeric
@@ -87,7 +87,7 @@ $$ LANGUAGE SQL
  * @param {integer} pLimit - Лимит по количеству строк
  * @param {integer} pOffSet - Пропустить указанное число строк
  * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.event}
+ * @return {SETOF api.event_log}
  */
 CREATE OR REPLACE FUNCTION api.list_event_log (
   pSearch	jsonb DEFAULT null,
@@ -145,44 +145,24 @@ $$ LANGUAGE SQL
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- api.write_to_log ------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION api.write_to_log (
-  pType		    text,
-  pCode		    numeric,
-  pText		    text
-) RETURNS	    SETOF api.event_log
-AS $$
-DECLARE
-  nId           numeric;
-BEGIN
-  nId := AddEventLog(pType, pCode, pText);
-  RETURN QUERY SELECT * FROM api.get_event_log(nId);
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- api.get_event_log -----------------------------------------------------------
+-- api.get_user_log -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
  * Возвращает событие
  * @param {numeric} pId - Идентификатор
- * @return {api.event}
+ * @return {api.user_log}
  */
-CREATE OR REPLACE FUNCTION api.get_event_log (
+CREATE OR REPLACE FUNCTION api.get_user_log (
   pId		numeric
-) RETURNS	api.event_log
+) RETURNS	api.user_log
 AS $$
-  SELECT * FROM api.event_log WHERE id = pId
+  SELECT * FROM api.user_log WHERE id = pId
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- api.list_event_log ----------------------------------------------------------
+-- api.list_user_log ----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
  * Возвращает список событий.
@@ -191,18 +171,18 @@ $$ LANGUAGE SQL
  * @param {integer} pLimit - Лимит по количеству строк
  * @param {integer} pOffSet - Пропустить указанное число строк
  * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.event}
+ * @return {SETOF api.user_log}
  */
-CREATE OR REPLACE FUNCTION api.list_event_log (
+CREATE OR REPLACE FUNCTION api.list_user_log (
   pSearch	jsonb DEFAULT null,
   pFilter	jsonb DEFAULT null,
   pLimit	integer DEFAULT null,
   pOffSet	integer DEFAULT null,
   pOrderBy	jsonb DEFAULT null
-) RETURNS	SETOF api.event_log
+) RETURNS	SETOF api.user_log
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'event_log', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+  RETURN QUERY EXECUTE api.sql('api', 'user_log', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
