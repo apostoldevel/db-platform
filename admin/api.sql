@@ -1490,3 +1490,76 @@ AS $$
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.chmodc ------------------------------------------------------------------
+--------------------------------------------------------------------------------
+/*
+ * Устанавливает битовую маску доступа для класса и пользователя.
+ * @param {numeric} pClass - Идентификатор класса
+ * @param {bit} pMask - Маска доступа. Десять бит (d:{acsud}a:{acsud}) где: d - запрещающие биты; a - разрешающие биты: {a - access; c - create; s - select, u - update, d - delete}
+ * @param {numeric} pUserId - Идентификатор пользователя/группы
+ * @param {boolean} pRecursive - Рекурсивно установить права для всех нижестоящих классов.
+ * @param {boolean} pObjectSet - Установить права на объектах (документах) принадлежащих указанному классу.
+ * @return {void}
+*/
+CREATE OR REPLACE FUNCTION api.chmodc (
+  pClass	numeric,
+  pMask		bit,
+  pUserId	numeric default session_userid(),
+  pRecursive	boolean default true,
+  pObjectSet	boolean default false
+) RETURNS 	void
+AS $$
+BEGIN
+  PERFORM kernel.chmodc(pClass, pMask, pUserId, pRecursive, pObjectSet);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.chmodm ------------------------------------------------------------------
+--------------------------------------------------------------------------------
+/*
+ * Устанавливает битовую маску доступа для методов и пользователя.
+ * @param {numeric} pMethod - Идентификатор метода
+ * @param {pMask} pBit - Маска доступа. Три бита (0ve) где: 0 - резерв, v - visible, e - enable
+ * @param {numeric} pUserId - Идентификатор пользователся/группы
+ * @return {void}
+*/
+CREATE OR REPLACE FUNCTION api.chmodm (
+  pMethod	numeric,
+  pMask		bit,
+  pUserId	numeric default session_userid()
+) RETURNS 	void
+AS $$
+BEGIN
+  PERFORM kernel.chmodm(pMethod, pMask, pUserId);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.chmodo ------------------------------------------------------------------
+--------------------------------------------------------------------------------
+/*
+ * Устанавливает битовую маску доступа для объектов и пользователя.
+ * @param {numeric} pObject - Идентификатор объекта
+ * @param {pMask} pBit - Маска доступа. Три бита (sud) где: s - select, u - update, d - delete
+ * @param {numeric} pUserId - Идентификатор пользователся/группы
+ * @return {void}
+*/
+CREATE OR REPLACE FUNCTION api.chmodo (
+  pObject	numeric,
+  pMask		bit,
+  pUserId	numeric default session_userid()
+) RETURNS 	void
+AS $$
+BEGIN
+  PERFORM kernel.chmodo(pObject, pMask, pUserId);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;

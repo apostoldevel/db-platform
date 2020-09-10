@@ -76,6 +76,48 @@ CREATE INDEX ON db.class_tree (essence);
 
 CREATE UNIQUE INDEX ON db.class_tree (code);
 
+CREATE OR REPLACE FUNCTION ft_class_tree_after_insert()
+RETURNS trigger AS $$
+BEGIN
+  IF NEW.parent IS NULL THEN
+    INSERT INTO db.acu SELECT NEW.id, GetGroup('administrator'), B'00000', B'11111';
+  ELSE
+    INSERT INTO db.acu SELECT NEW.id, userid, deny, allow FROM db.acu WHERE class = NEW.parent;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+
+CREATE TRIGGER t_class_tree_insert
+  AFTER INSERT ON db.class_tree
+  FOR EACH ROW
+  EXECUTE PROCEDURE ft_class_tree_after_insert();
+
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION ft_class_tree_before_delete()
+RETURNS trigger AS $$
+BEGIN
+  DELETE FROM db.acu WHERE class = OLD.ID;
+
+  RETURN OLD;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+
+CREATE TRIGGER t_class_tree_before_delete
+  BEFORE DELETE ON db.class_tree
+  FOR EACH ROW
+  EXECUTE PROCEDURE ft_class_tree_before_delete();
+
 --------------------------------------------------------------------------------
 -- VIEW Class ------------------------------------------------------------------
 --------------------------------------------------------------------------------
@@ -129,7 +171,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION AddClass (
   pParent	numeric,
-  pEssence  numeric,
+  pEssence      numeric,
   pCode		varchar,
   pLabel	text,
   pAbstract	boolean
@@ -287,6 +329,241 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- TABLE db.acu ----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE TABLE db.acu (
+    class		numeric(12) NOT NULL,
+    userid		numeric(12) NOT NULL,
+    deny		bit(5) NOT NULL,
+    allow		bit(5) NOT NULL,
+    mask		bit(5) DEFAULT B'00000' NOT NULL,
+    CONSTRAINT fk_acu_class FOREIGN KEY (class) REFERENCES db.class_tree(id),
+    CONSTRAINT fk_acu_userid FOREIGN KEY (userid) REFERENCES db.user(id)
+);
+
+COMMENT ON TABLE db.acu IS 'Доступ пользователя к классам.';
+
+COMMENT ON COLUMN db.acu.class IS 'Класс';
+COMMENT ON COLUMN db.acu.userid IS 'Пользователь';
+COMMENT ON COLUMN db.acu.deny IS 'Запрещающие биты: {acsud}. Где: {a - access; c - create; s - select; u - update; d - delete}';
+COMMENT ON COLUMN db.acu.allow IS 'Разрешающие биты: {acsud}. Где: {a - access; c - create; s - select; u - update; d - delete}';
+COMMENT ON COLUMN db.acu.mask IS 'Маска доступа: {acsud}. Где: {a - access; c - create; s - select; u - update; d - delete}';
+
+CREATE INDEX ON db.acu (class);
+CREATE INDEX ON db.acu (userid);
+
+CREATE UNIQUE INDEX ON db.acu (class, userid);
+
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION ft_acu_before()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF (TG_OP = 'INSERT') THEN
+    NEW.mask = NEW.allow & ~NEW.deny;
+    RETURN NEW;
+  ELSIF (TG_OP = 'UPDATE') THEN
+    NEW.mask = NEW.allow & ~NEW.deny;
+    RETURN NEW;
+  END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER t_acu_before
+  BEFORE INSERT OR UPDATE ON db.acu
+  FOR EACH ROW
+  EXECUTE PROCEDURE ft_acu_before();
+
+--------------------------------------------------------------------------------
+-- FUNCTION acu ----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION acu (
+  pUserId	numeric,
+  OUT class	numeric,
+  OUT deny	bit,
+  OUT allow	bit,
+  OUT mask	bit
+) RETURNS	SETOF record
+AS $$
+  SELECT a.class, bit_or(a.deny), bit_or(a.allow), bit_or(a.mask)
+    FROM db.acu a
+   WHERE a.userid IN (SELECT pUserId UNION ALL SELECT userid FROM db.member_group WHERE member = pUserId)
+   GROUP BY a.class
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION acu ----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION acu (
+  pUserId	numeric,
+  pClass	numeric,
+  OUT class	numeric,
+  OUT deny	bit,
+  OUT allow	bit,
+  OUT mask	bit
+) RETURNS	SETOF record
+AS $$
+  SELECT a.class, bit_or(a.deny), bit_or(a.allow), bit_or(a.mask)
+    FROM db.acu a
+   WHERE a.userid IN (SELECT pUserId UNION ALL SELECT userid FROM db.member_group WHERE member = pUserId)
+     AND a.class = pClass
+   GROUP BY a.class
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- GetClassAccessMask ----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetClassAccessMask (
+  pClass	numeric,
+  pUserId	numeric default session_userid()
+) RETURNS	bit
+AS $$
+  SELECT mask FROM acu(pUserId, pClass)
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- CheckClassAccess ------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION CheckClassAccess (
+  pClass	numeric,
+  pMask		bit,
+  pUserId	numeric default session_userid()
+) RETURNS	boolean
+AS $$
+BEGIN
+  RETURN coalesce(GetClassAccessMask(pClass, pUserId) & pMask = pMask, false);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- DecodeClassAccess -----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION DecodeClassAccess (
+  pClass	numeric,
+  pUserId	numeric default session_userid(),
+  OUT a		boolean,
+  OUT c		boolean,
+  OUT s		boolean,
+  OUT u		boolean,
+  OUT d		boolean
+) RETURNS 	record
+AS $$
+DECLARE
+  bMask		bit(5);
+BEGIN
+  bMask := GetClassAccessMask(pClass, pUserId);
+
+  a := bMask & B'10000' = B'10000';
+  c := bMask & B'01000' = B'01000';
+  s := bMask & B'00100' = B'00100';
+  u := bMask & B'00010' = B'00010';
+  d := bMask & B'00001' = B'00001';
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- VIEW ClassMembers -----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW ClassMembers
+AS
+  SELECT class, userid, deny::int, allow::int, mask::int, u.type, username, name, description
+    FROM db.acu a INNER JOIN db.user u ON u.id = a.userid;
+
+GRANT SELECT ON ClassMembers TO administrator;
+
+--------------------------------------------------------------------------------
+-- GetClassMembers -------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetClassMembers (
+  pClass	numeric
+) RETURNS 	SETOF ClassMembers
+AS $$
+  SELECT * FROM ClassMembers WHERE class = pClass;
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- chmodc ----------------------------------------------------------------------
+--------------------------------------------------------------------------------
+/*
+ * Устанавливает битовую маску доступа для класса и пользователя.
+ * @param {numeric} pClass - Идентификатор класса
+ * @param {bit} pMask - Маска доступа. Десять бит (d:{acsud}a:{acsud}) где: d - запрещающие биты; a - разрешающие биты: {a - access; c - create; s - select, u - update, d - delete}
+ * @param {numeric} pUserId - Идентификатор пользователя/группы
+ * @param {boolean} pRecursive - Рекурсивно установить права для всех нижестоящих классов.
+ * @param {boolean} pObjectSet - Установить права на объектах (документах) принадлежащих указанному классу.
+ * @return {void}
+*/
+CREATE OR REPLACE FUNCTION chmodc (
+  pClass        numeric,
+  pMask         bit,
+  pUserId       numeric default session_userid(),
+  pRecursive    boolean default false,
+  pObjectSet    boolean default false
+) RETURNS       void
+AS $$
+DECLARE
+  r             record;
+
+  bDeny         bit;
+  bAllow        bit;
+BEGIN
+  IF session_user <> 'kernel' THEN
+    IF NOT IsUserRole('administrator') THEN
+      PERFORM AccessDenied();
+    END IF;
+  END IF;
+
+  bDeny := NULLIF(SubString(pMask FROM 1 FOR 5), B'00000');
+  bAllow := NULLIF(SubString(pMask FROM 6 FOR 5), B'00000');
+
+  IF pMask IS NOT NULL THEN
+    UPDATE db.acu SET mask = pMask WHERE class = pClass AND userid = pUserId;
+    IF not found THEN
+      INSERT INTO db.acu SELECT pClass, pUserId, bDeny, bAllow;
+    END IF;
+  ELSE
+    DELETE FROM db.acu WHERE class = pClass AND userid = pUserId;
+  END IF;
+
+  IF coalesce(pObjectSet, false) THEN
+    FOR r IN SELECT o.id FROM db.object o INNER JOIN db.type t ON o.type = t.id WHERE t.class = pClass AND o.owner <> pUserId
+    LOOP
+      PERFORM chmodo(r.id, SubString(bDeny FROM 3 FOR 3) || SubString(bAllow FROM 3 FOR 3), pUserId);
+    END LOOP;
+  END IF;
+
+  IF coalesce(pRecursive, false) THEN
+    FOR r IN SELECT id FROM db.class_tree WHERE parent = pClass
+    LOOP
+      PERFORM chmodc(r.id, pMask, pUserId, pRecursive, pObjectSet);
+    END LOOP;
+  END IF;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- TYPE ------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -436,11 +713,11 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION GetTypeCodes (
   pClass    numeric
-) RETURNS	text[]
+) RETURNS   text[]
 AS $$
 DECLARE
-  arResult	text[];
-  r		    record;
+  arResult  text[];
+  r         record;
 BEGIN
   FOR r IN
     SELECT code
@@ -464,10 +741,10 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION CodeToType (
   pCode     varchar,
   pClass    varchar
-) RETURNS	numeric
+) RETURNS   numeric
 AS $$
 DECLARE
-  arTypes	text[];
+  arTypes   text[];
 BEGIN
   IF StrPos(pCode, '.' || pClass) = 0 THEN
     pCode := pCode || '.' || pClass;
@@ -574,7 +851,7 @@ CREATE TABLE db.state (
     type		numeric(12) NOT NULL,
     code		varchar(30) NOT NULL,
     label		text NOT NULL,
-    sequence	integer NOT NULL,
+    sequence            integer NOT NULL,
     CONSTRAINT fk_state_class FOREIGN KEY (class) REFERENCES db.class_tree(id),
     CONSTRAINT fk_state_type FOREIGN KEY (type) REFERENCES db.state_type(id)
 );
@@ -669,7 +946,7 @@ CREATE OR REPLACE FUNCTION EditState (
   pType		    numeric DEFAULT null,
   pCode		    varchar DEFAULT null,
   pLabel	    text DEFAULT null,
-  pSequence     integer DEFAULT null
+  pSequence         integer DEFAULT null
 ) RETURNS	    void
 AS $$
 BEGIN
@@ -912,7 +1189,7 @@ CREATE TABLE db.method (
     action		numeric(12) NOT NULL,
     code		varchar(30) NOT NULL,
     label		text NOT NULL,
-    sequence	integer NOT NULL,
+    sequence            integer NOT NULL,
     visible		boolean DEFAULT TRUE,
     CONSTRAINT fk_method_class FOREIGN KEY (class) REFERENCES db.class_tree(id),
     CONSTRAINT fk_method_state FOREIGN KEY (state) REFERENCES db.state(id),
@@ -968,10 +1245,30 @@ CREATE TRIGGER t_method_before_insert
 
 --------------------------------------------------------------------------------
 
+CREATE OR REPLACE FUNCTION ft_method_after_insert()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO db.amu SELECT NEW.id, userid, B'000', B'111' FROM db.acu WHERE class = NEW.class;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+
+CREATE TRIGGER t_method_after_insert
+  AFTER INSERT ON db.method
+  FOR EACH ROW
+  EXECUTE PROCEDURE ft_method_after_insert();
+
+--------------------------------------------------------------------------------
+
 CREATE OR REPLACE FUNCTION db.ft_method_before_delete()
 RETURNS trigger AS $$
 BEGIN
   DELETE FROM db.transition WHERE method = OLD.ID;
+  DELETE FROM db.amu WHERE method = OLD.ID;
 
   RETURN OLD;
 END;
@@ -1103,22 +1400,227 @@ AS $$
 DECLARE
   nMethod	numeric;
 BEGIN
+  WITH RECURSIVE classtree(id, parent) AS (
+    SELECT id, parent FROM db.class_tree WHERE id = pClass
+    UNION
+    SELECT c.id, c.parent FROM db.class_tree c INNER JOIN classtree ct ON ct.parent = c.id
+  )
   SELECT m.id INTO nMethod
-    FROM db.method m INNER JOIN db.class_tree c ON c.id = m.class
+    FROM db.method m INNER JOIN classtree c ON c.id = m.class
    WHERE m.action = pAction
      AND coalesce(m.state, 0) = coalesce(pState, m.state, 0)
-     AND m.class IN (
-       WITH RECURSIVE classtree(id, parent) AS (
-         SELECT id, parent FROM db.class_tree WHERE id = pClass
-       UNION ALL
-         SELECT c.id, c.parent
-           FROM db.class_tree c INNER JOIN classtree ct ON ct.parent = c.id
-       )
-       SELECT id FROM classtree
-     )
-     ORDER BY c.level DESC;
+   ORDER BY class DESC;
 
   RETURN nMethod;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- TABLE db.amu ----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE TABLE db.amu (
+    method		numeric(12) NOT NULL,
+    userid		numeric(12) NOT NULL,
+    deny		bit(3) NOT NULL,
+    allow		bit(3) NOT NULL,
+    mask		bit(3) DEFAULT B'000' NOT NULL,
+    CONSTRAINT fk_amu_method FOREIGN KEY (method) REFERENCES db.method(id),
+    CONSTRAINT fk_amu_userid FOREIGN KEY (userid) REFERENCES db.user(id)
+);
+
+COMMENT ON TABLE db.amu IS 'Доступ пользователя к методам класса.';
+
+COMMENT ON COLUMN db.amu.method IS 'Метод';
+COMMENT ON COLUMN db.amu.userid IS 'Пользователь';
+COMMENT ON COLUMN db.amu.mask IS 'Маска доступа. Шесть бит (d:{xve}a:{xve}) где: d - запрещающие биты; a - разрешающие биты: {x - execute, v - visible, e - enable}';
+
+CREATE INDEX ON db.amu (method);
+CREATE INDEX ON db.amu (userid);
+
+CREATE UNIQUE INDEX ON db.amu (method, userid);
+
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION ft_amu_before()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF (TG_OP = 'INSERT') THEN
+    NEW.mask = NEW.allow & ~NEW.deny;
+    RETURN NEW;
+  ELSIF (TG_OP = 'UPDATE') THEN
+    NEW.mask = NEW.allow & ~NEW.deny;
+    RETURN NEW;
+  END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER t_amu_before
+  BEFORE INSERT OR UPDATE ON db.amu
+  FOR EACH ROW
+  EXECUTE PROCEDURE ft_amu_before();
+
+--------------------------------------------------------------------------------
+-- FUNCTION amu ----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION amu (
+  pUserId	numeric,
+  OUT method	numeric,
+  OUT deny	bit,
+  OUT allow	bit,
+  OUT mask	bit
+) RETURNS	SETOF record
+AS $$
+  SELECT a.method, bit_or(a.deny), bit_or(a.allow), bit_or(a.mask)
+    FROM db.amu a
+   WHERE userid IN (SELECT pUserId UNION ALL SELECT userid FROM db.member_group WHERE member = pUserId)
+   GROUP BY a.method
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION amu ----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION amu (
+  pUserId	numeric,
+  pMethod	numeric,
+  OUT method	numeric,
+  OUT deny	bit,
+  OUT allow	bit,
+  OUT mask	bit
+) RETURNS	SETOF record
+AS $$
+  SELECT a.method, bit_or(a.deny), bit_or(a.allow), bit_or(a.mask)
+    FROM db.amu a
+   WHERE userid IN (SELECT pUserId UNION ALL SELECT userid FROM db.member_group WHERE member = pUserId)
+     AND a.method = pMethod
+   GROUP BY a.method
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- GetMethodAccessMask ---------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetMethodAccessMask (
+  pMethod	numeric,
+  pUserId	numeric default session_userid()
+) RETURNS	bit
+AS $$
+  SELECT mask FROM amu(pUserId, pMethod)
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- CheckMethodAccess -----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION CheckMethodAccess (
+  pMethod	numeric,
+  pMask		bit,
+  pUserId	numeric default session_userid()
+) RETURNS	boolean
+AS $$
+BEGIN
+  RETURN coalesce(GetMethodAccessMask(pMethod, pUserId) & pMask = pMask, false);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- DecodeMethodAccess ----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION DecodeMethodAccess (
+  pMethod	numeric,
+  pUserId	numeric default session_userid(),
+  OUT x		boolean,
+  OUT v		boolean,
+  OUT e		boolean
+) RETURNS 	record
+AS $$
+DECLARE
+  bMask		bit(3);
+BEGIN
+  bMask := GetMethodAccessMask(pMethod, pUserId);
+
+  x := bMask & B'100' = B'100';
+  v := bMask & B'010' = B'010';
+  e := bMask & B'001' = B'001';
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- VIEW MethodMembers ----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW MethodMembers
+AS
+  SELECT method, userid, deny::int, allow::int, mask::int, u.type, username, name, description
+    FROM db.amu a INNER JOIN db.user u ON u.id = a.userid;
+
+GRANT SELECT ON MethodMembers TO administrator;
+
+--------------------------------------------------------------------------------
+-- GetMethodMembers ------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetMethodMembers (
+  pMethod	numeric
+) RETURNS 	SETOF MethodMembers
+AS $$
+  SELECT * FROM MethodMembers WHERE method = pMethod;
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- chmodm ----------------------------------------------------------------------
+--------------------------------------------------------------------------------
+/*
+ * Устанавливает битовую маску доступа для метода и пользователя.
+ * @param {numeric} pMethod - Идентификатор метода
+ * @param {bit} pMask - Маска доступа. Шесть бит (d:{xve}a:{xve}) где: d - запрещающие биты; a - разрешающие биты: {x - execute, v - visible, e - enable}
+ * @param {numeric} pUserId - Идентификатор пользователя/группы
+ * @return {void}
+*/
+CREATE OR REPLACE FUNCTION chmodm (
+  pMethod	numeric,
+  pMask		bit,
+  pUserId	numeric default session_userid()
+) RETURNS	void
+AS $$
+DECLARE
+  bDeny         bit;
+  bAllow        bit;
+BEGIN
+  IF session_user <> 'kernel' THEN
+    IF NOT IsUserRole('administrator') THEN
+      PERFORM AccessDenied();
+    END IF;
+  END IF;
+
+  IF pMask IS NOT NULL THEN
+    bDeny := NULLIF(SubString(pMask FROM 1 FOR 3), B'000');
+    bAllow := NULLIF(SubString(pMask FROM 4 FOR 3), B'000');
+
+    UPDATE db.amu SET mask = pMask WHERE method = pMethod AND userid = pUserId;
+    IF NOT FOUND THEN
+      INSERT INTO db.amu SELECT pMethod, pUserId, bDeny, bAllow;
+    END IF;
+  ELSE
+    DELETE FROM db.amu WHERE method = pMethod AND userid = pUserId;
+  END IF;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

@@ -7,3 +7,4 @@
 \ir './current/current.psql'
 \ir './registry/registry.psql'
 \ir './workflow/workflow.psql'
+\ir './essence/essence.psql'

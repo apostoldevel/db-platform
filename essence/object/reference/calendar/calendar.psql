@@ -1,0 +1,11 @@
+\echo [M] call db.sql
+\ir db.sql
+
+\echo [M] call events.sql
+\ir events.sql
+
+\echo [M] call api.sql
+\ir api.sql
+
+\echo [M] call rest.sql
+\ir rest.sql
