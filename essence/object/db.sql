@@ -445,7 +445,6 @@ $$ LANGUAGE SQL
  * @param {numeric} pObject - Идентификатор объекта
  * @param {bit} pMask - Маска доступа. Шесть бит (d:{sud}a:{sud}) где: d - запрещающие биты; a - разрешающие биты: {s - select, u - update, d - delete}
  * @param {numeric} pUserId - Идентификатор пользователя/группы
- * @param {char} pMarker - Маркер
  * @return {void}
 */
 CREATE OR REPLACE FUNCTION chmodo (
