@@ -58,7 +58,7 @@ BEGIN
     SELECT username INTO vUserName FROM db.user WHERE id = nUserId;
   END IF;
 
-  IF lower(pRoute) = '/sign/in' THEN
+  IF pJson ? 'password' THEN
     pJson := pJson - 'password';
   END IF;
 

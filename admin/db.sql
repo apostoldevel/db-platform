@@ -1045,13 +1045,13 @@ CREATE OR REPLACE FUNCTION StrPwKey (
 ) RETURNS       text
 AS $$
 DECLARE
-  vPswHash      text;
+  vHash         text;
   vStrPwKey     text DEFAULT null;
 BEGIN
-  SELECT pswhash INTO vPswHash FROM db.user WHERE id = pUserId;
+  SELECT hash INTO vHash FROM db.user WHERE id = pUserId;
 
   IF found THEN
-    vStrPwKey := '{' || IntToStr(pUserId) || '-' || vPswHash || '-' || encode(digest(pAgent, 'sha1'), 'hex') || '-' || current_database() || '-' || DateToStr(pCreated, 'YYYYMMDDHH24MISS') || '}';
+    vStrPwKey := '{' || IntToStr(pUserId) || '-' || vHash || '-' || encode(digest(pAgent, 'sha1'), 'hex') || '-' || current_database() || '-' || DateToStr(pCreated, 'YYYYMMDDHH24MISS') || '}';
   END IF;
 
   RETURN encode(digest(vStrPwKey, 'sha1'), 'hex');
@@ -3000,23 +3000,24 @@ BEGIN
   END IF;
 
   IF found THEN
-    pPhone := coalesce(pPhone, r.phone);
-    pEmail := coalesce(pEmail, r.email);
-    pDescription := coalesce(pDescription, r.description);
+    pName := coalesce(NULLIF(pName, ''), r.name);
+    pPhone := coalesce(NULLIF(pPhone, ''), r.phone);
+    pEmail := coalesce(NULLIF(pEmail, ''), r.email);
+    pDescription := coalesce(NULLIF(pDescription, ''), r.description);
     pPasswordChange := coalesce(pPasswordChange, r.passwordchange);
     pPasswordNotChange := coalesce(pPasswordNotChange, r.passwordnotchange);
 
     UPDATE db.user
        SET username = coalesce(pUserName, username),
-           name = coalesce(pName, name),
+           name = coalesce(pName, username),
            phone = CheckNull(pPhone),
            email = CheckNull(pEmail),
            description = CheckNull(pDescription),
            passwordchange = pPasswordChange,
            passwordnotchange = pPasswordNotChange
-     WHERE Id = pId;
+     WHERE id = pId;
 
-    IF pPassword IS NOT NULL AND pPassword <> '' THEN
+    IF NULLIF(pPassword, '') IS NOT NULL THEN
       PERFORM SetPassword(pId, pPassword);
     END IF;
   ELSE

@@ -1483,22 +1483,22 @@ $$ LANGUAGE SQL
 /*
  * Устанавливает битовую маску доступа для класса и пользователя.
  * @param {numeric} pClass - Идентификатор класса
- * @param {bit} pMask - Маска доступа. Десять бит (d:{acsud}a:{acsud}) где: d - запрещающие биты; a - разрешающие биты: {a - access; c - create; s - select, u - update, d - delete}
+ * @param {int} pMask - Маска доступа. Десять бит (d:{acsud}a:{acsud}) где: d - запрещающие биты; a - разрешающие биты: {a - access; c - create; s - select, u - update, d - delete}
  * @param {numeric} pUserId - Идентификатор пользователя/группы
  * @param {boolean} pRecursive - Рекурсивно установить права для всех нижестоящих классов.
  * @param {boolean} pObjectSet - Установить права на объектах (документах) принадлежащих указанному классу.
  * @return {void}
 */
 CREATE OR REPLACE FUNCTION api.chmodc (
-  pClass	numeric,
-  pMask		bit,
-  pUserId	numeric default session_userid(),
+  pClass        numeric,
+  pMask         int,
+  pUserId       numeric default session_userid(),
   pRecursive	boolean default true,
   pObjectSet	boolean default false
-) RETURNS 	void
+) RETURNS       void
 AS $$
 BEGIN
-  PERFORM kernel.chmodc(pClass, pMask, pUserId, pRecursive, pObjectSet);
+  PERFORM kernel.chmodc(pClass, pMask::bit(10), pUserId, pRecursive, pObjectSet);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1510,18 +1510,18 @@ $$ LANGUAGE plpgsql
 /*
  * Устанавливает битовую маску доступа для методов и пользователя.
  * @param {numeric} pMethod - Идентификатор метода
- * @param {pMask} pBit - Маска доступа. Три бита (0ve) где: 0 - резерв, v - visible, e - enable
+ * @param {int} pMask - Маска доступа. Три бита (0ve) где: 0 - резерв, v - visible, e - enable
  * @param {numeric} pUserId - Идентификатор пользователся/группы
  * @return {void}
 */
 CREATE OR REPLACE FUNCTION api.chmodm (
   pMethod	numeric,
-  pMask		bit,
+  pMask		int,
   pUserId	numeric default session_userid()
 ) RETURNS 	void
 AS $$
 BEGIN
-  PERFORM kernel.chmodm(pMethod, pMask, pUserId);
+  PERFORM kernel.chmodm(pMethod, pMask::bit(6), pUserId);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1533,18 +1533,18 @@ $$ LANGUAGE plpgsql
 /*
  * Устанавливает битовую маску доступа для объектов и пользователя.
  * @param {numeric} pObject - Идентификатор объекта
- * @param {pMask} pBit - Маска доступа. Три бита (sud) где: s - select, u - update, d - delete
+ * @param {int} pMask - Маска доступа. Три бита (sud) где: s - select, u - update, d - delete
  * @param {numeric} pUserId - Идентификатор пользователся/группы
  * @return {void}
 */
 CREATE OR REPLACE FUNCTION api.chmodo (
   pObject	numeric,
-  pMask		bit,
+  pMask		int,
   pUserId	numeric default session_userid()
 ) RETURNS 	void
 AS $$
 BEGIN
-  PERFORM kernel.chmodo(pObject, pMask, pUserId);
+  PERFORM kernel.chmodo(pObject, pMask::bit(6), pUserId);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

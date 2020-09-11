@@ -449,14 +449,14 @@ $$ LANGUAGE SQL
  * @return {void}
 */
 CREATE OR REPLACE FUNCTION chmodo (
-  pObject	numeric,
-  pMask		bit,
-  pUserId	numeric DEFAULT current_userid()
-) RETURNS	void
+  pObject       numeric,
+  pMask         bit,
+  pUserId       numeric DEFAULT current_userid()
+) RETURNS       void
 AS $$
 DECLARE
-  bDeny         bit;
-  bAllow        bit;
+  bDeny         bit(3);
+  bAllow        bit(3);
 BEGIN
   IF session_user <> 'kernel' THEN
     IF NOT IsUserRole(GetGroup('administrator')) THEN
@@ -464,9 +464,11 @@ BEGIN
     END IF;
   END IF;
 
+  pMask := NULLIF(pMask, B'000000');
+
   IF pMask IS NOT NULL THEN
-    bDeny := NULLIF(SubString(pMask FROM 1 FOR 3), B'000');
-    bAllow := NULLIF(SubString(pMask FROM 4 FOR 3), B'000');
+    bDeny := coalesce(SubString(pMask FROM 1 FOR 3), B'000');
+    bAllow := coalesce(SubString(pMask FROM 4 FOR 3), B'000');
 
     UPDATE db.aou SET deny = bDeny, allow = bAllow WHERE object = pObject AND userid = pUserId;
     IF NOT FOUND THEN

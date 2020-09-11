@@ -146,6 +146,75 @@ BEGIN
       END LOOP;
     END IF;
 
+  WHEN '/object/access' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['id']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric)
+    LOOP
+      FOR e IN SELECT * FROM api.object_access(r.id)
+      LOOP
+        RETURN NEXT row_to_json(e);
+      END LOOP;
+    END LOOP;
+
+  WHEN '/object/access/set' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['id', 'mask', 'userid']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, mask int, userid numeric)
+      LOOP
+        PERFORM api.chmodo(r.id, r.mask, r.userid);
+        RETURN NEXT row_to_json(r);
+      END LOOP;
+
+    ELSE
+
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, mask int, userid numeric)
+      LOOP
+        PERFORM api.chmodo(r.id, r.mask, r.userid);
+        RETURN NEXT row_to_json(r);
+      END LOOP;
+
+    END IF;
+
+  WHEN '/object/access/decode' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, GetRoutines('decode_object_access', 'api', false));
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN EXECUTE format('SELECT row_to_json(api.decode_object_access(%s)) FROM jsonb_to_recordset($1) AS x(%s)', array_to_string(GetRoutines('decode_object_access', 'api', false, 'x'), ', '), array_to_string(GetRoutines('decode_object_access', 'api', true), ', ')) USING pPayload
+      LOOP
+        RETURN NEXT r;
+      END LOOP;
+
+    ELSE
+
+      FOR r IN EXECUTE format('SELECT row_to_json(api.decode_object_access(%s)) FROM jsonb_to_record($1) AS x(%s)', array_to_string(GetRoutines('decode_object_access', 'api', false, 'x'), ', '), array_to_string(GetRoutines('decode_object_access', 'api', true), ', ')) USING pPayload
+      LOOP
+        RETURN NEXT r;
+      END LOOP;
+
+    END IF;
+
   WHEN '/object/file' THEN
 
     IF pPayload IS NULL THEN

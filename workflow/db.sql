@@ -533,8 +533,8 @@ AS $$
 DECLARE
   r             record;
 
-  bDeny         bit;
-  bAllow        bit;
+  bDeny         bit(5);
+  bAllow        bit(5);
 BEGIN
   IF session_user <> 'kernel' THEN
     IF NOT IsUserRole('administrator') THEN
@@ -542,8 +542,10 @@ BEGIN
     END IF;
   END IF;
 
-  bDeny := NULLIF(SubString(pMask FROM 1 FOR 5), B'00000');
-  bAllow := NULLIF(SubString(pMask FROM 6 FOR 5), B'00000');
+  pMask := NULLIF(pMask, B'0000000000');
+
+  bDeny := coalesce(SubString(pMask FROM 1 FOR 5), B'00000');
+  bAllow := coalesce(SubString(pMask FROM 6 FOR 5), B'00000');
 
   IF pMask IS NOT NULL THEN
     UPDATE db.acu SET deny = bDeny, allow = bAllow WHERE class = pClass AND userid = pUserId;
@@ -1610,8 +1612,8 @@ CREATE OR REPLACE FUNCTION chmodm (
 ) RETURNS	void
 AS $$
 DECLARE
-  bDeny         bit;
-  bAllow        bit;
+  bDeny         bit(3);
+  bAllow        bit(3);
 BEGIN
   IF session_user <> 'kernel' THEN
     IF NOT IsUserRole('administrator') THEN
@@ -1619,9 +1621,11 @@ BEGIN
     END IF;
   END IF;
 
+  pMask := NULLIF(pMask, B'000000');
+
   IF pMask IS NOT NULL THEN
-    bDeny := NULLIF(SubString(pMask FROM 1 FOR 3), B'000');
-    bAllow := NULLIF(SubString(pMask FROM 4 FOR 3), B'000');
+    bDeny := coalesce(SubString(pMask FROM 1 FOR 3), B'000');
+    bAllow := coalesce(SubString(pMask FROM 4 FOR 3), B'000');
 
     UPDATE db.amu SET deny = bDeny, allow = bAllow WHERE method = pMethod AND userid = pUserId;
     IF NOT FOUND THEN

@@ -364,6 +364,75 @@ BEGIN
 
     END IF;
 
+  WHEN '/workflow/class/access' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['id', 'code']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, code varchar)
+    LOOP
+      FOR e IN SELECT * FROM api.class_access(coalesce(r.id, GetClass(r.code)))
+      LOOP
+        RETURN NEXT row_to_json(e);
+      END LOOP;
+    END LOOP;
+
+  WHEN '/workflow/class/access/set' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['id', 'mask', 'userid', 'recursive', 'objectset']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, mask int, userid numeric, recursive bool, objectset bool)
+      LOOP
+        PERFORM api.chmodc(r.id, r.mask, r.userid, r.recursive, r.objectset);
+        RETURN NEXT row_to_json(r);
+      END LOOP;
+
+    ELSE
+
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, mask int, userid numeric, recursive bool, objectset bool)
+      LOOP
+        PERFORM api.chmodc(r.id, r.mask, r.userid, r.recursive, r.objectset);
+        RETURN NEXT row_to_json(r);
+      END LOOP;
+
+    END IF;
+
+  WHEN '/workflow/class/access/decode' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, GetRoutines('decode_class_access', 'api', false));
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN EXECUTE format('SELECT row_to_json(api.decode_class_access(%s)) FROM jsonb_to_recordset($1) AS x(%s)', array_to_string(GetRoutines('decode_class_access', 'api', false, 'x'), ', '), array_to_string(GetRoutines('decode_class_access', 'api', true), ', ')) USING pPayload
+      LOOP
+        RETURN NEXT r;
+      END LOOP;
+
+    ELSE
+
+      FOR r IN EXECUTE format('SELECT row_to_json(api.decode_class_access(%s)) FROM jsonb_to_record($1) AS x(%s)', array_to_string(GetRoutines('decode_class_access', 'api', false, 'x'), ', '), array_to_string(GetRoutines('decode_class_access', 'api', true), ', ')) USING pPayload
+      LOOP
+        RETURN NEXT r;
+      END LOOP;
+
+    END IF;
+
   WHEN '/workflow/state/type' THEN
 
     FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(fields jsonb)
@@ -711,6 +780,75 @@ BEGIN
       LOOP
         PERFORM api.delete_method(r.id);
         RETURN NEXT json_build_object('id', r.id, 'result', true, 'message', 'Успешно.');
+      END LOOP;
+
+    END IF;
+
+  WHEN '/workflow/method/access' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['id']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric)
+    LOOP
+      FOR e IN SELECT * FROM api.method_access(r.id)
+      LOOP
+        RETURN NEXT row_to_json(e);
+      END LOOP;
+    END LOOP;
+
+  WHEN '/workflow/method/access/set' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['id', 'mask', 'userid']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, mask int, userid numeric)
+      LOOP
+        PERFORM api.chmodm(r.id, r.mask, r.userid);
+        RETURN NEXT row_to_json(r);
+      END LOOP;
+
+    ELSE
+
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, mask int, userid numeric)
+      LOOP
+        PERFORM api.chmodm(r.id, r.mask, r.userid);
+        RETURN NEXT row_to_json(r);
+      END LOOP;
+
+    END IF;
+
+  WHEN '/workflow/method/access/decode' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, GetRoutines('decode_method_access', 'api', false));
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN EXECUTE format('SELECT row_to_json(api.decode_method_access(%s)) FROM jsonb_to_recordset($1) AS x(%s)', array_to_string(GetRoutines('decode_method_access', 'api', false, 'x'), ', '), array_to_string(GetRoutines('decode_method_access', 'api', true), ', ')) USING pPayload
+      LOOP
+        RETURN NEXT r;
+      END LOOP;
+
+    ELSE
+
+      FOR r IN EXECUTE format('SELECT row_to_json(api.decode_method_access(%s)) FROM jsonb_to_record($1) AS x(%s)', array_to_string(GetRoutines('decode_method_access', 'api', false, 'x'), ', '), array_to_string(GetRoutines('decode_method_access', 'api', true), ', ')) USING pPayload
+      LOOP
+        RETURN NEXT r;
       END LOOP;
 
     END IF;

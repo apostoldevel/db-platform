@@ -397,6 +397,54 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- api.decode_class_access -----------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Расшифровка маски прав доступа для класса.
+ * @return {SETOF record} - Запись
+ */
+CREATE OR REPLACE FUNCTION api.decode_class_access (
+  pId       numeric,
+  pUserId	numeric default session_userid(),
+  OUT a		boolean,
+  OUT c		boolean,
+  OUT s		boolean,
+  OUT u		boolean,
+  OUT d		boolean
+) RETURNS 	record
+AS $$
+  SELECT * FROM DecodeClassAccess(pId, pUserId);
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- VIEW api.class_access -------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW api.class_access
+AS
+  SELECT * FROM ClassMembers;
+
+GRANT SELECT ON api.class_access TO administrator;
+
+--------------------------------------------------------------------------------
+-- api.class_access ------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Возвращает участников и права доступа для класса.
+ * @return {SETOF api.class_access} - Запись
+ */
+CREATE OR REPLACE FUNCTION api.class_access (
+  pId       numeric
+) RETURNS 	SETOF api.class_access
+AS $$
+  SELECT * FROM api.class_access WHERE class = pId;
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- STATE -----------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -1044,6 +1092,52 @@ BEGIN
   RETURN ExecuteMethod(pObject, nMethod, pForm);
 END;
 $$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.decode_method_access ----------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Расшифровка маски прав доступа для метода.
+ * @return {SETOF record} - Запись
+ */
+CREATE OR REPLACE FUNCTION api.decode_method_access (
+  pId       numeric,
+  pUserId	numeric default session_userid(),
+  OUT x		boolean,
+  OUT v		boolean,
+  OUT e		boolean
+) RETURNS 	record
+AS $$
+  SELECT * FROM DecodeMethodAccess(pId, pUserId);
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- VIEW api.method_access ------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW api.method_access
+AS
+  SELECT * FROM MethodMembers;
+
+GRANT SELECT ON api.method_access TO administrator;
+
+--------------------------------------------------------------------------------
+-- api.method_access -----------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Возвращает участников и права доступа для метода.
+ * @return {SETOF api.method_access} - Запись
+ */
+CREATE OR REPLACE FUNCTION api.method_access (
+  pId       numeric
+) RETURNS 	SETOF api.method_access
+AS $$
+  SELECT * FROM api.method_access WHERE method = pId;
+$$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
