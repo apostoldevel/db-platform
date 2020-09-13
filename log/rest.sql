@@ -34,7 +34,7 @@ BEGIN
 
     FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(type char, code numeric, datefrom timestamp, dateto timestamp)
     LOOP
-      FOR e IN SELECT * FROM api.user_log(current_username(), r.type, r.code, r.datefrom, r.dateto)
+      FOR e IN SELECT * FROM api.user_log(r.type, r.code, r.datefrom, r.dateto)
       LOOP
         RETURN NEXT row_to_json(e);
       END LOOP;

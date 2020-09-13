@@ -80,24 +80,63 @@ CREATE TRIGGER t_document_update
 -- CreateDocument --------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-create or replace function CreateDocument (
+CREATE OR REPLACE FUNCTION CreateDocument (
   pParent	numeric,
   pType		numeric,
   pLabel	text DEFAULT null,
   pDesc		text DEFAULT null
-) returns 	numeric
-as $$
-declare
+) RETURNS 	numeric
+AS $$
+DECLARE
   nObject	numeric;
-begin
+BEGIN
   nObject := CreateObject(pParent, pType, pLabel);
 
-  insert into db.document (object, description)
-  values (nObject, pDesc)
-  RETURNING id into nObject;
+  INSERT INTO db.document (object, description)
+  VALUES (nObject, pDesc)
+  RETURNING id INTO nObject;
 
-  return nObject;
-end;
+  RETURN nObject;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- EditDocument ----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION EditDocument (
+  pId           numeric,
+  pParent       numeric DEFAULT null,
+  pType         numeric DEFAULT null,
+  pLabel        text DEFAULT null,
+  pDescription  text DEFAULT null
+) RETURNS       void
+AS $$
+DECLARE
+  cParent       numeric;
+  cType         numeric;
+  cLabel        text;
+BEGIN
+  SELECT parent, type, label INTO cParent, cType, cLabel FROM db.object WHERE id = pId;
+
+  pParent := coalesce(pParent, cParent, 0);
+  pType := coalesce(pType, cType);
+  pLabel := coalesce(pLabel, cLabel);
+
+  IF pParent <> coalesce(cParent, 0) THEN
+    UPDATE db.object SET parent = CheckNull(pParent) WHERE id = pId;
+  END IF;
+
+  IF pType <> cType THEN
+    UPDATE db.object SET type = pType WHERE id = pId;
+  END IF;
+
+  UPDATE db.document
+     SET description = CheckNull(coalesce(pDescription, description, '<null>'))
+   WHERE id = pId;
+END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
