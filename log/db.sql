@@ -3,13 +3,13 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.log (
-    id			numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_LOG'),
-    type		char DEFAULT 'M' NOT NULL,
+    id          numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_LOG'),
+    type        char DEFAULT 'M' NOT NULL,
     datetime	timestamp DEFAULT Now() NOT NULL,
     username	varchar(50) DEFAULT current_username() NOT NULL,
-    session		varchar(40),
-    code		numeric(5) NOT NULL,
-    text		text NOT NULL,
+    session     varchar(40),
+    code        numeric(5) NOT NULL,
+    text        text NOT NULL,
     object      numeric(12),
     CONSTRAINT ch_event_log_type CHECK (type IN ('M', 'W', 'E'))
 );
@@ -123,7 +123,7 @@ CREATE OR REPLACE FUNCTION WriteToEventLog (
   pType		text,
   pCode		numeric,
   pText		text,
-  pObject   numeric DEFAULT null
+  pObject       numeric DEFAULT null
 ) RETURNS	void
 AS $$
 BEGIN
