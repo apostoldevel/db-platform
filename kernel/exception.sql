@@ -517,6 +517,15 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
+CREATE OR REPLACE FUNCTION InvalidVerificationCodeType (
+  pType     char
+) RETURNS	void
+AS $$
+BEGIN
+  RAISE EXCEPTION 'ERR-40057: Недопустимый код типа верификации: "%".', pType;
+END;
+$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+
 CREATE OR REPLACE FUNCTION IncorrectRegistryKey (
   pKey		text,
   pArray	anyarray
