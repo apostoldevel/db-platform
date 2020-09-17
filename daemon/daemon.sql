@@ -163,7 +163,7 @@ BEGIN
       PERFORM TokenExpired();
     END IF;
 
-    vSession := GetSession(GetUser(claim.aud), CreateOAuth2(nAudience, ARRAY['api']), pAgent, pHost);
+    vSession := SignIn(CreateOAuth2(nAudience, ARRAY['api']), claim.aud, vSecret, pAgent, pHost);
 
     IF vSession IS NULL THEN
       RAISE EXCEPTION '%', GetErrorMessage();

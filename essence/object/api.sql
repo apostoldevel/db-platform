@@ -3,6 +3,115 @@
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
+-- api.change_object_state -----------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Изменить состояние объекта.
+ * @param {numeric} pObject - Идентификатор объекта
+ * @param {varchar} pCode - Код нового состояния объекта
+ * @out param {numeric} id - Идентификатор
+ * @out param {boolean} result - Результат
+ * @out param {text} message - Текст ошибки
+ * @return {record}
+ */
+CREATE OR REPLACE FUNCTION api.change_object_state (
+  pObject       numeric,
+  pCode         varchar,
+  OUT id        numeric,
+  OUT result	boolean,
+  OUT message	text
+) RETURNS       record
+AS $$
+DECLARE
+  nEssence      numeric;
+  nType         numeric;
+  nClass        numeric;
+  nState        numeric;
+BEGIN
+  id := pObject;
+
+  SELECT o.type INTO nType FROM db.object o WHERE o.id = pObject;
+  SELECT t.class INTO nClass FROM db.type t WHERE t.id = nType;
+
+  nEssence := GetEssence(nClass);
+  IF nEssence IS NULL THEN
+    PERFORM ObjectNotFound('object', 'id', pObject);
+  END IF;
+
+  SELECT s.id INTO nState FROM db.state s WHERE s.class = nClass AND s.code = pCode;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Неверный код состояния: "%".', pCode;
+  END IF;
+
+  PERFORM ChangeObjectState(pObject, nState);
+  SELECT * INTO result, message FROM result_success();
+EXCEPTION
+WHEN others THEN
+  GET STACKED DIAGNOSTICS message = MESSAGE_TEXT;
+  result := false;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.get_object_label --------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.get_object_label (
+  pObject       numeric
+) RETURNS       text
+AS $$
+DECLARE
+  nId           numeric;
+BEGIN
+  SELECT o.id INTO nId FROM db.object o WHERE o.id = pObject;
+  IF NOT FOUND THEN
+    PERFORM ObjectNotFound('object', 'id', pObject);
+  END IF;
+
+  RETURN GetObjectLabel(pObject);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.set_object_label --------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.set_object_label (
+  pObject       numeric,
+  pLabel        text,
+  OUT id        numeric,
+  OUT result    boolean,
+  OUT message   text
+) RETURNS       record
+AS $$
+DECLARE
+  nId           numeric;
+BEGIN
+  id := null;
+
+  SELECT o.id INTO nId FROM db.object o WHERE o.id = pObject;
+  IF NOT FOUND THEN
+    PERFORM ObjectNotFound('object', 'id', pObject);
+  END IF;
+
+  id := nId;
+
+  PERFORM SetObjectLabel(pObject, pLabel);
+  SELECT * INTO result, message FROM result_success();
+EXCEPTION
+WHEN others THEN
+  GET STACKED DIAGNOSTICS message = MESSAGE_TEXT;
+  result := false;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- api.object_force_delete -----------------------------------------------------
 --------------------------------------------------------------------------------
 /**

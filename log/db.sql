@@ -6,7 +6,7 @@ CREATE TABLE db.log (
     id          numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_LOG'),
     type        char DEFAULT 'M' NOT NULL,
     datetime	timestamp DEFAULT Now() NOT NULL,
-    username	varchar(50) DEFAULT current_username() NOT NULL,
+    username	text DEFAULT current_username() NOT NULL,
     session     varchar(40),
     code        numeric(5) NOT NULL,
     text        text NOT NULL,

@@ -87,7 +87,11 @@ BEGIN
     PERFORM ViewNotFound(pScheme, pTable);
   END IF;
 
+  --arColumns := GetColumns(pTable, pScheme, 't');
+
   vSelect := coalesce(vWith, '') || 'SELECT ' || coalesce(array_to_string(arColumns, ', '), 't.*') || E'\n  FROM ' || pScheme || '.' || pTable || ' t ' || coalesce(vJoin, '');
+
+  arColumns := GetColumns(pTable, pScheme);
 
   IF pFilter IS NOT NULL THEN
     PERFORM CheckJsonbKeys(pTable || '/filter', arColumns, pFilter);
@@ -118,11 +122,11 @@ BEGIN
         IF array_position(arValues, vCondition) IS NULL THEN
           PERFORM IncorrectValueInArray(coalesce(r.condition, '<null>'), 'condition', arValues);
         END IF;
-/*
+
         IF array_position(arColumns, vField) IS NULL THEN
           PERFORM IncorrectValueInArray(coalesce(r.field, '<null>'), 'field', arColumns);
         END IF;
-*/
+
         IF r.valarr IS NOT NULL THEN
           vValue := jsonb_array_to_string(r.valarr, ',');
 
@@ -162,7 +166,7 @@ BEGIN
   vSelect := vSelect || coalesce(vWhere, '');
 
   IF pOrderBy IS NOT NULL THEN
---    PERFORM CheckJsonbValues('orderby', array_cat(arColumns, array_add_text(arColumns, ' desc')), pOrderBy);
+    --PERFORM CheckJsonbValues('orderby', array_cat(arColumns, array_add_text(arColumns, ' desc')), pOrderBy);
     vSelect := vSelect || E'\n ORDER BY ' || array_to_string(array_quote_literal_json(JsonbToStrArray(pOrderBy)), ',');
   ELSE
     IF SubStr(pTable, 1, 7) = 'object_' THEN
@@ -170,7 +174,9 @@ BEGIN
     ELSIF SubStr(pTable, 1, 7) = 'session' THEN
       vSelect := vSelect || E'\n ORDER BY created';
     ELSE
-      vSelect := vSelect || E'\n ORDER BY id';
+      IF array_position(arColumns, 'id') IS NOT NULL THEN
+        vSelect := vSelect || E'\n ORDER BY id';
+      END IF;
     END IF;
   END IF;
 

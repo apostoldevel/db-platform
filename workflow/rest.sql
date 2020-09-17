@@ -408,6 +408,23 @@ BEGIN
 
     END IF;
 
+  WHEN '/workflow/class/access/list' THEN
+
+    IF pPayload IS NOT NULL THEN
+      arKeys := array_cat(arKeys, ARRAY['fields', 'search', 'filter', 'reclimit', 'recoffset', 'orderby']);
+      PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+    ELSE
+      pPayload := '{}';
+    END IF;
+
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(fields jsonb, search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
+    LOOP
+      FOR e IN EXECUTE format('SELECT %s FROM api.list_class_access($1, $2, $3, $4, $5)', JsonbToFields(r.fields, GetColumns('class_access', 'api'))) USING r.search, r.filter, r.reclimit, r.recoffset, r.orderby
+      LOOP
+        RETURN NEXT row_to_json(e);
+      END LOOP;
+    END LOOP;
+
   WHEN '/workflow/class/access/decode' THEN
 
     IF pPayload IS NULL THEN
@@ -827,6 +844,23 @@ BEGIN
       END LOOP;
 
     END IF;
+
+  WHEN '/workflow/method/access/list' THEN
+
+    IF pPayload IS NOT NULL THEN
+      arKeys := array_cat(arKeys, ARRAY['fields', 'search', 'filter', 'reclimit', 'recoffset', 'orderby']);
+      PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+    ELSE
+      pPayload := '{}';
+    END IF;
+
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(fields jsonb, search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
+    LOOP
+      FOR e IN EXECUTE format('SELECT %s FROM api.list_method_access($1, $2, $3, $4, $5)', JsonbToFields(r.fields, GetColumns('method_access', 'api'))) USING r.search, r.filter, r.reclimit, r.recoffset, r.orderby
+      LOOP
+        RETURN NEXT row_to_json(e);
+      END LOOP;
+    END LOOP;
 
   WHEN '/workflow/method/access/decode' THEN
 

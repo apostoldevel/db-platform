@@ -266,6 +266,7 @@ CREATE TABLE db.user (
     pswhash             text DEFAULT NULL,
     passwordchange      boolean DEFAULT true NOT NULL,
     passwordnotchange   boolean DEFAULT false NOT NULL,
+    readonly            boolean DEFAULT false NOT NULL,
     CONSTRAINT ch_user_type CHECK (type IN ('G', 'U'))
 );
 
@@ -287,6 +288,7 @@ COMMENT ON COLUMN db.user.expiry_date IS 'Дата окончания срока
 COMMENT ON COLUMN db.user.pswhash IS 'Хеш пароля';
 COMMENT ON COLUMN db.user.passwordchange IS 'Сменить пароль при следующем входе в систему (да/нет)';
 COMMENT ON COLUMN db.user.passwordnotchange IS 'Установлен запрет на смену пароля самим пользователем (да/нет)';
+COMMENT ON COLUMN db.user.readonly IS 'Только чтение (запрешено изменение)';
 
 CREATE UNIQUE INDEX ON db.user (type, username);
 CREATE UNIQUE INDEX ON db.user (hash);
@@ -309,6 +311,9 @@ BEGIN
   END IF;
 
   SELECT encode(digest(encode(hmac(NEW.secret::text, GetSecretKey(), 'sha512'), 'hex'), 'sha1'), 'hex') INTO NEW.hash;
+
+  NEW.readonly := NEW.username IN ('system', 'administrator', 'guest');
+  NEW.readonly := NEW.readonly OR coalesce((SELECT a.name = NEW.username FROM oauth2.audience a WHERE a.name = NEW.username), false);
 
   RETURN NEW;
 END;
@@ -553,10 +558,8 @@ AS
          u.email, p.email_verified, u.phone, p.phone_verified, p.session_limit,
          u.created, l.code AS locale, a.code AS area, i.sid AS interface,
          u.description, p.picture, u.passwordchange, u.passwordnotchange,
-         CASE (SELECT p.rolname FROM pg_roles p WHERE p.rolname = lower(u.username))
-         WHEN u.username THEN 'yes'
-         ELSE 'no'
-         END AS system,
+         r.rolname IS NOT NULL AS system,
+         readonly,
          status::int,
          CASE
          WHEN u.status & B'1100' = B'1100' THEN 'expired & locked'
@@ -579,10 +582,11 @@ AS
          END AS statetext,
          u.lock_date, u.expiry_date, p.lc_ip,
          p.input_count, p.input_last, p.input_error, p.input_error_last, p.input_error_all
-    FROM db.user u INNER JOIN db.profile p   ON p.userid = u.id
-                    LEFT JOIN db.locale l    ON l.id = p.locale
-                    LEFT JOIN db.area a      ON a.id = p.area
-                    LEFT JOIN db.interface i ON i.id = p.interface
+    FROM db.user u INNER JOIN db.profile p      ON p.userid = u.id
+                    LEFT JOIN db.locale l       ON l.id = p.locale
+                    LEFT JOIN db.area a         ON a.id = p.area
+                    LEFT JOIN db.interface i    ON i.id = p.interface
+                    LEFT JOIN pg_roles r        ON r.rolname = lower(u.username)
    WHERE u.type = 'U';
 
 GRANT SELECT ON users TO administrator;
@@ -593,12 +597,8 @@ GRANT SELECT ON users TO administrator;
 
 CREATE OR REPLACE VIEW groups (Id, UserName, Name, Description, System)
 AS
-  SELECT u.id, u.username, u.name, u.description,
-         CASE (SELECT p.rolname FROM pg_roles p WHERE p.rolname = lower(u.username))
-         WHEN u.username THEN 'yes'
-         ELSE 'no'
-         END
-    FROM db.user u
+  SELECT u.id, u.username, u.name, u.description, r.rolname IS NOT NULL
+    FROM db.user u LEFT JOIN pg_roles r ON r.rolname = lower(u.username)
    WHERE u.type = 'G';
 
 GRANT SELECT ON groups TO administrator;
@@ -2468,17 +2468,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Меняет текущего пользователя в активном сеансе на указанного пользователя
- * @param {text} pUserName - Имя пользователь для подстановки
+ * @param {text} pRoleName - Имя пользователь для подстановки
  * @param {text} pPassword - Пароль текущего пользователя
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION SubstituteUser (
-  pUserName	text,
+  pRoleName	text,
   pPassword	text
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM SubstituteUser(GetUser(pUserName), pPassword);
+  PERFORM SubstituteUser(GetUser(pRoleName), pPassword);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -2837,8 +2837,8 @@ DECLARE
   nUserId	numeric;
   nRoleId	numeric;
 BEGIN
-  SELECT id INTO nUserId FROM users WHERE username = pUser;
-  SELECT id INTO nRoleId FROM groups WHERE username = pRole;
+  SELECT id INTO nUserId FROM users WHERE username = lower(pUser);
+  SELECT id INTO nRoleId FROM groups WHERE username = lower(pRole);
 
   RETURN IsUserRole(nRoleId, nUserId);
 END;
@@ -2851,7 +2851,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Создаёт учётную запись пользователя.
- * @param {text} pUserName - Пользователь
+ * @param {text} pRoleName - Пользователь
  * @param {text} pPassword - Пароль
  * @param {text} pName - Полное имя
  * @param {text} pPhone - Телефон
@@ -2863,7 +2863,7 @@ $$ LANGUAGE plpgsql
  * @return {(id|exception)} - Id учётной записи или ошибку
  */
 CREATE OR REPLACE FUNCTION CreateUser (
-  pUserName             text,
+  pRoleName             text,
   pPassword             text,
   pName                 text,
   pPhone                text,
@@ -2884,14 +2884,14 @@ BEGIN
     END IF;
   END IF;
 
-  SELECT id INTO nUserId FROM users WHERE username = lower(pUserName);
+  SELECT id INTO nUserId FROM users WHERE username = lower(pRoleName);
 
   IF found THEN
-    PERFORM RoleExists(pUserName);
+    PERFORM RoleExists(pRoleName);
   END IF;
 
   INSERT INTO db.user (type, username, name, phone, email, description, passwordchange, passwordnotchange)
-  VALUES ('U', pUserName, pName, pPhone, pEmail, pDescription, pPasswordChange, pPasswordNotChange)
+  VALUES ('U', pRoleName, pName, pPhone, pEmail, pDescription, pPasswordChange, pPasswordNotChange)
   RETURNING id, secret INTO nUserId, vSecret;
 
   INSERT INTO db.profile (userid) VALUES (nUserId);
@@ -2958,7 +2958,7 @@ $$ LANGUAGE plpgsql
 /**
  * Обновляет учётную запись пользователя.
  * @param {id} pId - Идентификатор учетной записи пользователя
- * @param {text} pUserName - Пользователь
+ * @param {text} pRoleName - Пользователь
  * @param {text} pPassword - Пароль
  * @param {text} pName - Полное имя
  * @param {text} pPhone - Телефон
@@ -2970,7 +2970,7 @@ $$ LANGUAGE plpgsql
  */
 CREATE OR REPLACE FUNCTION UpdateUser (
   pId                   numeric,
-  pUserName             text,
+  pRoleName             text,
   pPassword             text DEFAULT null,
   pName                 text DEFAULT null,
   pPhone                text DEFAULT null,
@@ -2981,47 +2981,46 @@ CREATE OR REPLACE FUNCTION UpdateUser (
 ) RETURNS		        void
 AS $$
 DECLARE
-  r			            users%rowtype;
+  r			            db.user%rowtype;
 BEGIN
+  SELECT * INTO r FROM db.user WHERE id = pId AND type = 'U';
+  IF NOT FOUND THEN
+    PERFORM UserNotFound(pId);
+  END IF;
+
   IF session_user <> 'kernel' THEN
     IF pId <> current_userid() THEN
-      IF NOT IsUserRole(GetGroup('administrator'))  THEN
+      IF NOT IsUserRole(GetGroup('administrator')) OR r.readonly THEN
         PERFORM AccessDenied();
       END IF;
     END IF;
   END IF;
 
-  SELECT * INTO r FROM users WHERE id = pId;
-
-  IF r.username IN ('admin', 'daemon', 'apibot', 'mailbot') THEN
-    IF r.username <> lower(pUserName) THEN
+  IF coalesce((SELECT true FROM pg_roles WHERE rolname = lower(r.username)), false) THEN
+    IF lower(r.username) <> lower(pRoleName) THEN
       PERFORM SystemRoleError();
     END IF;
   END IF;
 
-  IF found THEN
-    pName := coalesce(NULLIF(pName, ''), r.name);
-    pPhone := coalesce(NULLIF(pPhone, ''), r.phone);
-    pEmail := coalesce(NULLIF(pEmail, ''), r.email);
-    pDescription := coalesce(NULLIF(pDescription, ''), r.description);
-    pPasswordChange := coalesce(pPasswordChange, r.passwordchange);
-    pPasswordNotChange := coalesce(pPasswordNotChange, r.passwordnotchange);
+  pName := coalesce(NULLIF(pName, ''), r.name);
+  pPhone := coalesce(NULLIF(pPhone, ''), r.phone);
+  pEmail := coalesce(NULLIF(pEmail, ''), r.email);
+  pDescription := coalesce(NULLIF(pDescription, ''), r.description);
+  pPasswordChange := coalesce(pPasswordChange, r.passwordchange);
+  pPasswordNotChange := coalesce(pPasswordNotChange, r.passwordnotchange);
 
-    UPDATE db.user
-       SET username = coalesce(pUserName, username),
-           name = coalesce(pName, username),
-           phone = CheckNull(pPhone),
-           email = CheckNull(pEmail),
-           description = CheckNull(pDescription),
-           passwordchange = pPasswordChange,
-           passwordnotchange = pPasswordNotChange
-     WHERE id = pId;
+  UPDATE db.user
+     SET username = coalesce(pRoleName, username),
+         name = coalesce(pName, username),
+         phone = CheckNull(pPhone),
+         email = CheckNull(pEmail),
+         description = CheckNull(pDescription),
+         passwordchange = pPasswordChange,
+         passwordnotchange = pPasswordNotChange
+   WHERE id = pId;
 
-    IF NULLIF(pPassword, '') IS NOT NULL THEN
-      PERFORM SetPassword(pId, pPassword);
-    END IF;
-  ELSE
-    PERFORM UserNotFound(pId);
+  IF NULLIF(pPassword, '') IS NOT NULL THEN
+    PERFORM SetPassword(pId, pPassword);
   END IF;
 END;
 $$ LANGUAGE plpgsql
@@ -3047,18 +3046,21 @@ CREATE OR REPLACE FUNCTION UpdateGroup (
 ) RETURNS       void
 AS $$
 DECLARE
-  vGroupName    varchar;
+  r             db.user%rowtype;
 BEGIN
+  SELECT * INTO r FROM db.user WHERE id = pId AND type = 'G';
+  IF NOT FOUND THEN
+    PERFORM UserNotFound(pId);
+  END IF;
+
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(GetGroup('administrator')) THEN
+    IF NOT IsUserRole(GetGroup('administrator')) OR r.readonly THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
 
-  SELECT username INTO vGroupName FROM db.user WHERE id = pId;
-
-  IF vGroupName IN ('administrator', 'guest', 'operator', 'user') THEN
-    IF vGroupName <> lower(pRoleName) THEN
+  IF coalesce((SELECT true FROM pg_roles WHERE rolname = lower(r.username)), false) THEN
+    IF lower(r.username) <> lower(pRoleName) THEN
       PERFORM SystemRoleError();
     END IF;
   END IF;
@@ -3067,7 +3069,7 @@ BEGIN
      SET username = coalesce(pRoleName, username),
          name = coalesce(pName, name),
          description = coalesce(pDescription, description)
-   WHERE Id = pId;
+   WHERE id = pId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -3100,7 +3102,7 @@ BEGIN
 
   SELECT username INTO vUserName FROM db.user WHERE id = pId;
 
-  IF vUserName IN ('admin', 'daemon', 'apibot', 'mailbot') THEN
+  IF coalesce((SELECT true FROM pg_roles WHERE rolname = lower(vUserName)), false) THEN
     PERFORM SystemRoleError();
   END IF;
 
@@ -3131,20 +3133,20 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Удаляет учётную запись пользователя.
- * @param {text} pUserName - Пользователь (login)
+ * @param {text} pRoleName - Пользователь (login)
  * @return {(void|exception)}
  */
 CREATE OR REPLACE FUNCTION DeleteUser (
-  pUserName	text
+  pRoleName	text
 ) RETURNS	void
 AS $$
 DECLARE
   nId		numeric;
 BEGIN
-  SELECT id INTO nId FROM db.user WHERE type = 'U' AND username = pUserName;
+  SELECT id INTO nId FROM db.user WHERE type = 'U' AND username = lower(pRoleName);
 
   IF NOT found THEN
-    PERFORM UserNotFound(pUserName);
+    PERFORM UserNotFound(pRoleName);
   END IF;
 
   PERFORM DeleteUser(nId);
@@ -3176,7 +3178,7 @@ BEGIN
 
   SELECT username INTO vGroupName FROM db.user WHERE id = pId;
 
-  IF vGroupName IN ('system', 'guest', 'administrator', 'operator', 'user') THEN
+  IF coalesce((SELECT true FROM pg_roles WHERE rolname = lower(vGroupName)), false) THEN
     PERFORM SystemRoleError();
   END IF;
 
@@ -3214,20 +3216,20 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает идентификатор пользователя по имени пользователя.
- * @param {text} pUserName - Пользователь
+ * @param {text} pRoleName - Пользователь
  * @return {id}
  */
 CREATE OR REPLACE FUNCTION GetUser (
-  pUserName	text
+  pRoleName	text
 ) RETURNS	numeric
 AS $$
 DECLARE
   nId		numeric;
 BEGIN
-  SELECT id INTO nId FROM db.user WHERE type = 'U' AND username = pUserName;
+  SELECT id INTO nId FROM db.user WHERE type = 'U' AND username = lower(pRoleName);
 
   IF NOT found THEN
-    PERFORM UserNotFound(pUserName);
+    PERFORM UserNotFound(pRoleName);
   END IF;
 
   RETURN nId;
@@ -3251,7 +3253,7 @@ AS $$
 DECLARE
   nId		    numeric;
 BEGIN
-  SELECT id INTO nId FROM db.user WHERE type = 'G' AND username = pRoleName;
+  SELECT id INTO nId FROM db.user WHERE type = 'G' AND username = lower(pRoleName);
 
   IF NOT found THEN
     PERFORM UnknownRoleName(pRoleName);
@@ -4228,7 +4230,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CheckPassword (
-  pUserName	text,
+  pRoleName	text,
   pPassword	text
 ) RETURNS 	boolean
 AS $$
@@ -4237,7 +4239,7 @@ DECLARE
 BEGIN
   SELECT (pswhash = crypt(pPassword, pswhash)) INTO passed
     FROM db.user
-   WHERE username = pUserName;
+   WHERE username = pRoleName;
 
   IF found THEN
     IF passed THEN
@@ -4415,7 +4417,7 @@ $$ LANGUAGE plpgsql
 /**
  * Вход в систему по паре имя пользователя и пароль.
  * @param {numeric} pOAuth2 - Параметры авторизации через OAuth 2.0
- * @param {text} pUserName - Пользователь (login)
+ * @param {text} pRoleName - Пользователь (login)
  * @param {text} pPassword - Пароль
  * @param {text} pAgent - Агент
  * @param {inet} pHost - IP адрес
@@ -4423,7 +4425,7 @@ $$ LANGUAGE plpgsql
  */
 CREATE OR REPLACE FUNCTION Login (
   pOAuth2       numeric,
-  pUserName     text,
+  pRoleName     text,
   pPassword     text,
   pAgent        text DEFAULT null,
   pHost         inet DEFAULT null
@@ -4437,7 +4439,7 @@ DECLARE
 
   vSession      text DEFAULT null;
 BEGIN
-  IF NULLIF(pUserName, '') IS NULL THEN
+  IF NULLIF(pRoleName, '') IS NULL THEN
     PERFORM LoginError();
   END IF;
 
@@ -4445,7 +4447,7 @@ BEGIN
     PERFORM LoginError();
   END IF;
 
-  SELECT * INTO up FROM db.user WHERE type = 'U' AND username = pUserName;
+  SELECT * INTO up FROM db.user WHERE type = 'U' AND username = pRoleName;
 
   IF NOT found THEN
     PERFORM LoginError();
@@ -4474,7 +4476,7 @@ BEGIN
     PERFORM LoginIPTableError(pHost);
   END IF;
 
-  IF CheckPassword(pUserName, pPassword) THEN
+  IF CheckPassword(pRoleName, pPassword) THEN
 
     PERFORM CheckSessionLimit(up.id);
 
@@ -4508,7 +4510,7 @@ BEGIN
   END IF;
 
   INSERT INTO db.log (type, code, username, session, text)
-  VALUES ('M', 1001, pUserName, vSession, 'Вход в систему.');
+  VALUES ('M', 1001, pRoleName, vSession, 'Вход в систему.');
 
   RETURN vSession;
 END;
@@ -4522,7 +4524,7 @@ $$ LANGUAGE plpgsql
 /**
  * @brief Вход в систему по имени и паролю пользователя.
  * @param {numeric} pOAuth2 - Параметры авторизации через OAuth 2.0
- * @param {text} pUserName - Пользователь (login)
+ * @param {text} pRoleName - Пользователь (login)
  * @param {text} pPassword - Пароль
  * @param {text} pAgent - Агент
  * @param {inet} pHost - IP адрес
@@ -4530,7 +4532,7 @@ $$ LANGUAGE plpgsql
  */
 CREATE OR REPLACE FUNCTION SignIn (
   pOAuth2       numeric,
-  pUserName     text,
+  pRoleName     text,
   pPassword     text,
   pAgent        text DEFAULT null,
   pHost         inet DEFAULT null
@@ -4546,7 +4548,7 @@ BEGIN
   PERFORM SetErrorMessage('Успешно.');
 
   BEGIN
-    RETURN Login(pOAuth2, pUserName, pPassword, pAgent, pHost);
+    RETURN Login(pOAuth2, pRoleName, pPassword, pAgent, pHost);
   EXCEPTION
   WHEN others THEN
     GET STACKED DIAGNOSTICS message = MESSAGE_TEXT;
@@ -4556,7 +4558,7 @@ BEGIN
 
     PERFORM SetErrorMessage(message);
 
-    SELECT * INTO up FROM db.user WHERE type = 'U' AND username = pUserName;
+    SELECT * INTO up FROM db.user WHERE type = 'U' AND username = pRoleName;
 
     IF found THEN
       UPDATE db.profile
@@ -4574,7 +4576,7 @@ BEGIN
       END IF;
 
       INSERT INTO db.log (type, code, username, text)
-      VALUES ('E', 3001, pUserName, message);
+      VALUES ('E', 3001, pRoleName, message);
     END IF;
 
     RETURN null;
@@ -4793,8 +4795,10 @@ DECLARE
 
   vSession      text;
 BEGIN
-  IF session_user NOT IN ('kernel', 'daemon', 'apibot') THEN
-    PERFORM AccessDeniedForUser(session_user);
+  IF session_user <> 'kernel' THEN
+    IF NOT IsUserRole(GetGroup('system'), pUserId) THEN
+      PERFORM AccessDenied();
+    END IF;
   END IF;
 
   SELECT * INTO up FROM db.user WHERE id = pUserId;

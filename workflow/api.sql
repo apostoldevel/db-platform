@@ -445,6 +445,33 @@ $$ LANGUAGE SQL
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- api.list_class_access -------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Возвращает список участников и права доступа для класса.
+ * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
+ * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
+ * @param {integer} pLimit - Лимит по количеству строк
+ * @param {integer} pOffSet - Пропустить указанное число строк
+ * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
+ * @return {SETOF api.class_access}
+ */
+CREATE OR REPLACE FUNCTION api.list_class_access (
+  pSearch	jsonb DEFAULT null,
+  pFilter	jsonb DEFAULT null,
+  pLimit	integer DEFAULT null,
+  pOffSet	integer DEFAULT null,
+  pOrderBy	jsonb DEFAULT null
+) RETURNS	SETOF api.class_access
+AS $$
+BEGIN
+  RETURN QUERY EXECUTE api.sql('api', 'class_access', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- STATE -----------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -1138,6 +1165,33 @@ CREATE OR REPLACE FUNCTION api.method_access (
 AS $$
   SELECT * FROM api.method_access WHERE method = pId;
 $$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.list_method_access ------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Возвращает список участников и права доступа для метода.
+ * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
+ * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
+ * @param {integer} pLimit - Лимит по количеству строк
+ * @param {integer} pOffSet - Пропустить указанное число строк
+ * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
+ * @return {SETOF api.method_access}
+ */
+CREATE OR REPLACE FUNCTION api.list_method_access (
+  pSearch	jsonb DEFAULT null,
+  pFilter	jsonb DEFAULT null,
+  pLimit	integer DEFAULT null,
+  pOffSet	integer DEFAULT null,
+  pOrderBy	jsonb DEFAULT null
+) RETURNS	SETOF api.method_access
+AS $$
+BEGIN
+  RETURN QUERY EXECUTE api.sql('api', 'method_access', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+END;
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 

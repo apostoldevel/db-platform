@@ -564,6 +564,26 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- GetObjectEssence ------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetObjectEssence (
+  nObject	numeric
+) RETURNS	numeric
+AS $$
+DECLARE
+  nType     numeric;
+  nClass    numeric;
+BEGIN
+  SELECT type INTO nType FROM db.object WHERE id = nObject;
+  SELECT class INTO nClass FROM db.type WHERE id = nType;
+  RETURN GetEssence(nClass);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- GetObjectParent -------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -595,6 +615,22 @@ BEGIN
   SELECT label INTO vLabel FROM db.object WHERE id = pObject;
 
   RETURN vLabel;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION SetObjectLabel -----------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION SetObjectLabel (
+  pObject	numeric,
+  pLabel    text
+) RETURNS	void
+AS $$
+BEGIN
+  UPDATE db.object SET label = pLabel WHERE id = pObject;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
