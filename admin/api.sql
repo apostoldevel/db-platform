@@ -1542,9 +1542,9 @@ $$ LANGUAGE plpgsql
 /**
  * Сверяет код подтверждения.
  * @param {char} pType - Тип: [M]ail - Почта; [P]hone - Телефон;
- * @param {text} pCode - Код подтверждения.
- * @param {numeric} pUserId - Идентификатор учётной записи.
- * @return {bool}
+ * @out param {bool} result - Результат
+ * @out param {text} message - Текст ошибки
+ * @return {record}
  */
 CREATE OR REPLACE FUNCTION api.try_verification_code (
   pType         char,
@@ -1579,7 +1579,7 @@ $$ LANGUAGE SQL
 -- api.list_verification_code --------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список кодов подтверждений.
+ * Возвращает коды подтверждения.
  * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
  * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
  * @param {integer} pLimit - Лимит по количеству строк

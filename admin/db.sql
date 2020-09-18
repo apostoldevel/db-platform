@@ -2511,7 +2511,7 @@ AS
          WHEN 'P' THEN 'phone'
          END AS type,
          code, used, validfromdate, validtodate
-    FROM db.verification_code;
+    FROM db.verification_code WHERE userid = current_userid();
 
 GRANT SELECT ON VerificationCode TO administrator;
 
