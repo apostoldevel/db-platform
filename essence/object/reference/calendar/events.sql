@@ -12,6 +12,7 @@ CREATE OR REPLACE FUNCTION EventCalendarCreate (
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1010, 'Календарь создан.', pObject);
+  PERFORM ExecuteObjectAction(pObject, GetAction('enable'));
 END;
 $$ LANGUAGE plpgsql;
 

@@ -153,9 +153,6 @@ BEGIN
   nMethod := GetMethod(nClass, null, GetAction('create'));
   PERFORM ExecuteMethod(nReference, nMethod);
 
-  nMethod := GetMethod(nClass, null, GetAction('enable'));
-  PERFORM ExecuteMethod(nReference, nMethod);
-
   RETURN nReference;
 END;
 $$ LANGUAGE plpgsql
