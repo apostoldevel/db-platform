@@ -9,7 +9,3 @@
 
 \echo [M] call rest.sql
 \ir rest.sql
-
-\ir './calendar/calendar.psql'
-\ir './vendor/vendor.psql'
-\ir './agent/agent.psql'

@@ -1,27 +1,29 @@
 --------------------------------------------------------------------------------
--- VENDOR ----------------------------------------------------------------------
+-- AGENT -----------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
--- db.vendor -------------------------------------------------------------------
+-- db.agent --------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE TABLE db.vendor (
+CREATE TABLE db.agent (
     id			    numeric(12) PRIMARY KEY,
     reference		numeric(12) NOT NULL,
-    CONSTRAINT fk_vendor_reference FOREIGN KEY (reference) REFERENCES db.reference(id)
+    vendor          numeric(12) NOT NULL,
+    CONSTRAINT fk_agent_reference FOREIGN KEY (reference) REFERENCES db.reference(id)
 );
 
-COMMENT ON TABLE db.vendor IS 'Производитель (поставщик).';
+COMMENT ON TABLE db.agent IS 'Агент.';
 
-COMMENT ON COLUMN db.vendor.id IS 'Идентификатор.';
-COMMENT ON COLUMN db.vendor.reference IS 'Справочник.';
+COMMENT ON COLUMN db.agent.id IS 'Идентификатор.';
+COMMENT ON COLUMN db.agent.reference IS 'Справочник.';
+COMMENT ON COLUMN db.agent.vendor IS 'Производитель (поставщик).';
 
-CREATE INDEX ON db.vendor (reference);
+CREATE INDEX ON db.agent (reference);
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION ft_vendor_insert()
+CREATE OR REPLACE FUNCTION ft_agent_insert()
 RETURNS trigger AS $$
 DECLARE
 BEGIN
@@ -29,7 +31,7 @@ BEGIN
     SELECT NEW.REFERENCE INTO NEW.ID;
   END IF;
 
-  RAISE DEBUG 'Создан производитель Id: %', NEW.ID;
+  RAISE DEBUG 'Создан агент Id: %', NEW.ID;
 
   RETURN NEW;
 END;
@@ -37,28 +39,30 @@ $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
-CREATE TRIGGER t_vendor_insert
-  BEFORE INSERT ON db.vendor
+CREATE TRIGGER t_agent_insert
+  BEFORE INSERT ON db.agent
   FOR EACH ROW
-  EXECUTE PROCEDURE ft_vendor_insert();
+  EXECUTE PROCEDURE ft_agent_insert();
 
 --------------------------------------------------------------------------------
--- CreateVendor ----------------------------------------------------------------
+-- CreateAgent -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Создаёт производителя
+ * Создаёт агента
  * @param {numeric} pParent - Идентификатор объекта родителя
  * @param {numeric} pType - Идентификатор типа
  * @param {varchar} pCode - Код
  * @param {varchar} pName - Наименование
+ * @param {numeric} pVendor - Производитель
  * @param {text} pDescription - Описание
  * @return {numeric}
  */
-CREATE OR REPLACE FUNCTION CreateVendor (
+CREATE OR REPLACE FUNCTION CreateAgent (
   pParent       numeric,
   pType         numeric,
   pCode         varchar,
   pName         varchar,
+  pVendor       numeric,
   pDescription	text default null
 ) RETURNS       numeric
 AS $$
@@ -69,12 +73,15 @@ DECLARE
 BEGIN
   nReference := CreateReference(pParent, pType, pCode, pName, pDescription);
 
-  INSERT INTO db.vendor (reference)
-  VALUES (nReference);
+  INSERT INTO db.agent (reference, vendor)
+  VALUES (nReference, pVendor);
 
   SELECT class INTO nClass FROM db.type WHERE id = pType;
 
   nMethod := GetMethod(nClass, null, GetAction('create'));
+  PERFORM ExecuteMethod(nReference, nMethod);
+
+  nMethod := GetMethod(nClass, null, GetAction('enable'));
   PERFORM ExecuteMethod(nReference, nMethod);
 
   RETURN nReference;
@@ -84,24 +91,26 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- EditVendor ------------------------------------------------------------------
+-- EditAgent -------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Меняет производителя
+ * Меняет агента
  * @param {numeric} pId - Идентификатор
  * @param {numeric} pParent - Идентификатор объекта родителя
  * @param {numeric} pType - Идентификатор типа
  * @param {varchar} pCode - Код
  * @param {varchar} pName - Наименование
+ * @param {numeric} pVendor - Производитель
  * @param {text} pDescription - Описание
  * @return {void}
  */
-CREATE OR REPLACE FUNCTION EditVendor (
+CREATE OR REPLACE FUNCTION EditAgent (
   pId           numeric,
   pParent       numeric default null,
   pType         numeric default null,
   pCode         varchar default null,
   pName         varchar default null,
+  pVendor       numeric default null,
   pDescription	text default null
 ) RETURNS       void
 AS $$
@@ -110,6 +119,10 @@ DECLARE
   nMethod       numeric;
 BEGIN
   PERFORM EditReference(pId, pParent, pType, pCode, pName, pDescription);
+
+  UPDATE db.agent
+     SET vendor = coalesce(pVendor, vendor)
+   WHERE id = pId;
 
   SELECT class INTO nClass FROM db.type WHERE id = pType;
 
@@ -121,55 +134,74 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- FUNCTION GetVendor ----------------------------------------------------------
+-- FUNCTION GetAgent -----------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION GetVendor (
+CREATE OR REPLACE FUNCTION GetAgent (
   pCode		varchar
 ) RETURNS 	numeric
 AS $$
 BEGIN
-  RETURN GetReference(pCode, 'vendor');
+  RETURN GetReference(pCode, 'agent');
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- Vendor ----------------------------------------------------------------------
+-- FUNCTION GetAgentVendor -----------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW Vendor (Id, Reference, Code, Name, Description)
+CREATE OR REPLACE FUNCTION GetAgentVendor (
+  pId       numeric
+) RETURNS 	numeric
+AS $$
+  SELECT vendor FROM db.agent WHERE id = pId;
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- Agent -----------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW Agent (Id, Reference, Code, Name, Description,
+    Vendor, VendorCode, VendorName, VendorDescription
+)
 AS
-  SELECT c.id, c.reference, d.code, d.name, d.description
-    FROM db.vendor c INNER JOIN db.reference d ON d.id = c.reference;
+  SELECT a.id, a.reference, mr.code, mr.name, mr.description, a.vendor,
+         vr.code, vr.name, vr.description
+    FROM db.agent a INNER JOIN db.reference mr ON mr.id = a.reference
+                    INNER JOIN db.reference vr ON vr.id = a.vendor;
 
-GRANT SELECT ON Vendor TO administrator;
+GRANT SELECT ON Agent TO administrator;
 
 --------------------------------------------------------------------------------
--- ObjectVendor ----------------------------------------------------------------
+-- ObjectAgent -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW ObjectVendor (Id, Object, Parent,
+CREATE OR REPLACE VIEW ObjectAgent (Id, Object, Parent,
   Essence, EssenceCode, EssenceName,
   Class, ClassCode, ClassLabel,
   Type, TypeCode, TypeName, TypeDescription,
   Code, Name, Label, Description,
+  Vendor, VendorCode, VendorName, VendorDescription,
   StateType, StateTypeCode, StateTypeName,
   State, StateCode, StateLabel, LastUpdate,
   Owner, OwnerCode, OwnerName, Created,
   Oper, OperCode, OperName, OperDate
 )
 AS
-  SELECT t.id, r.object, r.parent,
+  SELECT a.id, r.object, r.parent,
          r.essence, r.essencecode, r.essencename,
          r.class, r.classcode, r.classlabel,
          r.type, r.typecode, r.typename, r.typedescription,
          r.code, r.name, r.label, r.description,
+         a.vendor, a.vendorcode, a.vendorname, a.vendordescription,
          r.statetype, r.statetypecode, r.statetypename,
          r.state, r.statecode, r.statelabel, r.lastupdate,
          r.owner, r.ownercode, r.ownername, r.created,
          r.oper, r.opercode, r.opername, r.operdate
-    FROM db.vendor t INNER JOIN ObjectReference r ON r.id = t.reference;
+    FROM Agent a INNER JOIN ObjectReference r ON r.id = a.reference;
 
-GRANT SELECT ON ObjectVendor TO administrator;
+GRANT SELECT ON ObjectAgent TO administrator;

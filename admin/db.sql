@@ -471,7 +471,7 @@ BEGIN
 
       IF found THEN
 
-        vData := RegGetValue(RegOpenKey('CURRENT_CONFIG', 'CONFIG\Department' || E'\u005C' || vCode), 'LocalIP');
+        vData := RegGetValue(RegOpenKey('CURRENT_CONFIG', 'CONFIG\Department' || E'\u005C' || vCode || E'\u005C' || 'IPTable'), 'LocalIP');
 
         IF vData.vString IS NOT NULL THEN
           arrIp := string_to_array_trim(vData.vString, ',');
@@ -493,7 +493,7 @@ BEGIN
           nLocal := nLocal + 1;
         END IF;
 
-        vData := RegGetValue(RegOpenKey('CURRENT_CONFIG', 'CONFIG\Department' || E'\u005C' || vCode), 'EntrustedIP');
+        vData := RegGetValue(RegOpenKey('CURRENT_CONFIG', 'CONFIG\Department' || E'\u005C' || vCode || E'\u005C' || 'IPTable'), 'EntrustedIP');
 
         IF vData.vString IS NOT NULL THEN
           arrIp := string_to_array_trim(vData.vString, ',');
@@ -3839,6 +3839,22 @@ BEGIN
 
   INSERT INTO db.area (parent, type, code, name, description)
   VALUES (coalesce(pParent, GetArea('root')), pType, pCode, pName, pDescription) RETURNING Id INTO nId;
+
+  PERFORM RegSetValueEx(RegCreateKey('CURRENT_CONFIG', 'CONFIG\Department\' || pCode || '\IPTable'), 'LocalIP', 3, pString => '127.0.0.1, 192.168.0.*');
+  PERFORM RegSetValueEx(RegCreateKey('CURRENT_CONFIG', 'CONFIG\Department\' || pCode || '\IPTable'), 'EntrustedIP', 3, pString => null);
+
+  PERFORM RegSetValueEx(RegCreateKey('CURRENT_CONFIG', 'CONFIG\Department\' || pCode || '\mailerTransport'), 'class', 3, pString => 'SMTP');
+  PERFORM RegSetValueEx(RegCreateKey('CURRENT_CONFIG', 'CONFIG\Department\' || pCode || '\mailerTransport'), 'host', 3, pString => 'smtp.example.com:465');
+  PERFORM RegSetValueEx(RegCreateKey('CURRENT_CONFIG', 'CONFIG\Department\' || pCode || '\mailerTransport'), 'username', 3, pString => pCode || '@example.com');
+  PERFORM RegSetValueEx(RegCreateKey('CURRENT_CONFIG', 'CONFIG\Department\' || pCode || '\mailerTransport'), 'password', 3, pString => null);
+
+  PERFORM RegSetValueEx(RegCreateKey('CURRENT_CONFIG', 'CONFIG\Department\' || pCode || '\imapConnection'), 'imapPath', 3, pString => '{imap.example.com:993/imap/ssl/novalidate-cert}INBOX');
+  PERFORM RegSetValueEx(RegCreateKey('CURRENT_CONFIG', 'CONFIG\Department\' || pCode || '\imapConnection'), 'imapLogin', 3, pString => pCode || '@example.com');
+  PERFORM RegSetValueEx(RegCreateKey('CURRENT_CONFIG', 'CONFIG\Department\' || pCode || '\imapConnection'), 'imapPassword', 3, pString => null);
+  PERFORM RegSetValueEx(RegCreateKey('CURRENT_CONFIG', 'CONFIG\Department\' || pCode || '\imapConnection'), 'serverEncoding', 3, pString => 'utf-8');
+  PERFORM RegSetValueEx(RegCreateKey('CURRENT_CONFIG', 'CONFIG\Department\' || pCode || '\imapConnection'), 'attachmentsDir', 3, pString => '/uploads/message');
+  PERFORM RegSetValueEx(RegCreateKey('CURRENT_CONFIG', 'CONFIG\Department\' || pCode || '\imapConnection'), 'folderForMovingMsg', 3, pString => null);
+
   RETURN nId;
 END;
 $$ LANGUAGE plpgsql
@@ -5061,7 +5077,7 @@ DECLARE
   vSession      text;
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(GetGroup('system'), pUserId) THEN
+    IF NOT IsUserRole(GetGroup('system')) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;

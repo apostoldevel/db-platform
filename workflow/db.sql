@@ -91,6 +91,8 @@ BEGIN
     ELSIF NEW.code = 'reference' THEN
       INSERT INTO db.acu SELECT NEW.id, GetGroup('operator'), B'00000', B'11110';
       INSERT INTO db.acu SELECT NEW.id, GetGroup('user'), B'00000', B'10100';
+    ELSIF NEW.code = 'message' THEN
+      INSERT INTO db.acu SELECT NEW.id, GetUser('mailbot'), B'00000', B'11100';
     END IF;
   END IF;
 
@@ -768,6 +770,31 @@ BEGIN
   END IF;
 
   RETURN GetType(pCode);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- CodeToType ------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION CodeToType (
+  pCode     varchar,
+  pClasses  varchar[]
+) RETURNS   numeric
+AS $$
+DECLARE
+  i         integer;
+  nType     numeric;
+BEGIN
+  i := 1;
+  WHILE (i <= array_length(pClasses, 1)) AND nType IS NULL
+  LOOP
+    nType := CodeToType(pCode, pClasses[i]);
+    i := i + 1;
+  END LOOP;
+  RETURN nType;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

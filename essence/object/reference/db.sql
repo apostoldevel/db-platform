@@ -146,13 +146,19 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetReference (
-  pCode                varchar
-) RETURNS         numeric
+  pCode         varchar,
+  pClass        varchar DEFAULT null
+) RETURNS       numeric
 AS $$
 DECLARE
-  nId                numeric;
+  nId           numeric;
 BEGIN
+  IF pClass IS NOT NULL AND StrPos(pCode, '.') = 0 THEN
+    pCode := pCode || '.' || pClass;
+  END IF;
+
   SELECT id INTO nId FROM db.reference WHERE code = pCode;
+
   RETURN nId;
 END;
 $$ LANGUAGE plpgsql

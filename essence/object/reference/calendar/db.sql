@@ -229,7 +229,7 @@ CREATE OR REPLACE FUNCTION GetCalendar (
 ) RETURNS     numeric
 AS $$
 BEGIN
-  RETURN GetReference(pCode || '.calendar');
+  RETURN GetReference(pCode, 'calendar');
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

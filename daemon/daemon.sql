@@ -133,6 +133,7 @@ DECLARE
   ErrorMessage  text;
 
   vMessage      text;
+  vContext      text;
 BEGIN
   SELECT convert_from(url_decode(r[2]), 'utf8')::jsonb INTO payload FROM regexp_split_to_array(pToken, '\.') r;
 
@@ -221,7 +222,9 @@ BEGIN
   RETURN;
 EXCEPTION
 WHEN others THEN
-  GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT;
+  GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
+
+  RAISE NOTICE '%', vContext;
 
   PERFORM SetErrorMessage(vMessage);
 

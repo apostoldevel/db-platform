@@ -1,10 +1,12 @@
 \ir './kernel/kernel.psql'
 \ir './admin/admin.psql'
+\ir './registry/registry.psql'
 \ir './log/log.psql'
 \ir './api/api.psql'
 \ir './daemon/daemon.psql'
 \ir './session/session.psql'
 \ir './current/current.psql'
-\ir './registry/registry.psql'
 \ir './workflow/workflow.psql'
 \ir './essence/essence.psql'
+
+\ir './admin/security.sql'

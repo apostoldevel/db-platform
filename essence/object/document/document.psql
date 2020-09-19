@@ -11,3 +11,4 @@
 \ir rest.sql
 
 \ir './address/address.psql'
+\ir './message/message.psql'

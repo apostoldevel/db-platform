@@ -23,7 +23,6 @@ SELECT AddMemberToInterface(CreateGroup('user', 'Пользователи', 'Г�
 
 SELECT AddMemberToGroup(CreateUser('admin', 'admin', 'Администратор', null,null, 'Администратор системы', true, false, GetArea('default')), GetGroup('administrator'));
 SELECT AddMemberToGroup(CreateUser('daemon', 'daemon', 'Демон', null, null, 'Пользователь для вызова методов API', false, true, GetArea('root')), GetGroup('system'));
-SELECT AddMemberToGroup(CreateUser('stream', 'stream', 'Stream клиент', null, null, 'Системная служба для передачи потоковых данных', false, true, GetArea('default')), GetGroup('system'));
 
 SELECT AddMemberToGroup(CreateUser('apibot', 'apibot', 'API клиент', null, null, 'Системная служба API', false, true, GetArea('root')), GetGroup('system'));
 SELECT AddMemberToGroup(CreateUser('mailbot', 'mailbot', 'Mail клиент', null, null, 'Почтовый клиент', false, true, GetArea('default')), GetGroup('system'));
