@@ -92,7 +92,7 @@ BEGIN
       INSERT INTO db.acu SELECT NEW.id, GetGroup('operator'), B'00000', B'11110';
       INSERT INTO db.acu SELECT NEW.id, GetGroup('user'), B'00000', B'10100';
     ELSIF NEW.code = 'message' THEN
-      INSERT INTO db.acu SELECT NEW.id, GetUser('mailbot'), B'00000', B'11100';
+      INSERT INTO db.acu SELECT NEW.id, GetUser('mailbot'), B'00000', B'11110';
     END IF;
   END IF;
 
@@ -434,7 +434,7 @@ $$ LANGUAGE SQL
 
 CREATE OR REPLACE FUNCTION GetClassAccessMask (
   pClass	numeric,
-  pUserId	numeric default session_userid()
+  pUserId	numeric default current_userid()
 ) RETURNS	bit
 AS $$
   SELECT mask FROM acu(pUserId, pClass)
@@ -449,7 +449,7 @@ $$ LANGUAGE SQL
 CREATE OR REPLACE FUNCTION CheckClassAccess (
   pClass	numeric,
   pMask		bit,
-  pUserId	numeric default session_userid()
+  pUserId	numeric default current_userid()
 ) RETURNS	boolean
 AS $$
 BEGIN
@@ -465,7 +465,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION DecodeClassAccess (
   pClass	numeric,
-  pUserId	numeric default session_userid(),
+  pUserId	numeric default current_userid(),
   OUT a		boolean,
   OUT c		boolean,
   OUT s		boolean,
@@ -527,7 +527,7 @@ $$ LANGUAGE SQL
 CREATE OR REPLACE FUNCTION chmodc (
   pClass        numeric,
   pMask         bit,
-  pUserId       numeric default session_userid(),
+  pUserId       numeric default current_userid(),
   pRecursive    boolean default false,
   pObjectSet    boolean default false
 ) RETURNS       void
@@ -1216,6 +1216,24 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- FUNCTION GetActionName ------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetActionName (
+  pId		numeric
+) RETURNS   varchar
+AS $$
+DECLARE
+  vName     varchar;
+BEGIN
+  SELECT name INTO vName FROM db.action WHERE id = pId;
+  RETURN vName;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- METHOD ----------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -1227,7 +1245,7 @@ CREATE TABLE db.method (
     action		numeric(12) NOT NULL,
     code		varchar(30) NOT NULL,
     label		text NOT NULL,
-    sequence            integer NOT NULL,
+    sequence    integer NOT NULL,
     visible		boolean DEFAULT TRUE,
     CONSTRAINT fk_method_class FOREIGN KEY (class) REFERENCES db.class_tree(id),
     CONSTRAINT fk_method_state FOREIGN KEY (state) REFERENCES db.state(id),
@@ -1262,10 +1280,14 @@ CREATE UNIQUE INDEX ON db.method (class, code);
 CREATE OR REPLACE FUNCTION db.ft_method_before_insert()
 RETURNS trigger AS $$
 BEGIN
-  NEW.STATE = NULLIF(NEW.STATE, 0);
+  NEW.state = NULLIF(NEW.state, 0);
 
-  IF NEW.CODE IS NULL THEN
-    NEW.CODE := coalesce(GetStateCode(NEW.STATE), 'null') || ':' || GetActionCode(NEW.ACTION);
+  IF NEW.code IS NULL THEN
+    NEW.code := coalesce(GetStateCode(NEW.state), 'null') || ':' || GetActionCode(NEW.action);
+  END IF;
+
+  IF NEW.label IS NULL THEN
+    NEW.label := GetActionName(NEW.action);
   END IF;
 
   RETURN NEW;
@@ -1352,8 +1374,8 @@ CREATE OR REPLACE FUNCTION AddMethod (
   pClass	numeric,
   pState	numeric,
   pAction	numeric,
-  pCode		varchar,
-  pLabel	text,
+  pCode		varchar DEFAULT null,
+  pLabel	text DEFAULT null,
   pSequence	integer DEFAULT null,
   pVisible	boolean DEFAULT true
 ) RETURNS	numeric
@@ -1548,7 +1570,7 @@ $$ LANGUAGE SQL
 
 CREATE OR REPLACE FUNCTION GetMethodAccessMask (
   pMethod	numeric,
-  pUserId	numeric default session_userid()
+  pUserId	numeric default current_userid()
 ) RETURNS	bit
 AS $$
   SELECT mask FROM amu(pUserId, pMethod)
@@ -1563,7 +1585,7 @@ $$ LANGUAGE SQL
 CREATE OR REPLACE FUNCTION CheckMethodAccess (
   pMethod	numeric,
   pMask		bit,
-  pUserId	numeric default session_userid()
+  pUserId	numeric default current_userid()
 ) RETURNS	boolean
 AS $$
 BEGIN
@@ -1579,7 +1601,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION DecodeMethodAccess (
   pMethod	numeric,
-  pUserId	numeric default session_userid(),
+  pUserId	numeric default current_userid(),
   OUT x		boolean,
   OUT v		boolean,
   OUT e		boolean
@@ -1635,7 +1657,7 @@ $$ LANGUAGE SQL
 CREATE OR REPLACE FUNCTION chmodm (
   pMethod	numeric,
   pMask		bit,
-  pUserId	numeric default session_userid()
+  pUserId	numeric default current_userid()
 ) RETURNS	void
 AS $$
 DECLARE

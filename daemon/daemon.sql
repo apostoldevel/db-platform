@@ -62,9 +62,18 @@ DECLARE
   ErrorMessage  text;
   vMessage      text;
 BEGIN
-  nToken := kernel.Authorize(pSession);
+  IF NOT kernel.Authorize(pSession) THEN
+    PERFORM AuthenticateError(GetErrorMessage());
+  END IF;
 
-  IF nToken IS NULL THEN
+  SELECT t.id INTO nToken
+    FROM db.token_header h INNER JOIN db.token t ON h.id = t.header AND t.type = 'A'
+   WHERE h.session = pSession
+     AND t.validFromDate <= Now()
+     AND t.validToDate > Now();
+
+  IF NOT FOUND THEN
+    PERFORM SessionOut(pSession, false, 'Маркер не найден.');
     RAISE EXCEPTION '%', GetErrorMessage();
   END IF;
 
@@ -224,7 +233,7 @@ EXCEPTION
 WHEN others THEN
   GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
 
-  RAISE NOTICE '%', vContext;
+  --RAISE NOTICE '%', vContext;
 
   PERFORM SetErrorMessage(vMessage);
 

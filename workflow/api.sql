@@ -405,7 +405,7 @@ $$ LANGUAGE plpgsql
  */
 CREATE OR REPLACE FUNCTION api.decode_class_access (
   pId       numeric,
-  pUserId	numeric default session_userid(),
+  pUserId	numeric default current_userid(),
   OUT a		boolean,
   OUT c		boolean,
   OUT s		boolean,
@@ -780,7 +780,7 @@ $$ LANGUAGE plpgsql
 /**
  * Выполняет действие над объектом по коду.
  * @param {numeric} pObject - Идентификатор объекта
- * @param {varchar} pCode - Код действия
+ * @param {text} pCode - Код действия
  * @param {jsonb} pForm - Форма в формате JSON
  * @out param {numeric} id - Идентификатор объекта
  * @out param {boolean} result - Результат
@@ -789,7 +789,7 @@ $$ LANGUAGE plpgsql
  */
 CREATE OR REPLACE FUNCTION api.run_action (
   pObject       numeric,
-  pCode         varchar,
+  pCode         text,
   pForm         jsonb DEFAULT null
 ) RETURNS       jsonb
 AS $$
@@ -799,10 +799,10 @@ DECLARE
 BEGIN
   FOR r IN SELECT code FROM db.action
   LOOP
-    arCodes := array_append(arCodes, r.code);
+    arCodes := array_append(arCodes, r.code::text);
   END LOOP;
 
-  IF array_position(arCodes, pCode::text) IS NULL THEN
+  IF array_position(arCodes, pCode) IS NULL THEN
     PERFORM IncorrectCode(pCode, arCodes);
   END IF;
 
@@ -1073,13 +1073,53 @@ $$ LANGUAGE plpgsql
  * Выполняет метод.
  * @param {numeric} pObject - Идентификатор объекта
  * @param {numeric} pMethod - Идентификатор метода
- * @param {text} pCode - Код метода (Игнорируется если указан идентификатор метода)
  * @param {jsonb} pForm - Форма в формате JSON
  * @return {jsonb}
  */
 CREATE OR REPLACE FUNCTION api.run_method (
   pObject       numeric,
   pMethod       numeric,
+  pForm         jsonb DEFAULT null
+) RETURNS       jsonb
+AS $$
+DECLARE
+  nId           numeric;
+  nMethod       numeric;
+BEGIN
+  SELECT o.id INTO nId FROM db.object o WHERE o.id = pObject;
+
+  IF NOT FOUND THEN
+    PERFORM ObjectNotFound('объект', 'id', pObject);
+  END IF;
+
+  IF pMethod IS NULL THEN
+    PERFORM MethodIsEmpty();
+  END IF;
+
+  SELECT m.id INTO nMethod FROM method m WHERE m.id = pMethod;
+
+  IF NOT FOUND THEN
+    PERFORM MethodNotFound(pObject, pMethod);
+  END IF;
+
+  RETURN ExecuteMethod(pObject, nMethod, pForm);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.run_method --------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Выполняет метод.
+ * @param {numeric} pObject - Идентификатор объекта
+ * @param {text} pCode - Код метода
+ * @param {jsonb} pForm - Форма в формате JSON
+ * @return {jsonb}
+ */
+CREATE OR REPLACE FUNCTION api.run_method (
+  pObject       numeric,
   pCode         text,
   pForm         jsonb DEFAULT null
 ) RETURNS       jsonb
@@ -1095,25 +1135,16 @@ BEGIN
     PERFORM ObjectNotFound('объект', 'id', pObject);
   END IF;
 
-  IF pMethod IS NULL THEN
+  IF pCode IS NULL THEN
+    PERFORM MethodIsEmpty();
+  END IF;
 
-    IF pCode IS NULL THEN
-      PERFORM MethodIsEmpty();
-    END IF;
+  nClass := GetObjectClass(pObject);
 
-    nClass := GetObjectClass(pObject);
+  SELECT m.id INTO nMethod FROM db.method m WHERE m.class = nClass AND m.code = pCode;
 
-    SELECT m.id INTO nMethod FROM db.method m WHERE m.class = nClass AND m.code = pCode;
-
-    IF NOT FOUND THEN
-      PERFORM MethodByCodeNotFound(pObject, pCode);
-    END IF;
-  ELSE
-    SELECT m.id INTO nMethod FROM method m WHERE m.id = pMethod;
-
-    IF NOT FOUND THEN
-      PERFORM MethodNotFound(pObject, pMethod);
-    END IF;
+  IF NOT FOUND THEN
+    PERFORM MethodByCodeNotFound(pObject, pCode);
   END IF;
 
   RETURN ExecuteMethod(pObject, nMethod, pForm);
@@ -1131,7 +1162,7 @@ $$ LANGUAGE plpgsql
  */
 CREATE OR REPLACE FUNCTION api.decode_method_access (
   pId       numeric,
-  pUserId	numeric default session_userid(),
+  pUserId	numeric default current_userid(),
   OUT x		boolean,
   OUT v		boolean,
   OUT e		boolean

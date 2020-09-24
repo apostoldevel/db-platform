@@ -188,7 +188,7 @@ BEGIN
     vSelect := vSelect || E'\nOFFSET ' || pOffSet;
   END IF;
 
-  --RAISE NOTICE '%', vSelect;
+  --WriteToEventLog('N', 9999, vSelect);
 
   RETURN vSelect;
 END;

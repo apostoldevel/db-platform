@@ -3,6 +3,196 @@
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
+-- api.signin ------------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Вход в систему по имени и паролю виртуального пользователя.
+ * @param {text} pUserName - Пользователь (login)
+ * @param {text} pPassword - Пароль
+ * @param {text} pAgent - Агент
+ * @param {inet} pHost - IP адрес
+ * @out param {text} session - Сессия
+ * @out param {text} secret - Секретный ключ для подписи методом HMAC-256
+ * @out param {text} code - Одноразовый код авторизации для получения маркера см. OAuth 2.0
+ * @return {record}
+ */
+CREATE OR REPLACE FUNCTION api.signin (
+  pUserName     text,
+  pPassword     text,
+  pAgent        text DEFAULT null,
+  pHost         inet DEFAULT null,
+  OUT session   text,
+  OUT secret    text,
+  OUT code      text
+) RETURNS       record
+AS $$
+DECLARE
+  nAudience     numeric;
+BEGIN
+  SELECT a.id INTO nAudience FROM oauth2.audience a WHERE a.code = oauth2_current_client_id();
+
+  IF NOT found THEN
+    PERFORM AudienceNotFound();
+  END IF;
+
+  session := SignIn(CreateOAuth2(nAudience, ARRAY['api']), pUserName, pPassword, pAgent, pHost);
+
+  IF session IS NULL THEN
+    PERFORM AuthenticateError(GetErrorMessage());
+  END IF;
+
+  code := oauth2_current_code(session);
+  secret := session_secret(session);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.signout -----------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Выход из системы.
+ * @param {text} pSession - Сессия
+ * @param {boolean} pCloseAll - Закрыть все сессии
+ * @out param {boolean} result - Результат
+ * @out param {text} message - Текст ошибки
+ * @return {record}
+ */
+CREATE OR REPLACE FUNCTION api.signout (
+  pSession      text DEFAULT current_session(),
+  pCloseAll 	boolean DEFAULT false
+) RETURNS       boolean
+AS $$
+BEGIN
+  IF NOT SignOut(pSession, pCloseAll) THEN
+    RAISE EXCEPTION '%', GetErrorMessage();
+  END IF;
+  RETURN true;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.authenticate ------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Аутентификация.
+ * @param {text} pSession - Сессия
+ * @param {text} pSecret - Секретный код
+ * @param {text} pAgent - Агент
+ * @param {inet} pHost - IP адрес
+ * @return {text}
+ */
+CREATE OR REPLACE FUNCTION api.authenticate (
+  pSession    text,
+  pSecret     text,
+  pAgent      text DEFAULT null,
+  pHost       inet DEFAULT null
+) RETURNS     text
+AS $$
+DECLARE
+  vCode       text;
+BEGIN
+  vCode := Authenticate(pSession, pSecret, pAgent, pHost);
+  IF vCode IS NULL THEN
+    PERFORM AuthenticateError(GetErrorMessage());
+  END IF;
+  RETURN vCode;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.authorize ---------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Авторизовать.
+ * @param {text} pSession - Сессия
+ * @param {boolean} authorized - Результат
+ * @param {text} message - Сообшение
+ * @return {record}
+ */
+CREATE OR REPLACE FUNCTION api.authorize (
+  pSession          text,
+  pSecret           text DEFAULT null,
+  pAgent            text DEFAULT null,
+  pHost             inet DEFAULT null,
+  OUT authorized    boolean,
+  OUT message       text
+) RETURNS           record
+AS $$
+BEGIN
+  authorized := Authorize(pSession, pSecret, pAgent, pHost);
+  message := GetErrorMessage();
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.su ----------------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Substitute user.
+ * Меняет текущего пользователя в активном сеансе на указанного пользователя
+ * @param {text} pUserName - Имя пользователь для подстановки
+ * @param {text} pPassword - Пароль текущего пользователя
+ * @return {void}
+ */
+CREATE OR REPLACE FUNCTION api.su (
+  pUserName     text,
+  pPassword     text
+) RETURNS       void
+AS $$
+BEGIN
+  PERFORM SubstituteUser(pUserName, pPassword);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.login -------------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Вход в систему под именем виртуального пользователя.
+ * @param {text} pUserName - Имя пользователь
+ * @param {text} pPassword - Пароль пользователя
+ * @param {text} pAgent - Агент
+ * @param {inet} pHost - IP адрес
+ * @out param {text} session - Сессия
+ * @out param {text} secret - Секретный ключ для подписи методом HMAC-256
+ * @out param {text} code - Одноразовый код авторизации для получения маркера см. OAuth 2.0
+ * @return {record} - Возвращяет сессию указанного пользователя
+ */
+CREATE OR REPLACE FUNCTION api.login (
+  pUserName     text,
+  pPassword     text,
+  pAgent        text DEFAULT null,
+  pHost         inet DEFAULT null,
+  OUT session   text,
+  OUT secret    text,
+  OUT code      text
+) RETURNS       record
+AS $$
+BEGIN
+  session := Login(CreateSystemOAuth2(), pUserName, pPassword, pAgent, pHost);
+
+  IF session IS NULL THEN
+    PERFORM AuthenticateError(GetErrorMessage());
+  END IF;
+
+  code := oauth2_current_code(session);
+  secret := session_secret(session);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- LOCALE ----------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -94,28 +284,6 @@ CREATE OR REPLACE FUNCTION api.list_session (
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'session', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- api.su ----------------------------------------------------------------------
---------------------------------------------------------------------------------
-/**
- * Substitute user.
- * Меняет текущего пользователя в активном сеансе на указанного пользователя
- * @param {text} pUserName - Имя пользователь для подстановки
- * @param {text} pPassword - Пароль текущего пользователя
- * @return {void}
- */
-CREATE OR REPLACE FUNCTION api.su (
-  pUserName   text,
-  pPassword   text
-) RETURNS     void
-AS $$
-BEGIN
-  PERFORM SubstituteUser(pUserName, pPassword);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1617,7 +1785,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.chmodc (
   pClass        numeric,
   pMask         int,
-  pUserId       numeric default session_userid(),
+  pUserId       numeric default current_userid(),
   pRecursive	boolean default true,
   pObjectSet	boolean default false
 ) RETURNS       void
@@ -1642,7 +1810,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.chmodm (
   pMethod	numeric,
   pMask		int,
-  pUserId	numeric default session_userid()
+  pUserId	numeric default current_userid()
 ) RETURNS 	void
 AS $$
 BEGIN
@@ -1665,7 +1833,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.chmodo (
   pObject	numeric,
   pMask		int,
-  pUserId	numeric default session_userid()
+  pUserId	numeric default current_userid()
 ) RETURNS 	void
 AS $$
 BEGIN

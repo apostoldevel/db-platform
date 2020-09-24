@@ -4981,17 +4981,17 @@ $$ LANGUAGE plpgsql
  * @return {text} - Новый код аутентификации. Если вернёт null вызвать GetErrorMessage для просмотра сообщения об ошибке.
  */
 CREATE OR REPLACE FUNCTION Authenticate (
-  pSession    text,
-  pSecret     text,
-  pAgent      text DEFAULT null,
-  pHost       inet DEFAULT null
+  pSession      text,
+  pSecret       text,
+  pAgent        text DEFAULT null,
+  pHost         inet DEFAULT null
 )
-RETURNS       text
+RETURNS         text
 AS $$
 DECLARE
-  vCode       text;
-  nUserId     numeric;
-  message     text;
+  vCode         text;
+  nUserId       numeric;
+  message       text;
 BEGIN
   IF ValidSecret(pSecret, pSession) THEN
     vCode := SessionIn(pSession, pAgent, pHost, gen_salt('md5'));
@@ -5028,29 +5028,50 @@ $$ LANGUAGE plpgsql
 /**
  * Авторизовать.
  * @param {text} pSession - Сессия
- * @return {numeric} - Маркер. Если вернёт null вызвать GetErrorMessage для просмотра сообщения об ошибке.
+ * @param {text} pSecret - Секретный код
+ * @param {text} pAgent - Агент
+ * @param {inet} pHost - IP адрес
+ * @return {boolean} Если вернёт false вызвать GetErrorMessage для просмотра сообщения об ошибке.
  */
 CREATE OR REPLACE FUNCTION Authorize (
-  pSession      text
+  pSession      text,
+  pSecret       text DEFAULT null,
+  pAgent        text DEFAULT null,
+  pHost         inet DEFAULT null
 )
-RETURNS         numeric
+RETURNS         boolean
 AS $$
 DECLARE
-  nToken        numeric;
+  nUserId       numeric;
+  message       text;
 BEGIN
-  IF ValidSession(pSession) THEN
-    SELECT t.id INTO nToken
-      FROM db.token_header h INNER JOIN db.token t ON h.id = t.header AND t.type = 'A'
-     WHERE h.session = pSession
-       AND t.validFromDate <= Now()
-       AND t.validToDate > Now();
-
-    IF NOT FOUND THEN
-      PERFORM SessionOut(pSession, false, 'Маркер не найден.');
+  IF pSecret IS NOT NULL THEN
+    IF ValidSecret(pSecret, pSession) THEN
+      RETURN SessionIn(pSession, pAgent, pHost) IS NOT NULL;
+    ELSE
+      PERFORM SessionOut(pSession, false, GetErrorMessage());
     END IF;
+    RETURN false;
   END IF;
 
-  RETURN nToken;
+  RETURN ValidSession(pSession);
+EXCEPTION
+WHEN others THEN
+  GET STACKED DIAGNOSTICS message = MESSAGE_TEXT;
+
+  PERFORM SetCurrentSession(null);
+  PERFORM SetCurrentUserId(null);
+
+  PERFORM SetErrorMessage(message);
+
+  SELECT userid INTO nUserId FROM db.session WHERE code = pSession;
+
+  IF found THEN
+    INSERT INTO db.log (type, code, username, session, text)
+    VALUES ('E', 3003, GetUserName(nUserId), pSession, message);
+  END IF;
+
+  RETURN false;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -5077,7 +5098,7 @@ DECLARE
   vSession      text;
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(GetGroup('system')) THEN
+    IF NOT IsUserRole(GetGroup('system'), session_userid()) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;

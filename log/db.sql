@@ -123,7 +123,7 @@ CREATE OR REPLACE FUNCTION WriteToEventLog (
   pType		text,
   pCode		numeric,
   pText		text,
-  pObject       numeric DEFAULT null
+  pObject   numeric DEFAULT null
 ) RETURNS	void
 AS $$
 BEGIN
