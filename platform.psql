@@ -1,5 +1,6 @@
 \ir './kernel/kernel.psql'
 \ir './admin/admin.psql'
+\ir './verification/verification.psql'
 \ir './registry/registry.psql'
 \ir './log/log.psql'
 \ir './api/api.psql'
