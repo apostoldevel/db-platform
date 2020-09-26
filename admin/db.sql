@@ -328,6 +328,30 @@ CREATE TRIGGER t_user_before_insert
 
 --------------------------------------------------------------------------------
 
+CREATE OR REPLACE FUNCTION db.ft_user_after_update()
+RETURNS trigger AS $$
+BEGIN
+  IF OLD.email <> NEW.email THEN
+	UPDATE db.profile SET email_verified = false WHERE userid = NEW.id;
+  END IF;
+
+  IF OLD.phone <> NEW.phone THEN
+	UPDATE db.profile SET phone_verified = false WHERE userid = NEW.id;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+CREATE TRIGGER t_user_after_update
+  AFTER UPDATE ON db.user
+  FOR EACH ROW
+  EXECUTE PROCEDURE db.ft_user_after_update();
+
+--------------------------------------------------------------------------------
+
 CREATE OR REPLACE FUNCTION db.ft_user_before_delete()
 RETURNS trigger AS $$
 BEGIN

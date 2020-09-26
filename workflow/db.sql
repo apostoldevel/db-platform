@@ -1478,6 +1478,39 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- FUNCTION IsVisibleMethod ----------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION IsVisibleMethod (
+  pId		numeric
+) RETURNS 	bool
+AS $$
+DECLARE
+  bVisible  bool;
+BEGIN
+  SELECT visible INTO bVisible FROM db.method WHERE id = pId;
+  RETURN bVisible;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION IsHiddenMethod -----------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION IsHiddenMethod (
+  pId		numeric
+) RETURNS 	bool
+AS $$
+BEGIN
+  RETURN NOT IsVisibleMethod(pId);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- TABLE db.amu ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 

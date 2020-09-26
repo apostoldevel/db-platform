@@ -22,7 +22,7 @@ CREATE OR REPLACE FUNCTION api.message (
   pState    numeric
 ) RETURNS	SETOF api.message
 AS $$
-  SELECT * FROM api.message WHERE type = pType AND agent = pAgent AND state = pState;
+  SELECT * FROM api.message WHERE type = pType AND agent = pAgent AND state = pState ORDER BY addressfrom;
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -192,6 +192,25 @@ CREATE OR REPLACE FUNCTION api.list_message (
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'message', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.send_message ------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Отправляет сообщение.
+ * @param {numeric} pId - Идентификатор
+ * @return {void}
+ */
+CREATE OR REPLACE FUNCTION api.send_message (
+  pId           numeric
+) RETURNS       void
+AS $$
+BEGIN
+  PERFORM SendMessage(pId);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
