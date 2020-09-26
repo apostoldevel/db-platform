@@ -16,7 +16,7 @@ GRANT SELECT ON api.verification_code TO administrator;
 -- api.new_verification_code ---------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Создает новый код подтверждения.
+ * Создает новый код верификации.
  * @param {char} pType - Тип: [M]ail - Почта; [P]hone - Телефон;
  * @param {text} pCode - Код: Если не указать то буде создан автоматически.
  * @param {numeric} pUserId - Идентификатор учётной записи.
@@ -31,7 +31,7 @@ AS $$
 DECLARE
   nId           numeric;
 BEGIN
-  nId := NewVerificationCode(pType, pCode, pUserId);
+  nId := NewVerificationCode(pUserId, pType, pCode);
   RETURN QUERY SELECT * FROM api.verification_code WHERE id = nId;
 END;
 $$ LANGUAGE plpgsql
@@ -39,47 +39,23 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- api.check_verification_code -------------------------------------------------
+-- api.confirm_verification_code -----------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Сверяет код подтверждения.
- * @param {char} pType - Тип: [M]ail - Почта; [P]hone - Телефон;
- * @param {text} pCode - Код подтверждения.
- * @param {numeric} pUserId - Идентификатор учётной записи.
- * @return {bool}
- */
-CREATE OR REPLACE FUNCTION api.check_verification_code (
-  pType         char,
-  pCode		    text,
-  pUserId       numeric DEFAULT current_userid()
-) RETURNS       bool
-AS $$
-BEGIN
-  RETURN CheckVerificationCode(pType, pCode, pUserId);
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- api.try_verification_code ---------------------------------------------------
---------------------------------------------------------------------------------
-/**
- * Сверяет код подтверждения.
+ * Подтверждает код верификации.
  * @param {char} pType - Тип: [M]ail - Почта; [P]hone - Телефон;
  * @out param {bool} result - Результат
  * @out param {text} message - Текст ошибки
  * @return {record}
  */
-CREATE OR REPLACE FUNCTION api.try_verification_code (
+CREATE OR REPLACE FUNCTION api.confirm_verification_code (
   pType         char,
   pCode		    text,
-  pUserId       numeric DEFAULT current_userid(),
   OUT result    bool,
   OUT message   text
 ) RETURNS       record
 AS $$
-  SELECT TryVerificationCode(pType, pCode, pUserId), GetErrorMessage();
+  SELECT ConfirmVerificationCode(pType, pCode), GetErrorMessage();
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -88,7 +64,7 @@ $$ LANGUAGE SQL
 -- api.get_verification_code ---------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает код подтверждения.
+ * Возвращает код верификации.
  * @return {record} - Данные интерфейса
  */
 CREATE OR REPLACE FUNCTION api.get_verification_code (
@@ -104,7 +80,7 @@ $$ LANGUAGE SQL
 -- api.list_verification_code --------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает коды подтверждения.
+ * Возвращает коды верификации.
  * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
  * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
  * @param {integer} pLimit - Лимит по количеству строк

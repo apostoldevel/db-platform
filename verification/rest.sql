@@ -85,7 +85,7 @@ BEGIN
 
     END IF;
 
-  WHEN '/verification/email/try' THEN
+  WHEN '/verification/email/confirm' THEN
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
@@ -98,7 +98,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(code text)
       LOOP
-        FOR e IN SELECT * FROM api.try_verification_code('M', r.code)
+        FOR e IN SELECT * FROM api.confirm_verification_code('M', r.code)
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -108,7 +108,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(code text)
       LOOP
-        FOR e IN SELECT * FROM api.try_verification_code('M', r.code)
+        FOR e IN SELECT * FROM api.confirm_verification_code('M', r.code)
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -116,7 +116,7 @@ BEGIN
 
     END IF;
 
-  WHEN '/verification/phone/try' THEN
+  WHEN '/verification/phone/confirm' THEN
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
@@ -129,7 +129,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(code text)
       LOOP
-        FOR e IN SELECT * FROM api.try_verification_code('P', r.code)
+        FOR e IN SELECT * FROM api.confirm_verification_code('P', r.code)
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -139,7 +139,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(code text)
       LOOP
-        FOR e IN SELECT * FROM api.try_verification_code('P', r.code)
+        FOR e IN SELECT * FROM api.confirm_verification_code('P', r.code)
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;

@@ -160,71 +160,67 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- FUNCTION CheckVerificationCode ----------------------------------------------
+-- FUNCTION GetVerificationCodeId ----------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION CheckVerificationCode (
+CREATE OR REPLACE FUNCTION GetVerificationCodeId (
   pType         text,
-  pCode		    text,
-  pUserId       numeric DEFAULT current_userid()
-) RETURNS       bool
+  pCode		    text
+) RETURNS       numeric
 AS $$
 DECLARE
-  passed        bool;
+  nId           numeric;
   utilized      bool;
 BEGIN
-  SELECT (code = pCode), used INTO passed, utilized
+  SELECT id, used INTO nId, utilized
     FROM db.verification_code
    WHERE type = pType
-     AND userId = pUserId
+     AND code = pCode
      AND validFromDate <= Now()
      AND validtoDate > Now();
 
   IF found THEN
-    IF passed THEN
-      IF utilized THEN
-        PERFORM SetErrorMessage('Код подтверждения уже был использован.');
-      ELSE
-        PERFORM SetErrorMessage('Успешно.');
-      END IF;
+    IF utilized THEN
+      PERFORM SetErrorMessage('Код подтверждения уже был использован.');
     ELSE
-      PERFORM SetErrorMessage('Неверный код подтверждения.');
+      PERFORM SetErrorMessage('Успешно.');
+      RETURN nId;
     END IF;
   ELSE
     PERFORM SetErrorMessage('Код подтверждения не найден.');
   END IF;
 
-  RETURN coalesce(passed AND NOT utilized, false);
+  RETURN null;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- FUNCTION TryVerificationCode ------------------------------------------------
+-- FUNCTION ConfirmVerificationCode --------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION TryVerificationCode (
+CREATE OR REPLACE FUNCTION ConfirmVerificationCode (
   pType         text,
-  pCode		    text,
-  pUserId       numeric DEFAULT current_userid()
+  pCode		    text
 ) RETURNS       bool
 AS $$
+DECLARE
+  nId           numeric;
+  nUserId       numeric;
 BEGIN
-  IF CheckVerificationCode(pType, pCode, pUserId) THEN
+  nId := GetVerificationCodeId(pType, pCode);
+  IF nId IS NOT NULL THEN
 
-    UPDATE db.verification_code SET used = true
-     WHERE type = pType
-       AND userId = pUserId
-       AND validFromDate <= Now()
-       AND validtoDate > Now();
+    UPDATE db.verification_code SET used = true WHERE id = nId;
+    SELECT userid INTO nUserId FROM db.verification_code WHERE id = nId;
 
     CASE pType
     WHEN 'M' THEN
-      UPDATE db.profile SET email_verified = true WHERE userId = pUserId;
+      UPDATE db.profile SET email_verified = true WHERE userId = nUserId;
       PERFORM SetErrorMessage('Электронный адрес подтверждён.');
     WHEN 'P' THEN
-      UPDATE db.profile SET phone_verified = true WHERE userId = pUserId;
+      UPDATE db.profile SET phone_verified = true WHERE userId = nUserId;
       PERFORM SetErrorMessage('Номер телефона подтверждён.');
     ELSE
       PERFORM InvalidVerificationCodeType(pType);
@@ -233,7 +229,7 @@ BEGIN
     RETURN true;
   END IF;
 
-  RAISE EXCEPTION 'ERR-40000: %', GetErrorMessage();
+  RETURN false;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -244,9 +240,9 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION NewVerificationCode (
-  pType         char,
-  pCode		    text DEFAULT null,
-  pUserId       numeric DEFAULT current_userid()
+  pUserId       numeric,
+  pType         char DEFAULT 'M',
+  pCode		    text DEFAULT null
 ) RETURNS       numeric
 AS $$
 BEGIN

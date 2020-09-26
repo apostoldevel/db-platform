@@ -9,7 +9,7 @@ BEGIN
     code := SubStr(pMessage, 5, 5);
     message := SubStr(pMessage, 12);
   ELSE
-    code := 50000;
+    code := -1;
     message := pMessage;
   END IF;
 END;
