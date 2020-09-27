@@ -27,7 +27,8 @@ COMMENT ON COLUMN db.verification_code.used IS 'Использован';
 COMMENT ON COLUMN db.verification_code.validFromDate IS 'Дата начала действаия';
 COMMENT ON COLUMN db.verification_code.validToDate IS 'Дата окончания действия';
 
-CREATE UNIQUE INDEX ON db.verification_code (type, userId, validFromDate, validToDate);
+CREATE UNIQUE INDEX ON db.verification_code (type, code, validFromDate, validToDate);
+CREATE INDEX ON db.verification_code (type, userid, validFromDate, validToDate);
 
 CREATE OR REPLACE FUNCTION db.ft_verification_code_before()
 RETURNS TRIGGER
