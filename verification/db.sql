@@ -248,10 +248,8 @@ BEGIN
   CASE pType
   WHEN 'M' THEN
     pCode := coalesce(pCode, gen_random_uuid()::text);
-    UPDATE db.profile SET email_verified = false WHERE userId = pUserId;
   WHEN 'P' THEN
     pCode := coalesce(pCode, random_between(100000, 999999)::text);
-    UPDATE db.profile SET phone_verified = false WHERE userId = pUserId;
   ELSE
     PERFORM InvalidVerificationCodeType(pType);
   END CASE;

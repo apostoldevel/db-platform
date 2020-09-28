@@ -1270,6 +1270,8 @@ BEGIN
   IF IsVisibleMethod(nMethod) THEN
     PERFORM MethodActionNotFound(pObject, pAction);
   END IF;
+
+  RETURN null;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
