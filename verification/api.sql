@@ -55,8 +55,17 @@ CREATE OR REPLACE FUNCTION api.confirm_verification_code (
   OUT message   text
 ) RETURNS       record
 AS $$
-  SELECT ConfirmVerificationCode(pType, pCode), GetErrorMessage();
-$$ LANGUAGE SQL
+DECLARE
+  nId           numeric;
+BEGIN
+  nId := ConfirmVerificationCode(pType, pCode);
+
+  PERFORM api.confirm_email(nId);
+
+  result := nId IS NOT NULL;
+  message := GetErrorMessage();
+END;
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 

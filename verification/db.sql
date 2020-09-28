@@ -204,7 +204,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION ConfirmVerificationCode (
   pType         text,
   pCode		    text
-) RETURNS       bool
+) RETURNS       numeric
 AS $$
 DECLARE
   nId           numeric;
@@ -226,11 +226,9 @@ BEGIN
     ELSE
       PERFORM InvalidVerificationCodeType(pType);
     END CASE;
-
-    RETURN true;
   END IF;
 
-  RETURN false;
+  RETURN nId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
