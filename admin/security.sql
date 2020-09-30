@@ -25,4 +25,4 @@ SELECT AddMemberToGroup(CreateUser('admin', 'admin', 'Администратор
 SELECT AddMemberToGroup(CreateUser('daemon', 'daemon', 'Демон', null, null, 'Пользователь для вызова методов API', false, true, GetArea('root')), GetGroup('system'));
 
 SELECT AddMemberToGroup(CreateUser('apibot', 'apibot', 'API клиент', null, null, 'Системная служба API', false, true, GetArea('root')), GetGroup('system'));
-SELECT AddMemberToGroup(CreateUser('mailbot', 'mailbot', 'Mail клиент', null, null, 'Почтовый клиент', false, true, GetArea('default')), GetGroup('system'));
+SELECT CreateUser('mailbot', 'mailbot', 'Mail клиент', null, null, 'Почтовый клиент', false, true, GetArea('root'));

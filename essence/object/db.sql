@@ -109,7 +109,7 @@ BEGIN
   INSERT INTO db.aou SELECT NEW.id, NEW.owner, B'000', B'111';
 
   IF NEW.owner <> NEW.suid THEN
-    IF NOT IsUserRole(GetGroup('administrator'), NEW.suid) THEN
+    IF NOT IsUserRole(GetGroup('system'), NEW.suid) THEN
       INSERT INTO db.aou SELECT NEW.id, NEW.suid, B'000', B'110';
     END IF;
   END IF;
