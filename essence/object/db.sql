@@ -108,12 +108,6 @@ BEGIN
   INSERT INTO db.aou (object, userid, deny, allow) SELECT NEW.id, userid, SubString(deny FROM 3 FOR 3), SubString(allow FROM 3 FOR 3) FROM db.acu WHERE class = nClass;
   INSERT INTO db.aou SELECT NEW.id, NEW.owner, B'000', B'111';
 
-  IF NEW.owner <> NEW.suid THEN
-    IF NOT IsUserRole(GetGroup('system'), NEW.suid) THEN
-      INSERT INTO db.aou SELECT NEW.id, NEW.suid, B'000', B'110';
-    END IF;
-  END IF;
-
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql
@@ -711,6 +705,22 @@ BEGIN
   SELECT state INTO nState FROM db.object WHERE id = pId;
 
   RETURN nState;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION SetObjectOwner -----------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION SetObjectOwner (
+  pId		numeric,
+  pOwner    numeric
+) RETURNS 	void
+AS $$
+BEGIN
+  UPDATE db.object SET owner = pOwner WHERE id = pId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
