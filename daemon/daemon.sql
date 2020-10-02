@@ -233,7 +233,7 @@ EXCEPTION
 WHEN others THEN
   GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
 
-  --RAISE NOTICE '%', vContext;
+  RAISE NOTICE '%', vContext;
 
   PERFORM SetErrorMessage(vMessage);
 
@@ -298,6 +298,7 @@ DECLARE
   arResponses   text[];
 
   vMessage      text;
+  vContext      text;
 
   ErrorCode     int;
   ErrorMessage  text;
@@ -465,7 +466,9 @@ BEGIN
   END IF;
 EXCEPTION
 WHEN others THEN
-  GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT;
+  GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
+
+  RAISE NOTICE '%', vContext;
 
   PERFORM SetErrorMessage(vMessage);
 
@@ -788,6 +791,7 @@ DECLARE
   belong        boolean;
 
   vMessage      text;
+  vContext      text;
 
   ErrorCode     int;
   ErrorMessage  text;
@@ -863,7 +867,9 @@ BEGIN
     UPDATE api.log SET runtime = age(clock_timestamp(), dtBegin) WHERE id = nApiId;
   EXCEPTION
   WHEN others THEN
-    GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT;
+    GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
+
+    RAISE NOTICE '%', vContext;
 
     PERFORM SetErrorMessage(vMessage);
 
@@ -878,7 +884,10 @@ BEGIN
   RETURN;
 EXCEPTION
 WHEN others THEN
-  GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT;
+WHEN others THEN
+  GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
+
+  RAISE NOTICE '%', vContext;
 
   PERFORM SetErrorMessage(vMessage);
 
