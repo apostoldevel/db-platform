@@ -3902,12 +3902,8 @@ CREATE OR REPLACE FUNCTION SetDefaultArea (
   pMember	numeric DEFAULT current_userid()
 ) RETURNS	void
 AS $$
-DECLARE
-  nId		numeric;
 BEGIN
-  IF IsMemberArea(pArea, pMember) THEN
-    UPDATE db.profile SET area = pArea WHERE userid = pMember;
-  END IF;
+  UPDATE db.profile SET area = pArea WHERE userid = pMember;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -4210,21 +4206,8 @@ CREATE OR REPLACE FUNCTION SetDefaultInterface (
   pMember	    numeric DEFAULT current_userid()
 ) RETURNS	    void
 AS $$
-DECLARE
-  nId		    numeric;
 BEGIN
-  SELECT id INTO nId
-    FROM db.member_interface
-   WHERE interface = pInterface
-     AND member IN (
-       SELECT pMember
-        UNION ALL
-       SELECT userid FROM db.member_group WHERE member = pMember
-     );
-
-  IF found THEN
-    UPDATE db.profile SET interface = pInterface WHERE userid = pMember;
-  END IF;
+  UPDATE db.profile SET interface = pInterface WHERE userid = pMember;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
