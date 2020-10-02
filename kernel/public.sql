@@ -541,27 +541,27 @@ GRANT EXECUTE ON FUNCTION array_add_text(text[], text) TO PUBLIC;
 -- min -------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION min(integer, integer) RETURNS integer AS $$
+CREATE OR REPLACE FUNCTION public.min(integer, integer) RETURNS integer AS $$
   SELECT CASE WHEN $1 < $2 THEN $1 ELSE $2 END
 $$ LANGUAGE SQL STRICT;
 
-GRANT EXECUTE ON FUNCTION min(integer, integer) TO PUBLIC;
+GRANT EXECUTE ON FUNCTION public.min(integer, integer) TO PUBLIC;
 
 --------------------------------------------------------------------------------
 -- max -------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION max(integer, integer) RETURNS integer AS $$
+CREATE OR REPLACE FUNCTION public.max(integer, integer) RETURNS integer AS $$
   SELECT CASE WHEN $1 > $2 THEN $1 ELSE $2 END
 $$ LANGUAGE SQL STRICT;
 
-GRANT EXECUTE ON FUNCTION max(integer, integer) TO PUBLIC;
+GRANT EXECUTE ON FUNCTION public.max(integer, integer) TO PUBLIC;
 
 --------------------------------------------------------------------------------
 -- FUNCTION min_array ----------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION min_array (
+CREATE OR REPLACE FUNCTION public.min_array (
   parray	anyarray,
   pelement 	anyelement DEFAULT null
 ) RETURNS	anyelement
@@ -579,11 +579,11 @@ BEGIN
         r = parray[i];
       ELSE
         IF parray[i] <> pelement THEN
-          r = min(coalesce(r, parray[i]), parray[i]);
+          r = public.min(coalesce(r, parray[i]), parray[i]);
         END IF;
       END IF;
     ELSE
-      r = min(coalesce(r, parray[i]), parray[i]);
+      r = public.min(coalesce(r, parray[i]), parray[i]);
     END IF;
   END LOOP;
 
@@ -591,13 +591,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-GRANT EXECUTE ON FUNCTION min_array(anyarray, anyelement) TO PUBLIC;
+GRANT EXECUTE ON FUNCTION public.min_array(anyarray, anyelement) TO PUBLIC;
 
 --------------------------------------------------------------------------------
 -- FUNCTION max_array ----------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION max_array (
+CREATE OR REPLACE FUNCTION public.max_array (
   parray	anyarray,
   pelement 	anyelement DEFAULT null
 ) RETURNS	anyelement
@@ -615,11 +615,11 @@ BEGIN
         r = parray[i];
       ELSE
         IF parray[i] <> pelement THEN
-          r = max(coalesce(r, parray[i]), parray[i]);
+          r = public.max(coalesce(r, parray[i]), parray[i]);
         END IF;
       END IF;
     ELSE
-      r = max(coalesce(r, parray[i]), parray[i]);
+      r = public.max(coalesce(r, parray[i]), parray[i]);
     END IF;
   END LOOP;
 
@@ -627,7 +627,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-GRANT EXECUTE ON FUNCTION max_array(anyarray, anyelement) TO PUBLIC;
+GRANT EXECUTE ON FUNCTION public.max_array(anyarray, anyelement) TO PUBLIC;
 
 --------------------------------------------------------------------------------
 -- FUNCTION inet_to_array ------------------------------------------------------
