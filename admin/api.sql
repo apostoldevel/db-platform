@@ -1619,7 +1619,7 @@ AS $$
   SELECT *
     FROM api.interface
    WHERE id IN (
-     SELECT interface FROM db.member_interface WHERE member = (
+     SELECT interface FROM db.member_interface WHERE member IN (
          SELECT pUserId
          UNION ALL
          SELECT userid FROM db.member_group WHERE member = pUserId
