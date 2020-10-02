@@ -31,11 +31,11 @@ BEGIN
     SELECT NEW.OBJECT INTO NEW.ID;
   END IF;
 
-  NEW.AREA := current_area();
-
-  IF NEW.AREA = GetArea('root') THEN
+  IF current_area_type() = GetAreaType('root') THEN
     PERFORM RootAreaError();
   END IF;
+
+  NEW.area := current_area();
 
   RAISE DEBUG 'Создан документ Id: %', NEW.ID;
 

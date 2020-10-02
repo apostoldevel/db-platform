@@ -429,7 +429,7 @@ BEGIN
     vSession := SignIn(nOAuth2, pClientId, pSecret, pAgent, pHost);
 
     IF vSession IS NULL THEN
-      RETURN json_build_object('error', json_build_object('code', 403, 'error', 'access_denied', 'message', 'Access Denied.'));
+      RETURN json_build_object('error', json_build_object('code', 401, 'error', 'unauthorized_client', 'message', 'The client is not authorized.'));
     END IF;
 
     RETURN CreateToken(nAudience, oauth2_current_code(vSession), INTERVAL '1 day');

@@ -139,11 +139,12 @@ COMMENT ON COLUMN db.area_type.name IS 'Наименование';
 CREATE UNIQUE INDEX ON db.area_type (code);
 
 INSERT INTO db.area_type (code, name) VALUES ('root', 'Корень');
-INSERT INTO db.area_type (code, name) VALUES ('guest', 'Гостевая зона');
+INSERT INTO db.area_type (code, name) VALUES ('system', 'Система');
+INSERT INTO db.area_type (code, name) VALUES ('guest', 'Гость');
 INSERT INTO db.area_type (code, name) VALUES ('default', 'По умолчанию');
-INSERT INTO db.area_type (code, name) VALUES ('main', 'Головной офис');
-INSERT INTO db.area_type (code, name) VALUES ('department', 'Подразделение');
-INSERT INTO db.area_type (code, name) VALUES ('mobile', 'Мобильный офис');
+INSERT INTO db.area_type (code, name) VALUES ('main', 'Главный');
+INSERT INTO db.area_type (code, name) VALUES ('remote', 'Удаленный');
+INSERT INTO db.area_type (code, name) VALUES ('mobile', 'Мобильный');
 
 --------------------------------------------------------------------------------
 -- AreaType --------------------------------------------------------------------
@@ -418,18 +419,18 @@ COMMENT ON COLUMN db.profile.email_verified IS 'Электронный адре�
 COMMENT ON COLUMN db.profile.phone_verified IS 'Телефон адрес подтверждён.';
 COMMENT ON COLUMN db.profile.picture IS 'Логотип.';
 
-CREATE OR REPLACE FUNCTION db.ft_profile_before_insert()
+CREATE OR REPLACE FUNCTION db.ft_profile_before()
 RETURNS trigger AS $$
 BEGIN
   IF NEW.locale IS NULL THEN
     SELECT id INTO NEW.locale FROM db.locale WHERE code = 'ru';
   END IF;
 
-  IF NEW.area IS NULL THEN
-    SELECT id INTO NEW.area FROM db.area WHERE code = 'default';
+  IF NOT IsMemberArea(NEW.area, NEW.userid) THEN
+    SELECT id INTO NEW.area FROM db.area WHERE code = 'guest';
   END IF;
 
-  IF NEW.interface IS NULL THEN
+  IF NOT IsMemberInterface(NEW.interface, NEW.userid) THEN
     SELECT id INTO NEW.interface FROM db.interface WHERE sid = 'I:1:0:0';
   END IF;
 
@@ -441,10 +442,10 @@ $$ LANGUAGE plpgsql
 
 --------------------------------------------------------------------------------
 
-CREATE TRIGGER t_profile_before_insert
-  BEFORE INSERT ON db.profile
+CREATE TRIGGER t_profile_before
+  BEFORE INSERT OR UPDATE ON db.profile
   FOR EACH ROW
-  EXECUTE PROCEDURE db.ft_profile_before_insert();
+  EXECUTE PROCEDURE db.ft_profile_before();
 
 --------------------------------------------------------------------------------
 
@@ -1931,23 +1932,13 @@ BEGIN
     END IF;
 
     IF NEW.area <> OLD.area THEN
-      SELECT id INTO nID FROM db.member_area WHERE area = NEW.area AND member = NEW.userid;
-      IF NOT found THEN
+      IF NOT IsMemberArea(NEW.area, NEW.userid) THEN
         NEW.area := OLD.area;
       END IF;
     END IF;
 
     IF OLD.interface <> NEW.interface THEN
-      SELECT id INTO nId
-        FROM db.member_interface
-       WHERE interface = NEW.interface
-         AND member IN (
-           SELECT NEW.userid
-           UNION ALL
-           SELECT userid FROM db.member_group WHERE MEMBER = NEW.userid
-         );
-
-      IF NOT found THEN
+      IF NOT IsMemberInterface(NEW.interface, NEW.userid) THEN
         NEW.interface := OLD.interface;
       END IF;
     END IF;
@@ -1983,44 +1974,12 @@ BEGIN
       SELECT id INTO NEW.locale FROM db.locale WHERE code = 'ru';
     END IF;
 
-    IF NEW.area IS NULL THEN
-
+    IF NOT IsMemberArea(NEW.area, NEW.userid) THEN
       NEW.area := GetDefaultArea(NEW.userid);
-
-    ELSE
-
-      SELECT id INTO nId
-        FROM db.member_area
-       WHERE area = NEW.area
-         AND member IN (
-           SELECT NEW.userid
-            UNION ALL
-           SELECT userid FROM db.member_group WHERE member = NEW.userid
-         );
-
-      IF NOT found THEN
-        NEW.area := NULL;
-      END IF;
     END IF;
 
-    IF NEW.interface IS NULL THEN
-
+    IF NOT IsMemberInterface(NEW.interface, NEW.userid) THEN
       NEW.interface := GetDefaultInterface(NEW.userid);
-
-    ELSE
-
-      SELECT id INTO nId
-        FROM db.member_interface
-       WHERE interface = NEW.interface
-         AND member IN (
-           SELECT NEW.userid
-            UNION ALL
-           SELECT userid FROM db.member_group WHERE member = NEW.userid
-         );
-
-      IF NOT found THEN
-        SELECT id INTO NEW.interface FROM db.interface WHERE sid = 'I:1:0:0';
-      END IF;
     END IF;
 
     RETURN NEW;
@@ -2544,6 +2503,25 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- FUNCTION current_area_type --------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION current_area_type (
+  pSession	text DEFAULT current_session()
+)
+RETURNS 	numeric
+AS $$
+DECLARE
+  nType     numeric;
+BEGIN
+  SELECT type INTO nType FROM db.area WHERE id = GetSessionArea(pSession);
+  RETURN nType;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- FUNCTION current_area -------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -2899,6 +2877,7 @@ CREATE OR REPLACE FUNCTION CreateUser (
 ) RETURNS               numeric
 AS $$
 DECLARE
+  nArea                 numeric;
   nUserId		        numeric;
   vSecret               text;
 BEGIN
@@ -2907,6 +2886,8 @@ BEGIN
       PERFORM AccessDenied();
     END IF;
   END IF;
+
+  nArea := coalesce(pArea, GetArea('guest'));
 
   SELECT id INTO nUserId FROM users WHERE username = lower(pRoleName);
 
@@ -2918,7 +2899,10 @@ BEGIN
   VALUES ('U', pRoleName, pName, pPhone, pEmail, pDescription, pPasswordChange, pPasswordNotChange)
   RETURNING id, secret INTO nUserId, vSecret;
 
-  INSERT INTO db.profile (userid) VALUES (nUserId);
+  PERFORM AddMemberToInterface(nUserId, GetInterface('I:1:0:0'));
+  PERFORM AddMemberToArea(nUserId, nArea);
+
+  INSERT INTO db.profile (userid, area) VALUES (nUserId, nArea);
 
   IF NULLIF(pPassword, '') IS NULL THEN
     pPassword := encode(hmac(vSecret, GetSecretKey(), 'sha1'), 'hex');
@@ -2926,9 +2910,6 @@ BEGIN
   END IF;
 
   PERFORM SetPassword(nUserId, pPassword);
-
-  PERFORM AddMemberToInterface(nUserId, GetInterface('I:1:0:0'));
-  PERFORM AddMemberToArea(nUserId, coalesce(pArea, GetArea('guest')));
 
   RETURN nUserId;
 END;
@@ -3637,6 +3618,7 @@ CREATE OR REPLACE FUNCTION EditArea (
 AS $$
 DECLARE
   vCode             varchar;
+  nType             numeric;
 BEGIN
   IF session_user <> 'kernel' THEN
     IF NOT IsUserRole(GetGroup('administrator')) THEN
@@ -3644,7 +3626,7 @@ BEGIN
     END IF;
   END IF;
 
-  SELECT code INTO vCode FROM db.area WHERE id = pId;
+  SELECT type, code INTO nType, vCode FROM db.area WHERE id = pId;
   IF NOT FOUND THEN
     PERFORM AreaError(pId);
   END IF;
@@ -3657,7 +3639,7 @@ BEGIN
     END IF;
   END IF;
 
-  IF pId = GetArea('root') THEN
+  IF nType = GetAreaType('root') THEN
     UPDATE db.area
        SET name = coalesce(pName, name),
            description = coalesce(pDescription, description)
@@ -3847,7 +3829,6 @@ CREATE OR REPLACE FUNCTION SetArea (
 ) RETURNS	    void
 AS $$
 DECLARE
-  nId		    numeric;
   vUserName     varchar;
   vDepName      text;
 BEGIN
@@ -3861,12 +3842,52 @@ BEGIN
     PERFORM UserNotFound(pMember);
   END IF;
 
-  SELECT id INTO nId FROM db.member_area WHERE area = pArea AND member = pMember;
-  IF NOT found THEN
+  IF NOT IsMemberArea(pArea, pMember) THEN
     PERFORM UserNotMemberArea(vUserName, vDepName);
   END IF;
 
   UPDATE db.session SET area = pArea WHERE code = pSession;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- IsMemberArea ----------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Проверяет доступ к зоне.
+ * @param {numeric} pArea - Идентификатор зоны
+ * @param {numeric} pMember - Идентификатор роли (группы/учётной записи)
+ * @return {boolean}
+ */
+CREATE OR REPLACE FUNCTION IsMemberArea (
+  pArea		numeric,
+  pMember   numeric DEFAULT current_userid()
+) RETURNS	boolean
+AS $$
+DECLARE
+  nCount    bigint;
+BEGIN
+  IF pArea IS NULL OR pMember IS NULL THEN
+    RETURN false;
+  END IF;
+
+  WITH RECURSIVE area_tree(id, parent) AS (
+    SELECT id, parent FROM db.area WHERE id = pArea
+     UNION ALL
+    SELECT a.id, a.parent
+      FROM db.area a, area_tree t
+     WHERE a.id = t.parent
+  ) SELECT count(a.id) INTO nCount
+      FROM db.member_area m INNER JOIN area_tree a ON m.area = a.id
+       AND member IN (
+         SELECT pMember
+         UNION ALL
+         SELECT userid FROM db.member_group WHERE member = pMember
+       );
+
+  RETURN coalesce(nCount, 0) <> 0;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -3884,16 +3905,7 @@ AS $$
 DECLARE
   nId		numeric;
 BEGIN
-  SELECT id INTO nId
-    FROM db.member_area
-   WHERE area = pArea
-     AND member IN (
-       SELECT pMember
-        UNION ALL
-       SELECT userid FROM db.member_group WHERE member = pMember
-     );
-
-  IF found THEN
+  IF IsMemberArea(pArea, pMember) THEN
     UPDATE db.profile SET area = pArea WHERE userid = pMember;
   END IF;
 END;
@@ -3910,26 +3922,9 @@ CREATE OR REPLACE FUNCTION GetDefaultArea (
 ) RETURNS	numeric
 AS $$
 DECLARE
-  nDefault	numeric;
   nArea	    numeric;
 BEGIN
-  SELECT area INTO nDefault FROM db.profile WHERE userid = pMember;
-
-  SELECT area INTO nArea
-    FROM db.member_area
-   WHERE area = nDefault
-     AND member IN (
-       SELECT pMember
-        UNION ALL
-       SELECT userid FROM db.member_group WHERE member = pMember
-     );
-
-  IF NOT found THEN
-    SELECT MIN(area) INTO nArea
-      FROM db.member_area
-     WHERE member = pMember;
-  END IF;
-
+  SELECT area INTO nArea FROM db.profile WHERE userid = pMember;
   RETURN nArea;
 END;
 $$ LANGUAGE plpgsql
@@ -4147,7 +4142,6 @@ CREATE OR REPLACE FUNCTION SetInterface (
 ) RETURNS	    void
 AS $$
 DECLARE
-  nId		    numeric;
   vUserName     varchar;
   vInterface    text;
 BEGIN
@@ -4161,19 +4155,47 @@ BEGIN
     PERFORM UserNotFound(pMember);
   END IF;
 
-  SELECT id INTO nId
-    FROM db.member_interface
-   WHERE interface = pInterface
-     AND member IN (
-       SELECT pMember
-       UNION ALL
-       SELECT userid FROM db.member_group WHERE member = pMember
-     );
-  IF NOT found THEN
+  IF NOT IsMemberInterface(pInterface, pMember) THEN
     PERFORM UserNotMemberInterface(vUserName, vInterface);
   END IF;
 
   UPDATE db.session SET interface = pInterface WHERE code = pSession;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- IsMemberInterface -----------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Проверяет доступ к интерфейсу.
+ * @param {numeric} pInterface - Идентификатор интерфейса
+ * @param {numeric} pMember - Идентификатор роли (группы/учётной записи)
+ * @return {boolean}
+ */
+CREATE OR REPLACE FUNCTION IsMemberInterface (
+  pInterface    numeric,
+  pMember       numeric DEFAULT current_userid()
+) RETURNS       boolean
+AS $$
+DECLARE
+  nCount        bigint;
+BEGIN
+  IF pInterface IS NULL OR pMember IS NULL THEN
+    RETURN false;
+  END IF;
+
+  SELECT count(id) INTO nCount
+    FROM db.member_interface
+   WHERE interface = pInterface
+     AND member IN (
+       SELECT pMember
+        UNION ALL
+       SELECT userid FROM db.member_group WHERE member = pMember
+     );
+
+  RETURN coalesce(nCount, 0) <> 0;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -4217,24 +4239,9 @@ CREATE OR REPLACE FUNCTION GetDefaultInterface (
 ) RETURNS	    numeric
 AS $$
 DECLARE
-  nDefault	    numeric;
   nInterface	numeric;
 BEGIN
-  SELECT interface INTO nDefault FROM db.profile WHERE userid = pMember;
-
-  SELECT interface INTO nInterface
-    FROM db.member_interface
-   WHERE interface = nDefault
-     AND member IN (
-       SELECT pMember
-        UNION ALL
-       SELECT userid FROM db.member_group WHERE member = pMember
-     );
-
-  IF NOT found THEN
-    SELECT id INTO nInterface FROM interface WHERE sid = 'I:1:0:0';
-  END IF;
-
+  SELECT interface INTO nInterface FROM db.profile WHERE userid = pMember;
   RETURN nInterface;
 END;
 $$ LANGUAGE plpgsql
@@ -4254,7 +4261,9 @@ BEGIN
      SET state = B'000'
    WHERE state <> B'000'
      AND userid IN (
-       SELECT userid FROM db.session WHERE userid <> (SELECT id FROM db.user WHERE username = 'apibot') AND updated < now() - pOffTime
+       SELECT userid FROM db.session
+        WHERE userid <> (SELECT id FROM db.user WHERE username = session_user)
+          AND updated < now() - pOffTime
      );
 END;
 $$ LANGUAGE plpgsql

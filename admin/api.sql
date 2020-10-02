@@ -1335,19 +1335,11 @@ CREATE OR REPLACE FUNCTION api.member_area (
 AS $$
   SELECT *
     FROM api.area
-   WHERE id in (
-     SELECT area FROM db.member_area WHERE member = (
-       SELECT id FROM db.user WHERE id = pUserId
-     )
-   )
-   UNION ALL
-  SELECT *
-    FROM api.area
-   WHERE id in (
+   WHERE id IN (
      SELECT area FROM db.member_area WHERE member IN (
-       SELECT userid FROM db.member_group WHERE member = (
-         SELECT id FROM db.user WHERE id = pUserId
-       )
+         SELECT pUserId
+         UNION ALL
+         SELECT userid FROM db.member_group WHERE member = pUserId
      )
    )
 $$ LANGUAGE SQL
@@ -1626,19 +1618,11 @@ CREATE OR REPLACE FUNCTION api.member_interface (
 AS $$
   SELECT *
     FROM api.interface
-   WHERE id in (
+   WHERE id IN (
      SELECT interface FROM db.member_interface WHERE member = (
-       SELECT id FROM db.user WHERE id = pUserId
-     )
-   )
-   UNION ALL
-  SELECT *
-    FROM api.interface
-   WHERE id in (
-     SELECT interface FROM db.member_interface WHERE member IN (
-       SELECT userid FROM db.member_group WHERE member = (
-         SELECT id FROM db.user WHERE id = pUserId
-       )
+         SELECT pUserId
+         UNION ALL
+         SELECT userid FROM db.member_group WHERE member = pUserId
      )
    )
 $$ LANGUAGE SQL

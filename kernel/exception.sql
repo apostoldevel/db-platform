@@ -169,14 +169,14 @@ $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 CREATE OR REPLACE FUNCTION RootAreaError() RETURNS void
 AS $$
 BEGIN
-  RAISE EXCEPTION 'ERR-40018: Запрещены операции с документами в корневом подразделении.';
+  RAISE EXCEPTION 'ERR-40018: Запрещены операции с документами в корневых зонах.';
 END;
 $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
 CREATE OR REPLACE FUNCTION AreaError() RETURNS void
 AS $$
 BEGIN
-  RAISE EXCEPTION 'ERR-40019: Не найдено подразделение с указанным идентификатором.';
+  RAISE EXCEPTION 'ERR-40019: Не найдена зона с указанным идентификатором.';
 END;
 $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
@@ -185,7 +185,7 @@ CREATE OR REPLACE FUNCTION IncorrectAreaCode (
 ) RETURNS	void
 AS $$
 BEGIN
-  RAISE EXCEPTION 'ERR-40020: Не найдено подразделение с кодом: %.', pCode;
+  RAISE EXCEPTION 'ERR-40020: Не найдена зона с кодом: %.', pCode;
 END;
 $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
@@ -195,14 +195,14 @@ CREATE OR REPLACE FUNCTION UserNotMemberArea (
 ) RETURNS	void
 AS $$
 BEGIN
-  RAISE EXCEPTION 'ERR-40021: Пользователь "%" не является членом подразделения "%".', pUser, pArea;
+  RAISE EXCEPTION 'ERR-40021: У пользователя "%" нет доступа к зоне "%".', pUser, pArea;
 END;
 $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
 CREATE OR REPLACE FUNCTION InterfaceError() RETURNS void
 AS $$
 BEGIN
-  RAISE EXCEPTION 'ERR-40022: Не найдено рабочее место с указанным идентификатором.';
+  RAISE EXCEPTION 'ERR-40022: Не найден интерфейс с указанным идентификатором.';
 END;
 $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
@@ -212,7 +212,7 @@ CREATE OR REPLACE FUNCTION UserNotMemberInterface (
 ) RETURNS	    void
 AS $$
 BEGIN
-  RAISE EXCEPTION 'ERR-40023: Пользователь "%" не является членом рабочего места "%".', pUser, pInterface;
+  RAISE EXCEPTION 'ERR-40023: У пользователя "%" нет доступа к интерфейсу "%".', pUser, pInterface;
 END;
 $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
