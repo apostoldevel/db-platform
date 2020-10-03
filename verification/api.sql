@@ -57,12 +57,21 @@ CREATE OR REPLACE FUNCTION api.confirm_verification_code (
 AS $$
 DECLARE
   nId           numeric;
+  vOAuthSecret  text;
 BEGIN
   nId := ConfirmVerificationCode(pType, pCode);
 
-  PERFORM api.confirm_email(nId);
-
   result := nId IS NOT NULL;
+
+  IF result THEN
+    SELECT a.secret INTO vOAuthSecret FROM oauth2.audience a WHERE a.code = session_username();
+    IF vOAuthSecret IS NOT NULL THEN
+      PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
+      PERFORM api.confirm_email(nId);
+      PERFORM SubstituteUser(session_userid(), vOAuthSecret);
+    END IF;
+  END IF;
+
   message := GetErrorMessage();
 END;
 $$ LANGUAGE plpgsql
