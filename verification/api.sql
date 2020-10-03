@@ -62,17 +62,16 @@ BEGIN
   nId := ConfirmVerificationCode(pType, pCode);
 
   result := nId IS NOT NULL;
+  message := GetErrorMessage();
 
   IF result THEN
     SELECT a.secret INTO vOAuthSecret FROM oauth2.audience a WHERE a.code = session_username();
     IF vOAuthSecret IS NOT NULL THEN
       PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
-      PERFORM api.confirm_email(nId);
+      PERFORM api.on_confirm_email(nId);
       PERFORM SubstituteUser(session_userid(), vOAuthSecret);
     END IF;
   END IF;
-
-  message := GetErrorMessage();
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
