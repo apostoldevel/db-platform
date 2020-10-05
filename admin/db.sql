@@ -4849,7 +4849,7 @@ DECLARE
   vSession      text;
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(GetGroup('system'), session_userid()) THEN
+    IF NOT IsUserRole(GetGroup('system'), coalesce(session_userid(), GetUser(session_user))) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
