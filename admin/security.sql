@@ -25,7 +25,7 @@ SELECT AddMemberToInterface(CreateGroup('user', 'Пользователи', 'Г�
 SELECT AddMemberToInterface(CreateGroup('guest', 'Гости', 'Группа для гостей системы'), GetInterface('I:1:0:4'));
 
 SELECT AddMemberToGroup(CreateUser('admin', 'admin', 'Администратор', null,null, 'Администратор системы', true, false, GetArea('root')), GetGroup('administrator'));
-SELECT AddMemberToGroup(CreateUser('daemon', 'daemon', 'Демон', null, null, 'Пользователь для вызова методов API', false, true, GetArea('system')), GetGroup('system'));
+SELECT CreateUser('daemon', 'daemon', 'Демон', null, null, 'Пользователь для вызова методов API', false, true, GetArea('system'));
 
 SELECT AddMemberToGroup(CreateUser('apibot', 'apibot', 'API клиент', null, null, 'Системная служба API', false, true, GetArea('all')), GetGroup('system'));
 SELECT CreateUser('mailbot', 'mailbot', 'Mail клиент', null, null, 'Почтовый клиент', false, true, GetArea('all'));

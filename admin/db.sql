@@ -1888,7 +1888,6 @@ CREATE OR REPLACE FUNCTION db.ft_session_before()
 RETURNS TRIGGER
 AS $$
 DECLARE
-  nId	    numeric;
   vAgent    text;
 BEGIN
   IF (TG_OP = 'DELETE') THEN
@@ -2428,13 +2427,17 @@ CREATE OR REPLACE FUNCTION SubstituteUser (
 AS $$
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(GetGroup('system'), session_userid()) THEN
+    IF NOT IsUserRole(GetGroup('system'), session_userid(pSession)) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
 
-  IF CheckPassword(session_username(), pPassword) THEN
-    UPDATE db.session SET userid = pUserId, area = GetDefaultArea(pUserId) WHERE code = pSession;
+  IF CheckPassword(session_username(pSession), pPassword) THEN
+
+    UPDATE db.session
+       SET userid = pUserId, area = GetDefaultArea(pUserId), interface = GetDefaultInterface(pUserId)
+     WHERE code = pSession;
+
     IF FOUND THEN
       PERFORM SetCurrentUserId(pUserId);
     END IF;
@@ -2453,15 +2456,17 @@ $$ LANGUAGE plpgsql
  * Меняет текущего пользователя в активном сеансе на указанного пользователя
  * @param {text} pRoleName - Имя пользователь для подстановки
  * @param {text} pPassword - Пароль текущего пользователя
+ * @param {text} pSession - Код сессии
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION SubstituteUser (
   pRoleName	text,
-  pPassword	text
+  pPassword	text,
+  pSession	text DEFAULT current_session()
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM SubstituteUser(GetUser(pRoleName), pPassword);
+  PERFORM SubstituteUser(GetUser(pRoleName), pPassword, pSession);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -4846,10 +4851,13 @@ DECLARE
   nArea         numeric;
   nInterface	numeric;
 
+  nSUID         numeric;
+
   vSession      text;
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(GetGroup('system'), coalesce(session_userid(), GetUser(session_user))) THEN
+    nSUID := coalesce(session_userid(), GetUser(session_user));
+    IF NOT IsUserRole(GetGroup('system'), nSUID) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -4886,8 +4894,8 @@ BEGIN
     nArea := GetDefaultArea(up.id);
     nInterface := GetDefaultInterface(up.id);
 
-    INSERT INTO db.session (oauth2, userid, area, interface, agent, host)
-    VALUES (pOAuth2, up.id, nArea, nInterface, pAgent, pHost)
+    INSERT INTO db.session (oauth2, suid, userid, area, interface, agent, host)
+    VALUES (pOAuth2, nSUID, up.id, nArea, nInterface, pAgent, pHost)
     RETURNING code INTO vSession;
   END IF;
 

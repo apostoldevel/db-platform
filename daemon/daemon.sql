@@ -58,9 +58,11 @@ DECLARE
 
   expires_in    double precision;
 
+  vMessage      text;
+  vContext      text;
+
   ErrorCode     int;
   ErrorMessage  text;
-  vMessage      text;
 BEGIN
   IF NOT kernel.Authorize(pSession) THEN
     PERFORM AuthenticateError(GetErrorMessage());
@@ -84,7 +86,9 @@ BEGIN
   RETURN json_build_object('access_token', t.token, 'token_type', 'Bearer', 'expires_in', expires_in, 'session', pSession);
 EXCEPTION
 WHEN others THEN
-  GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT;
+  GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
+
+  RAISE NOTICE '%', vContext;
 
   PERFORM SetErrorMessage(vMessage);
 
@@ -138,11 +142,11 @@ DECLARE
 
   vSession      text;
 
-  ErrorCode     int;
-  ErrorMessage  text;
-
   vMessage      text;
   vContext      text;
+
+  ErrorCode     int;
+  ErrorMessage  text;
 BEGIN
   SELECT convert_from(url_decode(r[2]), 'utf8')::jsonb INTO payload FROM regexp_split_to_array(pToken, '\.') r;
 
@@ -504,6 +508,7 @@ DECLARE
   dtBegin       timestamptz;
 
   vMessage      text;
+  vContext      text;
 
   ErrorCode     int;
   ErrorMessage  text;
@@ -536,7 +541,9 @@ BEGIN
     UPDATE api.log SET runtime = age(clock_timestamp(), dtBegin) WHERE id = nApiId;
   EXCEPTION
   WHEN others THEN
-    GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT;
+    GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
+
+    RAISE NOTICE '%', vContext;
 
     PERFORM SetErrorMessage(vMessage);
 
@@ -551,7 +558,9 @@ BEGIN
   RETURN;
 EXCEPTION
 WHEN others THEN
-  GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT;
+  GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
+
+  RAISE NOTICE '%', vContext;
 
   PERFORM SetErrorMessage(vMessage);
 
@@ -593,7 +602,9 @@ DECLARE
   dtBegin       timestamptz;
 
   vSession      text;
+
   vMessage      text;
+  vContext      text;
 
   ErrorCode     int;
   ErrorMessage  text;
@@ -625,7 +636,9 @@ BEGIN
     UPDATE api.log SET runtime = age(clock_timestamp(), dtBegin) WHERE id = nApiId;
   EXCEPTION
   WHEN others THEN
-    GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT;
+    GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
+
+    RAISE NOTICE '%', vContext;
 
     PERFORM SetErrorMessage(vMessage);
 
@@ -642,7 +655,9 @@ BEGIN
   RETURN;
 EXCEPTION
 WHEN others THEN
-  GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT;
+  GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
+
+  RAISE NOTICE '%', vContext;
 
   PERFORM SetErrorMessage(vMessage);
 
@@ -684,7 +699,9 @@ DECLARE
   dtBegin       timestamptz;
 
   vCode         text;
+
   vMessage      text;
+  vContext      text;
 
   ErrorCode     int;
   ErrorMessage  text;
@@ -720,7 +737,9 @@ BEGIN
     UPDATE api.log SET runtime = age(clock_timestamp(), dtBegin) WHERE id = nApiId;
   EXCEPTION
   WHEN others THEN
-    GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT;
+    GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
+
+    RAISE NOTICE '%', vContext;
 
     PERFORM SetErrorMessage(vMessage);
 
@@ -735,7 +754,9 @@ BEGIN
   RETURN;
 EXCEPTION
 WHEN others THEN
-  GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT;
+  GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
+
+  RAISE NOTICE '%', vContext;
 
   PERFORM SetErrorMessage(vMessage);
 
@@ -937,6 +958,7 @@ DECLARE
   dtTimeStamp   timestamptz;
 
   vMessage      text;
+  vContext      text;
 
   ErrorCode     int;
   ErrorMessage  text;
@@ -994,7 +1016,9 @@ BEGIN
     END IF;
   EXCEPTION
   WHEN others THEN
-    GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT;
+    GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
+
+    RAISE NOTICE '%', vContext;
 
     PERFORM SetErrorMessage(vMessage);
 
@@ -1009,7 +1033,9 @@ BEGIN
   RETURN;
 EXCEPTION
 WHEN others THEN
-  GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT;
+  GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
+
+  RAISE NOTICE '%', vContext;
 
   PERFORM SetErrorMessage(vMessage);
 
