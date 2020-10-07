@@ -1184,7 +1184,7 @@ DECLARE
   nSaveAction	numeric;
   pSaveForm     jsonb;
 
-  sLabel	text;
+  sLabel        text;
 
   nClass        numeric;
   nAction       numeric;

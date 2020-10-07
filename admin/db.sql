@@ -1065,7 +1065,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION StrPwKey (
   pUserId       numeric,
-  pAgent        text,
+  pSecret       text,
   pCreated      timestamp
 ) RETURNS       text
 AS $$
@@ -1076,7 +1076,7 @@ BEGIN
   SELECT hash INTO vHash FROM db.user WHERE id = pUserId;
 
   IF found THEN
-    vStrPwKey := '{' || IntToStr(pUserId) || '-' || vHash || '-' || encode(digest(pAgent, 'sha1'), 'hex') || '-' || current_database() || '-' || DateToStr(pCreated, 'YYYYMMDDHH24MISS') || '}';
+    vStrPwKey := '{' || IntToStr(pUserId) || '-' || vHash || '-' || pSecret || '-' || current_database() || '-' || DateToStr(pCreated, 'YYYYMMDDHH24MISS') || '}';
   END IF;
 
   RETURN encode(digest(vStrPwKey, 'sha1'), 'hex');
@@ -1960,7 +1960,7 @@ BEGIN
     NEW.salt := gen_salt('md5');
 
     IF NEW.pwkey IS NULL THEN
-      NEW.pwkey := crypt(StrPwKey(NEW.suid, NEW.agent, NEW.created), NEW.salt);
+      NEW.pwkey := crypt(StrPwKey(NEW.suid, NEW.secret, NEW.created), NEW.salt);
     END IF;
 
     NEW.code := SessionKey(NEW.pwkey, GetSecretKey());
@@ -4305,7 +4305,7 @@ AS $$
 DECLARE
   passed 	    boolean;
 BEGIN
-  SELECT (pwkey = crypt(StrPwKey(suid, agent, created), pwkey)) INTO passed
+  SELECT (pwkey = crypt(StrPwKey(suid, secret, created), pwkey)) INTO passed
     FROM db.session
    WHERE code = pSession;
 
@@ -4330,7 +4330,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION ValidSecret (
-  pSecret           text,
+  pSecret       text,
   pSession	    text DEFAULT current_session()
 ) RETURNS 	    boolean
 AS $$
