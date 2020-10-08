@@ -193,6 +193,32 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- api.set_session -------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.set_session (
+  pUserName     text,
+  pArea         text
+) RETURNS       text
+AS $$
+DECLARE
+  vSession      text;
+BEGIN
+  vSession := GetSession(GetUser(pUserName));
+
+  IF vSession IS NULL THEN
+    RAISE EXCEPTION '%', GetErrorMessage();
+  END IF;
+
+  PERFORM SetArea(GetArea(pArea));
+
+  RETURN vSession;
+END
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- LOCALE ----------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
