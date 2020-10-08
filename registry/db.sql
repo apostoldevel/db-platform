@@ -519,7 +519,8 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION RegCreateKey (
   pKey		text,
-  pSubKey	text
+  pSubKey	text,
+  pUserId   numeric DEFAULT current_userid()
 ) RETURNS 	numeric
 AS $$
 DECLARE
@@ -539,7 +540,7 @@ BEGIN
   IF pKey = 'CURRENT_CONFIG' THEN
     pKey := 'kernel';
   ELSE
-    pKey := current_username();
+    pKey := GetUserName(pUserId);
   END IF;
 
   nRoot := GetRegRoot(pKey);
@@ -574,7 +575,8 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION RegOpenKey (
   pKey		text,
-  pSubKey	text
+  pSubKey	text,
+  pUserId   numeric DEFAULT current_userid()
 ) RETURNS 	numeric
 AS $$
 DECLARE
@@ -591,7 +593,7 @@ BEGIN
   IF pKey = 'CURRENT_CONFIG' THEN
     pKey := 'kernel';
   ELSE
-    pKey := current_username();
+    pKey := GetUserName(pUserId);
   END IF;
 
   nId := GetRegRoot(pKey);
@@ -646,14 +648,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION RegDeleteKeyValue (
-  pKey		text,
-  pSubKey	text,
-  pValueName	text
-) RETURNS 	boolean
+  pKey          text,
+  pSubKey       text,
+  pValueName    text
+) RETURNS       boolean
 AS $$
 DECLARE
-  nId		numeric;
-  nKey		numeric;
+  nId           numeric;
+  nKey          numeric;
 BEGIN
   nKey := RegOpenKey(pKey, pSubKey);
   IF nKey IS NOT NULL THEN
