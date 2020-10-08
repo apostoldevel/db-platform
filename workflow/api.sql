@@ -245,7 +245,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE VIEW api.class
 AS
-  SELECT * FROM ClassTree;
+  SELECT *, row_to_json(DecodeClassAccess(id)) as access FROM ClassTree;
 
 GRANT SELECT ON api.class TO administrator;
 
