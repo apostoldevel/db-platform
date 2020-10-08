@@ -135,7 +135,7 @@ BEGIN
     RAISE DEBUG '[%] [%] [%] %', pType, pCode, pObject, pText;
   END IF;
 
-  IF pType = 'N' THEN
+  IF pType = 'N' OR GetDebugMode() THEN
     RAISE NOTICE '[%] [%] [%] %', pType, pCode, pObject, pText;
   END IF;
 END;

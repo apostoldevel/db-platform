@@ -2120,6 +2120,35 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- FUNCTION SetDebugMode -------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION SetDebugMode (
+  pValue	boolean
+) RETURNS	void
+AS $$
+BEGIN
+  PERFORM SafeSetVar('debug', pValue::text);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION GetDebugMode -------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetDebugMode()
+RETURNS		boolean
+AS $$
+BEGIN
+  RETURN coalesce(SafeGetVar('debug')::boolean, false);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- FUNCTION SetCurrentSession --------------------------------------------------
 --------------------------------------------------------------------------------
 

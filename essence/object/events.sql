@@ -121,6 +121,7 @@ BEGIN
 
   DELETE FROM db.log WHERE object = pObject;
 
+  DELETE FROM db.method_stack WHERE object = pObject;
   DELETE FROM db.object_link WHERE object = pObject;
   DELETE FROM db.object_file WHERE object = pObject;
   DELETE FROM db.object_data WHERE object = pObject;
