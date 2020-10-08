@@ -431,21 +431,27 @@ BEGIN
       PERFORM JsonIsEmpty();
     END IF;
 
-    arKeys := array_cat(arKeys, GetRoutines('decode_class_access', 'api', false));
+    arKeys := array_cat(arKeys, ARRAY['id', 'code', 'userid']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN EXECUTE format('SELECT row_to_json(api.decode_class_access(%s)) FROM jsonb_to_recordset($1) AS x(%s)', array_to_string(GetRoutines('decode_class_access', 'api', false, 'x'), ', '), array_to_string(GetRoutines('decode_class_access', 'api', true), ', ')) USING pPayload
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, code varchar, userid numeric)
       LOOP
-        RETURN NEXT r;
+        FOR e IN SELECT * FROM api.decode_class_access(coalesce(r.id, GetClass(r.code)), coalesce(r.userid, current_userid()))
+        LOOP
+          RETURN NEXT row_to_json(e);
+        END LOOP;
       END LOOP;
 
     ELSE
 
-      FOR r IN EXECUTE format('SELECT row_to_json(api.decode_class_access(%s)) FROM jsonb_to_record($1) AS x(%s)', array_to_string(GetRoutines('decode_class_access', 'api', false, 'x'), ', '), array_to_string(GetRoutines('decode_class_access', 'api', true), ', ')) USING pPayload
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, code varchar, userid numeric)
       LOOP
-        RETURN NEXT r;
+        FOR e IN SELECT * FROM api.decode_class_access(coalesce(r.id, GetClass(r.code)), coalesce(r.userid, current_userid()))
+        LOOP
+          RETURN NEXT row_to_json(e);
+        END LOOP;
       END LOOP;
 
     END IF;
