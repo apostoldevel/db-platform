@@ -114,24 +114,8 @@ CREATE OR REPLACE FUNCTION EditDocument (
   pDescription  text DEFAULT null
 ) RETURNS       void
 AS $$
-DECLARE
-  cParent       numeric;
-  cType         numeric;
-  cLabel        text;
 BEGIN
-  SELECT parent, type, label INTO cParent, cType, cLabel FROM db.object WHERE id = pId;
-
-  pParent := coalesce(pParent, cParent, 0);
-  pType := coalesce(pType, cType);
-  pLabel := coalesce(pLabel, cLabel);
-
-  IF pParent <> coalesce(cParent, 0) THEN
-    UPDATE db.object SET parent = CheckNull(pParent) WHERE id = pId;
-  END IF;
-
-  IF pType <> cType THEN
-    UPDATE db.object SET type = pType WHERE id = pId;
-  END IF;
+  PERFORM EditObject(pId, pParent, pType, pLabel);
 
   UPDATE db.document
      SET description = CheckNull(coalesce(pDescription, description, '<null>'))

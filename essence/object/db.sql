@@ -542,6 +542,28 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- EditObject ------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION EditObject (
+  pId           numeric,
+  pParent       numeric DEFAULT null,
+  pType         numeric DEFAULT null,
+  pLabel        text DEFAULT null
+) RETURNS       void
+AS $$
+BEGIN
+  UPDATE db.object
+     SET type = coalesce(pType, type),
+         parent = CheckNull(coalesce(pParent, parent, 0)),
+         label = CheckNull(coalesce(pLabel, label, '<null>'))
+   WHERE id = pId;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- SetObjectParent -------------------------------------------------------------
 --------------------------------------------------------------------------------
 
