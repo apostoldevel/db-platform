@@ -106,7 +106,11 @@ BEGIN
 
   INSERT INTO db.aom SELECT NEW.id;
   INSERT INTO db.aou (object, userid, deny, allow) SELECT NEW.id, userid, SubString(deny FROM 3 FOR 3), SubString(allow FROM 3 FOR 3) FROM db.acu WHERE class = nClass;
-  INSERT INTO db.aou SELECT NEW.id, NEW.owner, B'000', B'111';
+
+  UPDATE db.aou SET deny = B'000', allow = B'111' WHERE object = NEW.id AND userid = NEW.owner;
+  IF NOT FOUND THEN
+    INSERT INTO db.aou SELECT NEW.id, NEW.owner, B'000', B'111';
+  END IF;
 
   RETURN NEW;
 END;
