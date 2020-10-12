@@ -43,7 +43,7 @@ $$ LANGUAGE plpgsql
 -- api.update_vendor -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Меняет тариф.
+ * Меняет производителя.
  * @param {numeric} pParent - Ссылка на родительский объект: Object.Parent | null
  * @param {varchar} pType - Тип
  * @param {varchar} pCode - Код
@@ -67,7 +67,7 @@ BEGIN
   SELECT t.id INTO nVendor FROM db.vendor t WHERE t.id = pId;
 
   IF NOT FOUND THEN
-    PERFORM ObjectNotFound('тариф', 'id', pId);
+    PERFORM ObjectNotFound('производитель', 'id', pId);
   END IF;
 
   IF pType IS NOT NULL THEN
@@ -76,7 +76,7 @@ BEGIN
     SELECT o.type INTO nType FROM db.object o WHERE o.id = pId;
   END IF;
 
-  PERFORM EditVendor(nVendor, pParent, nType,pCode, pName, pCost, pDescription);
+  PERFORM EditVendor(nVendor, pParent, nType,pCode, pName, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
