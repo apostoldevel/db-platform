@@ -46,7 +46,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric)
       LOOP
-        FOR e IN SELECT r.id, api.get_method(GetObjectClass(r.id), GetObjectState(r.id)) as method FROM api.get_agent(r.id) ORDER BY id
+        FOR e IN SELECT r.id, api.get_methods(GetObjectClass(r.id), GetObjectState(r.id)) as method FROM api.get_agent(r.id) ORDER BY id
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -56,7 +56,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric)
       LOOP
-        FOR e IN SELECT r.id, api.get_method(GetObjectClass(r.id), GetObjectState(r.id)) as method FROM api.get_agent(r.id) ORDER BY id
+        FOR e IN SELECT r.id, api.get_methods(GetObjectClass(r.id), GetObjectState(r.id)) as method FROM api.get_agent(r.id) ORDER BY id
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;

@@ -3,9 +3,9 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.document (
-    id			numeric(12) PRIMARY KEY,
-    object		numeric(12) NOT NULL,
-    area		numeric(12) NOT NULL,
+    id			    numeric(12) PRIMARY KEY,
+    object		    numeric(12) NOT NULL,
+    area		    numeric(12) NOT NULL,
     description		text,
     CONSTRAINT fk_document_object FOREIGN KEY (object) REFERENCES db.object(id),
     CONSTRAINT fk_document_area FOREIGN KEY (area) REFERENCES db.area(id)
@@ -27,8 +27,8 @@ CREATE OR REPLACE FUNCTION db.ft_document_insert()
 RETURNS trigger AS $$
 DECLARE
 BEGIN
-  IF NEW.ID IS NULL OR NEW.ID = 0 THEN
-    SELECT NEW.OBJECT INTO NEW.ID;
+  IF NEW.id IS NULL OR NEW.id = 0 THEN
+    SELECT NEW.object INTO NEW.id;
   END IF;
 
   IF current_area_type() = GetAreaType('root') THEN
@@ -37,7 +37,7 @@ BEGIN
 
   NEW.area := current_area();
 
-  RAISE DEBUG 'Создан документ Id: %', NEW.ID;
+  RAISE DEBUG 'Создан документ Id: %', NEW.id;
 
   RETURN NEW;
 END;
@@ -57,11 +57,11 @@ CREATE TRIGGER t_document_insert
 CREATE OR REPLACE FUNCTION db.ft_document_update()
 RETURNS trigger AS $$
 BEGIN
-  IF OLD.AREA <> NEW.AREA THEN
+  IF OLD.area <> NEW.area THEN
     SELECT ChangeAreaError();
   END IF;
 
-  RAISE DEBUG 'Изменён документ Id: %', NEW.ID;
+  RAISE DEBUG 'Изменён документ Id: %', NEW.id;
 
   RETURN NEW;
 END;
@@ -81,19 +81,19 @@ CREATE TRIGGER t_document_update
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateDocument (
-  pParent	numeric,
-  pType		numeric,
-  pLabel	text DEFAULT null,
-  pDesc		text DEFAULT null
-) RETURNS 	numeric
+  pParent	    numeric,
+  pType		    numeric,
+  pLabel	    text DEFAULT null,
+  pDescription  text DEFAULT null
+) RETURNS 	    numeric
 AS $$
 DECLARE
-  nObject	numeric;
+  nObject	    numeric;
 BEGIN
   nObject := CreateObject(pParent, pType, pLabel);
 
   INSERT INTO db.document (object, description)
-  VALUES (nObject, pDesc)
+  VALUES (nObject, pDescription)
   RETURNING id INTO nObject;
 
   RETURN nObject;

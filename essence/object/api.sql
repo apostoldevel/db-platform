@@ -3,6 +3,146 @@
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
+-- api.object ------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW api.object
+AS
+  SELECT * FROM Object;
+
+GRANT SELECT ON api.object TO administrator;
+
+--------------------------------------------------------------------------------
+-- api.add_object --------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Добавляет объект.
+ * @param {numeric} pParent - Ссылка на родительский объект: api.object | null
+ * @param {varchar} pType - Тип
+ * @param {text} pLabel - Метка
+ * @return {numeric}
+ */
+CREATE OR REPLACE FUNCTION api.add_object (
+  pParent       numeric,
+  pType         varchar,
+  pLabel        text default null
+) RETURNS       numeric
+AS $$
+BEGIN
+  RETURN CreateObject(pParent, GetType(lower(pType)), pLabel);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.update_object -----------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Меняет объект.
+ * @param {numeric} pParent - Ссылка на родительский объект: Object.Parent | null
+ * @param {varchar} pType - Тип
+ * @param {text} pLabel - Метка
+ * @return {void}
+ */
+CREATE OR REPLACE FUNCTION api.update_object (
+  pId		    numeric,
+  pParent       numeric default null,
+  pType         varchar default null,
+  pLabel        text default null
+) RETURNS       void
+AS $$
+DECLARE
+  nType         numeric;
+  nObject       numeric;
+BEGIN
+  SELECT t.id INTO nObject FROM db.object t WHERE t.id = pId;
+
+  IF NOT FOUND THEN
+    PERFORM ObjectNotFound('объект', 'id', pId);
+  END IF;
+
+  IF pType IS NOT NULL THEN
+    nType := GetType(lower(pType));
+  ELSE
+    SELECT o.type INTO nType FROM db.object o WHERE o.id = pId;
+  END IF;
+
+  PERFORM EditObject(nObject, pParent, nType,pLabel);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.set_object --------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.set_object (
+  pId		    numeric,
+  pParent       numeric default null,
+  pType         varchar default null,
+  pLabel        text default null
+) RETURNS       SETOF api.object
+AS $$
+BEGIN
+  IF pId IS NULL THEN
+    pId := api.add_object(pParent, pType, pLabel);
+  ELSE
+    PERFORM api.update_object(pId, pParent, pType, pLabel);
+  END IF;
+
+  RETURN QUERY SELECT * FROM api.object WHERE id = pId;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.get_object --------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Возвращает объект
+ * @param {numeric} pId - Идентификатор
+ * @return {api.object}
+ */
+CREATE OR REPLACE FUNCTION api.get_object (
+  pId		numeric
+) RETURNS	api.object
+AS $$
+  SELECT * FROM api.object WHERE id = pId
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.list_object -------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Возвращает список объектов.
+ * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
+ * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
+ * @param {integer} pLimit - Лимит по количеству строк
+ * @param {integer} pOffSet - Пропустить указанное число строк
+ * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
+ * @return {SETOF api.object}
+ */
+CREATE OR REPLACE FUNCTION api.list_object (
+  pSearch	jsonb default null,
+  pFilter	jsonb default null,
+  pLimit	integer default null,
+  pOffSet	integer default null,
+  pOrderBy	jsonb default null
+) RETURNS	SETOF api.object
+AS $$
+BEGIN
+  RETURN QUERY EXECUTE api.sql('api', 'object', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- api.change_object_state -----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
