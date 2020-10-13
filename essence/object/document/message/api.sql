@@ -37,7 +37,7 @@ CREATE OR REPLACE FUNCTION api.message (
   pState    varchar
 ) RETURNS	SETOF api.message
 AS $$
-  SELECT * FROM api.message(CodeToType(pType, 'message'), GetAgent(pAgent), GetState(GetClass(pType), pState));
+  SELECT * FROM api.message(CodeToType(coalesce(pType, 'message'), ARRAY['outbox', 'inbox']), GetAgent(pAgent), GetState(GetClass(SubStr(pType, StrPos(pType, '.') + 1)), pState));
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -69,7 +69,7 @@ CREATE OR REPLACE FUNCTION api.add_message (
 ) RETURNS       numeric
 AS $$
 BEGIN
-  RETURN CreateMessage(pParent, CodeToType(lower(coalesce(pType, 'inbox')), 'message'), GetAgent(coalesce(pAgent, 'system')), pFrom, pTo, pSubject, pBody, pDescription);
+  RETURN CreateMessage(pParent, CodeToType(coalesce(lower(pType), 'message'), ARRAY['outbox', 'inbox']), GetAgent(coalesce(pAgent, 'system')), pFrom, pTo, pSubject, pBody, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -113,7 +113,7 @@ BEGIN
   END IF;
 
   IF pType IS NOT NULL THEN
-    nType := CodeToType(lower(pType), 'message');
+    nType := CodeToType(lower(pType), ARRAY['outbox', 'inbox']);
   ELSE
     SELECT o.type INTO nType FROM db.object o WHERE o.id = pId;
   END IF;

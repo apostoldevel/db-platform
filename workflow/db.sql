@@ -769,19 +769,23 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CodeToType (
-  pCode     varchar,
-  pClass    varchar
+  pCode     text,
+  pClass    text
 ) RETURNS   numeric
 AS $$
 DECLARE
   nClass    numeric;
   arCodes   text[];
 BEGIN
+  IF StrPos(pCode, '.' || pClass) = 0 THEN
+    pCode := pCode || '.' || pClass;
+  END IF;
+
   nClass := GetClass(pClass);
 
   arCodes := array_cat(arCodes, GetTypeCodes(nClass));
 
-  IF array_position(arCodes, pCode::text) IS NULL THEN
+  IF array_position(arCodes, pCode) IS NULL THEN
     PERFORM IncorrectCode(pCode, arCodes);
   END IF;
 
@@ -796,8 +800,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CodeToType (
-  pCode     varchar,
-  pClasses  varchar[]
+  pCode     text,
+  pClasses  text[]
 ) RETURNS   numeric
 AS $$
 DECLARE
