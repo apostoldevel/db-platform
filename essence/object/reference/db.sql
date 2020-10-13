@@ -5,38 +5,40 @@
 CREATE TABLE db.reference (
     id              numeric(12) PRIMARY KEY,
     object          numeric(12) NOT NULL,
+    class           numeric(12) NOT NULL,
     code            varchar(30) NOT NULL,
     name            varchar(50),
     description     text,
-    CONSTRAINT fk_reference_object FOREIGN KEY (object) REFERENCES db.object(id)
+    CONSTRAINT fk_reference_object FOREIGN KEY (object) REFERENCES db.object(id),
+    CONSTRAINT fk_reference_class FOREIGN KEY (class) REFERENCES db.class_tree(id)
 );
 
 COMMENT ON TABLE db.reference IS 'Справочник.';
 
 COMMENT ON COLUMN db.reference.id IS 'Идентификатор';
 COMMENT ON COLUMN db.reference.object IS 'Объект';
+COMMENT ON COLUMN db.reference.class IS 'Класс';
 COMMENT ON COLUMN db.reference.code IS 'Код';
 COMMENT ON COLUMN db.reference.name IS 'Наименование';
 COMMENT ON COLUMN db.reference.description IS 'Описание';
 
 CREATE INDEX ON db.reference (object);
-CREATE INDEX ON db.reference (code);
+CREATE UNIQUE INDEX ON db.reference (class, code);
 
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION db.ft_reference_before_insert()
 RETURNS trigger AS $$
-DECLARE
 BEGIN
-  IF NEW.ID IS NULL OR NEW.ID = 0 THEN
-    SELECT NEW.OBJECT INTO NEW.ID;
+  IF NEW.id IS NULL OR NEW.id = 0 THEN
+    SELECT NEW.object INTO NEW.id;
   END IF;
 
-  IF NULLIF(NEW.CODE, '') IS NULL THEN
-    NEW.CODE := encode(gen_random_bytes(12), 'hex');
+  IF NULLIF(NEW.code, '') IS NULL THEN
+    NEW.code := encode(gen_random_bytes(12), 'hex');
   END IF;
 
-  RAISE DEBUG 'Создан справочник Id: %', NEW.ID;
+  RAISE DEBUG 'Создан справочник Id: %', NEW.id;
 
   RETURN NEW;
 END;
@@ -55,11 +57,11 @@ CREATE OR REPLACE FUNCTION db.ft_reference_update()
 RETURNS trigger AS $$
 DECLARE
 BEGIN
-  IF coalesce(NEW.NAME <> OLD.NAME, true) THEN
-    UPDATE db.object SET label = NEW.NAME WHERE id = NEW.ID;
+  IF coalesce(NEW.name <> OLD.name, true) THEN
+    UPDATE db.object SET label = NEW.name WHERE id = NEW.id;
   END IF;
 
-  RAISE DEBUG 'Изменён справочник Id: %', NEW.ID;
+  RAISE DEBUG 'Изменён справочник Id: %', NEW.id;
 
   RETURN NEW;
 END;
@@ -76,25 +78,27 @@ CREATE TRIGGER t_reference_update
 -- CreateReference -------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-create or replace function CreateReference (
+CREATE OR REPLACE FUNCTION CreateReference (
   pParent       numeric,
   pType         numeric,
   pCode         varchar,
   pName         varchar,
   pDescription  text DEFAULT null
-) returns       numeric
-as $$
-declare
+) RETURNS       numeric
+AS $$
+DECLARE
   nObject       numeric;
-begin
+  nClass        numeric;
+BEGIN
   nObject := CreateObject(pParent, pType, pName);
+  nClass := GetObjectClass(nObject);
 
-  insert into db.reference (object, code, name, description)
-  values (nObject, pCode, pName, pDescription)
-  RETURNING id into nObject;
+  INSERT INTO db.reference (id, object, class, code, name, description)
+  VALUES (nObject, nObject, nClass, pCode, pName, pDescription)
+  RETURNING id INTO nObject;
 
-  return nObject;
-end;
+  RETURN nObject;
+END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -103,40 +107,59 @@ $$ LANGUAGE plpgsql
 -- EditReference ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-create or replace function EditReference (
+CREATE OR REPLACE FUNCTION EditReference (
   pId           numeric,
   pParent       numeric DEFAULT null,
   pType         numeric DEFAULT null,
   pCode         varchar DEFAULT null,
   pName         varchar DEFAULT null,
   pDescription  text DEFAULT null
-) returns       void
-as $$
-declare
+) RETURNS       void
+AS $$
+DECLARE
   cParent       numeric;
   cType         numeric;
   cName         varchar;
-begin
-  select parent, type, label into cParent, cType, cName from db.object where id = pId;
+BEGIN
+  SELECT parent, type, label INTO cParent, cType, cName FROM db.object WHERE id = pId;
 
   pParent := coalesce(pParent, cParent, 0);
   pType := coalesce(pType, cType);
   pName := coalesce(pName, cName);
 
-  if pParent <> coalesce(cParent, 0) then
-    update db.object set parent = CheckNull(pParent) where id = pId;
-  end if;
+  IF pParent <> coalesce(cParent, 0) THEN
+    UPDATE db.object SET parent = CheckNull(pParent) WHERE id = pId;
+  END IF;
 
-  if pType <> cType then
-    update db.object set type = pType where id = pId;
-  end if;
+  IF pType <> cType THEN
+    UPDATE db.object SET type = pType WHERE id = pId;
+  END IF;
 
-  update db.reference
-     set code = coalesce(pCode, code),
+  UPDATE db.reference
+     SET code = coalesce(pCode, code),
          name = coalesce(pName, name),
          description = CheckNull(coalesce(pDescription, description, '<null>'))
-   where id = pId;
-end;
+   WHERE id = pId;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION GetReference -------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetReference (
+  pCode         varchar,
+  pClass        numeric
+) RETURNS       numeric
+AS $$
+DECLARE
+  nId           numeric;
+BEGIN
+  SELECT id INTO nId FROM db.reference WHERE class = pClass AND code = pCode;
+  RETURN nId;
+END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -150,16 +173,8 @@ CREATE OR REPLACE FUNCTION GetReference (
   pClass        varchar DEFAULT null
 ) RETURNS       numeric
 AS $$
-DECLARE
-  nId           numeric;
 BEGIN
-  IF pClass IS NOT NULL AND StrPos(pCode, '.') = 0 THEN
-    pCode := pCode || '.' || pClass;
-  END IF;
-
-  SELECT id INTO nId FROM db.reference WHERE code = pCode;
-
-  RETURN nId;
+  RETURN GetReference(pCode, GetClass(coalesce(pClass, SubStr(pCode, StrPos(pCode, '.') + 1))));
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

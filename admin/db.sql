@@ -2761,14 +2761,14 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- FUNCTION GetLocale ----------------------------------------------------------
+-- FUNCTION GetSessionLocale ---------------------------------------------------
 --------------------------------------------------------------------------------
 /**
  * Возвращает идентификатор текущего языка.
  * @param {text} pSession - Код сессии
  * @return {numeric} - Идентификатор языка.
  */
-CREATE OR REPLACE FUNCTION GetLocale (
+CREATE OR REPLACE FUNCTION GetSessionLocale (
   pSession	text DEFAULT current_session()
 )
 RETURNS		numeric
@@ -2799,7 +2799,7 @@ AS $$
 DECLARE
   vCode		text;
 BEGIN
-  SELECT code INTO vCode FROM db.locale WHERE id = GetLocale(pSession);
+  SELECT code INTO vCode FROM db.locale WHERE id = GetSessionLocale(pSession);
   RETURN vCode;
 END;
 $$ LANGUAGE plpgsql
@@ -2820,7 +2820,7 @@ CREATE OR REPLACE FUNCTION current_locale (
 RETURNS		numeric
 AS $$
 BEGIN
-  RETURN GetLocale(pSession);
+  RETURN GetSessionLocale(pSession);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

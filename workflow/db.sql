@@ -599,7 +599,6 @@ COMMENT ON COLUMN db.type.name IS 'Наименование';
 COMMENT ON COLUMN db.type.description IS 'Описание';
 
 CREATE INDEX ON db.type (class);
-CREATE INDEX ON db.type (code);
 
 CREATE UNIQUE INDEX ON db.type (class, code);
 
@@ -672,14 +671,31 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetType (
-  pCode		varchar
+  pCode		varchar,
+  pClass    numeric
 ) RETURNS	numeric
 AS $$
 DECLARE
   nId		numeric;
 BEGIN
-  SELECT id INTO nId FROM db.type WHERE code = pCode;
+  SELECT id INTO nId FROM db.type WHERE class = pClass AND code = pCode;
   RETURN nId;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION GetType ------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetType (
+  pCode		varchar,
+  pClass    varchar DEFAULT null
+) RETURNS	numeric
+AS $$
+BEGIN
+  RETURN GetType(pCode, GetClass(coalesce(pClass, SubStr(pCode, StrPos(pCode, '.') + 1))));
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -758,19 +774,18 @@ CREATE OR REPLACE FUNCTION CodeToType (
 ) RETURNS   numeric
 AS $$
 DECLARE
-  arTypes   text[];
+  nClass    numeric;
+  arCodes   text[];
 BEGIN
-  IF StrPos(pCode, '.' || pClass) = 0 THEN
-    pCode := pCode || '.' || pClass;
+  nClass := GetClass(pClass);
+
+  arCodes := array_cat(arCodes, GetTypeCodes(nClass));
+
+  IF array_position(arCodes, pCode::text) IS NULL THEN
+    PERFORM IncorrectCode(pCode, arCodes);
   END IF;
 
-  arTypes := array_cat(arTypes, GetTypeCodes(GetClass(pClass)));
-
-  IF array_position(arTypes, pCode::text) IS NULL THEN
-    PERFORM IncorrectCode(pCode, arTypes);
-  END IF;
-
-  RETURN GetType(pCode);
+  RETURN GetType(pCode, nClass);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

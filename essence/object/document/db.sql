@@ -5,9 +5,11 @@
 CREATE TABLE db.document (
     id			    numeric(12) PRIMARY KEY,
     object		    numeric(12) NOT NULL,
+    class           numeric(12) NOT NULL,
     area		    numeric(12) NOT NULL,
     description		text,
     CONSTRAINT fk_document_object FOREIGN KEY (object) REFERENCES db.object(id),
+    CONSTRAINT fk_document_class FOREIGN KEY (class) REFERENCES db.class_tree(id),
     CONSTRAINT fk_document_area FOREIGN KEY (area) REFERENCES db.area(id)
 );
 
@@ -15,10 +17,12 @@ COMMENT ON TABLE db.document IS 'Документ.';
 
 COMMENT ON COLUMN db.document.id IS 'Идентификатор';
 COMMENT ON COLUMN db.document.object IS 'Объект';
+COMMENT ON COLUMN db.document.class IS 'Класс';
 COMMENT ON COLUMN db.document.area IS 'Зона';
 COMMENT ON COLUMN db.document.description IS 'Описание';
 
 CREATE INDEX ON db.document (object);
+CREATE INDEX ON db.document (class);
 CREATE INDEX ON db.document (area);
 
 --------------------------------------------------------------------------------
@@ -34,8 +38,6 @@ BEGIN
   IF current_area_type() = GetAreaType('root') THEN
     PERFORM RootAreaError();
   END IF;
-
-  NEW.area := current_area();
 
   RAISE DEBUG 'Создан документ Id: %', NEW.id;
 
@@ -89,11 +91,13 @@ CREATE OR REPLACE FUNCTION CreateDocument (
 AS $$
 DECLARE
   nObject	    numeric;
+  nClass        numeric;
 BEGIN
   nObject := CreateObject(pParent, pType, pLabel);
+  nClass := GetObjectClass(nObject);
 
-  INSERT INTO db.document (object, description)
-  VALUES (nObject, pDescription)
+  INSERT INTO db.document (id, object, class, area, description)
+  VALUES (nObject, nObject, nClass, current_area(), pDescription)
   RETURNING id INTO nObject;
 
   RETURN nObject;
@@ -129,7 +133,7 @@ $$ LANGUAGE plpgsql
 -- Document --------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW Document (Id, Object, Area, Description,
+CREATE OR REPLACE VIEW Document (Id, Object, Class, Area, Description,
   AreaCode, AreaName
 ) AS
   WITH RECURSIVE area_tree(id) AS (
@@ -139,7 +143,7 @@ CREATE OR REPLACE VIEW Document (Id, Object, Area, Description,
       FROM db.area a, area_tree t
      WHERE a.parent = t.id
   )
-  SELECT d.id, d.object, d.area, d.description, a.code, a.name
+  SELECT d.id, d.object, d.class, d.area, d.description, a.code, a.name
     FROM db.document d INNER JOIN area_tree t ON d.area = t.id
                        INNER JOIN db.area a ON a.id = d.area;
 
