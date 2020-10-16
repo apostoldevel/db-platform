@@ -10,6 +10,7 @@ CREATE TABLE db.log (
     session     varchar(40),
     code        numeric(5) NOT NULL,
     text        text NOT NULL,
+    category    varchar(50),
     object      numeric(12),
     CONSTRAINT ch_event_log_type CHECK (type IN ('M', 'W', 'E'))
 );
@@ -23,23 +24,25 @@ COMMENT ON COLUMN db.log.username IS 'Имя пользователя';
 COMMENT ON COLUMN db.log.session IS 'Сессия';
 COMMENT ON COLUMN db.log.code IS 'Код события';
 COMMENT ON COLUMN db.log.text IS 'Текст';
+COMMENT ON COLUMN db.log.category IS 'Категория';
 COMMENT ON COLUMN db.log.object IS 'Идентификатор объекта';
 
 CREATE INDEX ON db.log (type);
 CREATE INDEX ON db.log (datetime);
 CREATE INDEX ON db.log (username);
 CREATE INDEX ON db.log (code);
+CREATE INDEX ON db.log (category);
 CREATE INDEX ON db.log (object);
 
 CREATE OR REPLACE FUNCTION ft_event_log_insert()
 RETURNS trigger AS $$
 BEGIN
-  IF NEW.SESSION IS NULL THEN
-    NEW.SESSION := current_session();
+  IF NEW.session IS NULL THEN
+    NEW.session := current_session();
   END IF;
 
-  IF NEW.SESSION IS NOT NULL THEN
-    NEW.SESSION := SubStr(NEW.SESSION, 1, 8) || '...' || SubStr(NEW.SESSION, 33);
+  IF NEW.session IS NOT NULL THEN
+    NEW.session := SubStr(NEW.session, 1, 8) || '...' || SubStr(NEW.session, 33);
   END IF;
 
   RETURN NEW;
@@ -58,7 +61,7 @@ CREATE TRIGGER t_event_log_insert
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE VIEW EventLog (Id, Type, TypeName, DateTime, UserName,
-  Session, Code, Text, Object
+  Session, Code, Text, Category, Object
 )
 AS
   SELECT id, type,
@@ -67,7 +70,7 @@ AS
          WHEN type = 'W' THEN 'Предупреждение'
          WHEN type = 'E' THEN 'Ошибка'
          END,
-         datetime, username, session, code, text, object
+         datetime, username, session, code, text, category, object
     FROM db.log;
 
 GRANT SELECT ON EventLog TO administrator;
@@ -77,17 +80,18 @@ GRANT SELECT ON EventLog TO administrator;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddEventLog (
-  pType		text,
+  pType		char,
   pCode		numeric,
   pText		text,
+  pCategory varchar DEFAULT null,
   pObject   numeric DEFAULT null
 ) RETURNS	numeric
 AS $$
 DECLARE
   nId		numeric;
 BEGIN
-  INSERT INTO db.log (type, code, text, object)
-  VALUES (pType, pCode, pText, pObject)
+  INSERT INTO db.log (type, code, text, category, object)
+  VALUES (pType, pCode, pText, pCategory, pObject)
   RETURNING id INTO nId;
   RETURN nId;
 END;
@@ -100,16 +104,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION NewEventLog (
-  pType		text,
+  pType		char,
   pCode		numeric,
   pText		text,
+  pCategory varchar DEFAULT null,
   pObject   numeric DEFAULT null
 ) RETURNS	void
 AS $$
 DECLARE
   nId		numeric;
 BEGIN
-  nId := AddEventLog(pType, pCode, pText, pObject);
+  nId := AddEventLog(pType, pCode, pText, pCategory, pObject);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -120,15 +125,26 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION WriteToEventLog (
-  pType		text,
+  pType		char,
   pCode		numeric,
   pText		text,
   pObject   numeric DEFAULT null
 ) RETURNS	void
 AS $$
+DECLARE
+  vCategory text;
 BEGIN
   IF pType IN ('M', 'W', 'E') THEN
-    PERFORM NewEventLog(pType, pCode, pText, pObject);
+
+    IF pObject IS NOT NULL THEN
+      SELECT code INTO vCategory FROM db.class_tree WHERE id = (
+        SELECT class FROM db.type WHERE id = (
+          SELECT type FROM db.object WHERE id = pObject
+        )
+      );
+    END IF;
+
+    PERFORM NewEventLog(pType, pCode, pText, vCategory, pObject);
   END IF;
 
   IF pType = 'D' THEN
