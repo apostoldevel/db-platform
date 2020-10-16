@@ -69,7 +69,7 @@ CREATE OR REPLACE FUNCTION api.add_message (
 ) RETURNS       numeric
 AS $$
 BEGIN
-  RETURN CreateMessage(pParent, CodeToType(coalesce(lower(pType), 'message'), ARRAY['outbox', 'inbox']), GetAgent(coalesce(pAgent, 'system')), pFrom, pTo, pSubject, pBody, pDescription);
+  RETURN CreateMessage(pParent, CodeToType(coalesce(lower(pType), 'message'), ARRAY['outbox', 'inbox']), GetAgent(coalesce(pAgent, 'system.agent')), pFrom, pTo, pSubject, pBody, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -118,7 +118,7 @@ BEGIN
     SELECT o.type INTO nType FROM db.object o WHERE o.id = pId;
   END IF;
 
-  PERFORM EditMessage(nMessage, pParent, nType, GetAgent(coalesce(pAgent, 'system')), pFrom, pTo, pSubject, pBody, pDescription);
+  PERFORM EditMessage(nMessage, pParent, nType, GetAgent(coalesce(pAgent, 'system.agent')), pFrom, pTo, pSubject, pBody, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
