@@ -174,13 +174,7 @@ CREATE OR REPLACE FUNCTION GetReference (
 ) RETURNS       numeric
 AS $$
 BEGIN
-  pClass := coalesce(pClass, SubStr(pCode, StrPos(pCode, '.') + 1));
-
-  IF StrPos(pCode, '.' || pClass) = 0 THEN
-    pCode := pCode || '.' || pClass;
-  END IF;
-
-  RETURN GetReference(pCode, GetClass(pClass));
+  RETURN GetReference(pCode, GetClass(coalesce(pClass, SubStr(pCode, StrPos(pCode, '.') + 1))));
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
