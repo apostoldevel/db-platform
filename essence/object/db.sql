@@ -1652,6 +1652,8 @@ CREATE TABLE db.object_file (
     file_date	timestamp DEFAULT NULL,
     file_data	bytea DEFAULT NULL,
     file_hash	text DEFAULT NULL,
+    file_text	text,
+    file_type	text,
     load_date	timestamp DEFAULT Now() NOT NULL,
     CONSTRAINT pk_object_file PRIMARY KEY(object, file_name),
     CONSTRAINT fk_object_file_object FOREIGN KEY (object) REFERENCES db.object(id)
@@ -1666,6 +1668,8 @@ COMMENT ON COLUMN db.object_file.file_size IS 'Размер файла';
 COMMENT ON COLUMN db.object_file.file_date IS 'Дата и время файла';
 COMMENT ON COLUMN db.object_file.file_data IS 'Содержимое файла (если нужно)';
 COMMENT ON COLUMN db.object_file.file_hash IS 'Хеш файла';
+COMMENT ON COLUMN db.object_file.file_text IS 'Произвольный текст (описание)';
+COMMENT ON COLUMN db.object_file.file_type IS 'Тип файла в формате MIME';
 COMMENT ON COLUMN db.object_file.load_date IS 'Дата загрузки';
 
 CREATE INDEX ON db.object_file (object);
@@ -1674,9 +1678,12 @@ CREATE INDEX ON db.object_file (object);
 -- VIEW ObjectFile -------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW ObjectFile (Object, Name, Path, Size, Date, Body, Hash, Loaded)
+CREATE OR REPLACE VIEW ObjectFile (Object, Name, Path, Size, Date, Body,
+    Hash, Text, Type, Loaded
+)
 AS
-    SELECT object, file_name, file_path, file_size, file_date, encode(file_data, 'base64'), file_hash, load_date
+    SELECT object, file_name, file_path, file_size, file_date, encode(file_data, 'base64'),
+           file_hash, file_text, file_type, load_date
       FROM db.object_file;
 
 GRANT SELECT ON ObjectFile TO administrator;
@@ -1692,12 +1699,14 @@ CREATE OR REPLACE FUNCTION NewObjectFile (
   pSize		numeric,
   pDate		timestamp,
   pData		bytea DEFAULT null,
-  pHash		text DEFAULT null
+  pHash		text DEFAULT null,
+  pText		text DEFAULT null,
+  pType		text DEFAULT null
 ) RETURNS	void
 AS $$
 BEGIN
-  INSERT INTO db.object_file (object, file_name, file_path, file_size, file_date, file_data, file_hash)
-  VALUES (pObject, pName, pPath, pSize, pDate, pData, pHash);
+  INSERT INTO db.object_file (object, file_name, file_path, file_size, file_date, file_data, file_hash, file_text, file_type)
+  VALUES (pObject, pName, pPath, pSize, pDate, pData, pHash, pText, pType);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1708,13 +1717,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EditObjectFile (
-  pObject       numeric,
+  pObject   numeric,
   pName		text,
   pPath		text DEFAULT null,
   pSize		numeric DEFAULT null,
   pDate		timestamp DEFAULT null,
   pData		bytea DEFAULT null,
   pHash		text DEFAULT null,
+  pText		text DEFAULT null,
+  pType		text DEFAULT null,
   pLoad		timestamp DEFAULT now()
 ) RETURNS	void
 AS $$
@@ -1725,6 +1736,8 @@ BEGIN
          file_date = coalesce(pDate, file_date),
          file_data = coalesce(pData, file_data),
          file_hash = coalesce(pHash, file_hash),
+         file_text = CheckNull(coalesce(pText, file_text, '<null>')),
+         file_type = CheckNull(coalesce(pType, file_type, '<null>')),
          load_date = coalesce(pLoad, load_date)
    WHERE object = pObject
      AND file_name = pName;
@@ -1738,7 +1751,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DeleteObjectFile (
-  pObject       numeric,
+  pObject   numeric,
   pName		text
 ) RETURNS	void
 AS $$
@@ -1760,7 +1773,9 @@ CREATE OR REPLACE FUNCTION SetObjectFile (
   pSize		numeric,
   pDate		timestamp,
   pData		bytea DEFAULT null,
-  pHash		text DEFAULT null
+  pHash		text DEFAULT null,
+  pText		text DEFAULT null,
+  pType		text DEFAULT null
 ) RETURNS	int
 AS $$
 DECLARE
@@ -1769,9 +1784,9 @@ BEGIN
   IF coalesce(pSize, 0) >= 0 THEN
     SELECT file_size INTO Size FROM db.object_file WHERE object = pObject AND file_name = pName;
     IF NOT FOUND THEN
-      PERFORM NewObjectFile(pObject, pName, pPath, pSize, pDate, pData, pHash);
+      PERFORM NewObjectFile(pObject, pName, pPath, pSize, pDate, pData, pHash, pText, pType);
     ELSE
-      PERFORM EditObjectFile(pObject, pName, pPath, pSize, pDate, pData, pHash);
+      PERFORM EditObjectFile(pObject, pName, pPath, pSize, pDate, pData, pHash, pText, pType);
     END IF;
   ELSE
     PERFORM DeleteObjectFile(pObject, pName);
@@ -1800,7 +1815,7 @@ BEGIN
       FROM ObjectFile
      WHERE object = pObject
   LOOP
-    arResult[i] := ARRAY[r.object, r.name, r.path, r.size, r.date, r.body, r.hash, r.loaded];
+    arResult[i] := ARRAY[r.object, r.name, r.path, r.size, r.date, r.hash, r.text, r.type, r.loaded];
     i := i + 1;
   END LOOP;
 
@@ -1823,7 +1838,7 @@ DECLARE
   r		    record;
 BEGIN
   FOR r IN
-    SELECT Object, Name, Path, Size, Date, Body, Hash, Loaded
+    SELECT Object, Name, Path, Size, Date, Body, Hash, Text, Type, Loaded
       FROM ObjectFile
      WHERE object = pObject
   LOOP
