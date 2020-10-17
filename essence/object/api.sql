@@ -361,11 +361,13 @@ CREATE OR REPLACE FUNCTION api.set_object_file (
   pSize		numeric,
   pDate		timestamp,
   pData		bytea DEFAULT null,
-  pHash		text DEFAULT null
+  pHash		text DEFAULT null,
+  pText		text DEFAULT null,
+  pType		text DEFAULT null
 ) RETURNS   SETOF api.object_file
 AS $$
 BEGIN
-  PERFORM SetObjectFile(pId, pName, pPath, pSize, pDate, pData, pHash);
+  PERFORM SetObjectFile(pId, pName, pPath, pSize, pDate, pData, pHash, pText, pType);
   RETURN QUERY SELECT * FROM api.get_object_file(pId, pName);
 END;
 $$ LANGUAGE plpgsql
@@ -393,12 +395,12 @@ BEGIN
   END IF;
 
   IF pFiles IS NOT NULL THEN
-    arKeys := array_cat(arKeys, ARRAY['name', 'path', 'size', 'date', 'data', 'hash']);
+    arKeys := array_cat(arKeys, ARRAY['name', 'path', 'size', 'date', 'data', 'hash', 'text', 'type']);
     PERFORM CheckJsonKeys('/object/file/files', arKeys, pFiles);
 
-    FOR r IN SELECT * FROM json_to_recordset(pFiles) AS files(name text, path text, size int, date timestamp, data text, hash text)
+    FOR r IN SELECT * FROM json_to_recordset(pFiles) AS files(name text, path text, size int, date timestamp, data text, hash text, text text, type text)
     LOOP
-      RETURN NEXT api.set_object_file(pId, r.name, r.path, r.size, r.date, decode(r.data, 'base64'), r.hash);
+      RETURN NEXT api.set_object_file(pId, r.name, r.path, r.size, r.date, decode(r.data, 'base64'), r.hash, r.text, r.type);
     END LOOP;
   ELSE
     PERFORM JsonIsEmpty();

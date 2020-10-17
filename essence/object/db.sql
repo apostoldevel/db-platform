@@ -1674,6 +1674,9 @@ COMMENT ON COLUMN db.object_file.load_date IS 'Дата загрузки';
 
 CREATE INDEX ON db.object_file (object);
 
+CREATE UNIQUE INDEX ON db.object_file (file_hash);
+CREATE UNIQUE INDEX ON db.object_file (file_name, file_path);
+
 --------------------------------------------------------------------------------
 -- VIEW ObjectFile -------------------------------------------------------------
 --------------------------------------------------------------------------------
@@ -1838,7 +1841,7 @@ DECLARE
   r		    record;
 BEGIN
   FOR r IN
-    SELECT Object, Name, Path, Size, Date, Body, Hash, Text, Type, Loaded
+    SELECT Object, Name, Path, Size, Date, Hash, Text, Type, Loaded
       FROM ObjectFile
      WHERE object = pObject
   LOOP
