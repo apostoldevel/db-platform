@@ -1343,13 +1343,15 @@ CREATE UNIQUE INDEX ON db.object_group (code);
 CREATE OR REPLACE FUNCTION db.ft_object_group_insert()
 RETURNS trigger AS $$
 BEGIN
-  IF NEW.OWNER IS NULL THEN
-    NEW.OWNER := current_userid();
+  IF NEW.owner IS NULL THEN
+    NEW.owner := current_userid();
   END IF;
 
-  IF NEW.CODE IS NULL THEN
-    NEW.CODE := encode(gen_random_bytes(12), 'hex');
+  IF NEW.code IS NULL THEN
+    NEW.code := encode(gen_random_bytes(12), 'hex');
   END IF;
+
+  RETURN NEW;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1365,13 +1367,13 @@ CREATE TRIGGER t_object_group
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateObjectGroup (
-  pCode		varchar,
-  pName		varchar,
-  pDescription	varchar
-) RETURNS	numeric
+  pCode         varchar,
+  pName         varchar,
+  pDescription  varchar
+) RETURNS       numeric
 AS $$
 DECLARE
-  nId		numeric;
+  nId           numeric;
 BEGIN
   INSERT INTO db.object_group (code, name, description)
   VALUES (pCode, pName, pDescription)
@@ -1389,16 +1391,16 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION EditObjectGroup (
   pId		    numeric,
-  pCode		    varchar,
-  pName		    varchar,
-  pDescription	varchar
+  pCode		    varchar DEFAULT null,
+  pName		    varchar DEFAULT null,
+  pDescription	varchar DEFAULT null
 ) RETURNS	    void
 AS $$
 BEGIN
   UPDATE db.object_group
-     SET code = pCode,
-         name = pName,
-         description = pDescription
+     SET code = coalesce(pCode, code),
+         name = coalesce(pName, name),
+         description = coalesce(pDescription, description)
    WHERE id = pId;
 END;
 $$ LANGUAGE plpgsql
@@ -1416,12 +1418,9 @@ AS $$
 DECLARE
   nId		numeric;
 BEGIN
-  SELECT id INTO strict nId FROM db.object_group WHERE code = pCode;
+  SELECT id INTO nId FROM db.object_group WHERE code = pCode;
 
   RETURN nId;
-EXCEPTION
-  WHEN NO_DATA_FOUND THEN
-    RETURN null;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1431,13 +1430,24 @@ $$ LANGUAGE plpgsql
 -- ObjectGroup -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW ObjectGroup (Id, Code, Name, Description)
+CREATE OR REPLACE VIEW ObjectGroup
 AS
-  SELECT id, code, name, description
-    FROM db.object_group
-   WHERE owner = coalesce(current_userid(), 0);
+  SELECT * FROM db.object_group;
 
 GRANT SELECT ON ObjectGroup TO administrator;
+
+--------------------------------------------------------------------------------
+-- ObjectGroup -----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION ObjectGroup (
+  pOwner    numeric DEFAULT current_userid()
+) RETURNS	SETOF ObjectGroup
+AS $$
+  SELECT * FROM ObjectGroup WHERE owner = pOwner
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
 -- db.object_group_member ------------------------------------------------------
@@ -1474,8 +1484,7 @@ DECLARE
 BEGIN
   SELECT id INTO nId FROM db.object_group_member WHERE gid = pGroup AND object = pObject;
   IF NOT found THEN
-    INSERT INTO db.object_group_member (gid, object)
-    VALUES (pGroup, pObject)
+    INSERT INTO db.object_group_member (gid, object) VALUES (pGroup, pObject)
     RETURNING id INTO nId;
   END IF;
 
@@ -1486,10 +1495,10 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- DeleteObjectOfGroup ---------------------------------------------------------
+-- DeleteObjectFromGroup -------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION DeleteObjectOfGroup (
+CREATE OR REPLACE FUNCTION DeleteObjectFromGroup (
   pGroup	numeric,
   pObject	numeric
 ) RETURNS	void
@@ -1529,10 +1538,10 @@ GRANT SELECT ON ObjectGroupMember TO administrator;
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.object_link (
-    id			numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
-    object		numeric(12) NOT NULL,
-    linked		numeric(12) NOT NULL,
-    key			text NOT NULL,
+    id              numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
+    object          numeric(12) NOT NULL,
+    linked          numeric(12) NOT NULL,
+    key             text NOT NULL,
     validFromDate	timestamp DEFAULT Now() NOT NULL,
     validToDate		timestamp DEFAULT TO_DATE('4433-12-31', 'YYYY-MM-DD') NOT NULL,
     CONSTRAINT fk_object_link_object FOREIGN KEY (object) REFERENCES db.object(id),
@@ -1566,18 +1575,18 @@ CREATE UNIQUE INDEX ON db.object_link (object, linked, validFromDate, validToDat
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION SetObjectLink (
-  pObject	numeric,
-  pLinked	numeric,
+  pObject       numeric,
+  pLinked       numeric,
   pKey          text,
-  pDateFrom	timestamp DEFAULT oper_date()
-) RETURNS	numeric
+  pDateFrom     timestamp DEFAULT oper_date()
+) RETURNS       numeric
 AS $$
 DECLARE
-  nId		numeric;
+  nId           numeric;
   nLinked       numeric;
 
   dtDateFrom    timestamp;
-  dtDateTo	timestamp;
+  dtDateTo      timestamp;
 BEGIN
   -- получим дату значения в текущем диапозоне дат
   SELECT linked, validFromDate, validToDate INTO nLinked, dtDateFrom, dtDateTo

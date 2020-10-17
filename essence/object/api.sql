@@ -333,6 +333,205 @@ $$ LANGUAGE SQL
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- OBJECT GROUP ----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- api.object_group ------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW api.object_group
+AS
+  SELECT * FROM ObjectGroup(current_userid());
+
+GRANT SELECT ON api.object_group TO administrator;
+
+--------------------------------------------------------------------------------
+-- api.add_object_group --------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Создаёт группу объектов.
+ * @param {varchar} pCode - Код
+ * @param {varchar} pName - Наименование
+ * @param {text} pDescription - Описание
+ * @return {numeric}
+ */
+CREATE OR REPLACE FUNCTION api.add_object_group (
+  pCode         varchar,
+  pName         varchar,
+  pDescription  text DEFAULT null
+) RETURNS       numeric
+AS $$
+BEGIN
+  RETURN CreateObjectGroup(pCode, pName, pDescription);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.update_object_group -----------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Обновляет группу объектов.
+ * @param {numeric} pId - Идентификатор группы объектов
+ * @param {varchar} pCode - Код
+ * @param {varchar} pName - Наименование
+ * @param {text} pDescription - Описание
+ * @return {void}
+ */
+CREATE OR REPLACE FUNCTION api.update_object_group (
+  pId               numeric,
+  pCode             varchar DEFAULT null,
+  pName             varchar DEFAULT null,
+  pDescription      text DEFAULT null
+) RETURNS           void
+AS $$
+BEGIN
+  PERFORM EditObjectGroup(pId, pCode, pName, pDescription);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.set_object_group --------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.set_object_group (
+  pId               numeric,
+  pCode             varchar DEFAULT null,
+  pName             varchar DEFAULT null,
+  pDescription      text DEFAULT null
+) RETURNS           SETOF api.object_group
+AS $$
+BEGIN
+  IF pId IS NULL THEN
+    pId := api.add_object_group(pCode, pName, pDescription);
+  ELSE
+    PERFORM api.update_object_group(pId, pCode, pName, pDescription);
+  END IF;
+
+  RETURN QUERY SELECT * FROM api.object_group WHERE id = pId;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.get_object_group --------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Возвращает данные группы объектов.
+ * @return {record}
+ */
+CREATE OR REPLACE FUNCTION api.get_object_group (
+  pId         numeric
+) RETURNS     SETOF api.object_group
+AS $$
+  SELECT * FROM api.object_group WHERE id = pId;
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.list_object_group -------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Возвращает список групп объектов.
+ * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
+ * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
+ * @param {integer} pLimit - Лимит по количеству строк
+ * @param {integer} pOffSet - Пропустить указанное число строк
+ * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
+ * @return {SETOF api.object_group}
+ */
+CREATE OR REPLACE FUNCTION api.list_object_group (
+  pSearch	jsonb DEFAULT null,
+  pFilter	jsonb DEFAULT null,
+  pLimit	integer DEFAULT null,
+  pOffSet	integer DEFAULT null,
+  pOrderBy	jsonb DEFAULT null
+) RETURNS	SETOF api.object_group
+AS $$
+BEGIN
+  RETURN QUERY EXECUTE api.sql('api', 'object_group', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.add_object_to_group -----------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Добавляет объект в группу.
+ * @param {numeric} pObjectGroup - Идентификатор группу объектов
+ * @param {numeric} pMember - Идентификатор пользователя/группы
+ * @return {void}
+ */
+CREATE OR REPLACE FUNCTION api.add_object_to_group (
+  pGroup    numeric,
+  pObject   numeric
+) RETURNS   void
+AS $$
+BEGIN
+  PERFORM AddObjectToGroup(pGroup, pObject);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.delete_object_from_group ------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Удалить объект из группы.
+ * @param {numeric} pObjectGroup - Идентификатор зоны
+ * @param {numeric} pMember - Идентификатор пользователя, при null удаляет всех пользователей из указанной зоны
+ * @return {void}
+ */
+CREATE OR REPLACE FUNCTION api.delete_object_from_group (
+  pGroup    numeric,
+  pObject   numeric DEFAULT null
+) RETURNS   void
+AS $$
+BEGIN
+  PERFORM DeleteObjectFromGroup(pGroup, pObject);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- VIEW api.object_group_member ------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW api.object_group_member
+AS
+  SELECT * FROM ObjectGroupMember;
+
+GRANT SELECT ON api.object_group_member TO administrator;
+
+--------------------------------------------------------------------------------
+-- api.object_group_member -----------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Возвращает список объектов группы.
+ * @return {SETOF api.object}
+ */
+CREATE OR REPLACE FUNCTION api.object_group_member (
+  pGroupId      numeric
+) RETURNS       SETOF api.object
+AS $$
+  SELECT o.*
+    FROM api.object_group_member g INNER JOIN api.object o ON o.id = g.object
+   WHERE g.gid = pGroupId;
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- OBJECT FILE -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 

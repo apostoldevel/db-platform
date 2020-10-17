@@ -169,14 +169,12 @@ BEGIN
     --PERFORM CheckJsonbValues('orderby', array_cat(arColumns, array_add_text(arColumns, ' desc')), pOrderBy);
     vSelect := vSelect || E'\n ORDER BY ' || array_to_string(array_quote_literal_json(JsonbToStrArray(pOrderBy)), ',');
   ELSE
-    IF SubStr(pTable, 1, 7) = 'object_' THEN
-      vSelect := vSelect || E'\n ORDER BY object';
-    ELSIF SubStr(pTable, 1, 7) = 'session' THEN
+    IF array_position(arColumns, 'created') IS NOT NULL THEN
       vSelect := vSelect || E'\n ORDER BY created';
-    ELSE
-      IF array_position(arColumns, 'id') IS NOT NULL THEN
-        vSelect := vSelect || E'\n ORDER BY id';
-      END IF;
+    ELSIF array_position(arColumns, 'object') IS NOT NULL THEN
+      vSelect := vSelect || E'\n ORDER BY object';
+    ELSIF array_position(arColumns, 'id') IS NOT NULL THEN
+      vSelect := vSelect || E'\n ORDER BY id';
     END IF;
   END IF;
 

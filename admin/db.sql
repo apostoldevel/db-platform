@@ -3783,8 +3783,10 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION AddMemberToArea (
   pMember	numeric,
   pArea		numeric
-) RETURNS   void
+) RETURNS   numeric
 AS $$
+DECLARE
+  nId		numeric;
 BEGIN
   IF session_user <> 'kernel' THEN
     IF NOT IsUserRole(GetGroup('administrator')) THEN
@@ -3792,7 +3794,13 @@ BEGIN
     END IF;
   END IF;
 
-  INSERT INTO db.member_area (area, member) VALUES (pArea, pMember);
+  SELECT id INTO nId FROM db.member_area WHERE area = pArea AND member = pMember;
+  IF not found THEN
+    INSERT INTO db.member_area (area, member) VALUES (pArea, pMember)
+    RETURNING id INTO nId;
+  END IF;
+
+  RETURN nId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -4037,10 +4045,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddMemberToInterface (
-  pMember	numeric,
-  pInterface	numeric
-) RETURNS 	void
+  pMember       numeric,
+  pInterface    numeric
+) RETURNS       numeric
 AS $$
+DECLARE
+  nId		    numeric;
 BEGIN
   IF session_user <> 'kernel' THEN
     IF NOT IsUserRole(GetGroup('administrator')) THEN
@@ -4048,7 +4058,13 @@ BEGIN
     END IF;
   END IF;
 
-  INSERT INTO db.member_interface (interface, member) VALUES (pInterface, pMember);
+  SELECT id INTO nId FROM db.member_interface WHERE interface = pInterface AND member = pMember;
+  IF not found THEN
+    INSERT INTO db.member_interface (interface, member) VALUES (pInterface, pMember)
+    RETURNING id INTO nId;
+  END IF;
+
+  RETURN nId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
