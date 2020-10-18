@@ -1656,7 +1656,7 @@ $$ LANGUAGE plpgsql
 CREATE TABLE db.object_file (
     object      numeric(12) NOT NULL,
     file_name	text NOT NULL,
-    file_path	text DEFAULT NULL,
+    file_path	text NOT NULL,
     file_size	numeric DEFAULT 0,
     file_date	timestamp DEFAULT NULL,
     file_data	bytea DEFAULT NULL,
@@ -1664,15 +1664,15 @@ CREATE TABLE db.object_file (
     file_text	text,
     file_type	text,
     load_date	timestamp DEFAULT Now() NOT NULL,
-    CONSTRAINT pk_object_file PRIMARY KEY(object, file_name),
+    CONSTRAINT pk_object_file PRIMARY KEY(object, file_name, file_path),
     CONSTRAINT fk_object_file_object FOREIGN KEY (object) REFERENCES db.object(id)
 );
 
 COMMENT ON TABLE db.object_file IS 'Файлы объекта.';
 
 COMMENT ON COLUMN db.object_file.object IS 'Объект';
-COMMENT ON COLUMN db.object_file.file_name IS 'Наименование файла на сервере (включая путь)';
-COMMENT ON COLUMN db.object_file.file_path IS 'Только путь к файлу (на сервере)';
+COMMENT ON COLUMN db.object_file.file_name IS 'Наименование файла (без пути)';
+COMMENT ON COLUMN db.object_file.file_path IS 'Путь к файлу (без имени)';
 COMMENT ON COLUMN db.object_file.file_size IS 'Размер файла';
 COMMENT ON COLUMN db.object_file.file_date IS 'Дата и время файла';
 COMMENT ON COLUMN db.object_file.file_data IS 'Содержимое файла (если нужно)';
@@ -1681,10 +1681,29 @@ COMMENT ON COLUMN db.object_file.file_text IS 'Произвольный текс
 COMMENT ON COLUMN db.object_file.file_type IS 'Тип файла в формате MIME';
 COMMENT ON COLUMN db.object_file.load_date IS 'Дата загрузки';
 
-CREATE INDEX ON db.object_file (object);
+CREATE INDEX ON db.object_file (file_hash);
 
-CREATE UNIQUE INDEX ON db.object_file (file_hash);
-CREATE UNIQUE INDEX ON db.object_file (file_name, file_path);
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION db.ft_object_file_insert()
+RETURNS trigger AS $$
+BEGIN
+  IF NULLIF(NEW.file_path, '') IS NULL THEN
+    NEW.file_path := '~/';
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+
+CREATE TRIGGER t_object_file
+  BEFORE INSERT ON db.object_file
+  FOR EACH ROW
+  EXECUTE PROCEDURE db.ft_object_file_insert();
 
 --------------------------------------------------------------------------------
 -- VIEW ObjectFile -------------------------------------------------------------
@@ -1738,21 +1757,22 @@ CREATE OR REPLACE FUNCTION EditObjectFile (
   pHash		text DEFAULT null,
   pText		text DEFAULT null,
   pType		text DEFAULT null,
-  pLoad		timestamp DEFAULT now()
+  pLoad		timestamp DEFAULT null
 ) RETURNS	void
 AS $$
 BEGIN
   UPDATE db.object_file
-     SET file_path = coalesce(pPath, file_path),
-         file_size = coalesce(pSize, file_size),
-         file_date = coalesce(pDate, file_date),
-         file_data = coalesce(pData, file_data),
-         file_hash = coalesce(pHash, file_hash),
-         file_text = CheckNull(coalesce(pText, file_text, '<null>')),
-         file_type = CheckNull(coalesce(pType, file_type, '<null>')),
-         load_date = coalesce(pLoad, load_date)
-   WHERE object = pObject
-     AND file_name = pName;
+    SET file_path = coalesce(pPath, file_path),
+        file_size = coalesce(pSize, file_size),
+        file_date = coalesce(pDate, file_date),
+        file_data = coalesce(pData, file_data),
+        file_hash = coalesce(pHash, file_hash),
+        file_text = CheckNull(coalesce(pText, file_text, '<null>')),
+        file_type = CheckNull(coalesce(pType, file_type, '<null>')),
+        load_date = coalesce(pLoad, load_date)
+  WHERE object = pObject
+    AND file_name = pName
+    AND file_path = coalesce(pPath, '~/');
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1764,11 +1784,12 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION DeleteObjectFile (
   pObject   numeric,
-  pName		text
+  pName		text,
+  pPath		text DEFAULT null
 ) RETURNS	void
 AS $$
 BEGIN
-  DELETE FROM db.object_file WHERE object = pObject AND file_name = pName;
+  DELETE FROM db.object_file WHERE object = pObject AND file_name = pName AND file_path = coalesce(pPath, '~/');
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
