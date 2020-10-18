@@ -10,9 +10,9 @@ CREATE TABLE db.message (
     id              numeric(12) PRIMARY KEY,
     document        numeric(12) NOT NULL,
     agent           numeric(12) NOT NULL,
-    code            text,
-    address_from    text,
-    address_to      text,
+    code            varchar(30) NOT NULL,
+    address_from    text NOT NULL,
+    address_to      text NOT NULL,
     subject         text,
     body            text,
     CONSTRAINT fk_message_document FOREIGN KEY (document) REFERENCES db.document(id),
@@ -30,7 +30,7 @@ COMMENT ON COLUMN db.message.address_to IS 'Кому';
 COMMENT ON COLUMN db.message.subject IS 'Тема';
 COMMENT ON COLUMN db.message.body IS 'Тело';
 
-CREATE UNIQUE INDEX ON db.message (code);
+CREATE UNIQUE INDEX ON db.message (agent, code);
 
 CREATE INDEX ON db.message (document);
 CREATE INDEX ON db.message (agent);
@@ -341,3 +341,126 @@ AS
     FROM Message m INNER JOIN ObjectDocument d ON d.id = m.document;
 
 GRANT SELECT ON ObjectMessage TO administrator;
+
+--------------------------------------------------------------------------------
+-- GetEncodedTextRFC1342 -------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetEncodedTextRFC1342 (
+  pText     text,
+  pCharSet  text
+) RETURNS	text
+AS $$
+BEGIN
+  RETURN format('=?%s?B?%s?=', pCharSet, encode(pText::bytea, 'base64'));
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- EncodingSubject -------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION EncodingSubject (
+  pSubject  text,
+  pCharSet  text
+) RETURNS	text
+AS $$
+DECLARE
+  ch        text;
+
+  nLimit    int;
+  nLength   int;
+
+  vText     text DEFAULT '';
+  Result    text;
+BEGIN
+  nLimit := 18;
+  FOR Key IN 1..Length(pSubject)
+  LOOP
+    ch := SubStr(pSubject, Key, 1);
+    vText := vText || ch;
+    nLength := Length(vText);
+    IF (nLength >= (nLimit - 6) AND ch = ' ') OR nLength >= nLimit THEN
+      Result := coalesce(Result || E'\n ', '') || GetEncodedTextRFC1342(vText, pCharSet);
+      vText := '';
+      nLimit := 22;
+    END IF;
+  END LOOP;
+
+  IF nullif(vText, '') IS NOT NULL THEN
+    Result := coalesce(Result || E'\n ', '') || GetEncodedTextRFC1342(vText, pCharSet);
+  END IF;
+
+  RETURN Result;
+END
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- CreateMailBody --------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION CreateMailBody (
+  pFromName text,
+  pFrom     text,
+  pToName   text,
+  pTo		text,
+  pSubject  text,
+  pText		text,
+  pHTML		text
+) RETURNS	text
+AS $$
+DECLARE
+  vCharSet  text;
+  vBoundary text;
+  vEncoding text;
+  vBody     text;
+BEGIN
+  vCharSet := coalesce(nullif(pg_client_encoding(), 'UTF8'), 'UTF-8');
+  vEncoding := 'base64';
+
+  vBody := E'MIME-Version: 1.0\r\n';
+
+  vBody := vBody || format(E'Date: %s\r\n', to_char(current_timestamp, 'Dy, DD Mon YYYY HH24:MI:SS TZHTZM'));
+  vBody := vBody || format(E'Subject: %s\r\n', EncodingSubject(pSubject, vCharSet));
+
+  IF pFromName IS NULL THEN
+    vBody := vBody || format(E'From: %s\r\n', pFrom);
+  ELSE
+    vBody := vBody || format(E'From: %s <%s>\r\n', GetEncodedTextRFC1342(pFromName, vCharSet), pFrom);
+  END IF;
+
+  IF pToName IS NULL THEN
+    vBody := vBody || format(E'To: %s\r\n', pTo);
+  ELSE
+    vBody := vBody || format(E'To: %s <%s>\r\n', GetEncodedTextRFC1342(pToName, vCharSet), pTo);
+  END IF;
+
+  vBoundary := encode(gen_random_bytes(12), 'hex');
+
+  vBody := vBody || format(E'Content-Type: multipart/alternative; boundary="%s"\r\n', vBoundary);
+
+  IF pText IS NOT NULL THEN
+    vBody := vBody || format(E'\r\n--%s\r\n', vBoundary);
+    vBody := vBody || format(E'Content-Type: text/plain; charset="%s"\r\n', vCharSet);
+    vBody := vBody || format(E'Content-Transfer-Encoding: %s\r\n\r\n', vEncoding);
+    vBody := vBody || encode(pText::bytea, vEncoding);
+  END IF;
+
+  IF pHTML IS NOT NULL THEN
+    vBody := vBody || format(E'\r\n--%s\r\n', vBoundary);
+    vBody := vBody || format(E'Content-Type: text/html; charset="%s"\r\n', vCharSet);
+    vBody := vBody || format(E'Content-Transfer-Encoding: %s\r\n\r\n', vEncoding);
+    vBody := vBody || encode(pHTML::bytea, vEncoding);
+  END IF;
+
+  vBody := vBody || format(E'\r\n--%s--', vBoundary);
+
+  RETURN vBody;
+END
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;

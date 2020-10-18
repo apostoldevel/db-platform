@@ -12,7 +12,7 @@ CREATE TABLE db.log (
     text        text NOT NULL,
     category    varchar(50),
     object      numeric(12),
-    CONSTRAINT ch_event_log_type CHECK (type IN ('M', 'W', 'E'))
+    CONSTRAINT ch_event_log_type CHECK (type IN ('M', 'W', 'E', 'D'))
 );
 
 COMMENT ON TABLE db.log IS 'Журнал событий.';
@@ -69,6 +69,7 @@ AS
          WHEN type = 'M' THEN 'Информация'
          WHEN type = 'W' THEN 'Предупреждение'
          WHEN type = 'E' THEN 'Ошибка'
+         WHEN type = 'D' THEN 'Отладка'
          END,
          datetime, username, session, code, text, category, object
     FROM db.log;
@@ -134,7 +135,13 @@ AS $$
 DECLARE
   vCategory text;
 BEGIN
-  IF pType IN ('M', 'W', 'E') THEN
+  IF pType = 'D' AND GetDebugMode() THEN
+    RAISE NOTICE '[%] [%] [%] %', pType, pCode, pObject, pText;
+  ELSE
+    pType = 'N';
+  END IF;
+
+  IF pType IN ('M', 'W', 'E', 'D') THEN
 
     IF pObject IS NOT NULL THEN
       SELECT code INTO vCategory FROM db.class_tree WHERE id = (
@@ -145,14 +152,6 @@ BEGIN
     END IF;
 
     PERFORM NewEventLog(pType, pCode, pText, vCategory, pObject);
-  END IF;
-
-  IF pType = 'D' THEN
-    RAISE DEBUG '[%] [%] [%] %', pType, pCode, pObject, pText;
-  END IF;
-
-  IF pType = 'N' OR GetDebugMode() THEN
-    RAISE NOTICE '[%] [%] [%] %', pType, pCode, pObject, pText;
   END IF;
 END;
 $$ LANGUAGE plpgsql

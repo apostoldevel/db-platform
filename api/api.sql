@@ -170,7 +170,7 @@ BEGIN
     vSelect := vSelect || E'\n ORDER BY ' || array_to_string(array_quote_literal_json(JsonbToStrArray(pOrderBy)), ',');
   ELSE
     IF array_position(arColumns, 'created') IS NOT NULL THEN
-      vSelect := vSelect || E'\n ORDER BY created';
+      vSelect := vSelect || E'\n ORDER BY created DESC';
     ELSIF array_position(arColumns, 'object') IS NOT NULL THEN
       vSelect := vSelect || E'\n ORDER BY object';
     ELSIF array_position(arColumns, 'id') IS NOT NULL THEN
@@ -186,7 +186,7 @@ BEGIN
     vSelect := vSelect || E'\nOFFSET ' || pOffSet;
   END IF;
 
-  --PERFORM WriteToEventLog('N', 9999, vSelect);
+  PERFORM WriteToEventLog('D', 9001, vSelect);
 
   RETURN vSelect;
 END;
