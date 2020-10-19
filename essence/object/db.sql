@@ -5,17 +5,23 @@
 CREATE TABLE db.object (
     id			numeric(12) PRIMARY KEY,
     parent		numeric(12),
+    essence		numeric(12) NOT NULL,
+    class		numeric(12) NOT NULL,
     type		numeric(12) NOT NULL,
+    state_type  numeric(12),
     state		numeric(12),
     suid		numeric(12) NOT NULL,
     owner		numeric(12) NOT NULL,
     oper		numeric(12) NOT NULL,
     label		text,
-    pdate		timestamp DEFAULT Now() NOT NULL,
-    ldate		timestamp DEFAULT Now() NOT NULL,
-    udate		timestamp DEFAULT Now() NOT NULL,
+    pdate		timestamp NOT NULL DEFAULT Now(),
+    ldate		timestamp NOT NULL DEFAULT Now(),
+    udate		timestamp NOT NULL DEFAULT Now(),
     CONSTRAINT fk_object_parent FOREIGN KEY (parent) REFERENCES db.object(id),
+    CONSTRAINT fk_object_essence FOREIGN KEY (essence) REFERENCES db.essence(id),
+    CONSTRAINT fk_object_class FOREIGN KEY (class) REFERENCES db.class_tree(id),
     CONSTRAINT fk_object_type FOREIGN KEY (type) REFERENCES db.type(id),
+    CONSTRAINT fk_object_state_type FOREIGN KEY (state_type) REFERENCES db.state_type(id),
     CONSTRAINT fk_object_state FOREIGN KEY (state) REFERENCES db.state(id),
     CONSTRAINT fk_object_suid FOREIGN KEY (suid) REFERENCES db.user(id),
     CONSTRAINT fk_object_owner FOREIGN KEY (owner) REFERENCES db.user(id),
@@ -26,7 +32,11 @@ COMMENT ON TABLE db.object IS 'Список объектов.';
 
 COMMENT ON COLUMN db.object.id IS 'Идентификатор';
 COMMENT ON COLUMN db.object.parent IS 'Родитель';
+COMMENT ON COLUMN db.object.essence IS 'Сущность';
+COMMENT ON COLUMN db.object.class IS 'Класс';
 COMMENT ON COLUMN db.object.type IS 'Тип';
+COMMENT ON COLUMN db.object.state_type IS 'Тип состояния';
+COMMENT ON COLUMN db.object.state IS 'Состояние';
 COMMENT ON COLUMN db.object.suid IS 'Системный пользователь';
 COMMENT ON COLUMN db.object.owner IS 'Владелец (пользователь)';
 COMMENT ON COLUMN db.object.oper IS 'Пользователь совершивший последнюю операцию';
@@ -36,7 +46,11 @@ COMMENT ON COLUMN db.object.ldate IS 'Логическая дата';
 COMMENT ON COLUMN db.object.udate IS 'Дата последнего изменения';
 
 CREATE INDEX ON db.object (parent);
+CREATE INDEX ON db.object (essence);
+CREATE INDEX ON db.object (class);
 CREATE INDEX ON db.object (type);
+CREATE INDEX ON db.object (state_type);
+CREATE INDEX ON db.object (state);
 
 CREATE INDEX ON db.object (suid);
 CREATE INDEX ON db.object (owner);
@@ -54,33 +68,34 @@ CREATE INDEX ON db.object (udate);
 CREATE OR REPLACE FUNCTION db.ft_object_before_insert()
 RETURNS trigger AS $$
 DECLARE
-  nClass	numeric;
   bAbstract	boolean;
 BEGIN
   IF lower(session_user) = 'kernel' THEN
     PERFORM AccessDeniedForUser(session_user);
   END IF;
 
-  SELECT class INTO nClass FROM db.type WHERE id = NEW.TYPE;
-  SELECT abstract INTO bAbstract FROM db.class_tree WHERE id = nClass;
+  SELECT class INTO NEW.class FROM db.type WHERE id = NEW.type;
+  SELECT essence, abstract INTO NEW.essence, bAbstract FROM db.class_tree WHERE id = NEW.class;
 
   IF bAbstract THEN
     PERFORM AbstractError();
   END IF;
 
-  IF NEW.ID IS NULL OR NEW.ID = 0 THEN
-    SELECT NEXTVAL('SEQUENCE_ID') INTO NEW.ID;
+  IF NULLIF(NEW.id, 0) IS NULL THEN
+    SELECT NEXTVAL('SEQUENCE_ID') INTO NEW.id;
   END IF;
 
-  NEW.SUID := session_userid();
-  NEW.OWNER := current_userid();
-  NEW.OPER := current_userid();
+  SELECT type INTO NEW.state_type FROM db.state WHERE id = NEW.state;
 
-  NEW.PDATE := now();
-  NEW.LDATE := now();
-  NEW.UDATE := now();
+  NEW.suid := session_userid();
+  NEW.owner := current_userid();
+  NEW.oper := current_userid();
 
-  RAISE DEBUG 'Создан объект Id: %', NEW.ID;
+  NEW.pdate := now();
+  NEW.ldate := now();
+  NEW.udate := now();
+
+  RAISE DEBUG 'Создан объект Id: %', NEW.id;
 
   RETURN NEW;
 END;
@@ -99,13 +114,9 @@ CREATE TRIGGER t_object_before_insert
 
 CREATE OR REPLACE FUNCTION db.ft_object_after_insert()
 RETURNS trigger AS $$
-DECLARE
-  nClass    numeric;
 BEGIN
-  SELECT class INTO nClass FROM db.type WHERE id = NEW.type;
-
   INSERT INTO db.aom SELECT NEW.id;
-  INSERT INTO db.aou (object, userid, deny, allow) SELECT NEW.id, userid, SubString(deny FROM 3 FOR 3), SubString(allow FROM 3 FOR 3) FROM db.acu WHERE class = nClass;
+  INSERT INTO db.aou (object, userid, deny, allow) SELECT NEW.id, userid, SubString(deny FROM 3 FOR 3), SubString(allow FROM 3 FOR 3) FROM db.acu WHERE class = NEW.class;
 
   UPDATE db.aou SET deny = B'000', allow = B'111' WHERE object = NEW.id AND userid = NEW.owner;
   IF NOT FOUND THEN
@@ -129,48 +140,43 @@ CREATE TRIGGER t_object_after_insert
 
 CREATE OR REPLACE FUNCTION db.ft_object_before_update()
 RETURNS trigger AS $$
-DECLARE
-  nStateType	numeric;
-  nOldEssence	numeric;
-  nNewEssence	numeric;
-  nOldClass     numeric;
-  nNewClass     numeric;
 BEGIN
   IF lower(session_user) = 'kernel' THEN
     SELECT AccessDeniedForUser(session_user);
   END IF;
 
-  IF OLD.SUID <> NEW.SUID THEN
+  IF OLD.suid <> NEW.suid THEN
     PERFORM AccessDenied();
   END IF;
 
-  IF NOT CheckObjectAccess(NEW.ID, B'010') THEN
+  IF NOT CheckObjectAccess(NEW.id, B'010') THEN
     --RAISE NOTICE 'Object: %, Type: %, Owner: %, UserId: %', NEW.id, GetTypeCode(NEW.type), NEW.owner, current_userid();
     PERFORM AccessDenied();
   END IF;
 
-  IF OLD.TYPE <> NEW.TYPE THEN
-    SELECT class INTO nOldClass FROM db.type WHERE id = OLD.TYPE;
-    SELECT class INTO nNewClass FROM db.type WHERE id = NEW.TYPE;
+  IF OLD.type <> NEW.type THEN
+    SELECT class INTO NEW.class FROM db.type WHERE id = NEW.type;
+    SELECT essence INTO NEW.essence FROM db.class_tree WHERE id = NEW.class;
 
-    SELECT essence INTO nOldEssence FROM db.class_tree WHERE id = nOldClass;
-    SELECT essence INTO nNewEssence FROM db.class_tree WHERE id = nNewClass;
-
-    IF nOldEssence <> nNewEssence THEN
+    IF OLD.essence <> NEW.essence THEN
       PERFORM IncorrectEssence();
     END IF;
   END IF;
 
-  IF nOldClass <> nNewClass THEN
+  IF OLD.class <> NEW.class THEN
+    NEW.state := GetState(NEW.class, OLD.state_type);
 
-    SELECT type INTO nStateType FROM db.state WHERE id = OLD.STATE;
-    NEW.STATE := GetState(nNewClass, nStateType);
-
-    IF coalesce(OLD.STATE <> NEW.STATE, false) THEN
-      UPDATE db.object_state SET state = NEW.STATE
-       WHERE object = OLD.ID
-         AND state = OLD.STATE;
+    IF coalesce(OLD.state <> NEW.state, false) THEN
+      UPDATE db.object_state SET state = NEW.state
+       WHERE object = OLD.id
+         AND state = OLD.state;
     END IF;
+  END IF;
+
+  IF NEW.state IS NOT NULL THEN
+    SELECT type INTO NEW.state_type FROM db.state WHERE id = NEW.state;
+  ELSE
+    NEW.state_type := NULL;
   END IF;
 
   IF OLD.owner <> NEW.owner THEN
@@ -178,10 +184,10 @@ BEGIN
     INSERT INTO db.aou SELECT NEW.id, NEW.owner, B'000', B'111';
   END IF;
 
-  NEW.OPER := current_userid();
+  NEW.oper := current_userid();
 
-  NEW.LDATE := now();
-  NEW.UDATE := now();
+  NEW.ldate := now();
+  NEW.udate := now();
 
   RETURN NEW;
 END;
@@ -480,6 +486,27 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- AccessObjectUser ------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION AccessObjectUser (
+  pUserId	numeric DEFAULT current_userid()
+) RETURNS TABLE (
+    object  numeric
+)
+AS $$
+  WITH membergroup AS (
+      SELECT pUserId AS userid UNION ALL SELECT userid FROM db.member_group WHERE member = pUserId
+  )
+  SELECT a.object
+    FROM db.aou a INNER JOIN membergroup m ON a.userid = m.userid
+   GROUP BY a.object
+  HAVING bit_or(a.mask) & B'100' = B'100'
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- VIEW Object -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -494,31 +521,25 @@ CREATE OR REPLACE VIEW Object (Id, Parent,
   Oper, OperCode, OperName, OperDate
 ) AS
 WITH access AS (
-  WITH member_group AS (
-      SELECT current_userid() AS userid UNION ALL SELECT userid FROM db.member_group WHERE member = current_userid()
-  )
-  SELECT a.object
-    FROM db.aou a INNER JOIN member_group m ON a.userid = m.userid
-   GROUP BY a.object
-  HAVING bit_or(a.mask) & B'100' = B'100'
+  SELECT * FROM AccessObjectUser()
 )
   SELECT o.id, o.parent,
          e.id, e.code, e.name,
          c.id, c.code, c.label,
          t.id, t.code, t.name, t.description,
          o.label,
-         y.id, y.code, y.name,
+         p.id, p.code, p.name,
          o.state, s.code, s.label, o.udate,
          o.owner, w.username, w.name, o.pdate,
          o.oper, u.username, u.name, o.ldate
-    FROM db.object o INNER JOIN access a        ON o.id = a.object
-                     INNER JOIN db.type t       ON t.id = o.type
-                     INNER JOIN db.class_tree c ON c.id = t.class
-                     INNER JOIN db.essence e    ON e.id = c.essence
-                     INNER JOIN db.state s      ON s.id = o.state
-                     INNER JOIN db.state_type y ON y.id = s.type
-                     INNER JOIN db.user w       ON w.id = o.owner AND w.type = 'U'
-                     INNER JOIN db.user u       ON u.id = o.oper AND u.type = 'U';
+    FROM access a INNER JOIN db.object     o ON o.id = a.object
+                  INNER JOIN db.essence    e ON e.id = o.essence
+                  INNER JOIN db.class_tree c ON c.id = o.class
+                  INNER JOIN db.type       t ON t.id = o.type
+                  INNER JOIN db.state_type p ON p.id = o.state_type
+                  INNER JOIN db.state      s ON s.id = o.state
+                  INNER JOIN db.user       w ON w.id = o.owner AND w.type = 'U'
+                  INNER JOIN db.user       u ON u.id = o.oper AND u.type = 'U';
 
 GRANT SELECT ON Object TO administrator;
 
@@ -825,24 +846,30 @@ RETURNS TRIGGER AS
 $$
 BEGIN
   IF (TG_OP = 'INSERT') OR (TG_OP = 'UPDATE') THEN
-    IF NEW.VALIDFROMDATE IS NULL THEN
-      NEW.VALIDFROMDATE := now();
+    IF NEW.validfromdate IS NULL THEN
+      NEW.validfromdate := now();
     END IF;
 
-    IF NEW.VALIDFROMDATE > NEW.VALIDTODATE THEN
+    IF NEW.validtodate IS NULL THEN
+      NEW.validtodate := MAXDATE();
+    END IF;
+
+    IF NEW.validfromdate > NEW.validtodate THEN
       RAISE EXCEPTION 'ERR-80000: Дата начала периода действия не должна превышать дату окончания периода действия.';
+    END IF;
+
+    IF TG_OP = 'INSERT' THEN
+      UPDATE db.object SET state = NEW.state WHERE id = NEW.object;
     END IF;
 
     RETURN NEW;
   ELSE
-    IF OLD.VALIDTODATE = MAXDATE() THEN
-      UPDATE db.object SET state = NULL WHERE id = OLD.OBJECT;
+    IF OLD.validtodate = MAXDATE() THEN
+      UPDATE db.object SET state = NULL WHERE id = OLD.object;
     END IF;
 
     RETURN OLD;
   END IF;
-
-  RETURN NULL;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -910,8 +937,6 @@ BEGIN
     VALUES (pObject, pState, pDateFrom, coalesce(dtDateTo, MAXDATE()))
     RETURNING id INTO nId;
   END IF;
-
-  UPDATE db.object SET state = pState WHERE id = pObject;
 
   RETURN nId;
 END;
