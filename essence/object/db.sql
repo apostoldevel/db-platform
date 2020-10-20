@@ -1730,7 +1730,7 @@ CREATE TRIGGER t_object_file
 -- VIEW ObjectFile -------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW ObjectFile (Object, Name, Path, Size, Date, Body,
+CREATE OR REPLACE VIEW ObjectFile (Object, Name, Path, Size, Date, Data,
     Hash, Text, Type, Loaded
 )
 AS
