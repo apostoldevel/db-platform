@@ -688,9 +688,7 @@ AS $$
 DECLARE
   nClass	numeric;
 BEGIN
-  SELECT class INTO nClass FROM db.type WHERE id = (
-    SELECT type FROM db.object WHERE id = pId
-  );
+  SELECT class INTO nClass FROM db.object WHERE id = pId;
 
   RETURN nClass;
 END;
@@ -858,10 +856,6 @@ BEGIN
       RAISE EXCEPTION 'ERR-80000: Дата начала периода действия не должна превышать дату окончания периода действия.';
     END IF;
 
-    IF TG_OP = 'INSERT' THEN
-      UPDATE db.object SET state = NEW.state WHERE id = NEW.object;
-    END IF;
-
     RETURN NEW;
   ELSE
     IF OLD.validtodate = MAXDATE() THEN
@@ -937,6 +931,8 @@ BEGIN
     VALUES (pObject, pState, pDateFrom, coalesce(dtDateTo, MAXDATE()))
     RETURNING id INTO nId;
   END IF;
+
+  UPDATE db.object SET state = pState WHERE id = pObject;
 
   RETURN nId;
 END;
