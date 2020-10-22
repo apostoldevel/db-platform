@@ -31,8 +31,6 @@ BEGIN
     SELECT NEW.REFERENCE INTO NEW.ID;
   END IF;
 
-  RAISE DEBUG 'Создан агент Id: %', NEW.ID;
-
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql

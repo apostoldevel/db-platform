@@ -6,7 +6,7 @@ CREATE TABLE db.log (
     id          numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_LOG'),
     type        char DEFAULT 'M' NOT NULL,
     datetime	timestamp DEFAULT Now() NOT NULL,
-    username	text DEFAULT current_username() NOT NULL,
+    username	text NOT NULL,
     session     varchar(40),
     code        numeric(5) NOT NULL,
     text        text NOT NULL,
@@ -37,6 +37,10 @@ CREATE INDEX ON db.log (object);
 CREATE OR REPLACE FUNCTION ft_event_log_insert()
 RETURNS trigger AS $$
 BEGIN
+  IF NULLIF(NEW.username, '') IS NULL THEN
+     NEW.username := coalesce(current_username(), session_user);
+  END IF;
+
   IF NEW.session IS NULL THEN
     NEW.session := current_session();
   END IF;
@@ -135,23 +139,23 @@ AS $$
 DECLARE
   vCategory text;
 BEGIN
-  IF pType = 'D' AND GetDebugMode() THEN
-    RAISE NOTICE '[%] [%] [%] %', pType, pCode, pObject, pText;
-  ELSE
-    pType = 'N';
-  END IF;
-
   IF pType IN ('M', 'W', 'E', 'D') THEN
 
     IF pObject IS NOT NULL THEN
       SELECT code INTO vCategory FROM db.class_tree WHERE id = (
-        SELECT class FROM db.type WHERE id = (
-          SELECT type FROM db.object WHERE id = pObject
-        )
+        SELECT class FROM db.object WHERE id = pObject
       );
     END IF;
 
     PERFORM NewEventLog(pType, pCode, pText, vCategory, pObject);
+  END IF;
+
+  IF pType = 'D' AND GetDebugMode() THEN
+    pType := 'N';
+  END IF;
+
+  IF pType = 'N' THEN
+    RAISE NOTICE '[%] [%] [%] %', pType, pCode, pObject, pText;
   END IF;
 END;
 $$ LANGUAGE plpgsql

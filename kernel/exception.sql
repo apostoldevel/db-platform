@@ -78,8 +78,8 @@ CREATE OR REPLACE FUNCTION AccessDenied (
 ) RETURNS void
 AS $$
 BEGIN
-  RAISE NOTICE '[%] SESSION: ID: %; USER: %', session_user, session_userid(), session_username();
-  RAISE NOTICE '[%] CURRENT: ID: %; USER: %', session_user, current_userid(), current_username();
+  --RAISE NOTICE '[%] SESSION: ID: %; USER: %', session_user, session_userid(), session_username();
+  --RAISE NOTICE '[%] CURRENT: ID: %; USER: %', session_user, current_userid(), current_username();
 
   RAISE EXCEPTION 'ERR-40303: Недостаточно прав для выполнения %.', pMessage;
 END;

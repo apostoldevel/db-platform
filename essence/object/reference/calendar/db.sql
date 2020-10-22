@@ -39,8 +39,6 @@ BEGIN
     SELECT NEW.REFERENCE INTO NEW.ID;
   END IF;
 
-  RAISE DEBUG 'Создан календарь Id: %', NEW.ID;
-
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql
@@ -51,23 +49,6 @@ CREATE TRIGGER t_calendar_insert
   BEFORE INSERT ON db.calendar
   FOR EACH ROW
   EXECUTE PROCEDURE ft_calendar_insert();
-
-CREATE OR REPLACE FUNCTION ft_calendar_update()
-RETURNS trigger AS $$
-DECLARE
-BEGIN
-  RAISE DEBUG 'Изменён календарь Id: %', NEW.ID;
-
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
-CREATE TRIGGER t_calendar_update
-  BEFORE UPDATE ON db.calendar
-  FOR EACH ROW
-  EXECUTE PROCEDURE ft_calendar_update();
 
 --------------------------------------------------------------------------------
 -- db.cdate --------------------------------------------------------------------

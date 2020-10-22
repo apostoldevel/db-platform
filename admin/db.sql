@@ -217,8 +217,6 @@ BEGIN
     NEW.PARENT := GetArea('default');
   END IF;
 
-  RAISE DEBUG 'Создана зона Id: %', NEW.ID;
-
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql
@@ -2142,7 +2140,7 @@ CREATE OR REPLACE FUNCTION GetDebugMode()
 RETURNS		boolean
 AS $$
 BEGIN
-  RETURN coalesce(SafeGetVar('debug')::boolean, false);
+  RETURN coalesce(SafeGetVar('debug')::boolean, true);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

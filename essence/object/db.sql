@@ -95,8 +95,6 @@ BEGIN
   NEW.ldate := now();
   NEW.udate := now();
 
-  RAISE DEBUG 'Создан объект Id: %', NEW.id;
-
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql

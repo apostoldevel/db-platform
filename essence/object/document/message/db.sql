@@ -53,8 +53,6 @@ BEGIN
     NEW.code := encode(gen_random_bytes(12), 'hex');
   END IF;
 
-  RAISE DEBUG 'Создано сообщение Id: %', NEW.id;
-
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql
@@ -75,8 +73,6 @@ BEGIN
     RAISE DEBUG 'Hacking alert: message code (% <> %).', OLD.code, NEW.code;
     RETURN NULL;
   END IF;
-
-  RAISE DEBUG 'Обнавлёно сообщение Id: %', NEW.id;
 
   RETURN NEW;
 END;

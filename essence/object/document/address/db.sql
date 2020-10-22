@@ -394,8 +394,6 @@ BEGIN
     SELECT NEW.ID INTO NEW.SORTNUM;
   END IF;
 
-  RAISE DEBUG '[%] Добавлен адрес: %', NEW.Id, NEW.Code;
-
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql

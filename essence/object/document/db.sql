@@ -39,8 +39,6 @@ BEGIN
     PERFORM RootAreaError();
   END IF;
 
-  RAISE DEBUG 'Создан документ Id: %', NEW.id;
-
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql
@@ -62,8 +60,6 @@ BEGIN
   IF OLD.area <> NEW.area THEN
     SELECT ChangeAreaError();
   END IF;
-
-  RAISE DEBUG 'Изменён документ Id: %', NEW.id;
 
   RETURN NEW;
 END;

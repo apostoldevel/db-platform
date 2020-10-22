@@ -88,12 +88,14 @@ EXCEPTION
 WHEN others THEN
   GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
 
-  RAISE NOTICE '%', vContext;
-
   PERFORM SetErrorMessage(vMessage);
 
   SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
-  RETURN json_build_object('error', json_build_object('code', ErrorCode, 'message', ErrorMessage));
+
+  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, vContext);
+
+  RETURN json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
 END;
 $$ LANGUAGE plpgsql
   SECURITY DEFINER
@@ -237,12 +239,14 @@ EXCEPTION
 WHEN others THEN
   GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
 
-  RAISE NOTICE '%', vContext;
-
   PERFORM SetErrorMessage(vMessage);
 
   SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
-  RETURN NEXT json_build_object('error', json_build_object('code', ErrorCode, 'message', ErrorMessage));
+
+  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, vContext);
+
+  RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
 
   RETURN;
 END;
@@ -406,6 +410,7 @@ BEGIN
 
     IF vSession IS NULL THEN
       SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(GetErrorMessage());
+      PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
       RETURN json_build_object('error', json_build_object('code', 403, 'error', 'access_denied', 'message', ErrorMessage));
     END IF;
 
@@ -472,12 +477,14 @@ EXCEPTION
 WHEN others THEN
   GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
 
-  RAISE NOTICE '%', vContext;
-
   PERFORM SetErrorMessage(vMessage);
 
   SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
-  RETURN json_build_object('error', json_build_object('code', 500, 'error', 'server_error', 'message', ErrorMessage));
+
+  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, vContext);
+
+  RETURN json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'error', 'server_error', 'message', ErrorMessage));
 END;
 $$ LANGUAGE plpgsql
   SECURITY DEFINER
@@ -543,12 +550,14 @@ BEGIN
   WHEN others THEN
     GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
 
-    RAISE NOTICE '%', vContext;
-
     PERFORM SetErrorMessage(vMessage);
 
     SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
-    RETURN NEXT json_build_object('error', json_build_object('code', ErrorCode, 'message', ErrorMessage));
+
+    PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
+    PERFORM WriteToEventLog('D', ErrorCode, vContext);
+
+    RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
 
     IF current_session() IS NOT NULL THEN
       UPDATE api.log SET eventid = AddEventLog('E', ErrorCode, ErrorMessage) WHERE id = nApiId;
@@ -560,12 +569,14 @@ EXCEPTION
 WHEN others THEN
   GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
 
-  RAISE NOTICE '%', vContext;
-
   PERFORM SetErrorMessage(vMessage);
 
   SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
-  RETURN NEXT json_build_object('error', json_build_object('code', ErrorCode, 'message', ErrorMessage));
+
+  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, vContext);
+
+  RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
 
   RETURN;
 END;
@@ -638,12 +649,14 @@ BEGIN
   WHEN others THEN
     GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
 
-    RAISE NOTICE '%', vContext;
-
     PERFORM SetErrorMessage(vMessage);
 
     SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
-    RETURN NEXT json_build_object('error', json_build_object('code', ErrorCode, 'message', ErrorMessage));
+
+    PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
+    PERFORM WriteToEventLog('D', ErrorCode, vContext);
+
+    RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
 
     IF current_session() IS NOT NULL THEN
       UPDATE api.log SET eventid = AddEventLog('E', ErrorCode, ErrorMessage) WHERE id = nApiId;
@@ -657,12 +670,14 @@ EXCEPTION
 WHEN others THEN
   GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
 
-  RAISE NOTICE '%', vContext;
-
   PERFORM SetErrorMessage(vMessage);
 
   SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
-  RETURN NEXT json_build_object('error', json_build_object('code', ErrorCode, 'message', ErrorMessage));
+
+  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, vContext);
+
+  RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
 
   RETURN;
 END;
@@ -739,12 +754,14 @@ BEGIN
   WHEN others THEN
     GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
 
-    RAISE NOTICE '%', vContext;
-
     PERFORM SetErrorMessage(vMessage);
 
     SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
-    RETURN NEXT json_build_object('error', json_build_object('code', ErrorCode, 'message', ErrorMessage));
+
+    PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
+    PERFORM WriteToEventLog('D', ErrorCode, vContext);
+
+    RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
 
     IF current_session() IS NOT NULL THEN
       UPDATE api.log SET eventid = AddEventLog('E', ErrorCode, ErrorMessage) WHERE id = nApiId;
@@ -756,12 +773,14 @@ EXCEPTION
 WHEN others THEN
   GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
 
-  RAISE NOTICE '%', vContext;
-
   PERFORM SetErrorMessage(vMessage);
 
   SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
-  RETURN NEXT json_build_object('error', json_build_object('code', ErrorCode, 'message', ErrorMessage));
+
+  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, vContext);
+
+  RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
 
   RETURN;
 END;
@@ -890,12 +909,14 @@ BEGIN
   WHEN others THEN
     GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
 
-    RAISE NOTICE '%', vContext;
-
     PERFORM SetErrorMessage(vMessage);
 
     SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
-    RETURN NEXT json_build_object('error', json_build_object('code', ErrorCode, 'message', ErrorMessage));
+
+    PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
+    PERFORM WriteToEventLog('D', ErrorCode, vContext);
+
+    RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
 
     IF current_session() IS NOT NULL THEN
       UPDATE api.log SET eventid = AddEventLog('E', ErrorCode, ErrorMessage) WHERE id = nApiId;
@@ -908,12 +929,14 @@ WHEN others THEN
 WHEN others THEN
   GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
 
-  RAISE NOTICE '%', vContext;
-
   PERFORM SetErrorMessage(vMessage);
 
   SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
-  RETURN NEXT json_build_object('error', json_build_object('code', ErrorCode, 'message', ErrorMessage));
+
+  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, vContext);
+
+  RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
 
   RETURN;
 END;
@@ -1018,12 +1041,14 @@ BEGIN
   WHEN others THEN
     GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
 
-    RAISE NOTICE '%', vContext;
-
     PERFORM SetErrorMessage(vMessage);
 
     SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
-    RETURN NEXT json_build_object('error', json_build_object('code', ErrorCode, 'message', ErrorMessage));
+
+    PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
+    PERFORM WriteToEventLog('D', ErrorCode, vContext);
+
+    RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
 
     IF current_session() IS NOT NULL THEN
       UPDATE api.log SET eventid = AddEventLog('E', ErrorCode, ErrorMessage) WHERE id = nApiId;
@@ -1035,12 +1060,14 @@ EXCEPTION
 WHEN others THEN
   GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
 
-  RAISE NOTICE '%', vContext;
-
   PERFORM SetErrorMessage(vMessage);
 
   SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
-  RETURN NEXT json_build_object('error', json_build_object('code', ErrorCode, 'message', ErrorMessage));
+
+  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, vContext);
+
+  RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
 
   RETURN;
 END;

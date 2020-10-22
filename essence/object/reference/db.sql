@@ -38,8 +38,6 @@ BEGIN
     NEW.code := encode(gen_random_bytes(12), 'hex');
   END IF;
 
-  RAISE DEBUG 'Создан справочник Id: %', NEW.id;
-
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql
@@ -60,8 +58,6 @@ BEGIN
   IF coalesce(NEW.name <> OLD.name, true) THEN
     UPDATE db.object SET label = NEW.name WHERE id = NEW.id;
   END IF;
-
-  RAISE DEBUG 'Изменён справочник Id: %', NEW.id;
 
   RETURN NEW;
 END;

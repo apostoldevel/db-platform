@@ -29,8 +29,6 @@ BEGIN
     SELECT NEW.REFERENCE INTO NEW.ID;
   END IF;
 
-  RAISE DEBUG 'Создан производитель Id: %', NEW.ID;
-
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql

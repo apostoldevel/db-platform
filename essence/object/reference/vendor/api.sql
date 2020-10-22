@@ -33,7 +33,7 @@ CREATE OR REPLACE FUNCTION api.add_vendor (
 ) RETURNS       numeric
 AS $$
 BEGIN
-  RETURN CreateVendor(pParent, CodeToType(lower(coalesce(pType, 'device')), 'vendor'), format('%s.vendor', pCode), pName, pDescription);
+  RETURN CreateVendor(pParent, CodeToType(lower(coalesce(pType, 'device')), 'vendor'), pCode, pName, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
