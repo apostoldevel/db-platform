@@ -1359,15 +1359,19 @@ CREATE OR REPLACE FUNCTION api.member_area (
   pUserId   numeric DEFAULT current_userid()
 ) RETURNS   SETOF api.area
 AS $$
-  SELECT *
-    FROM api.area
-   WHERE id IN (
-     SELECT area FROM db.member_area WHERE member IN (
-         SELECT pUserId
+  WITH RECURSIVE area_tree(id, parent) AS (
+    SELECT id, parent FROM db.area WHERE id IN (
+      SELECT area FROM db.member_area WHERE member IN (
+        SELECT pUserId
          UNION ALL
-         SELECT userid FROM db.member_group WHERE member = pUserId
-     )
-   )
+        SELECT userid FROM db.member_group WHERE member = pUserId
+      )
+    )
+    UNION
+    SELECT a.id, a.parent
+      FROM db.area a, area_tree t
+     WHERE t.id = a.parent
+    ) SELECT a.* FROM api.area a INNER JOIN area_tree USING (id);
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

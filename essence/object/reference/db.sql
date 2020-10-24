@@ -5,11 +5,13 @@
 CREATE TABLE db.reference (
     id              numeric(12) PRIMARY KEY,
     object          numeric(12) NOT NULL,
+    essence		    numeric(12) NOT NULL,
     class           numeric(12) NOT NULL,
     code            varchar(30) NOT NULL,
-    name            varchar(50),
+    name            text,
     description     text,
     CONSTRAINT fk_reference_object FOREIGN KEY (object) REFERENCES db.object(id),
+    CONSTRAINT fk_reference_essence FOREIGN KEY (essence) REFERENCES db.essence(id),
     CONSTRAINT fk_reference_class FOREIGN KEY (class) REFERENCES db.class_tree(id)
 );
 
@@ -17,20 +19,24 @@ COMMENT ON TABLE db.reference IS 'Справочник.';
 
 COMMENT ON COLUMN db.reference.id IS 'Идентификатор';
 COMMENT ON COLUMN db.reference.object IS 'Объект';
+COMMENT ON COLUMN db.reference.essence IS 'Сущность';
 COMMENT ON COLUMN db.reference.class IS 'Класс';
 COMMENT ON COLUMN db.reference.code IS 'Код';
 COMMENT ON COLUMN db.reference.name IS 'Наименование';
 COMMENT ON COLUMN db.reference.description IS 'Описание';
 
 CREATE INDEX ON db.reference (object);
-CREATE UNIQUE INDEX ON db.reference (class, code);
+CREATE INDEX ON db.reference (essence);
+CREATE INDEX ON db.reference (class);
+
+CREATE UNIQUE INDEX ON db.reference (essence, code);
 
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION db.ft_reference_before_insert()
 RETURNS trigger AS $$
 BEGIN
-  IF NEW.id IS NULL OR NEW.id = 0 THEN
+  IF NULLIF(NEW.id, 0) IS NULL THEN
     SELECT NEW.object INTO NEW.id;
   END IF;
 
@@ -78,19 +84,22 @@ CREATE OR REPLACE FUNCTION CreateReference (
   pParent       numeric,
   pType         numeric,
   pCode         varchar,
-  pName         varchar,
+  pName         text,
   pDescription  text DEFAULT null
 ) RETURNS       numeric
 AS $$
 DECLARE
   nObject       numeric;
+  nEssence      numeric;
   nClass        numeric;
 BEGIN
   nObject := CreateObject(pParent, pType, pName);
+
+  nEssence := GetObjectEssence(nObject);
   nClass := GetObjectClass(nObject);
 
-  INSERT INTO db.reference (id, object, class, code, name, description)
-  VALUES (nObject, nObject, nClass, pCode, pName, pDescription)
+  INSERT INTO db.reference (id, object, essence, class, code, name, description)
+  VALUES (nObject, nObject, nEssence, nClass, pCode, pName, pDescription)
   RETURNING id INTO nObject;
 
   RETURN nObject;
@@ -108,7 +117,7 @@ CREATE OR REPLACE FUNCTION EditReference (
   pParent       numeric DEFAULT null,
   pType         numeric DEFAULT null,
   pCode         varchar DEFAULT null,
-  pName         varchar DEFAULT null,
+  pName         text DEFAULT null,
   pDescription  text DEFAULT null
 ) RETURNS       void
 AS $$
@@ -147,13 +156,13 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION GetReference (
   pCode         varchar,
-  pClass        numeric
+  pEssence      numeric
 ) RETURNS       numeric
 AS $$
 DECLARE
   nId           numeric;
 BEGIN
-  SELECT id INTO nId FROM db.reference WHERE class = pClass AND code = pCode;
+  SELECT id INTO nId FROM db.reference WHERE essence = pEssence AND code = pCode;
   RETURN nId;
 END;
 $$ LANGUAGE plpgsql
@@ -166,11 +175,11 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION GetReference (
   pCode         varchar,
-  pClass        varchar DEFAULT null
+  pEssence      varchar DEFAULT null
 ) RETURNS       numeric
 AS $$
 BEGIN
-  RETURN GetReference(pCode, GetClass(coalesce(pClass, SubStr(pCode, StrPos(pCode, '.') + 1))));
+  RETURN GetReference(pCode, GetEssence(coalesce(pEssence, SubStr(pCode, StrPos(pCode, '.') + 1))));
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

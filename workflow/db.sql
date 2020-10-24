@@ -54,7 +54,7 @@ CREATE TABLE db.class_tree (
     level		integer NOT NULL,
     code		varchar(30) NOT NULL,
     label		text NOT NULL,
-    abstract		boolean DEFAULT TRUE NOT NULL,
+    abstract    boolean DEFAULT TRUE NOT NULL,
     CONSTRAINT fk_class_tree_parent FOREIGN KEY (parent) REFERENCES db.class_tree(id),
     CONSTRAINT fk_class_tree_essence FOREIGN KEY (essence) REFERENCES db.essence(id)
 );
@@ -183,7 +183,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION AddClass (
   pParent	numeric,
-  pEssence      numeric,
+  pEssence  numeric,
   pCode		varchar,
   pLabel	text,
   pAbstract	boolean
@@ -223,7 +223,7 @@ CREATE OR REPLACE FUNCTION EditClass (
 ) RETURNS	void
 AS $$
 DECLARE
-  nLevel	smallint;
+  nLevel	integer;
 BEGIN
   nLevel := 1;
 

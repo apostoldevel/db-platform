@@ -530,14 +530,14 @@ WITH access AS (
          o.state, s.code, s.label, o.udate,
          o.owner, w.username, w.name, o.pdate,
          o.oper, u.username, u.name, o.ldate
-    FROM access a INNER JOIN db.object     o ON o.id = a.object
-                  INNER JOIN db.essence    e ON e.id = o.essence
-                  INNER JOIN db.class_tree c ON c.id = o.class
-                  INNER JOIN db.type       t ON t.id = o.type
-                  INNER JOIN db.state_type p ON p.id = o.state_type
-                  INNER JOIN db.state      s ON s.id = o.state
-                  INNER JOIN db.user       w ON w.id = o.owner AND w.type = 'U'
-                  INNER JOIN db.user       u ON u.id = o.oper AND u.type = 'U';
+    FROM db.object o INNER JOIN access        a ON o.id = a.object
+                     INNER JOIN db.essence    e ON e.id = o.essence
+                     INNER JOIN db.class_tree c ON c.id = o.class
+                     INNER JOIN db.type       t ON t.id = o.type
+                     INNER JOIN db.state_type p ON p.id = o.state_type
+                     INNER JOIN db.state      s ON s.id = o.state
+                     INNER JOIN db.user       w ON w.id = o.owner AND w.type = 'U'
+                     INNER JOIN db.user       u ON u.id = o.oper AND u.type = 'U';
 
 GRANT SELECT ON Object TO administrator;
 
