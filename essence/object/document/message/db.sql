@@ -460,3 +460,41 @@ END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- SendPushMessage -------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION SendPushMessage (
+  pParent       numeric,
+  pTitle        text,
+  pBody         text,
+  pUserId       numeric DEFAULT current_userid()
+) RETURNS	    void
+AS $$
+DECLARE
+  nMessageId    numeric;
+
+  projectId     text;
+  token         text;
+
+  message       jsonb;
+  data          jsonb;
+BEGIN
+  projectId := (RegGetValue(RegOpenKey('CURRENT_CONFIG', 'CONFIG\Firebase'), 'ProjectId')).vstring;
+  token := (RegGetValue(RegOpenKey('CURRENT_USER', 'CONFIG\Firebase\CloudMessaging', pUserId), 'Token')).vstring;
+
+  IF token IS NOT NULL THEN
+    data := jsonb_build_object('title', pTitle, 'body', pBody);
+    message := jsonb_build_object('message', jsonb_build_object('token', token, 'data', data));
+
+    nMessageId := CreateMessage(pParent, GetType('message.outbox'), GetAgent('fcm.agent'), projectId, GetUserName(pUserId), pTitle, message::text, pBody);
+    PERFORM SendMessage(nMessageId);
+    PERFORM WriteToEventLog('M', 1111, format('Push сообщение передано на отправку: %s', nMessageId), nMessageId);
+  ELSE
+    PERFORM WriteToEventLog('E', 3111, 'Не удалось отправить Push сообщение, тоекн не установлен.');
+  END IF;
+END
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
