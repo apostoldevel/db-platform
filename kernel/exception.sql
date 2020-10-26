@@ -485,7 +485,7 @@ $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
 CREATE OR REPLACE FUNCTION StateByCodeNotFound (
   pObject	numeric,
-  pCode         text
+  pCode     text
 ) RETURNS	void
 AS $$
 BEGIN
@@ -511,7 +511,7 @@ END;
 $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
 CREATE OR REPLACE FUNCTION ViewNotFound (
-  pScheme       text,
+  pScheme   text,
   pTable	text
 ) RETURNS	void
 AS $$
