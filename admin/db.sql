@@ -2140,7 +2140,7 @@ CREATE OR REPLACE FUNCTION GetDebugMode()
 RETURNS		boolean
 AS $$
 BEGIN
-  RETURN coalesce(SafeGetVar('debug')::boolean, true);
+  RETURN coalesce(SafeGetVar('debug')::boolean, false);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
