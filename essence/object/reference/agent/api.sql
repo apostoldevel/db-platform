@@ -35,7 +35,7 @@ CREATE OR REPLACE FUNCTION api.add_agent (
 ) RETURNS       numeric
 AS $$
 BEGIN
-  RETURN CreateAgent(pParent, CodeToType(lower(coalesce(pType, 'null')), 'agent'), pCode, pName, pVendor, pDescription);
+  RETURN CreateAgent(pParent, CodeToType(lower(coalesce(pType, 'system')), 'agent'), pCode, pName, pVendor, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
