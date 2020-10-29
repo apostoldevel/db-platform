@@ -770,52 +770,28 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION CodeToType (
   pCode     text,
-  pClass    text
+  pEssence  text
 ) RETURNS   numeric
 AS $$
 DECLARE
-  nClass    numeric;
+  r         record;
   arCodes   text[];
 BEGIN
-  IF StrPos(pCode, '.' || pClass) = 0 THEN
-    pCode := pCode || '.' || pClass;
+  IF StrPos(pCode, '.') = 0 THEN
+    pCode := pCode || '.' || pEssence;
   END IF;
 
-  nClass := GetClass(pClass);
-
-  arCodes := array_cat(arCodes, GetTypeCodes(nClass));
+  FOR r IN SELECT code FROM Type WHERE EssenceCode = pEssence
+  LOOP
+    arCodes := array_append(arCodes, r.code::text);
+  END LOOP;
 
   IF array_position(arCodes, pCode) IS NULL THEN
     PERFORM IncorrectCode(pCode, arCodes);
   END IF;
 
-  RETURN GetType(pCode, nClass);
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- CodeToType ------------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION CodeToType (
-  pCode     text,
-  pClasses  text[]
-) RETURNS   numeric
-AS $$
-DECLARE
-  i         integer;
-  nType     numeric;
-BEGIN
-  i := 1;
-  WHILE (i <= array_length(pClasses, 1)) AND nType IS NULL
-  LOOP
-    nType := CodeToType(pCode, pClasses[i]);
-    i := i + 1;
-  END LOOP;
-  RETURN nType;
-END;
+  RETURN GetType(pCode);
+END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
