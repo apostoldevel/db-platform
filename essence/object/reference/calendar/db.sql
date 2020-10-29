@@ -192,7 +192,7 @@ BEGIN
          rest_count = coalesce(pRestCount, rest_count)
    WHERE id = pId;
 
-  SELECT class INTO nClass FROM db.type WHERE id = pType;
+  SELECT class INTO nClass FROM db.object WHERE id = pId;
 
   nMethod := GetMethod(nClass, null, GetAction('edit'));
   PERFORM ExecuteMethod(pId, nMethod);

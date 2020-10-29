@@ -109,7 +109,7 @@ DECLARE
 BEGIN
   PERFORM EditReference(pId, pParent, pType, pCode, pName, pDescription);
 
-  SELECT class INTO nClass FROM db.type WHERE id = pType;
+  SELECT class INTO nClass FROM db.object WHERE id = pId;
 
   nMethod := GetMethod(nClass, null, GetAction('edit'));
   PERFORM ExecuteMethod(pId, nMethod);

@@ -611,12 +611,10 @@ CREATE OR REPLACE FUNCTION GetObjectEssence (
 ) RETURNS	numeric
 AS $$
 DECLARE
-  nType     numeric;
-  nClass    numeric;
+  nEssence  numeric;
 BEGIN
-  SELECT type INTO nType FROM db.object WHERE id = nObject;
-  SELECT class INTO nClass FROM db.type WHERE id = nType;
-  RETURN GetEssence(nClass);
+  SELECT essence INTO nEssence FROM db.object WHERE id = nObject;
+  RETURN nEssence;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
