@@ -198,7 +198,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION api.set_session (
   pUserName     text,
-  pArea         text
+  pArea         text DEFAULT null
 ) RETURNS       text
 AS $$
 DECLARE
@@ -210,7 +210,9 @@ BEGIN
     RAISE EXCEPTION '%', GetErrorMessage();
   END IF;
 
-  PERFORM SetArea(GetArea(pArea));
+  IF pArea IS NOT NULL THEN
+    PERFORM SetArea(GetArea(pArea));
+  END IF;
 
   RETURN vSession;
 END

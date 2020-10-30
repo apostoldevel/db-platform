@@ -753,6 +753,33 @@ $$ LANGUAGE plpgsql;
 GRANT EXECUTE ON FUNCTION array_quote_literal_json(anyarray) TO PUBLIC;
 
 --------------------------------------------------------------------------------
+-- find_value_in_array ---------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION find_value_in_array (
+  pArray	anyarray,
+  pKey      text
+) RETURNS	text
+AS $$
+DECLARE
+  i		    integer;
+  pairs     text[];
+BEGIN
+  FOR i IN 1..array_length(pArray, 1)
+  LOOP
+    pairs := string_to_array(pArray[i], '=');
+    IF pairs[1] = pKey THEN
+      RETURN pairs[2];
+    END IF;
+  END LOOP;
+
+  RETURN null;
+END;
+$$ LANGUAGE plpgsql;
+
+GRANT EXECUTE ON FUNCTION find_value_in_array(anyarray, text) TO PUBLIC;
+
+--------------------------------------------------------------------------------
 -- FUNCTION result_success -----------------------------------------------------
 --------------------------------------------------------------------------------
 

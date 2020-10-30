@@ -11,10 +11,10 @@ CREATE TABLE db.message (
     document        numeric(12) NOT NULL,
     agent           numeric(12) NOT NULL,
     code            varchar(30) NOT NULL,
-    address_from    text NOT NULL,
-    address_to      text NOT NULL,
+    profile         text NOT NULL,
+    address         text NOT NULL,
     subject         text,
-    body            text,
+    content         text NOT NULL,
     CONSTRAINT fk_message_document FOREIGN KEY (document) REFERENCES db.document(id),
     CONSTRAINT fk_message_agent FOREIGN KEY (agent) REFERENCES db.agent(id)
 );
@@ -25,17 +25,17 @@ COMMENT ON COLUMN db.message.id IS 'Идентификатор';
 COMMENT ON COLUMN db.message.document IS 'Документ';
 COMMENT ON COLUMN db.message.agent IS 'Агент';
 COMMENT ON COLUMN db.message.code IS 'Код';
-COMMENT ON COLUMN db.message.address_from IS 'От';
-COMMENT ON COLUMN db.message.address_to IS 'Кому';
+COMMENT ON COLUMN db.message.profile IS 'Профиль отправителя';
+COMMENT ON COLUMN db.message.address IS 'Адрес получателя';
 COMMENT ON COLUMN db.message.subject IS 'Тема';
-COMMENT ON COLUMN db.message.body IS 'Тело';
+COMMENT ON COLUMN db.message.content IS 'Содержимое';
 
 CREATE UNIQUE INDEX ON db.message (agent, code);
 
 CREATE INDEX ON db.message (document);
 CREATE INDEX ON db.message (agent);
-CREATE INDEX ON db.message (address_from);
-CREATE INDEX ON db.message (address_to);
+CREATE INDEX ON db.message (profile);
+CREATE INDEX ON db.message (address);
 
 CREATE INDEX ON db.message (subject);
 CREATE INDEX ON db.message (subject text_pattern_ops);
@@ -93,10 +93,10 @@ CREATE TRIGGER t_message_update
  * @param {numeric} pParent - Родительский объект
  * @param {numeric} pType - Тип
  * @param {numeric} pAgent - Агент
- * @param {text} pAddressFrom - От
- * @param {text} pAddressTo - Кому
+ * @param {text} pProfile - Профиль отправителя
+ * @param {text} pAddress - Адрес получателя
  * @param {text} pSubject - Тема
- * @param {text} pBody - Тело
+ * @param {text} pContent - Содержимое
  * @param {text} pDescription - Описание
  * @return {(id|exception)} - Id сообщения или ошибку
  */
@@ -104,10 +104,10 @@ CREATE OR REPLACE FUNCTION CreateMessage (
   pParent       numeric,
   pType         numeric,
   pAgent        numeric,
-  pAddressFrom  text,
-  pAddressTo    text,
+  pProfile      text,
+  pAddress      text,
   pSubject      text,
-  pBody         text,
+  pContent      text,
   pDescription  text DEFAULT null
 ) RETURNS       numeric
 AS $$
@@ -128,8 +128,8 @@ BEGIN
 
   nDocument := CreateDocument(pParent, pType, null, pDescription);
 
-  INSERT INTO db.message (id, document, agent, address_from, address_to, subject, body)
-  VALUES (nDocument, nDocument, pAgent, pAddressFrom, pAddressTo, pSubject, pBody)
+  INSERT INTO db.message (id, document, agent, profile, address, subject, content)
+  VALUES (nDocument, nDocument, pAgent, pProfile, pAddress, pSubject, pContent)
   RETURNING id INTO nMessage;
 
   nMethod := GetMethod(nClass, null, GetAction('create'));
@@ -150,10 +150,10 @@ $$ LANGUAGE plpgsql
  * @param {numeric} pParent - Родительский объект
  * @param {numeric} pType - Тип
  * @param {numeric} pAgent - Агент
- * @param {text} pAddressFrom - От
- * @param {text} pAddressTo - Кому
+ * @param {text} pProfile - Профиль отправителя
+ * @param {text} pAddress - Адрес получателя
  * @param {text} pSubject - Тема
- * @param {text} pBody - Тело
+ * @param {text} pContent - Содержимое
  * @param {text} pDescription - Описание
  * @return {void}
  */
@@ -162,10 +162,10 @@ CREATE OR REPLACE FUNCTION EditMessage (
   pParent       numeric DEFAULT null,
   pType         numeric DEFAULT null,
   pAgent        numeric DEFAULT null,
-  pAddressFrom  text DEFAULT null,
-  pAddressTo    text DEFAULT null,
+  pProfile      text DEFAULT null,
+  pAddress      text DEFAULT null,
   pSubject      text DEFAULT null,
-  pBody         text DEFAULT null,
+  pContent      text DEFAULT null,
   pDescription  text DEFAULT null
 ) RETURNS 	    void
 AS $$
@@ -177,17 +177,17 @@ DECLARE
   cParent       numeric;
   cType         numeric;
   cSubject      text;
-  cBody         text;
+  cContent         text;
   cDescription	text;
 BEGIN
   SELECT parent, type, label INTO cParent, cType, cSubject FROM db.object WHERE id = pId;
   SELECT description INTO cDescription FROM db.document WHERE id = pId;
-  SELECT body INTO cBody FROM db.message WHERE id = pId;
+  SELECT content INTO cContent FROM db.message WHERE id = pId;
 
   pParent := coalesce(pParent, cParent, 0);
   pType := coalesce(pType, cType);
   pSubject := coalesce(pSubject, cSubject, '<null>');
-  pBody := coalesce(pBody, cBody, '<null>');
+  pContent := coalesce(pContent, cContent, '<null>');
   pDescription := coalesce(pDescription, cDescription, '<null>');
 
   IF pParent <> coalesce(cParent, 0) THEN
@@ -204,9 +204,9 @@ BEGIN
 
   UPDATE db.message 
      SET agent = coalesce(pAgent, agent),
-         address_from = coalesce(pAddressFrom, address_from),
-         address_to = coalesce(pAddressTo, address_to),
-         body = CheckNull(pBody)
+         profile = coalesce(pProfile, profile),
+         address = coalesce(pAddress, address),
+         content = CheckNull(pContent)
    WHERE id = pId;
 
   SELECT class INTO nClass FROM type WHERE id = pType;
@@ -291,13 +291,13 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE VIEW Message (Id, Document,
   Source, SourceCode, SourceName, SourceDescription,
   Agent, AgentCode, AgentName, AgentDescription,
-  Code, AddressFrom, AddressTo,  Subject, Body
+  Code, Profile, Address, Subject, Content
 )
 AS
   SELECT m.id, m.document,
          o.type, t.code, t.name, t.description,
          m.agent, ra.code, ra.name, ra.description,
-         m.code, m.address_from, m.address_to, m.subject, m.body
+         m.code, m.profile, m.address, m.subject, m.content
     FROM db.message m INNER JOIN db.reference ra ON ra.id = m.agent
                       INNER JOIN db.object o ON o.id = ra.object
                       INNER JOIN db.type t ON t.id = o.type;
@@ -313,7 +313,7 @@ CREATE OR REPLACE VIEW ObjectMessage (Id, Object, Parent,
   Class, ClassCode, ClassLabel,
   Type, TypeCode, TypeName, TypeDescription,
   Agent, AgentCode, AgentName, AgentDescription,
-  Code, AddressFrom, AddressTo, Subject, Body,
+  Code, Profile, Address, Subject, Content,
   Label, Description,
   StateType, StateTypeCode, StateTypeName,
   State, StateCode, StateLabel, LastUpdate,
@@ -327,7 +327,7 @@ AS
          d.class, d.classcode, d.classlabel,
          d.type, d.typecode, d.typename, d.typedescription,
          m.agent, m.agentcode, m.agentname, m.agentdescription,
-         m.code, m.addressfrom, m.addressto, m.subject, m.body,
+         m.code, m.profile, m.address, m.subject, m.content,
          d.label, d.description,
          d.statetype, d.statetypecode, d.statetypename,
          d.state, d.statecode, d.statelabel, d.lastupdate,

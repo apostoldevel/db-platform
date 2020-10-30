@@ -2113,34 +2113,6 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- GetObjectData ---------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION GetObjectData (
-  pObject	numeric
-) RETURNS	text[][]
-AS $$
-DECLARE
-  arResult	text[][];
-  i             integer DEFAULT 1;
-  r             ObjectData%rowtype;
-BEGIN
-  FOR r IN
-    SELECT *
-      FROM ObjectData
-     WHERE object = pObject
-  LOOP
-    arResult[i] := ARRAY[pObject, r.type, r.typeCode, r.code, r.data];
-    i := i + 1;
-  END LOOP;
-
-  RETURN arResult;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
 -- GetObjectDataJson -----------------------------------------------------------
 --------------------------------------------------------------------------------
 

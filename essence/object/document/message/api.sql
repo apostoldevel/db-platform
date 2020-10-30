@@ -22,7 +22,7 @@ CREATE OR REPLACE FUNCTION api.message (
   pState    numeric
 ) RETURNS	SETOF api.message
 AS $$
-  SELECT * FROM api.message WHERE type = pType AND agent = pAgent AND state = pState ORDER BY addressfrom;
+  SELECT * FROM api.message WHERE type = pType AND agent = pAgent AND state = pState ORDER BY profile;
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -50,10 +50,10 @@ $$ LANGUAGE SQL
  * @param {numeric} pParent - Родительский объект
  * @param {varchar} pType - Код типа
  * @param {varchar} pAgent - Код агента
- * @param {text} pFrom - От
- * @param {text} pTo - Кому
+ * @param {text} pProfile - Профиль отправителя
+ * @param {text} pAddress - Адрес получателя
  * @param {text} pSubject - Тема
- * @param {text} pBody - Тело
+ * @param {text} pContent - Содержимое
  * @param {text} pDescription - Описание
  * @return {numeric}
  */
@@ -61,15 +61,15 @@ CREATE OR REPLACE FUNCTION api.add_message (
   pParent       numeric,
   pType         varchar,
   pAgent        varchar,
-  pFrom         text,
-  pTo           text,
+  pProfile      text,
+  pAddress      text,
   pSubject      text,
-  pBody         text,
+  pContent         text,
   pDescription  text default null
 ) RETURNS       numeric
 AS $$
 BEGIN
-  RETURN CreateMessage(pParent, CodeToType(coalesce(lower(pType), 'message.outbox'), 'message'), GetAgent(coalesce(pAgent, 'system.agent')), pFrom, pTo, pSubject, pBody, pDescription);
+  RETURN CreateMessage(pParent, CodeToType(coalesce(lower(pType), 'message.outbox'), 'message'), GetAgent(coalesce(pAgent, 'system.agent')), pProfile, pAddress, pSubject, pContent, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -84,10 +84,10 @@ $$ LANGUAGE plpgsql
  * @param {numeric} pParent - Родительский объект
  * @param {varchar} pType - Код типа
  * @param {varchar} pAgent - Код агента
- * @param {text} pFrom - От
- * @param {text} pTo - Кому
+ * @param {text} pProfile - Профиль отправителя
+ * @param {text} pAddress - Адрес получателя
  * @param {text} pSubject - Тема
- * @param {text} pBody - Тело
+ * @param {text} pContent - Содержимое
  * @param {text} pDescription - Описание
  * @return {void}
  */
@@ -96,10 +96,10 @@ CREATE OR REPLACE FUNCTION api.update_message (
   pParent       numeric default null,
   pType         varchar default null,
   pAgent        varchar default null,
-  pFrom         text default null,
-  pTo           text default null,
+  pProfile      text default null,
+  pAddress      text default null,
   pSubject      text default null,
-  pBody         text default null,
+  pContent         text default null,
   pDescription  text default null
 ) RETURNS       void
 AS $$
@@ -118,7 +118,7 @@ BEGIN
     SELECT o.type INTO nType FROM db.object o WHERE o.id = pId;
   END IF;
 
-  PERFORM EditMessage(nMessage, pParent, nType, GetAgent(coalesce(pAgent, 'system.agent')), pFrom, pTo, pSubject, pBody, pDescription);
+  PERFORM EditMessage(nMessage, pParent, nType, GetAgent(coalesce(pAgent, 'system.agent')), pProfile, pAddress, pSubject, pContent, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -133,18 +133,18 @@ CREATE OR REPLACE FUNCTION api.set_message (
   pParent       numeric default null,
   pType         varchar default null,
   pAgent        varchar default null,
-  pAddressFrom  text default null,
-  pAddressTo    text default null,
+  pProfile      text default null,
+  pAddress      text default null,
   pSubject      text default null,
-  pBody         text default null,
+  pContent      text default null,
   pDescription  text default null
 ) RETURNS       SETOF api.message
 AS $$
 BEGIN
   IF pId IS NULL THEN
-    pId := api.add_message(pParent, pType, pAgent, pAddressFrom, pAddressTo, pSubject, pBody, pDescription);
+    pId := api.add_message(pParent, pType, pAgent, pProfile, pAddress, pSubject, pContent, pDescription);
   ELSE
-    PERFORM api.update_message(pId, pParent, pType, pAgent, pAddressFrom, pAddressTo, pSubject, pBody, pDescription);
+    PERFORM api.update_message(pId, pParent, pType, pAgent, pProfile, pAddress, pSubject, pContent, pDescription);
   END IF;
 
   RETURN QUERY SELECT * FROM api.message WHERE id = pId;
