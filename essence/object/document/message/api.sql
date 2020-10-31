@@ -196,22 +196,3 @@ END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- api.send_message ------------------------------------------------------------
---------------------------------------------------------------------------------
-/**
- * Отправляет сообщение.
- * @param {numeric} pId - Идентификатор
- * @return {void}
- */
-CREATE OR REPLACE FUNCTION api.send_message (
-  pId           numeric
-) RETURNS       void
-AS $$
-BEGIN
-  PERFORM SendMessage(pId);
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;

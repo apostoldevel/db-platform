@@ -455,8 +455,6 @@ CREATE OR REPLACE FUNCTION JsonToFields (
   pFields	text[]
 ) RETURNS	text
 AS $$
-DECLARE
-  vFields	text;
 BEGIN
   IF pJson IS NOT NULL THEN
     PERFORM CheckJsonValues('fields', pFields, pJson);
@@ -490,6 +488,39 @@ BEGIN
 
   RETURN '*';
 END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- TrimPhone -------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION TrimPhone (
+  pPhone    text
+) RETURNS	text
+AS $$
+DECLARE
+  ch        text;
+  code      int;
+  Result    text;
+BEGIN
+  FOR Key IN 1..Length(pPhone)
+  LOOP
+    ch := SubStr(pPhone, Key, 1);
+    code := ascii(ch);
+    IF code >= 48 AND code <= 57 THEN
+      Result := coalesce(Result, '') || ch;
+    END IF;
+  END LOOP;
+
+  ch := SubStr(Result, 1, 1);
+  IF ch != '7' OR length(Result) != 11 THEN
+    PERFORM InvalidPhoneNumber(pPhone);
+  END IF;
+
+  RETURN Result;
+END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -578,10 +609,10 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION GetVar (
   pType		TVarType,
   pName 	text
-) RETURNS text
+) RETURNS   text
 AS $$
 DECLARE
-  vValue text;
+  vValue    text;
 BEGIN
   SELECT INTO vValue current_setting(pType || '.' || pName);
 

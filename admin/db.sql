@@ -311,6 +311,10 @@ BEGIN
 
   SELECT encode(digest(encode(hmac(NEW.secret::text, GetSecretKey(), 'sha512'), 'hex'), 'sha1'), 'hex') INTO NEW.hash;
 
+  IF NEW.phone IS NOT NULL THEN
+    NEW.phone := TrimPhone(NEW.phone);
+  END IF;
+
   NEW.readonly := NEW.username IN ('system', 'administrator', 'guest');
   NEW.readonly := NEW.readonly OR coalesce((SELECT a.name = NEW.username FROM oauth2.audience a WHERE a.name = NEW.username), false);
 
@@ -332,6 +336,10 @@ RETURNS trigger AS $$
 BEGIN
   IF OLD.email <> NEW.email THEN
 	UPDATE db.profile SET email_verified = false WHERE userid = NEW.id;
+  END IF;
+
+  IF NEW.phone IS NOT NULL THEN
+    NEW.phone := TrimPhone(NEW.phone);
   END IF;
 
   IF OLD.phone <> NEW.phone THEN

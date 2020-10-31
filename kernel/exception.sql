@@ -547,3 +547,12 @@ BEGIN
   RAISE EXCEPTION 'ERR-40061: Неверный тип данных: %.', pType;
 END;
 $$ LANGUAGE plpgsql STRICT IMMUTABLE;
+
+CREATE OR REPLACE FUNCTION InvalidPhoneNumber (
+  pPhone    text
+) RETURNS	void
+AS $$
+BEGIN
+  RAISE EXCEPTION 'ERR-40062: Неправильный номер телефона: %.', pPhone;
+END;
+$$ LANGUAGE plpgsql STRICT IMMUTABLE;

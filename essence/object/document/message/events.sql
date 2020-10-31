@@ -203,3 +203,133 @@ BEGIN
   PERFORM WriteToEventLog('W', 2010, '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Сообщение уничтожен.');
 END;
 $$ LANGUAGE plpgsql;
+
+--------------------------------------------------------------------------------
+-- EventMessageConfirmEmail ----------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION EventMessageConfirmEmail (
+  pObject		numeric default context_object(),
+  pForm		    jsonb default context_form()
+) RETURNS		void
+AS $$
+DECLARE
+  nUserId       numeric;
+  vCode			text;
+  vName			text;
+  vDomain       text;
+  vUserName     text;
+  vEmail		text;
+  vProject		text;
+  vHost         text;
+  vNoReply      text;
+  vSupport		text;
+  vSubject      text;
+  vText			text;
+  vHTML			text;
+  vBody			text;
+  vDescription  text;
+  bVerified		bool;
+BEGIN
+  SELECT userid INTO nUserId FROM db.client WHERE id = pObject;
+  IF nUserId IS NOT NULL THEN
+
+    IF pForm IS NOT NULL THEN
+	  UPDATE db.client SET email = pForm WHERE id = nUserId;
+	END IF;
+
+	SELECT username, name, email, email_verified, locale INTO vUserName, vName, vEmail, bVerified
+	  FROM db.user u INNER JOIN db.profile p ON u.id = p.userid AND u.type = 'U'
+	 WHERE id = nUserId;
+
+	IF vEmail IS NOT NULL AND NOT bVerified THEN
+
+	  vProject := (RegGetValue(RegOpenKey('CURRENT_CONFIG', 'CONFIG\CurrentProject'), 'Name')).vString;
+	  vHost := (RegGetValue(RegOpenKey('CURRENT_CONFIG', 'CONFIG\CurrentProject'), 'Host')).vString;
+	  vDomain := (RegGetValue(RegOpenKey('CURRENT_CONFIG', 'CONFIG\CurrentProject'), 'Domain')).vString;
+
+	  vCode := GetVerificationCode(NewVerificationCode(nUserId));
+
+	  vNoReply := format('noreply@%s', vDomain);
+	  vSupport := format('support@%s', vDomain);
+
+	  IF locale_code() = 'ru' THEN
+        vSubject := 'Подтвердите, пожалуйста, адрес Вашей электронной почты.';
+        vDescription := 'Подтверждение email: ' || vEmail;
+	  ELSE
+        vSubject := 'Please confirm your email address.';
+        vDescription := 'Confirm email: ' || vEmail;
+	  END IF;
+
+	  vText := GetConfirmEmailText(vName, vUserName, vCode, vProject, vHost, vSupport);
+	  vHTML := GetConfirmEmailHTML(vName, vUserName, vCode, vProject, vHost, vSupport);
+
+	  vBody := CreateMailBody(vProject, vNoReply, null, vEmail, vSubject, vText, vHTML);
+
+      PERFORM SendMail(pObject, vNoReply, vEmail, vSubject, vBody, vDescription);
+      PERFORM WriteToEventLog('M', 1110, vDescription, pObject);
+    END IF;
+  END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+--------------------------------------------------------------------------------
+-- EventMessageAccountInfo -----------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION EventMessageAccountInfo (
+  pObject		numeric default context_object()
+) RETURNS		void
+AS $$
+DECLARE
+  nUserId       numeric;
+  vSecret       text;
+  vName			text;
+  vDomain       text;
+  vUserName     text;
+  vEmail		text;
+  vProject		text;
+  vHost         text;
+  vNoReply      text;
+  vSupport		text;
+  vSubject      text;
+  vText			text;
+  vHTML			text;
+  vBody			text;
+  vDescription  text;
+  bVerified		bool;
+BEGIN
+  SELECT userid INTO nUserId FROM db.client WHERE id = pObject;
+  IF nUserId IS NOT NULL THEN
+
+	SELECT username, name, encode(hmac(secret::text, GetSecretKey(), 'sha512'), 'hex'), email, email_verified INTO vUserName, vName, vSecret, vEmail, bVerified
+	  FROM db.user u INNER JOIN db.profile p ON u.id = p.userid AND u.type = 'U'
+	 WHERE id = nUserId;
+
+	IF vEmail IS NOT NULL AND bVerified THEN
+	  vProject := (RegGetValue(RegOpenKey('CURRENT_CONFIG', 'CONFIG\CurrentProject'), 'Name')).vString;
+	  vHost := (RegGetValue(RegOpenKey('CURRENT_CONFIG', 'CONFIG\CurrentProject'), 'Host')).vString;
+	  vDomain := (RegGetValue(RegOpenKey('CURRENT_CONFIG', 'CONFIG\CurrentProject'), 'Domain')).vString;
+
+	  vNoReply := format('noreply@%s', vDomain);
+	  vSupport := format('support@%s', vDomain);
+
+	  IF locale_code() = 'ru' THEN
+        vSubject := 'Информация о Вашей учетной записи.';
+        vDescription := 'Информация об учетной записи: ' || vUserName;
+	  ELSE
+        vSubject := 'Your account information.';
+        vDescription := 'Account information: ' || vUserName;
+	  END IF;
+
+	  vText := GetAccountInfoText(vName, vUserName, vSecret, vProject, vSupport);
+	  vHTML := GetAccountInfoHTML(vName, vUserName, vSecret, vProject, vSupport);
+
+	  vBody := CreateMailBody(vProject, vNoReply, null, vEmail, vSubject, vText, vHTML);
+
+      PERFORM SendMail(pObject, vNoReply, vEmail, vSubject, vBody, vDescription);
+      PERFORM WriteToEventLog('M', 1110, vDescription, pObject);
+    END IF;
+  END IF;
+END;
+$$ LANGUAGE plpgsql;

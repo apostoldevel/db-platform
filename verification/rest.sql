@@ -85,6 +85,37 @@ BEGIN
 
     END IF;
 
+  WHEN '/verification/email/try' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['code']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(code text)
+      LOOP
+        FOR e IN SELECT * FROM api.confirm_verification_code('M', r.code)
+        LOOP
+          RETURN NEXT row_to_json(e);
+        END LOOP;
+      END LOOP;
+
+    ELSE
+
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(code text)
+      LOOP
+        FOR e IN SELECT * FROM api.confirm_verification_code('M', r.code)
+        LOOP
+          RETURN NEXT row_to_json(e);
+        END LOOP;
+      END LOOP;
+
+    END IF;
+
   WHEN '/verification/email/confirm' THEN
 
     IF pPayload IS NULL THEN
@@ -109,6 +140,37 @@ BEGIN
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(code text)
       LOOP
         FOR e IN SELECT * FROM api.confirm_verification_code('M', r.code)
+        LOOP
+          RETURN NEXT row_to_json(e);
+        END LOOP;
+      END LOOP;
+
+    END IF;
+
+  WHEN '/verification/phone/try' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['code']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(code text)
+      LOOP
+        FOR e IN SELECT * FROM api.confirm_verification_code('P', r.code)
+        LOOP
+          RETURN NEXT row_to_json(e);
+        END LOOP;
+      END LOOP;
+
+    ELSE
+
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(code text)
+      LOOP
+        FOR e IN SELECT * FROM api.confirm_verification_code('P', r.code)
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;

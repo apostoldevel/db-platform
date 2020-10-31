@@ -219,21 +219,6 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- SendMessage -----------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION SendMessage (
-  pId           numeric
-) RETURNS       void
-AS $$
-BEGIN
-  PERFORM ExecuteObjectAction(pId, GetAction('submit'));
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
 -- GetMessageId ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -462,6 +447,134 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- SendMessage -----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION SendMessage (
+  pParent       numeric,
+  pAgent        numeric,
+  pProfile      text,
+  pAddress      text,
+  pSubject      text,
+  pContent      text,
+  pDescription  text DEFAULT null,
+  pType         numeric DEFAULT GetType('message.outbox')
+) RETURNS	    numeric
+AS $$
+DECLARE
+  nMessageId    numeric;
+BEGIN
+  nMessageId := CreateMessage(pParent, pType, pAgent, pProfile, pAddress, pSubject, pContent, pDescription);
+  PERFORM ExecuteObjectAction(nMessageId, GetAction('submit'));
+  RETURN nMessageId;
+END
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- SendMessage -----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION SendMail (
+  pParent       numeric,
+  pProfile      text,
+  pAddress      text,
+  pSubject      text,
+  pContent      text,
+  pDescription  text DEFAULT null,
+  pAgent        numeric DEFAULT GetAgent('smtp.agent')
+) RETURNS	    numeric
+AS $$
+BEGIN
+  RETURN SendMessage(pParent, pAgent, pProfile, pAddress, pSubject, pContent, pDescription);
+END
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- SendSMS ---------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION SendSMS (
+  pParent       numeric,
+  pProfile      text,
+  pAddress      text,
+  pSubject      text,
+  pContent      text,
+  pDescription  text DEFAULT null,
+  pAgent        numeric DEFAULT GetAgent('m2m.agent')
+) RETURNS	    numeric
+AS $$
+BEGIN
+  RETURN SendMessage(pParent, pAgent, pProfile, pAddress, pSubject, pContent, pDescription);
+END
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- SendPush --------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION SendPush (
+  pParent       numeric,
+  pProfile      text,
+  pAddress      text,
+  pSubject      text,
+  pContent      text,
+  pDescription  text DEFAULT null,
+  pAgent        numeric DEFAULT GetAgent('fcm.agent')
+) RETURNS	    numeric
+AS $$
+BEGIN
+  RETURN SendMessage(pParent, pAgent, pProfile, pAddress, pSubject, pContent, pDescription);
+END
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- SendShortMessage ------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION SendShortMessage (
+  pParent       numeric,
+  pProfile      text,
+  pMessage      text,
+  pUserId       numeric DEFAULT current_userid()
+) RETURNS	    numeric
+AS $$
+DECLARE
+  nMessageId    numeric;
+
+  vCharSet      text;
+  vPhone        text;
+  vContent      text;
+
+  message       xml;
+BEGIN
+  vCharSet := coalesce(nullif(pg_client_encoding(), 'UTF8'), 'utf-8');
+
+  SELECT phone INTO vPhone FROM db.user WHERE id = pUserId;
+
+  IF vPhone IS NOT NULL THEN
+    message := xmlelement(name "soap12:Envelope", xmlattributes('http://www.w3.org/2001/XMLSchema-instance' AS "xmlns:xsi", 'http://www.w3.org/2001/XMLSchema' AS "xmlns:xsd", 'http://www.w3.org/2003/05/soap-envelope' AS "xmlns:soap12"), xmlelement(name "soap12:Body", xmlelement(name "SendMessage", xmlattributes('http://mcommunicator.ru/M2M' AS xmlns), xmlelement(name "msid", vPhone), xmlelement(name "message", pMessage), xmlelement(name "naming", pProfile))));
+    vContent := format('<?xml version="1.0" encoding="%s"?>', vCharSet) || xmlserialize(DOCUMENT message AS text);
+    nMessageId := SendSMS(pParent, pProfile, vPhone, 'SendMessage', vContent, pMessage);
+    PERFORM WriteToEventLog('M', 1111, format('SMS передано на отправку: %s', nMessageId), nMessageId);
+  ELSE
+    PERFORM WriteToEventLog('E', 3111, 'Не удалось отправить SMS, телефон не установлен.', pParent);
+  END IF;
+
+  RETURN nMessageId;
+END
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- SendPushMessage -------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -470,30 +583,31 @@ CREATE OR REPLACE FUNCTION SendPushMessage (
   pTitle        text,
   pBody         text,
   pUserId       numeric DEFAULT current_userid()
-) RETURNS	    void
+) RETURNS	    numeric
 AS $$
 DECLARE
   nMessageId    numeric;
 
-  projectId     text;
+  vProfile      text;
   token         text;
 
   message       jsonb;
   data          jsonb;
 BEGIN
-  projectId := (RegGetValue(RegOpenKey('CURRENT_CONFIG', 'CONFIG\Firebase'), 'ProjectId')).vstring;
+  vProfile := (RegGetValue(RegOpenKey('CURRENT_CONFIG', 'CONFIG\Firebase'), 'ProjectId')).vstring;
   token := (RegGetValue(RegOpenKey('CURRENT_USER', 'CONFIG\Firebase\CloudMessaging', pUserId), 'Token')).vstring;
 
   IF token IS NOT NULL THEN
     data := jsonb_build_object('title', pTitle, 'body', pBody);
     message := jsonb_build_object('message', jsonb_build_object('token', token, 'data', data));
 
-    nMessageId := CreateMessage(pParent, GetType('message.outbox'), GetAgent('fcm.agent'), projectId, GetUserName(pUserId), pTitle, message::text, pBody);
-    PERFORM SendMessage(nMessageId);
-    PERFORM WriteToEventLog('M', 1111, format('Push сообщение передано на отправку: %s', nMessageId), nMessageId);
+    nMessageId := SendPush(pParent, vProfile, GetUserName(pUserId), pTitle, message::text, pBody);
+    PERFORM WriteToEventLog('M', 1112, format('Push сообщение передано на отправку: %s', nMessageId), nMessageId);
   ELSE
-    PERFORM WriteToEventLog('E', 3111, 'Не удалось отправить Push сообщение, тоекн не установлен.');
+    PERFORM WriteToEventLog('E', 3112, 'Не удалось отправить Push сообщение, тоекн не установлен.', pParent);
   END IF;
+
+  RETURN nMessageId;
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
