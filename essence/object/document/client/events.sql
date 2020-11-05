@@ -13,8 +13,6 @@ AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1010, 'Клиент создан.', pObject);
 
-  PERFORM CreateContract(pObject, GetType('service.contract'), null, pObject, GetTariff('default.tariff'), 'Договор обслуживания');
-
   PERFORM ExecuteObjectAction(pObject, GetAction('enable'));
 END;
 $$ LANGUAGE plpgsql;

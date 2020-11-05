@@ -738,13 +738,26 @@ CREATE OR REPLACE VIEW Client (Id, Document, Code, Creation, UserId,
 AS
   SELECT c.id, c.document, c.code, c.creation, c.userid,
          n.name, n.short, n.last, n.first, n.middle,
-         c.phone, c.email, c.info, up.email_verified, up.phone_verified,
+         c.phone, c.email, c.info, p.email_verified, p.phone_verified,
          n.locale, l.code, l.name, l.description
-    FROM db.client c INNER JOIN db.locale l      ON l.id = current_locale()
+    FROM db.client c INNER JOIN db.locale      l ON l.id = current_locale()
                      INNER JOIN db.client_name n ON c.id = n.client AND n.locale = l.id AND n.validFromDate <= Now() AND n.validToDate > Now()
-                      LEFT JOIN db.profile up    ON c.userid = up.userid;
+                      LEFT JOIN db.profile     p ON c.userid = p.userid;
 
 GRANT SELECT ON Client TO administrator;
+
+--------------------------------------------------------------------------------
+-- AccessClient ----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW AccessClient
+AS
+  WITH RECURSIVE access AS (
+    SELECT * FROM AccessObjectUser(GetEssence('client'), current_userid())
+  )
+  SELECT c.* FROM Client c INNER JOIN access ac ON c.id = ac.object;
+
+GRANT SELECT ON AccessClient TO administrator;
 
 --------------------------------------------------------------------------------
 -- ObjectClient ----------------------------------------------------------------
@@ -780,6 +793,6 @@ AS
          d.owner, d.ownercode, d.ownername, d.created,
          d.oper, d.opercode, d.opername, d.operdate,
          d.area, d.areacode, d.areaname
-    FROM Client c INNER JOIN ObjectDocument d ON c.document = d.id;
+    FROM AccessClient c INNER JOIN ObjectDocument d ON c.document = d.id;
 
 GRANT SELECT ON ObjectClient TO administrator;

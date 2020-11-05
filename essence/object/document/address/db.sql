@@ -802,6 +802,19 @@ AS
 GRANT SELECT ON Address TO administrator;
 
 --------------------------------------------------------------------------------
+-- AccessAddress ---------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW AccessAddress
+AS
+  WITH RECURSIVE access AS (
+    SELECT * FROM AccessObjectUser(GetEssence('address'), current_userid())
+  )
+  SELECT a.* FROM Address a INNER JOIN access ac ON a.id = ac.object;
+
+GRANT SELECT ON AccessAddress TO administrator;
+
+--------------------------------------------------------------------------------
 -- ObjectAddress ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -828,7 +841,7 @@ CREATE OR REPLACE VIEW ObjectAddress (Id, Object, Parent,
          d.owner, d.ownercode, d.ownername, d.created,
          d.oper, d.opercode, d.opername, d.operdate,
          d.area, d.areacode, d.areaname, d.areadescription
-    FROM Address a INNER JOIN ObjectDocument d ON a.document = d.id;
+    FROM AccessAddress a INNER JOIN ObjectDocument d ON a.document = d.id;
 
 GRANT SELECT ON ObjectAddress TO administrator;
 

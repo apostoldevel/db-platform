@@ -168,16 +168,31 @@ CREATE OR REPLACE VIEW ObjectDocument (Id, Object, Parent,
   Area, AreaCode, AreaName, AreaDescription
 )
 AS
+  WITH RECURSIVE area_tree(id, parent) AS (
+    SELECT id, parent FROM db.area WHERE id = current_area()
+     UNION ALL
+    SELECT a.id, a.parent
+      FROM db.area a INNER JOIN area_tree t ON a.parent = t.id
+  )
   SELECT d.id, d.object, o.parent,
-         o.essence, o.essencecode, o.essencename,
-         o.class, o.classcode, o.classlabel,
-         o.type, o.typecode, o.typename, o.typedescription,
+         e.id, e.code, e.name,
+         c.id, c.code, c.label,
+         t.id, t.code, t.name, t.description,
          o.label, d.description,
-         o.statetype, o.statetypecode, o.statetypename,
-         o.state, o.statecode, o.statelabel, o.lastupdate,
-         o.owner, o.ownercode, o.ownername, o.created,
-         o.oper, o.opercode, o.opername, o.operdate,
-         d.area, d.areacode, d.areaname, d.areadescription
-    FROM Document d INNER JOIN Object o ON d.object = o.id;
+         o.state_type, st.code, st.name,
+         o.state, s.code, s.label, o.udate,
+         o.owner, w.username, w.name, o.pdate,
+         o.oper, u.username, u.name, o.ldate,
+         d.area, a.code, a.name, a.description
+    FROM db.document d INNER JOIN area_tree     at ON d.area = at.id
+                       INNER JOIN db.area        a ON d.area = a.id
+                       INNER JOIN db.essence     e ON d.essence = e.id
+                       INNER JOIN db.class_tree  c ON d.class = c.id
+                       INNER JOIN db.object      o ON d.object = o.id
+                       INNER JOIN db.type        t ON o.type = t.id
+                       INNER JOIN db.state_type st ON o.state_type = st.id
+                       INNER JOIN db.state       s ON o.state = s.id
+                       INNER JOIN db.user        w ON o.owner = w.id
+                       INNER JOIN db.user        u ON o.oper = u.id;
 
 GRANT SELECT ON ObjectDocument TO administrator;

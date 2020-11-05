@@ -182,6 +182,19 @@ AS
 GRANT SELECT ON Scheduler TO administrator;
 
 --------------------------------------------------------------------------------
+-- AccessScheduler -------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW AccessScheduler
+AS
+  WITH RECURSIVE access AS (
+    SELECT * FROM AccessObjectUser(GetEssence('scheduler'), current_userid())
+  )
+  SELECT s.* FROM Scheduler s INNER JOIN access ac ON s.id = ac.object;
+
+GRANT SELECT ON AccessScheduler TO administrator;
+
+--------------------------------------------------------------------------------
 -- ObjectScheduler -------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -197,16 +210,16 @@ CREATE OR REPLACE VIEW ObjectScheduler (Id, Object, Parent,
   Oper, OperCode, OperName, OperDate
 )
 AS
-  SELECT t.id, r.object, r.parent,
+  SELECT s.id, r.object, r.parent,
          r.essence, r.essencecode, r.essencename,
          r.class, r.classcode, r.classlabel,
          r.type, r.typecode, r.typename, r.typedescription,
          r.code, r.name, r.label, r.description,
-         t.period, t.datenext, t.datestart, t.datestop,
+         s.period, s.datenext, s.datestart, s.datestop,
          r.statetype, r.statetypecode, r.statetypename,
          r.state, r.statecode, r.statelabel, r.lastupdate,
          r.owner, r.ownercode, r.ownername, r.created,
          r.oper, r.opercode, r.opername, r.operdate
-    FROM db.scheduler t INNER JOIN ObjectReference r ON t.reference = r.id;
+    FROM AccessScheduler s INNER JOIN ObjectReference r ON s.reference = r.id;
 
 GRANT SELECT ON ObjectScheduler TO administrator;

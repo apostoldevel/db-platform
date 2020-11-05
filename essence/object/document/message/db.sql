@@ -288,6 +288,19 @@ AS
 GRANT SELECT ON Message TO administrator;
 
 --------------------------------------------------------------------------------
+-- AccessMessage ---------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW AccessMessage
+AS
+  WITH RECURSIVE access AS (
+    SELECT * FROM AccessObjectUser(GetEssence('message'), current_userid())
+  )
+  SELECT m.* FROM Message m INNER JOIN access ac ON m.id = ac.object;
+
+GRANT SELECT ON AccessMessage TO administrator;
+
+--------------------------------------------------------------------------------
 -- ObjectMessage ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -317,7 +330,7 @@ AS
          d.owner, d.ownercode, d.ownername, d.created,
          d.oper, d.opercode, d.opername, d.operdate,
          d.area, d.areacode, d.areaname, d.areadescription
-    FROM Message m INNER JOIN ObjectDocument d ON m.document = d.id;
+    FROM AccessMessage m INNER JOIN ObjectDocument d ON m.document = d.id;
 
 GRANT SELECT ON ObjectMessage TO administrator;
 

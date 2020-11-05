@@ -492,6 +492,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AccessObjectUser (
+  pEssence	numeric,
   pUserId	numeric DEFAULT current_userid()
 ) RETURNS TABLE (
     object  numeric
@@ -502,6 +503,7 @@ AS $$
   )
   SELECT a.object
     FROM db.aou a INNER JOIN membergroup m ON a.userid = m.userid
+   WHERE a.essence = pEssence
    GROUP BY a.object
   HAVING bit_or(a.mask) & B'100' = B'100'
 $$ LANGUAGE SQL
@@ -522,26 +524,22 @@ CREATE OR REPLACE VIEW Object (Id, Parent,
   Owner, OwnerCode, OwnerName, Created,
   Oper, OperCode, OperName, OperDate
 ) AS
-WITH access AS (
-  SELECT * FROM AccessObjectUser(current_userid())
-)
   SELECT o.id, o.parent,
          e.id, e.code, e.name,
          c.id, c.code, c.label,
          t.id, t.code, t.name, t.description,
          o.label,
-         p.id, p.code, p.name,
+         o.state_type, st.code, st.name,
          o.state, s.code, s.label, o.udate,
          o.owner, w.username, w.name, o.pdate,
          o.oper, u.username, u.name, o.ldate
-    FROM db.object o INNER JOIN access        a ON o.id = a.object
-                     INNER JOIN db.essence    e ON o.essence = e.id
-                     INNER JOIN db.class_tree c ON o.class = c.id
-                     INNER JOIN db.type       t ON o.type = t.id
-                     INNER JOIN db.state_type p ON o.state_type = p.id
-                     INNER JOIN db.state      s ON o.state = s.id
-                     INNER JOIN db.user       w ON o.owner = w.id AND w.type = 'U'
-                     INNER JOIN db.user       u ON o.oper = u.id AND u.type = 'U';
+    FROM db.object o INNER JOIN db.essence     e ON o.essence = e.id
+                     INNER JOIN db.class_tree  c ON o.class = c.id
+                     INNER JOIN db.type        t ON o.type = t.id
+                     INNER JOIN db.state_type st ON o.state_type = st.id
+                     INNER JOIN db.state       s ON o.state = s.id
+                     INNER JOIN db.user        w ON o.owner = w.id
+                     INNER JOIN db.user        u ON o.oper = u.id;
 
 GRANT SELECT ON Object TO administrator;
 

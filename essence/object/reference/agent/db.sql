@@ -175,6 +175,19 @@ AS
 GRANT SELECT ON Agent TO administrator;
 
 --------------------------------------------------------------------------------
+-- AccessAgent -----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW AccessAgent
+AS
+  WITH RECURSIVE access AS (
+    SELECT * FROM AccessObjectUser(GetEssence('agent'), current_userid())
+  )
+  SELECT a.* FROM Agent a INNER JOIN access ac ON a.id = ac.object;
+
+GRANT SELECT ON AccessAgent TO administrator;
+
+--------------------------------------------------------------------------------
 -- ObjectAgent -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -200,6 +213,6 @@ AS
          r.state, r.statecode, r.statelabel, r.lastupdate,
          r.owner, r.ownercode, r.ownername, r.created,
          r.oper, r.opercode, r.opername, r.operdate
-    FROM Agent a INNER JOIN ObjectReference r ON a.reference = r.id;
+    FROM AccessAgent a INNER JOIN ObjectReference r ON a.reference = r.id;
 
 GRANT SELECT ON ObjectAgent TO administrator;

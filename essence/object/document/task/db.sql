@@ -266,10 +266,23 @@ AS
          t.executor, c.code, c.fullname
     FROM db.task t INNER JOIN calendar rc ON t.calendar = rc.id
                    INNER JOIN scheduler s ON t.scheduler = s.id
-                    LEFT JOIN program p ON t.program = p.id
-                    LEFT JOIN client c ON t.executor = c.id;
+                    LEFT JOIN program   p ON t.program = p.id
+                    LEFT JOIN client    c ON t.executor = c.id;
 
 GRANT SELECT ON Task TO administrator;
+
+--------------------------------------------------------------------------------
+-- AccessTask ------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW AccessTask
+AS
+  WITH RECURSIVE access AS (
+    SELECT * FROM AccessObjectUser(GetEssence('task'), current_userid())
+  )
+  SELECT t.* FROM Task t INNER JOIN access ac ON t.id = ac.object;
+
+GRANT SELECT ON AccessTask TO administrator;
 
 --------------------------------------------------------------------------------
 -- ObjectTask ------------------------------------------------------------------
@@ -307,6 +320,6 @@ AS
          d.owner, d.ownercode, d.ownername, d.created,
          d.oper, d.opercode, d.opername, d.operdate,
          d.area, d.areacode, d.areaname, d.areadescription
-    FROM Task t INNER JOIN ObjectDocument d ON t.document = d.id;
+    FROM AccessTask t INNER JOIN ObjectDocument d ON t.document = d.id;
 
 GRANT SELECT ON ObjectTask TO administrator;

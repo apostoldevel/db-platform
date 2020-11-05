@@ -239,7 +239,7 @@ BEGIN
 	END IF;
 
 	SELECT username, name, email, email_verified, locale INTO vUserName, vName, vEmail, bVerified
-	  FROM db.user u INNER JOIN db.profile p ON u.id = p.userid AND u.type = 'U'
+	  FROM db.user u INNER JOIN db.profile p ON u.id = p.userid
 	 WHERE id = nUserId;
 
 	IF vEmail IS NOT NULL AND NOT bVerified THEN
@@ -303,7 +303,7 @@ BEGIN
   IF nUserId IS NOT NULL THEN
 
 	SELECT username, name, encode(hmac(secret::text, GetSecretKey(), 'sha512'), 'hex'), email, email_verified INTO vUserName, vName, vSecret, vEmail, bVerified
-	  FROM db.user u INNER JOIN db.profile p ON u.id = p.userid AND u.type = 'U'
+	  FROM db.user u INNER JOIN db.profile p ON u.id = p.userid
 	 WHERE id = nUserId;
 
 	IF vEmail IS NOT NULL AND bVerified THEN

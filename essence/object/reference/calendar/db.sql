@@ -231,6 +231,19 @@ AS
 GRANT SELECT ON Calendar TO administrator;
 
 --------------------------------------------------------------------------------
+-- AccessCalendar --------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW AccessCalendar
+AS
+  WITH RECURSIVE access AS (
+    SELECT * FROM AccessObjectUser(GetEssence('calendar'), current_userid())
+  )
+  SELECT c.* FROM Calendar c INNER JOIN access ac ON c.id = ac.object;
+
+GRANT SELECT ON AccessCalendar TO administrator;
+
+--------------------------------------------------------------------------------
 -- ObjectCalendar --------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -251,12 +264,12 @@ AS
          r.class, r.classcode, r.classlabel,
          r.type, r.typecode, r.typename, r.typedescription,
          r.code, r.name, r.label, r.description,
-         c.week, c.dayoff, c.holiday, c.work_start, c.work_count, c.rest_start, c.rest_count,
+         c.week, c.dayoff, c.holiday, c.workstart, c.workcount, c.reststart, c.restcount,
          r.statetype, r.statetypecode, r.statetypename,
          r.state, r.statecode, r.statelabel, r.lastupdate,
          r.owner, r.ownercode, r.ownername, r.created,
          r.oper, r.opercode, r.opername, r.operdate
-    FROM db.calendar c INNER JOIN ObjectReference r ON c.reference = r.id;
+    FROM AccessCalendar c INNER JOIN ObjectReference r ON c.reference = r.id;
 
 GRANT SELECT ON ObjectCalendar TO administrator;
 

@@ -211,14 +211,21 @@ CREATE OR REPLACE VIEW ObjectReference (Id, Object, Parent,
 )
 AS
   SELECT r.id, r.object, o.parent,
-         o.essence, o.essencecode, o.essencename,
-         o.class, o.classcode, o.classlabel,
-         o.type, o.typecode, o.typename, o.typedescription,
+         e.id, e.code, e.name,
+         c.id, c.code, c.label,
+         t.id, t.code, t.name, t.description,
          r.code, r.name, o.label, r.description,
-         o.statetype, o.statetypecode, o.statetypename,
-         o.state, o.statecode, o.statelabel, o.lastupdate,
-         o.owner, o.ownercode, o.ownername, o.created,
-         o.oper, o.opercode, o.opername, o.operdate
-    FROM Reference r INNER JOIN Object o ON r.object = o.id;
+         p.id, p.code, p.name,
+         o.state, s.code, s.label, o.udate,
+         o.owner, w.username, w.name, o.pdate,
+         o.oper, u.username, u.name, o.ldate
+    FROM db.reference r INNER JOIN db.essence    e ON r.essence = e.id
+                        INNER JOIN db.class_tree c ON r.class = c.id
+                        INNER JOIN db.object     o ON r.object = o.id
+                        INNER JOIN db.type       t ON o.type = t.id
+                        INNER JOIN db.state_type p ON o.state_type = p.id
+                        INNER JOIN db.state      s ON o.state = s.id
+                        INNER JOIN db.user       w ON o.owner = w.id
+                        INNER JOIN db.user       u ON o.oper = u.id;
 
 GRANT SELECT ON ObjectReference TO administrator;

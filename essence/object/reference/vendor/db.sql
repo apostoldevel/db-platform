@@ -67,8 +67,8 @@ DECLARE
 BEGIN
   nReference := CreateReference(pParent, pType, pCode, pName, pDescription);
 
-  INSERT INTO db.vendor (reference)
-  VALUES (nReference);
+  INSERT INTO db.vendor (id, reference)
+  VALUES (nReference, nReference);
 
   SELECT class INTO nClass FROM db.type WHERE id = pType;
 
@@ -139,10 +139,23 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE VIEW Vendor (Id, Reference, Code, Name, Description)
 AS
-  SELECT c.id, c.reference, d.code, d.name, d.description
-    FROM db.vendor c INNER JOIN db.reference d ON c.reference = d.id;
+  SELECT v.id, v.reference, d.code, d.name, d.description
+    FROM db.vendor v INNER JOIN db.reference d ON v.reference = d.id;
 
 GRANT SELECT ON Vendor TO administrator;
+
+--------------------------------------------------------------------------------
+-- AccessVendor ----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW AccessVendor
+AS
+  WITH RECURSIVE access AS (
+    SELECT * FROM AccessObjectUser(GetEssence('vendor'), current_userid())
+  )
+  SELECT v.* FROM Vendor v INNER JOIN access ac ON v.id = ac.object;
+
+GRANT SELECT ON AccessVendor TO administrator;
 
 --------------------------------------------------------------------------------
 -- ObjectVendor ----------------------------------------------------------------
@@ -159,7 +172,7 @@ CREATE OR REPLACE VIEW ObjectVendor (Id, Object, Parent,
   Oper, OperCode, OperName, OperDate
 )
 AS
-  SELECT t.id, r.object, r.parent,
+  SELECT v.id, r.object, r.parent,
          r.essence, r.essencecode, r.essencename,
          r.class, r.classcode, r.classlabel,
          r.type, r.typecode, r.typename, r.typedescription,
@@ -168,6 +181,6 @@ AS
          r.state, r.statecode, r.statelabel, r.lastupdate,
          r.owner, r.ownercode, r.ownername, r.created,
          r.oper, r.opercode, r.opername, r.operdate
-    FROM db.vendor t INNER JOIN ObjectReference r ON t.reference = r.id;
+    FROM AccessVendor v INNER JOIN ObjectReference r ON v.reference = r.id;
 
 GRANT SELECT ON ObjectVendor TO administrator;

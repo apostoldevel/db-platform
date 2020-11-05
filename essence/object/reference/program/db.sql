@@ -171,6 +171,19 @@ AS
 GRANT SELECT ON Program TO administrator;
 
 --------------------------------------------------------------------------------
+-- AccessProgram ---------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW AccessProgram
+AS
+  WITH RECURSIVE access AS (
+    SELECT * FROM AccessObjectUser(GetEssence('program'), current_userid())
+  )
+  SELECT p.* FROM Program p INNER JOIN access ac ON p.id = ac.object;
+
+GRANT SELECT ON AccessProgram TO administrator;
+
+--------------------------------------------------------------------------------
 -- ObjectProgram ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -194,6 +207,6 @@ AS
          r.state, r.statecode, r.statelabel, r.lastupdate,
          r.owner, r.ownercode, r.ownername, r.created,
          r.oper, r.opercode, r.opername, r.operdate
-    FROM Program p INNER JOIN ObjectReference r ON p.reference = r.id;
+    FROM AccessProgram p INNER JOIN ObjectReference r ON p.reference = r.id;
 
 GRANT SELECT ON ObjectProgram TO administrator;
