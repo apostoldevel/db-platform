@@ -35,8 +35,8 @@ CREATE OR REPLACE FUNCTION ft_calendar_insert()
 RETURNS trigger AS $$
 DECLARE
 BEGIN
-  IF NEW.ID IS NULL OR NEW.ID = 0 THEN
-    SELECT NEW.REFERENCE INTO NEW.ID;
+  IF NULLIF(NEW.id, 0) IS NULL THEN
+    SELECT NEW.reference INTO NEW.id;
   END IF;
 
   RETURN NEW;
@@ -144,7 +144,7 @@ $$ LANGUAGE plpgsql
 -- EditCalendar ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Меняет календарь
+ * Редактирует календарь
  * @param {numeric} pId - Идентификатор
  * @param {numeric} pParent - Идентификатор объекта родителя
  * @param {numeric} pType - Идентификатор типа
@@ -226,7 +226,7 @@ CREATE OR REPLACE VIEW Calendar (Id, Reference, Code, Name, Description,
 AS
   SELECT c.id, c.reference, d.code, d.name, d.description,
          c.week, c.dayoff, c.holiday, c.work_start, c.work_count, c.rest_start, c.rest_count
-    FROM db.calendar c INNER JOIN db.reference d ON d.id = c.reference;
+    FROM db.calendar c INNER JOIN db.reference d ON c.reference = d.id;
 
 GRANT SELECT ON Calendar TO administrator;
 
@@ -256,7 +256,7 @@ AS
          r.state, r.statecode, r.statelabel, r.lastupdate,
          r.owner, r.ownercode, r.ownername, r.created,
          r.oper, r.opercode, r.opername, r.operdate
-    FROM db.calendar c INNER JOIN ObjectReference r ON r.id = c.reference;
+    FROM db.calendar c INNER JOIN ObjectReference r ON c.reference = r.id;
 
 GRANT SELECT ON ObjectCalendar TO administrator;
 
@@ -427,8 +427,8 @@ AS
   SELECT d.id, d.calendar, c.code AS calendarcode, c.name AS calendarname, c.description AS calendardesc, 
          d.userid, u.username, u.name AS userfullname,
          d.date, d.label, d.workstart, d.workstop, d.workcount, d.reststart, d.restcount, d.flag
-    FROM calendar_date d INNER JOIN Calendar c ON c.id = d.calendar
-                          LEFT JOIN db.user u ON u.id = d.userid AND u.type = 'U';
+    FROM calendar_date d INNER JOIN Calendar c ON d.calendar = c.id
+                          LEFT JOIN db.user u ON d.userid = u.id AND u.type = 'U';
 
 GRANT SELECT ON CalendarDate TO administrator;
 

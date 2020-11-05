@@ -1,34 +1,47 @@
 --------------------------------------------------------------------------------
--- AGENT -----------------------------------------------------------------------
+-- SCHEDULER -------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
--- db.agent --------------------------------------------------------------------
+-- db.scheduler ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE TABLE db.agent (
+CREATE TABLE db.scheduler (
     id			    numeric(12) PRIMARY KEY,
     reference		numeric(12) NOT NULL,
-    vendor          numeric(12) NOT NULL,
-    CONSTRAINT fk_agent_reference FOREIGN KEY (reference) REFERENCES db.reference(id)
+    period          interval,
+    dateNext        timestamptz,
+    dateStart       timestamptz DEFAULT Now() NOT NULL,
+    dateStop        timestamptz DEFAULT TO_DATE('4433-12-31', 'YYYY-MM-DD') NOT NULL,
+    CONSTRAINT fk_scheduler_reference FOREIGN KEY (reference) REFERENCES db.reference(id)
 );
 
-COMMENT ON TABLE db.agent IS 'Агент.';
+COMMENT ON TABLE db.scheduler IS 'Планировщик.';
 
-COMMENT ON COLUMN db.agent.id IS 'Идентификатор.';
-COMMENT ON COLUMN db.agent.reference IS 'Справочник.';
-COMMENT ON COLUMN db.agent.vendor IS 'Производитель (поставщик).';
+COMMENT ON COLUMN db.scheduler.id IS 'Идентификатор.';
+COMMENT ON COLUMN db.scheduler.reference IS 'Справочник.';
+COMMENT ON COLUMN db.scheduler.period IS 'Период выполнения.';
+COMMENT ON COLUMN db.scheduler.dateNext IS 'Дата следующего выполнения.';
+COMMENT ON COLUMN db.scheduler.dateStart IS 'Дата начала выполнения.';
+COMMENT ON COLUMN db.scheduler.dateStop IS 'Дата окончания выполнения.';
 
-CREATE INDEX ON db.agent (reference);
+CREATE INDEX ON db.scheduler (reference);
+
+CREATE INDEX ON db.scheduler (dateNext);
+CREATE INDEX ON db.scheduler (dateStart, dateStop);
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION ft_agent_insert()
+CREATE OR REPLACE FUNCTION ft_scheduler_insert()
 RETURNS trigger AS $$
 DECLARE
 BEGIN
   IF NULLIF(NEW.id, 0) IS NULL THEN
     SELECT NEW.reference INTO NEW.id;
+  END IF;
+
+  IF NEW.dateNext IS NULL THEN
+    NEW.dateNext := NEW.dateStart + coalesce(NEW.period, 0);
   END IF;
 
   RETURN NEW;
@@ -37,30 +50,36 @@ $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
-CREATE TRIGGER t_agent_insert
-  BEFORE INSERT ON db.agent
+CREATE TRIGGER t_scheduler_insert
+  BEFORE INSERT ON db.scheduler
   FOR EACH ROW
-  EXECUTE PROCEDURE ft_agent_insert();
+  EXECUTE PROCEDURE ft_scheduler_insert();
 
 --------------------------------------------------------------------------------
--- CreateAgent -----------------------------------------------------------------
+-- CreateScheduler -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Создаёт агента
+ * Создаёт планировщик
  * @param {numeric} pParent - Идентификатор объекта родителя
  * @param {numeric} pType - Идентификатор типа
  * @param {varchar} pCode - Код
  * @param {varchar} pName - Наименование
- * @param {numeric} pVendor - Производитель
+ * @param {interval} pPeriod - Период выполнения
+ * @param {timestamptz} pDateNext - Дата следующего выполнения
+ * @param {timestamptz} pDateStart - Дата начала выполнения
+ * @param {timestamptz} pDateStop - Дата окончания выполнения
  * @param {text} pDescription - Описание
  * @return {numeric}
  */
-CREATE OR REPLACE FUNCTION CreateAgent (
+CREATE OR REPLACE FUNCTION CreateScheduler (
   pParent       numeric,
   pType         numeric,
   pCode         varchar,
   pName         varchar,
-  pVendor       numeric,
+  pPeriod       interval default null,
+  pDateNext     timestamptz default null,
+  pDateStart    timestamptz default null,
+  pDateStop     timestamptz default null,
   pDescription	text default null
 ) RETURNS       numeric
 AS $$
@@ -71,15 +90,12 @@ DECLARE
 BEGIN
   nReference := CreateReference(pParent, pType, pCode, pName, pDescription);
 
-  INSERT INTO db.agent (reference, vendor)
-  VALUES (nReference, pVendor);
+  INSERT INTO db.scheduler (id, reference, period, dateNext, dateStart, dateStop)
+  VALUES (nReference, nReference, pPeriod, pDateNext, pDateStart, pDateStop);
 
   SELECT class INTO nClass FROM db.type WHERE id = pType;
 
   nMethod := GetMethod(nClass, null, GetAction('create'));
-  PERFORM ExecuteMethod(nReference, nMethod);
-
-  nMethod := GetMethod(nClass, null, GetAction('enable'));
   PERFORM ExecuteMethod(nReference, nMethod);
 
   RETURN nReference;
@@ -89,26 +105,28 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- EditAgent -------------------------------------------------------------------
+-- EditScheduler ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Редактирует агента
+ * Редактирует планировщик
  * @param {numeric} pId - Идентификатор
  * @param {numeric} pParent - Идентификатор объекта родителя
  * @param {numeric} pType - Идентификатор типа
  * @param {varchar} pCode - Код
  * @param {varchar} pName - Наименование
- * @param {numeric} pVendor - Производитель
  * @param {text} pDescription - Описание
  * @return {void}
  */
-CREATE OR REPLACE FUNCTION EditAgent (
+CREATE OR REPLACE FUNCTION EditScheduler (
   pId           numeric,
-  pParent       numeric default null,
-  pType         numeric default null,
-  pCode         varchar default null,
-  pName         varchar default null,
-  pVendor       numeric default null,
+  pParent       numeric,
+  pType         numeric,
+  pCode         varchar,
+  pName         varchar,
+  pPeriod       interval default null,
+  pDateNext     timestamptz default null,
+  pDateStart    timestamptz default null,
+  pDateStop     timestamptz default null,
   pDescription	text default null
 ) RETURNS       void
 AS $$
@@ -118,8 +136,11 @@ DECLARE
 BEGIN
   PERFORM EditReference(pId, pParent, pType, pCode, pName, pDescription);
 
-  UPDATE db.agent
-     SET vendor = coalesce(pVendor, vendor)
+  UPDATE db.scheduler
+     SET period = coalesce(pPeriod, period),
+         dateNext = coalesce(pDateNext, dateNext),
+         dateStart = coalesce(pDateStart, dateStart),
+         dateStop = coalesce(pDateStop, dateStop)
    WHERE id = pId;
 
   SELECT class INTO nClass FROM db.object WHERE id = pId;
@@ -132,74 +153,60 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- FUNCTION GetAgent -----------------------------------------------------------
+-- FUNCTION GetScheduler -------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION GetAgent (
+CREATE OR REPLACE FUNCTION GetScheduler (
   pCode		varchar
 ) RETURNS 	numeric
 AS $$
 BEGIN
-  RETURN GetReference(pCode, 'agent');
+  RETURN GetReference(pCode, 'scheduler');
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- FUNCTION GetAgentVendor -----------------------------------------------------
+-- Scheduler -------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION GetAgentVendor (
-  pId       numeric
-) RETURNS 	numeric
-AS $$
-  SELECT vendor FROM db.agent WHERE id = pId;
-$$ LANGUAGE SQL
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- Agent -----------------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE VIEW Agent (Id, Reference, Code, Name, Description,
-    Vendor, VendorCode, VendorName, VendorDescription
+CREATE OR REPLACE VIEW Scheduler (Id, Reference, Code, Name, Description,
+  Period, DateNext, DateStart, DateStop
 )
 AS
-  SELECT a.id, a.reference, mr.code, mr.name, mr.description, a.vendor,
-         vr.code, vr.name, vr.description
-    FROM db.agent a INNER JOIN db.reference mr ON a.reference = mr.id
-                    INNER JOIN db.reference vr ON a.vendor = vr.id;
+  SELECT s.id, s.reference, d.code, d.name, d.description,
+         s.period, s.dateNext, s.dateStart, s.dateStop
+    FROM db.scheduler s INNER JOIN db.reference d ON s.reference = d.id;
 
-GRANT SELECT ON Agent TO administrator;
+GRANT SELECT ON Scheduler TO administrator;
 
 --------------------------------------------------------------------------------
--- ObjectAgent -----------------------------------------------------------------
+-- ObjectScheduler -------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW ObjectAgent (Id, Object, Parent,
+CREATE OR REPLACE VIEW ObjectScheduler (Id, Object, Parent,
   Essence, EssenceCode, EssenceName,
   Class, ClassCode, ClassLabel,
   Type, TypeCode, TypeName, TypeDescription,
   Code, Name, Label, Description,
-  Vendor, VendorCode, VendorName, VendorDescription,
+  Period, DateNext, DateStart, DateStop,
   StateType, StateTypeCode, StateTypeName,
   State, StateCode, StateLabel, LastUpdate,
   Owner, OwnerCode, OwnerName, Created,
   Oper, OperCode, OperName, OperDate
 )
 AS
-  SELECT a.id, r.object, r.parent,
+  SELECT t.id, r.object, r.parent,
          r.essence, r.essencecode, r.essencename,
          r.class, r.classcode, r.classlabel,
          r.type, r.typecode, r.typename, r.typedescription,
          r.code, r.name, r.label, r.description,
-         a.vendor, a.vendorcode, a.vendorname, a.vendordescription,
+         t.period, t.datenext, t.datestart, t.datestop,
          r.statetype, r.statetypecode, r.statetypename,
          r.state, r.statecode, r.statelabel, r.lastupdate,
          r.owner, r.ownercode, r.ownername, r.created,
          r.oper, r.opercode, r.opername, r.operdate
-    FROM Agent a INNER JOIN ObjectReference r ON a.reference = r.id;
+    FROM db.scheduler t INNER JOIN ObjectReference r ON t.reference = r.id;
 
-GRANT SELECT ON ObjectAgent TO administrator;
+GRANT SELECT ON ObjectScheduler TO administrator;

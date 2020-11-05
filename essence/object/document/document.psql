@@ -12,3 +12,5 @@
 
 \ir './address/address.psql'
 \ir './message/message.psql'
+\ir './client/client.psql'
+\ir './task/task.psql'

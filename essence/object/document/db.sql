@@ -136,19 +136,19 @@ $$ LANGUAGE plpgsql
 -- Document --------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW Document (Id, Object, Class, Area, Description,
-  AreaCode, AreaName
+CREATE OR REPLACE VIEW Document (Id, Object, Essence, Class, Area, Description,
+  AreaCode, AreaName, AreaDescription
 ) AS
   WITH RECURSIVE area_tree(id, parent) AS (
     SELECT id, parent FROM db.area WHERE id = current_area()
      UNION ALL
     SELECT a.id, a.parent
-      FROM db.area a, area_tree t
-     WHERE t.id = a.parent
+      FROM db.area a INNER JOIN area_tree t ON a.parent = t.id
   )
-  SELECT d.id, d.object, d.class, d.area, d.description, a.code, a.name
+  SELECT d.id, d.object, d.essence, d.class, d.area, d.description,
+         a.code, a.name, a.description
     FROM db.document d INNER JOIN area_tree t ON d.area = t.id
-                       INNER JOIN db.area a ON a.id = d.area;
+                       INNER JOIN db.area a ON d.area = a.id;
 
 GRANT SELECT ON Document TO administrator;
 
@@ -165,7 +165,7 @@ CREATE OR REPLACE VIEW ObjectDocument (Id, Object, Parent,
   State, StateCode, StateLabel, LastUpdate,
   Owner, OwnerCode, OwnerName, Created,
   Oper, OperCode, OperName, OperDate,
-  Area, AreaCode, AreaName
+  Area, AreaCode, AreaName, AreaDescription
 )
 AS
   SELECT d.id, d.object, o.parent,
@@ -177,7 +177,7 @@ AS
          o.state, o.statecode, o.statelabel, o.lastupdate,
          o.owner, o.ownercode, o.ownername, o.created,
          o.oper, o.opercode, o.opername, o.operdate,
-         d.area, d.areacode, d.areaname
-    FROM Document d INNER JOIN Object o ON o.id = d.object;
+         d.area, d.areacode, d.areaname, d.areadescription
+    FROM Document d INNER JOIN Object o ON d.object = o.id;
 
 GRANT SELECT ON ObjectDocument TO administrator;

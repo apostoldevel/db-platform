@@ -115,14 +115,12 @@ DECLARE
   nMessage      numeric;
   nDocument     numeric;
 
-  vEssenceCode  varchar;
-
   nClass        numeric;
   nMethod       numeric;
 BEGIN
-  SELECT class, essencecode INTO nClass, vEssenceCode FROM type WHERE id = pType;
+  SELECT class INTO nClass FROM db.type WHERE id = pType;
 
-  IF nClass IS null OR vEssenceCode <> 'message' THEN
+  IF GetEssenceCode(nClass) <> 'message' THEN
     PERFORM IncorrectClassType();
   END IF;
 
@@ -145,7 +143,7 @@ $$ LANGUAGE plpgsql
 -- EditMessage -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Меняет сообщение.
+ * Редактирует сообщение.
  * @param {numeric} pId - Идентификатор
  * @param {numeric} pParent - Родительский объект
  * @param {numeric} pType - Тип
@@ -283,9 +281,9 @@ AS
          o.type, t.code, t.name, t.description,
          m.agent, ra.code, ra.name, ra.description,
          m.code, m.profile, m.address, m.subject, m.content
-    FROM db.message m INNER JOIN db.reference ra ON ra.id = m.agent
-                      INNER JOIN db.object o ON o.id = ra.object
-                      INNER JOIN db.type t ON t.id = o.type;
+    FROM db.message m INNER JOIN db.reference ra ON m.agent = ra.id
+                      INNER JOIN db.object o ON ra.object = o.id
+                      INNER JOIN db.type t ON o.type = t.id;
 
 GRANT SELECT ON Message TO administrator;
 
@@ -304,7 +302,7 @@ CREATE OR REPLACE VIEW ObjectMessage (Id, Object, Parent,
   State, StateCode, StateLabel, LastUpdate,
   Owner, OwnerCode, OwnerName, Created,
   Oper, OperCode, OperName, OperDate,
-  Area, AreaCode, AreaName
+  Area, AreaCode, AreaName, AreaDescription
 )
 AS
   SELECT m.id, d.object, d.parent,
@@ -318,8 +316,8 @@ AS
          d.state, d.statecode, d.statelabel, d.lastupdate,
          d.owner, d.ownercode, d.ownername, d.created,
          d.oper, d.opercode, d.opername, d.operdate,
-         d.area, d.areacode, d.areaname
-    FROM Message m INNER JOIN ObjectDocument d ON d.id = m.document;
+         d.area, d.areacode, d.areaname, d.areadescription
+    FROM Message m INNER JOIN ObjectDocument d ON m.document = d.id;
 
 GRANT SELECT ON ObjectMessage TO administrator;
 

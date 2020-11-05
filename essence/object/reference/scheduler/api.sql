@@ -1,152 +1,172 @@
 --------------------------------------------------------------------------------
--- VENDOR ----------------------------------------------------------------------
+-- SCHEDULER -------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
--- api.vendor ------------------------------------------------------------------
+-- api.scheduler ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW api.vendor
+CREATE OR REPLACE VIEW api.scheduler
 AS
-  SELECT * FROM ObjectVendor;
+  SELECT * FROM ObjectScheduler;
 
-GRANT SELECT ON api.vendor TO administrator;
+GRANT SELECT ON api.scheduler TO administrator;
 
 --------------------------------------------------------------------------------
--- api.add_vendor --------------------------------------------------------------
+-- api.add_scheduler -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Добавляет производителя.
+ * Добавляет планировщик.
  * @param {numeric} pParent - Ссылка на родительский объект: api.document | null
- * @param {varchar} pType - Тип
+ * @param {varchar} pType - Код типа
  * @param {varchar} pCode - Код
  * @param {varchar} pName - Наименование
+ * @param {interval} pPeriod - Период выполнения
+ * @param {timestamptz} pDateNext - Дата следующего выполнения
+ * @param {timestamptz} pDateStart - Дата начала выполнения
+ * @param {timestamptz} pDateStop - Дата окончания выполнения
  * @param {text} pDescription - Описание
  * @return {numeric}
  */
-CREATE OR REPLACE FUNCTION api.add_vendor (
+CREATE OR REPLACE FUNCTION api.add_scheduler (
   pParent       numeric,
   pType         varchar,
   pCode         varchar,
   pName         varchar,
+  pPeriod       interval default null,
+  pDateNext     timestamptz default null,
+  pDateStart    timestamptz default null,
+  pDateStop     timestamptz default null,
   pDescription	text default null
 ) RETURNS       numeric
 AS $$
 BEGIN
-  RETURN CreateVendor(pParent, CodeToType(lower(coalesce(pType, 'device')), 'vendor'), pCode, pName, pDescription);
+  RETURN CreateScheduler(pParent, CodeToType(lower(coalesce(pType, 'device')), 'scheduler'), pCode, pName, pPeriod, pDateNext, pDateStart, pDateStop, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- api.update_vendor -----------------------------------------------------------
+-- api.update_scheduler --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Редактирует производителя.
+ * Редактирует планировщик.
  * @param {numeric} pParent - Ссылка на родительский объект: Object.Parent | null
- * @param {varchar} pType - Тип
+ * @param {varchar} pType - Код типа
  * @param {varchar} pCode - Код
  * @param {varchar} pName - Наименование
+ * @param {interval} pPeriod - Период выполнения
+ * @param {timestamptz} pDateNext - Дата следующего выполнения
+ * @param {timestamptz} pDateStart - Дата начала выполнения
+ * @param {timestamptz} pDateStop - Дата окончания выполнения
  * @param {text} pDescription - Описание
  * @return {void}
  */
-CREATE OR REPLACE FUNCTION api.update_vendor (
+CREATE OR REPLACE FUNCTION api.update_scheduler (
   pId		    numeric,
   pParent       numeric default null,
   pType         varchar default null,
   pCode         varchar default null,
   pName         varchar default null,
+  pPeriod       interval default null,
+  pDateNext     timestamptz default null,
+  pDateStart    timestamptz default null,
+  pDateStop     timestamptz default null,
   pDescription	text default null
 ) RETURNS       void
 AS $$
 DECLARE
   nType         numeric;
-  nVendor       numeric;
+  nScheduler       numeric;
 BEGIN
-  SELECT t.id INTO nVendor FROM db.vendor t WHERE t.id = pId;
+  SELECT t.id INTO nScheduler FROM db.scheduler t WHERE t.id = pId;
 
   IF NOT FOUND THEN
-    PERFORM ObjectNotFound('производитель', 'id', pId);
+    PERFORM ObjectNotFound('планировщик', 'id', pId);
   END IF;
 
   IF pType IS NOT NULL THEN
-    nType := CodeToType(lower(pType), 'vendor');
+    nType := CodeToType(lower(pType), 'scheduler');
   ELSE
     SELECT o.type INTO nType FROM db.object o WHERE o.id = pId;
   END IF;
 
-  PERFORM EditVendor(nVendor, pParent, nType,pCode, pName, pDescription);
+  PERFORM EditScheduler(nScheduler, pParent, nType, pCode, pName, pPeriod, pDateNext, pDateStart, pDateStop, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- api.set_vendor --------------------------------------------------------------
+-- api.set_scheduler -----------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION api.set_vendor (
+CREATE OR REPLACE FUNCTION api.set_scheduler (
   pId           numeric,
   pParent       numeric default null,
   pType         varchar default null,
   pCode         varchar default null,
   pName         varchar default null,
+  pPeriod       interval default null,
+  pDateNext     timestamptz default null,
+  pDateStart    timestamptz default null,
+  pDateStop     timestamptz default null,
   pDescription	text default null
-) RETURNS       SETOF api.vendor
+) RETURNS       SETOF api.scheduler
 AS $$
 BEGIN
   IF pId IS NULL THEN
-    pId := api.add_vendor(pParent, pType, pCode, pName, pDescription);
+    pId := api.add_scheduler(pParent, pType, pCode, pName, pPeriod, pDateNext, pDateStart, pDateStop, pDescription);
   ELSE
-    PERFORM api.update_vendor(pId, pParent, pType, pCode, pName, pDescription);
+    PERFORM api.update_scheduler(pId, pParent, pType, pCode, pName, pPeriod, pDateNext, pDateStart, pDateStop, pDescription);
   END IF;
 
-  RETURN QUERY SELECT * FROM api.vendor WHERE id = pId;
+  RETURN QUERY SELECT * FROM api.scheduler WHERE id = pId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- api.get_vendor --------------------------------------------------------------
+-- api.get_scheduler -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает производителя
+ * Возвращает планировщик
  * @param {numeric} pId - Идентификатор
- * @return {api.vendor}
+ * @return {api.scheduler}
  */
-CREATE OR REPLACE FUNCTION api.get_vendor (
+CREATE OR REPLACE FUNCTION api.get_scheduler (
   pId		numeric
-) RETURNS	api.vendor
+) RETURNS	api.scheduler
 AS $$
-  SELECT * FROM api.vendor WHERE id = pId
+  SELECT * FROM api.scheduler WHERE id = pId
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- api.list_vendor -------------------------------------------------------------
+-- api.list_scheduler ----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список производителей.
+ * Возвращает список планировщиков.
  * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
  * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
  * @param {integer} pLimit - Лимит по количеству строк
  * @param {integer} pOffSet - Пропустить указанное число строк
  * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.vendor}
+ * @return {SETOF api.scheduler}
  */
-CREATE OR REPLACE FUNCTION api.list_vendor (
+CREATE OR REPLACE FUNCTION api.list_scheduler (
   pSearch	jsonb default null,
   pFilter	jsonb default null,
   pLimit	integer default null,
   pOffSet	integer default null,
   pOrderBy	jsonb default null
-) RETURNS	SETOF api.vendor
+) RETURNS	SETOF api.scheduler
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'vendor', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+  RETURN QUERY EXECUTE api.sql('api', 'scheduler', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

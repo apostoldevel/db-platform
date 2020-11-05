@@ -386,12 +386,12 @@ CREATE INDEX ON db.address (code);
 CREATE OR REPLACE FUNCTION ft_address_insert()
 RETURNS trigger AS $$
 BEGIN
-  IF NEW.ID IS NULL OR NEW.ID = 0 THEN
-    SELECT NEW.DOCUMENT INTO NEW.ID;
+  IF NULLIF(NEW.id, 0) IS NULL THEN
+    SELECT NEW.document INTO NEW.id;
   END IF;
 
-  IF NEW.SORTNUM IS NULL OR NEW.SORTNUM = 0 THEN
-    SELECT NEW.ID INTO NEW.SORTNUM;
+  IF NULLIF(NEW.sortnum, 0) IS NULL THEN
+    SELECT NEW.id INTO NEW.sortnum;
   END IF;
 
   RETURN NEW;
@@ -815,7 +815,7 @@ CREATE OR REPLACE VIEW ObjectAddress (Id, Object, Parent,
   State, StateCode, StateLabel, LastUpdate,
   Owner, OwnerCode, OwnerName, Created,
   Oper, OperCode, OperName, OperDate,
-  Area, AreaCode, AreaName
+  Area, AreaCode, AreaName, AreaDescription
 ) AS
   SELECT a.id, d.object, d.parent,
          d.essence, d.essencecode, d.essencename,
@@ -827,8 +827,8 @@ CREATE OR REPLACE VIEW ObjectAddress (Id, Object, Parent,
          d.state, d.statecode, d.statelabel, d.lastupdate,
          d.owner, d.ownercode, d.ownername, d.created,
          d.oper, d.opercode, d.opername, d.operdate,
-         d.area, d.areacode, d.areaname
-    FROM Address a INNER JOIN ObjectDocument d ON d.id = a.document;
+         d.area, d.areacode, d.areaname, d.areadescription
+    FROM Address a INNER JOIN ObjectDocument d ON a.document = d.id;
 
 GRANT SELECT ON ObjectAddress TO administrator;
 
@@ -846,7 +846,7 @@ AS
          a.code, a.index, a.country, a.region, a.district, a.city, a.settlement, a.street, a.house,
          a.building, a.structure, a.apartment, a.sortnum,
          ol.validFromDate, ol.validToDate
-    FROM db.object_link ol INNER JOIN db.address a ON a.id = ol.linked;
+    FROM db.object_link ol INNER JOIN db.address a ON ol.linked = a.id;
 
 GRANT SELECT ON ObjectAddresses TO administrator;
 

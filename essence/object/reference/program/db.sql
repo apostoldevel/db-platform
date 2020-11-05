@@ -1,29 +1,29 @@
 --------------------------------------------------------------------------------
--- AGENT -----------------------------------------------------------------------
+-- PROGRAM ---------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
--- db.agent --------------------------------------------------------------------
+-- db.program ------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE TABLE db.agent (
+CREATE TABLE db.program (
     id			    numeric(12) PRIMARY KEY,
     reference		numeric(12) NOT NULL,
-    vendor          numeric(12) NOT NULL,
-    CONSTRAINT fk_agent_reference FOREIGN KEY (reference) REFERENCES db.reference(id)
+    body            text NOT NULL,
+    CONSTRAINT fk_program_reference FOREIGN KEY (reference) REFERENCES db.reference(id)
 );
 
-COMMENT ON TABLE db.agent IS 'Агент.';
+COMMENT ON TABLE db.program IS 'Программа.';
 
-COMMENT ON COLUMN db.agent.id IS 'Идентификатор.';
-COMMENT ON COLUMN db.agent.reference IS 'Справочник.';
-COMMENT ON COLUMN db.agent.vendor IS 'Производитель (поставщик).';
+COMMENT ON COLUMN db.program.id IS 'Идентификатор.';
+COMMENT ON COLUMN db.program.reference IS 'Справочник.';
+COMMENT ON COLUMN db.program.body IS 'Тело.';
 
-CREATE INDEX ON db.agent (reference);
+CREATE INDEX ON db.program (reference);
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION ft_agent_insert()
+CREATE OR REPLACE FUNCTION ft_program_insert()
 RETURNS trigger AS $$
 DECLARE
 BEGIN
@@ -37,30 +37,30 @@ $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
-CREATE TRIGGER t_agent_insert
-  BEFORE INSERT ON db.agent
+CREATE TRIGGER t_program_insert
+  BEFORE INSERT ON db.program
   FOR EACH ROW
-  EXECUTE PROCEDURE ft_agent_insert();
+  EXECUTE PROCEDURE ft_program_insert();
 
 --------------------------------------------------------------------------------
--- CreateAgent -----------------------------------------------------------------
+-- CreateProgram ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Создаёт агента
+ * Создаёт программу
  * @param {numeric} pParent - Идентификатор объекта родителя
  * @param {numeric} pType - Идентификатор типа
  * @param {varchar} pCode - Код
  * @param {varchar} pName - Наименование
- * @param {numeric} pVendor - Производитель
+ * @param {text} pBody - Тело
  * @param {text} pDescription - Описание
  * @return {numeric}
  */
-CREATE OR REPLACE FUNCTION CreateAgent (
+CREATE OR REPLACE FUNCTION CreateProgram (
   pParent       numeric,
   pType         numeric,
   pCode         varchar,
   pName         varchar,
-  pVendor       numeric,
+  pBody         text,
   pDescription	text default null
 ) RETURNS       numeric
 AS $$
@@ -71,8 +71,8 @@ DECLARE
 BEGIN
   nReference := CreateReference(pParent, pType, pCode, pName, pDescription);
 
-  INSERT INTO db.agent (reference, vendor)
-  VALUES (nReference, pVendor);
+  INSERT INTO db.program (reference, body)
+  VALUES (nReference, pBody);
 
   SELECT class INTO nClass FROM db.type WHERE id = pType;
 
@@ -89,7 +89,7 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- EditAgent -------------------------------------------------------------------
+-- EditProgram -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
  * Редактирует агента
@@ -98,17 +98,17 @@ $$ LANGUAGE plpgsql
  * @param {numeric} pType - Идентификатор типа
  * @param {varchar} pCode - Код
  * @param {varchar} pName - Наименование
- * @param {numeric} pVendor - Производитель
+ * @param {text} pBody - Тело
  * @param {text} pDescription - Описание
  * @return {void}
  */
-CREATE OR REPLACE FUNCTION EditAgent (
+CREATE OR REPLACE FUNCTION EditProgram (
   pId           numeric,
   pParent       numeric default null,
   pType         numeric default null,
   pCode         varchar default null,
   pName         varchar default null,
-  pVendor       numeric default null,
+  pBody         text default null,
   pDescription	text default null
 ) RETURNS       void
 AS $$
@@ -118,8 +118,8 @@ DECLARE
 BEGIN
   PERFORM EditReference(pId, pParent, pType, pCode, pName, pDescription);
 
-  UPDATE db.agent
-     SET vendor = coalesce(pVendor, vendor)
+  UPDATE db.program
+     SET body = coalesce(pBody, body)
    WHERE id = pId;
 
   SELECT class INTO nClass FROM db.object WHERE id = pId;
@@ -132,74 +132,68 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- FUNCTION GetAgent -----------------------------------------------------------
+-- FUNCTION GetProgram ---------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION GetAgent (
+CREATE OR REPLACE FUNCTION GetProgram (
   pCode		varchar
 ) RETURNS 	numeric
 AS $$
 BEGIN
-  RETURN GetReference(pCode, 'agent');
+  RETURN GetReference(pCode, 'program');
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- FUNCTION GetAgentVendor -----------------------------------------------------
+-- FUNCTION GetProgramBody -----------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION GetAgentVendor (
+CREATE OR REPLACE FUNCTION GetProgramBody (
   pId       numeric
-) RETURNS 	numeric
+) RETURNS 	text
 AS $$
-  SELECT vendor FROM db.agent WHERE id = pId;
+  SELECT body FROM db.program WHERE id = pId;
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- Agent -----------------------------------------------------------------------
+-- Program ---------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW Agent (Id, Reference, Code, Name, Description,
-    Vendor, VendorCode, VendorName, VendorDescription
-)
+CREATE OR REPLACE VIEW Program (Id, Reference, Code, Name, Description, Body)
 AS
-  SELECT a.id, a.reference, mr.code, mr.name, mr.description, a.vendor,
-         vr.code, vr.name, vr.description
-    FROM db.agent a INNER JOIN db.reference mr ON a.reference = mr.id
-                    INNER JOIN db.reference vr ON a.vendor = vr.id;
+  SELECT p.id, p.reference, r.code, r.name, r.description, p.body
+    FROM db.program p INNER JOIN db.reference r ON p.reference = r.id;
 
-GRANT SELECT ON Agent TO administrator;
+GRANT SELECT ON Program TO administrator;
 
 --------------------------------------------------------------------------------
--- ObjectAgent -----------------------------------------------------------------
+-- ObjectProgram ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW ObjectAgent (Id, Object, Parent,
+CREATE OR REPLACE VIEW ObjectProgram (Id, Object, Parent,
   Essence, EssenceCode, EssenceName,
   Class, ClassCode, ClassLabel,
   Type, TypeCode, TypeName, TypeDescription,
-  Code, Name, Label, Description,
-  Vendor, VendorCode, VendorName, VendorDescription,
+  Code, Name, Label, Description, Body,
   StateType, StateTypeCode, StateTypeName,
   State, StateCode, StateLabel, LastUpdate,
   Owner, OwnerCode, OwnerName, Created,
   Oper, OperCode, OperName, OperDate
 )
 AS
-  SELECT a.id, r.object, r.parent,
+  SELECT p.id, r.object, r.parent,
          r.essence, r.essencecode, r.essencename,
          r.class, r.classcode, r.classlabel,
          r.type, r.typecode, r.typename, r.typedescription,
-         r.code, r.name, r.label, r.description,
-         a.vendor, a.vendorcode, a.vendorname, a.vendordescription,
+         r.code, r.name, r.label, r.description, p.body,
          r.statetype, r.statetypecode, r.statetypename,
          r.state, r.statecode, r.statelabel, r.lastupdate,
          r.owner, r.ownercode, r.ownername, r.created,
          r.oper, r.opercode, r.opername, r.operdate
-    FROM Agent a INNER JOIN ObjectReference r ON a.reference = r.id;
+    FROM Program p INNER JOIN ObjectReference r ON p.reference = r.id;
 
-GRANT SELECT ON ObjectAgent TO administrator;
+GRANT SELECT ON ObjectProgram TO administrator;

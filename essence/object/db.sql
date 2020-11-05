@@ -256,8 +256,11 @@ CREATE TABLE db.aou (
     deny		bit(3) NOT NULL,
     allow		bit(3) NOT NULL,
     mask		bit(3) DEFAULT B'000' NOT NULL,
+    essence		numeric(12) NOT NULL,
+    CONSTRAINT pk_aou PRIMARY KEY(object, userid),
     CONSTRAINT fk_aou_object FOREIGN KEY (object) REFERENCES db.object(id),
-    CONSTRAINT fk_aou_userid FOREIGN KEY (userid) REFERENCES db.user(id)
+    CONSTRAINT fk_aou_userid FOREIGN KEY (userid) REFERENCES db.user(id),
+    CONSTRAINT fk_aou_essence FOREIGN KEY (essence) REFERENCES db.essence(id)
 );
 
 COMMENT ON TABLE db.aou IS 'Доступ пользователя и групп пользователей к объекту.';
@@ -267,11 +270,11 @@ COMMENT ON COLUMN db.aou.userid IS 'Пользователь';
 COMMENT ON COLUMN db.aou.deny IS 'Запрещающие биты: {sud}. Где: {s - select; u - update; d - delete}';
 COMMENT ON COLUMN db.aou.allow IS 'Разрешающие биты: {sud}. Где: {s - select; u - update; d - delete}';
 COMMENT ON COLUMN db.aou.mask IS 'Маска доступа: {sud}. Где: {s - select; u - update; d - delete}';
-
-CREATE UNIQUE INDEX ON db.aou (object, userid);
+COMMENT ON COLUMN db.aou.essence IS 'Сущность';
 
 CREATE INDEX ON db.aou (object);
 CREATE INDEX ON db.aou (userid);
+CREATE INDEX ON db.aou (essence);
 
 --------------------------------------------------------------------------------
 
@@ -279,6 +282,7 @@ CREATE OR REPLACE FUNCTION ft_aou_before()
 RETURNS TRIGGER AS $$
 BEGIN
   IF (TG_OP = 'INSERT') THEN
+    SELECT essence INTO NEW.essence FROM db.object WHERE id = NEW.object;
     NEW.mask = NEW.allow & ~NEW.deny;
     RETURN NEW;
   ELSIF (TG_OP = 'UPDATE') THEN
@@ -519,7 +523,7 @@ CREATE OR REPLACE VIEW Object (Id, Parent,
   Oper, OperCode, OperName, OperDate
 ) AS
 WITH access AS (
-  SELECT * FROM AccessObjectUser()
+  SELECT * FROM AccessObjectUser(current_userid())
 )
   SELECT o.id, o.parent,
          e.id, e.code, e.name,
@@ -531,13 +535,13 @@ WITH access AS (
          o.owner, w.username, w.name, o.pdate,
          o.oper, u.username, u.name, o.ldate
     FROM db.object o INNER JOIN access        a ON o.id = a.object
-                     INNER JOIN db.essence    e ON e.id = o.essence
-                     INNER JOIN db.class_tree c ON c.id = o.class
-                     INNER JOIN db.type       t ON t.id = o.type
-                     INNER JOIN db.state_type p ON p.id = o.state_type
-                     INNER JOIN db.state      s ON s.id = o.state
-                     INNER JOIN db.user       w ON w.id = o.owner AND w.type = 'U'
-                     INNER JOIN db.user       u ON u.id = o.oper AND u.type = 'U';
+                     INNER JOIN db.essence    e ON o.essence = e.id
+                     INNER JOIN db.class_tree c ON o.class = c.id
+                     INNER JOIN db.type       t ON o.type = t.id
+                     INNER JOIN db.state_type p ON o.state_type = p.id
+                     INNER JOIN db.state      s ON o.state = s.id
+                     INNER JOIN db.user       w ON o.owner = w.id AND w.type = 'U'
+                     INNER JOIN db.user       u ON o.oper = u.id AND u.type = 'U';
 
 GRANT SELECT ON Object TO administrator;
 

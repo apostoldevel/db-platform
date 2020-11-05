@@ -25,8 +25,8 @@ CREATE OR REPLACE FUNCTION ft_vendor_insert()
 RETURNS trigger AS $$
 DECLARE
 BEGIN
-  IF NEW.ID IS NULL OR NEW.ID = 0 THEN
-    SELECT NEW.REFERENCE INTO NEW.ID;
+  IF NULLIF(NEW.id, 0) IS NULL THEN
+    SELECT NEW.reference INTO NEW.id;
   END IF;
 
   RETURN NEW;
@@ -85,7 +85,7 @@ $$ LANGUAGE plpgsql
 -- EditVendor ------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Меняет производителя
+ * Редактирует производителя
  * @param {numeric} pId - Идентификатор
  * @param {numeric} pParent - Идентификатор объекта родителя
  * @param {numeric} pType - Идентификатор типа
@@ -140,7 +140,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE VIEW Vendor (Id, Reference, Code, Name, Description)
 AS
   SELECT c.id, c.reference, d.code, d.name, d.description
-    FROM db.vendor c INNER JOIN db.reference d ON d.id = c.reference;
+    FROM db.vendor c INNER JOIN db.reference d ON c.reference = d.id;
 
 GRANT SELECT ON Vendor TO administrator;
 
@@ -168,6 +168,6 @@ AS
          r.state, r.statecode, r.statelabel, r.lastupdate,
          r.owner, r.ownercode, r.ownername, r.created,
          r.oper, r.opercode, r.opername, r.operdate
-    FROM db.vendor t INNER JOIN ObjectReference r ON r.id = t.reference;
+    FROM db.vendor t INNER JOIN ObjectReference r ON t.reference = r.id;
 
 GRANT SELECT ON ObjectVendor TO administrator;

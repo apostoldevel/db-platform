@@ -45,7 +45,7 @@ $$ LANGUAGE plpgsql
 -- api.update_agent ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Меняет агента.
+ * Редактирует агента.
  * @param {numeric} pParent - Ссылка на родительский объект: Object.Parent | null
  * @param {varchar} pType - Тип
  * @param {varchar} pCode - Код
@@ -80,7 +80,7 @@ BEGIN
     SELECT o.type INTO nType FROM db.object o WHERE o.id = pId;
   END IF;
 
-  PERFORM EditAgent(nAgent, pParent, nType,pCode, pName, pVendor, pDescription);
+  PERFORM EditAgent(nAgent, pParent, nType, pCode, pName, pVendor, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

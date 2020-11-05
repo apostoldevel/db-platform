@@ -381,6 +381,21 @@ $$ LANGUAGE plpgsql;
 GRANT EXECUTE ON FUNCTION CheckNull(integer) TO PUBLIC;
 
 --------------------------------------------------------------------------------
+-- FUNCTION CheckNull ----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION CheckNull (
+  pValue	timestamp
+) RETURNS	timestamp
+AS $$
+BEGIN
+  RETURN NULLIF(pValue, MINDATE());
+END;
+$$ LANGUAGE plpgsql;
+
+GRANT EXECUTE ON FUNCTION CheckNull(timestamp) TO PUBLIC;
+
+--------------------------------------------------------------------------------
 -- FUNCTION GetCompare ---------------------------------------------------------
 --------------------------------------------------------------------------------
 
