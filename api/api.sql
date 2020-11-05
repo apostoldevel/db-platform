@@ -180,6 +180,8 @@ BEGIN
 
   IF pLimit IS NOT NULL THEN
     vSelect := vSelect || E'\n LIMIT ' || pLimit;
+  ELSE
+    vSelect := vSelect || E'\n LIMIT 500';
   END IF;
 
   IF pOffSet IS NOT NULL THEN
