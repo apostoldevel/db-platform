@@ -5,7 +5,7 @@
 CREATE TABLE db.client (
     id			numeric(12) PRIMARY KEY,
     document	numeric(12) NOT NULL,
-    code		varchar(30) NOT NULL,
+    code		text NOT NULL,
     creation    timestamp,
     userId		numeric(12),
     phone		jsonb,
@@ -233,6 +233,20 @@ CREATE TRIGGER t_client_name_insert_update
   BEFORE INSERT OR UPDATE ON db.client_name
   FOR EACH ROW
   EXECUTE PROCEDURE ft_client_name_insert_update();
+
+--------------------------------------------------------------------------------
+-- ClientName ------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW ClientName (Id, Client, Locale, LocaleCode, LocaleName, LocaleDescription,
+  FullName, ShortName, LastName, FirstName, MiddleName, validFromDate, validToDate
+)
+AS
+  SELECT n.id, n.client, n.locale, l.code, l.name, l.description,
+         n.name, n.short, n.last, n.first, n.middle, n.validfromdate, n.validToDate
+    FROM db.client_name n INNER JOIN db.locale l ON l.id = n.locale;
+
+GRANT SELECT ON ClientName TO administrator;
 
 --------------------------------------------------------------------------------
 -- FUNCTION NewClientName ------------------------------------------------------
@@ -502,31 +516,53 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- Client ----------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW Client (Id, Document, Code, Creation, UserId,
+  FullName, ShortName, LastName, FirstName, MiddleName,
+  Phone, Email, Info, EmailVerified, PhoneVerified,
+  Locale, LocaleCode, LocaleName, LocaleDescription
+)
+AS
+  SELECT c.id, c.document, c.code, c.creation, c.userid,
+         n.name, n.short, n.last, n.first, n.middle,
+         c.phone, c.email, c.info, p.email_verified, p.phone_verified,
+         n.locale, l.code, l.name, l.description
+    FROM db.client c INNER JOIN db.locale      l ON l.id = current_locale()
+                     INNER JOIN db.client_name n ON c.id = n.client AND l.id = n.locale AND n.validFromDate <= Now() AND n.validToDate > Now()
+                      LEFT JOIN db.profile     p ON c.userid = p.userid;
+
+GRANT SELECT ON Client TO administrator;
+
+--------------------------------------------------------------------------------
 -- CreateClient ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
  * Создаёт нового клиента
  * @param {numeric} pParent - Ссылка на родительский объект
  * @param {numeric} pType - Тип
- * @param {varchar} pCode - ИНН - для юридического лица | Имя пользователя (login) | null
- * @param {timestamp} pCreation - Дата открытия | Дата рождения | null
+ * @param {text} pCode - ИНН - для юридического лица | Имя пользователя (login) | null
  * @param {numeric} pUserId - Пользователь (users): Учётная запись клиента
+ * @param {jsonb} pName - Полное наименование компании/Ф.И.О.
  * @param {jsonb} pPhone - Справочник телефонов
  * @param {jsonb} pEmail - Электронные адреса
  * @param {jsonb} pAddress - Почтовые адреса
  * @param {jsonb} pInfo - Дополнительная информация
+ * @param {timestamp} pCreation - Дата открытия | Дата рождения | null
  * @param {text} pDescription - Описание
  * @return {numeric} - Id клиента
  */
 CREATE OR REPLACE FUNCTION CreateClient (
   pParent	    numeric,
   pType		    numeric,
-  pCode		    varchar,
-  pCreation     timestamp default null,
-  pUserId	    numeric default null,
+  pCode		    text,
+  pUserId	    numeric,
+  pName         jsonb,
   pPhone	    jsonb default null,
   pEmail	    jsonb default null,
   pInfo         jsonb default null,
+  pCreation     timestamp default null,
   pDescription	text default null
 ) RETURNS 	    numeric
 AS $$
@@ -534,6 +570,8 @@ DECLARE
   nId		    numeric;
   nClient	    numeric;
   nDocument	    numeric;
+
+  cn            record;
 
   nClass	    numeric;
   nMethod	    numeric;
@@ -552,9 +590,21 @@ BEGIN
 
   nDocument := CreateDocument(pParent, pType, null, pDescription);
 
+  SELECT * INTO cn FROM jsonb_to_record(pName) AS x(name varchar, short varchar, first varchar, last varchar, middle varchar);
+
+  IF NULLIF(cn.name, '') IS NULL THEN
+    cn.name := pCode;
+  END IF;
+
+  IF pUserId = 0 THEN
+    pUserId := CreateUser(pCode, pCode, coalesce(NULLIF(trim(cn.short), ''), cn.name), pPhone->>0, pEmail->>0, cn.name);
+  END IF;
+
   INSERT INTO db.client (id, document, code, creation, userid, phone, email, info)
   VALUES (nDocument, nDocument, pCode, pCreation, pUserId, pPhone, pEmail, pInfo)
   RETURNING id INTO nClient;
+
+  PERFORM NewClientName(nClient, cn.name, cn.short, cn.first, cn.last, cn.middle);
 
   nMethod := GetMethod(nClass, null, GetAction('create'));
   PERFORM ExecuteMethod(nClient, nMethod);
@@ -573,12 +623,13 @@ $$ LANGUAGE plpgsql
  * @param {numeric} pId - Идентификатор клиента
  * @param {numeric} pParent - Ссылка на родительский объект
  * @param {numeric} pType - Тип
- * @param {varchar} pCode - ИНН - для юридического лица | Имя пользователя (login) | null
- * @param {timestamp} pCreation - Дата открытия | Дата рождения
+ * @param {text} pCode - ИНН - для юридического лица | Имя пользователя (login) | null
  * @param {numeric} pUserId - Пользователь (users): Учётная запись клиента
+ * @param {jsonb} pName - Полное наименование компании/Ф.И.О.
  * @param {jsonb} pPhone - Справочник телефонов
  * @param {jsonb} pEmail - Электронные адреса
  * @param {jsonb} pInfo - Дополнительная информация
+ * @param {timestamp} pCreation - Дата открытия | Дата рождения | null
  * @param {text} pDescription - Описание
  * @return {void}
  */
@@ -586,12 +637,13 @@ CREATE OR REPLACE FUNCTION EditClient (
   pId		    numeric,
   pParent	    numeric default null,
   pType		    numeric default null,
-  pCode		    varchar default null,
-  pCreation     timestamp default null,
+  pCode		    text default null,
   pUserId	    numeric default null,
+  pName         jsonb default null,
   pPhone	    jsonb default null,
   pEmail	    jsonb default null,
   pInfo         jsonb default null,
+  pCreation     timestamp default null,
   pDescription	text default null
 ) RETURNS 	    void
 AS $$
@@ -599,8 +651,10 @@ DECLARE
   nId		    numeric;
   nMethod	    numeric;
 
-  old           db.client%rowtype;
-  new           db.client%rowtype;
+  r             record;
+
+  old           Client%rowtype;
+  new           Client%rowtype;
 
   -- current
   cCode		    varchar;
@@ -620,18 +674,23 @@ BEGIN
 
   PERFORM EditDocument(pId, pParent, pType, null, pDescription);
 
-  SELECT * INTO old FROM db.client WHERE id = pId;
+  SELECT * INTO old FROM Client WHERE id = pId;
 
   UPDATE db.client
      SET code = pCode,
          userid = CheckNull(pUserId),
-         creation = CheckNull(coalesce(pCreation, creation, MINDATE())),
          phone = CheckNull(coalesce(pPhone, phone, '{}')),
          email = CheckNull(coalesce(pEmail, email, '{}')),
-         info = CheckNull(coalesce(pInfo, info, '{}'))
+         info = CheckNull(coalesce(pInfo, info, '{}')),
+         creation = CheckNull(coalesce(pCreation, creation, MINDATE()))
    WHERE id = pId;
 
-  SELECT * INTO new FROM db.client WHERE id = pId;
+  FOR r IN SELECT * FROM jsonb_to_record(pName) AS x(name varchar, short varchar, first varchar, last varchar, middle varchar)
+  LOOP
+    PERFORM EditClientName(pId, r.name, r.short, r.first, r.last, r.middle);
+  END LOOP;
+
+  SELECT * INTO new FROM Client WHERE id = pId;
 
   nMethod := GetMethod(GetObjectClass(pId), null, GetAction('edit'));
   PERFORM ExecuteMethod(pId, nMethod, jsonb_build_object('old', row_to_json(old), 'new', row_to_json(new)));
@@ -713,40 +772,6 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- ClientName ------------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE VIEW ClientName (Id, Client, Locale, LocaleCode, LocaleName, LocaleDescription,
-  FullName, ShortName, LastName, FirstName, MiddleName, validFromDate, validToDate
-)
-AS
-  SELECT n.id, n.client, n.locale, l.code, l.name, l.description,
-         n.name, n.short, n.last, n.first, n.middle, n.validfromdate, n.validToDate
-    FROM db.client_name n INNER JOIN db.locale l ON l.id = n.locale;
-
-GRANT SELECT ON ClientName TO administrator;
-
---------------------------------------------------------------------------------
--- Client ----------------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE VIEW Client (Id, Document, Code, Creation, UserId,
-  FullName, ShortName, LastName, FirstName, MiddleName,
-  Phone, Email, Info, EmailVerified, PhoneVerified,
-  Locale, LocaleCode, LocaleName, LocaleDescription
-)
-AS
-  SELECT c.id, c.document, c.code, c.creation, c.userid,
-         n.name, n.short, n.last, n.first, n.middle,
-         c.phone, c.email, c.info, p.email_verified, p.phone_verified,
-         n.locale, l.code, l.name, l.description
-    FROM db.client c INNER JOIN db.locale      l ON l.id = current_locale()
-                     INNER JOIN db.client_name n ON c.id = n.client AND n.locale = l.id AND n.validFromDate <= Now() AND n.validToDate > Now()
-                      LEFT JOIN db.profile     p ON c.userid = p.userid;
-
-GRANT SELECT ON Client TO administrator;
-
---------------------------------------------------------------------------------
 -- AccessClient ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -776,23 +801,24 @@ CREATE OR REPLACE VIEW ObjectClient (Id, Object, Parent,
   State, StateCode, StateLabel, LastUpdate,
   Owner, OwnerCode, OwnerName, Created,
   Oper, OperCode, OperName, OperDate,
-  Area, AreaCode, AreaName
+  Area, AreaCode, AreaName, AreaDescription
 )
 AS
-  SELECT c.id, d.object, d.parent,
-         d.essence, d.essencecode, d.essencename,
-         d.class, d.classcode, d.classlabel,
-         d.type, d.typecode, d.typename, d.typedescription,
+  SELECT c.id, d.object, o.parent,
+         o.essence, o.essencecode, o.essencename,
+         o.class, o.classcode, o.classlabel,
+         o.type, o.typecode, o.typename, o.typedescription,
          c.code, c.creation, c.userid,
          c.fullname, c.shortname, c.lastname, c.firstname, c.middlename,
          c.phone, c.email, c.info, emailverified, phoneverified,
          c.locale, c.localecode, c.localename, c.localedescription,
-         d.label, d.description,
-         d.statetype, d.statetypecode, d.statetypename,
-         d.state, d.statecode, d.statelabel, d.lastupdate,
-         d.owner, d.ownercode, d.ownername, d.created,
-         d.oper, d.opercode, d.opername, d.operdate,
-         d.area, d.areacode, d.areaname
-    FROM AccessClient c INNER JOIN ObjectDocument d ON c.document = d.id;
+         o.label, d.description,
+         o.statetype, o.statetypecode, o.statetypename,
+         o.state, o.statecode, o.statelabel, o.lastupdate,
+         o.owner, o.ownercode, o.ownername, o.created,
+         o.oper, o.opercode, o.opername, o.operdate,
+         d.area, d.areacode, d.areaname, d.areadescription
+    FROM AccessClient c INNER JOIN Document d ON c.document = d.id
+                        INNER JOIN Object   o ON c.document = o.id;
 
 GRANT SELECT ON ObjectClient TO administrator;

@@ -305,21 +305,22 @@ CREATE OR REPLACE VIEW ObjectTask (Id, Object, Parent,
   Area, AreaCode, AreaName, AreaDescription
 )
 AS
-  SELECT t.id, d.object, d.parent,
-         d.essence, d.essencecode, d.essencename,
-         d.class, d.classcode, d.classlabel,
-         d.type, d.typecode, d.typename, d.typedescription,
+  SELECT t.id, d.object, o.parent,
+         o.essence, o.essencecode, o.essencename,
+         o.class, o.classcode, o.classlabel,
+         o.type, o.typecode, o.typename, o.typedescription,
          t.code, t.calendar, t.calendarcode, t.calendarname,
          t.scheduler, t.schedulercode, t.schedulername,
          t.period, t.datenext, t.datestart, t.datestop,
          t.program, t.programcode, t.programname,
          t.executor, t.executorcode, t.executorname,
-         d.label, d.description,
-         d.statetype, d.statetypecode, d.statetypename,
-         d.state, d.statecode, d.statelabel, d.lastupdate,
-         d.owner, d.ownercode, d.ownername, d.created,
-         d.oper, d.opercode, d.opername, d.operdate,
+         o.label, d.description,
+         o.statetype, o.statetypecode, o.statetypename,
+         o.state, o.statecode, o.statelabel, o.lastupdate,
+         o.owner, o.ownercode, o.ownername, o.created,
+         o.oper, o.opercode, o.opername, o.operdate,
          d.area, d.areacode, d.areaname, d.areadescription
-    FROM AccessTask t INNER JOIN ObjectDocument d ON t.document = d.id;
+    FROM AccessTask t INNER JOIN Document d ON t.document = d.id
+                      INNER JOIN Object   o ON t.document = o.id;
 
 GRANT SELECT ON ObjectTask TO administrator;

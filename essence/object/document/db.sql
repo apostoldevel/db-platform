@@ -175,9 +175,9 @@ AS
       FROM db.area a INNER JOIN area_tree t ON a.parent = t.id
   )
   SELECT d.id, d.object, o.parent,
-         e.id, e.code, e.name,
-         c.id, c.code, c.label,
-         t.id, t.code, t.name, t.description,
+         d.essence, e.code, e.name,
+         d.class, ct.code, ct.label,
+         o.type, t.code, t.name, t.description,
          o.label, d.description,
          o.state_type, st.code, st.name,
          o.state, s.code, s.label, o.udate,
@@ -187,7 +187,7 @@ AS
     FROM db.document d INNER JOIN area_tree     at ON d.area = at.id
                        INNER JOIN db.area        a ON d.area = a.id
                        INNER JOIN db.essence     e ON d.essence = e.id
-                       INNER JOIN db.class_tree  c ON d.class = c.id
+                       INNER JOIN db.class_tree ct ON d.class = ct.id
                        INNER JOIN db.object      o ON d.object = o.id
                        INNER JOIN db.type        t ON o.type = t.id
                        INNER JOIN db.state_type st ON o.state_type = st.id

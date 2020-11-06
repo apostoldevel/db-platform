@@ -830,18 +830,19 @@ CREATE OR REPLACE VIEW ObjectAddress (Id, Object, Parent,
   Oper, OperCode, OperName, OperDate,
   Area, AreaCode, AreaName, AreaDescription
 ) AS
-  SELECT a.id, d.object, d.parent,
-         d.essence, d.essencecode, d.essencename,
-         d.class, d.classcode, d.classlabel,
-         d.type, d.typecode, d.typename, d.typedescription,
+  SELECT a.id, d.object, o.parent,
+         o.essence, o.essencecode, o.essencename,
+         o.class, o.classcode, o.classlabel,
+         o.type, o.typecode, o.typename, o.typedescription,
          a.code, a.index, a.country, a.region, a.district, a.city, a.settlement, a.street, a.house, a.building, a.structure, a.apartment, a.sortnum,
-         d.label, d.description,
-         d.statetype, d.statetypecode, d.statetypename,
-         d.state, d.statecode, d.statelabel, d.lastupdate,
-         d.owner, d.ownercode, d.ownername, d.created,
-         d.oper, d.opercode, d.opername, d.operdate,
+         o.label, d.description,
+         o.statetype, o.statetypecode, o.statetypename,
+         o.state, o.statecode, o.statelabel, o.lastupdate,
+         o.owner, o.ownercode, o.ownername, o.created,
+         o.oper, o.opercode, o.opername, o.operdate,
          d.area, d.areacode, d.areaname, d.areadescription
-    FROM AccessAddress a INNER JOIN ObjectDocument d ON a.document = d.id;
+    FROM AccessAddress a INNER JOIN Document d ON a.document = d.id
+                         INNER JOIN Object   o ON a.document = o.id;
 
 GRANT SELECT ON ObjectAddress TO administrator;
 

@@ -259,17 +259,18 @@ CREATE OR REPLACE VIEW ObjectCalendar (Id, Object, Parent,
   Oper, OperCode, OperName, OperDate
 ) 
 AS
-  SELECT c.id, r.object, r.parent,
-         r.essence, r.essencecode, r.essencename,
-         r.class, r.classcode, r.classlabel,
-         r.type, r.typecode, r.typename, r.typedescription,
-         r.code, r.name, r.label, r.description,
+  SELECT c.id, r.object, o.parent,
+         o.essence, o.essencecode, o.essencename,
+         o.class, o.classcode, o.classlabel,
+         o.type, o.typecode, o.typename, o.typedescription,
+         r.code, r.name, o.label, r.description,
          c.week, c.dayoff, c.holiday, c.workstart, c.workcount, c.reststart, c.restcount,
-         r.statetype, r.statetypecode, r.statetypename,
-         r.state, r.statecode, r.statelabel, r.lastupdate,
-         r.owner, r.ownercode, r.ownername, r.created,
-         r.oper, r.opercode, r.opername, r.operdate
-    FROM AccessCalendar c INNER JOIN ObjectReference r ON c.reference = r.id;
+         o.statetype, o.statetypecode, o.statetypename,
+         o.state, o.statecode, o.statelabel, o.lastupdate,
+         o.owner, o.ownercode, o.ownername, o.created,
+         o.oper, o.opercode, o.opername, o.operdate
+    FROM AccessCalendar c INNER JOIN Reference r ON c.reference = r.id
+                          INNER JOIN Object    o ON c.reference = o.id;
 
 GRANT SELECT ON ObjectCalendar TO administrator;
 

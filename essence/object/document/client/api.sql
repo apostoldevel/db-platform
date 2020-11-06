@@ -47,31 +47,30 @@ $$ LANGUAGE plpgsql
  * Добавляет нового клиента.
  * @param {numeric} pParent - Идентификатор родителя | null
  * @param {varchar} pType - Tип клиента
- * @param {varchar} pCode - ИНН - для юридического лица | Имя пользователя (login) | null
+ * @param {text} pCode - ИНН - для юридического лица | Имя пользователя (login) | null
  * @param {numeric} pUserId - Идентификатор пользователя системы | null
  * @param {jsonb} pName - Полное наименование компании/Ф.И.О.
- * @param {timestamp} pCreation - Дата открытия | Дата рождения | null
  * @param {jsonb} pPhone - Телефоны
  * @param {jsonb} pEmail - Электронные адреса
  * @param {jsonb} pInfo - Дополнительная информация
+ * @param {timestamp} pCreation - Дата открытия | Дата рождения | null
  * @param {text} pDescription - Информация о клиенте
  * @return {numeric}
  */
 CREATE OR REPLACE FUNCTION api.add_client (
   pParent       numeric,
   pType         varchar,
-  pCode         varchar,
+  pCode         text,
   pUserId       numeric,
   pName         jsonb,
-  pCreation     timestamp default null,
   pPhone        jsonb DEFAULT null,
   pEmail        jsonb DEFAULT null,
   pInfo         jsonb DEFAULT null,
+  pCreation     timestamp default null,
   pDescription  text DEFAULT null
 ) RETURNS       numeric
 AS $$
 DECLARE
-  cn            record;
   nClient       numeric;
   arKeys        text[];
 BEGIN
@@ -80,19 +79,7 @@ BEGIN
   arKeys := array_cat(arKeys, ARRAY['name', 'short', 'first', 'last', 'middle']);
   PERFORM CheckJsonbKeys('add_client', arKeys, pName);
 
-  SELECT * INTO cn FROM jsonb_to_record(pName) AS x(name varchar, short varchar, first varchar, last varchar, middle varchar);
-
-  IF NULLIF(cn.name, '') IS NULL THEN
-    cn.name := pCode;
-  END IF;
-
-  IF pUserId = 0 THEN
-    pUserId := CreateUser(pCode, pCode, coalesce(cn.short, cn.name), pPhone->>0, pEmail->>0, cn.name);
-  END IF;
-
-  nClient := CreateClient(pParent, CodeToType(pType, 'client'), pCode, pCreation, pUserId, pPhone, pEmail, pInfo, pDescription);
-
-  PERFORM NewClientName(nClient, cn.name, cn.short, cn.first, cn.last, cn.middle);
+  nClient := CreateClient(pParent, CodeToType(pType, 'client'), pCode, pUserId, pName, pPhone, pEmail, pInfo, pCreation, pDescription);
 
   RETURN nClient;
 END;
@@ -108,32 +95,31 @@ $$ LANGUAGE plpgsql
  * @param {numeric} pId - Идентификатор (api.get_client)
  * @param {numeric} pParent - Идентификатор родителя | null
  * @param {varchar} pType - Tип клиента
- * @param {varchar} pCode - ИНН - для юридического лица | Имя пользователя (login) | null
+ * @param {text} pCode - ИНН - для юридического лица | Имя пользователя (login) | null
  * @param {numeric} pUserId - Идентификатор пользователя системы | null
  * @param {jsonb} pName - Полное наименование компании/Ф.И.О.
- * @param {timestamp} pCreation - Дата открытия | Дата рождения | null
  * @param {jsonb} pPhone - Телефоны
  * @param {jsonb} pEmail - Электронные адреса
  * @param {jsonb} pInfo - Дополнительная информация
+ * @param {timestamp} pCreation - Дата открытия | Дата рождения | null
  * @param {text} pDescription - Информация о клиенте
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_client (
   pId           numeric,
-  pParent       numeric,
-  pType         varchar,
-  pCode         varchar,
-  pUserId       numeric,
-  pName         jsonb,
-  pCreation     timestamp default null,
+  pParent       numeric default null,
+  pType         varchar default null,
+  pCode         text default null,
+  pUserId       numeric default null,
+  pName         jsonb default null,
   pPhone        jsonb DEFAULT null,
   pEmail        jsonb DEFAULT null,
   pInfo         jsonb DEFAULT null,
+  pCreation     timestamp default null,
   pDescription  text DEFAULT null
 ) RETURNS       void
 AS $$
 DECLARE
-  r             record;
   nType         numeric;
   nClient       numeric;
   arKeys        text[];
@@ -153,12 +139,7 @@ BEGIN
   arKeys := array_cat(arKeys, ARRAY['name', 'short', 'first', 'last', 'middle']);
   PERFORM CheckJsonbKeys('update_client', arKeys, pName);
 
-  PERFORM EditClient(nClient, pParent, nType, pCode, pCreation, pUserId, pPhone, pEmail, pInfo, pDescription);
-
-  FOR r IN SELECT * FROM jsonb_to_record(pName) AS x(name varchar, short varchar, first varchar, last varchar, middle varchar)
-  LOOP
-    PERFORM EditClientName(nClient, r.name, r.short, r.first, r.last, r.middle);
-  END LOOP;
+  PERFORM EditClient(nClient, pParent, nType, pCode, pUserId, pName, pPhone, pEmail, pInfo, pCreation, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -172,7 +153,7 @@ CREATE OR REPLACE FUNCTION api.set_client (
   pId           numeric,
   pParent       numeric,
   pType         varchar,
-  pCode         varchar,
+  pCode         text,
   pUserId       numeric,
   pName         jsonb,
   pCreation     timestamp default null,

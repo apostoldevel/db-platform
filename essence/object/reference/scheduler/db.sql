@@ -210,16 +210,17 @@ CREATE OR REPLACE VIEW ObjectScheduler (Id, Object, Parent,
   Oper, OperCode, OperName, OperDate
 )
 AS
-  SELECT s.id, r.object, r.parent,
-         r.essence, r.essencecode, r.essencename,
-         r.class, r.classcode, r.classlabel,
-         r.type, r.typecode, r.typename, r.typedescription,
-         r.code, r.name, r.label, r.description,
+  SELECT s.id, r.object, o.parent,
+         o.essence, o.essencecode, o.essencename,
+         o.class, o.classcode, o.classlabel,
+         o.type, o.typecode, o.typename, o.typedescription,
+         r.code, r.name, o.label, r.description,
          s.period, s.datenext, s.datestart, s.datestop,
-         r.statetype, r.statetypecode, r.statetypename,
-         r.state, r.statecode, r.statelabel, r.lastupdate,
-         r.owner, r.ownercode, r.ownername, r.created,
-         r.oper, r.opercode, r.opername, r.operdate
-    FROM AccessScheduler s INNER JOIN ObjectReference r ON s.reference = r.id;
+         o.statetype, o.statetypecode, o.statetypename,
+         o.state, o.statecode, o.statelabel, o.lastupdate,
+         o.owner, o.ownercode, o.ownername, o.created,
+         o.oper, o.opercode, o.opername, o.operdate
+    FROM AccessScheduler s INNER JOIN Reference r ON s.reference = r.id
+                           INNER JOIN Object    o ON s.reference = o.id;
 
 GRANT SELECT ON ObjectScheduler TO administrator;

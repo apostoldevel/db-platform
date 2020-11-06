@@ -502,8 +502,7 @@ AS $$
       SELECT pUserId AS userid UNION ALL SELECT userid FROM db.member_group WHERE member = pUserId
   )
   SELECT a.object
-    FROM db.aou a INNER JOIN membergroup m ON a.userid = m.userid
-   WHERE a.essence = pEssence
+    FROM db.aou a INNER JOIN membergroup m ON a.userid = m.userid AND a.essence = pEssence
    GROUP BY a.object
   HAVING bit_or(a.mask) & B'100' = B'100'
 $$ LANGUAGE SQL
@@ -525,16 +524,16 @@ CREATE OR REPLACE VIEW Object (Id, Parent,
   Oper, OperCode, OperName, OperDate
 ) AS
   SELECT o.id, o.parent,
-         e.id, e.code, e.name,
-         c.id, c.code, c.label,
-         t.id, t.code, t.name, t.description,
+         o.essence, e.code, e.name,
+         o.class, ct.code, ct.label,
+         o.type, t.code, t.name, t.description,
          o.label,
          o.state_type, st.code, st.name,
          o.state, s.code, s.label, o.udate,
          o.owner, w.username, w.name, o.pdate,
          o.oper, u.username, u.name, o.ldate
     FROM db.object o INNER JOIN db.essence     e ON o.essence = e.id
-                     INNER JOIN db.class_tree  c ON o.class = c.id
+                     INNER JOIN db.class_tree ct ON o.class = ct.id
                      INNER JOIN db.type        t ON o.type = t.id
                      INNER JOIN db.state_type st ON o.state_type = st.id
                      INNER JOIN db.state       s ON o.state = s.id
