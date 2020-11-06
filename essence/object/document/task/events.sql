@@ -107,6 +107,84 @@ END;
 $$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
+-- EventTaskExecute ------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION EventTaskExecute (
+  pObject	numeric default context_object()
+) RETURNS	void
+AS $$
+BEGIN
+  PERFORM WriteToEventLog('M', 1018, 'Задача выполняется.', pObject);
+END;
+$$ LANGUAGE plpgsql;
+
+--------------------------------------------------------------------------------
+-- EventTaskComplete -----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION EventTaskComplete (
+  pObject	numeric default context_object()
+) RETURNS	void
+AS $$
+BEGIN
+  PERFORM WriteToEventLog('M', 1019, 'Задача завершена.', pObject);
+END;
+$$ LANGUAGE plpgsql;
+
+--------------------------------------------------------------------------------
+-- EventTaskDone ---------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION EventTaskDone (
+  pObject	numeric default context_object()
+) RETURNS	void
+AS $$
+BEGIN
+  PERFORM WriteToEventLog('M', 1020, 'Задача выполнена.', pObject);
+END;
+$$ LANGUAGE plpgsql;
+
+--------------------------------------------------------------------------------
+-- EventTaskFail ---------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION EventTaskFail (
+  pObject	numeric default context_object()
+) RETURNS	void
+AS $$
+BEGIN
+  PERFORM WriteToEventLog('M', 1021, 'Сбой при выполнении задачи.', pObject);
+END;
+$$ LANGUAGE plpgsql;
+
+--------------------------------------------------------------------------------
+-- EventTaskAbort --------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION EventTaskAbort (
+  pObject	numeric default context_object()
+) RETURNS	void
+AS $$
+BEGIN
+  PERFORM WriteToEventLog('M', 1022, 'Задача прервана.', pObject);
+END;
+$$ LANGUAGE plpgsql;
+
+--------------------------------------------------------------------------------
+-- EventTaskCancel -------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION EventTaskCancel (
+  pObject	numeric default context_object()
+) RETURNS	void
+AS $$
+BEGIN
+  PERFORM WriteToEventLog('M', 1023, 'Задача отменена.', pObject);
+END;
+$$ LANGUAGE plpgsql;
+
+--------------------------------------------------------------------------------
 -- EventTaskDrop ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 

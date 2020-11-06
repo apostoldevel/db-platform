@@ -67,7 +67,7 @@ BEGIN
   WHEN '/task/count' THEN
 
     IF pPayload IS NOT NULL THEN
-      arKeys := array_cat(arKeys, ARRAY['search', 'filter', 'reclimit', 'recoffset', 'taskby']);
+      arKeys := array_cat(arKeys, ARRAY['search', 'filter', 'reclimit', 'recoffset', 'orderby']);
       PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
     ELSE
       pPayload := '{}';
@@ -75,9 +75,9 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, taskby jsonb)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN SELECT count(*) FROM api.list_task(r.search, r.filter, r.reclimit, r.recoffset, r.taskby)
+        FOR e IN SELECT count(*) FROM api.list_task(r.search, r.filter, r.reclimit, r.recoffset, r.orderby)
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -85,9 +85,9 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, taskby jsonb)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN SELECT count(*) FROM api.list_task(r.search, r.filter, r.reclimit, r.recoffset, r.taskby)
+        FOR e IN SELECT count(*) FROM api.list_task(r.search, r.filter, r.reclimit, r.recoffset, r.orderby)
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -154,15 +154,15 @@ BEGIN
   WHEN '/task/list' THEN
 
     IF pPayload IS NOT NULL THEN
-      arKeys := array_cat(arKeys, ARRAY['fields', 'search', 'filter', 'reclimit', 'recoffset', 'taskby']);
+      arKeys := array_cat(arKeys, ARRAY['fields', 'search', 'filter', 'reclimit', 'recoffset', 'orderby']);
       PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
     ELSE
       pPayload := '{}';
     END IF;
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(fields jsonb, search jsonb, filter jsonb, reclimit integer, recoffset integer, taskby jsonb)
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(fields jsonb, search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
     LOOP
-      FOR e IN EXECUTE format('SELECT %s FROM api.list_task($1, $2, $3, $4, $5)', JsonbToFields(r.fields, GetColumns('task', 'api'))) USING r.search, r.filter, r.reclimit, r.recoffset, r.taskby
+      FOR e IN EXECUTE format('SELECT %s FROM api.list_task($1, $2, $3, $4, $5)', JsonbToFields(r.fields, GetColumns('task', 'api'))) USING r.search, r.filter, r.reclimit, r.recoffset, r.orderby
       LOOP
         RETURN NEXT row_to_json(e);
       END LOOP;
