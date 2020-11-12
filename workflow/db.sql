@@ -1,42 +1,105 @@
 --------------------------------------------------------------------------------
--- ESSENCE ---------------------------------------------------------------------
+-- ENTITY ----------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE TABLE db.essence (
+CREATE TABLE db.entity (
     id			numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
     code		varchar(30) NOT NULL,
-    name		varchar(50)
+    name		varchar(50),
+    description text
 );
 
-COMMENT ON TABLE db.essence IS 'Сущность.';
-COMMENT ON COLUMN db.essence.id IS 'Идентификатор';
-COMMENT ON COLUMN db.essence.code IS 'Код';
-COMMENT ON COLUMN db.essence.name IS 'Наименование';
+COMMENT ON TABLE db.entity IS 'Сущность.';
+COMMENT ON COLUMN db.entity.id IS 'Идентификатор';
+COMMENT ON COLUMN db.entity.code IS 'Код';
+COMMENT ON COLUMN db.entity.name IS 'Наименование';
+COMMENT ON COLUMN db.entity.description IS 'Описание';
 
-CREATE UNIQUE INDEX ON db.essence (code);
+CREATE UNIQUE INDEX ON db.entity (code);
 
 --------------------------------------------------------------------------------
--- VIEW Essence ----------------------------------------------------------------
+-- VIEW Entity -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW Essence
+CREATE OR REPLACE VIEW Entity
 AS
-  SELECT * FROM db.essence;
+  SELECT * FROM db.entity;
 
-GRANT SELECT ON Essence TO administrator;
+GRANT SELECT ON Entity TO administrator;
 
 --------------------------------------------------------------------------------
--- FUNCTION GetEssence ---------------------------------------------------------
+-- FUNCTION AddEntity ----------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION GetEssence (
+CREATE OR REPLACE FUNCTION AddEntity (
+  pCode		    varchar,
+  pName		    varchar,
+  pDescription	text DEFAULT null
+) RETURNS	    numeric
+AS $$
+DECLARE
+  nId		    numeric;
+BEGIN
+  INSERT INTO db.entity (code, name, description)
+  VALUES (pCode, pName, pDescription)
+  RETURNING id INTO nId;
+
+  RETURN nId;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION EditEntity ---------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION EditEntity (
+  pId		    numeric,
+  pCode		    varchar DEFAULT null,
+  pName		    varchar DEFAULT null,
+  pDescription	text DEFAULT null
+) RETURNS	    void
+AS $$
+DECLARE
+BEGIN
+  UPDATE db.entity
+     SET code = coalesce(pCode, code),
+         name = coalesce(pName, name),
+         description = NULLIF(coalesce(pDescription, description), '<null>')
+   WHERE id = pId;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION DeleteEntity -------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION DeleteEntity (
+  pId		numeric
+) RETURNS 	void
+AS $$
+BEGIN
+  DELETE FROM db.entity WHERE id = pId;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION GetEntity ----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetEntity (
   pCode		varchar
 ) RETURNS 	numeric
 AS $$
 DECLARE
   nId		numeric;
 BEGIN
-  SELECT id INTO nId FROM db.essence WHERE code = pCode;
+  SELECT id INTO nId FROM db.entity WHERE code = pCode;
   RETURN nId;
 END;
 $$ LANGUAGE plpgsql
@@ -50,20 +113,20 @@ $$ LANGUAGE plpgsql
 CREATE TABLE db.class_tree (
     id			numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
     parent		numeric(12),
-    essence		numeric(12) NOT NULL,
+    entity		numeric(12) NOT NULL,
     level		integer NOT NULL,
     code		varchar(30) NOT NULL,
     label		text NOT NULL,
     abstract    boolean DEFAULT TRUE NOT NULL,
     CONSTRAINT fk_class_tree_parent FOREIGN KEY (parent) REFERENCES db.class_tree(id),
-    CONSTRAINT fk_class_tree_essence FOREIGN KEY (essence) REFERENCES db.essence(id)
+    CONSTRAINT fk_class_tree_entity FOREIGN KEY (entity) REFERENCES db.entity(id)
 );
 
 COMMENT ON TABLE db.class_tree IS 'Дерево классов.';
 
 COMMENT ON COLUMN db.class_tree.id IS 'Идентификатор';
 COMMENT ON COLUMN db.class_tree.parent IS 'Ссылка на родительский узел';
-COMMENT ON COLUMN db.class_tree.essence IS 'Сущность';
+COMMENT ON COLUMN db.class_tree.entity IS 'Сущность';
 COMMENT ON COLUMN db.class_tree.level IS 'Уровень вложенности';
 COMMENT ON COLUMN db.class_tree.code IS 'Код';
 COMMENT ON COLUMN db.class_tree.label IS 'Метка';
@@ -72,9 +135,11 @@ COMMENT ON COLUMN db.class_tree.abstract IS 'Абстрактный: Да/Нет
 --------------------------------------------------------------------------------
 
 CREATE INDEX ON db.class_tree (parent);
-CREATE INDEX ON db.class_tree (essence);
+CREATE INDEX ON db.class_tree (entity);
 
 CREATE UNIQUE INDEX ON db.class_tree (code);
+
+--------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION ft_class_tree_after_insert()
 RETURNS trigger AS $$
@@ -135,11 +200,11 @@ CREATE TRIGGER t_class_tree_before_delete
 -- VIEW Class ------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW Class (Id, Parent, Essence, EssenceCode, EssenceName, Level, Code,
+CREATE OR REPLACE VIEW Class (Id, Parent, Entity, EntityCode, EntityName, Level, Code,
   Label, Abstract)
 AS
-  SELECT c.id, c.parent, c.essence, t.code, t.name, c.level, c.code, c.label, c.abstract
-    FROM db.class_tree c INNER JOIN db.essence t ON t.id = c.essence;
+  SELECT c.id, c.parent, c.entity, t.code, t.name, c.level, c.code, c.label, c.abstract
+    FROM db.class_tree c INNER JOIN db.entity t ON t.id = c.entity;
 
 GRANT SELECT ON Class TO administrator;
 
@@ -184,7 +249,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION AddClass (
   pParent	numeric,
-  pEssence  numeric,
+  pEntity   numeric,
   pCode		varchar,
   pLabel	text,
   pAbstract	boolean
@@ -200,8 +265,8 @@ BEGIN
     SELECT level + 1 INTO nLevel FROM db.class_tree WHERE id = pParent;
   END IF;
 
-  INSERT INTO db.class_tree (parent, essence, level, code, label, abstract)
-  VALUES (pParent, pEssence, nLevel, pCode, pLabel, pAbstract)
+  INSERT INTO db.class_tree (parent, entity, level, code, label, abstract)
+  VALUES (pParent, pEntity, nLevel, pCode, pLabel, pAbstract)
   RETURNING id INTO nId;
 
   RETURN nId;
@@ -217,7 +282,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION EditClass (
   pId		numeric,
   pParent	numeric DEFAULT null,
-  pEssence	numeric DEFAULT null,
+  pEntity	numeric DEFAULT null,
   pCode		varchar DEFAULT null,
   pLabel	text DEFAULT null,
   pAbstract	boolean DEFAULT null
@@ -234,7 +299,7 @@ BEGIN
 
   UPDATE db.class_tree
      SET parent = coalesce(pParent, parent),
-         essence = coalesce(pEssence, essence),
+         entity = coalesce(pEntity, entity),
          level = nLevel,
          code = coalesce(pCode, code),
          label = coalesce(pLabel, label),
@@ -280,17 +345,17 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- FUNCTION GetEssence ---------------------------------------------------------
+-- FUNCTION GetClassEntity -----------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION GetEssence (
+CREATE OR REPLACE FUNCTION GetClassEntity (
   pClass	numeric
 ) RETURNS 	numeric
 AS $$
 DECLARE
   nId		numeric;
 BEGIN
-  SELECT essence INTO nId FROM db.class_tree WHERE id = pClass;
+  SELECT entity INTO nId FROM db.class_tree WHERE id = pClass;
   RETURN nId;
 END;
 $$ LANGUAGE plpgsql
@@ -316,10 +381,10 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- FUNCTION GetEssenceCode -----------------------------------------------------
+-- FUNCTION GetEntityCode ------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION GetEssenceCode (
+CREATE OR REPLACE FUNCTION GetEntityCode (
   pId		numeric
 ) RETURNS 	varchar
 AS $$
@@ -327,14 +392,14 @@ DECLARE
   vCode		varchar;
 BEGIN
   SELECT t.code INTO vCode
-    FROM db.class_tree c INNER JOIN db.essence t ON t.id = c.essence
+    FROM db.class_tree c INNER JOIN db.entity t ON t.id = c.entity
    WHERE c.id = pId;
 
   IF found THEN
     RETURN vCode;
   END IF;
 
-  SELECT code INTO vCode FROM db.essence WHERE Id = pId;
+  SELECT code INTO vCode FROM db.entity WHERE Id = pId;
   RETURN vCode;
 END;
 $$ LANGUAGE plpgsql
@@ -771,18 +836,22 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION CodeToType (
   pCode     text,
-  pEssence  text
+  pEntity   text
 ) RETURNS   numeric
 AS $$
 DECLARE
   r         record;
   arCodes   text[];
 BEGIN
-  IF StrPos(pCode, '.') = 0 THEN
-    pCode := pCode || '.' || pEssence;
+  IF length(pCode) = 12 AND SubStr(pCode, 1, 1) = '1' THEN
+    RETURN StrToInt(pCode, '999999999999');
   END IF;
 
-  FOR r IN SELECT code FROM Type WHERE EssenceCode = pEssence
+  IF StrPos(pCode, '.') = 0 THEN
+    pCode := pCode || '.' || pEntity;
+  END IF;
+
+  FOR r IN SELECT code FROM Type WHERE EntityCode = pEntity
   LOOP
     arCodes := array_append(arCodes, r.code::text);
   END LOOP;
@@ -801,14 +870,14 @@ $$ LANGUAGE plpgsql
 -- VIEW Type -------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW Type (Id, Essence, EssenceCode, EssenceName,
+CREATE OR REPLACE VIEW Type (Id, Entity, EntityCode, EntityName,
   Class, ClassCode, ClassLabel, Code, Name, Description
 )
 AS
-  SELECT o.id, c.essence, e.code, e.name,
+  SELECT o.id, c.entity, e.code, e.name,
          o.class, c.code, c.label, o.code, o.name, o.description
     FROM db.type o INNER JOIN db.class_tree c ON c.id = o.class
-                   INNER JOIN db.essence e ON e.id = c.essence;
+                   INNER JOIN db.entity e ON e.id = c.entity;
 
 GRANT SELECT ON Type TO administrator;
 
@@ -829,6 +898,13 @@ COMMENT ON COLUMN db.state_type.code IS 'Код типа состояния об
 COMMENT ON COLUMN db.state_type.name IS 'Наименование типа состояния объекта';
 
 CREATE UNIQUE INDEX ON db.state_type (code);
+
+--------------------------------------------------------------------------------
+
+INSERT INTO db.state_type (code, name) VALUES ('created', 'Создан');
+INSERT INTO db.state_type (code, name) VALUES ('enabled', 'Включен');
+INSERT INTO db.state_type (code, name) VALUES ('disabled', 'Отключен');
+INSERT INTO db.state_type (code, name) VALUES ('deleted', 'Удалён');
 
 --------------------------------------------------------------------------------
 -- VIEW StateType --------------------------------------------------------------
@@ -1155,7 +1231,8 @@ $$ LANGUAGE plpgsql
 CREATE TABLE db.action (
     id			numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
     code		varchar(30) NOT NULL,
-    name		varchar(50) NOT NULL
+    name		varchar(50) NOT NULL,
+    description		text
 );
 
 COMMENT ON TABLE db.action IS 'Список действий.';
@@ -1163,6 +1240,7 @@ COMMENT ON TABLE db.action IS 'Список действий.';
 COMMENT ON COLUMN db.action.id IS 'Идентификатор';
 COMMENT ON COLUMN db.action.code IS 'Код действия';
 COMMENT ON COLUMN db.action.name IS 'Наименование действия';
+COMMENT ON COLUMN db.action.description IS 'Описание';
 
 CREATE UNIQUE INDEX ON db.action (code);
 
@@ -1175,6 +1253,67 @@ AS
   SELECT * FROM db.action;
 
 GRANT SELECT ON Action TO administrator;
+
+--------------------------------------------------------------------------------
+-- FUNCTION AddAction ----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION AddAction (
+  pCode		    varchar,
+  pName		    varchar,
+  pDescription      text DEFAULT null
+) RETURNS	    numeric
+AS $$
+DECLARE
+  nId		    numeric;
+BEGIN
+  INSERT INTO db.action (code, name, description)
+  VALUES (pCode, pName, pDescription)
+  RETURNING id INTO nId;
+
+  RETURN nId;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION EditAction ---------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION EditAction (
+  pId		    numeric,
+  pCode		    varchar DEFAULT null,
+  pName		    varchar DEFAULT null,
+  pDescription	text DEFAULT null
+) RETURNS	    void
+AS $$
+DECLARE
+BEGIN
+  UPDATE db.action
+     SET code = coalesce(pCode, code),
+         name = coalesce(pName, name),
+         description = NULLIF(coalesce(pDescription, description), '<null>')
+   WHERE id = pId;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION DeleteAction -------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION DeleteAction (
+  pId		numeric
+) RETURNS 	void
+AS $$
+BEGIN
+  DELETE FROM db.action WHERE id = pId;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
 -- FUNCTION GetAction ----------------------------------------------------------
@@ -1859,6 +1998,12 @@ COMMENT ON COLUMN db.event_type.code IS 'Код типа события';
 COMMENT ON COLUMN db.event_type.name IS 'Наименование типа события';
 
 CREATE UNIQUE INDEX ON db.event_type (code);
+
+--------------------------------------------------------------------------------
+
+INSERT INTO db.event_type (code, name) VALUES ('parent', 'События класса родителя');
+INSERT INTO db.event_type (code, name) VALUES ('event', 'Событие');
+INSERT INTO db.event_type (code, name) VALUES ('plpgsql', 'PL/pgSQL код');
 
 --------------------------------------------------------------------------------
 -- VIEW EventType --------------------------------------------------------------

@@ -8,6 +8,6 @@
 \ir './session/session.psql'
 \ir './current/current.psql'
 \ir './workflow/workflow.psql'
-\ir './essence/essence.psql'
+\ir './entity/entity.psql'
 
 \ir './admin/security.sql'

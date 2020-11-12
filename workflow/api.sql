@@ -8,30 +8,30 @@
 /**
  * Сущность
  */
-CREATE OR REPLACE VIEW api.essence
+CREATE OR REPLACE VIEW api.entity
 AS
-  SELECT * FROM Essence;
+  SELECT * FROM Entity;
 
-GRANT SELECT ON api.essence TO administrator;
+GRANT SELECT ON api.entity TO administrator;
 
 --------------------------------------------------------------------------------
--- api.get_essence -------------------------------------------------------------
+-- api.get_entity -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
  * Возвращает сущность.
- * @return {SETOF api.essence} - Запись
+ * @return {SETOF api.entity} - Запись
  */
-CREATE OR REPLACE FUNCTION api.get_essence (
+CREATE OR REPLACE FUNCTION api.get_entity (
   pId         numeric
-) RETURNS     SETOF api.essence
+) RETURNS     SETOF api.entity
 AS $$
-  SELECT * FROM api.essence WHERE id = pId
+  SELECT * FROM api.entity WHERE id = pId
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- api.list_essence ------------------------------------------------------------
+-- api.list_entity ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
  * Возвращает список сощностей.
@@ -40,18 +40,18 @@ $$ LANGUAGE SQL
  * @param {integer} pLimit - Лимит по количеству строк
  * @param {integer} pOffSet - Пропустить указанное число строк
  * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.essence}
+ * @return {SETOF api.entity}
  */
-CREATE OR REPLACE FUNCTION api.list_essence (
+CREATE OR REPLACE FUNCTION api.list_entity (
   pSearch	jsonb DEFAULT null,
   pFilter	jsonb DEFAULT null,
   pLimit	integer DEFAULT null,
   pOffSet	integer DEFAULT null,
   pOrderBy	jsonb DEFAULT null
-) RETURNS	SETOF api.essence
+) RETURNS	SETOF api.entity
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'essence', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+  RETURN QUERY EXECUTE api.sql('api', 'entity', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -72,10 +72,10 @@ GRANT SELECT ON api.type TO administrator;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.type (
-  pEssence	numeric
+  pEntity	numeric
 ) RETURNS	SETOF api.type
 AS $$
-  SELECT * FROM api.type WHERE essence = pEssence;
+  SELECT * FROM api.type WHERE entity = pEntity;
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -255,7 +255,7 @@ GRANT SELECT ON api.class TO administrator;
 /**
  * Создаёт класс.
  * @param {numeric} pParent - Идентификатор "родителя"
- * @param {numeric} pEssence - Идентификатор сущности
+ * @param {numeric} pEntity - Идентификатор сущности
  * @param {varchar} pCode - Код
  * @param {text} pLabel - Наименование
  * @param {boolean} pAbstract - Абстрактный (Да/Нет)
@@ -263,14 +263,14 @@ GRANT SELECT ON api.class TO administrator;
  */
 CREATE OR REPLACE FUNCTION api.add_class (
   pParent       numeric,
-  pEssence      numeric,
+  pEntity      numeric,
   pCode         varchar,
   pLabel        text,
   pAbstract     boolean DEFAULT true
 ) RETURNS       numeric
 AS $$
 BEGIN
-  RETURN AddClass(pParent, pEssence, pCode, pLabel, pAbstract);
+  RETURN AddClass(pParent, pEntity, pCode, pLabel, pAbstract);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -283,7 +283,7 @@ $$ LANGUAGE plpgsql
  * Обновляет класс.
  * @param {numeric} pId - Идентификатор класса
  * @param {numeric} pParent - Идентификатор "родителя"
- * @param {numeric} pEssence - Идентификатор сущности
+ * @param {numeric} pEntity - Идентификатор сущности
  * @param {varchar} pCode - Код
  * @param {text} pLabel - Наименование
  * @param {boolean} pAbstract - Абстрактный (Да/Нет)
@@ -295,14 +295,14 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.update_class (
   pId           numeric,
   pParent       numeric,
-  pEssence      numeric,
+  pEntity      numeric,
   pCode         varchar,
   pLabel        text,
   pAbstract     boolean DEFAULT true
 ) RETURNS       void
 AS $$
 BEGIN
-  PERFORM EditClass(pId, pParent, pEssence, pCode, pLabel, pAbstract);
+  PERFORM EditClass(pId, pParent, pEntity, pCode, pLabel, pAbstract);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -315,7 +315,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.set_class (
   pId           numeric,
   pParent       numeric,
-  pEssence      numeric,
+  pEntity      numeric,
   pCode         varchar,
   pLabel        text,
   pAbstract     boolean DEFAULT true
@@ -323,9 +323,9 @@ CREATE OR REPLACE FUNCTION api.set_class (
 AS $$
 BEGIN
   IF pId IS NULL THEN
-    pId := api.add_class(pParent, pEssence, pCode, pLabel, pAbstract);
+    pId := api.add_class(pParent, pEntity, pCode, pLabel, pAbstract);
   ELSE
-    PERFORM api.update_class(pId, pParent, pEssence, pCode, pLabel, pAbstract);
+    PERFORM api.update_class(pId, pParent, pEntity, pCode, pLabel, pAbstract);
   END IF;
 
   RETURN QUERY SELECT * FROM api.class WHERE id = pId;

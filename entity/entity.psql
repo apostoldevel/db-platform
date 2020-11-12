@@ -1,0 +1,4 @@
+\ir './object/object.psql'
+
+\echo [M] call entity.sql
+\ir entity.sql

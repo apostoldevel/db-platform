@@ -139,7 +139,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
-CREATE OR REPLACE FUNCTION IncorrectEssence() RETURNS void
+CREATE OR REPLACE FUNCTION IncorrectEntity() RETURNS void
 AS $$
 BEGIN
   RAISE EXCEPTION 'ERR-40014: Неверно задана сущность объекта.';

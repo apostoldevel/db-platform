@@ -1,4 +1,5 @@
-\echo [M] ./workflow/workflow.psql
+\echo [M] call exception.sql
+\ir exception.sql
 
 \echo [M] call db.sql
 \ir db.sql
@@ -8,6 +9,9 @@
 
 \echo [M] call rest.sql
 \ir rest.sql
+
+\echo [M] call event.sql
+\ir event.sql
 
 \echo [M] call init.sql
 \ir init.sql

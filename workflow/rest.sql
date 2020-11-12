@@ -23,7 +23,7 @@ BEGIN
   END IF;
 
   CASE pPath
-  WHEN '/workflow/essence/count' THEN
+  WHEN '/workflow/entity/count' THEN
 
     IF pPayload IS NOT NULL THEN
       arKeys := array_cat(arKeys, ARRAY['search', 'filter', 'reclimit', 'recoffset', 'orderby']);
@@ -36,7 +36,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN SELECT count(*) FROM api.list_essence(r.search, r.filter, r.reclimit, r.recoffset, r.orderby)
+        FOR e IN SELECT count(*) FROM api.list_entity(r.search, r.filter, r.reclimit, r.recoffset, r.orderby)
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -46,7 +46,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN SELECT count(*) FROM api.list_essence(r.search, r.filter, r.reclimit, r.recoffset, r.orderby)
+        FOR e IN SELECT count(*) FROM api.list_entity(r.search, r.filter, r.reclimit, r.recoffset, r.orderby)
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -54,7 +54,7 @@ BEGIN
 
     END IF;
 
-  WHEN '/workflow/essence/get' THEN
+  WHEN '/workflow/entity/get' THEN
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
@@ -67,7 +67,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, fields jsonb)
       LOOP
-        FOR e IN EXECUTE format('SELECT %s FROM api.get_essence($1)', JsonbToFields(r.fields, GetColumns('essence', 'api'))) USING r.id
+        FOR e IN EXECUTE format('SELECT %s FROM api.get_entity($1)', JsonbToFields(r.fields, GetColumns('entity', 'api'))) USING r.id
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -77,7 +77,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, fields jsonb)
       LOOP
-        FOR e IN EXECUTE format('SELECT %s FROM api.get_essence($1)', JsonbToFields(r.fields, GetColumns('essence', 'api'))) USING r.id
+        FOR e IN EXECUTE format('SELECT %s FROM api.get_entity($1)', JsonbToFields(r.fields, GetColumns('entity', 'api'))) USING r.id
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -85,7 +85,7 @@ BEGIN
 
     END IF;
 
-  WHEN '/workflow/essence/list' THEN
+  WHEN '/workflow/entity/list' THEN
 
     IF pPayload IS NOT NULL THEN
       arKeys := array_cat(arKeys, ARRAY['fields', 'search', 'filter', 'reclimit', 'recoffset', 'orderby']);
@@ -96,7 +96,7 @@ BEGIN
 
     FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(fields jsonb, search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
     LOOP
-      FOR e IN EXECUTE format('SELECT %s FROM api.list_essence($1, $2, $3, $4, $5)', JsonbToFields(r.fields, GetColumns('essence', 'api'))) USING r.search, r.filter, r.reclimit, r.recoffset, r.orderby
+      FOR e IN EXECUTE format('SELECT %s FROM api.list_entity($1, $2, $3, $4, $5)', JsonbToFields(r.fields, GetColumns('entity', 'api'))) USING r.search, r.filter, r.reclimit, r.recoffset, r.orderby
       LOOP
         RETURN NEXT row_to_json(e);
       END LOOP;
