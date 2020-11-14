@@ -41,7 +41,7 @@ CREATE OR REPLACE FUNCTION api.add_scheduler (
 ) RETURNS       numeric
 AS $$
 BEGIN
-  RETURN CreateScheduler(pParent, CodeToType(lower(coalesce(pType, 'device')), 'scheduler'), pCode, pName, pPeriod, pDateNext, pDateStart, pDateStop, pDescription);
+  RETURN CreateScheduler(pParent, CodeToType(lower(coalesce(pType, 'task')), 'scheduler'), pCode, pName, pPeriod, pDateNext, pDateStart, pDateStop, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -78,7 +78,7 @@ CREATE OR REPLACE FUNCTION api.update_scheduler (
 AS $$
 DECLARE
   nType         numeric;
-  nScheduler       numeric;
+  nScheduler    numeric;
 BEGIN
   SELECT t.id INTO nScheduler FROM db.scheduler t WHERE t.id = pId;
 

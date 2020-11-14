@@ -41,7 +41,11 @@ BEGIN
   END IF;
 
   IF NEW.dateNext IS NULL THEN
-    NEW.dateNext := NEW.dateStart + coalesce(NEW.period, 0);
+    NEW.dateNext := NEW.dateStart + coalesce(NEW.period, '0 seconds'::interval);
+  END IF;
+
+  IF NEW.dateStop IS NULL THEN
+    NEW.dateStop := TO_DATE('4433-12-31', 'YYYY-MM-DD');
   END IF;
 
   RETURN NEW;
@@ -49,6 +53,8 @@ END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 
 CREATE TRIGGER t_scheduler_insert
   BEFORE INSERT ON db.scheduler

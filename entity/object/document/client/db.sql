@@ -86,9 +86,9 @@ BEGIN
 
   IF NEW.email IS NOT NULL THEN
     IF jsonb_typeof(NEW.email) = 'array' THEN
-      vStr = NEW.email->>0;
+      vStr = NULLIF(NEW.email->>0, '');
     ELSE
-      vStr = NEW.email->>'default';
+      vStr = NULLIF(NEW.email->>'default', '');
     END IF;
 
     IF vStr IS NOT NULL THEN
@@ -98,9 +98,9 @@ BEGIN
 
   IF NEW.phone IS NOT NULL THEN
     IF jsonb_typeof(NEW.phone) = 'array' THEN
-      vStr = NEW.phone->>0;
+      vStr = NULLIF(NEW.phone->>0, '');
     ELSE
-      vStr = NEW.phone->>'mobile';
+      vStr = NULLIF(NEW.phone->>'mobile', '');
     END IF;
 
     IF vStr IS NOT NULL THEN

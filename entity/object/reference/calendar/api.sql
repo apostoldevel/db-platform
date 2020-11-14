@@ -30,8 +30,7 @@
  */
 CREATE OR REPLACE VIEW api.calendar
 AS
-  SELECT *
-    FROM ObjectCalendar;
+  SELECT * FROM ObjectCalendar;
 
 GRANT SELECT ON api.calendar TO administrator;
 
@@ -40,6 +39,8 @@ GRANT SELECT ON api.calendar TO administrator;
 --------------------------------------------------------------------------------
 /**
  * Создает календарь.
+ * @param {numeric} pParent - Ссылка на родительский объект: api.document | null
+ * @param {varchar} pType - Тип
  * @param {varchar} pCode - Код
  * @param {varchar} pName - Наименование
  * @param {numeric} pWeek - Количество используемых (рабочих) дней в неделе
@@ -53,6 +54,8 @@ GRANT SELECT ON api.calendar TO administrator;
  * @return {numeric}
  */
 CREATE OR REPLACE FUNCTION api.add_calendar (
+  pParent       numeric,
+  pType         varchar,
   pCode         varchar,
   pName         varchar,
   pWeek         numeric,
@@ -66,8 +69,8 @@ CREATE OR REPLACE FUNCTION api.add_calendar (
 ) RETURNS       numeric
 AS $$
 DECLARE
-  aHoliday        integer[][2];
-  r                record;
+  aHoliday      integer[][2];
+  r             record;
 BEGIN
   IF pHoliday IS NOT NULL THEN
 
@@ -87,7 +90,7 @@ BEGIN
     END IF;
   END IF;
 
-  RETURN CreateCalendar(null, GetType('workday.calendar'), pCode, pName, pWeek, JsonbToIntArray(pDayOff), aHoliday[2:], pWorkStart, pWorkCount, pRestStart, pRestCount, pDescription);
+  RETURN CreateCalendar(pParent, CodeToType(lower(coalesce(pType, 'workday')), 'calendar'), pCode, pName, pWeek, JsonbToIntArray(pDayOff), aHoliday[2:], pWorkStart, pWorkCount, pRestStart, pRestCount, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -99,6 +102,8 @@ $$ LANGUAGE plpgsql
 /**
  * Обновляет календарь.
  * @param {numeric} pId - Идентификатор календаря (api.get_calendar)
+ * @param {numeric} pParent - Ссылка на родительский объект: api.document | null
+ * @param {varchar} pType - Тип
  * @param {varchar} pCode - Код
  * @param {varchar} pName - Наименование
  * @param {numeric} pWeek - Количество используемых (рабочих) дней в неделе
@@ -113,16 +118,18 @@ $$ LANGUAGE plpgsql
  */
 CREATE OR REPLACE FUNCTION api.update_calendar (
   pId           numeric,
+  pParent       numeric DEFAULT null,
+  pType         varchar DEFAULT null,
   pCode         varchar DEFAULT null,
   pName         varchar DEFAULT null,
   pWeek         numeric DEFAULT null,
   pDayOff       jsonb DEFAULT null,
   pHoliday      jsonb DEFAULT null,
-  pWorkStart        interval DEFAULT null,
+  pWorkStart    interval DEFAULT null,
   pWorkCount    interval DEFAULT null,
-  pRestStart        interval DEFAULT null,
+  pRestStart    interval DEFAULT null,
   pRestCount    interval DEFAULT null,
-  pDescription        text DEFAULT null
+  pDescription  text DEFAULT null
 ) RETURNS       void
 AS $$
 DECLARE
@@ -156,35 +163,37 @@ BEGIN
     END IF;
   END IF;
 
-  PERFORM EditCalendar(nCalendar, null, null, pCode, pName, pWeek, JsonbToIntArray(pDayOff), aHoliday[2:], pWorkStart, pWorkCount, pRestStart, pRestCount, pDescription);
+  PERFORM EditCalendar(nCalendar, pParent, pType, pCode, pName, pWeek, JsonbToIntArray(pDayOff), aHoliday[2:], pWorkStart, pWorkCount, pRestStart, pRestCount, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- api.set_calendar -------------------------------------------------------------
+-- api.set_calendar ------------------------------------------------------------
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.set_calendar (
   pId           numeric,
-  pCode         varchar,
-  pName         varchar,
-  pWeek         numeric,
-  pDayOff       jsonb,
-  pHoliday      jsonb,
-  pWorkStart    interval,
-  pWorkCount    interval,
-  pRestStart    interval,
-  pRestCount    interval,
+  pParent       numeric DEFAULT null,
+  pType         varchar DEFAULT null,
+  pCode         varchar DEFAULT null,
+  pName         varchar DEFAULT null,
+  pWeek         numeric DEFAULT null,
+  pDayOff       jsonb DEFAULT null,
+  pHoliday      jsonb DEFAULT null,
+  pWorkStart    interval DEFAULT null,
+  pWorkCount    interval DEFAULT null,
+  pRestStart    interval DEFAULT null,
+  pRestCount    interval DEFAULT null,
   pDescription  text DEFAULT null
 ) RETURNS       SETOF api.calendar
 AS $$
 BEGIN
   IF pId IS NULL THEN
-    pId := api.add_calendar(pCode, pName, pWeek, pDayOff, pHoliday, pWorkStart, pWorkCount, pRestStart, pRestCount, pDescription);
+    pId := api.add_calendar(pParent, pType, pCode, pName, pWeek, pDayOff, pHoliday, pWorkStart, pWorkCount, pRestStart, pRestCount, pDescription);
   ELSE
-    PERFORM api.update_calendar(pId, pCode, pName, pWeek, pDayOff, pHoliday, pWorkStart, pWorkCount, pRestStart, pRestCount, pDescription);
+    PERFORM api.update_calendar(pId, pParent, pType, pCode, pName, pWeek, pDayOff, pHoliday, pWorkStart, pWorkCount, pRestStart, pRestCount, pDescription);
   END IF;
 
   RETURN QUERY SELECT * FROM api.calendar WHERE id = pId;
@@ -202,8 +211,8 @@ $$ LANGUAGE plpgsql
  * @return {api.calendar} - Календарь
  */
 CREATE OR REPLACE FUNCTION api.get_calendar (
-  pId                numeric
-) RETURNS        SETOF api.calendar
+  pId           numeric
+) RETURNS       SETOF api.calendar
 AS $$
   SELECT * FROM api.calendar WHERE id = pId
 $$ LANGUAGE SQL
@@ -223,12 +232,12 @@ $$ LANGUAGE SQL
  * @return {SETOF api.calendar} - Календари
  */
 CREATE OR REPLACE FUNCTION api.list_calendar (
-  pSearch        jsonb DEFAULT null,
-  pFilter        jsonb DEFAULT null,
+  pSearch       jsonb DEFAULT null,
+  pFilter       jsonb DEFAULT null,
   pLimit        integer DEFAULT null,
-  pOffSet        integer DEFAULT null,
-  pOrderBy        jsonb DEFAULT null
-) RETURNS        SETOF api.calendar
+  pOffSet       integer DEFAULT null,
+  pOrderBy      jsonb DEFAULT null
+) RETURNS       SETOF api.calendar
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'calendar', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
@@ -283,7 +292,7 @@ AS
 GRANT SELECT ON api.calendardate TO administrator;
 
 --------------------------------------------------------------------------------
--- FUNCTION api.list_calendar_date ----------------------------------------------
+-- FUNCTION api.list_calendar_date ---------------------------------------------
 --------------------------------------------------------------------------------
 /**
  * Возвращает даты календаря за указанный период и для заданного пользователя.
@@ -295,11 +304,11 @@ GRANT SELECT ON api.calendardate TO administrator;
  * @return {SETOF api.calendar_date} - Даты календаря
  */
 CREATE OR REPLACE FUNCTION api.list_calendar_date (
-  pCalendar        numeric,
-  pDateFrom        date,
-  pDateTo        date,
-  pUserId        numeric DEFAULT null
-) RETURNS        SETOF api.calendar_date
+  pCalendar     numeric,
+  pDateFrom     date,
+  pDateTo       date,
+  pUserId       numeric DEFAULT null
+) RETURNS       SETOF api.calendar_date
 AS $$
   SELECT * FROM calendar_date(pCalendar, coalesce(pDateFrom, date_trunc('year', now())::date), coalesce(pDateTo, (date_trunc('year', now()) + INTERVAL '1 year' - INTERVAL '1 day')::date), pUserId) ORDER BY date;
 $$ LANGUAGE SQL
@@ -307,7 +316,7 @@ $$ LANGUAGE SQL
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- FUNCTION api.list_calendar_user ----------------------------------------------
+-- FUNCTION api.list_calendar_user ---------------------------------------------
 --------------------------------------------------------------------------------
 /**
  * Возвращает только даты календаря заданного пользователя за указанный период.
@@ -318,11 +327,11 @@ $$ LANGUAGE SQL
  * @return {SETOF api.calendar_date} - Даты календаря
  */
 CREATE OR REPLACE FUNCTION api.list_calendar_user (
-  pCalendar        numeric,
-  pDateFrom        date,
-  pDateTo        date,
-  pUserId        numeric DEFAULT null
-) RETURNS        SETOF api.calendar_date
+  pCalendar     numeric,
+  pDateFrom     date,
+  pDateTo       date,
+  pUserId       numeric DEFAULT null
+) RETURNS       SETOF api.calendar_date
 AS $$
   SELECT *
     FROM calendar_date
@@ -345,10 +354,10 @@ $$ LANGUAGE SQL
  * @return {api.calendardate} - Дата календаря
  */
 CREATE OR REPLACE FUNCTION api.get_calendar_date (
-  pCalendar        numeric,
-  pDate                date,
-  pUserId        numeric DEFAULT null
-) RETURNS        SETOF api.calendar_date
+  pCalendar     numeric,
+  pDate         date,
+  pUserId       numeric DEFAULT null
+) RETURNS       SETOF api.calendar_date
 AS $$
   SELECT * FROM calendar_date(pCalendar, pDate, pDate, pUserId);
 $$ LANGUAGE SQL
@@ -375,10 +384,10 @@ CREATE OR REPLACE FUNCTION api.set_calendar_date (
   pCalendar     numeric,
   pDate         date,
   pFlag         bit DEFAULT null,
-  pWorkStart        interval DEFAULT null,
-  pWorkCount        interval DEFAULT null,
-  pRestStart        interval DEFAULT null,
-  pRestCount        interval DEFAULT null,
+  pWorkStart    interval DEFAULT null,
+  pWorkCount    interval DEFAULT null,
+  pRestStart    interval DEFAULT null,
+  pRestCount    interval DEFAULT null,
   pUserId       numeric DEFAULT null
 ) RETURNS       numeric
 AS $$
