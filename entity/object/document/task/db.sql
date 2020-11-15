@@ -61,7 +61,7 @@ BEGIN
   IF NEW.executor IS NOT NULL THEN
     SELECT owner INTO nOwner FROM db.object WHERE id = NEW.document;
 
-    nUserId := GetStaffUserId(NEW.executor);
+    nUserId := GetClientUserId(NEW.executor);
     IF nOwner <> nUserId THEN
       UPDATE db.aou SET allow = allow | B'110' WHERE object = NEW.document AND userid = nUserId;
       IF NOT FOUND THEN
@@ -95,7 +95,7 @@ BEGIN
     SELECT owner INTO nOwner FROM db.object WHERE id = NEW.document;
 
     IF NEW.executor IS NOT NULL THEN
-      nUserId := GetStaffUserId(NEW.executor);
+      nUserId := GetClientUserId(NEW.executor);
       IF nOwner <> nUserId THEN
         UPDATE db.aou SET allow = allow | B'110' WHERE object = NEW.document AND userid = nUserId;
         IF NOT found THEN
@@ -105,7 +105,7 @@ BEGIN
     END IF;
 
     IF OLD.executor IS NOT NULL THEN
-      nUserId := GetStaffUserId(OLD.executor);
+      nUserId := GetClientUserId(OLD.executor);
       IF nOwner <> nUserId THEN
         DELETE FROM db.aou WHERE object = OLD.document AND userid = nUserId;
       END IF;

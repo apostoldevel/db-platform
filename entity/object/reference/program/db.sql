@@ -69,12 +69,16 @@ DECLARE
   nClass        numeric;
   nMethod       numeric;
 BEGIN
+  SELECT class INTO nClass FROM db.type WHERE id = pType;
+
+  IF GetEntityCode(nClass) <> 'program' THEN
+    PERFORM IncorrectClassType();
+  END IF;
+
   nReference := CreateReference(pParent, pType, pCode, pName, pDescription);
 
   INSERT INTO db.program (reference, body)
   VALUES (nReference, pBody);
-
-  SELECT class INTO nClass FROM db.type WHERE id = pType;
 
   nMethod := GetMethod(nClass, null, GetAction('create'));
   PERFORM ExecuteMethod(nReference, nMethod);

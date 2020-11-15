@@ -94,12 +94,16 @@ DECLARE
   nClass        numeric;
   nMethod       numeric;
 BEGIN
+  SELECT class INTO nClass FROM db.type WHERE id = pType;
+
+  IF GetEntityCode(nClass) <> 'scheduler' THEN
+    PERFORM IncorrectClassType();
+  END IF;
+
   nReference := CreateReference(pParent, pType, pCode, pName, pDescription);
 
   INSERT INTO db.scheduler (id, reference, period, dateNext, dateStart, dateStop)
   VALUES (nReference, nReference, pPeriod, pDateNext, pDateStart, pDateStop);
-
-  SELECT class INTO nClass FROM db.type WHERE id = pType;
 
   nMethod := GetMethod(nClass, null, GetAction('create'));
   PERFORM ExecuteMethod(nReference, nMethod);

@@ -1042,6 +1042,21 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- FUNCTION IsActiveObject -----------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION IsActiveObject (
+  pObject	numeric
+) RETURNS 	boolean
+AS $$
+BEGIN
+  RETURN GetObjectStateTypeCode(pObject) = 'enabled';
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- FUNCTION GetNewState --------------------------------------------------------
 --------------------------------------------------------------------------------
 

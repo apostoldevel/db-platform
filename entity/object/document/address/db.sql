@@ -441,6 +441,12 @@ DECLARE
   nDocument     numeric;
   nMethod       numeric;
 BEGIN
+  SELECT class INTO nClass FROM db.type WHERE id = pType;
+
+  IF GetEntityCode(nClass) <> 'address' THEN
+    PERFORM IncorrectClassType();
+  END IF;
+
   IF pParent IS NOT NULL THEN
     SELECT * INTO r FROM db.address a WHERE a.id = pParent;
 
@@ -527,7 +533,6 @@ BEGIN
   VALUES (nDocument, nDocument, pCode, pIndex, pCountry, pRegion, pDistrict, pCity, pSettlement, pStreet, pHouse, pBuilding, pStructure, pApartment, 0)
   RETURNING id INTO nAddress;
 
-  nClass := GetObjectClass(nAddress);
   nMethod := GetMethod(nClass, null, GetAction('create'));
   PERFORM ExecuteMethod(nAddress, nMethod);
 

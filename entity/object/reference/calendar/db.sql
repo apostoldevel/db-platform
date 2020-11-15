@@ -124,12 +124,16 @@ DECLARE
   nClass        numeric;
   nMethod       numeric;
 BEGIN
+  SELECT class INTO nClass FROM db.type WHERE id = pType;
+
+  IF GetEntityCode(nClass) <> 'calendar' THEN
+    PERFORM IncorrectClassType();
+  END IF;
+
   nReference := CreateReference(pParent, pType, pCode, pName, pDescription);
 
   INSERT INTO db.calendar (reference, week, dayoff, holiday, work_start, work_count, rest_start, rest_count)
   VALUES (nReference, pWeek, pDayOff, pHoliday, pWorkStart, pWorkCount, pRestStart, pRestCount);
-
-  SELECT class INTO nClass FROM db.type WHERE id = pType;
 
   nMethod := GetMethod(nClass, null, GetAction('create'));
   PERFORM ExecuteMethod(nReference, nMethod);
@@ -481,7 +485,7 @@ DECLARE
 BEGIN
   SELECT * INTO r FROM db.calendar WHERE id = pCalendar;
   IF NOT FOUND THEN
-    PERFORM ObjectNotFound('календарь', 'pCalendar', pCalendar);
+    PERFORM ObjectNotFound('календарь', 'id', pCalendar);
   END IF;
 
   dtCurDate := pDateFrom;

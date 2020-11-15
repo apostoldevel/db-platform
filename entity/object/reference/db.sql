@@ -92,11 +92,18 @@ DECLARE
   nObject       numeric;
   nEntity       numeric;
   nClass        numeric;
+
+  vCode         varchar;
 BEGIN
   nObject := CreateObject(pParent, pType, pName);
 
   nEntity := GetObjectEntity(nObject);
   nClass := GetObjectClass(nObject);
+
+  IF StrPos(pCode, '.') = 0 THEN
+    SELECT code INTO vCode FROM db.entity WHERE Id = nEntity;
+    pCode := pCode || '.' || vCode;
+  END IF;
 
   INSERT INTO db.reference (id, object, entity, class, code, name, description)
   VALUES (nObject, nObject, nEntity, nClass, pCode, pName, pDescription)
@@ -156,12 +163,18 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION GetReference (
   pCode         varchar,
-  pEntity      numeric
+  pEntity       numeric
 ) RETURNS       numeric
 AS $$
 DECLARE
   nId           numeric;
+  vCode         varchar;
 BEGIN
+  IF StrPos(pCode, '.') = 0 THEN
+    SELECT code INTO vCode FROM db.entity WHERE Id = pEntity;
+    pCode := pCode || '.' || vCode;
+  END IF;
+
   SELECT id INTO nId FROM db.reference WHERE entity = pEntity AND code = pCode;
   RETURN nId;
 END;
@@ -175,11 +188,47 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION GetReference (
   pCode         varchar,
-  pEntity      varchar DEFAULT null
+  pEntity       varchar DEFAULT null
 ) RETURNS       numeric
 AS $$
 BEGIN
   RETURN GetReference(pCode, GetEntity(coalesce(pEntity, SubStr(pCode, StrPos(pCode, '.') + 1))));
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION GetReferenceCode ---------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetReferenceCode (
+  pId           numeric
+) RETURNS       varchar
+AS $$
+DECLARE
+  vCode         varchar;
+BEGIN
+  SELECT code INTO vCode FROM db.reference WHERE id = pId;
+  RETURN vCode;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION GetReferenceName ---------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetReferenceName (
+  pId           numeric
+) RETURNS       varchar
+AS $$
+DECLARE
+  vName         varchar;
+BEGIN
+  SELECT name INTO vName FROM db.reference WHERE id = pId;
+  RETURN vName;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

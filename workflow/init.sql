@@ -103,6 +103,7 @@ BEGIN
       nState := AddState(pClass, rec_type.id, rec_type.code, pNames[1]);
 
         PERFORM AddMethod(null, pClass, nState, GetAction('enable'), null, pNames[5]);
+        PERFORM AddMethod(null, pClass, nState, GetAction('disable'), null, pNames[6]);
         PERFORM AddMethod(null, pClass, nState, GetAction('delete'), null, pNames[7]);
 
     WHEN 'enabled' THEN
@@ -143,6 +144,10 @@ BEGIN
       LOOP
         IF rec_method.actioncode = 'enable' THEN
           PERFORM AddTransition(rec_state.id, rec_method.id, GetState(pClass, 'enabled'));
+        END IF;
+
+        IF rec_method.actioncode = 'disable' THEN
+          PERFORM AddTransition(rec_state.id, rec_method.id, GetState(pClass, 'disabled'));
         END IF;
 
         IF rec_method.actioncode = 'delete' THEN

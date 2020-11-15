@@ -44,7 +44,7 @@ CREATE INDEX ON db.client USING GIN (info jsonb_path_ops);
 CREATE OR REPLACE FUNCTION ft_client_insert()
 RETURNS trigger AS $$
 BEGIN
-  IF NEW.id IS NULL OR NEW.id = 0 THEN
+  IF NULLIF(NEW.id, 0) IS NULL THEN
     SELECT NEW.document INTO NEW.id;
   END IF;
 
@@ -516,21 +516,259 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- BALANCE ---------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE TABLE db.balance (
+    id			    numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
+    type            integer NOT NULL DEFAULT 0,
+    client          numeric(12) NOT NULL,
+    amount		    numeric NOT NULL,
+    validFromDate	timestamptz DEFAULT Now() NOT NULL,
+    validToDate		timestamptz DEFAULT MAXDATE() NOT NULL,
+    CONSTRAINT ch_balance_type CHECK (type BETWEEN 0 AND 3),
+    CONSTRAINT fk_balance_client FOREIGN KEY (client) REFERENCES db.client(id)
+);
+
+--------------------------------------------------------------------------------
+
+COMMENT ON TABLE db.balance IS 'Баланс.';
+
+COMMENT ON COLUMN db.balance.id IS 'Идентификатор';
+COMMENT ON COLUMN db.balance.type IS 'Тип: 0 - на момент открытия; 1 - реальный; 2 - плановый; 3 - эквивалент';
+COMMENT ON COLUMN db.balance.client IS 'Клиент';
+COMMENT ON COLUMN db.balance.amount IS 'Сумма';
+COMMENT ON COLUMN db.balance.validFromDate IS 'Дата начала периода действия';
+COMMENT ON COLUMN db.balance.validToDate IS 'Дата окончания периода действия';
+
+--------------------------------------------------------------------------------
+
+CREATE INDEX ON db.balance (type);
+CREATE INDEX ON db.balance (client);
+
+CREATE UNIQUE INDEX ON db.balance (type, client, validFromDate, validToDate);
+
+--------------------------------------------------------------------------------
+-- VIEW Balance ----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW Balance
+AS
+  SELECT * FROM db.balance;
+
+GRANT SELECT ON Balance TO administrator;
+
+--------------------------------------------------------------------------------
+-- ChangeBalance ---------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Меняет баланс Клиента.
+ * @param {numeric} pClient - Клиент
+ * @param {numeric} pAmount - Сумма
+ * @param {integer} pType - Тип
+ * @param {timestamptz} pDateFrom - Дата
+ * @return {void}
+ */
+CREATE OR REPLACE FUNCTION ChangeBalance (
+  pClient       numeric,
+  pAmount       numeric,
+  pType         integer DEFAULT 1,
+  pDateFrom     timestamptz DEFAULT Now()
+) RETURNS       void
+AS $$
+DECLARE
+  dtDateFrom    timestamp;
+  dtDateTo 	    timestamp;
+BEGIN
+  -- получим дату значения в текущем диапозоне дат
+  SELECT validFromDate, validToDate INTO dtDateFrom, dtDateTo
+    FROM db.balance
+   WHERE type = pType
+     AND client = pClient
+     AND validFromDate <= pDateFrom
+     AND validToDate > pDateFrom;
+
+  IF coalesce(dtDateFrom, MINDATE()) = pDateFrom THEN
+    -- обновим значение в текущем диапозоне дат
+    UPDATE db.balance SET amount = pAmount
+     WHERE type = pType
+       AND client = pClient
+       AND validFromDate <= pDateFrom
+       AND validToDate > pDateFrom;
+  ELSE
+    -- обновим дату значения в текущем диапозоне дат
+    UPDATE db.balance SET validToDate = pDateFrom
+     WHERE type = pType
+       AND client = pClient
+       AND validFromDate <= pDateFrom
+       AND validToDate > pDateFrom;
+
+    INSERT INTO db.balance (type, client, amount, validfromdate, validToDate)
+    VALUES (pType, pClient, pAmount, pDateFrom, coalesce(dtDateTo, MAXDATE()));
+  END IF;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- TURN OVER -------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE TABLE db.turn_over (
+    id			    numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
+    type            integer NOT NULL DEFAULT 0,
+    client          numeric(12) NOT NULL,
+    debit		    numeric NOT NULL,
+    credit          numeric NOT NULL,
+    turn_date       timestamptz NOT NULL,
+    updated         timestamptz NOT NULL DEFAULT Now(),
+    CONSTRAINT ch_turn_over_type CHECK (type BETWEEN 0 AND 3),
+    CONSTRAINT fk_turn_over_client FOREIGN KEY (client) REFERENCES db.client(id)
+);
+
+COMMENT ON TABLE db.turn_over IS 'Остаток.';
+
+COMMENT ON COLUMN db.turn_over.id IS 'Идентификатор';
+COMMENT ON COLUMN db.turn_over.type IS 'Тип: 0 - на момент открытия; 1 - реальный; 2 - плановый; 3 - эквивалент';
+COMMENT ON COLUMN db.turn_over.client IS 'Клиент';
+COMMENT ON COLUMN db.turn_over.debit IS 'Сумма обота по дебету';
+COMMENT ON COLUMN db.turn_over.credit IS 'Сумма обота по кредиту';
+COMMENT ON COLUMN db.turn_over.turn_date IS 'Дата начала периода действия';
+COMMENT ON COLUMN db.turn_over.updated IS 'Дата окончания периода действия';
+
+CREATE INDEX ON db.turn_over (type);
+CREATE INDEX ON db.turn_over (client);
+
+CREATE INDEX ON db.turn_over (type, client, turn_date);
+
+--------------------------------------------------------------------------------
+-- NewTurnOver -----------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Новое движение по счёту.
+ * @param {numeric} pClient - Клиент
+ * @param {numeric} pDebit - Сумма обота по дебету
+ * @param {numeric} pCredit - Сумма обота по кредиту
+ * @param {integer} pType - Тип
+ * @param {timestamptz} pTurnDate - Дата
+ * @return {numeric}
+ */
+CREATE OR REPLACE FUNCTION NewTurnOver (
+  pClient       numeric,
+  pDebit        numeric,
+  pCredit       numeric,
+  pType         integer DEFAULT 1,
+  pTurnDate     timestamptz DEFAULT Now()
+) RETURNS       numeric
+AS $$
+DECLARE
+  nId           numeric;
+BEGIN
+  INSERT INTO db.turn_over (type, client, debit, credit, turn_date)
+  VALUES (pType, pClient, pDebit, pCredit, pTurnDate)
+  RETURNING id INTO nId;
+
+  RETURN nId;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- UpdateBalance ---------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Обновляет баланс клиента.
+ * @param {numeric} pClient - Клиент
+ * @param {numeric} pAmount - Сумма изменения остатка. Если сумма положительная, то счёт кредитуется, если сумма отрицательная - счёт дебетуется.
+ * @param {integer} pType - Тип
+ * @param {timestamptz} pDateFrom - Дата
+ * @return {numeric} - Баланс (остаток на счёте)
+ */
+CREATE OR REPLACE FUNCTION UpdateBalance (
+  pClient       numeric,
+  pAmount       numeric,
+  pType         integer DEFAULT 1,
+  pDateFrom     timestamptz DEFAULT Now()
+) RETURNS       numeric
+AS $$
+DECLARE
+  nId           numeric;
+  nBalance      numeric;
+BEGIN
+  IF pAmount > 0 THEN
+    nId := NewTurnOver(pClient, 0, pAmount, pType, pDateFrom);
+  END IF;
+
+  IF pAmount < 0 THEN
+    nId := NewTurnOver(pClient, pAmount, 0, pType, pDateFrom);
+  END IF;
+
+  if nId IS NOT NULL THEN
+    SELECT Sum(credit) + Sum(debit) INTO nBalance
+      FROM db.turn_over
+     WHERE type = pType
+       AND client = pClient;
+
+    PERFORM ChangeBalance(pClient, nBalance, pType, pDateFrom);
+  END IF;
+
+  RETURN nBalance;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- GetBalance ------------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Возвращает баланс клиента.
+ * @param {numeric} pClient - Клиент
+ * @param {integer} pType - Тип
+ * @param {timestamptz} pDateFrom - Дата
+ * @return {numeric} - Баланс (остаток на счёте)
+ */
+CREATE OR REPLACE FUNCTION GetBalance (
+  pClient       numeric,
+  pType         integer DEFAULT 1,
+  pDateFrom     timestamptz DEFAULT oper_date()
+) RETURNS       numeric
+AS $$
+DECLARE
+  nBalance      numeric;
+BEGIN
+  SELECT amount INTO nBalance
+    FROM db.balance
+   WHERE type = pType
+     AND client = pClient
+     AND validFromDate <= pDateFrom
+     AND validToDate > pDateFrom;
+
+  RETURN nBalance;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- Client ----------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE VIEW Client (Id, Document, Code, Creation, UserId,
-  FullName, ShortName, LastName, FirstName, MiddleName,
+  FullName, ShortName, LastName, FirstName, MiddleName, Balance,
   Phone, Email, Info, EmailVerified, PhoneVerified,
   Locale, LocaleCode, LocaleName, LocaleDescription
 )
 AS
   SELECT c.id, c.document, c.code, c.creation, c.userid,
-         n.name, n.short, n.last, n.first, n.middle,
+         n.name, n.short, n.last, n.first, n.middle, b.amount AS balance,
          c.phone, c.email, c.info, p.email_verified, p.phone_verified,
          n.locale, l.code, l.name, l.description
     FROM db.client c INNER JOIN db.locale      l ON l.id = current_locale()
                      INNER JOIN db.client_name n ON c.id = n.client AND l.id = n.locale AND n.validFromDate <= Now() AND n.validToDate > Now()
+                      LEFT JOIN db.balance     b ON b.type = 1 AND c.id = b.client AND b.validFromDate <= Now() AND b.validToDate > Now()
                       LEFT JOIN db.profile     p ON c.userid = p.userid;
 
 GRANT SELECT ON Client TO administrator;
@@ -793,7 +1031,7 @@ CREATE OR REPLACE VIEW ObjectClient (Id, Object, Parent,
   Class, ClassCode, ClassLabel,
   Type, TypeCode, TypeName, TypeDescription,
   Code, Creation, UserId,
-  FullName, ShortName, LastName, FirstName, MiddleName,
+  FullName, ShortName, LastName, FirstName, MiddleName, Balance,
   Phone, Email, Info, EmailVerified, PhoneVerified,
   Locale, LocaleCode, LocaleName, LocaleDescription,
   Label, Description,
@@ -809,7 +1047,7 @@ AS
          o.class, o.classcode, o.classlabel,
          o.type, o.typecode, o.typename, o.typedescription,
          c.code, c.creation, c.userid,
-         c.fullname, c.shortname, c.lastname, c.firstname, c.middlename,
+         c.fullname, c.shortname, c.lastname, c.firstname, c.middlename, c.balance,
          c.phone, c.email, c.info, emailverified, phoneverified,
          c.locale, c.localecode, c.localename, c.localedescription,
          o.label, d.description,
