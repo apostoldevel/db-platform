@@ -134,16 +134,20 @@ CREATE OR REPLACE FUNCTION api.update_calendar (
 AS $$
 DECLARE
   r             record;
-  nId           numeric;
+  nType         numeric;
   nCalendar     numeric;
   aHoliday      integer[][2];
 BEGIN
-  SELECT c.id INTO nId FROM calendar c WHERE c.id = pId;
+  SELECT c.id INTO nCalendar FROM calendar c WHERE c.id = pId;
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('календарь', 'id', pId);
   END IF;
 
-  nCalendar := pId;
+  IF pType IS NOT NULL THEN
+    nType := CodeToType(lower(pType), 'calendar');
+  ELSE
+    SELECT o.type INTO nType FROM db.object o WHERE o.id = pId;
+  END IF;
 
   IF pHoliday IS NOT NULL THEN
 
@@ -163,7 +167,7 @@ BEGIN
     END IF;
   END IF;
 
-  PERFORM EditCalendar(nCalendar, pParent, pType, pCode, pName, pWeek, JsonbToIntArray(pDayOff), aHoliday[2:], pWorkStart, pWorkCount, pRestStart, pRestCount, pDescription);
+  PERFORM EditCalendar(nCalendar, pParent, nType, pCode, pName, pWeek, JsonbToIntArray(pDayOff), aHoliday[2:], pWorkStart, pWorkCount, pRestStart, pRestCount, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

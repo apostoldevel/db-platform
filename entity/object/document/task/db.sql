@@ -11,9 +11,10 @@ CREATE TABLE db.task (
     document	    numeric(12) NOT NULL,
     code		    varchar(30) NOT NULL,
     calendar        numeric(12) NOT NULL,
-    scheduler       numeric(12) NOT NULL,
+    scheduler       numeric(12),
     program         numeric(12),
     executor        numeric(12),
+    dateRun         timestamptz NOT NULL DEFAULT Now(),
     CONSTRAINT fk_task_document FOREIGN KEY (document) REFERENCES db.document(id),
     CONSTRAINT fk_task_calendar FOREIGN KEY (calendar) REFERENCES db.calendar(id),
     CONSTRAINT fk_task_scheduler FOREIGN KEY (scheduler) REFERENCES db.scheduler(id),
@@ -32,6 +33,7 @@ COMMENT ON COLUMN db.task.calendar IS 'Календарь';
 COMMENT ON COLUMN db.task.scheduler IS 'Планировщик';
 COMMENT ON COLUMN db.task.program IS 'Программа';
 COMMENT ON COLUMN db.task.executor IS 'Исполнитель.';
+COMMENT ON COLUMN db.task.dateRun IS 'Дата запуска.';
 
 --------------------------------------------------------------------------------
 
@@ -47,6 +49,7 @@ CREATE INDEX ON db.task (executor);
 CREATE OR REPLACE FUNCTION ft_task_insert()
 RETURNS trigger AS $$
 DECLARE
+  s         record;
   nOwner    numeric;
   nUserId   numeric;
 BEGIN
@@ -56,6 +59,15 @@ BEGIN
 
   IF NULLIF(NEW.code, '') IS NULL THEN
     NEW.code := encode(gen_random_bytes(12), 'hex');
+  END IF;
+
+  IF NEW.scheduler IS NOT NULL THEN
+    SELECT * INTO s FROM db.scheduler WHERE id = NEW.scheduler;
+    NEW.dateRun := s.dateStart + coalesce(s.period, '0 seconds'::interval);
+  END IF;
+
+  IF NEW.dateRun IS NULL THEN
+    NEW.dateRun := Now();
   END IF;
 
   IF NEW.executor IS NOT NULL THEN
@@ -88,6 +100,7 @@ CREATE TRIGGER t_task_insert
 CREATE OR REPLACE FUNCTION ft_task_after_update()
 RETURNS trigger AS $$
 DECLARE
+  s         record;
   nOwner    numeric;
   nUserId   numeric;
 BEGIN
@@ -110,6 +123,15 @@ BEGIN
         DELETE FROM db.aou WHERE object = OLD.document AND userid = nUserId;
       END IF;
     END IF;
+  END IF;
+
+  IF NEW.scheduler IS NOT NULL THEN
+    SELECT * INTO s FROM db.scheduler WHERE id = NEW.scheduler;
+    NEW.dateRun := s.dateStart + coalesce(s.period, '0 seconds'::interval);
+  END IF;
+
+  IF NEW.dateRun IS NULL THEN
+    NEW.dateRun := Now();
   END IF;
 
   RETURN NEW;
@@ -138,6 +160,7 @@ CREATE OR REPLACE FUNCTION CreateTask (
   pScheduler        numeric default null,
   pProgram          numeric default null,
   pExecutor         numeric default null,
+  pDateRun          timestamptz default null,
   pDescription      text default null
 ) RETURNS           numeric
 AS $$
@@ -160,8 +183,8 @@ BEGIN
 
   nDocument := CreateDocument(pParent, pType, pLabel, pDescription);
 
-  INSERT INTO db.task (id, document, code, calendar, scheduler, program, executor)
-  VALUES (nDocument, nDocument, pCode, pCalendar, pScheduler, pProgram, pExecutor);
+  INSERT INTO db.task (id, document, code, calendar, scheduler, program, executor, daterun)
+  VALUES (nDocument, nDocument, pCode, pCalendar, pScheduler, pProgram, pExecutor, pDateRun);
 
   nMethod := GetMethod(nClass, null, GetAction('create'));
   PERFORM ExecuteMethod(nDocument, nMethod);
@@ -186,6 +209,7 @@ CREATE OR REPLACE FUNCTION EditTask (
   pScheduler        numeric default null,
   pProgram          numeric default null,
   pExecutor         numeric default null,
+  pDateRun          timestamptz default null,
   pDescription      text default null
 ) RETURNS           void
 AS $$
@@ -214,9 +238,10 @@ BEGIN
   UPDATE db.task
      SET code = coalesce(pCode, code),
          calendar = coalesce(pCalendar, calendar),
-         scheduler = coalesce(pScheduler, scheduler),
+         scheduler = CheckNull(coalesce(pScheduler, scheduler, 0)),
          program = CheckNull(coalesce(pProgram, program, 0)),
-         executor = CheckNull(coalesce(pExecutor, executor, 0))
+         executor = CheckNull(coalesce(pExecutor, executor, 0)),
+         dateRun = coalesce(pDateRun, dateRun)
    WHERE id = pId;
 
   SELECT * INTO new FROM db.task WHERE id = pId;
@@ -254,20 +279,22 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE VIEW Task (Id, Document, Code,
   Calendar, CalendarCode, CalendarName,
-  Scheduler, SchedulerCode, SchedulerName, Period, DateNext, DateStart, DateStop,
+  Scheduler, SchedulerCode, SchedulerName,
+  DateStart, DateStop, Period, DateRun,
   Program, ProgramCode, ProgramName,
   Executor, ExecutorCode, ExecutorName
 )
 AS
   SELECT t.id, t.document, t.code,
          t.calendar, rc.code, rc.name,
-         t.scheduler, s.code, s.name, s.period, s.datenext, s.datestart, s.datestop,
+         t.scheduler, s.code, s.name,
+         s.datestart, s.datestop, s.period, t.daterun,
          t.program, p.code, p.name,
          t.executor, c.code, c.fullname
-    FROM db.task t INNER JOIN calendar rc ON t.calendar = rc.id
-                   INNER JOIN scheduler s ON t.scheduler = s.id
-                    LEFT JOIN program   p ON t.program = p.id
-                    LEFT JOIN client    c ON t.executor = c.id;
+    FROM db.task t INNER JOIN Calendar rc ON t.calendar = rc.id
+                   INNER JOIN Scheduler s ON t.scheduler = s.id
+                    LEFT JOIN Program   p ON t.program = p.id
+                    LEFT JOIN Client    c ON t.executor = c.id;
 
 GRANT SELECT ON Task TO administrator;
 
@@ -294,7 +321,7 @@ CREATE OR REPLACE VIEW ObjectTask (Id, Object, Parent,
   Type, TypeCode, TypeName, TypeDescription,
   Code, Calendar, CalendarCode, CalendarName,
   Scheduler, SchedulerCode, SchedulerName,
-  Period, DateNext, DateStart, DateStop,
+  DateStart, DateStop, Period, DateRun,
   Program, ProgramCode, ProgramName,
   Executor, ExecutorCode, ExecutorName,
   Label, Description,
@@ -311,7 +338,7 @@ AS
          o.type, o.typecode, o.typename, o.typedescription,
          t.code, t.calendar, t.calendarcode, t.calendarname,
          t.scheduler, t.schedulercode, t.schedulername,
-         t.period, t.datenext, t.datestart, t.datestop,
+         t.datestart, t.datestop, t.period, t.daterun,
          t.program, t.programcode, t.programname,
          t.executor, t.executorcode, t.executorname,
          o.label, d.description,

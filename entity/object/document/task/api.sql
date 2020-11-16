@@ -25,6 +25,7 @@ GRANT SELECT ON api.task TO administrator;
  * @param {numeric} pScheduler - Планировщик
  * @param {numeric} pProgram - Программа
  * @param {numeric} pExecutor - Исполнитель
+ * @param {timestamptz} pDateRun - Дата запуска
  * @param {text} pDescription - Описание
  * @return {numeric}
  */
@@ -37,11 +38,13 @@ CREATE OR REPLACE FUNCTION api.add_task (
   pScheduler        numeric default null,
   pProgram          numeric default null,
   pExecutor         numeric default null,
+  pDateRun          timestamptz default null,
   pDescription      text default null
 ) RETURNS           numeric
 AS $$
 BEGIN
-  RETURN CreateTask(pParent, CodeToType(lower(coalesce(pType, 'task.disposable')), 'task'), pCode, pLabel, pCalendar, pScheduler, pProgram, pExecutor, pDescription);
+  pCalendar := coalesce(pCalendar, GetCalendar('default.calendar'));
+  RETURN CreateTask(pParent, CodeToType(lower(coalesce(pType, 'task.disposable')), 'task'), pCode, pLabel, pCalendar, pScheduler, pProgram, pExecutor, pDateRun, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -60,6 +63,7 @@ $$ LANGUAGE plpgsql
  * @param {numeric} pScheduler - Планировщик
  * @param {numeric} pProgram - Программа
  * @param {numeric} pExecutor - Исполнитель
+ * @param {timestamptz} pDateRun - Дата запуска
  * @param {text} pDescription - Описание
  * @return {void}
  */
@@ -73,12 +77,13 @@ CREATE OR REPLACE FUNCTION api.update_task (
   pScheduler        numeric default null,
   pProgram          numeric default null,
   pExecutor         numeric default null,
+  pDateRun          timestamptz default null,
   pDescription      text default null
 ) RETURNS           void
 AS $$
 DECLARE
-  nType         numeric;
-  nTask          numeric;
+  nType             numeric;
+  nTask             numeric;
 BEGIN
   SELECT c.id INTO nTask FROM db.task c WHERE c.id = pId;
 
@@ -92,7 +97,7 @@ BEGIN
     SELECT o.type INTO nType FROM db.object o WHERE o.id = pId;
   END IF;
 
-  PERFORM EditTask(nTask, pParent, nType,pCode, pLabel, pCalendar, pScheduler, pProgram, pExecutor, pDescription);
+  PERFORM EditTask(nTask, pParent, nType,pCode, pLabel, pCalendar, pScheduler, pProgram, pExecutor, pDateRun, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -112,14 +117,15 @@ CREATE OR REPLACE FUNCTION api.set_task (
   pScheduler        numeric default null,
   pProgram          numeric default null,
   pExecutor         numeric default null,
+  pDateRun          timestamptz default null,
   pDescription      text default null
 ) RETURNS           SETOF api.task
 AS $$
 BEGIN
   IF pId IS NULL THEN
-    pId := api.add_task(pParent, pType, pCode, pLabel, pCalendar, pScheduler, pProgram, pExecutor, pDescription);
+    pId := api.add_task(pParent, pType, pCode, pLabel, pCalendar, pScheduler, pProgram, pExecutor, pDateRun, pDescription);
   ELSE
-    PERFORM api.update_task(pId, pParent, pType, pCode, pLabel, pCalendar, pScheduler, pProgram, pExecutor, pDescription);
+    PERFORM api.update_task(pId, pParent, pType, pCode, pLabel, pCalendar, pScheduler, pProgram, pExecutor, pDateRun, pDescription);
   END IF;
 
   RETURN QUERY SELECT * FROM api.task WHERE id = pId;
