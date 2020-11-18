@@ -1111,8 +1111,7 @@ DECLARE
   nState	numeric;
   nMethod	numeric;
 BEGIN
-  SELECT type, state INTO nType, nState FROM db.object WHERE id = pObject;
-  SELECT class INTO nClass FROM db.type WHERE id = nType;
+  SELECT class, type, state INTO nClass, nType, nState FROM db.object WHERE id = pObject;
 
   nMethod := GetMethod(nClass, nState, pAction);
 

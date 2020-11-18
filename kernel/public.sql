@@ -603,6 +603,9 @@ BEGIN
   END LOOP;
 
   RETURN r;
+EXCEPTION
+WHEN others THEN
+  RETURN null;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -639,6 +642,9 @@ BEGIN
   END LOOP;
 
   RETURN r;
+EXCEPTION
+WHEN others THEN
+  RETURN null;
 END;
 $$ LANGUAGE plpgsql;
 

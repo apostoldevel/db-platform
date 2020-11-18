@@ -12,7 +12,6 @@ CREATE OR REPLACE FUNCTION EventVendorCreate (
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1010, 'Производитель создан.', pObject);
-  PERFORM ExecuteObjectAction(pObject, GetAction('enable'));
 END;
 $$ LANGUAGE plpgsql;
 

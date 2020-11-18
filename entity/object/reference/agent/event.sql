@@ -12,7 +12,6 @@ CREATE OR REPLACE FUNCTION EventAgentCreate (
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1010, 'Агент создан.', pObject);
-  PERFORM ExecuteObjectAction(pObject, GetAction('enable'));
 END;
 $$ LANGUAGE plpgsql;
 
