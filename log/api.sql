@@ -110,7 +110,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE VIEW api.user_log
 AS
-  WITH RECURSIVE cu AS (
+  WITH cu AS (
     SELECT current_username() AS username
   )
   SELECT el.* FROM EventLog el INNER JOIN cu ON el.username = cu.username;
