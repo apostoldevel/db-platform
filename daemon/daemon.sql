@@ -267,52 +267,57 @@ $$ LANGUAGE plpgsql
 * @return {json}
  */
 CREATE OR REPLACE FUNCTION daemon.token (
-  pClientId     text,
-  pSecret       text,
-  pPayload      jsonb,
-  pAgent        text DEFAULT null,
-  pHost         inet DEFAULT null
-) RETURNS       json
+  pClientId             text,
+  pSecret               text,
+  pPayload              jsonb,
+  pAgent                text DEFAULT null,
+  pHost                 inet DEFAULT null
+) RETURNS               json
 AS $$
 DECLARE
-  result        jsonb;
+  result                jsonb;
 
-  nAudience     numeric;
-  nOauth2       numeric;
+  nAudience             numeric;
+  nOauth2               numeric;
 
-  grant_type    text;
-  response_type text;
-  access_type   text;
-  redirect_uri  text;
-  refresh_token text;
-  auth_code     text;
-  scope         text;
-  state         text;
+  grant_type            text;
+  response_type         text;
+  access_type           text;
+  redirect_uri          text;
+  refresh_token         text;
+  auth_code             text;
+  scope                 text;
+  state                 text;
 
   assertion             text;
   subject_token         text;
   subject_token_type    text;
 
-  vType         char;
+  vType                 char;
 
-  vUsername     text;
-  vPassword     text;
+  vUsername             text;
+  vPassword             text;
 
-  vSession      text;
-  VSecret       text;
+  vSession              text;
+  VSecret               text;
 
-  vRedirectURI  text;
+  vRedirectURI          text;
 
-  arResponses   text[];
+  arResponses           text[];
 
-  vMessage      text;
-  vContext      text;
+  vMessage              text;
+  vContext              text;
 
-  ErrorCode     int;
-  ErrorMessage  text;
+  ErrorCode             int;
+  ErrorMessage          text;
 
-  passed        boolean;
+  passed                boolean;
 BEGIN
+  IF grant_type = 'urn:ietf:params:oauth:grant-type:jwt-bearer' THEN
+    assertion := pPayload->>'assertion';
+    RETURN daemon.signin(assertion, pAgent, pHost);
+  END IF;
+
   SELECT a.id INTO nAudience FROM oauth2.audience a WHERE a.code = pClientId;
 
   IF NOT found THEN
@@ -463,12 +468,6 @@ BEGIN
     END CASE;
 
     RETURN ExchangeToken(nAudience, subject_token, INTERVAL '1 hour', vType);
-
-  ELSIF grant_type = 'urn:ietf:params:oauth:grant-type:jwt-bearer' THEN
-
-    assertion := pPayload->>'assertion';
-
-    RETURN daemon.signin(assertion, pAgent, pHost);
 
   ELSE
     RETURN json_build_object('error', json_build_object('code', 400, 'error', 'unsupported_grant_type', 'message', format('Invalid parameter "grant_type": %s.', grant_type)));

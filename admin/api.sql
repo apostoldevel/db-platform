@@ -503,7 +503,7 @@ CREATE OR REPLACE FUNCTION api.change_password (
 ) RETURNS       void
 AS $$
 BEGIN
-  IF NOT CheckPassword(GetUserName(pId), pOldPass) THEN
+  IF NOT CheckPassword(pId, pOldPass) THEN
     RAISE EXCEPTION '%', GetErrorMessage();
   END IF;
 

@@ -2946,7 +2946,6 @@ BEGIN
 
   IF NULLIF(pPassword, '') IS NULL THEN
     pPassword := encode(hmac(vSecret, GetSecretKey(), 'sha1'), 'hex');
-    PERFORM SetPassword(nUserId, pPassword);
   END IF;
 
   PERFORM SetPassword(nUserId, pPassword);
@@ -4318,7 +4317,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CheckPassword (
-  pRoleName	text,
+  pUserId	numeric,
   pPassword	text
 ) RETURNS 	boolean
 AS $$
@@ -4327,7 +4326,7 @@ DECLARE
 BEGIN
   SELECT (pswhash = crypt(pPassword, pswhash)) INTO passed
     FROM db.user
-   WHERE username = pRoleName;
+   WHERE id = pUserId;
 
   IF found THEN
     IF passed THEN
@@ -4340,6 +4339,22 @@ BEGIN
   END IF;
 
   RETURN coalesce(passed, false);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- CheckPassword ---------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION CheckPassword (
+  pRoleName	text,
+  pPassword	text
+) RETURNS 	boolean
+AS $$
+BEGIN
+  RETURN CheckPassword(GetUser(pRoleName), pPassword);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

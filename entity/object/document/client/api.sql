@@ -156,18 +156,18 @@ CREATE OR REPLACE FUNCTION api.set_client (
   pCode         text,
   pUserId       numeric,
   pName         jsonb,
-  pCreation     timestamp default null,
   pPhone        jsonb DEFAULT null,
   pEmail        jsonb DEFAULT null,
   pInfo         jsonb DEFAULT null,
+  pCreation     timestamp default null,
   pDescription  text DEFAULT null
 ) RETURNS       SETOF api.client
 AS $$
 BEGIN
   IF pId IS NULL THEN
-    pId := api.add_client(pParent, pType, pCode, pUserId, pName, pCreation, pPhone, pEmail, pInfo, pDescription);
+    pId := api.add_client(pParent, pType, pCode, pUserId, pName, pPhone, pEmail, pInfo, pCreation, pDescription);
   ELSE
-    PERFORM api.update_client(pId, pParent, pType, pCode, pUserId, pName, pCreation, pPhone, pEmail, pInfo, pDescription);
+    PERFORM api.update_client(pId, pParent, pType, pCode, pUserId, pName, pPhone, pEmail, pInfo, pCreation, pDescription);
   END IF;
 
   RETURN QUERY SELECT * FROM api.client WHERE id = pId;

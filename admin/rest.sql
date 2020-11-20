@@ -495,7 +495,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, username varchar, oldpass text, newpass text)
       LOOP
-        FOR e IN SELECT * FROM api.change_password(coalesce(r.id, GetUser(r.username)), r.oldpass, r.newpass) AS success
+        FOR e IN SELECT true AS success FROM api.change_password(coalesce(r.id, GetUser(r.username)), r.oldpass, r.newpass)
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -505,7 +505,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, username varchar, oldpass text, newpass text)
       LOOP
-        FOR e IN SELECT * FROM api.change_password(coalesce(r.id, GetUser(r.username)), r.oldpass, r.newpass) AS success
+        FOR e IN SELECT true AS success FROM api.change_password(coalesce(r.id, GetUser(r.username)), r.oldpass, r.newpass) AS success
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
