@@ -292,7 +292,7 @@ AS
          t.program, p.code, p.name,
          t.executor, c.code, c.fullname
     FROM db.task t INNER JOIN Calendar rc ON t.calendar = rc.id
-                   INNER JOIN Scheduler s ON t.scheduler = s.id
+                    LEFT JOIN Scheduler s ON t.scheduler = s.id
                     LEFT JOIN Program   p ON t.program = p.id
                     LEFT JOIN Client    c ON t.executor = c.id;
 
