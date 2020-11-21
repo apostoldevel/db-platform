@@ -44,7 +44,7 @@ CREATE OR REPLACE FUNCTION api.add_task (
 AS $$
 BEGIN
   pCalendar := coalesce(pCalendar, GetCalendar('default.calendar'));
-  RETURN CreateTask(pParent, CodeToType(lower(coalesce(pType, 'task.disposable')), 'task'), pCode, pLabel, pCalendar, pScheduler, pProgram, pExecutor, pDateRun, pDescription);
+  RETURN CreateTask(pParent, CodeToType(lower(coalesce(pType, 'disposable.task')), 'task'), pCode, pLabel, pCalendar, pScheduler, pProgram, pExecutor, pDateRun, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
