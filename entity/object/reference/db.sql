@@ -7,7 +7,7 @@ CREATE TABLE db.reference (
     object          numeric(12) NOT NULL,
     entity		    numeric(12) NOT NULL,
     class           numeric(12) NOT NULL,
-    code            varchar(30) NOT NULL,
+    code            text NOT NULL,
     name            text,
     description     text,
     CONSTRAINT fk_reference_object FOREIGN KEY (object) REFERENCES db.object(id),
@@ -83,7 +83,7 @@ CREATE TRIGGER t_reference_update
 CREATE OR REPLACE FUNCTION CreateReference (
   pParent       numeric,
   pType         numeric,
-  pCode         varchar,
+  pCode         text,
   pName         text,
   pDescription  text DEFAULT null
 ) RETURNS       numeric
@@ -123,7 +123,7 @@ CREATE OR REPLACE FUNCTION EditReference (
   pId           numeric,
   pParent       numeric DEFAULT null,
   pType         numeric DEFAULT null,
-  pCode         varchar DEFAULT null,
+  pCode         text DEFAULT null,
   pName         text DEFAULT null,
   pDescription  text DEFAULT null
 ) RETURNS       void
@@ -162,7 +162,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetReference (
-  pCode         varchar,
+  pCode         text,
   pEntity       numeric
 ) RETURNS       numeric
 AS $$
@@ -187,7 +187,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetReference (
-  pCode         varchar,
+  pCode         text,
   pEntity       varchar DEFAULT null
 ) RETURNS       numeric
 AS $$

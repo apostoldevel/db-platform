@@ -127,7 +127,6 @@ DECLARE
 
   account       db.user%rowtype;
   profile       db.profile%rowtype;
-  session       text;
 
   nUserId       numeric;
   nProvider     numeric;
@@ -136,12 +135,13 @@ DECLARE
 
   jName         jsonb;
 
-  vSecret       text;
-  vCode         text;
+  vProviderType char;
+  vProviderCode text;
 
   iss           text;
   aud           text;
 
+  vSecret       text;
   vSession      text;
 
   vMessage      text;
@@ -161,7 +161,7 @@ BEGIN
     PERFORM IssuerNotFound(iss);
   END IF;
 
-  SELECT a.id, a.secret, a.application INTO nAudience, vSecret, nApplication FROM oauth2.audience a WHERE a.provider = nProvider AND a.code = aud;
+  SELECT a.id, a.application, a.secret INTO nAudience, nApplication, vSecret FROM oauth2.audience a WHERE a.provider = nProvider AND a.code = aud;
 
   IF NOT found THEN
     PERFORM AudienceNotFound();
@@ -185,53 +185,56 @@ BEGIN
       RAISE EXCEPTION '%', GetErrorMessage();
     END IF;
 
-    account.username := claim.sub;
+    SELECT p.type, p.code INTO vProviderType, vProviderCode FROM oauth2.provider p WHERE p.id = nProvider;
 
-    SELECT p.code INTO vCode FROM oauth2.provider p WHERE p.id = nProvider;
+    IF vProviderType = 'E' THEN
 
-    IF vCode = 'google' THEN
-      FOR google IN SELECT * FROM json_to_record(token.payload) AS x(email text, email_verified bool, name text, given_name text, family_name text, locale text, picture text)
-      LOOP
-        account.name := google.name;
-        account.email := google.email;
+      account.username := claim.sub;
 
-        profile.locale := GetLocale(google.locale);
-        profile.given_name := google.given_name;
-        profile.family_name := google.family_name;
-        profile.email_verified := google.email_verified;
-        profile.picture := google.picture;
-      END LOOP;
+      IF vProviderCode = 'google' THEN
+        FOR google IN SELECT * FROM json_to_record(token.payload) AS x(email text, email_verified bool, name text, given_name text, family_name text, locale text, picture text)
+        LOOP
+          account.name := google.name;
+          account.email := google.email;
+
+          profile.locale := GetLocale(google.locale);
+          profile.given_name := google.given_name;
+          profile.family_name := google.family_name;
+          profile.email_verified := google.email_verified;
+          profile.picture := google.picture;
+        END LOOP;
+      END IF;
+
+      SELECT a.userid INTO nUserId FROM db.auth a WHERE a.audience = nAudience AND a.code = account.username;
+
+      IF NOT FOUND THEN
+        jName := jsonb_build_object('name', account.name, 'first', profile.given_name, 'last', profile.family_name);
+
+        SELECT * INTO signup FROM api.signup(null, account.username, null, jName, account.phone, account.email, token.payload::jsonb);
+
+        nUserId := signup.userid;
+
+        INSERT INTO db.auth (userId, audience, code) VALUES (nUserId, nAudience, account.username);
+
+        UPDATE db.profile p
+           SET locale = coalesce(profile.locale, p.locale),
+               given_name = coalesce(profile.given_name, p.given_name),
+               family_name = coalesce(profile.family_name, p.family_name),
+               email_verified = coalesce(profile.email_verified, p.email_verified),
+               picture = coalesce(profile.picture, p.picture)
+         WHERE p.userid = nUserId;
+      END IF;
+
+      SELECT id INTO nAudience FROM oauth2.audience WHERE provider = GetProvider('default') AND application = nApplication;
+
+      vSession := GetSession(nUserId, CreateOAuth2(nAudience, ARRAY['api']), pAgent, pHost, true);
+
+      IF vSession IS NULL THEN
+        RAISE EXCEPTION '%', GetErrorMessage();
+      END IF;
     END IF;
 
-    SELECT a.userid INTO nUserId FROM db.auth a WHERE a.audience = nAudience AND a.code = account.username;
-
-    IF NOT FOUND THEN
-      jName := jsonb_build_object('name', account.name, 'first', profile.given_name, 'last', profile.family_name);
-
-      SELECT * INTO signup FROM api.signup(null, account.username, null, jName, account.phone, account.email, token.payload::jsonb);
-
-      nUserId := signup.userid;
-
-      INSERT INTO db.auth (userId, audience, code) VALUES (nUserId, nAudience, account.username);
-
-      UPDATE db.profile p
-         SET locale = coalesce(profile.locale, p.locale),
-             given_name = coalesce(profile.given_name, p.given_name),
-             family_name = coalesce(profile.family_name, p.family_name),
-             email_verified = coalesce(profile.email_verified, p.email_verified),
-             picture = coalesce(profile.picture, p.picture)
-       WHERE p.userid = nUserId;
-    END IF;
-
-    SELECT id INTO nAudience FROM oauth2.audience WHERE provider = GetProvider('default') AND application = nApplication;
-
-    session := GetSession(nUserId, CreateOAuth2(nAudience, ARRAY['api']), pAgent, pHost, true);
-
-    IF session IS NULL THEN
-      RAISE EXCEPTION '%', GetErrorMessage();
-    END IF;
-
-    RETURN NEXT CreateToken(nAudience, oauth2_current_code(session));
+    RETURN NEXT CreateToken(nAudience, oauth2_current_code(vSession));
   END LOOP;
 
   RETURN;
@@ -313,6 +316,12 @@ DECLARE
 
   passed                boolean;
 BEGIN
+  grant_type := pPayload->>'grant_type';
+
+  IF grant_type IS NULL THEN
+    RETURN json_build_object('error', json_build_object('code', 400, 'error', 'unsupported_grant_type', 'message', 'Missing parameter: grant_type'));
+  END IF;
+
   IF grant_type = 'urn:ietf:params:oauth:grant-type:jwt-bearer' THEN
     assertion := pPayload->>'assertion';
     RETURN daemon.signin(assertion, pAgent, pHost);
@@ -332,15 +341,9 @@ BEGIN
     RETURN json_build_object('error', json_build_object('code', 401, 'error', 'unauthorized_client', 'message', 'The client is not authorized.'));
   END IF;
 
-  access_type := coalesce(pPayload->>'access_type', 'online');
-
-  grant_type := pPayload->>'grant_type';
-
-  IF grant_type IS NULL THEN
-    RETURN json_build_object('error', json_build_object('code', 400, 'error', 'unsupported_grant_type', 'message', 'Missing parameter: grant_type'));
-  END IF;
-
   PERFORM SafeSetVar('client_id', pClientId);
+
+  access_type := coalesce(pPayload->>'access_type', 'online');
 
   IF grant_type = 'authorization_code' THEN
 
@@ -510,7 +513,7 @@ AS $$
 DECLARE
   r             record;
 
-  nApiId        numeric;
+  nApiId        bigint;
   dtBegin       timestamptz;
 
   vMessage      text;
@@ -544,7 +547,7 @@ BEGIN
       RETURN NEXT r.api;
     END LOOP;
 
-    UPDATE api.log SET runtime = age(clock_timestamp(), dtBegin) WHERE id = nApiId;
+    UPDATE db.api_log SET runtime = age(clock_timestamp(), dtBegin) WHERE id = nApiId;
   EXCEPTION
   WHEN others THEN
     GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
@@ -559,7 +562,7 @@ BEGIN
     RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
 
     IF current_session() IS NOT NULL THEN
-      UPDATE api.log SET eventid = AddEventLog('E', ErrorCode, ErrorMessage) WHERE id = nApiId;
+      UPDATE db.api_log SET eventid = AddEventLog('E', ErrorCode, ErrorMessage) WHERE id = nApiId;
     END IF;
   END;
 
@@ -608,7 +611,7 @@ AS $$
 DECLARE
   r             record;
 
-  nApiId        numeric;
+  nApiId        bigint;
   dtBegin       timestamptz;
 
   vSession      text;
@@ -643,7 +646,7 @@ BEGIN
       RETURN NEXT r.api;
     END LOOP;
 
-    UPDATE api.log SET runtime = age(clock_timestamp(), dtBegin) WHERE id = nApiId;
+    UPDATE db.api_log SET runtime = age(clock_timestamp(), dtBegin) WHERE id = nApiId;
   EXCEPTION
   WHEN others THEN
     GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
@@ -658,7 +661,7 @@ BEGIN
     RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
 
     IF current_session() IS NOT NULL THEN
-      UPDATE api.log SET eventid = AddEventLog('E', ErrorCode, ErrorMessage) WHERE id = nApiId;
+      UPDATE db.api_log SET eventid = AddEventLog('E', ErrorCode, ErrorMessage) WHERE id = nApiId;
     END IF;
   END;
 
@@ -709,7 +712,7 @@ AS $$
 DECLARE
   r             record;
 
-  nApiId        numeric;
+  nApiId        bigint;
   dtBegin       timestamptz;
 
   vCode         text;
@@ -748,7 +751,7 @@ BEGIN
       RETURN NEXT r.api;
     END LOOP;
 
-    UPDATE api.log SET runtime = age(clock_timestamp(), dtBegin) WHERE id = nApiId;
+    UPDATE db.api_log SET runtime = age(clock_timestamp(), dtBegin) WHERE id = nApiId;
   EXCEPTION
   WHEN others THEN
     GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
@@ -763,7 +766,7 @@ BEGIN
     RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
 
     IF current_session() IS NOT NULL THEN
-      UPDATE api.log SET eventid = AddEventLog('E', ErrorCode, ErrorMessage) WHERE id = nApiId;
+      UPDATE db.api_log SET eventid = AddEventLog('E', ErrorCode, ErrorMessage) WHERE id = nApiId;
     END IF;
   END;
 
@@ -813,7 +816,7 @@ DECLARE
 
   payload       jsonb;
 
-  nApiId        numeric;
+  nApiId        bigint;
 
   dtBegin       timestamptz;
 
@@ -903,7 +906,7 @@ BEGIN
       RETURN NEXT r.api;
     END LOOP;
 
-    UPDATE api.log SET runtime = age(clock_timestamp(), dtBegin) WHERE id = nApiId;
+    UPDATE db.api_log SET runtime = age(clock_timestamp(), dtBegin) WHERE id = nApiId;
   EXCEPTION
   WHEN others THEN
     GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
@@ -918,7 +921,7 @@ BEGIN
     RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
 
     IF current_session() IS NOT NULL THEN
-      UPDATE api.log SET eventid = AddEventLog('E', ErrorCode, ErrorMessage) WHERE id = nApiId;
+      UPDATE db.api_log SET eventid = AddEventLog('E', ErrorCode, ErrorMessage) WHERE id = nApiId;
     END IF;
   END;
 
@@ -974,7 +977,7 @@ DECLARE
 
   Payload       jsonb;
 
-  nApiId        numeric;
+  nApiId        bigint;
 
   dtBegin       timestamptz;
   dtTimeStamp   timestamptz;
@@ -1032,7 +1035,7 @@ BEGIN
         RETURN NEXT r.api;
       END LOOP;
 
-      UPDATE api.log SET runtime = age(clock_timestamp(), dtBegin) WHERE id = nApiId;
+      UPDATE db.api_log SET runtime = age(clock_timestamp(), dtBegin) WHERE id = nApiId;
     ELSE
       PERFORM NonceExpired();
     END IF;
@@ -1050,7 +1053,7 @@ BEGIN
     RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
 
     IF current_session() IS NOT NULL THEN
-      UPDATE api.log SET eventid = AddEventLog('E', ErrorCode, ErrorMessage) WHERE id = nApiId;
+      UPDATE db.api_log SET eventid = AddEventLog('E', ErrorCode, ErrorMessage) WHERE id = nApiId;
     END IF;
   END;
 

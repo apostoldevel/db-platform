@@ -102,6 +102,24 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- FUNCTION GetProviderType ----------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetProviderType (
+  pId		numeric
+) RETURNS 	char
+AS $$
+DECLARE
+  vType		char;
+BEGIN
+  SELECT type INTO vType FROM oauth2.provider WHERE id = pId;
+  RETURN vType;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- oauth2.application ----------------------------------------------------------
 --------------------------------------------------------------------------------
 

@@ -22,6 +22,16 @@ BEGIN
     PERFORM RouteIsEmpty();
   END IF;
 
+  IF current_session() IS NULL THEN
+	PERFORM LoginFailed();
+  END IF;
+
+  IF session_user <> 'kernel' THEN
+	IF NOT IsUserRole(GetGroup('administrator')) THEN
+	  PERFORM AccessDenied();
+	END IF;
+  END IF;
+
   CASE pPath
   WHEN '/admin/session' THEN
 
@@ -30,10 +40,6 @@ BEGIN
       PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
     ELSE
       pPayload := '{}';
-    END IF;
-
-    IF current_session() IS NULL THEN
-      PERFORM LoginFailed();
     END IF;
 
     FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(userid numeric, username text)
@@ -132,10 +138,6 @@ BEGIN
       pPayload := '{}';
     END IF;
 
-    IF current_session() IS NULL THEN
-      PERFORM LoginFailed();
-    END IF;
-
     FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(username text, type char, code numeric, datefrom timestamp, dateto timestamp)
     LOOP
       FOR e IN SELECT * FROM api.event_log(r.username, r.type, r.code, r.datefrom, r.dateto)
@@ -148,10 +150,6 @@ BEGIN
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
-    END IF;
-
-    IF current_session() IS NULL THEN
-      PERFORM LoginFailed();
     END IF;
 
     arKeys := array_cat(arKeys, GetRoutines('write_to_log', 'api', false));
@@ -247,19 +245,15 @@ BEGIN
   WHEN '/admin/api/log' THEN
 
     IF pPayload IS NOT NULL THEN
-      arKeys := array_cat(arKeys, GetRoutines('api_log', 'api', false));
+      arKeys := array_cat(arKeys, GetRoutines('log', 'api', false));
       PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
     ELSE
       pPayload := '{}';
     END IF;
 
-    IF current_session() IS NULL THEN
-      PERFORM LoginFailed();
-    END IF;
-
     FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(type char, code numeric, datefrom timestamp, dateto timestamp)
     LOOP
-      FOR e IN SELECT * FROM api.api_log(r.type, r.code, r.datefrom, r.dateto)
+      FOR e IN SELECT * FROM api.log(r.type, r.code, r.datefrom, r.dateto)
       LOOP
         RETURN NEXT row_to_json(e);
       END LOOP;
@@ -278,7 +272,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, fields jsonb)
       LOOP
-        FOR e IN EXECUTE format('SELECT %s FROM api.get_api_log($1)', JsonbToFields(r.fields, GetColumns('api_log', 'api'))) USING r.id
+        FOR e IN EXECUTE format('SELECT %s FROM api.get_log($1)', JsonbToFields(r.fields, GetColumns('log', 'api'))) USING r.id
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -288,7 +282,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, fields jsonb)
       LOOP
-        FOR e IN EXECUTE format('SELECT %s FROM api.get_api_log($1)', JsonbToFields(r.fields, GetColumns('api_log', 'api'))) USING r.id
+        FOR e IN EXECUTE format('SELECT %s FROM api.get_log($1)', JsonbToFields(r.fields, GetColumns('log', 'api'))) USING r.id
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -309,7 +303,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN SELECT count(*) FROM api.list_api_log(r.search, r.filter, r.reclimit, r.recoffset, r.orderby)
+        FOR e IN SELECT count(*) FROM api.list_log(r.search, r.filter, r.reclimit, r.recoffset, r.orderby)
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -319,7 +313,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN SELECT count(*) FROM api.list_api_log(r.search, r.filter, r.reclimit, r.recoffset, r.orderby)
+        FOR e IN SELECT count(*) FROM api.list_log(r.search, r.filter, r.reclimit, r.recoffset, r.orderby)
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -338,7 +332,7 @@ BEGIN
 
     FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(fields jsonb, search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
     LOOP
-      FOR e IN EXECUTE format('SELECT %s FROM api.list_api_log($1, $2, $3, $4, $5)', JsonbToFields(r.fields, GetColumns('api_log', 'api'))) USING r.search, r.filter, r.reclimit, r.recoffset, r.orderby
+      FOR e IN EXECUTE format('SELECT %s FROM api.list_log($1, $2, $3, $4, $5)', JsonbToFields(r.fields, GetColumns('log', 'api'))) USING r.search, r.filter, r.reclimit, r.recoffset, r.orderby
       LOOP
         RETURN NEXT row_to_json(e);
       END LOOP;

@@ -1,8 +1,8 @@
 --------------------------------------------------------------------------------
--- InitPlatform ----------------------------------------------------------------
+-- InitEntity ------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION InitPlatform()
+CREATE OR REPLACE FUNCTION InitEntity()
 RETURNS       void
 AS $$
 DECLARE
@@ -10,9 +10,6 @@ DECLARE
   nDocument   numeric;
   nReference  numeric;
 BEGIN
-  -- Документооборот
-  PERFORM InitWorkFlow();
-
   -- Объект
   
   PERFORM CreateEntityObject(null);

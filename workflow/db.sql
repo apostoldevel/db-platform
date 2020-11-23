@@ -1865,13 +1865,13 @@ CREATE TABLE db.transition (
     id			numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
     state		numeric(12),
     method		numeric(12) NOT NULL,
-    newstate		numeric(12) NOT NULL,
+    newstate    numeric(12) NOT NULL,
     CONSTRAINT fk_transition_state FOREIGN KEY (state) REFERENCES db.state(id),
     CONSTRAINT fk_transition_method FOREIGN KEY (method) REFERENCES db.method(id),
     CONSTRAINT fk_transition_newstate FOREIGN KEY (newstate) REFERENCES db.state(id)
 );
 
-COMMENT ON TABLE db.transition IS 'Таблица переходов из одного состояния объекта в другое состояние.';
+COMMENT ON TABLE db.transition IS 'Переходы из одного состояния в другое.';
 
 COMMENT ON COLUMN db.transition.id IS 'Идентификатор';
 COMMENT ON COLUMN db.transition.state IS 'Состояние (текущее)';
@@ -2052,13 +2052,14 @@ CREATE TABLE db.event (
     CONSTRAINT fk_event_action FOREIGN KEY (action) REFERENCES db.action(id)
 );
 
-COMMENT ON TABLE db.event IS 'Список событий.';
+COMMENT ON TABLE db.event IS 'События.';
 
 COMMENT ON COLUMN db.event.id IS 'Идентификатор';
 COMMENT ON COLUMN db.event.class IS 'Класс объекта';
 COMMENT ON COLUMN db.event.type IS 'Тип события';
 COMMENT ON COLUMN db.event.action IS 'Действие';
 COMMENT ON COLUMN db.event.label IS 'Событие';
+COMMENT ON COLUMN db.event.text IS 'Текст';
 COMMENT ON COLUMN db.event.sequence IS 'Очерёдность';
 COMMENT ON COLUMN db.event.enabled IS 'Включено: Да/Нет';
 
@@ -2078,7 +2079,7 @@ AS
   SELECT el.id, el.class, el.type, et.code, et.name, el.action, al.code, al.name,
          el.label, el.text, el.sequence, el.enabled
     FROM db.event el INNER JOIN db.event_type et ON et.id = el.type
-                          INNER JOIN db.action al ON al.id = el.action;
+                     INNER JOIN db.action al ON al.id = el.action;
 
 GRANT SELECT ON Event TO administrator;
 

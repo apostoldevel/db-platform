@@ -8,3 +8,6 @@
 
 \echo [M] call rest.sql
 \ir rest.sql
+
+\echo [M] call init.sql
+\ir init.sql

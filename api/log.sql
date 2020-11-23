@@ -1,45 +1,44 @@
 --------------------------------------------------------------------------------
--- api.log ---------------------------------------------------------------------
+-- db.api_log ------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE TABLE api.log (
-    id            numeric PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_API_LOG'),
-    datetime      timestamp DEFAULT clock_timestamp() NOT NULL,
-    su            text NOT NULL DEFAULT session_user,
-    session       char(40),
-    username      text,
-    route         text NOT NULL,
-    nonce         double precision,
-    signature     text,
-    json          jsonb,
-    eventid       numeric(12),
-    runtime       interval,
+CREATE TABLE db.api_log (
+    id          bigserial PRIMARY KEY,
+    datetime    timestamp DEFAULT clock_timestamp() NOT NULL,
+    su          text NOT NULL DEFAULT session_user,
+    session     char(40),
+    username    text,
+    path        text NOT NULL,
+    nonce       double precision,
+    signature   text,
+    json        jsonb,
+    eventid     bigint,
+    runtime     interval,
     CONSTRAINT fk_api_log_eventid FOREIGN KEY (eventid) REFERENCES db.log(id)
 );
 
-COMMENT ON TABLE api.log IS 'Лог API.';
+COMMENT ON TABLE db.api_log IS 'Лог API.';
 
-COMMENT ON COLUMN api.log.id IS 'Идентификатор';
-COMMENT ON COLUMN api.log.datetime IS 'Дата и время';
-COMMENT ON COLUMN api.log.su IS 'Пользователь (СУБД)';
-COMMENT ON COLUMN api.log.session IS 'Сессия';
-COMMENT ON COLUMN api.log.username IS 'Пользователь (Виртуальный)';
-COMMENT ON COLUMN api.log.route IS 'Путь';
-COMMENT ON COLUMN api.log.json IS 'JSON';
-COMMENT ON COLUMN api.log.runtime IS 'Время выполнения запроса';
+COMMENT ON COLUMN db.api_log.id IS 'Идентификатор';
+COMMENT ON COLUMN db.api_log.datetime IS 'Дата и время';
+COMMENT ON COLUMN db.api_log.su IS 'Пользователь (СУБД)';
+COMMENT ON COLUMN db.api_log.session IS 'Сессия';
+COMMENT ON COLUMN db.api_log.username IS 'Пользователь (виртуальный)';
+COMMENT ON COLUMN db.api_log.path IS 'Путь';
+COMMENT ON COLUMN db.api_log.json IS 'JSON';
+COMMENT ON COLUMN db.api_log.runtime IS 'Время выполнения запроса';
 
-CREATE INDEX ON api.log (datetime);
---CREATE INDEX ON api.log (su);
---CREATE INDEX ON api.log (session);
-CREATE INDEX ON api.log (username);
-CREATE INDEX ON api.log (eventid);
+CREATE INDEX ON db.api_log (datetime);
+CREATE INDEX ON db.api_log (username);
+CREATE INDEX ON db.api_log (path);
+CREATE INDEX ON db.api_log (eventid);
 
 --------------------------------------------------------------------------------
 -- AddApiLog -------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddApiLog (
-  pRoute        text,
+  pPath         text,
   pJson         jsonb,
   pNonce        double precision DEFAULT null,
   pSignature    text DEFAULT null
@@ -62,8 +61,8 @@ BEGIN
     pJson := pJson - 'password';
   END IF;
 
-  INSERT INTO api.log (session, username, route, json, nonce, signature)
-  VALUES (vSession, vUserName, pRoute, pJson, pNonce, pSignature)
+  INSERT INTO db.api_log (session, username, path, json, nonce, signature)
+  VALUES (vSession, vUserName, pPath, pJson, pNonce, pSignature)
   RETURNING id INTO nId;
 
   RETURN nId;
@@ -77,7 +76,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION NewApiLog (
-  pRoute        text,
+  pPath        text,
   pJson         jsonb,
   pNonce        double precision DEFAULT null,
   pSignature    text DEFAULT null
@@ -86,7 +85,7 @@ AS $$
 DECLARE
   nId           numeric;
 BEGIN
-  nId := AddApiLog(pRoute, pJson, pNonce, pSignature);
+  nId := AddApiLog(pPath, pJson, pNonce, pSignature);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -97,14 +96,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION WriteToApiLog (
-  pRoute        text,
+  pPath         text,
   pJson         jsonb,
   pNonce        double precision DEFAULT null,
   pSignature    text DEFAULT null
 ) RETURNS       void
 AS $$
 BEGIN
-  PERFORM NewApiLog(pRoute, pJson, pNonce, pSignature);
+  PERFORM NewApiLog(pPath, pJson, pNonce, pSignature);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -119,7 +118,7 @@ CREATE OR REPLACE FUNCTION DeleteApiLog (
 ) RETURNS	void
 AS $$
 BEGIN
-  DELETE FROM api.log WHERE id = pId;
+  DELETE FROM db.api_log WHERE id = pId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -134,20 +133,20 @@ CREATE OR REPLACE FUNCTION ClearApiLog (
 ) RETURNS	void
 AS $$
 BEGIN
-  DELETE FROM api.log WHERE datetime < pDateTime;
+  DELETE FROM db.api_log WHERE datetime < pDateTime;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- VIEW ApiLog -----------------------------------------------------------------
+-- VIEW apiLog -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW ApiLog (Id, DateTime, su, Session, UserName,
+CREATE OR REPLACE VIEW apiLog (Id, DateTime, su, Session, UserName,
   Path, JSON, Nonce, NonceTime, Signature, RunTime, EventId, Error)
 AS
   SELECT al.id, al.datetime, al.su, al.session, al.username,
-         al.route, al.json, al.nonce, to_timestamp(al.nonce / 1000000), al.signature,
+         al.path, al.json, al.nonce, to_timestamp(al.nonce / 1000000), al.signature,
          round(extract(second from runtime)::numeric, 3), al.eventid, el.text
-    FROM api.log al LEFT JOIN db.log el ON el.id = al.eventid;
+    FROM db.api_log al LEFT JOIN db.log el ON el.id = al.eventid;

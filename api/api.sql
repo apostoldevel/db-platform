@@ -200,14 +200,14 @@ $$ LANGUAGE plpgsql
 -- API LOG ---------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW api.api_log
+CREATE OR REPLACE VIEW api.log
 AS
   SELECT * FROM apiLog;
 
-GRANT SELECT ON api.api_log TO administrator;
+GRANT SELECT ON api.log TO administrator;
 
 --------------------------------------------------------------------------------
--- api.api_log -----------------------------------------------------------------
+-- api.log ---------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
  * Журнал событий текущего пользователя.
@@ -215,17 +215,17 @@ GRANT SELECT ON api.api_log TO administrator;
  * @param {integer} pCode - Код
  * @param {timestamp} pDateFrom - Дата начала периода
  * @param {timestamp} pDateTo - Дата окончания периода
- * @return {SETOF api.api_log} - Записи
+ * @return {SETOF api.log} - Записи
  */
-CREATE OR REPLACE FUNCTION api.api_log (
+CREATE OR REPLACE FUNCTION api.log (
   pUserName     text DEFAULT null,
   pPath		    text DEFAULT null,
   pDateFrom	    timestamp DEFAULT null,
   pDateTo	    timestamp DEFAULT null
-) RETURNS	    SETOF api.api_log
+) RETURNS	    SETOF api.log
 AS $$
   SELECT *
-    FROM api.api_log
+    FROM api.log
    WHERE username = coalesce(pUserName, username)
      AND path = coalesce(pPath, path)
      AND datetime >= coalesce(pDateFrom, MINDATE())
@@ -237,24 +237,24 @@ $$ LANGUAGE SQL
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- api.get_api_log -------------------------------------------------------------
+-- api.get_log -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
  * Возвращает событие
  * @param {numeric} pId - Идентификатор
- * @return {api.api}
+ * @return {api.log}
  */
-CREATE OR REPLACE FUNCTION api.get_api_log (
+CREATE OR REPLACE FUNCTION api.get_log (
   pId		numeric
-) RETURNS	api.api_log
+) RETURNS	api.log
 AS $$
-  SELECT * FROM api.api_log WHERE id = pId
+  SELECT * FROM api.log WHERE id = pId
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- api.list_api_log ------------------------------------------------------------
+-- api.list_log ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
  * Возвращает список событий.
@@ -263,18 +263,18 @@ $$ LANGUAGE SQL
  * @param {integer} pLimit - Лимит по количеству строк
  * @param {integer} pOffSet - Пропустить указанное число строк
  * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.api}
+ * @return {SETOF api.log}
  */
-CREATE OR REPLACE FUNCTION api.list_api_log (
+CREATE OR REPLACE FUNCTION api.list_log (
   pSearch	jsonb DEFAULT null,
   pFilter	jsonb DEFAULT null,
   pLimit	integer DEFAULT null,
   pOffSet	integer DEFAULT null,
   pOrderBy	jsonb DEFAULT null
-) RETURNS	SETOF api.api_log
+) RETURNS	SETOF api.log
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'api_log', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+  RETURN QUERY EXECUTE api.sql('api', 'log', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

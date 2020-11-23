@@ -1141,10 +1141,10 @@ COMMENT ON COLUMN db.method_stack.method IS 'Метод';
 COMMENT ON COLUMN db.method_stack.result IS 'Результат выполения (при наличии)';
 
 --------------------------------------------------------------------------------
--- FUNCTION AddMethodResult ----------------------------------------------------
+-- FUNCTION AddMethodStack -----------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION AddMethodResult (
+CREATE OR REPLACE FUNCTION AddMethodStack (
   pResult   jsonb,
   pObject	numeric DEFAULT context_object(),
   pMethod	numeric DEFAULT context_method()
@@ -1161,24 +1161,24 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- FUNCTION ClearMethodResult --------------------------------------------------
+-- FUNCTION ClearMethodStack ---------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION ClearMethodResult (
+CREATE OR REPLACE FUNCTION ClearMethodStack (
   pObject	numeric,
   pMethod	numeric
 ) RETURNS	void
 AS $$
-  SELECT AddMethodResult(NULL, pObject, pMethod);
+  SELECT AddMethodStack(NULL, pObject, pMethod);
 $$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- FUNCTION GetMethodResult ----------------------------------------------------
+-- FUNCTION GetMethodStack -----------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION GetMethodResult (
+CREATE OR REPLACE FUNCTION GetMethodStack (
   pObject	numeric,
   pMethod	numeric
 ) RETURNS	jsonb
@@ -1202,12 +1202,12 @@ DECLARE
   Rec		record;
 BEGIN
   FOR Rec IN
-    SELECT typecode, text
-      FROM Event
-     WHERE class = pClass
-       AND action = pAction
-       AND enabled
-     ORDER BY sequence
+    SELECT t.code AS typecode, e.text
+      FROM db.event e INNER JOIN db.event_type t ON e.type = t.id
+     WHERE e.class = pClass
+       AND e.action = pAction
+       AND e.enabled
+     ORDER BY e.sequence
   LOOP
     IF Rec.typecode = 'parent' THEN
       SELECT parent INTO nClass FROM db.class_tree WHERE id = pClass;
@@ -1240,7 +1240,7 @@ DECLARE
   nSaveClass	numeric;
   nSaveMethod	numeric;
   nSaveAction	numeric;
-  pSaveForm     jsonb;
+  jSaveForm     jsonb;
 
   sLabel        text;
 
@@ -1256,9 +1256,9 @@ BEGIN
   nSaveClass  := context_class();
   nSaveMethod := context_method();
   nSaveAction := context_action();
-  pSaveForm   := context_form();
+  jSaveForm   := context_form();
 
-  PERFORM ClearMethodResult(pObject, pMethod);
+  PERFORM ClearMethodStack(pObject, pMethod);
 
   nClass := GetObjectClass(pObject);
 
@@ -1269,10 +1269,12 @@ BEGIN
 
   PERFORM ExecuteAction(nClass, nAction);
 
-  PERFORM InitForm(pSaveForm);
+  PERFORM InitForm(jSaveForm);
   PERFORM InitContext(nSaveObject, nSaveClass, nSaveMethod, nSaveAction);
 
-  RETURN GetMethodResult(pObject, pMethod);
+  PERFORM AddNotify(pObject, nClass, pMethod, nAction);
+
+  RETURN GetMethodStack(pObject, pMethod);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

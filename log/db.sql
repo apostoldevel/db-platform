@@ -3,7 +3,7 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.log (
-    id          numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_LOG'),
+    id          bigserial PRIMARY KEY,
     type        char DEFAULT 'M' NOT NULL,
     datetime	timestamp DEFAULT Now() NOT NULL,
     username	text NOT NULL,

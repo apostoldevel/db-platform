@@ -3,8 +3,8 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.address_tree (
-    id          numeric(12) PRIMARY KEY,
-    parent      numeric(12),
+    id          serial PRIMARY KEY,
+    parent      integer,
     code        varchar(17) NOT NULL,
     name        varchar(50) NOT NULL,
     short       varchar(30),
@@ -42,8 +42,8 @@ AS $$
 DECLARE
   nId       numeric;
 BEGIN
-  INSERT INTO db.address_tree (id, parent, code, name, short, index, level)
-  VALUES (nextval('SEQUENCE_ADDRESS'), pParent, pCode, pName, pShort, pIndex, pLevel)
+  INSERT INTO db.address_tree (parent, code, name, short, index, level)
+  VALUES (pParent, pCode, pName, pShort, pIndex, pLevel)
   RETURNING id INTO nId;
 
   RETURN nId;

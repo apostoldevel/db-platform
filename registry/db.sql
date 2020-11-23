@@ -3,9 +3,9 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE registry.key (
-    id			numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REGISTRY'),
-    root		numeric(12),
-    parent		numeric(12),
+    id			numeric(10) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REGISTRY'),
+    root		numeric(10),
+    parent		numeric(10),
     key			text NOT NULL,
     level		integer NOT NULL,
     CONSTRAINT fk_registry_key_root FOREIGN KEY (root) REFERENCES registry.key(id),
@@ -20,20 +20,20 @@ COMMENT ON COLUMN registry.key.parent IS 'Идентификатор родит�
 COMMENT ON COLUMN registry.key.key IS 'Ключ';
 COMMENT ON COLUMN registry.key.level IS 'Уровень вложенности';
 
-CREATE INDEX registry_key_root ON registry.key (root);
-CREATE INDEX registry_key_parent ON registry.key (parent);
-CREATE INDEX registry_key_key ON registry.key (key);
-CREATE INDEX registry_key_level ON registry.key (level);
+CREATE INDEX ON registry.key (root);
+CREATE INDEX ON registry.key (parent);
+CREATE INDEX ON registry.key (key);
+CREATE INDEX ON registry.key (level);
 
-CREATE UNIQUE INDEX registry_key_unique ON registry.key (root, parent, key);
+CREATE UNIQUE INDEX ON registry.key (root, parent, key);
 
 --------------------------------------------------------------------------------
 -- REGISTRY_VALUE --------------------------------------------------------------
 --------------------------------------------------------------------------------
 
 CREATE TABLE registry.value (
-    id			numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REGISTRY'),
-    key			numeric(12) NOT NULL,
+    id			numeric(10) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REGISTRY'),
+    key			numeric(10) NOT NULL,
     vname		text NOT NULL,
     vtype		integer NOT NULL,
     vinteger	integer,
@@ -59,10 +59,10 @@ COMMENT ON COLUMN registry.value.vboolean IS 'Логический: vtype = 4';
 
 --------------------------------------------------------------------------------
 
-CREATE INDEX registry_value_key ON registry.value (key);
-CREATE INDEX registry_value_name ON registry.value (vname);
+CREATE INDEX ON registry.value (key);
+CREATE INDEX ON registry.value (vname);
 
-CREATE UNIQUE INDEX registry_value_unique ON registry.value (key, vname);
+CREATE UNIQUE INDEX ON registry.value (key, vname);
 
 --------------------------------------------------------------------------------
 -- FUNCTION reg_key_to_array ---------------------------------------------------
@@ -110,7 +110,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION registry.get_reg_key (
-  pKey		numeric
+  pId		numeric
 ) RETURNS	text
 AS $$
 DECLARE
@@ -119,10 +119,10 @@ DECLARE
 BEGIN
   FOR r IN 
     WITH RECURSIVE keytree(id, parent, key) AS (
-      SELECT id, parent, key FROM registry.key WHERE id = pKey
+      SELECT id, parent, key FROM registry.key WHERE id = pId
     UNION ALL
       SELECT k.id, k.parent, k.key
-        FROM registry.key k INNER JOIN keytree kt ON kt.parent = k.id
+        FROM registry.key k INNER JOIN keytree kt ON k.id = kt.parent
        WHERE k.root IS NOT NULL
     )
     SELECT key FROM keytree
@@ -719,8 +719,8 @@ AS
          CASE r.key WHEN 'kernel' THEN 'CURRENT_CONFIG' ELSE 'CURRENT_USER' END, 
          k.parent, k.id, k.key, k.level, 
          v.vname, registry.get_reg_value(v.id)
-    FROM registry.key k  LEFT JOIN registry.value v ON v.key = k.id
-                        INNER JOIN (SELECT * FROM registry.key) r ON r.id = k.root;
+    FROM registry.key k  LEFT JOIN registry.value v ON k.id = v.key
+                        INNER JOIN (SELECT * FROM registry.key) r ON k.root = r.id ;
 
 --------------------------------------------------------------------------------
 -- REGISTRY_EX -----------------------------------------------------------------

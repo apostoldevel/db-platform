@@ -1288,7 +1288,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.oauth2 (
-    id              numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_TOKEN'),
+    id              bigserial PRIMARY KEY,
     audience        numeric(12) NOT NULL,
     scopes          text[] NOT NULL,
     access_type     text NOT NULL DEFAULT 'online',
@@ -1355,8 +1355,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.token_header (
-    id              numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_TOKEN'),
-    oauth2          numeric(12) NOT NULL,
+    id              numeric PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_TOKEN'),
+    oauth2          bigint NOT NULL,
     session         varchar(40) NOT NULL,
     salt            text NOT NULL,
     agent           text NOT NULL,
@@ -1404,8 +1404,8 @@ CREATE TRIGGER t_token_header_before_delete
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.token (
-    id              numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_TOKEN'),
-    header          numeric(12) NOT NULL,
+    id              numeric PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_TOKEN'),
+    header          numeric NOT NULL,
     type            char NOT NULL,
     token           text NOT NULL,
     hash            varchar(40) NOT NULL,
@@ -1836,7 +1836,7 @@ $$ LANGUAGE plpgsql
 
 CREATE TABLE db.session (
     code        varchar(40) PRIMARY KEY NOT NULL,
-    oauth2      numeric(12) NOT NULL,
+    oauth2      bigint NOT NULL,
     token       numeric(12) NOT NULL,
     suid        numeric(12) NOT NULL,
     userid      numeric(12) NOT NULL,
@@ -2223,11 +2223,15 @@ CREATE OR REPLACE FUNCTION current_session()
 RETURNS		text
 AS $$
 DECLARE
+  vCode		text;
   vSession	text;
 BEGIN
-  SELECT code INTO vSession FROM db.session WHERE code = GetCurrentSession();
-  IF found THEN
-    RETURN vSession;
+  vCode := GetCurrentSession();
+  IF vCode IS NOT NULL THEN
+    SELECT code INTO vSession FROM db.session WHERE code = vCode;
+    IF found THEN
+      RETURN vSession;
+    END IF;
   END IF;
   RETURN null;
 END;
@@ -2251,7 +2255,9 @@ AS $$
 DECLARE
   vSecret	text;
 BEGIN
-  SELECT secret INTO vSecret FROM db.session WHERE code = pSession;
+  IF pSession IS NOT NULL THEN
+    SELECT secret INTO vSecret FROM db.session WHERE code = pSession;
+  END IF;
   RETURN vSecret;
 END;
 $$ LANGUAGE plpgsql
@@ -2274,7 +2280,9 @@ AS $$
 DECLARE
   vArea     text;
 BEGIN
-  SELECT area INTO vArea FROM db.session WHERE code = pSession;
+  IF pSession IS NOT NULL THEN
+    SELECT area INTO vArea FROM db.session WHERE code = pSession;
+  END IF;
   RETURN vArea;
 END;
 $$ LANGUAGE plpgsql
@@ -2297,7 +2305,9 @@ AS $$
 DECLARE
   vAgent	text;
 BEGIN
-  SELECT agent INTO vAgent FROM db.session WHERE code = pSession;
+  IF pSession IS NOT NULL THEN
+    SELECT agent INTO vAgent FROM db.session WHERE code = pSession;
+  END IF;
   RETURN vAgent;
 END;
 $$ LANGUAGE plpgsql
@@ -2320,7 +2330,9 @@ AS $$
 DECLARE
   iHost		inet;
 BEGIN
-  SELECT host INTO iHost FROM db.session WHERE code = pSession;
+  IF pSession IS NOT NULL THEN
+    SELECT host INTO iHost FROM db.session WHERE code = pSession;
+  END IF;
   RETURN host(iHost);
 END;
 $$ LANGUAGE plpgsql
@@ -2343,7 +2355,9 @@ AS $$
 DECLARE
   nUserId	numeric;
 BEGIN
-  SELECT suid INTO nUserId FROM db.session WHERE code = pSession;
+  IF pSession IS NOT NULL THEN
+    SELECT suid INTO nUserId FROM db.session WHERE code = pSession;
+  END IF;
   RETURN nUserId;
 END;
 $$ LANGUAGE plpgsql
@@ -2362,11 +2376,15 @@ RETURNS		numeric
 AS $$
 DECLARE
   nUserId	numeric;
+  vSession	text;
 BEGIN
   nUserId := GetCurrentUserId();
   IF nUserId IS NULL THEN
-    SELECT userid INTO nUserId FROM db.session WHERE code = current_session();
-    PERFORM SetCurrentUserId(nUserId);
+    vSession := current_session();
+    IF vSession IS NOT NULL THEN
+      SELECT userid INTO nUserId FROM db.session WHERE code = vSession;
+      PERFORM SetCurrentUserId(nUserId);
+    END IF;
   END IF;
   RETURN nUserId;
 END;
@@ -2535,7 +2553,9 @@ AS $$
 DECLARE
   nArea	    numeric;
 BEGIN
-  SELECT area INTO nArea FROM db.session WHERE code = pSession;
+  IF pSession IS NOT NULL THEN
+    SELECT area INTO nArea FROM db.session WHERE code = pSession;
+  END IF;
   RETURN nArea;
 END;
 $$ LANGUAGE plpgsql
@@ -2605,7 +2625,9 @@ AS $$
 DECLARE
   nInterface    numeric;
 BEGIN
-  SELECT interface INTO nInterface FROM db.session WHERE code = pSession;
+  IF pSession IS NOT NULL THEN
+    SELECT interface INTO nInterface FROM db.session WHERE code = pSession;
+  END IF;
   RETURN nInterface;
 END;
 $$ LANGUAGE plpgsql
@@ -2686,7 +2708,9 @@ AS $$
 DECLARE
   dtOperDate	timestamp;
 BEGIN
-  SELECT oper_date INTO dtOperDate FROM db.session WHERE code = pSession;
+  IF pSession IS NOT NULL THEN
+    SELECT oper_date INTO dtOperDate FROM db.session WHERE code = pSession;
+  END IF;
   RETURN dtOperDate;
 END;
 $$ LANGUAGE plpgsql
@@ -2782,7 +2806,9 @@ AS $$
 DECLARE
   nLocale		numeric;
 BEGIN
-  SELECT locale INTO nLocale FROM db.session WHERE code = pSession;
+  IF pSession IS NOT NULL THEN
+    SELECT locale INTO nLocale FROM db.session WHERE code = pSession;
+  END IF;
   RETURN nLocale;
 END;
 $$ LANGUAGE plpgsql
@@ -3618,7 +3644,7 @@ BEGIN
 
   INSERT INTO db.area (parent, type, code, name, description)
   VALUES (coalesce(pParent, GetArea('root')), pType, pCode, pName, pDescription) RETURNING Id INTO nId;
-
+/*
   PERFORM RegSetValueEx(RegCreateKey('CURRENT_CONFIG', 'CONFIG\Department\' || pCode || '\IPTable'), 'LocalIP', 3, pString => '127.0.0.1, 192.168.0.*');
   PERFORM RegSetValueEx(RegCreateKey('CURRENT_CONFIG', 'CONFIG\Department\' || pCode || '\IPTable'), 'EntrustedIP', 3, pString => null);
 
@@ -3633,7 +3659,7 @@ BEGIN
   PERFORM RegSetValueEx(RegCreateKey('CURRENT_CONFIG', 'CONFIG\Department\' || pCode || '\imapConnection'), 'serverEncoding', 3, pString => 'utf-8');
   PERFORM RegSetValueEx(RegCreateKey('CURRENT_CONFIG', 'CONFIG\Department\' || pCode || '\imapConnection'), 'attachmentsDir', 3, pString => '/uploads/message');
   PERFORM RegSetValueEx(RegCreateKey('CURRENT_CONFIG', 'CONFIG\Department\' || pCode || '\imapConnection'), 'folderForMovingMsg', 3, pString => null);
-
+*/
   RETURN nId;
 END;
 $$ LANGUAGE plpgsql
@@ -4773,17 +4799,19 @@ EXCEPTION
 WHEN others THEN
   GET STACKED DIAGNOSTICS message = MESSAGE_TEXT;
 
-  SELECT userid INTO nUserId FROM db.session WHERE code = pSession;
-
-  IF found THEN
-    INSERT INTO db.log (type, code, username, session, text)
-    VALUES ('E', 3002, GetUserName(nUserId), pSession, 'Выход из системы. ' || message);
-  END IF;
-
   PERFORM SetCurrentSession(null);
   PERFORM SetCurrentUserId(null);
 
   PERFORM SetErrorMessage(message);
+
+  IF pSession IS NOT NULL THEN
+	SELECT userid INTO nUserId FROM db.session WHERE code = pSession;
+
+	IF found THEN
+	  INSERT INTO db.log (type, code, username, session, text)
+	  VALUES ('E', 3002, GetUserName(nUserId), pSession, 'Выход из системы. ' || message);
+	END IF;
+  END IF;
 
   RETURN false;
 END;
@@ -4831,11 +4859,13 @@ WHEN others THEN
 
   PERFORM SetErrorMessage(message);
 
-  SELECT userid INTO nUserId FROM db.session WHERE code = pSession;
+  IF pSession IS NOT NULL THEN
+	SELECT userid INTO nUserId FROM db.session WHERE code = pSession;
 
-  IF found THEN
-    INSERT INTO db.log (type, code, username, session, text)
-    VALUES ('E', 3003, GetUserName(nUserId), pSession, message);
+	IF found THEN
+	  INSERT INTO db.log (type, code, username, session, text)
+	  VALUES ('E', 3003, GetUserName(nUserId), pSession, message);
+	END IF;
   END IF;
 
   RETURN null;
@@ -4886,11 +4916,13 @@ WHEN others THEN
 
   PERFORM SetErrorMessage(message);
 
-  SELECT userid INTO nUserId FROM db.session WHERE code = pSession;
+  IF pSession IS NOT NULL THEN
+	SELECT userid INTO nUserId FROM db.session WHERE code = pSession;
 
-  IF found THEN
-    INSERT INTO db.log (type, code, username, session, text)
-    VALUES ('E', 3003, GetUserName(nUserId), pSession, message);
+	IF found THEN
+	  INSERT INTO db.log (type, code, username, session, text)
+	  VALUES ('E', 3003, GetUserName(nUserId), pSession, message);
+	END IF;
   END IF;
 
   RETURN false;

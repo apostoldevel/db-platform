@@ -768,7 +768,7 @@ BEGIN
 
   PERFORM ExecuteObjectAction(pObject, pAction, pForm);
 
-  RETURN GetMethodResult(pObject, nMethod);
+  RETURN GetMethodStack(pObject, nMethod);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

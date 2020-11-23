@@ -22,6 +22,10 @@ BEGIN
     PERFORM RouteIsEmpty();
   END IF;
 
+  IF current_session() IS NULL THEN
+	PERFORM LoginFailed();
+  END IF;
+
   CASE pPath
   WHEN '/message/type' THEN
 

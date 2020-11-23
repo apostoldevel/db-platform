@@ -18,3 +18,4 @@
 \ir './program/program.psql'
 \ir './scheduler/scheduler.psql'
 \ir './vendor/vendor.psql'
+\ir './version/version.psql'
