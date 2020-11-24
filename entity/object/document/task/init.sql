@@ -50,6 +50,7 @@ BEGIN
         PERFORM AddMethod(null, pClass, nState, GetAction('fail'), pvisible => false);
         PERFORM AddMethod(null, pClass, nState, GetAction('abort'), pvisible => false);
 
+        PERFORM AddMethod(null, pClass, nState, GetAction('complete'));
         PERFORM AddMethod(null, pClass, nState, GetAction('cancel'));
 
       nState := AddState(pClass, rec_type.id, 'canceled', 'Отменяется');
@@ -151,6 +152,10 @@ BEGIN
 
         IF rec_method.actioncode = 'abort' THEN
           PERFORM AddTransition(rec_state.id, rec_method.id, GetState(pClass, 'aborted'));
+        END IF;
+
+        IF rec_method.actioncode = 'complete' THEN
+          PERFORM AddTransition(rec_state.id, rec_method.id, GetState(pClass, 'completed'));
         END IF;
 
         IF rec_method.actioncode = 'cancel' THEN

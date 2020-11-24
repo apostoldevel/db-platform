@@ -114,8 +114,19 @@ CREATE OR REPLACE FUNCTION EventTaskExecute (
   pObject	numeric default context_object()
 ) RETURNS	void
 AS $$
+DECLARE
+  r			record;
+  nProgram	numeric;
 BEGIN
   PERFORM WriteToEventLog('M', 1018, 'Задача выполняется.', pObject);
+  SELECT program INTO nProgram FROM db.task WHERE id = pObject;
+
+  FOR r IN SELECT * FROM db.program WHERE id = nProgram
+  LOOP
+	EXECUTE r.body;
+  END LOOP;
+
+  PERFORM ExecuteObjectAction(pObject, GetAction('done'));
 END;
 $$ LANGUAGE plpgsql;
 

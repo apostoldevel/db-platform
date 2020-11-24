@@ -13,6 +13,34 @@ AS
 GRANT SELECT ON api.task TO administrator;
 
 --------------------------------------------------------------------------------
+-- FUNCTION api.task -----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.task (
+  pState    numeric,
+  pDateFrom	timestamptz DEFAULT Now()
+) RETURNS	SETOF api.task
+AS $$
+  SELECT * FROM api.task WHERE state = pState AND daterun >= pDateFrom;
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION api.task -----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.task (
+  pState    varchar,
+  pDateFrom	double precision DEFAULT null
+) RETURNS	SETOF api.task
+AS $$
+  SELECT * FROM api.task(GetState(GetClass('task'), pState), coalesce(to_timestamp(pDateFrom), Now()));
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- api.add_task ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**

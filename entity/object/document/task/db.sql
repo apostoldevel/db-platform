@@ -43,6 +43,7 @@ CREATE INDEX ON db.task (document);
 CREATE INDEX ON db.task (scheduler);
 CREATE INDEX ON db.task (program);
 CREATE INDEX ON db.task (executor);
+CREATE INDEX ON db.task (dateRun);
 
 --------------------------------------------------------------------------------
 
