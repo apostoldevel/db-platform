@@ -123,6 +123,9 @@ BEGIN
   -- Класс
   PERFORM CreateClassCalendar(pParent, nEntity);
 
+  -- API
+  PERFORM RegisterRoute('/api/v1/calendar', AddEndpoint('SELECT * FROM rest.calendar($1, $2);'));
+
   RETURN nEntity;
 END
 $$ LANGUAGE plpgsql

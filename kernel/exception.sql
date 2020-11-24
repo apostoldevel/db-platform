@@ -556,3 +556,12 @@ BEGIN
   RAISE EXCEPTION 'ERR-40062: Неправильный номер телефона: %.', pPhone;
 END;
 $$ LANGUAGE plpgsql STRICT IMMUTABLE;
+
+CREATE OR REPLACE FUNCTION EndPointNotSet (
+  pPath		text
+) RETURNS	void
+AS $$
+BEGIN
+  RAISE EXCEPTION 'ERR-40063: Не установлена конечная точка для пути: "%".', pPath;
+END;
+$$ LANGUAGE plpgsql STRICT IMMUTABLE;

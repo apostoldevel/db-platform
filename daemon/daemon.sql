@@ -497,6 +497,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Неавторизованный запрос данных в формате REST JSON API.
+ * @param {text} pMethod - HTTP-Метод
  * @param {text} pPath - Путь
  * @param {jsonb} pPayload - Данные
  * @param {text} pAgent - Агент
@@ -504,6 +505,7 @@ $$ LANGUAGE plpgsql
  * @return {SETOF json} - Записи в JSON
  */
 CREATE OR REPLACE FUNCTION daemon.unauthorized_fetch (
+  pMethod		text,
   pPath         text,
   pPayload      jsonb DEFAULT null,
   pAgent        text DEFAULT null,
@@ -512,9 +514,6 @@ CREATE OR REPLACE FUNCTION daemon.unauthorized_fetch (
 AS $$
 DECLARE
   r             record;
-
-  nApiId        bigint;
-  dtBegin       timestamptz;
 
   vMessage      text;
   vContext      text;
@@ -537,34 +536,10 @@ BEGIN
     pPayload := pPayload || jsonb_build_object('agent', pAgent, 'host', pHost);
   END IF;
 
-  nApiId := AddApiLog(pPath, pPayload);
-
-  BEGIN
-    dtBegin := clock_timestamp();
-
-    FOR r IN SELECT * FROM rest.api(pPath, pPayload)
-    LOOP
-      RETURN NEXT r.api;
-    END LOOP;
-
-    UPDATE db.api_log SET runtime = age(clock_timestamp(), dtBegin) WHERE id = nApiId;
-  EXCEPTION
-  WHEN others THEN
-    GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
-
-    PERFORM SetErrorMessage(vMessage);
-
-    SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
-
-    PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
-    PERFORM WriteToEventLog('D', ErrorCode, vContext);
-
-    RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
-
-    IF current_session() IS NOT NULL THEN
-      UPDATE db.api_log SET eventid = AddEventLog('E', ErrorCode, ErrorMessage) WHERE id = nApiId;
-    END IF;
-  END;
+  FOR r IN SELECT * FROM api.run(pMethod, pPath, pPayload)
+  LOOP
+	RETURN NEXT r.run;
+  END LOOP;
 
   RETURN;
 EXCEPTION
@@ -593,6 +568,7 @@ $$ LANGUAGE plpgsql
  * Авторизованный запрос данных в формате REST JSON API с аутентификацией по имени пользователя и паролю.
  * @param {text} pUsername - Пользователь
  * @param {text} pPassword - Пароль
+ * @param {text} pMethod - HTTP-Метод
  * @param {text} pPath - Путь
  * @param {jsonb} pPayload - Данные
  * @param {text} pAgent - Агент
@@ -602,6 +578,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION daemon.authorized_fetch (
   pUsername     text,
   pPassword     text,
+  pMethod		text,
   pPath         text,
   pPayload      jsonb DEFAULT null,
   pAgent        text DEFAULT null,
@@ -610,9 +587,6 @@ CREATE OR REPLACE FUNCTION daemon.authorized_fetch (
 AS $$
 DECLARE
   r             record;
-
-  nApiId        bigint;
-  dtBegin       timestamptz;
 
   vSession      text;
 
@@ -636,34 +610,10 @@ BEGIN
 
   vSession := SignIn(CreateSystemOAuth2(), pUsername, pPassword, pAgent, pHost);
 
-  nApiId := AddApiLog(pPath, pPayload);
-
-  BEGIN
-    dtBegin := clock_timestamp();
-
-    FOR r IN SELECT * FROM rest.api(pPath, pPayload)
-    LOOP
-      RETURN NEXT r.api;
-    END LOOP;
-
-    UPDATE db.api_log SET runtime = age(clock_timestamp(), dtBegin) WHERE id = nApiId;
-  EXCEPTION
-  WHEN others THEN
-    GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
-
-    PERFORM SetErrorMessage(vMessage);
-
-    SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
-
-    PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
-    PERFORM WriteToEventLog('D', ErrorCode, vContext);
-
-    RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
-
-    IF current_session() IS NOT NULL THEN
-      UPDATE db.api_log SET eventid = AddEventLog('E', ErrorCode, ErrorMessage) WHERE id = nApiId;
-    END IF;
-  END;
+  FOR r IN SELECT * FROM api.run(pMethod, pPath, pPayload)
+  LOOP
+	RETURN NEXT r.run;
+  END LOOP;
 
   PERFORM SessionOut(vSession, false);
 
@@ -694,6 +644,7 @@ $$ LANGUAGE plpgsql
  * Авторизованный запрос данных в формате REST JSON API с аутентификацией по сессии и секретному коду.
  * @param {text} pSession - Сессия
  * @param {text} pSecret - Секрет
+ * @param {text} pMethod - HTTP-Метод
  * @param {text} pPath - Путь
  * @param {jsonb} pPayload - Данные
  * @param {text} pAgent - Агент
@@ -703,6 +654,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION daemon.session_fetch (
   pSession      text,
   pSecret       text,
+  pMethod		text,
   pPath         text,
   pPayload      jsonb DEFAULT null,
   pAgent        text DEFAULT null,
@@ -711,9 +663,6 @@ CREATE OR REPLACE FUNCTION daemon.session_fetch (
 AS $$
 DECLARE
   r             record;
-
-  nApiId        bigint;
-  dtBegin       timestamptz;
 
   vCode         text;
 
@@ -735,40 +684,16 @@ BEGIN
     pPayload := pPayload || jsonb_build_object('agent', pAgent, 'host', pHost);
   END IF;
 
-  nApiId := AddApiLog(pPath, pPayload);
+  vCode := Authenticate(pSession, pSecret, pAgent, pHost);
 
-  BEGIN
-    vCode := Authenticate(pSession, pSecret, pAgent, pHost);
+  IF vCode IS NULL THEN
+	PERFORM AuthenticateError(GetErrorMessage());
+  END IF;
 
-    IF vCode IS NULL THEN
-      PERFORM AuthenticateError(GetErrorMessage());
-    END IF;
-
-    dtBegin := clock_timestamp();
-
-    FOR r IN SELECT * FROM rest.api(pPath, pPayload)
-    LOOP
-      RETURN NEXT r.api;
-    END LOOP;
-
-    UPDATE db.api_log SET runtime = age(clock_timestamp(), dtBegin) WHERE id = nApiId;
-  EXCEPTION
-  WHEN others THEN
-    GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
-
-    PERFORM SetErrorMessage(vMessage);
-
-    SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
-
-    PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
-    PERFORM WriteToEventLog('D', ErrorCode, vContext);
-
-    RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
-
-    IF current_session() IS NOT NULL THEN
-      UPDATE db.api_log SET eventid = AddEventLog('E', ErrorCode, ErrorMessage) WHERE id = nApiId;
-    END IF;
-  END;
+  FOR r IN SELECT * FROM api.run(pMethod, pPath, pPayload)
+  LOOP
+	RETURN NEXT r.run;
+  END LOOP;
 
   RETURN;
 EXCEPTION
@@ -796,6 +721,7 @@ $$ LANGUAGE plpgsql
 /**
  * Авторизованный запрос данных в формате REST JSON API.
  * @param {text} pToken - Маркер JWT
+ * @param {text} pMethod - HTTP-Метод
  * @param {text} pPath - Путь
  * @param {jsonb} pPayload - Данные
  * @param {text} pAgent - Агент
@@ -804,6 +730,7 @@ $$ LANGUAGE plpgsql
  */
 CREATE OR REPLACE FUNCTION daemon.fetch (
   pToken        text,
+  pMethod		text,
   pPath         text,
   pPayload      jsonb DEFAULT null,
   pAgent        text DEFAULT null,
@@ -815,10 +742,6 @@ DECLARE
   token         record;
 
   payload       jsonb;
-
-  nApiId        bigint;
-
-  dtBegin       timestamptz;
 
   vSecret       text;
 
@@ -850,84 +773,59 @@ BEGIN
     pPayload := pPayload || jsonb_build_object('agent', pAgent, 'host', pHost);
   END IF;
 
-  nApiId := AddApiLog(pPath, pPayload);
+  SELECT convert_from(url_decode(data[2]), 'utf8')::jsonb INTO payload FROM regexp_split_to_array(pToken, '\.') data;
 
-  BEGIN
-    SELECT convert_from(url_decode(data[2]), 'utf8')::jsonb INTO payload FROM regexp_split_to_array(pToken, '\.') data;
+  iss := payload->>'iss';
 
-    iss := payload->>'iss';
+  SELECT i.provider INTO nProvider FROM oauth2.issuer i WHERE i.code = iss;
 
-    SELECT i.provider INTO nProvider FROM oauth2.issuer i WHERE i.code = iss;
+  IF NOT found THEN
+	PERFORM IssuerNotFound(coalesce(iss, 'null'));
+  END IF;
 
-    IF NOT found THEN
-      PERFORM IssuerNotFound(coalesce(iss, 'null'));
-    END IF;
+  aud := payload->>'aud';
 
-    aud := payload->>'aud';
+  SELECT a.id, a.secret INTO nAudience, vSecret FROM oauth2.audience a WHERE a.provider = nProvider AND a.code = aud;
 
-    SELECT a.id, a.secret INTO nAudience, vSecret FROM oauth2.audience a WHERE a.provider = nProvider AND a.code = aud;
+  IF NOT found THEN
+	PERFORM AudienceNotFound();
+  END IF;
 
-    IF NOT found THEN
-      PERFORM AudienceNotFound();
-    END IF;
+  SELECT * INTO token FROM verify(pToken, vSecret);
 
-    SELECT * INTO token FROM verify(pToken, vSecret);
+  IF NOT coalesce(token.valid, false) THEN
+	PERFORM TokenError();
+  END IF;
 
-    IF NOT coalesce(token.valid, false) THEN
-      PERFORM TokenError();
-    END IF;
+  SELECT h.oauth2 INTO nOauth2
+	FROM db.token_header h INNER JOIN db.token t ON h.id = t.header
+   WHERE t.hash = GetTokenHash(pToken, GetSecretKey())
+	 AND t.validFromDate <= Now()
+	 AND t.validtoDate > Now();
 
-    SELECT h.oauth2 INTO nOauth2
-      FROM db.token_header h INNER JOIN db.token t ON h.id = t.header
-     WHERE t.hash = GetTokenHash(pToken, GetSecretKey())
-       AND t.validFromDate <= Now()
-       AND t.validtoDate > Now();
+  IF NOT FOUND THEN
+	PERFORM TokenExpired();
+  END IF;
 
-    IF NOT FOUND THEN
-      PERFORM TokenExpired();
-    END IF;
+  SELECT (audience = nAudience) INTO belong FROM db.oauth2 WHERE id = nOauth2;
 
-    SELECT (audience = nAudience) INTO belong FROM db.oauth2 WHERE id = nOauth2;
+  IF NOT coalesce(belong, false) THEN
+	PERFORM TokenBelong();
+  END IF;
 
-    IF NOT coalesce(belong, false) THEN
-      PERFORM TokenBelong();
-    END IF;
+  sub := payload->>'sub';
 
-    sub := payload->>'sub';
+  IF SessionIn(sub, pAgent, pHost) IS NULL THEN
+	PERFORM AuthenticateError(GetErrorMessage());
+  END IF;
 
-    IF SessionIn(sub, pAgent, pHost) IS NULL THEN
-      PERFORM AuthenticateError(GetErrorMessage());
-    END IF;
-
-    dtBegin := clock_timestamp();
-
-    FOR r IN SELECT * FROM rest.api(pPath, pPayload)
-    LOOP
-      RETURN NEXT r.api;
-    END LOOP;
-
-    UPDATE db.api_log SET runtime = age(clock_timestamp(), dtBegin) WHERE id = nApiId;
-  EXCEPTION
-  WHEN others THEN
-    GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
-
-    PERFORM SetErrorMessage(vMessage);
-
-    SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
-
-    PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
-    PERFORM WriteToEventLog('D', ErrorCode, vContext);
-
-    RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
-
-    IF current_session() IS NOT NULL THEN
-      UPDATE db.api_log SET eventid = AddEventLog('E', ErrorCode, ErrorMessage) WHERE id = nApiId;
-    END IF;
-  END;
+  FOR r IN SELECT * FROM api.run(pMethod, pPath, pPayload)
+  LOOP
+	RETURN NEXT r.run;
+  END LOOP;
 
   RETURN;
 EXCEPTION
-WHEN others THEN
 WHEN others THEN
   GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
 
@@ -951,6 +849,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Запрос данных в формате REST JSON API с проверкой подписи методом HMAC-SHA256.
+ * @param {text} pMethod - HTTP-Метод
  * @param {text} pPath - Путь
  * @param {json} pJson - Данные в JSON
  * @param {text} pSession - Сессия
@@ -962,6 +861,7 @@ $$ LANGUAGE plpgsql
  * @return {SETOF json} - Записи в JSON
  */
 CREATE OR REPLACE FUNCTION daemon.signed_fetch (
+  pMethod		text,
   pPath         text,
   pJson         json DEFAULT null,
   pSession      text DEFAULT null,
@@ -977,9 +877,6 @@ DECLARE
 
   Payload       jsonb;
 
-  nApiId        bigint;
-
-  dtBegin       timestamptz;
   dtTimeStamp   timestamptz;
 
   vMessage      text;
@@ -1009,53 +906,29 @@ BEGIN
     Payload := Payload || jsonb_build_object('agent', pAgent, 'host', pHost);
   END IF;
 
-  nApiId := AddApiLog(pPath, Payload, pNonce, pSignature);
+  dtTimeStamp := coalesce(to_timestamp(pNonce / 1000000), Now());
 
-  BEGIN
-    dtTimeStamp := coalesce(to_timestamp(pNonce / 1000000), Now());
+  IF (dtTimeStamp < (Now() + INTERVAL '5 sec') AND (Now() - dtTimeStamp) <= pTimeWindow) THEN
 
-    IF (dtTimeStamp < (Now() + INTERVAL '5 sec') AND (Now() - dtTimeStamp) <= pTimeWindow) THEN
+	SELECT (pSignature = GetSignature(pPath, pNonce, pJson, secret)) INTO passed
+	  FROM db.session
+	 WHERE code = pSession;
 
-      SELECT (pSignature = GetSignature(pPath, pNonce, pJson, secret)) INTO passed
-        FROM db.session
-       WHERE code = pSession;
+	IF NOT coalesce(passed, false) THEN
+	  PERFORM SignatureError();
+	END IF;
 
-      IF NOT coalesce(passed, false) THEN
-        PERFORM SignatureError();
-      END IF;
+	IF SessionIn(pSession, pAgent, pHost) IS NULL THEN
+	  PERFORM AuthenticateError(GetErrorMessage());
+	END IF;
 
-      IF SessionIn(pSession, pAgent, pHost) IS NULL THEN
-        PERFORM AuthenticateError(GetErrorMessage());
-      END IF;
-
-      dtBegin := clock_timestamp();
-
-      FOR r IN SELECT * FROM rest.api(pPath, Payload)
-      LOOP
-        RETURN NEXT r.api;
-      END LOOP;
-
-      UPDATE db.api_log SET runtime = age(clock_timestamp(), dtBegin) WHERE id = nApiId;
-    ELSE
-      PERFORM NonceExpired();
-    END IF;
-  EXCEPTION
-  WHEN others THEN
-    GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
-
-    PERFORM SetErrorMessage(vMessage);
-
-    SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
-
-    PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
-    PERFORM WriteToEventLog('D', ErrorCode, vContext);
-
-    RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
-
-    IF current_session() IS NOT NULL THEN
-      UPDATE db.api_log SET eventid = AddEventLog('E', ErrorCode, ErrorMessage) WHERE id = nApiId;
-    END IF;
-  END;
+	FOR r IN SELECT * FROM api.run(pMethod, pPath, Payload)
+	LOOP
+	  RETURN NEXT r.run;
+	END LOOP;
+  ELSE
+	PERFORM NonceExpired();
+  END IF;
 
   RETURN;
 EXCEPTION

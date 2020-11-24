@@ -125,6 +125,9 @@ BEGIN
   -- Класс
   PERFORM CreateClassVendor(pParent, nEntity);
 
+  -- API
+  PERFORM RegisterRoute('/api/v1/vendor', AddEndpoint('SELECT * FROM rest.vendor($1, $2);'));
+
   RETURN nEntity;
 END
 $$ LANGUAGE plpgsql

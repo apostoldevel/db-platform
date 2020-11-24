@@ -5,44 +5,16 @@
 CREATE OR REPLACE FUNCTION InitAPI()
 RETURNS			void
 AS $$
-DECLARE
-  vNameSpace	text;
-  vEndpoint		text;
 BEGIN
-  vNameSpace := '/api/v1';
-  vEndpoint := 'rest.api($1, $2)';
-
-  PERFORM RegisterEndpoint(RegisterPath(vNameSpace || '/sign/up'), vEndpoint);
-  PERFORM RegisterEndpoint(RegisterPath(vNameSpace || '/sign/in'), vEndpoint);
-  PERFORM RegisterEndpoint(RegisterPath(vNameSpace || '/sign/out'), vEndpoint);
-
-  PERFORM RegisterEndpoint(RegisterPath(vNameSpace || '/authenticate'), vEndpoint);
-  PERFORM RegisterEndpoint(RegisterPath(vNameSpace || '/authorize'), vEndpoint);
-  PERFORM RegisterEndpoint(RegisterPath(vNameSpace || '/su'), vEndpoint);
-  PERFORM RegisterEndpoint(RegisterPath(vNameSpace || '/whoami'), vEndpoint);
-  PERFORM RegisterEndpoint(RegisterPath(vNameSpace || '/api'), vEndpoint);
-  PERFORM RegisterEndpoint(RegisterPath(vNameSpace || '/locale'), vEndpoint);
-  PERFORM RegisterEndpoint(RegisterPath(vNameSpace || '/entity'), vEndpoint);
-  PERFORM RegisterEndpoint(RegisterPath(vNameSpace || '/type'), vEndpoint);
-  PERFORM RegisterEndpoint(RegisterPath(vNameSpace || '/class'), vEndpoint);
-
-  PERFORM RegisterEndpoint(RegisterPath(vNameSpace || '/state'), vEndpoint);
-  PERFORM RegisterEndpoint(RegisterPath(vNameSpace || '/state/type'), vEndpoint);
-  PERFORM RegisterEndpoint(RegisterPath(vNameSpace || '/state/class'), vEndpoint);
-
-  PERFORM RegisterEndpoint(RegisterPath(vNameSpace || '/action'), vEndpoint);
-  PERFORM RegisterEndpoint(RegisterPath(vNameSpace || '/action/run'), vEndpoint);
-
-  PERFORM RegisterEndpoint(RegisterPath(vNameSpace || '/method'), vEndpoint);
-  PERFORM RegisterEndpoint(RegisterPath(vNameSpace || '/method'), vEndpoint);
-  PERFORM RegisterEndpoint(RegisterPath(vNameSpace || '/method/get'), vEndpoint);
-  PERFORM RegisterEndpoint(RegisterPath(vNameSpace || '/method/list'), vEndpoint);
-
-  PERFORM RegisterEndpoint(RegisterPath(vNameSpace || '/member/area'), vEndpoint);
-  PERFORM RegisterEndpoint(RegisterPath(vNameSpace || '/member/interface'), vEndpoint);
-
-  PERFORM RegisterEndpoint(RegisterPath(vNameSpace || '/user/set'), vEndpoint);
-  PERFORM RegisterEndpoint(RegisterPath(vNameSpace || '/user/password'), vEndpoint);
+  PERFORM RegisterRoute('/api/v1', AddEndpoint('SELECT * FROM rest.api($1, $2);'));
+  PERFORM RegisterRoute('/api/v1/admin', AddEndpoint('SELECT * FROM rest.admin($1, $2);'));
+  PERFORM RegisterRoute('/api/v1/current', AddEndpoint('SELECT * FROM rest.current($1, $2);'));
+  PERFORM RegisterRoute('/api/v1/event', AddEndpoint('SELECT * FROM rest.event($1, $2);'));
+  PERFORM RegisterRoute('/api/v1/notify', AddEndpoint('SELECT * FROM rest.notify($1, $2);'));
+  PERFORM RegisterRoute('/api/v1/registry', AddEndpoint('SELECT * FROM rest.registry($1, $2);'));
+  PERFORM RegisterRoute('/api/v1/session', AddEndpoint('SELECT * FROM rest.session($1, $2);'));
+  PERFORM RegisterRoute('/api/v1/verification', AddEndpoint('SELECT * FROM rest.verification($1, $2);'));
+  PERFORM RegisterRoute('/api/v1/workflow', AddEndpoint('SELECT * FROM rest.workflow($1, $2);'));
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

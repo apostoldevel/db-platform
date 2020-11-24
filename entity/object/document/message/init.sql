@@ -591,6 +591,9 @@ BEGIN
   PERFORM CreateClassInbox(nClass, nEntity);
   PERFORM CreateClassOutbox(nClass, nEntity);
 
+  -- API
+  PERFORM RegisterRoute('/api/v1/message', AddEndpoint('SELECT * FROM rest.message($1, $2);'));
+
   RETURN nEntity;
 END
 $$ LANGUAGE plpgsql

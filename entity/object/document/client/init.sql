@@ -285,6 +285,9 @@ BEGIN
   -- Класс
   PERFORM CreateClassClient(pParent, nEntity);
 
+  -- API
+  PERFORM RegisterRoute('/api/v1/client', AddEndpoint('SELECT * FROM rest.client($1, $2);'));
+
   RETURN nEntity;
 END
 $$ LANGUAGE plpgsql

@@ -3,6 +3,90 @@
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
+-- API LOG ---------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW api.log
+AS
+  SELECT * FROM apiLog;
+
+GRANT SELECT ON api.log TO administrator;
+
+--------------------------------------------------------------------------------
+-- api.log ---------------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Журнал событий текущего пользователя.
+ * @param {char} pType - Тип события: {M|W|E}
+ * @param {integer} pCode - Код
+ * @param {timestamp} pDateFrom - Дата начала периода
+ * @param {timestamp} pDateTo - Дата окончания периода
+ * @return {SETOF api.log} - Записи
+ */
+CREATE OR REPLACE FUNCTION api.log (
+  pUserName     text DEFAULT null,
+  pPath		    text DEFAULT null,
+  pDateFrom	    timestamp DEFAULT null,
+  pDateTo	    timestamp DEFAULT null
+) RETURNS	    SETOF api.log
+AS $$
+  SELECT *
+    FROM api.log
+   WHERE username = coalesce(pUserName, username)
+     AND path = coalesce(pPath, path)
+     AND datetime >= coalesce(pDateFrom, MINDATE())
+     AND datetime < coalesce(pDateTo, MAXDATE())
+   ORDER BY datetime DESC, id
+   LIMIT 500
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.get_log -----------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Возвращает событие
+ * @param {numeric} pId - Идентификатор
+ * @return {api.log}
+ */
+CREATE OR REPLACE FUNCTION api.get_log (
+  pId		numeric
+) RETURNS	api.log
+AS $$
+  SELECT * FROM api.log WHERE id = pId
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.list_log ----------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Возвращает список событий.
+ * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
+ * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
+ * @param {integer} pLimit - Лимит по количеству строк
+ * @param {integer} pOffSet - Пропустить указанное число строк
+ * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
+ * @return {SETOF api.log}
+ */
+CREATE OR REPLACE FUNCTION api.list_log (
+  pSearch	jsonb DEFAULT null,
+  pFilter	jsonb DEFAULT null,
+  pLimit	integer DEFAULT null,
+  pOffSet	integer DEFAULT null,
+  pOrderBy	jsonb DEFAULT null
+) RETURNS	SETOF api.log
+AS $$
+BEGIN
+  RETURN QUERY EXECUTE api.sql('api', 'log', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- api.sql ---------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
@@ -197,85 +281,95 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- API LOG ---------------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE VIEW api.log
-AS
-  SELECT * FROM apiLog;
-
-GRANT SELECT ON api.log TO administrator;
-
---------------------------------------------------------------------------------
--- api.log ---------------------------------------------------------------------
+-- api.run ---------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Журнал событий текущего пользователя.
- * @param {char} pType - Тип события: {M|W|E}
- * @param {integer} pCode - Код
- * @param {timestamp} pDateFrom - Дата начала периода
- * @param {timestamp} pDateTo - Дата окончания периода
- * @return {SETOF api.log} - Записи
+ * Выполняет REST JSON API запрос.
+ * @param {text} pMethod - HTTP-Метод
+ * @param {text} pPath - Путь
+ * @param {jsonb} pPayload - Данные
+ * @return {SETOF json}
  */
-CREATE OR REPLACE FUNCTION api.log (
-  pUserName     text DEFAULT null,
-  pPath		    text DEFAULT null,
-  pDateFrom	    timestamp DEFAULT null,
-  pDateTo	    timestamp DEFAULT null
-) RETURNS	    SETOF api.log
+CREATE OR REPLACE FUNCTION api.run (
+  pMethod		text,
+  pPath			text,
+  pPayload		jsonb DEFAULT null
+) RETURNS		SETOF json
 AS $$
-  SELECT *
-    FROM api.log
-   WHERE username = coalesce(pUserName, username)
-     AND path = coalesce(pPath, path)
-     AND datetime >= coalesce(pDateFrom, MINDATE())
-     AND datetime < coalesce(pDateTo, MAXDATE())
-   ORDER BY datetime DESC, id
-   LIMIT 500
-$$ LANGUAGE SQL
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
+DECLARE
+  r				record;
 
---------------------------------------------------------------------------------
--- api.get_log -----------------------------------------------------------------
---------------------------------------------------------------------------------
-/**
- * Возвращает событие
- * @param {numeric} pId - Идентификатор
- * @return {api.log}
- */
-CREATE OR REPLACE FUNCTION api.get_log (
-  pId		numeric
-) RETURNS	api.log
-AS $$
-  SELECT * FROM api.log WHERE id = pId
-$$ LANGUAGE SQL
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
+  arPath		text[];
 
---------------------------------------------------------------------------------
--- api.list_log ----------------------------------------------------------------
---------------------------------------------------------------------------------
-/**
- * Возвращает список событий.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.log}
- */
-CREATE OR REPLACE FUNCTION api.list_log (
-  pSearch	jsonb DEFAULT null,
-  pFilter	jsonb DEFAULT null,
-  pLimit	integer DEFAULT null,
-  pOffSet	integer DEFAULT null,
-  pOrderBy	jsonb DEFAULT null
-) RETURNS	SETOF api.log
-AS $$
+  nPath			numeric;
+  nEndpoint		numeric;
+
+  nLength		integer;
+
+  nApiId        bigint;
+  dtBegin       timestamptz;
+
+  vMessage      text;
+  vContext      text;
+
+  ErrorCode     int;
+  ErrorMessage  text;
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'log', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+  IF NULLIF(pPath, '') IS NULL THEN
+    PERFORM RouteIsEmpty();
+  END IF;
+
+  dtBegin := clock_timestamp();
+
+  nPath := QueryPath(pPath);
+  IF nPath IS NULL THEN
+	PERFORM RouteNotFound(pPath);
+  END IF;
+
+  arPath := path_to_array(pPath);
+
+  nEndpoint := GetEndpoint(nPath, pMethod);
+  IF nEndpoint IS NULL THEN
+	PERFORM EndPointNotSet(pPath);
+  END IF;
+
+  nLength := array_length(arPath, 1);
+
+  pPath := '/';
+  IF nLength >= 3 THEN
+    FOR i IN 3..nLength
+    LOOP
+	  pPath := coalesce(nullif(pPath, '/'), '') || '/' || arPath[i];
+    END LOOP;
+  END IF;
+
+  nApiId := AddApiLog(pPath, pPayload);
+
+  FOR r IN EXECUTE GetEndpointDefinition(nEndpoint) USING pPath, pPayload
+  LOOP
+	RETURN NEXT r;
+  END LOOP;
+
+  UPDATE db.api_log SET runtime = age(clock_timestamp(), dtBegin) WHERE id = nApiId;
+
+  RETURN;
+EXCEPTION
+WHEN others THEN
+  GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
+
+  PERFORM SetErrorMessage(vMessage);
+
+  SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
+
+  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, vContext);
+
+  RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
+
+  IF current_session() IS NOT NULL THEN
+	UPDATE db.api_log SET eventid = AddEventLog('E', ErrorCode, ErrorMessage) WHERE id = nApiId;
+  END IF;
 END;
 $$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
+  SECURITY DEFINER
+  SET search_path = kernel, pg_temp;

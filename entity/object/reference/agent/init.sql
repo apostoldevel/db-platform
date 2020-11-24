@@ -126,6 +126,9 @@ BEGIN
   -- Класс
   PERFORM CreateClassAgent(pParent, nEntity);
 
+  -- API
+  PERFORM RegisterRoute('/api/v1/agent', AddEndpoint('SELECT * FROM rest.agent($1, $2);'));
+
   RETURN nEntity;
 END
 $$ LANGUAGE plpgsql

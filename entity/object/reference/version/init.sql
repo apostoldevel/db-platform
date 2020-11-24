@@ -123,6 +123,9 @@ BEGIN
   -- Класс
   PERFORM CreateClassVersion(pParent, nEntity);
 
+  -- API
+  PERFORM RegisterRoute('/api/v1/version', AddEndpoint('SELECT * FROM rest.version($1, $2);'));
+
   RETURN nEntity;
 END
 $$ LANGUAGE plpgsql

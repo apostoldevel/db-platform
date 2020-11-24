@@ -8,396 +8,35 @@
  * @return {SETOF json} - Записи в JSON
  */
 CREATE OR REPLACE FUNCTION rest.api (
-  pPath     text,
-  pPayload  jsonb DEFAULT null
-) RETURNS   SETOF json
+  pPath     	text,
+  pPayload  	jsonb DEFAULT null
+) RETURNS   	SETOF json
 AS $$
 DECLARE
-  nId       numeric;
+  nId       	numeric;
 
-  r         record;
-  e         record;
+  r         	record;
+  e         	record;
 
-  nKey      integer;
-  arJson    json[];
+  nKey      	integer;
+  arJson    	json[];
 
-  arKeys    text[];
-  vUserName text;
+  arKeys    	text[];
+  vUserName 	text;
 BEGIN
   IF NULLIF(pPath, '') IS NULL THEN
     PERFORM RouteIsEmpty();
   END IF;
 
-  IF SubStr(pPath, 1, 7) = '/admin/' THEN
-
-    FOR r IN SELECT * FROM rest.admin(pPath, pPayload)
-    LOOP
-      RETURN NEXT r.admin;
-    END LOOP;
-
-    RETURN;
-  END IF;
-
-  IF SubStr(pPath, 1, 10) = '/workflow/' THEN
-
-    FOR r IN SELECT * FROM rest.workflow(pPath, pPayload)
-    LOOP
-      RETURN NEXT r.workflow;
-    END LOOP;
-
-    RETURN;
-  END IF;
-
-  IF SubStr(pPath, 1, 8) = '/notify/' THEN
-
-    FOR r IN SELECT * FROM rest.notify(pPath, pPayload)
-    LOOP
-      RETURN NEXT r.notify;
-    END LOOP;
-
-    RETURN;
-  END IF;
-
-  IF SubStr(pPath, 1, 9) = '/current/' THEN
-
-    FOR r IN SELECT * FROM rest.current(pPath)
-    LOOP
-      RETURN NEXT r.current;
-    END LOOP;
-
-    RETURN;
-  END IF;
-
-  IF SubStr(pPath, 1, 9) = '/session/' THEN
-
-    FOR r IN SELECT * FROM rest.session(pPath, pPayload)
-    LOOP
-      RETURN NEXT r.session;
-    END LOOP;
-
-    RETURN;
-  END IF;
-
-  IF SubStr(pPath, 1, 7) = '/event/' THEN
-
-    FOR r IN SELECT * FROM rest.event(pPath, pPayload)
-    LOOP
-      RETURN NEXT r.event;
-    END LOOP;
-
-    RETURN;
-  END IF;
-
-  IF SubStr(pPath, 1, 10) = '/registry/' THEN
-
-    FOR r IN SELECT * FROM rest.registry(pPath, pPayload)
-    LOOP
-      RETURN NEXT r.registry;
-    END LOOP;
-
-    RETURN;
-  END IF;
-
-  IF SubStr(pPath, 1, 14) = '/verification/' THEN
-
-    FOR r IN SELECT * FROM rest.verification(pPath, pPayload)
-    LOOP
-      RETURN NEXT r.verification;
-    END LOOP;
-
-    RETURN;
-  END IF;
-
-  IF SubStr(pPath, 1, 8) = '/object/' THEN
-
-    FOR r IN SELECT * FROM rest.object(pPath, pPayload)
-    LOOP
-      RETURN NEXT r.object;
-    END LOOP;
-
-    RETURN;
-  END IF;
-
-  IF SubStr(pPath, 1, 9) = '/address/' THEN
-
-    FOR r IN SELECT * FROM rest.address(pPath, pPayload)
-    LOOP
-      RETURN NEXT r.address;
-    END LOOP;
-    RETURN;
-  END IF;
-
-  IF SubStr(pPath, 1, 8) = '/client/' THEN
-
-    FOR r IN SELECT * FROM rest.client(pPath, pPayload)
-    LOOP
-      RETURN NEXT r.client;
-    END LOOP;
-
-    RETURN;
-  END IF;
-
-  IF SubStr(pPath, 1, 9) = '/message/' THEN
-
-    FOR r IN SELECT * FROM rest.message(pPath, pPayload)
-    LOOP
-      RETURN NEXT r.message;
-    END LOOP;
-
-    RETURN;
-  END IF;
-
-  IF SubStr(pPath, 1, 6) = '/task/' THEN
-
-    FOR r IN SELECT * FROM rest.task(pPath, pPayload)
-    LOOP
-      RETURN NEXT r.task;
-    END LOOP;
-
-    RETURN;
-  END IF;
-
-  IF SubStr(pPath, 1, 7) = '/agent/' THEN
-
-    FOR r IN SELECT * FROM rest.agent(pPath, pPayload)
-    LOOP
-      RETURN NEXT r.agent;
-    END LOOP;
-
-    RETURN;
-  END IF;
-
-  IF SubStr(pPath, 1, 10) = '/calendar/' THEN
-
-    FOR r IN SELECT * FROM rest.calendar(pPath, pPayload)
-    LOOP
-      RETURN NEXT r.calendar;
-    END LOOP;
-
-    RETURN;
-  END IF;
-
-  IF SubStr(pPath, 1, 9) = '/program/' THEN
-
-    FOR r IN SELECT * FROM rest.program(pPath, pPayload)
-    LOOP
-      RETURN NEXT r.program;
-    END LOOP;
-
-    RETURN;
-  END IF;
-
-  IF SubStr(pPath, 1, 11) = '/scheduler/' THEN
-
-    FOR r IN SELECT * FROM rest.scheduler(pPath, pPayload)
-    LOOP
-      RETURN NEXT r.scheduler;
-    END LOOP;
-
-    RETURN;
-  END IF;
-
-  IF SubStr(pPath, 1, 8) = '/vendor/' THEN
-
-    FOR r IN SELECT * FROM rest.vendor(pPath, pPayload)
-    LOOP
-      RETURN NEXT r.vendor;
-    END LOOP;
-
-    RETURN;
-  END IF;
-
-  IF SubStr(pPath, 1, 9) = '/version/' THEN
-
-    FOR r IN SELECT * FROM rest.version(pPath, pPayload)
-    LOOP
-      RETURN NEXT r.version;
-    END LOOP;
-
-    RETURN;
-  END IF;
-
-  IF SubStr(pPath, 1, 5) = '/car/' THEN
-
-    FOR r IN SELECT * FROM rest.car(pPath, pPayload)
-    LOOP
-      RETURN NEXT r.car;
-    END LOOP;
-
-    RETURN;
-  END IF;
-
-  IF SubStr(pPath, 1, 6) = '/card/' THEN
-
-    FOR r IN SELECT * FROM rest.card(pPath, pPayload)
-    LOOP
-      RETURN NEXT r.card;
-    END LOOP;
-
-    RETURN;
-  END IF;
-
-  IF SubStr(pPath, 1, 14) = '/charge_point/' THEN
-
-    FOR r IN SELECT * FROM rest.charge_point(pPath, pPayload)
-    LOOP
-      RETURN NEXT r.charge_point;
-    END LOOP;
-
-    RETURN;
-  END IF;
-
-  IF SubStr(pPath, 1, 11) = '/connector/' THEN
-
-    FOR r IN SELECT * FROM rest.connector(pPath, pPayload)
-    LOOP
-      RETURN NEXT r.connector;
-    END LOOP;
-
-    RETURN;
-  END IF;
-
-  IF SubStr(pPath, 1, 10) = '/contract/' THEN
-
-    FOR r IN SELECT * FROM rest.contract(pPath, pPayload)
-    LOOP
-      RETURN NEXT r.contract;
-    END LOOP;
-
-    RETURN;
-  END IF;
-
-  IF SubStr(pPath, 1, 9) = '/invoice/' THEN
-
-    FOR r IN SELECT * FROM rest.invoice(pPath, pPayload)
-    LOOP
-      RETURN NEXT r.invoice;
-    END LOOP;
-
-    RETURN;
-  END IF;
-
-  IF SubStr(pPath, 1, 7) = '/order/' THEN
-
-    FOR r IN SELECT * FROM rest.order(pPath, pPayload)
-    LOOP
-      RETURN NEXT r.order;
-    END LOOP;
-
-    RETURN;
-  END IF;
-
-  IF SubStr(pPath, 1, 5) = '/sla/' THEN
-
-    FOR r IN SELECT * FROM rest.sla(pPath, pPayload)
-    LOOP
-      RETURN NEXT r.sla;
-    END LOOP;
-
-    RETURN;
-  END IF;
-
-  IF SubStr(pPath, 1, 13) = '/transaction/' THEN
-
-    FOR r IN SELECT * FROM rest.transaction(pPath, pPayload)
-    LOOP
-      RETURN NEXT r.transaction;
-    END LOOP;
-
-    RETURN;
-  END IF;
-
-  IF SubStr(pPath, 1, 10) = '/category/' THEN
-
-    FOR r IN SELECT * FROM rest.category(pPath, pPayload)
-    LOOP
-      RETURN NEXT r.category;
-    END LOOP;
-
-    RETURN;
-  END IF;
-
-  IF SubStr(pPath, 1, 9) = '/charger/' THEN
-
-    FOR r IN SELECT * FROM rest.charger(pPath, pPayload)
-    LOOP
-      RETURN NEXT r.charger;
-    END LOOP;
-
-    RETURN;
-  END IF;
-
-  IF SubStr(pPath, 1, 9) = '/measure/' THEN
-
-    FOR r IN SELECT * FROM rest.measure(pPath, pPayload)
-    LOOP
-      RETURN NEXT r.measure;
-    END LOOP;
-
-    RETURN;
-  END IF;
-
-  IF SubStr(pPath, 1, 6) = '/mode/' THEN
-
-    FOR r IN SELECT * FROM rest.mode(pPath, pPayload)
-    LOOP
-      RETURN NEXT r.mode;
-    END LOOP;
-
-    RETURN;
-  END IF;
-
-  IF SubStr(pPath, 1, 7) = '/model/' THEN
-
-    FOR r IN SELECT * FROM rest.model(pPath, pPayload)
-    LOOP
-      RETURN NEXT r.model;
-    END LOOP;
-
-    RETURN;
-  END IF;
-
-  IF SubStr(pPath, 1, 9) = '/network/' THEN
-
-    FOR r IN SELECT * FROM rest.network(pPath, pPayload)
-    LOOP
-      RETURN NEXT r.network;
-    END LOOP;
-
-    RETURN;
-  END IF;
-
-  IF SubStr(pPath, 1, 9) = '/service/' THEN
-
-    FOR r IN SELECT * FROM rest.service(pPath, pPayload)
-    LOOP
-      RETURN NEXT r.service;
-    END LOOP;
-
-    RETURN;
-  END IF;
-
-  IF SubStr(pPath, 1, 8) = '/tariff/' THEN
-
-    FOR r IN SELECT * FROM rest.tariff(pPath, pPayload)
-    LOOP
-      RETURN NEXT r.tariff;
-    END LOOP;
-
-    RETURN;
-  END IF;
-
-  IF SubStr(pPath, 1, 6) = '/ocpp/' THEN
-
-    FOR r IN SELECT * FROM rest.ocpp(pPath, pPayload)
-    LOOP
-      RETURN NEXT r.ocpp;
-    END LOOP;
-
-    RETURN;
-  END IF;
-
   CASE lower(pPath)
+  WHEN '/ping' THEN
+
+	RETURN NEXT json_build_object();
+
+  WHEN '/time' THEN
+
+	RETURN NEXT json_build_object('serverTime', trunc(extract(EPOCH FROM Now())));
+
   WHEN '/sign/in' THEN
 
     IF pPayload IS NULL THEN
@@ -605,21 +244,21 @@ BEGIN
       END LOOP;
     END LOOP;
 
-  WHEN '/state' THEN
-
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(fields jsonb)
-    LOOP
-      FOR e IN EXECUTE format('SELECT %s FROM api.state', JsonbToFields(r.fields, GetColumns('state', 'api')))
-      LOOP
-        RETURN NEXT row_to_json(e);
-      END LOOP;
-    END LOOP;
-
   WHEN '/state/type' THEN
 
     FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(fields jsonb)
     LOOP
       FOR e IN EXECUTE format('SELECT %s FROM api.state_type', JsonbToFields(r.fields, GetColumns('state_type', 'api')))
+      LOOP
+        RETURN NEXT row_to_json(e);
+      END LOOP;
+    END LOOP;
+
+  WHEN '/state' THEN
+
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(fields jsonb)
+    LOOP
+      FOR e IN EXECUTE format('SELECT %s FROM api.state', JsonbToFields(r.fields, GetColumns('state', 'api')))
       LOOP
         RETURN NEXT row_to_json(e);
       END LOOP;

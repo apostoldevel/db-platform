@@ -114,6 +114,9 @@ BEGIN
   -- Класс
   PERFORM CreateClassObject(pParent, nEntity);
 
+  -- API
+  PERFORM RegisterRoute('/api/v1/object', AddEndpoint('SELECT * FROM rest.object($1, $2);'));
+
   RETURN nEntity;
 END;
 $$ LANGUAGE plpgsql

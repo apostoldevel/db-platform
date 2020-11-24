@@ -3,38 +3,38 @@
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
--- api.path --------------------------------------------------------------------
+-- db.path ---------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE TABLE api.path (
+CREATE TABLE db.path (
     id			numeric(10) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_API'),
     root        numeric(10) NOT NULL,
     parent		numeric(10),
     name        text NOT NULL,
     level		integer NOT NULL,
-    CONSTRAINT fk_api_root FOREIGN KEY (root) REFERENCES api.path(id),
-    CONSTRAINT fk_api_parent FOREIGN KEY (parent) REFERENCES api.path(id)
+    CONSTRAINT fk_path_root FOREIGN KEY (root) REFERENCES db.path(id),
+    CONSTRAINT fk_path_parent FOREIGN KEY (parent) REFERENCES db.path(id)
 );
 
-COMMENT ON TABLE api.path IS 'API: Путь.';
+COMMENT ON TABLE db.path IS 'API: Путь.';
 
-COMMENT ON COLUMN api.path.id IS 'Идентификатор';
-COMMENT ON COLUMN api.path.root IS 'Идентификатор корневого узла';
-COMMENT ON COLUMN api.path.parent IS 'Идентификатор родительского узла';
-COMMENT ON COLUMN api.path.name IS 'Наименование';
-COMMENT ON COLUMN api.path.level IS 'Уровень вложенности';
-
---------------------------------------------------------------------------------
-
-CREATE UNIQUE INDEX ON api.path (root, parent, name);
-
-CREATE INDEX ON api.path (root);
-CREATE INDEX ON api.path (parent);
-CREATE INDEX ON api.path (name);
+COMMENT ON COLUMN db.path.id IS 'Идентификатор';
+COMMENT ON COLUMN db.path.root IS 'Идентификатор корневого узла';
+COMMENT ON COLUMN db.path.parent IS 'Идентификатор родительского узла';
+COMMENT ON COLUMN db.path.name IS 'Наименование';
+COMMENT ON COLUMN db.path.level IS 'Уровень вложенности';
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION api.ft_path_insert()
+CREATE UNIQUE INDEX ON db.path (root, parent, name);
+
+CREATE INDEX ON db.path (root);
+CREATE INDEX ON db.path (parent);
+CREATE INDEX ON db.path (name);
+
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION ft_path_insert()
 RETURNS trigger AS $$
 BEGIN
   IF NULLIF(NEW.root, 0) IS NULL THEN
@@ -48,63 +48,53 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 CREATE TRIGGER t_path_insert
-  BEFORE INSERT ON api.path
+  BEFORE INSERT ON db.path
   FOR EACH ROW
-  EXECUTE PROCEDURE api.ft_path_insert();
+  EXECUTE PROCEDURE ft_path_insert();
 
 --------------------------------------------------------------------------------
--- api.endpoint ----------------------------------------------------------------
+-- db.endpoint -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE TABLE api.endpoint (
+CREATE TABLE db.endpoint (
     id			numeric(10) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_API'),
     definition	text NOT NULL
 );
 
-COMMENT ON TABLE api.endpoint IS 'API: Конечная точка.';
+COMMENT ON TABLE db.endpoint IS 'API: Конечная точка.';
 
-COMMENT ON COLUMN api.endpoint.id IS 'Идентификатор';
-COMMENT ON COLUMN api.endpoint.definition IS 'PL/pgSQL код';
+COMMENT ON COLUMN db.endpoint.id IS 'Идентификатор';
+COMMENT ON COLUMN db.endpoint.definition IS 'PL/pgSQL код';
 
 --------------------------------------------------------------------------------
--- api.route -------------------------------------------------------------------
+-- db.route --------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE TABLE api.route (
+CREATE TABLE db.route (
     method		text NOT NULL DEFAULT 'POST',
     path       	numeric(10) NOT NULL,
     endpoint	numeric(10) NOT NULL,
     CONSTRAINT pk_route PRIMARY KEY (method, path, endpoint),
     CONSTRAINT ch_route_method CHECK (method IN ('GET', 'POST', 'PUT', 'DELETE')),
-    CONSTRAINT fk_route_path FOREIGN KEY (path) REFERENCES api.path(id),
-    CONSTRAINT fk_route_endpoint FOREIGN KEY (endpoint) REFERENCES api.endpoint(id)
+    CONSTRAINT fk_route_path FOREIGN KEY (path) REFERENCES db.path(id),
+    CONSTRAINT fk_route_endpoint FOREIGN KEY (endpoint) REFERENCES db.endpoint(id)
 );
 
-COMMENT ON TABLE api.route IS 'API: Маршрут.';
+COMMENT ON TABLE db.route IS 'API: Маршрут.';
 
-COMMENT ON COLUMN api.route.method IS 'HTTP-Метод';
-COMMENT ON COLUMN api.route.path IS 'Путь';
-COMMENT ON COLUMN api.route.endpoint IS 'Конечная точка';
+COMMENT ON COLUMN db.route.method IS 'HTTP-Метод';
+COMMENT ON COLUMN db.route.path IS 'Путь';
+COMMENT ON COLUMN db.route.endpoint IS 'Конечная точка';
 
-CREATE INDEX ON api.route (method);
-CREATE INDEX ON api.route (path);
-CREATE INDEX ON api.route (endpoint);
-
---------------------------------------------------------------------------------
--- VIEW apiPath ---------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE VIEW apiPath
-AS
-  SELECT * FROM api.path;
-
-GRANT SELECT ON apiPath TO administrator;
+CREATE INDEX ON db.route (method);
+CREATE INDEX ON db.route (path);
+CREATE INDEX ON db.route (endpoint);
 
 --------------------------------------------------------------------------------
--- FUNCTION api.path_to_array --------------------------------------------------
+-- FUNCTION path_to_array ------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION api.path_to_array (
+CREATE OR REPLACE FUNCTION path_to_array (
   pPath			text
 ) RETURNS		text[]
 AS $$
@@ -142,81 +132,6 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- FUNCTION api.get_rest_path --------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION api.get_rest_path (
-  pId		numeric
-) RETURNS	text
-AS $$
-DECLARE
-  vPath		text;
-  e		    record;
-BEGIN
-  FOR e IN
-    WITH RECURSIVE tree(id, parent, path) AS (
-      SELECT id, parent, path FROM api.path WHERE id = pId
-    UNION ALL
-      SELECT r.id, r.parent, r.path
-        FROM api.path r INNER JOIN tree t ON r.id = t.parent
-    )
-    SELECT path FROM tree
-  LOOP
-    IF vPath IS NULL THEN
-      vPath := e.path;
-    ELSE
-     vPath := e.path || '/' || vPath;
-    END IF;
-  END LOOP;
-
-  RETURN coalesce('/' || vPath, '/');
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- FUNCTION api.get_endpoint_definition ----------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION api.get_endpoint_definition (
-  pId		numeric
-) RETURNS	text
-AS $$
-  SELECT definition
-    FROM api.endpoint
-   WHERE id = pId
-$$ LANGUAGE SQL
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- api.path --------------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION api.path (
-  pId		numeric
-) RETURNS	SETOF api.path
-AS $$
-  SELECT * FROM api.path WHERE id = pId
-$$ LANGUAGE SQL
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- api.endpoint ----------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION api.endpoint (
-  pId		numeric
-) RETURNS	SETOF api.endpoint
-AS $$
-  SELECT * FROM api.endpoint WHERE id = pId
-$$ LANGUAGE SQL
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
 -- FUNCTION AddPath ------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -234,31 +149,13 @@ BEGIN
   pParent := coalesce(pParent, pRoot);
 
   IF pParent IS NOT NULL THEN
-    SELECT level + 1 INTO nLevel FROM api.path WHERE id = pParent;
+    SELECT level + 1 INTO nLevel FROM db.path WHERE id = pParent;
   END IF;
  
-  INSERT INTO api.path (root, parent, name, level)
+  INSERT INTO db.path (root, parent, name, level)
   VALUES (pRoot, pParent, pName, nLevel)
   RETURNING id INTO nId;
 
-  RETURN nId;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- FUNCTION GetPathRoot --------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION GetPathRoot (
-  pPath		text
-) RETURNS	numeric
-AS $$
-DECLARE
-  nId		numeric;
-BEGIN
-  SELECT id INTO nId FROM api.path WHERE path = pPath AND level = 0;
   RETURN nId;
 END;
 $$ LANGUAGE plpgsql
@@ -278,12 +175,88 @@ DECLARE
   nId			numeric;
 BEGIN
   IF pParent IS NULL THEN
-    SELECT id INTO nId FROM api.path WHERE parent IS NULL AND name = pName;
+    SELECT id INTO nId FROM db.path WHERE parent IS NULL AND name = pName;
   ELSE
-    SELECT id INTO nId FROM api.path WHERE parent = pParent AND name = pName;
+    SELECT id INTO nId FROM db.path WHERE parent = pParent AND name = pName;
   END IF;
 
   RETURN nId;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION DeletePath ---------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION DeletePath (
+  pId		numeric
+) RETURNS	void
+AS $$
+BEGIN
+  DELETE FROM db.path WHERE id = pId;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION DeletePaths --------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION DeletePaths (
+  pId		numeric
+) RETURNS	void
+AS $$
+DECLARE
+  r		    record;
+BEGIN
+  FOR r IN SELECT id FROM db.path WHERE parent = pId
+  LOOP
+    PERFORM DeletePaths(r.id);
+  END LOOP;
+
+  PERFORM DeletePath(pId);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION AddEndPoint --------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION AddEndPoint (
+  pDefinition	text
+) RETURNS		numeric
+AS $$
+DECLARE
+  nId			numeric;
+BEGIN
+  INSERT INTO db.endpoint (definition)
+  VALUES (pDefinition)
+  RETURNING id INTO nId;
+
+  RETURN nId;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION EditEndPoint -------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION EditEndPoint (
+  pId			numeric,
+  pDefinition	text
+) RETURNS		void
+AS $$
+BEGIN
+  UPDATE db.endpoint
+	 SET definition = coalesce(pDefinition, definition)
+   WHERE id = pId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -301,23 +274,8 @@ AS $$
 DECLARE
   nEndpoint		numeric;
 BEGIN
-  SELECT endpoint INTO nEndpoint FROM api.route WHERE method = pMethod AND path = pPath;
+  SELECT endpoint INTO nEndpoint FROM db.route WHERE method = pMethod AND path = pPath;
   RETURN nEndpoint;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- FUNCTION DeletePath ---------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION DeletePath (
-  pId		numeric
-) RETURNS	void
-AS $$
-BEGIN
-  DELETE FROM api.path WHERE id = pId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -332,56 +290,22 @@ CREATE OR REPLACE FUNCTION DeleteEndpoint (
 ) RETURNS	void
 AS $$
 BEGIN
-  DELETE FROM api.endpoint WHERE id = pId;
+  DELETE FROM db.endpoint WHERE id = pId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- FUNCTION DeletePaths --------------------------------------------------------
+-- FUNCTION GetEndpointDefinition ----------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION DeletePaths (
+CREATE OR REPLACE FUNCTION GetEndpointDefinition (
   pId		numeric
-) RETURNS	void
+) RETURNS	text
 AS $$
-DECLARE
-  r		    record;
-BEGIN
-  FOR r IN SELECT id FROM api.path WHERE parent = pId
-  LOOP
-    PERFORM DeletePaths(r.id);
-  END LOOP;
-
-  PERFORM DeletePath(pId);
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- FUNCTION DeleteRouts --------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION DeleteRouts (
-  pPath			text
-) RETURNS		boolean
-AS $$
-DECLARE
-  nPath		numeric;
-BEGIN
-  nPath := FindPath(pPath);
-  IF nPath IS NOT NULL THEN
-    PERFORM DeleteRouts(nPath);
-    RETURN true;
-  ELSE
-    PERFORM SetErrorMessage('API: Путь не найден.');
-  END IF;
-
-  RETURN false;
-END;
-$$ LANGUAGE plpgsql
+  SELECT definition FROM db.endpoint WHERE id = pId
+$$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -402,9 +326,7 @@ DECLARE
   i				integer;
 BEGIN
   IF pPath IS NOT NULL THEN
-
-    arPath := api.path_to_array(pPath);
-
+    arPath := path_to_array(pPath);
     FOR i IN 1..array_length(arPath, 1)
     LOOP
       nParent := coalesce(nId, nRoot);
@@ -426,11 +348,31 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- FUNCTION UnregisterPath -----------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION UnregisterPath (
+  pPath			text
+) RETURNS		void
+AS $$
+DECLARE
+  nPath			numeric;
+BEGIN
+  nPath := FindPath(pPath);
+  IF nPath IS NOT NULL THEN
+    PERFORM DeletePath(nPath);
+  END IF;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- FUNCTION FindPath -----------------------------------------------------------
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION FindPath (
-  pName			text
+  pPath			text
 ) RETURNS		numeric
 AS $$
 DECLARE
@@ -438,8 +380,8 @@ DECLARE
   arPath		text[];
   i				integer;
 BEGIN
-  IF pName IS NOT NULL THEN
-    arPath := api.path_to_array(pName);
+  IF pPath IS NOT NULL THEN
+    arPath := path_to_array(pPath);
     FOR i IN 1..array_length(arPath, 1)
     LOOP
       nId := GetPath(nId, arPath[i]);
@@ -453,91 +395,130 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- FUNCTION UnregisterPath -----------------------------------------------------
+-- FUNCTION QueryPath ----------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION UnregisterPath (
-  pName			text
-) RETURNS		boolean
+CREATE OR REPLACE FUNCTION QueryPath (
+  pPath			text
+) RETURNS		numeric
+AS $$
+DECLARE
+  nId			numeric;
+  nParent		numeric;
+  arPath		text[];
+  Index			integer;
+BEGIN
+  IF pPath IS NOT NULL THEN
+    arPath := path_to_array(pPath);
+    IF array_length(arPath, 1) > 0 THEN
+      Index := 1;
+      nId := GetPath(nParent, arPath[Index]);
+	  WHILE nId IS NOT NULL
+	  LOOP
+	    nParent := nId;
+        Index := Index + 1;
+        nId := GetPath(nParent, arPath[Index]);
+	  END LOOP;
+	END IF;
+  END IF;
+
+  RETURN coalesce(nId, nParent);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION CollectPath --------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION CollectPath (
+  pId		numeric
+) RETURNS	text
+AS $$
+DECLARE
+  r		    record;
+  vPath		text;
+BEGIN
+  FOR r IN
+    WITH RECURSIVE tree(id, parent, name) AS (
+      SELECT id, parent, name FROM db.path WHERE id = pId
+    UNION ALL
+      SELECT p.id, p.parent, p.name
+        FROM db.path p INNER JOIN tree t ON p.id = t.parent
+    )
+    SELECT name FROM tree
+  LOOP
+    IF vPath IS NULL THEN
+      vPath := r.name;
+    ELSE
+     vPath := r.name || '/' || vPath;
+    END IF;
+  END LOOP;
+
+  RETURN coalesce('/' || vPath, '/');
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- RegisterRoute ---------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION RegisterRoute (
+  pPath			text,
+  pEndpoint		numeric,
+  pMethod		text[] DEFAULT ARRAY['GET','POST']
+) RETURNS	    void
 AS $$
 DECLARE
   nPath			numeric;
 BEGIN
-  nPath := FindPath(pName);
-  IF nPath IS NOT NULL THEN
-    PERFORM DeletePath(nPath);
-    RETURN true;
+  nPath := FindPath(pPath);
+
+  IF nPath IS NULL THEN
+	nPath := RegisterPath(pPath);
   END IF;
-  PERFORM SetErrorMessage('API: Путь не найден.');
-  RETURN false;
+
+  FOR i IN 1..array_length(pMethod, 1)
+  LOOP
+    INSERT INTO db.route (method, path, endpoint)
+    VALUES (pMethod[i], nPath, pEndpoint);
+  END LOOP;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- RegisterEndpoint ------------------------------------------------------------
+-- FUNCTION UnregisterRoute ----------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION RegisterEndpoint (
-  pPath			numeric,
-  pDefinition	text,
-  pMethod		text DEFAULT 'POST'
-) RETURNS	    numeric
-AS $$
-DECLARE
-  nId		    numeric;
-BEGIN
-  nId := GetEndpoint(pPath, pMethod);
-
-  IF not found THEN
-
-	INSERT INTO api.endpoint (definition)
-	VALUES (pDefinition)
-	RETURNING id INTO nId;
-
-  ELSE
-
-	UPDATE api.endpoint
-	   SET definition = coalesce(pDefinition, definition)
-	 WHERE id = nId;
-
-  END IF;
-
-  RETURN nId;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- FUNCTION UnregisterEndpoint -------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION UnregisterEndpoint (
+CREATE OR REPLACE FUNCTION UnregisterRoute (
   pPath			text,
   pMethod		text DEFAULT 'POST'
-) RETURNS       boolean
+) RETURNS       void
 AS $$
 DECLARE
-  nId			numeric;
-  nPath		numeric;
+  nPath			numeric;
 BEGIN
   nPath := FindPath(pPath);
-  IF nPath IS NOT NULL THEN
-    nId := GetEndpoint(nPath, pMethod);
-    IF nId IS NOT NULL THEN
-      PERFORM DeleteEndpoint(nId);
-      RETURN true;
-    ELSE
-      PERFORM SetErrorMessage('API: Конечная точка не найдена.');
-    END IF;
-  ELSE
-    PERFORM SetErrorMessage('API: Путь не найден.');
+  IF nPath IS NULL THEN
+    DELETE FROM db.route WHERE method = pMethod AND path = nPath;
   END IF;
-
-  RETURN false;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- VIEW Routs ------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW Routs
+AS
+  SELECT r.method, CollectPath(r.path) AS path, e.definition
+    FROM db.route r INNER JOIN db.endpoint e ON r.endpoint = e.id;
+
+GRANT SELECT ON Routs TO administrator;

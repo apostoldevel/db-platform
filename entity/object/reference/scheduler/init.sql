@@ -123,6 +123,9 @@ BEGIN
   -- Класс
   PERFORM CreateClassScheduler(pParent, nEntity);
 
+  -- API
+  PERFORM RegisterRoute('/api/v1/scheduler', AddEndpoint('SELECT * FROM rest.scheduler($1, $2);'));
+
   RETURN nEntity;
 END
 $$ LANGUAGE plpgsql
