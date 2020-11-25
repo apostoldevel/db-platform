@@ -128,7 +128,7 @@ BEGIN
   PERFORM CreateClassAddress(pParent, nEntity);
 
   -- API
-  PERFORM RegisterRoute('/api/v1/address', AddEndpoint('SELECT * FROM rest.address($1, $2);'));
+  PERFORM RegisterRoute('address', AddEndpoint('SELECT * FROM rest.address($1, $2);'));
 
   RETURN nEntity;
 END

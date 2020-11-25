@@ -416,7 +416,7 @@ BEGIN
   PERFORM CreateClassTask(pParent, nEntity);
 
   -- API
-  PERFORM RegisterRoute('/api/v1/task', AddEndpoint('SELECT * FROM rest.task($1, $2);'));
+  PERFORM RegisterRoute('task', AddEndpoint('SELECT * FROM rest.task($1, $2);'));
 
   RETURN nEntity;
 END

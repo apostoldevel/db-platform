@@ -469,12 +469,16 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION RegisterRoute (
   pPath			text,
   pEndpoint		numeric,
+  pVersion		text DEFAULT 'v1',
+  pNamespace	text DEFAULT 'api',
   pMethod		text[] DEFAULT ARRAY['GET','POST']
 ) RETURNS	    void
 AS $$
 DECLARE
   nPath			numeric;
 BEGIN
+  pPath := '/' || pNamespace || '/' || pVersion || coalesce('/' || pPath, '');
+
   nPath := FindPath(pPath);
 
   IF nPath IS NULL THEN
@@ -497,12 +501,16 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION UnregisterRoute (
   pPath			text,
-  pMethod		text DEFAULT 'POST'
-) RETURNS       void
+  pVersion		text DEFAULT 'v1',
+  pNamespace	text DEFAULT 'api',
+  pMethod		text[] DEFAULT ARRAY['GET','POST']
+) RETURNS	    void
 AS $$
 DECLARE
   nPath			numeric;
 BEGIN
+  pPath := '/' || pNamespace || '/' || pVersion || coalesce('/' || pPath, '');
+
   nPath := FindPath(pPath);
   IF nPath IS NULL THEN
     DELETE FROM db.route WHERE method = pMethod AND path = nPath;

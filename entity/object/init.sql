@@ -115,7 +115,7 @@ BEGIN
   PERFORM CreateClassObject(pParent, nEntity);
 
   -- API
-  PERFORM RegisterRoute('/api/v1/object', AddEndpoint('SELECT * FROM rest.object($1, $2);'));
+  PERFORM RegisterRoute('object', AddEndpoint('SELECT * FROM rest.object($1, $2);'));
 
   RETURN nEntity;
 END;

@@ -124,7 +124,7 @@ BEGIN
   PERFORM CreateClassProgram(pParent, nEntity);
 
   -- API
-  PERFORM RegisterRoute('/api/v1/program', AddEndpoint('SELECT * FROM rest.program($1, $2);'));
+  PERFORM RegisterRoute('program', AddEndpoint('SELECT * FROM rest.program($1, $2);'));
 
   RETURN nEntity;
 END
