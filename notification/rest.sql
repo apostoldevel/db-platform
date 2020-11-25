@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- REST NOTIFY -----------------------------------------------------------------
+-- REST NOTIFICATION -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
  * Запрос данных в формате REST JSON API (Уведомления).
@@ -7,7 +7,7 @@
  * @param {jsonb} pPayload - JSON
  * @return {SETOF json} - Записи в JSON
  */
-CREATE OR REPLACE FUNCTION rest.notify (
+CREATE OR REPLACE FUNCTION rest.notification (
   pPath       text,
   pPayload    jsonb default null
 ) RETURNS     SETOF json
@@ -33,7 +33,7 @@ BEGIN
   END IF;
 
   CASE pPath
-  WHEN '/notify/section' THEN
+  WHEN '/notification' THEN
 
     IF pPayload IS NOT NULL THEN
       arKeys := array_cat(arKeys, ARRAY['start', 'fields']);
@@ -44,13 +44,13 @@ BEGIN
 
     FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(start double precision, fields jsonb)
     LOOP
-      FOR e IN EXECUTE format('SELECT %s FROM api.notify($1::timestamp)', JsonbToFields(r.fields, GetColumns('notify', 'api'))) USING coalesce(to_timestamp(r.start), Now())
+      FOR e IN EXECUTE format('SELECT %s FROM api.notification($1::timestamp)', JsonbToFields(r.fields, GetColumns('notification', 'api'))) USING coalesce(to_timestamp(r.start), Now())
       LOOP
         RETURN NEXT row_to_json(e);
       END LOOP;
     END LOOP;
 
-  WHEN '/notify/get' THEN
+  WHEN '/notification/get' THEN
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
@@ -63,7 +63,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, fields jsonb)
       LOOP
-        FOR e IN EXECUTE format('SELECT %s FROM api.get_notify($1)', JsonbToFields(r.fields, GetColumns('notify', 'api'))) USING r.id
+        FOR e IN EXECUTE format('SELECT %s FROM api.get_notification($1)', JsonbToFields(r.fields, GetColumns('notification', 'api'))) USING r.id
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -73,7 +73,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, fields jsonb)
       LOOP
-        FOR e IN EXECUTE format('SELECT %s FROM api.get_notify($1)', JsonbToFields(r.fields, GetColumns('notify', 'api'))) USING r.id
+        FOR e IN EXECUTE format('SELECT %s FROM api.get_notification($1)', JsonbToFields(r.fields, GetColumns('notification', 'api'))) USING r.id
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -81,7 +81,7 @@ BEGIN
 
     END IF;
 
-  WHEN '/notify/count' THEN
+  WHEN '/notification/count' THEN
 
     IF pPayload IS NOT NULL THEN
       arKeys := array_cat(arKeys, ARRAY['search', 'filter', 'reclimit', 'recoffset', 'orderby']);
@@ -94,7 +94,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN SELECT count(*) FROM api.list_notify(r.search, r.filter, r.reclimit, r.recoffset, r.orderby)
+        FOR e IN SELECT count(*) FROM api.list_notification(r.search, r.filter, r.reclimit, r.recoffset, r.orderby)
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -104,7 +104,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN SELECT count(*) FROM api.list_notify(r.search, r.filter, r.reclimit, r.recoffset, r.orderby)
+        FOR e IN SELECT count(*) FROM api.list_notification(r.search, r.filter, r.reclimit, r.recoffset, r.orderby)
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -112,7 +112,7 @@ BEGIN
 
     END IF;
 
-  WHEN '/notify/list' THEN
+  WHEN '/notification/list' THEN
 
     IF pPayload IS NOT NULL THEN
       arKeys := array_cat(arKeys, ARRAY['fields', 'search', 'filter', 'reclimit', 'recoffset', 'orderby']);
@@ -123,7 +123,7 @@ BEGIN
 
     FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(fields jsonb, search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
     LOOP
-      FOR e IN EXECUTE format('SELECT %s FROM api.list_notify($1, $2, $3, $4, $5)', JsonbToFields(r.fields, GetColumns('notify', 'api'))) USING r.search, r.filter, r.reclimit, r.recoffset, r.orderby
+      FOR e IN EXECUTE format('SELECT %s FROM api.list_notification($1, $2, $3, $4, $5)', JsonbToFields(r.fields, GetColumns('notification', 'api'))) USING r.search, r.filter, r.reclimit, r.recoffset, r.orderby
       LOOP
         RETURN NEXT row_to_json(e);
       END LOOP;

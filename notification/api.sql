@@ -1,48 +1,48 @@
 --------------------------------------------------------------------------------
--- NOTIFY ----------------------------------------------------------------------
+-- NOTIFICATION ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
--- api.notify ------------------------------------------------------------------
+-- api.notification ------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW api.notify
+CREATE OR REPLACE VIEW api.notification
 AS
-  SELECT * FROM Notify;
+  SELECT * FROM Notification;
 
-GRANT SELECT ON api.notify TO administrator;
+GRANT SELECT ON api.notification TO administrator;
 
 --------------------------------------------------------------------------------
--- api.notify ------------------------------------------------------------------
+-- api.notification ------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION api.notify (
+CREATE OR REPLACE FUNCTION api.notification (
   pDateFrom     timestamp
-) RETURNS       SETOF api.notify
+) RETURNS       SETOF api.notification
 AS $$
-  SELECT * FROM api.notify WHERE datetime >= pDateFrom ORDER BY id;
+  SELECT * FROM api.notification WHERE datetime >= pDateFrom ORDER BY id;
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- api.get_notify --------------------------------------------------------------
+-- api.get_notification --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
  * Возвращает уведомление.
  * @return {record}
  */
-CREATE OR REPLACE FUNCTION api.get_notify (
+CREATE OR REPLACE FUNCTION api.get_notification (
   pId           numeric
-) RETURNS       SETOF api.notify
+) RETURNS       SETOF api.notification
 AS $$
-  SELECT * FROM api.notify WHERE id = pId;
+  SELECT * FROM api.notification WHERE id = pId;
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- api.list_notify -------------------------------------------------------------
+-- api.list_notification -------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
  * Возвращает уведомления в виде списка.
@@ -53,7 +53,7 @@ $$ LANGUAGE SQL
  * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
  * @return {SETOF api.object_group}
  */
-CREATE OR REPLACE FUNCTION api.list_notify (
+CREATE OR REPLACE FUNCTION api.list_notification (
   pSearch	jsonb DEFAULT null,
   pFilter	jsonb DEFAULT null,
   pLimit	integer DEFAULT null,
@@ -62,7 +62,7 @@ CREATE OR REPLACE FUNCTION api.list_notify (
 ) RETURNS	SETOF api.object_group
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'notify', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+  RETURN QUERY EXECUTE api.sql('api', 'notification', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

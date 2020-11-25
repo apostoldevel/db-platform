@@ -9,4 +9,4 @@
 \ir './current/current.psql'
 \ir './workflow/workflow.psql'
 \ir './entity/entity.psql'
-\ir './notify/notify.psql'
+\ir './notification/notification.psql'

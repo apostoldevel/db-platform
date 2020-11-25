@@ -1272,7 +1272,7 @@ BEGIN
   PERFORM InitForm(jSaveForm);
   PERFORM InitContext(nSaveObject, nSaveClass, nSaveMethod, nSaveAction);
 
-  PERFORM AddNotify(pObject, nClass, pMethod, nAction);
+  PERFORM AddNotification(pObject, nClass, pMethod, nAction);
 
   RETURN GetMethodStack(pObject, pMethod);
 END;
