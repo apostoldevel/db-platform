@@ -14,7 +14,42 @@ CREATE OR REPLACE FUNCTION api.set_session_area (
   pArea     numeric
 ) RETURNS   void
 AS $$
+DECLARE
+  nId		numeric;
 BEGIN
+  SELECT id INTO nId FROM db.area WHERE id = pArea;
+
+  IF NOT FOUND THEN
+    PERFORM ObjectNotFound('зона', 'id', pArea);
+  END IF;
+
+  PERFORM SetArea(pArea);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.set_session_area --------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Устанавливает зону.
+ * @param {text} pArea - Код зоны
+ * @return {void}
+ */
+CREATE OR REPLACE FUNCTION api.set_session_area (
+  pArea     text
+) RETURNS   void
+AS $$
+DECLARE
+  nId		numeric;
+BEGIN
+  SELECT id INTO nId FROM db.area WHERE code = pArea;
+
+  IF NOT FOUND THEN
+    PERFORM ObjectNotFound('зона', 'code', pArea);
+  END IF;
+
   PERFORM SetArea(pArea);
 END;
 $$ LANGUAGE plpgsql
@@ -33,7 +68,42 @@ CREATE OR REPLACE FUNCTION api.set_session_interface (
   pInterface	numeric
 ) RETURNS       void
 AS $$
+DECLARE
+  nId         numeric;
 BEGIN
+  SELECT id INTO nId FROM db.interface WHERE id = pInterface;
+
+  IF NOT FOUND THEN
+    PERFORM ObjectNotFound('интерфейс', 'id', pInterface);
+  END IF;
+
+  PERFORM SetInterface(pInterface);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.set_session_interface ---------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Устанавливает интерфейс.
+ * @param {numeric} pInterface - Идентификатор интерфейса
+ * @return {void}
+ */
+CREATE OR REPLACE FUNCTION api.set_session_interface (
+  pInterface	text
+) RETURNS       void
+AS $$
+DECLARE
+  nId			numeric;
+BEGIN
+  SELECT id INTO nId FROM db.interface WHERE sid = pInterface;
+
+  IF NOT FOUND THEN
+    PERFORM ObjectNotFound('интерфейс', 'sid', pInterface);
+  END IF;
+
   PERFORM SetInterface(pInterface);
 END;
 $$ LANGUAGE plpgsql
@@ -93,7 +163,7 @@ AS $$
 DECLARE
   nId         numeric;
 BEGIN
-  SELECT id INTO nId FROM locale WHERE id = pLocale;
+  SELECT id INTO nId FROM db.locale WHERE id = pLocale;
 
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('язык', 'id', pLocale);
@@ -126,7 +196,7 @@ BEGIN
     arCodes := array_append(arCodes, r.code);
   END LOOP;
 
-  IF array_position(arCodes, pCode::text) IS NULL THEN
+  IF array_position(arCodes, pCode) IS NULL THEN
     PERFORM IncorrectCode(pCode, arCodes);
   END IF;
 

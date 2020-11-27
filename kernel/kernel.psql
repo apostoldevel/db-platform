@@ -14,9 +14,3 @@
 
 \echo [M] call general.sql
 \ir general.sql
-
-\echo [M] call oauth2.sql
-\ir oauth2.sql
-
-\echo [M] call kladr.sql
-\ir kladr.sql

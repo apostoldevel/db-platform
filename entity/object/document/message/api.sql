@@ -49,7 +49,7 @@ $$ LANGUAGE SQL
  * Добавляет сообщение.
  * @param {numeric} pParent - Родительский объект
  * @param {varchar} pType - Код типа
- * @param {varchar} pAgent - Код агента
+ * @param {numeric} pAgent - Агент
  * @param {text} pProfile - Профиль отправителя
  * @param {text} pAddress - Адрес получателя
  * @param {text} pSubject - Тема
@@ -60,16 +60,16 @@ $$ LANGUAGE SQL
 CREATE OR REPLACE FUNCTION api.add_message (
   pParent       numeric,
   pType         varchar,
-  pAgent        varchar,
+  pAgent        numeric,
   pProfile      text,
   pAddress      text,
   pSubject      text,
-  pContent         text,
+  pContent		text,
   pDescription  text default null
 ) RETURNS       numeric
 AS $$
 BEGIN
-  RETURN CreateMessage(pParent, CodeToType(coalesce(lower(pType), 'message.outbox'), 'message'), GetAgent(coalesce(pAgent, 'system.agent')), pProfile, pAddress, pSubject, pContent, pDescription);
+  RETURN CreateMessage(pParent, CodeToType(coalesce(lower(pType), 'message.outbox'), 'message'), pAgent, pProfile, pAddress, pSubject, pContent, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -83,7 +83,7 @@ $$ LANGUAGE plpgsql
  * @param {numeric} pId - Идентификатор
  * @param {numeric} pParent - Родительский объект
  * @param {varchar} pType - Код типа
- * @param {varchar} pAgent - Код агента
+ * @param {numeric} pAgent - Агент
  * @param {text} pProfile - Профиль отправителя
  * @param {text} pAddress - Адрес получателя
  * @param {text} pSubject - Тема
@@ -95,11 +95,11 @@ CREATE OR REPLACE FUNCTION api.update_message (
   pId           numeric,
   pParent       numeric default null,
   pType         varchar default null,
-  pAgent        varchar default null,
+  pAgent        numeric default null,
   pProfile      text default null,
   pAddress      text default null,
   pSubject      text default null,
-  pContent         text default null,
+  pContent		text default null,
   pDescription  text default null
 ) RETURNS       void
 AS $$
@@ -118,7 +118,7 @@ BEGIN
     SELECT o.type INTO nType FROM db.object o WHERE o.id = pId;
   END IF;
 
-  PERFORM EditMessage(nMessage, pParent, nType, GetAgent(coalesce(pAgent, 'system.agent')), pProfile, pAddress, pSubject, pContent, pDescription);
+  PERFORM EditMessage(nMessage, pParent, nType, pAgent, pProfile, pAddress, pSubject, pContent, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -132,7 +132,7 @@ CREATE OR REPLACE FUNCTION api.set_message (
   pId           numeric,
   pParent       numeric default null,
   pType         varchar default null,
-  pAgent        varchar default null,
+  pAgent        numeric default null,
   pProfile      text default null,
   pAddress      text default null,
   pSubject      text default null,

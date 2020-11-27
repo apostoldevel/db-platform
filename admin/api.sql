@@ -111,13 +111,14 @@ $$ LANGUAGE plpgsql
 /**
  * Авторизовать.
  * @param {text} pSession - Сессия
+ * @param {text} pAgent - Агент
+ * @param {inet} pHost - IP адрес
  * @param {boolean} authorized - Результат
  * @param {text} message - Сообшение
  * @return {record}
  */
 CREATE OR REPLACE FUNCTION api.authorize (
   pSession          text,
-  pSecret           text DEFAULT null,
   pAgent            text DEFAULT null,
   pHost             inet DEFAULT null,
   OUT authorized    boolean,
@@ -125,7 +126,7 @@ CREATE OR REPLACE FUNCTION api.authorize (
 ) RETURNS           record
 AS $$
 BEGIN
-  authorized := Authorize(pSession, pSecret, pAgent, pHost);
+  authorized := Authorize(pSession, pAgent, pHost);
   message := GetErrorMessage();
 END;
 $$ LANGUAGE plpgsql
@@ -188,34 +189,6 @@ BEGIN
   code := oauth2_current_code(session);
   secret := session_secret(session);
 END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- api.set_session -------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION api.set_session (
-  pUserName     text,
-  pArea         text DEFAULT null
-) RETURNS       text
-AS $$
-DECLARE
-  vSession      text;
-BEGIN
-  vSession := GetSession(GetUser(pUserName));
-
-  IF vSession IS NULL THEN
-    RAISE EXCEPTION '%', GetErrorMessage();
-  END IF;
-
-  IF pArea IS NOT NULL THEN
-    PERFORM SetArea(GetArea(pArea));
-  END IF;
-
-  RETURN vSession;
-END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

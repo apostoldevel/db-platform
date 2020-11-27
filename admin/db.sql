@@ -4475,61 +4475,57 @@ DECLARE
   nToken        numeric DEFAULT null;
   nArea	        numeric DEFAULT null;
   nInterface    numeric DEFAULT null;
-
-  vAgent        text;
 BEGIN
-  SELECT application_name INTO vAgent FROM pg_stat_activity WHERE pid = pg_backend_pid();
-
-  pAgent := coalesce(pAgent, vAgent, current_database());
-
-  UPDATE db.session SET updated = localtimestamp, agent = pAgent, host = pHost, salt = pSalt WHERE code = pSession
-  RETURNING token INTO nToken;
-
   IF ValidSession(pSession) THEN
 
-    IF NOT coalesce(pSession = GetCurrentSession(), false) THEN
+	SELECT userid, area, interface
+	  INTO nUserId, nArea, nInterface
+	  FROM db.session
+	 WHERE code = pSession;
 
-      SELECT userid, area, interface
-        INTO nUserId, nArea, nInterface
-        FROM db.session
-       WHERE code = pSession;
+	SELECT * INTO up FROM db.user WHERE id = nUserId;
 
-      SELECT * INTO up FROM db.user WHERE id = nUserId;
+	IF NOT found THEN
+	  PERFORM LoginError();
+	END IF;
 
-      IF NOT found THEN
-        PERFORM LoginError();
-      END IF;
+	IF get_bit(up.status, 1) = 1 THEN
+	  PERFORM UserLockError();
+	END IF;
 
-      IF get_bit(up.status, 1) = 1 THEN
-        PERFORM UserLockError();
-      END IF;
+	IF up.lock_date IS NOT NULL AND up.lock_date <= now() THEN
+	  PERFORM UserLockError();
+	END IF;
 
-      IF up.lock_date IS NOT NULL AND up.lock_date <= now() THEN
-        PERFORM UserLockError();
-      END IF;
+	IF get_bit(up.status, 0) = 1 THEN
+	  PERFORM PasswordExpired();
+	END IF;
 
-      IF get_bit(up.status, 0) = 1 THEN
-        PERFORM PasswordExpired();
-      END IF;
+	IF up.expiry_date IS NOT NULL AND up.expiry_date <= now() THEN
+	  PERFORM PasswordExpired();
+	END IF;
 
-      IF up.expiry_date IS NOT NULL AND up.expiry_date <= now() THEN
-        PERFORM PasswordExpired();
-      END IF;
+	IF NOT CheckIPTable(up.id, pHost) THEN
+	  PERFORM LoginIPTableError(pHost);
+	END IF;
 
-      IF NOT CheckIPTable(up.id, pHost) THEN
-        PERFORM LoginIPTableError(pHost);
-      END IF;
+	PERFORM SetCurrentSession(pSession);
+	PERFORM SetCurrentUserId(up.id);
 
-      PERFORM SetCurrentSession(pSession);
-      PERFORM SetCurrentUserId(up.id);
+	UPDATE db.user SET status = set_bit(set_bit(status, 3, 0), 2, 1) WHERE id = up.id;
 
-      UPDATE db.user SET status = set_bit(set_bit(status, 3, 0), 2, 1) WHERE id = up.id;
+	UPDATE db.profile
+	   SET input_last = now(),
+		   lc_ip = coalesce(pHost, lc_ip)
+	 WHERE userid = up.id;
 
-      UPDATE db.profile
-         SET input_last = now(),
-             lc_ip = coalesce(pHost, lc_ip)
-       WHERE userid = up.id;
-    END IF;
+	UPDATE db.session
+	   SET updated = localtimestamp,
+		   agent = coalesce(pAgent, agent),
+		   host = coalesce(pHost, host),
+		   salt = coalesce(pSalt, salt)
+	 WHERE code = pSession
+    RETURNING token INTO nToken;
 
     RETURN GetToken(nToken);
   END IF;
@@ -4880,33 +4876,21 @@ $$ LANGUAGE plpgsql
 /**
  * Авторизовать.
  * @param {text} pSession - Сессия
- * @param {text} pSecret - Секретный код
  * @param {text} pAgent - Агент
  * @param {inet} pHost - IP адрес
  * @return {boolean} Если вернёт false вызвать GetErrorMessage для просмотра сообщения об ошибке.
  */
 CREATE OR REPLACE FUNCTION Authorize (
   pSession      text,
-  pSecret       text DEFAULT null,
   pAgent        text DEFAULT null,
   pHost         inet DEFAULT null
 )
 RETURNS         boolean
 AS $$
 DECLARE
-  nUserId       numeric;
   message       text;
 BEGIN
-  IF pSecret IS NOT NULL THEN
-    IF ValidSecret(pSecret, pSession) THEN
-      RETURN SessionIn(pSession, pAgent, pHost) IS NOT NULL;
-    ELSE
-      PERFORM SessionOut(pSession, false, GetErrorMessage());
-    END IF;
-    RETURN false;
-  END IF;
-
-  RETURN ValidSession(pSession);
+  RETURN SessionIn(pSession, pAgent, pHost) IS NOT NULL;
 EXCEPTION
 WHEN others THEN
   GET STACKED DIAGNOSTICS message = MESSAGE_TEXT;
@@ -4915,15 +4899,6 @@ WHEN others THEN
   PERFORM SetCurrentUserId(null);
 
   PERFORM SetErrorMessage(message);
-
-  IF pSession IS NOT NULL THEN
-	SELECT userid INTO nUserId FROM db.session WHERE code = pSession;
-
-	IF found THEN
-	  INSERT INTO db.log (type, code, username, session, text)
-	  VALUES ('E', 3003, GetUserName(nUserId), pSession, message);
-	END IF;
-  END IF;
 
   RETURN false;
 END;

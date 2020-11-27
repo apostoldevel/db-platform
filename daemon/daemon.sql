@@ -40,69 +40,81 @@ $$ LANGUAGE plpgsql
   SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- daemon.authorize ------------------------------------------------------------
+-- daemon.validation -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Авторизоваться по коду сессии.
- * @param {text} pSession - Сессия
- * @return {record}
+ * Проверяет маркет доступа.
+ * @param {text} pToken - Маркер JWT
+ * @return {bool}
  */
-CREATE OR REPLACE FUNCTION daemon.authorize (
-  pSession      text
-) RETURNS       json
+CREATE OR REPLACE FUNCTION daemon.validation (
+  pToken        text
+) RETURNS       jsonb
 AS $$
 DECLARE
-  t             record;
+  token         record;
 
-  nToken        numeric;
+  payload       jsonb;
 
-  expires_in    double precision;
+  vSecret       text;
 
-  vMessage      text;
-  vContext      text;
+  iss           text;
+  aud           text;
 
-  ErrorCode     int;
-  ErrorMessage  text;
+  nOauth2       numeric;
+  nProvider     numeric;
+  nAudience     numeric;
+
+  belong        boolean;
 BEGIN
-  IF NOT kernel.Authorize(pSession) THEN
-    PERFORM AuthenticateError(GetErrorMessage());
+  SELECT convert_from(url_decode(data[2]), 'utf8')::jsonb INTO payload FROM regexp_split_to_array(pToken, '\.') data;
+
+  iss := payload->>'iss';
+
+  SELECT i.provider INTO nProvider FROM oauth2.issuer i WHERE i.code = iss;
+
+  IF NOT found THEN
+	PERFORM IssuerNotFound(coalesce(iss, 'null'));
   END IF;
 
-  SELECT t.id INTO nToken
-    FROM db.token_header h INNER JOIN db.token t ON h.id = t.header AND t.type = 'A'
-   WHERE h.session = pSession
-     AND t.validFromDate <= Now()
-     AND t.validToDate > Now();
+  aud := payload->>'aud';
+
+  SELECT a.id, a.secret INTO nAudience, vSecret FROM oauth2.audience a WHERE a.provider = nProvider AND a.code = aud;
+
+  IF NOT found THEN
+	PERFORM AudienceNotFound();
+  END IF;
+
+  SELECT * INTO token FROM verify(pToken, vSecret);
+
+  IF NOT coalesce(token.valid, false) THEN
+	PERFORM TokenError();
+  END IF;
+
+  SELECT h.oauth2 INTO nOauth2
+	FROM db.token_header h INNER JOIN db.token t ON h.id = t.header
+   WHERE t.hash = GetTokenHash(pToken, GetSecretKey())
+	 AND t.validFromDate <= Now()
+	 AND t.validtoDate > Now();
 
   IF NOT FOUND THEN
-    PERFORM SessionOut(pSession, false, 'Маркер не найден.');
-    RAISE EXCEPTION '%', GetErrorMessage();
+	PERFORM TokenExpired();
   END IF;
 
-  SELECT * INTO t FROM db.token WHERE id = nToken;
+  SELECT (audience = nAudience) INTO belong FROM db.oauth2 WHERE id = nOauth2;
 
-  expires_in := trunc(extract(EPOCH FROM t.validToDate)) - trunc(extract(EPOCH FROM Now()));
+  IF NOT coalesce(belong, false) THEN
+	PERFORM TokenBelong();
+  END IF;
 
-  RETURN json_build_object('access_token', t.token, 'token_type', 'Bearer', 'expires_in', expires_in, 'session', pSession);
-EXCEPTION
-WHEN others THEN
-  GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
-
-  PERFORM SetErrorMessage(vMessage);
-
-  SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
-
-  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
-  PERFORM WriteToEventLog('D', ErrorCode, vContext);
-
-  RETURN json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
+  RETURN payload;
 END;
 $$ LANGUAGE plpgsql
   SECURITY DEFINER
   SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- daemon.signin ---------------------------------------------------------------
+-- daemon.login ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
  * @brief Вход в систему по маркеру JWT (Из внешних систем).
@@ -111,7 +123,7 @@ $$ LANGUAGE plpgsql
  * @param {inet} pHost - IP адрес
  * @return {SETOF json} - Записи в JSON
  */
-CREATE OR REPLACE FUNCTION daemon.signin (
+CREATE OR REPLACE FUNCTION daemon.login (
   pToken        text,
   pAgent        text DEFAULT null,
   pHost         inet DEFAULT null
@@ -258,6 +270,72 @@ $$ LANGUAGE plpgsql
   SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- daemon.authorize ------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Авторизоваться по коду сессии.
+ * @param {text} pSession - Сессия
+ * @param {text} pAgent - Агент
+ * @param {inet} pHost - IP адрес
+ * @return {record}
+ */
+CREATE OR REPLACE FUNCTION daemon.authorize (
+  pSession      text,
+  pAgent        text DEFAULT null,
+  pHost         inet DEFAULT null
+) RETURNS       json
+AS $$
+DECLARE
+  t             record;
+
+  nToken        numeric;
+
+  expires_in    double precision;
+
+  vMessage      text;
+  vContext      text;
+
+  ErrorCode     int;
+  ErrorMessage  text;
+BEGIN
+  IF SessionIn(pSession, pAgent, pHost) IS NULL THEN
+    PERFORM AuthenticateError(GetErrorMessage());
+  END IF;
+
+  SELECT t.id INTO nToken
+    FROM db.token_header h INNER JOIN db.token t ON h.id = t.header AND t.type = 'A'
+   WHERE h.session = pSession
+     AND t.validFromDate <= Now()
+     AND t.validToDate > Now();
+
+  IF NOT FOUND THEN
+    PERFORM SessionOut(pSession, false, 'Маркер не найден или истек срок его действия.');
+    RAISE EXCEPTION '%', GetErrorMessage();
+  END IF;
+
+  SELECT * INTO t FROM db.token WHERE id = nToken;
+
+  expires_in := trunc(extract(EPOCH FROM t.validToDate)) - trunc(extract(EPOCH FROM Now()));
+
+  RETURN json_build_object('access_token', t.token, 'token_type', 'Bearer', 'expires_in', expires_in, 'session', pSession);
+EXCEPTION
+WHEN others THEN
+  GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
+
+  PERFORM SetErrorMessage(vMessage);
+
+  SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
+
+  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, vContext);
+
+  RETURN json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
+END;
+$$ LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- daemon.token ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
@@ -324,7 +402,7 @@ BEGIN
 
   IF grant_type = 'urn:ietf:params:oauth:grant-type:jwt-bearer' THEN
     assertion := pPayload->>'assertion';
-    RETURN daemon.signin(assertion, pAgent, pHost);
+    RETURN daemon.login(assertion, pAgent, pHost);
   END IF;
 
   SELECT a.id INTO nAudience FROM oauth2.audience a WHERE a.code = pClientId;
@@ -487,6 +565,110 @@ WHEN others THEN
   PERFORM WriteToEventLog('D', ErrorCode, vContext);
 
   RETURN json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'error', 'server_error', 'message', ErrorMessage));
+END;
+$$ LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- daemon.session_open ---------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Открывает сесиию.
+ * @param {text} pToken - Маркер JWT
+ * @param {text} pAgent - Агент
+ * @param {inet} pHost - IP адрес
+ * @return {SETOF jsonb}
+ */
+CREATE OR REPLACE FUNCTION daemon.session_open (
+  pToken        text,
+  pAgent        text DEFAULT null,
+  pHost         inet DEFAULT null
+) RETURNS       SETOF json
+AS $$
+DECLARE
+  token         jsonb;
+
+  vMessage      text;
+  vContext      text;
+
+  ErrorCode     int;
+  ErrorMessage  text;
+BEGIN
+  token := daemon.validation(pToken);
+
+  IF SessionIn(token->>'sub', pAgent, pHost) IS NULL THEN
+	PERFORM AuthenticateError(GetErrorMessage());
+  END IF;
+
+  RETURN NEXT token;
+
+  RETURN;
+EXCEPTION
+WHEN others THEN
+  GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
+
+  PERFORM SetErrorMessage(vMessage);
+
+  SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
+
+  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, vContext);
+
+  RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
+
+  RETURN;
+END;
+$$ LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- daemon.session_close --------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Закрывает сесиию.
+ * @param {text} pToken - Маркер JWT
+ * @param {boolean} pCloseAll - Закрыть все сессии
+ * @param {text} pMessage - Сообщение
+ * @return {SETOF jsonb}
+ */
+CREATE OR REPLACE FUNCTION daemon.session_close (
+  pToken        text,
+  pCloseAll		boolean DEFAULT false,
+  pMessage		text DEFAULT null
+) RETURNS       SETOF json
+AS $$
+DECLARE
+  token         jsonb;
+
+  vMessage      text;
+  vContext      text;
+
+  ErrorCode     int;
+  ErrorMessage  text;
+BEGIN
+  token := daemon.validation(pToken);
+
+  PERFORM SessionOut(token->>'sub', pCloseAll, pMessage);
+
+  RETURN NEXT token;
+
+  RETURN;
+EXCEPTION
+WHEN others THEN
+  GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
+
+  PERFORM SetErrorMessage(vMessage);
+
+  SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
+
+  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, vContext);
+
+  RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
+
+  RETURN;
 END;
 $$ LANGUAGE plpgsql
   SECURITY DEFINER
@@ -716,135 +898,6 @@ $$ LANGUAGE plpgsql
   SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- daemon.fetch ----------------------------------------------------------------
---------------------------------------------------------------------------------
-/**
- * Авторизованный запрос данных в формате REST JSON API.
- * @param {text} pToken - Маркер JWT
- * @param {text} pMethod - HTTP-Метод
- * @param {text} pPath - Путь
- * @param {jsonb} pPayload - Данные
- * @param {text} pAgent - Агент
- * @param {inet} pHost - IP адрес
- * @return {SETOF json} - Записи в JSON
- */
-CREATE OR REPLACE FUNCTION daemon.fetch (
-  pToken        text,
-  pMethod		text,
-  pPath         text,
-  pPayload      jsonb DEFAULT null,
-  pAgent        text DEFAULT null,
-  pHost         inet DEFAULT null
-) RETURNS       SETOF json
-AS $$
-DECLARE
-  r             record;
-  token         record;
-
-  payload       jsonb;
-
-  vSecret       text;
-
-  iss           text;
-  aud           text;
-  sub           text;
-
-  nOauth2       numeric;
-  nProvider     numeric;
-  nAudience     numeric;
-
-  belong        boolean;
-
-  vMessage      text;
-  vContext      text;
-
-  ErrorCode     int;
-  ErrorMessage  text;
-BEGIN
-  IF NULLIF(pPath, '') IS NULL THEN
-    PERFORM RouteIsEmpty();
-  END IF;
-
-  pPath := lower(pPath);
-
-  IF pPath = '/sign/in' OR pPath = '/authenticate' THEN
-    pPayload := pPayload - 'agent';
-    pPayload := pPayload - 'host';
-    pPayload := pPayload || jsonb_build_object('agent', pAgent, 'host', pHost);
-  END IF;
-
-  SELECT convert_from(url_decode(data[2]), 'utf8')::jsonb INTO payload FROM regexp_split_to_array(pToken, '\.') data;
-
-  iss := payload->>'iss';
-
-  SELECT i.provider INTO nProvider FROM oauth2.issuer i WHERE i.code = iss;
-
-  IF NOT found THEN
-	PERFORM IssuerNotFound(coalesce(iss, 'null'));
-  END IF;
-
-  aud := payload->>'aud';
-
-  SELECT a.id, a.secret INTO nAudience, vSecret FROM oauth2.audience a WHERE a.provider = nProvider AND a.code = aud;
-
-  IF NOT found THEN
-	PERFORM AudienceNotFound();
-  END IF;
-
-  SELECT * INTO token FROM verify(pToken, vSecret);
-
-  IF NOT coalesce(token.valid, false) THEN
-	PERFORM TokenError();
-  END IF;
-
-  SELECT h.oauth2 INTO nOauth2
-	FROM db.token_header h INNER JOIN db.token t ON h.id = t.header
-   WHERE t.hash = GetTokenHash(pToken, GetSecretKey())
-	 AND t.validFromDate <= Now()
-	 AND t.validtoDate > Now();
-
-  IF NOT FOUND THEN
-	PERFORM TokenExpired();
-  END IF;
-
-  SELECT (audience = nAudience) INTO belong FROM db.oauth2 WHERE id = nOauth2;
-
-  IF NOT coalesce(belong, false) THEN
-	PERFORM TokenBelong();
-  END IF;
-
-  sub := payload->>'sub';
-
-  IF SessionIn(sub, pAgent, pHost) IS NULL THEN
-	PERFORM AuthenticateError(GetErrorMessage());
-  END IF;
-
-  FOR r IN SELECT * FROM api.run(pMethod, pPath, pPayload)
-  LOOP
-	RETURN NEXT r.run;
-  END LOOP;
-
-  RETURN;
-EXCEPTION
-WHEN others THEN
-  GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
-
-  PERFORM SetErrorMessage(vMessage);
-
-  SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
-
-  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
-  PERFORM WriteToEventLog('D', ErrorCode, vContext);
-
-  RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
-
-  RETURN;
-END;
-$$ LANGUAGE plpgsql
-  SECURITY DEFINER
-  SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
 -- daemon.signed_fetch ---------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
@@ -929,6 +982,82 @@ BEGIN
   ELSE
 	PERFORM NonceExpired();
   END IF;
+
+  RETURN;
+EXCEPTION
+WHEN others THEN
+  GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
+
+  PERFORM SetErrorMessage(vMessage);
+
+  SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
+
+  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, vContext);
+
+  RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
+
+  RETURN;
+END;
+$$ LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- daemon.fetch ----------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Авторизованный запрос данных в формате REST JSON API.
+ * @param {text} pToken - Маркер JWT
+ * @param {text} pMethod - HTTP-Метод
+ * @param {text} pPath - Путь
+ * @param {jsonb} pPayload - Данные
+ * @param {text} pAgent - Агент
+ * @param {inet} pHost - IP адрес
+ * @return {SETOF json} - Записи в JSON
+ */
+CREATE OR REPLACE FUNCTION daemon.fetch (
+  pToken        text,
+  pMethod		text,
+  pPath         text,
+  pPayload      jsonb DEFAULT null,
+  pAgent        text DEFAULT null,
+  pHost         inet DEFAULT null
+) RETURNS       SETOF json
+AS $$
+DECLARE
+  r             record;
+
+  token         jsonb;
+
+  vMessage      text;
+  vContext      text;
+
+  ErrorCode     int;
+  ErrorMessage  text;
+BEGIN
+  IF NULLIF(pPath, '') IS NULL THEN
+    PERFORM RouteIsEmpty();
+  END IF;
+
+  pPath := lower(pPath);
+
+  IF pPath = '/sign/in' OR pPath = '/authenticate' THEN
+    pPayload := pPayload - 'agent';
+    pPayload := pPayload - 'host';
+    pPayload := pPayload || jsonb_build_object('agent', pAgent, 'host', pHost);
+  END IF;
+
+  token := daemon.validation(pToken);
+
+  IF SessionIn(token->>'sub', pAgent, pHost) IS NULL THEN
+	PERFORM AuthenticateError(GetErrorMessage());
+  END IF;
+
+  FOR r IN SELECT * FROM api.run(pMethod, pPath, pPayload)
+  LOOP
+	RETURN NEXT r.run;
+  END LOOP;
 
   RETURN;
 EXCEPTION
