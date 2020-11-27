@@ -93,17 +93,17 @@ DECLARE
   nEntity       numeric;
   nClass        numeric;
 
-  vCode         varchar;
+--  vCode         varchar;
 BEGIN
   nObject := CreateObject(pParent, pType, pName);
 
   nEntity := GetObjectEntity(nObject);
   nClass := GetObjectClass(nObject);
 
-  IF StrPos(pCode, '.') = 0 THEN
-    SELECT code INTO vCode FROM db.entity WHERE Id = nEntity;
-    pCode := pCode || '.' || vCode;
-  END IF;
+--  IF StrPos(pCode, '.') = 0 THEN
+--    SELECT code INTO vCode FROM db.entity WHERE Id = nEntity;
+--    pCode := pCode || '.' || vCode;
+--  END IF;
 
   INSERT INTO db.reference (id, object, entity, class, code, name, description)
   VALUES (nObject, nObject, nEntity, nClass, pCode, pName, pDescription)
@@ -168,12 +168,12 @@ CREATE OR REPLACE FUNCTION GetReference (
 AS $$
 DECLARE
   nId           numeric;
-  vCode         varchar;
+--  vCode         varchar;
 BEGIN
-  IF StrPos(pCode, '.') = 0 THEN
-    SELECT code INTO vCode FROM db.entity WHERE Id = pEntity;
-    pCode := pCode || '.' || vCode;
-  END IF;
+--  IF StrPos(pCode, '.') = 0 THEN
+--    SELECT code INTO vCode FROM db.entity WHERE Id = pEntity;
+--    pCode := pCode || '.' || vCode;
+--  END IF;
 
   SELECT id INTO nId FROM db.reference WHERE entity = pEntity AND code = pCode;
   RETURN nId;
