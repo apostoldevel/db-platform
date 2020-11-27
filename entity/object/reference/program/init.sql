@@ -97,7 +97,7 @@ BEGIN
   PERFORM AddProgramEvents(nClass);
 
   -- Метод
-  PERFORM AddDefaultMethods(nClass, ARRAY['Создана', 'Открыта', 'Закрыта', 'Удалёна', 'Открыть', 'Закрыть', 'Удалить']);
+  PERFORM AddDefaultMethods(nClass, ARRAY['Создана', 'Открыта', 'Закрыта', 'Удалена', 'Открыть', 'Закрыть', 'Удалить']);
 
   RETURN nClass;
 END
