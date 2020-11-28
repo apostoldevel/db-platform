@@ -333,6 +333,183 @@ $$ LANGUAGE SQL
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- OBJECT ACTION ---------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- api.execute_object_action ---------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Выполняет действие над объектом.
+ * @param {numeric} pObject - Идентификатор объекта
+ * @param {numeric} pAction - Идентификатор действия
+ * @param {jsonb} pForm - Форма в формате JSON
+ * @return {jsonb}
+ */
+CREATE OR REPLACE FUNCTION api.execute_object_action (
+  pObject            numeric,
+  pAction            numeric,
+  pForm              jsonb DEFAULT null
+) RETURNS            jsonb
+AS $$
+DECLARE
+  nId                numeric;
+  nMethod            numeric;
+BEGIN
+  SELECT o.id INTO nId FROM db.object o WHERE o.id = pObject;
+
+  IF NOT FOUND THEN
+    PERFORM ObjectNotFound('объект', 'id', pObject);
+  END IF;
+
+  IF pAction IS NULL THEN
+    PERFORM ActionIsEmpty();
+  END IF;
+
+  nMethod := GetObjectMethod(pObject, pAction);
+
+  IF nMethod IS NULL THEN
+    PERFORM MethodActionNotFound(pObject, pAction);
+  END IF;
+
+  PERFORM ExecuteObjectAction(pObject, pAction, pForm);
+
+  RETURN GetMethodStack(pObject, nMethod);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.execute_object_action ---------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Выполняет действие над объектом по коду.
+ * @param {numeric} pObject - Идентификатор объекта
+ * @param {text} pCode - Код действия
+ * @param {jsonb} pForm - Форма в формате JSON
+ * @out param {numeric} id - Идентификатор объекта
+ * @out param {boolean} result - Результат
+ * @out param {text} message - Текст ошибки
+ * @return {jsonb}
+ */
+CREATE OR REPLACE FUNCTION api.execute_object_action (
+  pObject       numeric,
+  pCode         text,
+  pForm         jsonb DEFAULT null
+) RETURNS       jsonb
+AS $$
+DECLARE
+  arCodes       text[];
+  r             record;
+BEGIN
+  FOR r IN SELECT code FROM db.action
+  LOOP
+    arCodes := array_append(arCodes, r.code);
+  END LOOP;
+
+  IF array_position(arCodes, pCode) IS NULL THEN
+    PERFORM IncorrectCode(pCode, arCodes);
+  END IF;
+
+  RETURN api.execute_object_action(pObject, GetAction(pCode), pForm);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- OBJECT METHOD ---------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- api.execute_method ----------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Выполняет метод объекта.
+ * @param {numeric} pObject - Идентификатор объекта
+ * @param {numeric} pMethod - Идентификатор метода
+ * @param {jsonb} pForm - Форма в формате JSON
+ * @return {jsonb}
+ */
+CREATE OR REPLACE FUNCTION api.execute_method (
+  pObject       numeric,
+  pMethod       numeric,
+  pForm         jsonb DEFAULT null
+) RETURNS       jsonb
+AS $$
+DECLARE
+  nId           numeric;
+  nMethod       numeric;
+BEGIN
+  SELECT o.id INTO nId FROM db.object o WHERE o.id = pObject;
+
+  IF NOT FOUND THEN
+    PERFORM ObjectNotFound('объект', 'id', pObject);
+  END IF;
+
+  IF pMethod IS NULL THEN
+    PERFORM MethodIsEmpty();
+  END IF;
+
+  SELECT m.id INTO nMethod FROM method m WHERE m.id = pMethod;
+
+  IF NOT FOUND THEN
+    PERFORM MethodNotFound(pObject, pMethod);
+  END IF;
+
+  RETURN ExecuteMethod(pObject, nMethod, pForm);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.execute_method ----------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Выполняет метод объекта.
+ * @param {numeric} pObject - Идентификатор объекта
+ * @param {text} pCode - Код метода
+ * @param {jsonb} pForm - Форма в формате JSON
+ * @return {jsonb}
+ */
+CREATE OR REPLACE FUNCTION api.execute_method (
+  pObject       numeric,
+  pCode         text,
+  pForm         jsonb DEFAULT null
+) RETURNS       jsonb
+AS $$
+DECLARE
+  nId           numeric;
+  nClass        numeric;
+  nMethod       numeric;
+BEGIN
+  SELECT o.id INTO nId FROM db.object o WHERE o.id = pObject;
+
+  IF NOT FOUND THEN
+    PERFORM ObjectNotFound('объект', 'id', pObject);
+  END IF;
+
+  IF pCode IS NULL THEN
+    PERFORM MethodIsEmpty();
+  END IF;
+
+  nClass := GetObjectClass(pObject);
+
+  SELECT m.id INTO nMethod FROM db.method m WHERE m.class = nClass AND m.code = pCode;
+
+  IF NOT FOUND THEN
+    PERFORM MethodByCodeNotFound(pObject, pCode);
+  END IF;
+
+  RETURN ExecuteMethod(pObject, nMethod, pForm);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- OBJECT GROUP ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 

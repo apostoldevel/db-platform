@@ -305,7 +305,7 @@ BEGIN
       END LOOP;
     END LOOP;
 
-  WHEN '/action/run' THEN
+  WHEN '/action/execute' THEN
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
@@ -315,14 +315,14 @@ BEGIN
       PERFORM LoginFailed();
     END IF;
 
-    arKeys := array_cat(arKeys, ARRAY['id', 'action', 'form']);
+    arKeys := array_cat(arKeys, ARRAY['object', 'action', 'code', 'form']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, action numeric, form jsonb)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(object numeric, action numeric, code text, form jsonb)
       LOOP
-        FOR e IN SELECT * FROM api.run_action(r.id, r.action, r.form)
+        FOR e IN SELECT * FROM api.execute_object_action(r.object, coalesce(r.action, GetAction(r.code)), r.form)
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -330,9 +330,9 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, action numeric, form jsonb)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(object numeric, action numeric, code text, form jsonb)
       LOOP
-        FOR e IN SELECT * FROM api.run_action(r.id, r.action, r.form)
+        FOR e IN SELECT * FROM api.execute_object_action(r.object, coalesce(r.action, GetAction(r.code)), r.form)
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -353,7 +353,7 @@ BEGIN
   WHEN '/method/run' THEN
 
     IF pPayload IS NULL THEN
-        PERFORM JsonIsEmpty();
+	  PERFORM JsonIsEmpty();
     END IF;
 
     IF current_session() IS NULL THEN
@@ -367,14 +367,43 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, method numeric, code text, form jsonb)
       LOOP
-        RETURN NEXT api.run_method(r.id, coalesce(r.method, GetObjectMethod(r.id, GetAction(r.code))), r.form);
+        RETURN NEXT api.execute_method(r.id, coalesce(r.method, GetObjectMethod(r.id, GetAction(r.code))), r.form);
       END LOOP;
 
     ELSE
 
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, method numeric, code text, form jsonb)
       LOOP
-        RETURN NEXT api.run_method(r.id, coalesce(r.method, GetObjectMethod(r.id, GetAction(r.code))), r.form);
+        RETURN NEXT api.execute_method(r.id, coalesce(r.method, GetObjectMethod(r.id, GetAction(r.code))), r.form);
+      END LOOP;
+
+    END IF;
+
+  WHEN '/method/execute' THEN
+
+    IF pPayload IS NULL THEN
+	  PERFORM JsonIsEmpty();
+    END IF;
+
+    IF current_session() IS NULL THEN
+      PERFORM LoginFailed();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['object', 'method', 'code', 'form']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(object numeric, method numeric, code text, form jsonb)
+      LOOP
+        RETURN NEXT api.execute_method(r.object, coalesce(r.method, GetObjectMethod(r.object, GetAction(r.code))), r.form);
+      END LOOP;
+
+    ELSE
+
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(object numeric, method numeric, code text, form jsonb)
+      LOOP
+        RETURN NEXT api.execute_method(r.object, coalesce(r.method, GetObjectMethod(r.object, GetAction(r.code))), r.form);
       END LOOP;
 
     END IF;

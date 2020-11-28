@@ -25,46 +25,46 @@ BEGIN
 
     IF r.code = 'create' THEN
       PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Программа создана', 'EventVersionCreate();');
+      PERFORM AddEvent(pClass, nEvent, r.id, 'Программа создана', 'EventProgramCreate();');
     END IF;
 
     IF r.code = 'open' THEN
       PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Программа открыта', 'EventVersionOpen();');
+      PERFORM AddEvent(pClass, nEvent, r.id, 'Программа открыта', 'EventProgramOpen();');
     END IF;
 
     IF r.code = 'edit' THEN
       PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Программа изменена', 'EventVersionEdit();');
+      PERFORM AddEvent(pClass, nEvent, r.id, 'Программа изменена', 'EventProgramEdit();');
     END IF;
 
     IF r.code = 'save' THEN
       PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Программа сохранена', 'EventVersionSave();');
+      PERFORM AddEvent(pClass, nEvent, r.id, 'Программа сохранена', 'EventProgramSave();');
     END IF;
 
     IF r.code = 'enable' THEN
       PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Программа доступна', 'EventVersionEnable();');
+      PERFORM AddEvent(pClass, nEvent, r.id, 'Программа доступна', 'EventProgramEnable();');
     END IF;
 
     IF r.code = 'disable' THEN
       PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Программа недоступна', 'EventVersionDisable();');
+      PERFORM AddEvent(pClass, nEvent, r.id, 'Программа недоступна', 'EventProgramDisable();');
     END IF;
 
     IF r.code = 'delete' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Программа будет удалена', 'EventVersionDelete();');
+      PERFORM AddEvent(pClass, nEvent, r.id, 'Программа будет удалена', 'EventProgramDelete();');
       PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
     END IF;
 
     IF r.code = 'restore' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Программа восстановлена', 'EventVersionRestore();');
+      PERFORM AddEvent(pClass, nEvent, r.id, 'Программа восстановлена', 'EventProgramRestore();');
       PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
     END IF;
 
     IF r.code = 'drop' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Программа будет уничтожена', 'EventVersionDrop();');
+      PERFORM AddEvent(pClass, nEvent, r.id, 'Программа будет уничтожена', 'EventProgramDrop();');
       PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
     END IF;
 

@@ -120,6 +120,70 @@ BEGIN
 
     END IF;
 
+  WHEN '/object/method/execute' THEN
+
+    IF pPayload IS NULL THEN
+	  PERFORM JsonIsEmpty();
+    END IF;
+
+    IF current_session() IS NULL THEN
+      PERFORM LoginFailed();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['object', 'method', 'code', 'form']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(object numeric, method numeric, code text, form jsonb)
+      LOOP
+        RETURN NEXT api.execute_method(r.object, coalesce(r.method, GetObjectMethod(r.object, GetAction(r.code))), r.form);
+      END LOOP;
+
+    ELSE
+
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(object numeric, method numeric, code text, form jsonb)
+      LOOP
+        RETURN NEXT api.execute_method(r.object, coalesce(r.method, GetObjectMethod(r.object, GetAction(r.code))), r.form);
+      END LOOP;
+
+    END IF;
+
+  WHEN '/object/action/execute' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    IF current_session() IS NULL THEN
+      PERFORM LoginFailed();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['object', 'action', 'code', 'form']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(object numeric, action numeric, code text, form jsonb)
+      LOOP
+        FOR e IN SELECT * FROM api.execute_object_action(r.object, coalesce(r.action, GetAction(r.code)), r.form)
+        LOOP
+          RETURN NEXT row_to_json(e);
+        END LOOP;
+      END LOOP;
+
+    ELSE
+
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(object numeric, action numeric, code text, form jsonb)
+      LOOP
+        FOR e IN SELECT * FROM api.execute_object_action(r.object, coalesce(r.action, GetAction(r.code)), r.form)
+        LOOP
+          RETURN NEXT row_to_json(e);
+        END LOOP;
+      END LOOP;
+
+    END IF;
+
   WHEN '/object/state' THEN
 
     IF pPayload IS NULL THEN

@@ -170,41 +170,15 @@ AS $$
 DECLARE
   nClass        numeric;
   nMethod       numeric;
-
-  -- current
-  cParent       numeric;
-  cType         numeric;
-  cSubject      text;
-  cContent         text;
-  cDescription	text;
 BEGIN
-  SELECT parent, type, label INTO cParent, cType, cSubject FROM db.object WHERE id = pId;
-  SELECT description INTO cDescription FROM db.document WHERE id = pId;
-  SELECT content INTO cContent FROM db.message WHERE id = pId;
-
-  pParent := coalesce(pParent, cParent, 0);
-  pType := coalesce(pType, cType);
-  pSubject := coalesce(pSubject, cSubject, '<null>');
-  pContent := coalesce(pContent, cContent, '<null>');
-  pDescription := coalesce(pDescription, cDescription, '<null>');
-
-  IF pParent <> coalesce(cParent, 0) THEN
-    UPDATE db.object SET parent = CheckNull(pParent) WHERE id = pId;
-  END IF;
-
-  IF pType <> cType THEN
-    UPDATE db.object SET type = pType WHERE id = pId;
-  END IF;
-
-  IF pDescription <> coalesce(cDescription, '<null>') THEN
-    UPDATE document SET description = CheckNull(pDescription) WHERE id = pId;
-  END IF;
+  PERFORM EditDocument(pId, pParent, pType, null, pDescription);
 
   UPDATE db.message 
      SET agent = coalesce(pAgent, agent),
          profile = coalesce(pProfile, profile),
          address = coalesce(pAddress, address),
-         content = CheckNull(pContent)
+         subject = coalesce(pSubject, subject),
+         content = coalesce(pContent, content)
    WHERE id = pId;
 
   SELECT class INTO nClass FROM type WHERE id = pType;
