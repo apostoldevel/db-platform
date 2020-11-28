@@ -372,9 +372,7 @@ BEGIN
     PERFORM MethodActionNotFound(pObject, pAction);
   END IF;
 
-  PERFORM ExecuteObjectAction(pObject, pAction, pForm);
-
-  RETURN GetMethodStack(pObject, nMethod);
+  RETURN ExecuteObjectAction(pObject, pAction, pForm);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
