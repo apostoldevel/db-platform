@@ -4836,8 +4836,6 @@ RETURNS         text
 AS $$
 DECLARE
   vCode         text;
-  nUserId       numeric;
-  message       text;
 BEGIN
   IF ValidSecret(pSecret, pSession) THEN
     vCode := SessionIn(pSession, pAgent, pHost, gen_salt('md5'));
@@ -4846,25 +4844,6 @@ BEGIN
   END IF;
 
   RETURN vCode;
-EXCEPTION
-WHEN others THEN
-  GET STACKED DIAGNOSTICS message = MESSAGE_TEXT;
-
-  PERFORM SetCurrentSession(null);
-  PERFORM SetCurrentUserId(null);
-
-  PERFORM SetErrorMessage(message);
-
-  IF pSession IS NOT NULL THEN
-	SELECT userid INTO nUserId FROM db.session WHERE code = pSession;
-
-	IF found THEN
-	  INSERT INTO db.log (type, code, username, session, text)
-	  VALUES ('E', 3003, GetUserName(nUserId), pSession, message);
-	END IF;
-  END IF;
-
-  RETURN null;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -4887,20 +4866,8 @@ CREATE OR REPLACE FUNCTION Authorize (
 )
 RETURNS         boolean
 AS $$
-DECLARE
-  message       text;
 BEGIN
   RETURN SessionIn(pSession, pAgent, pHost) IS NOT NULL;
-EXCEPTION
-WHEN others THEN
-  GET STACKED DIAGNOSTICS message = MESSAGE_TEXT;
-
-  PERFORM SetCurrentSession(null);
-  PERFORM SetCurrentUserId(null);
-
-  PERFORM SetErrorMessage(message);
-
-  RETURN false;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

@@ -44,7 +44,7 @@ BEGIN
 
     FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(start double precision, fields jsonb)
     LOOP
-      FOR e IN EXECUTE format('SELECT %s FROM api.notification($1::timestamp)', JsonbToFields(r.fields, GetColumns('notification', 'api'))) USING coalesce(to_timestamp(r.start), Now())
+      FOR e IN EXECUTE format('SELECT %s FROM api.notification($1)', JsonbToFields(r.fields, GetColumns('notification', 'api'))) USING coalesce(to_timestamp(r.start), Now())
       LOOP
         RETURN NEXT row_to_json(e);
       END LOOP;

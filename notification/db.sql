@@ -13,7 +13,7 @@ CREATE TABLE db.notification (
     method		numeric(12) NOT NULL,
     action		numeric(12) NOT NULL,
     userid      numeric(12) NOT NULL,
-    datetime    timestamp NOT NULL DEFAULT Now(),
+    datetime    timestamptz NOT NULL DEFAULT Now(),
     CONSTRAINT fk_notification_object FOREIGN KEY (object) REFERENCES db.object(id),
     CONSTRAINT fk_notification_class FOREIGN KEY (class) REFERENCES db.class_tree(id),
     CONSTRAINT fk_notification_method FOREIGN KEY (method) REFERENCES db.method(id),
@@ -49,8 +49,8 @@ AS
   SELECT n.id, n.datetime, n.userid, n.object,
          n.class, c.code, n.action, a.code, n.method, m.code
     FROM db.notification n INNER JOIN db.class_tree c ON n.class = c.id
-                     INNER JOIN db.action     a ON n.action = a.id
-                     INNER JOIN db.method     m ON n.method = m.id;
+                           INNER JOIN db.action     a ON n.action = a.id
+                           INNER JOIN db.method     m ON n.method = m.id;
 
 GRANT SELECT ON Notification TO administrator;
 
@@ -64,7 +64,7 @@ CREATE OR REPLACE FUNCTION AddNotification (
   pMethod   numeric,
   pAction	numeric,
   pUserId	numeric DEFAULT current_userid(),
-  pDateTime timestamp DEFAULT Now()
+  pDateTime timestamptz DEFAULT Now()
 ) RETURNS	numeric
 AS $$
 DECLARE
@@ -91,7 +91,7 @@ CREATE OR REPLACE FUNCTION EditNotification (
   pMethod   numeric DEFAULT null,
   pAction	numeric DEFAULT null,
   pUserId	numeric DEFAULT null,
-  pDateTime timestamp DEFAULT null
+  pDateTime timestamptz DEFAULT null
 ) RETURNS	void
 AS $$
 BEGIN

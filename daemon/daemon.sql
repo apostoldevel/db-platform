@@ -3,43 +3,6 @@
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
--- daemon.identifier -----------------------------------------------------------
---------------------------------------------------------------------------------
-/**
- * Проверить идентификатор пользователя.
- * @param {text} pValue - Идентификатор пользователя (Логин или адрес электронной почты)
- * @return {json}
- */
-CREATE OR REPLACE FUNCTION daemon.identifier (
-  pValue        text
-) RETURNS       json
-AS $$
-DECLARE
-  r             record;
-  profile       record;
-  nId           numeric;
-  arResult      text[];
-BEGIN
-  FOR r IN
-    SELECT id, 'username' AS identifier FROM db.user WHERE username = pValue AND type = 'U'
-    UNION
-    SELECT id, 'email' AS identifier FROM db.user WHERE email = pValue AND type = 'U'
-    UNION
-    SELECT id, 'phone' AS identifier FROM db.user WHERE phone = pValue AND type = 'U'
-  LOOP
-    nId := r.id;
-    arResult := array_append(arResult, r.identifier);
-  END LOOP;
-
-  SELECT * INTO profile FROM users WHERE id = nId;
-
-  RETURN json_build_object('id', nId, 'username', profile.username, 'name', profile.name, 'email', profile.email, 'phone', profile.phone, 'status', profile.status, 'identifiers', array_to_json(arResult));
-END;
-$$ LANGUAGE plpgsql
-  SECURITY DEFINER
-  SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
 -- daemon.validation -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
@@ -108,6 +71,115 @@ BEGIN
   END IF;
 
   RETURN payload;
+END;
+$$ LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- daemon.identifier -----------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Проверить идентификатор пользователя.
+ * @param {text} pToken - Маркер JWT
+ * @param {text} pValue - Идентификатор пользователя (Логин или адрес электронной почты)
+ * @return {json}
+ */
+CREATE OR REPLACE FUNCTION daemon.identifier (
+  pToken        text,
+  pValue        text
+) RETURNS       json
+AS $$
+DECLARE
+  r             record;
+  profile       record;
+  nId           numeric;
+  arResult      text[];
+
+  vMessage      text;
+  vContext      text;
+
+  ErrorCode     int;
+  ErrorMessage  text;
+BEGIN
+  PERFORM daemon.validation(pToken);
+
+  FOR r IN
+    SELECT id, 'username' AS identifier FROM db.user WHERE username = pValue AND type = 'U'
+    UNION
+    SELECT id, 'email' AS identifier FROM db.user WHERE email = pValue AND type = 'U'
+    UNION
+    SELECT id, 'phone' AS identifier FROM db.user WHERE phone = pValue AND type = 'U'
+  LOOP
+    nId := r.id;
+    arResult := array_append(arResult, r.identifier);
+  END LOOP;
+
+  SELECT * INTO profile FROM users WHERE id = nId;
+
+  RETURN json_build_object('id', nId, 'username', profile.username, 'name', profile.name, 'email', profile.email, 'phone', profile.phone, 'status', profile.status, 'identifiers', array_to_json(arResult));
+EXCEPTION
+WHEN others THEN
+  GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
+
+  PERFORM SetErrorMessage(vMessage);
+
+  SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
+
+  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, vContext);
+
+  RETURN json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
+END;
+$$ LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- daemon.notification ---------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Возвращает уведомления.
+ * @param {text} pToken - Маркер JWT
+ * @param {double precision} pDateFrom - События после указанной даты в секундах (Unix формат)
+ * @return {SETOF json}
+ */
+CREATE OR REPLACE FUNCTION daemon.notification (
+  pToken        text,
+  pDateFrom     double precision
+) RETURNS       SETOF json
+AS $$
+DECLARE
+  r             record;
+
+  vMessage      text;
+  vContext      text;
+
+  ErrorCode     int;
+  ErrorMessage  text;
+BEGIN
+  PERFORM daemon.validation(pToken);
+
+  FOR r IN SELECT * FROM api.notification(to_timestamp(pDateFrom))
+  LOOP
+	RETURN NEXT row_to_json(r);
+  END LOOP;
+
+  RETURN;
+EXCEPTION
+WHEN others THEN
+  GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
+
+  PERFORM SetErrorMessage(vMessage);
+
+  SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
+
+  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, vContext);
+
+  RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
+
+  RETURN;
 END;
 $$ LANGUAGE plpgsql
   SECURITY DEFINER

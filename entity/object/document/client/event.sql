@@ -263,7 +263,7 @@ BEGIN
       PERFORM EmailAddressNotVerified(vEmail);
     END IF;
 
-    PERFORM EventMessageConfirmEmail(pObject);
+    PERFORM EventMessageAccountInfo(pObject);
   END IF;
 END;
 $$ LANGUAGE plpgsql;

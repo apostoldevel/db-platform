@@ -830,19 +830,23 @@ BEGIN
 
   SELECT * INTO cn FROM jsonb_to_record(pName) AS x(name varchar, short varchar, first varchar, last varchar, middle varchar);
 
-  IF NULLIF(cn.name, '') IS NULL THEN
+  IF NULLIF(trim(cn.name), '') IS NULL THEN
     cn.name := pCode;
   END IF;
 
+  IF NULLIF(trim(cn.short), '') IS NULL THEN
+    cn.short := cn.name;
+  END IF;
+
   IF pUserId = 0 THEN
-    pUserId := CreateUser(pCode, pCode, coalesce(NULLIF(trim(cn.short), ''), cn.name), pPhone->>0, pEmail->>0, cn.name);
+    pUserId := CreateUser(pCode, pCode, cn.short, pPhone->>0, pEmail->>0, cn.name);
   END IF;
 
   INSERT INTO db.client (id, document, code, creation, userid, phone, email, info)
   VALUES (nDocument, nDocument, pCode, pCreation, pUserId, pPhone, pEmail, pInfo)
   RETURNING id INTO nClient;
 
-  PERFORM NewClientName(nClient, cn.name, cn.short, cn.first, cn.last, cn.middle);
+  PERFORM NewClientName(nClient, cn.name, cn.short, NULLIF(trim(cn.first), ''), NULLIF(trim(cn.last), ''), NULLIF(trim(cn.middle), ''));
 
   nMethod := GetMethod(nClass, null, GetAction('create'));
   PERFORM ExecuteMethod(nClient, nMethod);

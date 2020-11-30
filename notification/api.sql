@@ -17,7 +17,7 @@ GRANT SELECT ON api.notification TO administrator;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.notification (
-  pDateFrom     timestamp
+  pDateFrom     timestamptz
 ) RETURNS       SETOF api.notification
 AS $$
   SELECT * FROM api.notification WHERE datetime >= pDateFrom ORDER BY id;

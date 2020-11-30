@@ -403,7 +403,7 @@ DECLARE
 BEGIN
   FOR r IN SELECT code FROM db.action
   LOOP
-    arCodes := array_append(arCodes, r.code);
+    arCodes := array_append(arCodes, r.code::text);
   END LOOP;
 
   IF array_position(arCodes, pCode) IS NULL THEN
