@@ -553,26 +553,6 @@ $$ LANGUAGE plpgsql
 GRANT EXECUTE ON FUNCTION array_add_text(text[], text) TO PUBLIC;
 
 --------------------------------------------------------------------------------
--- min -------------------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION public.min(integer, integer) RETURNS integer AS $$
-  SELECT CASE WHEN $1 < $2 THEN $1 ELSE $2 END
-$$ LANGUAGE SQL STRICT;
-
-GRANT EXECUTE ON FUNCTION public.min(integer, integer) TO PUBLIC;
-
---------------------------------------------------------------------------------
--- max -------------------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION public.max(integer, integer) RETURNS integer AS $$
-  SELECT CASE WHEN $1 > $2 THEN $1 ELSE $2 END
-$$ LANGUAGE SQL STRICT;
-
-GRANT EXECUTE ON FUNCTION public.max(integer, integer) TO PUBLIC;
-
---------------------------------------------------------------------------------
 -- FUNCTION min_array ----------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -594,11 +574,11 @@ BEGIN
         r = parray[i];
       ELSE
         IF parray[i] <> pelement THEN
-          r = public.min(coalesce(r, parray[i]), parray[i]);
+          r = least(coalesce(r, parray[i]), parray[i]);
         END IF;
       END IF;
     ELSE
-      r = public.min(coalesce(r, parray[i]), parray[i]);
+      r = least(coalesce(r, parray[i]), parray[i]);
     END IF;
   END LOOP;
 
@@ -633,11 +613,11 @@ BEGIN
         r = parray[i];
       ELSE
         IF parray[i] <> pelement THEN
-          r = public.max(coalesce(r, parray[i]), parray[i]);
+          r = greatest(coalesce(r, parray[i]), parray[i]);
         END IF;
       END IF;
     ELSE
-      r = public.max(coalesce(r, parray[i]), parray[i]);
+      r = greatest(coalesce(r, parray[i]), parray[i]);
     END IF;
   END LOOP;
 
@@ -646,7 +626,7 @@ EXCEPTION
 WHEN others THEN
   RETURN null;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
 GRANT EXECUTE ON FUNCTION public.max_array(anyarray, anyelement) TO PUBLIC;
 
@@ -670,8 +650,8 @@ BEGIN
 
   WHILE p > 0
   LOOP
-    r[i] := SubString(v from 1 for p - 1);
-    v := SubString(v from p + 1);
+    r[i] := SubString(v FROM 1 FOR p - 1);
+    v := SubString(v FROM p + 1);
     p := position('.' in v);
     i := i + 1;
   END LOOP;
@@ -680,7 +660,7 @@ BEGIN
 
   RETURN r;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
 GRANT EXECUTE ON FUNCTION inet_to_array(inet) TO PUBLIC;
 
@@ -694,7 +674,7 @@ AS $$
 BEGIN
   RETURN current_timestamp at time zone 'utc';
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
 GRANT EXECUTE ON FUNCTION UTC() TO PUBLIC;
 
@@ -710,7 +690,7 @@ AS $$
 BEGIN
   RETURN replace(to_char(pTime, 'YYYY-MM-DD#HH24:MI:SS.MSZ'), '#', 'T');
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
 GRANT EXECUTE ON FUNCTION GetISOTime(timestamp) TO PUBLIC;
 
@@ -739,7 +719,7 @@ BEGIN
   END IF;
   RETURN pStr;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
 GRANT EXECUTE ON FUNCTION quote_literal_json(text) TO PUBLIC;
 
@@ -762,14 +742,14 @@ BEGIN
     l := position('->>' in vStr);
     IF l > 0 THEN
       IF position(E'\'' in vStr) = 0 THEN
-        pArray[i] := SubString(vStr from 1 for l + 2) || quote_literal(SubString(vStr from l + 3));
+        pArray[i] := SubString(vStr FROM 1 FOR l + 2) || quote_literal(SubString(vStr FROM l + 3));
       END IF;
     END IF;
   END LOOP;
 
   RETURN pArray;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
 GRANT EXECUTE ON FUNCTION array_quote_literal_json(anyarray) TO PUBLIC;
 
@@ -796,7 +776,7 @@ BEGIN
 
   RETURN null;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
 GRANT EXECUTE ON FUNCTION find_value_in_array(anyarray, text) TO PUBLIC;
 
@@ -814,12 +794,12 @@ BEGIN
   result := true;
   message := 'Успешно.';
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
 GRANT EXECUTE ON FUNCTION result_success() TO PUBLIC;
 
 --------------------------------------------------------------------------------
--- random_between --------------------------------------------------------------
+-- FUNCTION random_between -----------------------------------------------------
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION random_between (
@@ -831,6 +811,159 @@ $$
 BEGIN
   RETURN floor(random() * (high - low + 1) + low);
 END;
-$$ LANGUAGE 'plpgsql' STRICT;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
 GRANT EXECUTE ON FUNCTION random_between(int, int) TO PUBLIC;
+
+--------------------------------------------------------------------------------
+-- FUNCTION hex_to_int ---------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION hex_to_int (
+  hex			text
+) RETURNS		SETOF bigint
+AS
+$$
+BEGIN
+  RETURN QUERY EXECUTE 'SELECT x' || quote_literal(hex) || '::bigint';
+END
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+GRANT EXECUTE ON FUNCTION hex_to_int(text) TO PUBLIC;
+
+--------------------------------------------------------------------------------
+-- FUNCTION dec_to_bin ---------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION dec_to_bin (
+  D			numeric,
+  L			integer DEFAULT 1,
+  F			text DEFAULT '0'
+) RETURNS 	text
+AS
+$$
+DECLARE
+  A 		text[];
+  S 		text;
+  N 		numeric;
+  I 		integer;
+BEGIN
+  N := D;
+  I := 0;
+  S := '';
+
+  WHILE N > 0
+  LOOP
+	A[I] := to_char(mod(N, 2), 'FM0');
+	S := A[I] || S;
+	N := floor(N / 2);
+	I := I + 1;
+  END LOOP;
+
+  RETURN lpad(S, greatest(length(S), L), F);
+END
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+--------------------------------------------------------------------------------
+-- FUNCTION bin_to_dec ---------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION bin_to_dec (
+  B			text
+) RETURNS 	numeric
+AS
+$$
+DECLARE
+  N			numeric;
+  L 		integer;
+  I			integer;
+BEGIN
+  N := 0;
+  L := length(B);
+
+  FOR I IN 0 .. L - 1
+  LOOP
+	N := (to_number(SubStr(B, L - I, 1), '0') * power(2, I)) + N;
+  END LOOP;
+
+  RETURN N;
+END
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+--------------------------------------------------------------------------------
+-- FUNCTION bin_to_dec ---------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION bit_copy (
+  B 		numeric,
+  P 		integer,
+  C 		integer
+) RETURNS 	numeric
+AS
+$$
+DECLARE
+  S 		text;
+BEGIN
+  IF B >= 0 THEN
+	S := dec_to_bin(B, 64, '0');
+  ELSE
+	S := dec_to_bin(B, 64, '1');
+  END IF;
+
+  RETURN bin_to_dec(SubStr(S, length(S) - (P + C - 1), C));
+END
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+--------------------------------------------------------------------------------
+-- IEEE754_32 ------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION IEEE754_32 (
+  P			numeric
+) RETURNS 	numeric
+AS
+$$
+DECLARE
+  F   		numeric;
+  S   		numeric;
+  E   		numeric;
+  M   		numeric;
+BEGIN
+  S := bit_copy(P, 31, 1);
+  E := bit_copy(P, 23, 8);
+  M := bit_copy(P, 0, 23);
+
+  F := power(-1, S) * power(2, E - 127) * (1 + M / power(2, 23));
+
+  RETURN F;
+END
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+GRANT EXECUTE ON FUNCTION IEEE754_32(numeric) TO PUBLIC;
+
+--------------------------------------------------------------------------------
+-- IEEE754_64 ------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION IEEE754_64 (
+  P			numeric
+) RETURNS 	numeric
+AS
+$$
+DECLARE
+  F   		numeric;
+  S   		numeric;
+  E   		numeric;
+  M   		numeric;
+BEGIN
+  S := bit_copy(P, 63, 1);
+  E := bit_copy(P, 52, 11);
+  M := bit_copy(P, 0, 52);
+
+  F := power(-1, S) * power(2, E - 1023) * (1 + M / power(2, 52));
+
+  RETURN F;
+END
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+GRANT EXECUTE ON FUNCTION IEEE754_64(numeric) TO PUBLIC;
