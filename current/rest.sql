@@ -7,7 +7,8 @@
  * @return {SETOF json} - Записи в JSON
  */
 CREATE OR REPLACE FUNCTION rest.current (
-  pPath       text
+  pPath       text,
+  pPayload    jsonb default null
 ) RETURNS     SETOF json
 AS $$
 DECLARE
