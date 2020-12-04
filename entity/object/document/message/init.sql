@@ -583,7 +583,7 @@ DECLARE
   nClass        numeric;
 BEGIN
   -- Сущность
-  nEntity := AddEntity('message', 'Сообщения');
+  nEntity := AddEntity('message', 'Сообщение');
 
   -- Класс
   nClass := CreateClassMessage(pParent, nEntity);
