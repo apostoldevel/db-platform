@@ -50,7 +50,7 @@ BEGIN
     PERFORM ObjectNotFound('зона', 'code', pArea);
   END IF;
 
-  PERFORM SetArea(pArea);
+  PERFORM SetArea(nId);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -69,7 +69,7 @@ CREATE OR REPLACE FUNCTION api.set_session_interface (
 ) RETURNS       void
 AS $$
 DECLARE
-  nId         numeric;
+  nId			numeric;
 BEGIN
   SELECT id INTO nId FROM db.interface WHERE id = pInterface;
 
@@ -104,7 +104,7 @@ BEGIN
     PERFORM ObjectNotFound('интерфейс', 'sid', pInterface);
   END IF;
 
-  PERFORM SetInterface(pInterface);
+  PERFORM SetInterface(nId);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
