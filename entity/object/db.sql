@@ -1090,6 +1090,7 @@ BEGIN
   nNewState := GetNewState(pMethod);
   IF nNewState IS NOT NULL THEN
     PERFORM AddObjectState(pObject, nNewState);
+    PERFORM AddMethodStack(jsonb_build_object('newstate', jsonb_build_object('id', nNewState, 'code', GetStateCode(nNewState))));
   END IF;
 END;
 $$ LANGUAGE plpgsql
