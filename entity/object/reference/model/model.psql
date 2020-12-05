@@ -12,9 +12,3 @@
 
 \echo [M] call init.sql
 \ir init.sql
-
-\ir './address/address.psql'
-\ir './client/client.psql'
-\ir './device/device.psql'
-\ir './message/message.psql'
-\ir './task/task.psql'

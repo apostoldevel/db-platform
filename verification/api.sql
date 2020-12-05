@@ -68,7 +68,7 @@ BEGIN
     SELECT a.secret INTO vOAuthSecret FROM oauth2.audience a WHERE a.code = session_username();
     IF vOAuthSecret IS NOT NULL THEN
       PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
-      PERFORM api.on_confirm_email(nId);
+      PERFORM DoConfirmEmail(nId);
       PERFORM SubstituteUser(session_userid(), vOAuthSecret);
     END IF;
   END IF;

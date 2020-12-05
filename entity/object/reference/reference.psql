@@ -15,6 +15,7 @@
 
 \ir './agent/agent.psql'
 \ir './calendar/calendar.psql'
+\ir './model/model.psql'
 \ir './program/program.psql'
 \ir './scheduler/scheduler.psql'
 \ir './vendor/vendor.psql'

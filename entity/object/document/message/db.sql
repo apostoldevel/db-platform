@@ -10,7 +10,7 @@ CREATE TABLE db.message (
     id              numeric(12) PRIMARY KEY,
     document        numeric(12) NOT NULL,
     agent           numeric(12) NOT NULL,
-    code            varchar(30) NOT NULL,
+    code            text NOT NULL,
     profile         text NOT NULL,
     address         text NOT NULL,
     subject         text,
@@ -568,30 +568,37 @@ CREATE OR REPLACE FUNCTION SendPushMessage (
   pObject       numeric,
   pTitle        text,
   pBody         text,
-  pUserId       numeric DEFAULT current_userid()
+  pUserId       numeric DEFAULT current_userid(),
+  pPriority		text DEFAULT 'NORMAL'
 ) RETURNS	    void
 AS $$
 DECLARE
   nMessageId    numeric;
 
+  tokens		text[];
+
   projectId     text;
-  token         text;
+  token			text;
 
   message       jsonb;
   data          jsonb;
 BEGIN
   projectId := (RegGetValue(RegOpenKey('CURRENT_CONFIG', 'CONFIG\Firebase'), 'ProjectId')).vstring;
-  token := (RegGetValue(RegOpenKey('CURRENT_USER', 'CONFIG\Firebase\CloudMessaging', pUserId), 'Token')).vstring;
+  tokens := DoFCMTokens(pUserId);
 
-  IF token IS NOT NULL THEN
-    data := jsonb_build_object('timestamp', GetISOTime(), 'userid', IntToStr(pUserId), 'type', GetObjectTypeCode(pObject), 'title', pTitle, 'body', pBody);
-    message := jsonb_build_object('message', jsonb_build_object('token', token, 'data', data));
+  IF tokens IS NOT NULL THEN
+    FOR i IN 1..array_length(tokens, 1)
+    LOOP
+      token := tokens[i];
 
-    nMessageId := CreateMessage(pObject, GetType('message.outbox'), GetAgent('fcm.agent'), projectId, GetUserName(pUserId), pTitle, message::text, pBody);
-    PERFORM SendMessage(nMessageId);
-    PERFORM WriteToEventLog('M', 1111, format('Push сообщение передано на отправку: %s', nMessageId), pObject);
+      data := jsonb_build_object('timestamp', GetISOTime(), 'userid', IntToStr(pUserId), 'type', GetObjectTypeCode(pObject), 'title', pTitle, 'body', pBody);
+	  message := jsonb_build_object('message', jsonb_build_object('token', token, 'priority', pPriority, 'notification', jsonb_build_object('title', pTitle, 'body', pBody), 'data', data));
+
+	  nMessageId := SendPush(pObject, projectId, GetUserName(pUserId), pTitle, message::text, pBody);
+	  PERFORM WriteToEventLog('M', 1111, format('Push сообщение передано на отправку: %s', nMessageId), pObject);
+    END LOOP;
   ELSE
-    PERFORM WriteToEventLog('E', 3111, 'Не удалось отправить Push сообщение, тоекн не установлен.', pObject);
+	PERFORM WriteToEventLog('E', 3111, 'Не удалось отправить Push сообщение, тоекн не установлен.', pObject);
   END IF;
 END
 $$ LANGUAGE plpgsql
