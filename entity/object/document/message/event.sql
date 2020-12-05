@@ -210,7 +210,7 @@ $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION EventMessageConfirmEmail (
   pObject		numeric default context_object(),
-  pForm		    jsonb default context_form()
+  pParams		jsonb default context_params()
 ) RETURNS		void
 AS $$
 DECLARE
@@ -234,8 +234,8 @@ BEGIN
   SELECT userid INTO nUserId FROM db.client WHERE id = pObject;
   IF nUserId IS NOT NULL THEN
 
-    IF pForm IS NOT NULL THEN
-	  UPDATE db.client SET email = pForm WHERE id = nUserId;
+    IF pParams IS NOT NULL THEN
+	  UPDATE db.client SET email = pParams WHERE id = nUserId;
 	END IF;
 
 	SELECT username, name, email, email_verified, locale INTO vUserName, vName, vEmail, bVerified

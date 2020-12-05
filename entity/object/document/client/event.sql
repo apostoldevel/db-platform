@@ -34,15 +34,15 @@ $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION EventClientEdit (
   pObject	numeric default context_object(),
-  pForm		jsonb default context_form()
+  pParams	jsonb default context_params()
 ) RETURNS	void
 AS $$
 DECLARE
   old_email	jsonb;
   new_email	jsonb;
 BEGIN
-  old_email = pForm#>'{old, email}';
-  new_email = pForm#>'{new, email}';
+  old_email = pParams#>'{old, email}';
+  new_email = pParams#>'{new, email}';
 
   IF coalesce(old_email, '{}') <> coalesce(new_email, '{}') THEN
     PERFORM EventMessageConfirmEmail(pObject, new_email);

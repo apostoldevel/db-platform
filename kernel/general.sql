@@ -681,16 +681,16 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- FUNCTION InitForm -----------------------------------------------------------
+-- FUNCTION InitParams ---------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION InitForm (
-  pForm		jsonb
+CREATE OR REPLACE FUNCTION InitParams (
+  pParams	jsonb
 )
 RETURNS 	void
 AS $$
 BEGIN
-  PERFORM SetVar('context', 'form', pForm::text);
+  PERFORM SetVar('context', 'params', pParams::text);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -785,16 +785,16 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- FUNCTION context_form -------------------------------------------------------
+-- FUNCTION context_params -----------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION context_form()
+CREATE OR REPLACE FUNCTION context_params()
 RETURNS 	jsonb
 AS $$
 DECLARE
   vValue	text;
 BEGIN
-  SELECT INTO vValue GetVar('context', 'form');
+  SELECT INTO vValue GetVar('context', 'params');
 
   IF vValue IS NOT NULL THEN
     RETURN vValue::jsonb;

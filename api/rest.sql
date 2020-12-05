@@ -315,14 +315,14 @@ BEGIN
       PERFORM LoginFailed();
     END IF;
 
-    arKeys := array_cat(arKeys, ARRAY['object', 'action', 'code', 'form']);
+    arKeys := array_cat(arKeys, ARRAY['object', 'action', 'code', 'params']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(object numeric, action numeric, code text, form jsonb)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(object numeric, action numeric, code text, params jsonb)
       LOOP
-        FOR e IN SELECT * FROM api.execute_object_action(r.object, coalesce(r.action, GetAction(r.code)), r.form)
+        FOR e IN SELECT * FROM api.execute_object_action(r.object, coalesce(r.action, GetAction(r.code)), r.params)
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -330,9 +330,9 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(object numeric, action numeric, code text, form jsonb)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(object numeric, action numeric, code text, params jsonb)
       LOOP
-        FOR e IN SELECT * FROM api.execute_object_action(r.object, coalesce(r.action, GetAction(r.code)), r.form)
+        FOR e IN SELECT * FROM api.execute_object_action(r.object, coalesce(r.action, GetAction(r.code)), r.params)
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -360,21 +360,21 @@ BEGIN
       PERFORM LoginFailed();
     END IF;
 
-    arKeys := array_cat(arKeys, ARRAY['id', 'method', 'code', 'form']);
+    arKeys := array_cat(arKeys, ARRAY['id', 'method', 'code', 'params']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, method numeric, code text, form jsonb)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, method numeric, code text, params jsonb)
       LOOP
-        RETURN NEXT api.execute_method(r.id, coalesce(r.method, GetObjectMethod(r.id, GetAction(r.code))), r.form);
+        RETURN NEXT api.execute_method(r.id, coalesce(r.method, GetObjectMethod(r.id, GetAction(r.code))), r.params);
       END LOOP;
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, method numeric, code text, form jsonb)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, method numeric, code text, params jsonb)
       LOOP
-        RETURN NEXT api.execute_method(r.id, coalesce(r.method, GetObjectMethod(r.id, GetAction(r.code))), r.form);
+        RETURN NEXT api.execute_method(r.id, coalesce(r.method, GetObjectMethod(r.id, GetAction(r.code))), r.params);
       END LOOP;
 
     END IF;
@@ -389,21 +389,21 @@ BEGIN
       PERFORM LoginFailed();
     END IF;
 
-    arKeys := array_cat(arKeys, ARRAY['object', 'method', 'code', 'form']);
+    arKeys := array_cat(arKeys, ARRAY['object', 'method', 'code', 'params']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(object numeric, method numeric, code text, form jsonb)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(object numeric, method numeric, code text, params jsonb)
       LOOP
-        RETURN NEXT api.execute_method(r.object, coalesce(r.method, GetObjectMethod(r.object, GetAction(r.code))), r.form);
+        RETURN NEXT api.execute_method(r.object, coalesce(r.method, GetObjectMethod(r.object, GetAction(r.code))), r.params);
       END LOOP;
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(object numeric, method numeric, code text, form jsonb)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(object numeric, method numeric, code text, params jsonb)
       LOOP
-        RETURN NEXT api.execute_method(r.object, coalesce(r.method, GetObjectMethod(r.object, GetAction(r.code))), r.form);
+        RETURN NEXT api.execute_method(r.object, coalesce(r.method, GetObjectMethod(r.object, GetAction(r.code))), r.params);
       END LOOP;
 
     END IF;

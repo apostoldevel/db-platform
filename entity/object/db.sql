@@ -1232,7 +1232,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION ExecuteMethod (
   pObject       numeric,
   pMethod       numeric,
-  pForm         jsonb DEFAULT null
+  pParams		jsonb DEFAULT null
 ) RETURNS       jsonb
 AS $$
 DECLARE
@@ -1240,7 +1240,7 @@ DECLARE
   nSaveClass	numeric;
   nSaveMethod	numeric;
   nSaveAction	numeric;
-  jSaveForm     jsonb;
+  jSaveParams	jsonb;
 
   sLabel        text;
 
@@ -1256,7 +1256,7 @@ BEGIN
   nSaveClass  := context_class();
   nSaveMethod := context_method();
   nSaveAction := context_action();
-  jSaveForm   := context_form();
+  jSaveParams := context_params();
 
   PERFORM ClearMethodStack(pObject, pMethod);
 
@@ -1265,11 +1265,11 @@ BEGIN
   SELECT action INTO nAction FROM db.method WHERE id = pMethod;
 
   PERFORM InitContext(pObject, nClass, pMethod, nAction);
-  PERFORM InitForm(pForm);
+  PERFORM InitParams(pParams);
 
   PERFORM ExecuteAction(nClass, nAction);
 
-  PERFORM InitForm(jSaveForm);
+  PERFORM InitParams(jSaveParams);
   PERFORM InitContext(nSaveObject, nSaveClass, nSaveMethod, nSaveAction);
 
   PERFORM AddNotification(pObject, nClass, pMethod, nAction);
@@ -1289,7 +1289,7 @@ CREATE OR REPLACE FUNCTION ExecuteMethodForAllChild (
   pClass	numeric DEFAULT context_class(),
   pMethod	numeric DEFAULT context_method(),
   pAction	numeric DEFAULT context_action(),
-  pForm		jsonb DEFAULT context_form()
+  pParams	jsonb DEFAULT context_params()
 ) RETURNS	jsonb
 AS $$
 DECLARE
@@ -1306,11 +1306,12 @@ BEGIN
   LOOP
     nMethod := GetMethod(rec.class, rec.state, pAction);
     IF nMethod IS NOT NULL THEN
-      result := result || ExecuteMethod(rec.id, nMethod, pForm);
+      result := result || ExecuteMethod(rec.id, nMethod, pParams);
     END IF;
   END LOOP;
 
   PERFORM InitContext(pObject, pClass, pMethod, pAction);
+  PERFORM InitParams(pParams);
 
   RETURN result;
 END;
@@ -1325,7 +1326,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION ExecuteObjectAction (
   pObject	numeric,
   pAction	numeric,
-  pForm		jsonb DEFAULT null
+  pParams	jsonb DEFAULT null
 ) RETURNS 	jsonb
 AS $$
 DECLARE
@@ -1334,7 +1335,7 @@ BEGIN
   nMethod := GetObjectMethod(pObject, pAction);
 
   IF nMethod IS NOT NULL THEN
-    RETURN ExecuteMethod(pObject, nMethod, pForm);
+    RETURN ExecuteMethod(pObject, nMethod, pParams);
   END IF;
 
   IF IsVisibleMethod(nMethod) THEN

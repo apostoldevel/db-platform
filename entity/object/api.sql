@@ -343,18 +343,18 @@ $$ LANGUAGE SQL
  * Выполняет действие над объектом.
  * @param {numeric} pObject - Идентификатор объекта
  * @param {numeric} pAction - Идентификатор действия
- * @param {jsonb} pForm - Форма в формате JSON
+ * @param {jsonb} pParams - Параметры в формате JSON
  * @return {jsonb}
  */
 CREATE OR REPLACE FUNCTION api.execute_object_action (
-  pObject            numeric,
-  pAction            numeric,
-  pForm              jsonb DEFAULT null
-) RETURNS            jsonb
+  pObject		numeric,
+  pAction		numeric,
+  pParams		jsonb DEFAULT null
+) RETURNS		jsonb
 AS $$
 DECLARE
-  nId                numeric;
-  nMethod            numeric;
+  nId			numeric;
+  nMethod		numeric;
 BEGIN
   SELECT o.id INTO nId FROM db.object o WHERE o.id = pObject;
 
@@ -372,7 +372,7 @@ BEGIN
     PERFORM MethodActionNotFound(pObject, pAction);
   END IF;
 
-  RETURN ExecuteObjectAction(pObject, pAction, pForm);
+  RETURN ExecuteObjectAction(pObject, pAction, pParams);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -385,7 +385,7 @@ $$ LANGUAGE plpgsql
  * Выполняет действие над объектом по коду.
  * @param {numeric} pObject - Идентификатор объекта
  * @param {text} pCode - Код действия
- * @param {jsonb} pForm - Форма в формате JSON
+ * @param {jsonb} pParams - Параметры в формате JSON
  * @out param {numeric} id - Идентификатор объекта
  * @out param {boolean} result - Результат
  * @out param {text} message - Текст ошибки
@@ -394,7 +394,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.execute_object_action (
   pObject       numeric,
   pCode         text,
-  pForm         jsonb DEFAULT null
+  pParams		jsonb DEFAULT null
 ) RETURNS       jsonb
 AS $$
 DECLARE
@@ -410,7 +410,7 @@ BEGIN
     PERFORM IncorrectCode(pCode, arCodes);
   END IF;
 
-  RETURN api.execute_object_action(pObject, GetAction(pCode), pForm);
+  RETURN api.execute_object_action(pObject, GetAction(pCode), pParams);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -427,13 +427,13 @@ $$ LANGUAGE plpgsql
  * Выполняет метод объекта.
  * @param {numeric} pObject - Идентификатор объекта
  * @param {numeric} pMethod - Идентификатор метода
- * @param {jsonb} pForm - Форма в формате JSON
+ * @param {jsonb} pParams - Параметры в формате JSON
  * @return {jsonb}
  */
 CREATE OR REPLACE FUNCTION api.execute_method (
   pObject       numeric,
   pMethod       numeric,
-  pForm         jsonb DEFAULT null
+  pParams		jsonb DEFAULT null
 ) RETURNS       jsonb
 AS $$
 DECLARE
@@ -456,7 +456,7 @@ BEGIN
     PERFORM MethodNotFound(pObject, pMethod);
   END IF;
 
-  RETURN ExecuteMethod(pObject, nMethod, pForm);
+  RETURN ExecuteMethod(pObject, nMethod, pParams);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -469,13 +469,13 @@ $$ LANGUAGE plpgsql
  * Выполняет метод объекта.
  * @param {numeric} pObject - Идентификатор объекта
  * @param {text} pCode - Код метода
- * @param {jsonb} pForm - Форма в формате JSON
+ * @param {jsonb} pParams - Параметры в формате JSON
  * @return {jsonb}
  */
 CREATE OR REPLACE FUNCTION api.execute_method (
   pObject       numeric,
   pCode         text,
-  pForm         jsonb DEFAULT null
+  pParams		jsonb DEFAULT null
 ) RETURNS       jsonb
 AS $$
 DECLARE
@@ -501,7 +501,7 @@ BEGIN
     PERFORM MethodByCodeNotFound(pObject, pCode);
   END IF;
 
-  RETURN ExecuteMethod(pObject, nMethod, pForm);
+  RETURN ExecuteMethod(pObject, nMethod, pParams);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
