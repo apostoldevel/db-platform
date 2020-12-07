@@ -91,7 +91,7 @@ BEGIN
   nClass := AddClass(pParent, pEntity, 'scheduler', 'Планировщик', false);
 
   -- Тип
-  PERFORM AddType(nClass, 'task.scheduler', 'Планировщик', 'Планировщик задач.');
+  PERFORM AddType(nClass, 'job.scheduler', 'Планировщик', 'Планировщик задач.');
 
   -- Событие
   PERFORM AddSchedulerEvents(nClass);

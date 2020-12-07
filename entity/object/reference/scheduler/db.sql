@@ -9,9 +9,9 @@
 CREATE TABLE db.scheduler (
     id			    numeric(12) PRIMARY KEY,
     reference		numeric(12) NOT NULL,
+    period          interval,
     dateStart       timestamptz DEFAULT Now() NOT NULL,
     dateStop        timestamptz DEFAULT TO_DATE('4433-12-31', 'YYYY-MM-DD') NOT NULL,
-    period          interval,
     CONSTRAINT fk_scheduler_reference FOREIGN KEY (reference) REFERENCES db.reference(id)
 );
 
@@ -19,9 +19,9 @@ COMMENT ON TABLE db.scheduler IS 'Планировщик.';
 
 COMMENT ON COLUMN db.scheduler.id IS 'Идентификатор.';
 COMMENT ON COLUMN db.scheduler.reference IS 'Справочник.';
+COMMENT ON COLUMN db.scheduler.period IS 'Период выполнения.';
 COMMENT ON COLUMN db.scheduler.dateStart IS 'Дата начала выполнения.';
 COMMENT ON COLUMN db.scheduler.dateStop IS 'Дата окончания выполнения.';
-COMMENT ON COLUMN db.scheduler.period IS 'Период выполнения.';
 
 CREATE INDEX ON db.scheduler (reference);
 
@@ -65,9 +65,9 @@ CREATE TRIGGER t_scheduler_insert
  * @param {numeric} pType - Идентификатор типа
  * @param {varchar} pCode - Код
  * @param {varchar} pName - Наименование
+ * @param {interval} pPeriod - Период выполнения
  * @param {timestamptz} pDateStart - Дата начала выполнения
  * @param {timestamptz} pDateStop - Дата окончания выполнения
- * @param {interval} pPeriod - Период выполнения
  * @param {text} pDescription - Описание
  * @return {numeric}
  */
@@ -76,9 +76,9 @@ CREATE OR REPLACE FUNCTION CreateScheduler (
   pType         numeric,
   pCode         varchar,
   pName         varchar,
+  pPeriod       interval default null,
   pDateStart    timestamptz default null,
   pDateStop     timestamptz default null,
-  pPeriod       interval default null,
   pDescription	text default null
 ) RETURNS       numeric
 AS $$
@@ -95,8 +95,8 @@ BEGIN
 
   nReference := CreateReference(pParent, pType, pCode, pName, pDescription);
 
-  INSERT INTO db.scheduler (id, reference, dateStart, dateStop, period)
-  VALUES (nReference, nReference, pDateStart, pDateStop, pPeriod);
+  INSERT INTO db.scheduler (id, reference, period, dateStart, dateStop)
+  VALUES (nReference, nReference, pPeriod, pDateStart, pDateStop);
 
   nMethod := GetMethod(nClass, null, GetAction('create'));
   PERFORM ExecuteMethod(nReference, nMethod);
@@ -117,21 +117,21 @@ $$ LANGUAGE plpgsql
  * @param {numeric} pType - Идентификатор типа
  * @param {varchar} pCode - Код
  * @param {varchar} pName - Наименование
+ * @param {interval} pPeriod - Период выполнения
  * @param {timestamptz} pDateStart - Дата начала выполнения
  * @param {timestamptz} pDateStop - Дата окончания выполнения
- * @param {interval} pPeriod - Период выполнения
  * @param {text} pDescription - Описание
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION EditScheduler (
   pId           numeric,
-  pParent       numeric,
-  pType         numeric,
-  pCode         varchar,
-  pName         varchar,
+  pParent       numeric default null,
+  pType         numeric default null,
+  pCode         varchar default null,
+  pName         varchar default null,
+  pPeriod       interval default null,
   pDateStart    timestamptz default null,
   pDateStop     timestamptz default null,
-  pPeriod       interval default null,
   pDescription	text default null
 ) RETURNS       void
 AS $$
@@ -142,9 +142,9 @@ BEGIN
   PERFORM EditReference(pId, pParent, pType, pCode, pName, pDescription);
 
   UPDATE db.scheduler
-     SET dateStart = coalesce(pDateStart, dateStart),
-         dateStop = coalesce(pDateStop, dateStop),
-         period = coalesce(pPeriod, period)
+     SET period = coalesce(pPeriod, period),
+         dateStart = coalesce(pDateStart, dateStart),
+         dateStop = coalesce(pDateStop, dateStop)
    WHERE id = pId;
 
   SELECT class INTO nClass FROM db.object WHERE id = pId;
@@ -176,11 +176,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE VIEW Scheduler (Id, Reference, Code, Name, Description,
-  DateStart, DateStop, Period
+  Period, DateStart, DateStop
 )
 AS
   SELECT s.id, s.reference, d.code, d.name, d.description,
-         s.dateStart, s.dateStop, s.period
+         s.period, s.dateStart, s.dateStop
     FROM db.scheduler s INNER JOIN db.reference d ON s.reference = d.id;
 
 GRANT SELECT ON Scheduler TO administrator;
@@ -207,7 +207,7 @@ CREATE OR REPLACE VIEW ObjectScheduler (Id, Object, Parent,
   Class, ClassCode, ClassLabel,
   Type, TypeCode, TypeName, TypeDescription,
   Code, Name, Label, Description,
-  DateStart, DateStop, Period,
+  Period, DateStart, DateStop,
   StateType, StateTypeCode, StateTypeName,
   State, StateCode, StateLabel, LastUpdate,
   Owner, OwnerCode, OwnerName, Created,
@@ -219,7 +219,7 @@ AS
          o.class, o.classcode, o.classlabel,
          o.type, o.typecode, o.typename, o.typedescription,
          r.code, r.name, o.label, r.description,
-         s.datestart, s.datestop, s.period,
+         s.period, s.datestart, s.datestop,
          o.statetype, o.statetypecode, o.statetypename,
          o.state, o.statecode, o.statelabel, o.lastupdate,
          o.owner, o.ownercode, o.ownername, o.created,

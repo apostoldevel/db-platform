@@ -115,18 +115,17 @@ CREATE OR REPLACE FUNCTION EventObjectDrop (
 ) RETURNS	void
 AS $$
 DECLARE
-  r		record;
+  r			record;
 BEGIN
   SELECT label INTO r FROM db.object WHERE id = pObject;
 
-  DELETE FROM db.log WHERE object = pObject;
-
-  DELETE FROM db.notification WHERE object = pObject;
-  DELETE FROM db.method_stack WHERE object = pObject;
-  DELETE FROM db.object_link WHERE object = pObject;
-  DELETE FROM db.object_file WHERE object = pObject;
-  DELETE FROM db.object_data WHERE object = pObject;
+  DELETE FROM db.object_link  WHERE object = pObject;
+  DELETE FROM db.object_file  WHERE object = pObject;
+  DELETE FROM db.object_data  WHERE object = pObject;
   DELETE FROM db.object_state WHERE object = pObject;
+  DELETE FROM db.method_stack WHERE object = pObject;
+  DELETE FROM db.notification WHERE object = pObject;
+  DELETE FROM db.log          WHERE object = pObject;
 
   DELETE FROM db.object WHERE id = pObject;
 

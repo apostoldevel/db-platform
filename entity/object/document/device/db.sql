@@ -389,10 +389,10 @@ BEGIN
      AND validFromDate <= pTimeStamp
      AND validToDate > pTimeStamp;
 
-  IF FOUND THEN
+  IF coalesce(dtDateFrom, MINDATE()) = pTimeStamp THEN
     -- обновим значение в текущем диапозоне дат
     UPDATE db.device_value
-       SET Value = pValue
+       SET value = pValue
      WHERE device = pDevice
        AND type = pType
        AND validFromDate <= pTimeStamp

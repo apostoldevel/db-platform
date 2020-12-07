@@ -1086,11 +1086,13 @@ CREATE OR REPLACE FUNCTION ChangeObjectState (
 AS $$
 DECLARE
   nNewState	numeric;
+  nAction	numeric;
 BEGIN
   nNewState := GetNewState(pMethod);
   IF nNewState IS NOT NULL THEN
     PERFORM AddObjectState(pObject, nNewState);
-    PERFORM AddMethodStack(jsonb_build_object('newstate', jsonb_build_object('id', nNewState, 'code', GetStateCode(nNewState))));
+    SELECT action INTO nAction FROM db.method WHERE id = pMethod;
+    PERFORM AddMethodStack(jsonb_build_object('object', pObject, 'method', pMethod, 'action', jsonb_build_object('id', nAction, 'code', GetActionCode(nAction)), 'newstate', jsonb_build_object('id', nNewState, 'code', GetStateCode(nNewState))));
   END IF;
 END;
 $$ LANGUAGE plpgsql
@@ -1152,7 +1154,7 @@ CREATE OR REPLACE FUNCTION AddMethodStack (
 ) RETURNS	void
 AS $$
 BEGIN
-  UPDATE db.method_stack SET result = pResult WHERE object = pObject AND method = pMethod;
+  UPDATE db.method_stack SET result = result || pResult WHERE object = pObject AND method = pMethod;
   IF NOT FOUND THEN
     INSERT INTO db.method_stack (object, method, result) VALUES (pObject, pMethod, pResult);
   END IF;

@@ -34,6 +34,10 @@ BEGIN
 
       PERFORM CreateEntityDevice(nDocument);
 
+      -- Задание
+
+      PERFORM CreateEntityJob(nDocument);
+
       -- Сообщение
 
       PERFORM CreateEntityMessage(nDocument);

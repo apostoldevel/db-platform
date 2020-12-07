@@ -235,6 +235,7 @@ BEGIN
 
   PERFORM AddAction('done', 'Сделано');
   PERFORM AddAction('fail', 'Неудача');
+  PERFORM AddAction('expire', 'Истекло');
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

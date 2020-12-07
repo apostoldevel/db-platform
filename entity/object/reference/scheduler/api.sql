@@ -21,9 +21,9 @@ GRANT SELECT ON api.scheduler TO administrator;
  * @param {varchar} pType - Код типа
  * @param {varchar} pCode - Код
  * @param {varchar} pName - Наименование
+ * @param {interval} pPeriod - Период выполнения
  * @param {timestamptz} pDateStart - Дата начала выполнения
  * @param {timestamptz} pDateStop - Дата окончания выполнения
- * @param {interval} pPeriod - Период выполнения
  * @param {text} pDescription - Описание
  * @return {numeric}
  */
@@ -32,14 +32,14 @@ CREATE OR REPLACE FUNCTION api.add_scheduler (
   pType         varchar,
   pCode         varchar,
   pName         varchar,
+  pPeriod       interval default null,
   pDateStart    timestamptz default null,
   pDateStop     timestamptz default null,
-  pPeriod       interval default null,
   pDescription	text default null
 ) RETURNS       numeric
 AS $$
 BEGIN
-  RETURN CreateScheduler(pParent, CodeToType(lower(coalesce(pType, 'task')), 'scheduler'), pCode, pName, pDateStart, pDateStop, pPeriod, pDescription);
+  RETURN CreateScheduler(pParent, CodeToType(lower(coalesce(pType, 'task')), 'scheduler'), pCode, pName, pPeriod, pDateStart, pDateStop, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -54,9 +54,9 @@ $$ LANGUAGE plpgsql
  * @param {varchar} pType - Код типа
  * @param {varchar} pCode - Код
  * @param {varchar} pName - Наименование
+ * @param {interval} pPeriod - Период выполнения
  * @param {timestamptz} pDateStart - Дата начала выполнения
  * @param {timestamptz} pDateStop - Дата окончания выполнения
- * @param {interval} pPeriod - Период выполнения
  * @param {text} pDescription - Описание
  * @return {void}
  */
@@ -66,9 +66,9 @@ CREATE OR REPLACE FUNCTION api.update_scheduler (
   pType         varchar default null,
   pCode         varchar default null,
   pName         varchar default null,
+  pPeriod       interval default null,
   pDateStart    timestamptz default null,
   pDateStop     timestamptz default null,
-  pPeriod       interval default null,
   pDescription	text default null
 ) RETURNS       void
 AS $$
@@ -88,7 +88,7 @@ BEGIN
     SELECT o.type INTO nType FROM db.object o WHERE o.id = pId;
   END IF;
 
-  PERFORM EditScheduler(nScheduler, pParent, nType, pCode, pName, pDateStart, pDateStop, pPeriod, pDescription);
+  PERFORM EditScheduler(nScheduler, pParent, nType, pCode, pName, pPeriod, pDateStart, pDateStop, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -104,17 +104,17 @@ CREATE OR REPLACE FUNCTION api.set_scheduler (
   pType         varchar default null,
   pCode         varchar default null,
   pName         varchar default null,
+  pPeriod       interval default null,
   pDateStart    timestamptz default null,
   pDateStop     timestamptz default null,
-  pPeriod       interval default null,
   pDescription	text default null
 ) RETURNS       SETOF api.scheduler
 AS $$
 BEGIN
   IF pId IS NULL THEN
-    pId := api.add_scheduler(pParent, pType, pCode, pName, pDateStart, pDateStop, pPeriod, pDescription);
+    pId := api.add_scheduler(pParent, pType, pCode, pName, pPeriod, pDateStart, pDateStop, pDescription);
   ELSE
-    PERFORM api.update_scheduler(pId, pParent, pType, pCode, pName, pDateStart, pDateStop, pPeriod, pDescription);
+    PERFORM api.update_scheduler(pId, pParent, pType, pCode, pName, pPeriod, pDateStart, pDateStop, pDescription);
   END IF;
 
   RETURN QUERY SELECT * FROM api.scheduler WHERE id = pId;

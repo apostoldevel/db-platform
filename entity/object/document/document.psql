@@ -16,5 +16,5 @@
 \ir './address/address.psql'
 \ir './client/client.psql'
 \ir './device/device.psql'
+\ir './job/job.psql'
 \ir './message/message.psql'
-\ir './task/task.psql'

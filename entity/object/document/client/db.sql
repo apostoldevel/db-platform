@@ -296,14 +296,14 @@ BEGIN
   END IF;
 
   -- получим дату значения в текущем диапозоне дат
-  SELECT max(validFromDate), max(validToDate) INTO dtDateFrom, dtDateTo
+  SELECT validFromDate, validToDate INTO dtDateFrom, dtDateTo
     FROM db.client_name
    WHERE Client = pClient
      AND Locale = nLocale
      AND validFromDate <= pDateFrom
      AND validToDate > pDateFrom;
 
-  IF dtDateFrom = pDateFrom THEN
+  IF coalesce(dtDateFrom, MINDATE()) = pDateFrom THEN
     -- обновим значение в текущем диапозоне дат
     UPDATE db.client_name SET name = pName, short = pShort, first = pFirst, last = pLast, middle = pMiddle
      WHERE Client = pClient

@@ -1,206 +1,195 @@
 --------------------------------------------------------------------------------
--- TASK ------------------------------------------------------------------------
+-- JOB -------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
--- api.task --------------------------------------------------------------------
+-- api.job ---------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW api.task
+CREATE OR REPLACE VIEW api.job
 AS
-  SELECT * FROM ObjectTask;
+  SELECT * FROM ObjectJob;
 
-GRANT SELECT ON api.task TO administrator;
+GRANT SELECT ON api.job TO administrator;
 
 --------------------------------------------------------------------------------
--- FUNCTION api.task -----------------------------------------------------------
+-- FUNCTION api.job ------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION api.task (
-  pState    numeric,
-  pDateFrom	timestamptz DEFAULT Now()
-) RETURNS	SETOF api.task
+CREATE OR REPLACE FUNCTION api.job (
+  pStateType	numeric,
+  pDateRun		timestamptz DEFAULT Now()
+) RETURNS		SETOF api.job
 AS $$
-  SELECT * FROM api.task WHERE state = pState AND daterun >= pDateFrom;
+  SELECT * FROM api.job WHERE statetype = pStateType AND dateRun <= pDateRun;
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- FUNCTION api.task -----------------------------------------------------------
+-- FUNCTION api.job ------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION api.task (
-  pState    varchar,
-  pDateFrom	double precision DEFAULT null
-) RETURNS	SETOF api.task
+CREATE OR REPLACE FUNCTION api.job (
+  pStateType	varchar DEFAULT 'enabled',
+  pDateFrom		double precision DEFAULT null
+) RETURNS		SETOF api.job
 AS $$
-  SELECT * FROM api.task(GetState(GetClass('task'), pState), coalesce(to_timestamp(pDateFrom), Now()));
+  SELECT * FROM api.job(GetStateType(pStateType), coalesce(to_timestamp(pDateFrom), Now()));
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- api.add_task ----------------------------------------------------------------
+-- api.add_job -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Добавляет задачу.
+ * Добавляет задание.
  * @param {numeric} pParent - Ссылка на родительский объект: api.document | null
  * @param {varchar} pType - Tип
- * @param {varchar} pCode - Код
- * @param {varchar} pLabel - Метка
- * @param {numeric} pCalendar - Календарь
  * @param {numeric} pScheduler - Планировщик
  * @param {numeric} pProgram - Программа
- * @param {numeric} pExecutor - Исполнитель
  * @param {timestamptz} pDateRun - Дата запуска
+ * @param {varchar} pCode - Код
+ * @param {varchar} pLabel - Метка
  * @param {text} pDescription - Описание
  * @return {numeric}
  */
-CREATE OR REPLACE FUNCTION api.add_task (
+CREATE OR REPLACE FUNCTION api.add_job (
   pParent           numeric,
   pType             varchar,
-  pCode             varchar,
-  pLabel            varchar,
-  pCalendar         numeric default null,
-  pScheduler        numeric default null,
-  pProgram          numeric default null,
-  pExecutor         numeric default null,
+  pScheduler        numeric,
+  pProgram          numeric,
   pDateRun          timestamptz default null,
+  pCode             varchar default null,
+  pLabel            varchar default null,
   pDescription      text default null
 ) RETURNS           numeric
 AS $$
 BEGIN
-  pCalendar := coalesce(pCalendar, GetCalendar('default.calendar'));
-  RETURN CreateTask(pParent, CodeToType(lower(coalesce(pType, 'disposable.task')), 'task'), pCode, pLabel, pCalendar, pScheduler, pProgram, pExecutor, pDateRun, pDescription);
+  RETURN CreateJob(pParent, CodeToType(lower(coalesce(pType, 'periodic.job')), 'job'), pScheduler, pProgram, pDateRun, pCode, pLabel, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- api.update_task -------------------------------------------------------------
+-- api.update_job --------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Редактирует задачу.
+ * Редактирует задание.
  * @param {numeric} pParent - Ссылка на родительский объект: Object.Parent | null
  * @param {varchar} pType - Tип
- * @param {varchar} pCode - Код
- * @param {varchar} pLabel - Метка
- * @param {numeric} pCalendar - Календарь
  * @param {numeric} pScheduler - Планировщик
  * @param {numeric} pProgram - Программа
- * @param {numeric} pExecutor - Исполнитель
  * @param {timestamptz} pDateRun - Дата запуска
+ * @param {varchar} pCode - Код
+ * @param {varchar} pLabel - Метка
  * @param {text} pDescription - Описание
  * @return {void}
  */
-CREATE OR REPLACE FUNCTION api.update_task (
+CREATE OR REPLACE FUNCTION api.update_job (
   pId               numeric,
   pParent           numeric default null,
   pType             varchar default null,
-  pCode             varchar default null,
-  pLabel            varchar default null,
-  pCalendar         numeric default null,
   pScheduler        numeric default null,
   pProgram          numeric default null,
-  pExecutor         numeric default null,
   pDateRun          timestamptz default null,
+  pCode             varchar default null,
+  pLabel            varchar default null,
   pDescription      text default null
 ) RETURNS           void
 AS $$
 DECLARE
   nType             numeric;
-  nTask             numeric;
+  nJob				numeric;
 BEGIN
-  SELECT c.id INTO nTask FROM db.task c WHERE c.id = pId;
+  SELECT c.id INTO nJob FROM db.job c WHERE c.id = pId;
 
   IF NOT FOUND THEN
-    PERFORM ObjectNotFound('задача', 'id', pId);
+    PERFORM ObjectNotFound('задание', 'id', pId);
   END IF;
 
   IF pType IS NOT NULL THEN
-    nType := CodeToType(lower(pType), 'task');
+    nType := CodeToType(lower(pType), 'job');
   ELSE
     SELECT o.type INTO nType FROM db.object o WHERE o.id = pId;
   END IF;
 
-  PERFORM EditTask(nTask, pParent, nType,pCode, pLabel, pCalendar, pScheduler, pProgram, pExecutor, pDateRun, pDescription);
+  PERFORM EditJob(nJob, pParent, nType, pScheduler, pProgram, pDateRun, pCode, pLabel, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- api.set_task ----------------------------------------------------------------
+-- api.set_job -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION api.set_task (
+CREATE OR REPLACE FUNCTION api.set_job (
   pId               numeric,
   pParent           numeric default null,
   pType             varchar default null,
-  pCode             varchar default null,
-  pLabel            varchar default null,
-  pCalendar         numeric default null,
   pScheduler        numeric default null,
   pProgram          numeric default null,
-  pExecutor         numeric default null,
   pDateRun          timestamptz default null,
+  pCode             varchar default null,
+  pLabel            varchar default null,
   pDescription      text default null
-) RETURNS           SETOF api.task
+) RETURNS           SETOF api.job
 AS $$
 BEGIN
   IF pId IS NULL THEN
-    pId := api.add_task(pParent, pType, pCode, pLabel, pCalendar, pScheduler, pProgram, pExecutor, pDateRun, pDescription);
+    pId := api.add_job(pParent, pType, pScheduler, pProgram, pDateRun, pCode, pLabel, pDescription);
   ELSE
-    PERFORM api.update_task(pId, pParent, pType, pCode, pLabel, pCalendar, pScheduler, pProgram, pExecutor, pDateRun, pDescription);
+    PERFORM api.update_job(pId, pParent, pType, pScheduler, pProgram, pDateRun, pCode, pLabel, pDescription);
   END IF;
 
-  RETURN QUERY SELECT * FROM api.task WHERE id = pId;
+  RETURN QUERY SELECT * FROM api.job WHERE id = pId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- api.get_task ----------------------------------------------------------------
+-- api.get_job -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает задачу
+ * Возвращает задание
  * @param {numeric} pId - Идентификатор
- * @return {api.task} - Счёт
+ * @return {api.job} - Счёт
  */
-CREATE OR REPLACE FUNCTION api.get_task (
+CREATE OR REPLACE FUNCTION api.get_job (
   pId		numeric
-) RETURNS	api.task
+) RETURNS	api.job
 AS $$
-  SELECT * FROM api.task WHERE id = pId
+  SELECT * FROM api.job WHERE id = pId
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- api.list_task ---------------------------------------------------------------
+-- api.list_job ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список задач.
+ * Возвращает задание в виде списока.
  * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
  * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
  * @param {integer} pLimit - Лимит по количеству строк
  * @param {integer} pOffSet - Пропустить указанное число строк
  * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.task}
+ * @return {SETOF api.job}
  */
-CREATE OR REPLACE FUNCTION api.list_task (
+CREATE OR REPLACE FUNCTION api.list_job (
   pSearch	jsonb default null,
   pFilter	jsonb default null,
   pLimit	integer default null,
   pOffSet	integer default null,
   pOrderBy	jsonb default null
-) RETURNS	SETOF api.task
+) RETURNS	SETOF api.job
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'task', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+  RETURN QUERY EXECUTE api.sql('api', 'job', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
