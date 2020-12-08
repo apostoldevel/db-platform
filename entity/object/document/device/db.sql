@@ -195,51 +195,51 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- db.status_notification ------------------------------------------------------
+-- db.device_notification ------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE TABLE db.status_notification (
+CREATE TABLE db.device_notification (
     id              numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_STATUS'),
     device          numeric(12) NOT NULL,
-    connectorId     integer NOT NULL,
-    status          varchar(50) NOT NULL,
-    errorCode       varchar(30) NOT NULL,
+    interfaceId		integer NOT NULL DEFAULT 0,
+    status          text NOT NULL,
+    errorCode       text NOT NULL,
     info            text,
-    vendorErrorCode	varchar(50),
+    vendorErrorCode	text,
     validFromDate	timestamp DEFAULT NOW() NOT NULL,
     validToDate		timestamp DEFAULT TO_DATE('4433-12-31', 'YYYY-MM-DD') NOT NULL,
-    CONSTRAINT fk_status_notification_device FOREIGN KEY (device) REFERENCES db.device(id)
+    CONSTRAINT fk_device_notification_device FOREIGN KEY (device) REFERENCES db.device(id)
 );
 
 --------------------------------------------------------------------------------
 
-COMMENT ON TABLE db.status_notification IS 'Уведомление о статусе.';
+COMMENT ON TABLE db.device_notification IS 'Уведомление о статусе устройства.';
 
-COMMENT ON COLUMN db.status_notification.id IS 'Идентификатор.';
-COMMENT ON COLUMN db.status_notification.device IS 'Устройство.';
-COMMENT ON COLUMN db.status_notification.connectorId IS 'Required. The id of the connector for which the status is reported. Id "0" (zero) is used if the status is for the Device main controller.';
-COMMENT ON COLUMN db.status_notification.status IS 'Required. This contains the current status of the Device.';
-COMMENT ON COLUMN db.status_notification.errorCode IS 'Required. This contains the error code reported by the Device.';
-COMMENT ON COLUMN db.status_notification.info IS 'Optional. Additional free format information related to the error.';
-COMMENT ON COLUMN db.status_notification.vendorErrorCode IS 'Optional. This contains the vendor-specific error code.';
-COMMENT ON COLUMN db.status_notification.validFromDate IS 'Дата начала периода действия';
-COMMENT ON COLUMN db.status_notification.validToDate IS 'Дата окончания периода действия.';
-
---------------------------------------------------------------------------------
-
-CREATE INDEX ON db.status_notification (device);
-CREATE INDEX ON db.status_notification (connectorId);
-CREATE INDEX ON db.status_notification (device, validFromDate, validToDate);
-
-CREATE UNIQUE INDEX ON db.status_notification (device, connectorId, validFromDate, validToDate);
+COMMENT ON COLUMN db.device_notification.id IS 'Идентификатор.';
+COMMENT ON COLUMN db.device_notification.device IS 'Идентификатор устройства.';
+COMMENT ON COLUMN db.device_notification.interfaceId IS 'Идентификатор цифрового интерфейса или порта (при налиции). Где: 0 - это само устройство.';
+COMMENT ON COLUMN db.device_notification.status IS 'Текущий статус устройства.';
+COMMENT ON COLUMN db.device_notification.errorCode IS 'Код ошибки, сообщенный устройством.';
+COMMENT ON COLUMN db.device_notification.info IS 'Дополнительная информация в свободном формате, связанная с ошибкой.';
+COMMENT ON COLUMN db.device_notification.vendorErrorCode IS 'Код ошибки производителя.';
+COMMENT ON COLUMN db.device_notification.validFromDate IS 'Дата начала периода действия';
+COMMENT ON COLUMN db.device_notification.validToDate IS 'Дата окончания периода действия.';
 
 --------------------------------------------------------------------------------
--- FUNCTION AddStatusNotification ----------------------------------------------
+
+CREATE INDEX ON db.device_notification (device);
+CREATE INDEX ON db.device_notification (interfaceId);
+CREATE INDEX ON db.device_notification (device, validFromDate, validToDate);
+
+CREATE UNIQUE INDEX ON db.device_notification (device, interfaceId, validFromDate, validToDate);
+
+--------------------------------------------------------------------------------
+-- FUNCTION AddDeviceNotification ----------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION AddStatusNotification (
+CREATE OR REPLACE FUNCTION AddDeviceNotification (
   pDevice           numeric,
-  pConnectorId		integer,
+  pInterfaceId		integer,
   pStatus		    text,
   pErrorCode		text,
   pInfo			    text,
@@ -255,33 +255,33 @@ DECLARE
 BEGIN
   -- получим дату значения в текущем диапозоне дат
   SELECT validFromDate, validToDate INTO dtDateFrom, dtDateTo
-    FROM db.status_notification
+    FROM db.device_notification
    WHERE device = pDevice
-     AND connectorId = pConnectorId
+     AND interfaceId = pInterfaceId
      AND validFromDate <= pTimeStamp
      AND validToDate > pTimeStamp;
 
   IF coalesce(dtDateFrom, MINDATE()) = pTimeStamp THEN
     -- обновим значение в текущем диапозоне дат
-    UPDATE db.status_notification
+    UPDATE db.device_notification
        SET status = pStatus,
            errorCode = pErrorCode,
            info = pInfo,
            vendorErrorCode = pVendorErrorCode
      WHERE device = pDevice
-       AND connectorId = pConnectorId
+       AND interfaceId = pInterfaceId
        AND validFromDate <= pTimeStamp
        AND validToDate > pTimeStamp;
   ELSE
     -- обновим дату значения в текущем диапозоне дат
-    UPDATE db.status_notification SET validToDate = pTimeStamp
+    UPDATE db.device_notification SET validToDate = pTimeStamp
      WHERE device = pDevice
-       AND connectorId = pConnectorId
+       AND interfaceId = pInterfaceId
        AND validFromDate <= pTimeStamp
        AND validToDate > pTimeStamp;
 
-    INSERT INTO db.status_notification (device, connectorId, status, errorCode, info, vendorErrorCode, validfromdate, validtodate)
-    VALUES (pDevice, pConnectorId, pStatus, pErrorCode, pInfo, pVendorErrorCode, pTimeStamp, coalesce(dtDateTo, MAXDATE()))
+    INSERT INTO db.device_notification (device, interfaceId, status, errorCode, info, vendorErrorCode, validfromdate, validtodate)
+    VALUES (pDevice, pInterfaceId, pStatus, pErrorCode, pInfo, pVendorErrorCode, pTimeStamp, coalesce(dtDateTo, MAXDATE()))
     RETURNING id INTO nId;
   END IF;
 
@@ -292,22 +292,22 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- StatusNotification ----------------------------------------------------------
+-- DeviceNotification ----------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW StatusNotification
+CREATE OR REPLACE VIEW DeviceNotification
 AS
-  SELECT * FROM db.status_notification;
+  SELECT * FROM db.device_notification;
 
-GRANT SELECT ON StatusNotification TO administrator;
+GRANT SELECT ON DeviceNotification TO administrator;
 
 --------------------------------------------------------------------------------
--- GetJsonStatusNotification ---------------------------------------------------
+-- GetJsonDeviceNotification ---------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION GetJsonStatusNotification (
-  pDevice  numeric,
-  pConnectorId  integer default null,
+CREATE OR REPLACE FUNCTION GetJsonDeviceNotification (
+  pDevice		numeric,
+  pInterfaceId  integer default null,
   pDate         timestamp default current_timestamp at time zone 'utc'
 ) RETURNS	    json
 AS $$
@@ -317,9 +317,9 @@ DECLARE
 BEGIN
   FOR r IN
     SELECT *
-      FROM StatusNotification
+      FROM DeviceNotification
      WHERE device = pDevice
-       AND connectorid = coalesce(pConnectorId, connectorid)
+       AND interfaceId = coalesce(pInterfaceId, interfaceId)
        AND validFromDate <= pDate
        AND validToDate > pDate
   LOOP

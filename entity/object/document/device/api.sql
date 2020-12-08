@@ -280,59 +280,59 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
--- VIEW api.status_notification ------------------------------------------------
+-- VIEW api.device_notification ------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW api.status_notification
+CREATE OR REPLACE VIEW api.device_notification
 AS
-  SELECT * FROM StatusNotification;
+  SELECT * FROM DeviceNotification;
 
-GRANT SELECT ON api.status_notification TO administrator;
+GRANT SELECT ON api.device_notification TO administrator;
 
 --------------------------------------------------------------------------------
--- api.status_notification -----------------------------------------------------
+-- api.device_notification -----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
  * Возвращает уведомления о статусе зарядной станций
  * @param {numeric} pDevice - Идентификатор зарядной станции
- * @param {integer} pConnectorId - Идентификатор разъёма зарядной станции
+ * @param {integer} pInterfaceId - Идентификатор разъёма зарядной станции
  * @param {timestamptz} pDate - Дата и время
- * @return {SETOF api.status_notification}
+ * @return {SETOF api.device_notification}
  */
-CREATE OR REPLACE FUNCTION api.status_notification (
+CREATE OR REPLACE FUNCTION api.device_notification (
   pDevice       numeric,
-  pConnectorId  integer default null,
+  pInterfaceId  integer default null,
   pDate         timestamptz default current_timestamp at time zone 'utc'
-) RETURNS	    SETOF api.status_notification
+) RETURNS	    SETOF api.device_notification
 AS $$
   SELECT *
-    FROM api.status_notification
+    FROM api.device_notification
    WHERE device = pDevice
-     AND connectorid = coalesce(pConnectorId, connectorid)
+     AND interfaceId = coalesce(pInterfaceId, interfaceId)
      AND pDate BETWEEN validfromdate AND validtodate
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- api.get_status_notification -------------------------------------------------
+-- api.get_device_notification -------------------------------------------------
 --------------------------------------------------------------------------------
 /**
  * Возвращает уведомление о статусе зарядной станции.
  * @param {numeric} pId - Идентификатор
- * @return {api.status_notification}
+ * @return {api.device_notification}
  */
-CREATE OR REPLACE FUNCTION api.get_status_notification (
+CREATE OR REPLACE FUNCTION api.get_device_notification (
   pId		numeric
-) RETURNS	api.status_notification
+) RETURNS	api.device_notification
 AS $$
-  SELECT * FROM api.status_notification WHERE id = pId
+  SELECT * FROM api.device_notification WHERE id = pId
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- api.list_status_notification ------------------------------------------------
+-- api.list_device_notification ------------------------------------------------
 --------------------------------------------------------------------------------
 /**
  * Возвращает уведомления о статусе зарядных станций.
@@ -341,18 +341,18 @@ $$ LANGUAGE SQL
  * @param {integer} pLimit - Лимит по количеству строк
  * @param {integer} pOffSet - Пропустить указанное число строк
  * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.status_notification}
+ * @return {SETOF api.device_notification}
  */
-CREATE OR REPLACE FUNCTION api.list_status_notification (
+CREATE OR REPLACE FUNCTION api.list_device_notification (
   pSearch       jsonb default null,
   pFilter       jsonb default null,
   pLimit        integer default null,
   pOffSet       integer default null,
   pOrderBy      jsonb default null
-) RETURNS       SETOF api.status_notification
+) RETURNS       SETOF api.device_notification
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'status_notification', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+  RETURN QUERY EXECUTE api.sql('api', 'device_notification', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

@@ -206,7 +206,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, fields jsonb)
       LOOP
-        FOR e IN EXECUTE format('SELECT %s FROM api.get_status_notification($1)', JsonbToFields(r.fields, GetColumns('status_notification', 'api'))) USING r.id
+        FOR e IN EXECUTE format('SELECT %s FROM api.get_device_notification($1)', JsonbToFields(r.fields, GetColumns('device_notification', 'api'))) USING r.id
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -216,7 +216,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, fields jsonb)
       LOOP
-        FOR e IN EXECUTE format('SELECT %s FROM api.get_status_notification($1)', JsonbToFields(r.fields, GetColumns('status_notification', 'api'))) USING r.id
+        FOR e IN EXECUTE format('SELECT %s FROM api.get_device_notification($1)', JsonbToFields(r.fields, GetColumns('device_notification', 'api'))) USING r.id
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -235,7 +235,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(fields jsonb, search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN EXECUTE format('SELECT %s FROM api.list_status_notification($1, $2, $3, $4, $5)', JsonbToFields(r.fields, GetColumns('status_notification', 'api'))) USING r.search, r.filter, r.reclimit, r.recoffset, r.orderby
+        FOR e IN EXECUTE format('SELECT %s FROM api.list_device_notification($1, $2, $3, $4, $5)', JsonbToFields(r.fields, GetColumns('device_notification', 'api'))) USING r.search, r.filter, r.reclimit, r.recoffset, r.orderby
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
