@@ -42,10 +42,6 @@ BEGIN
 
       PERFORM CreateEntityMessage(nDocument);
 
-      -- Задача
-
-      PERFORM CreateEntityTask(nDocument);
-
     -- Справочник
 
     PERFORM CreateEntityReference(nObject);
