@@ -51,7 +51,7 @@ $$ LANGUAGE SQL
  * @param {numeric} pProgram - Программа
  * @param {timestamptz} pDateRun - Дата запуска
  * @param {varchar} pCode - Код
- * @param {varchar} pLabel - Метка
+ * @param {text} pLabel - Метка
  * @param {text} pDescription - Описание
  * @return {numeric}
  */
@@ -62,7 +62,7 @@ CREATE OR REPLACE FUNCTION api.add_job (
   pProgram          numeric,
   pDateRun          timestamptz default null,
   pCode             varchar default null,
-  pLabel            varchar default null,
+  pLabel            text default null,
   pDescription      text default null
 ) RETURNS           numeric
 AS $$
@@ -84,7 +84,7 @@ $$ LANGUAGE plpgsql
  * @param {numeric} pProgram - Программа
  * @param {timestamptz} pDateRun - Дата запуска
  * @param {varchar} pCode - Код
- * @param {varchar} pLabel - Метка
+ * @param {text} pLabel - Метка
  * @param {text} pDescription - Описание
  * @return {void}
  */
@@ -96,7 +96,7 @@ CREATE OR REPLACE FUNCTION api.update_job (
   pProgram          numeric default null,
   pDateRun          timestamptz default null,
   pCode             varchar default null,
-  pLabel            varchar default null,
+  pLabel            text default null,
   pDescription      text default null
 ) RETURNS           void
 AS $$
@@ -134,7 +134,7 @@ CREATE OR REPLACE FUNCTION api.set_job (
   pProgram          numeric default null,
   pDateRun          timestamptz default null,
   pCode             varchar default null,
-  pLabel            varchar default null,
+  pLabel            text default null,
   pDescription      text default null
 ) RETURNS           SETOF api.job
 AS $$
