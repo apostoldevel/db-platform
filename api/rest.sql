@@ -169,7 +169,7 @@ BEGIN
       END LOOP;
     END LOOP;
 
-  WHEN '/api' THEN
+  WHEN '/run' THEN
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
@@ -179,20 +179,20 @@ BEGIN
       PERFORM LoginFailed();
     END IF;
 
-    arKeys := array_cat(arKeys, GetRoutines('api', 'rest', false));
+    arKeys := array_cat(arKeys, GetRoutines('run', 'api', false));
     arKeys := array_cat(arKeys, ARRAY['key']);
 
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
     IF jsonb_typeof(pPayload) = 'array' THEN
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(key text, path text, payload jsonb)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(key text, method text, path text, payload jsonb)
       LOOP
-        FOR e IN SELECT * FROM rest.api(r.path, r.payload)
+        FOR e IN SELECT * FROM api.run(coalesce(r.method, 'POST'), r.path, r.payload)
         LOOP
-          arJson := array_append(arJson, (row_to_json(e)->>'api')::json);
+          arJson := array_append(arJson, (row_to_json(e)->>'run')::json);
         END LOOP;
 
-        RETURN NEXT jsonb_build_object('key', coalesce(r.key, IntToStr(nKey)), 'path', r.path, 'payload', array_to_json(arJson)::jsonb);
+        RETURN NEXT jsonb_build_object('key', coalesce(r.key, IntToStr(nKey)), 'method', coalesce(r.method, 'POST'), 'path', r.path, 'payload', array_to_json(arJson)::jsonb);
 
         arJson := null;
         nKey := nKey + 1;
