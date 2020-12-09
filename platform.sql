@@ -28,4 +28,18 @@ SELECT CreateAgent(null, GetType('api.agent'), 'fcm.agent', 'FCM', GetVendor('go
 SELECT CreateAgent(null, GetType('api.agent'), 'm2m.agent', 'M2M', GetVendor('mts.vendor'), 'Агент для передачи коротких сообщений через МТС Коммуникатор.');
 SELECT CreateAgent(null, GetType('api.agent'), 'sba.agent', 'SBA',  GetVendor('sberbank.vendor'), 'Агент для передачи данных в Интернет-Эквайринг от Сбербанка.');
 
+SELECT CreateVendor(null, GetType('device.vendor'), 'unknown.vendor', 'Неизвестный', 'Неизвестный производитель оборудования.');
+
+SELECT CreateModel(null, GetType('device.model'), 'unknown.model', 'Неизвестная', GetVendor('unknown.vendor'), 'Неизвестная модель устройства.');
+SELECT CreateModel(null, GetType('device.model'), 'android.model', 'Android', GetVendor('unknown.vendor'), 'Неизвестная модель устройства на ОС Android.');
+SELECT CreateModel(null, GetType('device.model'), 'ios.model', 'iOS', GetVendor('unknown.vendor'), 'Неизвестная модель устройства на ОС iOS.');
+
+SELECT CreateScheduler(null, GetType('job.scheduler'), 'EACH_01_MINUTES', 'Каждую минуту', '1 minutes', MINDATE(), MAXDATE(), 'Каждую минуту.');
+SELECT CreateScheduler(null, GetType('job.scheduler'), 'EACH_05_MINUTES', 'Каждые 5 минут', '5 minutes', MINDATE(), MAXDATE(), 'Каждые 5 минут.');
+SELECT CreateScheduler(null, GetType('job.scheduler'), 'EACH_10_MINUTES', 'Каждые 10 минут', '10 minutes', MINDATE(), MAXDATE(), 'Каждые 10 минут.');
+SELECT CreateScheduler(null, GetType('job.scheduler'), 'EACH_15_MINUTES', 'Каждые 15 минут', '15 minutes', MINDATE(), MAXDATE(), 'Каждые 15 минут.');
+SELECT CreateScheduler(null, GetType('job.scheduler'), 'EACH_30_MINUTES', 'Каждые 30 минут', '30 minutes', MINDATE(), MAXDATE(), 'Каждые 30 минут.');
+SELECT CreateScheduler(null, GetType('job.scheduler'), 'EACH_01_HOUR', 'Каждый час', '1 hour', MINDATE(), MAXDATE(), 'Каждый час.');
+SELECT CreateScheduler(null, GetType('job.scheduler'), 'EACH_01_DAY', 'Каждый день', '1 day', MINDATE(), MAXDATE(), 'Каждый день.');
+
 SELECT SignOut();

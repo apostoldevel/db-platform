@@ -9,7 +9,7 @@
 CREATE TABLE db.job (
     id			    numeric(12) PRIMARY KEY,
     document	    numeric(12) NOT NULL,
-    code		    varchar(30) NOT NULL,
+    code		    text NOT NULL,
     scheduler       numeric(12) NOT NULL,
     program         numeric(12) NOT NULL,
     dateRun         timestamptz NOT NULL DEFAULT Now(),
@@ -85,8 +85,8 @@ CREATE OR REPLACE FUNCTION CreateJob (
   pScheduler        numeric default null,
   pProgram          numeric default null,
   pDateRun          timestamptz default null,
-  pCode             varchar default null,
-  pLabel            varchar default null,
+  pCode             text default null,
+  pLabel            text default null,
   pDescription      text default null
 ) RETURNS           numeric
 AS $$
@@ -132,14 +132,14 @@ CREATE OR REPLACE FUNCTION EditJob (
   pScheduler        numeric default null,
   pProgram          numeric default null,
   pDateRun          timestamptz default null,
-  pCode             varchar default null,
-  pLabel            varchar default null,
+  pCode             text default null,
+  pLabel            text default null,
   pDescription      text default null
 ) RETURNS           void
 AS $$
 DECLARE
   nDocument         numeric;
-  vCode             varchar;
+  vCode             text;
 
   old               db.job%rowtype;
   new               db.job%rowtype;

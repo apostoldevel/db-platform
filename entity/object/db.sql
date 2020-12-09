@@ -1154,9 +1154,9 @@ CREATE OR REPLACE FUNCTION AddMethodStack (
 ) RETURNS	void
 AS $$
 BEGIN
-  UPDATE db.method_stack SET result = result || pResult WHERE object = pObject AND method = pMethod;
+  UPDATE db.method_stack SET result = pResult WHERE object = pObject AND method = pMethod;
   IF NOT FOUND THEN
-    INSERT INTO db.method_stack (object, method, result) VALUES (pObject, pMethod, pResult);
+	INSERT INTO db.method_stack (object, method, result) VALUES (pObject, pMethod, pResult);
   END IF;
 END;
 $$ LANGUAGE plpgsql
