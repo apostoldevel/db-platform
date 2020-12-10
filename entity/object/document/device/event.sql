@@ -170,18 +170,13 @@ AS $$
 DECLARE
   r		    record;
   nCount    integer;
-  nType     numeric;
 BEGIN
   SELECT label INTO r FROM db.object WHERE id = pObject;
 
-  SELECT Count(id) INTO nCount FROM db.transaction WHERE device = pObject;
+  SELECT Count(id) INTO nCount FROM db.device_value WHERE device = pObject;
   IF nCount > 0 THEN
-    RAISE EXCEPTION 'ERR-40000: Обнаружены транзакции: (%). Операция прервана.', nCount;
+    RAISE EXCEPTION 'ERR-40000: Обнаружены данные, операция прервана.';
   END IF;
-
-  nType := GetObjectDataType('json');
-
-  PERFORM SetObjectData(pObject, nType, 'geo', null);
 
   DELETE FROM db.device WHERE id = pObject;
 

@@ -569,7 +569,7 @@ CREATE OR REPLACE FUNCTION SendPushMessage (
   pTitle        text,
   pBody         text,
   pUserId       numeric DEFAULT current_userid(),
-  pPriority		text DEFAULT 'NORMAL'
+  pPriority		text DEFAULT 'normal'
 ) RETURNS	    void
 AS $$
 DECLARE
@@ -591,8 +591,8 @@ BEGIN
     LOOP
       token := tokens[i];
 
-      data := jsonb_build_object('timestamp', GetISOTime(), 'userid', IntToStr(pUserId), 'type', GetObjectTypeCode(pObject), 'title', pTitle, 'body', pBody);
-	  message := jsonb_build_object('message', jsonb_build_object('token', token, 'priority', pPriority, 'notification', jsonb_build_object('title', pTitle, 'body', pBody), 'data', data));
+      data := jsonb_build_object('timestamp', GetISOTime(), 'object', IntToStr(pObject), 'userid', IntToStr(pUserId), 'type', GetObjectTypeCode(pObject), 'title', pTitle, 'body', pBody);
+	  message := jsonb_build_object('message', jsonb_build_object('token', token, 'android', jsonb_build_object('priority', pPriority), 'data', data));
 
 	  nMessageId := SendPush(pObject, projectId, GetUserName(pUserId), pTitle, message::text, pBody);
 	  PERFORM WriteToEventLog('M', 1111, format('Push сообщение передано на отправку: %s', nMessageId), pObject);
