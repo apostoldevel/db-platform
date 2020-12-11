@@ -1278,7 +1278,7 @@ BEGIN
 
   SELECT code INTO vActionCode FROM db.action WHERE id = nAction;
   IF vActionCode <> 'drop' THEN
-    PERFORM AddNotification(pObject, nClass, pMethod, nAction);
+    PERFORM AddNotification(nClass, nAction, pMethod, pObject);
   END IF;
 
   RETURN GetMethodStack(pObject, pMethod);
@@ -2308,13 +2308,13 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetObjectCoordinatesJson (
-  pObject	numeric,
-  pCode         varchar DEFAULT NULL,
-  pDateFrom     timestamptz DEFAULT Now()
-) RETURNS	json
+  pObject		numeric,
+  pCode			varchar DEFAULT NULL,
+  pDateFrom		timestamptz DEFAULT Now()
+) RETURNS		json
 AS $$
 DECLARE
-  arResult	json[];
+  arResult		json[];
   r             record;
 BEGIN
   FOR r IN

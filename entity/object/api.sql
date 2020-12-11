@@ -878,6 +878,25 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- api.clear_object_files ------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Удаляет все файлы объекта
+ * @param {numeric} pId - Идентификатор объекта
+ * @return {void}
+ */
+CREATE OR REPLACE FUNCTION api.clear_object_files (
+  pId       numeric
+) RETURNS	void
+AS $$
+BEGIN
+  DELETE FROM api.object_file WHERE object = pId;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- OBJECT DATA -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 

@@ -495,13 +495,17 @@ BEGIN
       PERFORM JsonIsEmpty();
     END IF;
 
-    arKeys := array_cat(arKeys, ARRAY['id', 'files']);
+    arKeys := array_cat(arKeys, ARRAY['id', 'clear', 'files']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, files json)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, clear boolean, files json)
       LOOP
+		IF coalesce(r.clear, false) THEN
+	  	  PERFORM api.clear_object_files(r.id);
+		END IF;
+
         IF r.files IS NOT NULL THEN
           FOR e IN SELECT * FROM api.set_object_files_json(r.id, r.files)
           LOOP
@@ -514,8 +518,12 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, files json)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, clear boolean, files json)
       LOOP
+		IF coalesce(r.clear, false) THEN
+	  	  PERFORM api.clear_object_files(r.id);
+		END IF;
+
         IF r.files IS NOT NULL THEN
           FOR e IN SELECT * FROM api.set_object_files_json(r.id, r.files)
           LOOP
@@ -534,13 +542,17 @@ BEGIN
       PERFORM JsonIsEmpty();
     END IF;
 
-    arKeys := array_cat(arKeys, ARRAY['id', 'files']);
+    arKeys := array_cat(arKeys, ARRAY['id', 'clear', 'files']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, files json)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, clear boolean, files json)
       LOOP
+		IF coalesce(r.clear, false) THEN
+	  	  PERFORM api.clear_object_files(r.id);
+		END IF;
+
         FOR e IN SELECT * FROM api.set_object_files_json(r.id, r.files)
         LOOP
           RETURN NEXT row_to_json(e);
@@ -549,8 +561,12 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, files json)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, clear boolean, files json)
       LOOP
+		IF coalesce(r.clear, false) THEN
+	  	  PERFORM api.clear_object_files(r.id);
+		END IF;
+
         FOR e IN SELECT * FROM api.set_object_files_json(r.id, r.files)
         LOOP
           RETURN NEXT row_to_json(e);
@@ -606,6 +622,33 @@ BEGIN
         RETURN NEXT row_to_json(e);
       END LOOP;
     END LOOP;
+
+  WHEN '/object/file/clear' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['id']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric)
+      LOOP
+        PERFORM api.clear_object_files(r.id);
+        RETURN NEXT row_to_json(r);
+      END LOOP;
+
+    ELSE
+
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric)
+      LOOP
+        PERFORM api.clear_object_files(r.id);
+        RETURN NEXT row_to_json(r);
+      END LOOP;
+
+    END IF;
 
   WHEN '/object/data' THEN
 
