@@ -2208,6 +2208,7 @@ COMMENT ON COLUMN db.object_coordinates.description IS 'Описание';
 COMMENT ON COLUMN db.object_coordinates.validFromDate IS 'Дата начала периода действия';
 COMMENT ON COLUMN db.object_coordinates.validToDate IS 'Дата окончания периода действия';
 
+CREATE UNIQUE INDEX ON db.object_coordinates (object, code, validFromDate, validToDate);
 CREATE INDEX ON db.object_coordinates (object);
 
 --------------------------------------------------------------------------------

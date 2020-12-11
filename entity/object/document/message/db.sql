@@ -566,8 +566,8 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION SendPushMessage (
   pObject       numeric,
-  pTitle        text,
-  pBody         text,
+  pSubject		text,
+  pData         json,
   pUserId       numeric DEFAULT current_userid(),
   pPriority		text DEFAULT 'normal'
 ) RETURNS	    void
@@ -580,8 +580,7 @@ DECLARE
   projectId     text;
   token			text;
 
-  message       jsonb;
-  data          jsonb;
+  message       json;
 BEGIN
   projectId := (RegGetValue(RegOpenKey('CURRENT_CONFIG', 'CONFIG\Firebase'), 'ProjectId')).vstring;
   tokens := DoFCMTokens(pUserId);
@@ -591,10 +590,9 @@ BEGIN
     LOOP
       token := tokens[i];
 
-      data := jsonb_build_object('timestamp', GetISOTime(), 'object', IntToStr(pObject), 'userid', IntToStr(pUserId), 'type', GetObjectTypeCode(pObject), 'title', pTitle, 'body', pBody);
-	  message := jsonb_build_object('message', jsonb_build_object('token', token, 'android', jsonb_build_object('priority', pPriority), 'data', data));
+	  message := json_build_object('message', json_build_object('token', token, 'android', json_build_object('priority', pPriority), 'data', pData));
 
-	  nMessageId := SendPush(pObject, projectId, GetUserName(pUserId), pTitle, message::text, pBody);
+	  nMessageId := SendPush(pObject, projectId, GetUserName(pUserId), pSubject, message::text);
 	  PERFORM WriteToEventLog('M', 1111, format('Push сообщение передано на отправку: %s', nMessageId), pObject);
     END LOOP;
   ELSE
