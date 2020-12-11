@@ -230,6 +230,7 @@ BEGIN
   PERFORM AddAction('reconfirm', 'Переподтвердить');
   PERFORM AddAction('execute', 'Выполнить');
   PERFORM AddAction('complete', 'Завершить');
+  PERFORM AddAction('plan', 'Планировать');
 
   ------------------------------------------------------------------------------
 
