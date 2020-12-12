@@ -695,6 +695,38 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 GRANT EXECUTE ON FUNCTION GetISOTime(timestamp) TO PUBLIC;
 
 --------------------------------------------------------------------------------
+-- FUNCTION GetEpoch -----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetEpoch (
+  pTime		timestamp DEFAULT current_timestamp at time zone 'utc'
+)
+RETURNS 	double precision
+AS $$
+BEGIN
+  RETURN trunc(extract(EPOCH FROM pTime));
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+GRANT EXECUTE ON FUNCTION GetEpoch(timestamp) TO PUBLIC;
+
+--------------------------------------------------------------------------------
+-- FUNCTION GetEpochMs ---------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetEpochMs (
+  pTime		timestamp DEFAULT current_timestamp at time zone 'utc'
+)
+RETURNS 	double precision
+AS $$
+BEGIN
+  RETURN trunc(extract(EPOCH FROM pTime) * 1000);
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+GRANT EXECUTE ON FUNCTION GetEpochMs(timestamp) TO PUBLIC;
+
+--------------------------------------------------------------------------------
 -- quote_literal_json ----------------------------------------------------------
 --------------------------------------------------------------------------------
 
