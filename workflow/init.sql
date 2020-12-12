@@ -214,6 +214,7 @@ BEGIN
   PERFORM AddAction('disable', 'Отключить');
   PERFORM AddAction('delete', 'Удалить');
   PERFORM AddAction('restore', 'Восстановить');
+  PERFORM AddAction('update', 'Обновить');
   PERFORM AddAction('drop', 'Уничтожить');
   PERFORM AddAction('start', 'Запустить');
   PERFORM AddAction('stop', 'Остановить');
