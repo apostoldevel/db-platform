@@ -17,10 +17,17 @@ GRANT SELECT ON api.notification TO administrator;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.notification (
-  pDateFrom     timestamptz
+  pDateFrom     timestamptz,
+  pUserId		numeric DEFAULT current_userid()
 ) RETURNS       SETOF api.notification
 AS $$
-  SELECT * FROM api.notification WHERE datetime >= pDateFrom ORDER BY id;
+  WITH member_group AS (
+  	SELECT pUserId AS userid UNION SELECT userid FROM db.member_group WHERE member = pUserId
+  )
+  SELECT n.*
+    FROM api.notification n INNER JOIN db.aou a ON n.object = a.object
+			                INNER JOIN member_group m ON a.userid = m.userid AND a.mask & B'100' = B'100'
+   WHERE datetime >= pDateFrom
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -54,12 +61,12 @@ $$ LANGUAGE SQL
  * @return {SETOF api.object_group}
  */
 CREATE OR REPLACE FUNCTION api.list_notification (
-  pSearch	jsonb DEFAULT null,
-  pFilter	jsonb DEFAULT null,
-  pLimit	integer DEFAULT null,
-  pOffSet	integer DEFAULT null,
-  pOrderBy	jsonb DEFAULT null
-) RETURNS	SETOF api.object_group
+  pSearch		jsonb DEFAULT null,
+  pFilter		jsonb DEFAULT null,
+  pLimit		integer DEFAULT null,
+  pOffSet		integer DEFAULT null,
+  pOrderBy		jsonb DEFAULT null
+) RETURNS		SETOF api.notification
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'notification', pSearch, pFilter, pLimit, pOffSet, pOrderBy);

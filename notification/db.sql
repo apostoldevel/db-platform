@@ -19,7 +19,6 @@ CREATE TABLE db.notification (
     CONSTRAINT fk_notification_class FOREIGN KEY (class) REFERENCES db.class_tree(id),
     CONSTRAINT fk_notification_action FOREIGN KEY (action) REFERENCES db.action(id),
     CONSTRAINT fk_notification_method FOREIGN KEY (method) REFERENCES db.method(id),
-    CONSTRAINT fk_notification_object FOREIGN KEY (object) REFERENCES db.object(id),
     CONSTRAINT fk_notification_userid FOREIGN KEY (userid) REFERENCES db.user(id)
 );
 
@@ -60,10 +59,11 @@ AS
 GRANT SELECT ON Notification TO administrator;
 
 --------------------------------------------------------------------------------
--- FUNCTION AddNotification ----------------------------------------------------
+-- FUNCTION CreateNotification -------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION AddNotification (
+CREATE OR REPLACE FUNCTION CreateNotification (
+  pEntity	numeric,
   pClass	numeric,
   pAction	numeric,
   pMethod   numeric,
@@ -74,12 +74,9 @@ CREATE OR REPLACE FUNCTION AddNotification (
 AS $$
 DECLARE
   nId		numeric;
-  nEntity	numeric;
 BEGIN
-  SELECT entity INTO nEntity FROM db.class_tree WHERE id = pClass;
-
   INSERT INTO db.notification (entity, class, action, method, object, userid, datetime)
-  VALUES (nEntity, pClass, pAction, pMethod, pObject, pUserId, pDateTime)
+  VALUES (pEntity, pClass, pAction, pMethod, pObject, pUserId, pDateTime)
   RETURNING id INTO nId;
 
   RETURN nId;
@@ -94,20 +91,22 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION EditNotification (
   pId       numeric,
-  pObject	numeric DEFAULT null,
+  pEntity	numeric DEFAULT null,
   pClass	numeric DEFAULT null,
   pMethod   numeric DEFAULT null,
   pAction	numeric DEFAULT null,
+  pObject	numeric DEFAULT null,
   pUserId	numeric DEFAULT null,
   pDateTime timestamptz DEFAULT null
 ) RETURNS	void
 AS $$
 BEGIN
   UPDATE db.notification
-     SET object = coalesce(pObject, object),
+     SET entity = coalesce(pEntity, entity),
          class = coalesce(pClass, class),
-         method = coalesce(pMethod, method),
          action = coalesce(pAction, action),
+         method = coalesce(pMethod, method),
+         object = coalesce(pObject, object),
          userid = coalesce(pUserId, userid),
          datetime = coalesce(pDateTime, datetime)
    WHERE id = pId;
@@ -126,6 +125,29 @@ CREATE OR REPLACE FUNCTION DeleteNotification (
 AS $$
 BEGIN
   DELETE FROM db.notification WHERE id = pId;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION AddNotification ----------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION AddNotification (
+  pClass		numeric,
+  pAction		numeric,
+  pMethod   	numeric,
+  pObject		numeric,
+  pUserId		numeric DEFAULT current_userid(),
+  pDateTime 	timestamptz DEFAULT Now()
+) RETURNS		void
+AS $$
+DECLARE
+  nEntity		numeric;
+BEGIN
+  SELECT entity INTO nEntity FROM db.class_tree WHERE id = pClass;
+  PERFORM CreateNotification(nEntity, pClass, pAction, pMethod, pObject, pUserId, pDateTime);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

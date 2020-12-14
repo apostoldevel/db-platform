@@ -114,10 +114,7 @@ BEGIN
 
     FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(session text, secret text, agent text, host inet)
     LOOP
-      FOR e IN SELECT * FROM api.authenticate(r.session, r.secret, r.agent, r.host) AS code
-      LOOP
-        RETURN NEXT row_to_json(e);
-      END LOOP;
+      RETURN NEXT row_to_json(api.authenticate(r.session, r.secret, r.agent, r.host));
     END LOOP;
 
   WHEN '/authorize' THEN
@@ -129,9 +126,9 @@ BEGIN
     arKeys := array_cat(arKeys, GetRoutines('authorize', 'api', false));
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(session text)
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(session text, agent text, host inet)
     LOOP
-      RETURN NEXT row_to_json(api.authorize(r.session));
+      RETURN NEXT row_to_json(api.authorize(r.session, r.agent, r.host));
     END LOOP;
 
   WHEN '/su' THEN

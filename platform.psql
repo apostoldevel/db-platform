@@ -12,3 +12,4 @@
 \ir './entity/entity.psql'
 \ir './notification/notification.psql'
 \ir './verification/verification.psql'
+\ir './observer/observer.psql'

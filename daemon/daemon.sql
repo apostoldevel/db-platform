@@ -139,18 +139,23 @@ $$ LANGUAGE plpgsql
 -- daemon.notification ---------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает уведомления.
- * @param {text} pToken - Маркер JWT
+ * Возвращает уведомления указанной сессии.
  * @param {double precision} pDateFrom - События после указанной даты в секундах (Unix формат)
+ * @param {text} pSession - Сессия
+ * @param {text} pAgent - Агент
+ * @param {inet} pHost - IP адрес
  * @return {SETOF json}
  */
 CREATE OR REPLACE FUNCTION daemon.notification (
-  pToken        text,
-  pDateFrom     double precision
+  pDateFrom     double precision,
+  pSession		text,
+  pAgent        text DEFAULT null,
+  pHost         inet DEFAULT null
 ) RETURNS       SETOF json
 AS $$
 DECLARE
   r             record;
+  e             record;
 
   vMessage      text;
   vContext      text;
@@ -158,11 +163,19 @@ DECLARE
   ErrorCode     int;
   ErrorMessage  text;
 BEGIN
-  PERFORM daemon.validation(pToken);
+  IF SessionIn(pSession, pAgent, pHost) IS NULL THEN
+	PERFORM AuthenticateError(GetErrorMessage());
+  END IF;
 
   FOR r IN SELECT * FROM api.notification(to_timestamp(pDateFrom))
   LOOP
-	RETURN NEXT row_to_json(r);
+    IF CheckListenerFilter('notify', pSession, r.entitycode, r.classcode, r.actioncode, r.methodcode, r.object) THEN
+--	  RETURN NEXT row_to_json(r);
+	  FOR e IN EXECUTE format('SELECT * FROM api.get_%s($1)', r.entitycode) USING r.object
+	  LOOP
+		RETURN NEXT row_to_json(e);
+	  END LOOP;
+	END IF;
   END LOOP;
 
   RETURN;

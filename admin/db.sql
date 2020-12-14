@@ -1363,7 +1363,7 @@ CREATE TABLE db.token_header (
     host            inet,
     created         timestamptz NOT NULL DEFAULT Now(),
     updated         timestamptz NOT NULL DEFAULT Now(),
-    CONSTRAINT fk_oauth2_token_header FOREIGN KEY (oauth2) REFERENCES db.oauth2(id)
+    CONSTRAINT fk_token_header_oauth2 FOREIGN KEY (oauth2) REFERENCES db.oauth2(id)
 );
 
 COMMENT ON TABLE db.token_header IS 'Заголовок маркера.';
@@ -1897,6 +1897,7 @@ DECLARE
   vAgent    text;
 BEGIN
   IF (TG_OP = 'DELETE') THEN
+    DELETE FROM db.listener WHERE session = OLD.code;
     RETURN OLD;
   ELSIF (TG_OP = 'UPDATE') THEN
     IF OLD.code <> NEW.code THEN

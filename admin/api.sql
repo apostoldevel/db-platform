@@ -65,10 +65,7 @@ CREATE OR REPLACE FUNCTION api.signout (
 ) RETURNS       boolean
 AS $$
 BEGIN
-  IF NOT SignOut(pSession, pCloseAll) THEN
-    RAISE EXCEPTION '%', GetErrorMessage();
-  END IF;
-  RETURN true;
+  RETURN SignOut(pSession, pCloseAll);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -86,20 +83,19 @@ $$ LANGUAGE plpgsql
  * @return {text}
  */
 CREATE OR REPLACE FUNCTION api.authenticate (
-  pSession    text,
-  pSecret     text,
-  pAgent      text DEFAULT null,
-  pHost       inet DEFAULT null
-) RETURNS     text
+  pSession			text,
+  pSecret			text,
+  pAgent			text DEFAULT null,
+  pHost       		inet DEFAULT null,
+  OUT authorized    boolean,
+  OUT code			text,
+  OUT message		text
+) RETURNS			record
 AS $$
-DECLARE
-  vCode       text;
 BEGIN
-  vCode := Authenticate(pSession, pSecret, pAgent, pHost);
-  IF vCode IS NULL THEN
-    PERFORM AuthenticateError(GetErrorMessage());
-  END IF;
-  RETURN vCode;
+  code := Authenticate(pSession, pSecret, pAgent, pHost);
+  authorized := code IS NOT NULL;
+  message := GetErrorMessage();
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

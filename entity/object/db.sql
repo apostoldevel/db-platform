@@ -310,7 +310,7 @@ CREATE OR REPLACE FUNCTION aou (
 ) RETURNS       SETOF record
 AS $$
   WITH member_group AS (
-      SELECT pUserId AS userid UNION ALL SELECT userid FROM db.member_group WHERE member = pUserId
+      SELECT pUserId AS userid UNION SELECT userid FROM db.member_group WHERE member = pUserId
   )
   SELECT a.object, bit_or(a.deny), bit_or(a.allow), bit_or(a.mask)
     FROM db.aou a INNER JOIN member_group m ON a.userid = m.userid
@@ -333,7 +333,7 @@ CREATE OR REPLACE FUNCTION aou (
 ) RETURNS       SETOF record
 AS $$
   WITH member_group AS (
-      SELECT pUserId AS userid UNION ALL SELECT userid FROM db.member_group WHERE member = pUserId
+      SELECT pUserId AS userid UNION SELECT userid FROM db.member_group WHERE member = pUserId
   )
   SELECT a.object, bit_or(a.deny), bit_or(a.allow), bit_or(a.mask)
     FROM db.aou a INNER JOIN member_group m ON a.userid = m.userid
@@ -499,7 +499,7 @@ CREATE OR REPLACE FUNCTION AccessObjectUser (
 )
 AS $$
   WITH membergroup AS (
-      SELECT pUserId AS userid UNION ALL SELECT userid FROM db.member_group WHERE member = pUserId
+      SELECT pUserId AS userid UNION SELECT userid FROM db.member_group WHERE member = pUserId
   )
   SELECT a.object
     FROM db.aou a INNER JOIN membergroup m ON a.userid = m.userid AND a.entity = pEntity
@@ -1246,7 +1246,6 @@ DECLARE
   jSaveParams	jsonb;
 
   sLabel        text;
-  vActionCode	varchar;
 
   nClass        numeric;
   nAction       numeric;
@@ -1276,10 +1275,7 @@ BEGIN
   PERFORM InitParams(jSaveParams);
   PERFORM InitContext(nSaveObject, nSaveClass, nSaveMethod, nSaveAction);
 
-  SELECT code INTO vActionCode FROM db.action WHERE id = nAction;
-  IF vActionCode <> 'drop' THEN
-    PERFORM AddNotification(nClass, nAction, pMethod, pObject);
-  END IF;
+  PERFORM AddNotification(nClass, nAction, pMethod, pObject);
 
   RETURN GetMethodStack(pObject, pMethod);
 END;

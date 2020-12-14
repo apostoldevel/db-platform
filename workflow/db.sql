@@ -467,7 +467,7 @@ CREATE OR REPLACE FUNCTION acu (
 AS $$
   SELECT a.class, bit_or(a.deny), bit_or(a.allow), bit_or(a.mask)
     FROM db.acu a
-   WHERE a.userid IN (SELECT pUserId UNION ALL SELECT userid FROM db.member_group WHERE member = pUserId)
+   WHERE a.userid IN (SELECT pUserId UNION SELECT userid FROM db.member_group WHERE member = pUserId)
    GROUP BY a.class
 $$ LANGUAGE SQL
    SECURITY DEFINER
@@ -488,7 +488,7 @@ CREATE OR REPLACE FUNCTION acu (
 AS $$
   SELECT a.class, bit_or(a.deny), bit_or(a.allow), bit_or(a.mask)
     FROM db.acu a
-   WHERE a.userid IN (SELECT pUserId UNION ALL SELECT userid FROM db.member_group WHERE member = pUserId)
+   WHERE a.userid IN (SELECT pUserId UNION SELECT userid FROM db.member_group WHERE member = pUserId)
      AND a.class = pClass
    GROUP BY a.class
 $$ LANGUAGE SQL
@@ -1705,7 +1705,7 @@ CREATE OR REPLACE FUNCTION amu (
 AS $$
   SELECT a.method, bit_or(a.deny), bit_or(a.allow), bit_or(a.mask)
     FROM db.amu a
-   WHERE userid IN (SELECT pUserId UNION ALL SELECT userid FROM db.member_group WHERE member = pUserId)
+   WHERE userid IN (SELECT pUserId UNION SELECT userid FROM db.member_group WHERE member = pUserId)
    GROUP BY a.method
 $$ LANGUAGE SQL
    SECURITY DEFINER
@@ -1726,7 +1726,7 @@ CREATE OR REPLACE FUNCTION amu (
 AS $$
   SELECT a.method, bit_or(a.deny), bit_or(a.allow), bit_or(a.mask)
     FROM db.amu a
-   WHERE userid IN (SELECT pUserId UNION ALL SELECT userid FROM db.member_group WHERE member = pUserId)
+   WHERE userid IN (SELECT pUserId UNION SELECT userid FROM db.member_group WHERE member = pUserId)
      AND a.method = pMethod
    GROUP BY a.method
 $$ LANGUAGE SQL
