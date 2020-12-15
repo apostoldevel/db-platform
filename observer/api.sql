@@ -3,46 +3,46 @@
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
--- api.observer ----------------------------------------------------------------
+-- api.publisher ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW api.observer
+CREATE OR REPLACE VIEW api.publisher
 AS
-  SELECT * FROM Observer;
+  SELECT * FROM Publisher;
 
-GRANT SELECT ON api.observer TO administrator;
+GRANT SELECT ON api.publisher TO administrator;
 
 --------------------------------------------------------------------------------
--- api.observer ----------------------------------------------------------------
+-- api.publisher ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION api.observer (
+CREATE OR REPLACE FUNCTION api.publisher (
   pCode			text
-) RETURNS       SETOF api.observer
+) RETURNS       SETOF api.publisher
 AS $$
-  SELECT * FROM api.observer WHERE code = pCode;
+  SELECT * FROM api.publisher WHERE code = pCode;
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- api.get_observer ------------------------------------------------------------
+-- api.get_publisher ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
  * Возвращает наблюдателя.
  * @return {record}
  */
-CREATE OR REPLACE FUNCTION api.get_observer (
+CREATE OR REPLACE FUNCTION api.get_publisher (
   pId           numeric
-) RETURNS       SETOF api.observer
+) RETURNS       SETOF api.publisher
 AS $$
-  SELECT * FROM api.observer WHERE id = pId;
+  SELECT * FROM api.publisher WHERE id = pId;
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- api.list_observer -----------------------------------------------------------
+-- api.list_publisher -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
  * Возвращает наблюдателей в виде списка.
@@ -53,7 +53,7 @@ $$ LANGUAGE SQL
  * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
  * @return {SETOF api.object_group}
  */
-CREATE OR REPLACE FUNCTION api.list_observer (
+CREATE OR REPLACE FUNCTION api.list_publisher (
   pSearch		jsonb DEFAULT null,
   pFilter		jsonb DEFAULT null,
   pLimit		integer DEFAULT null,
@@ -62,7 +62,7 @@ CREATE OR REPLACE FUNCTION api.list_observer (
 ) RETURNS		SETOF api.object_group
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'observer', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+  RETURN QUERY EXECUTE api.sql('api', 'publisher', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -83,13 +83,11 @@ GRANT SELECT ON api.listener TO administrator;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.listener (
-  pObserver		numeric,
+  pPublisher	numeric,
   pSession		text
 ) RETURNS       SETOF api.listener
 AS $$
-  SELECT * FROM api.listener
-   WHERE observer = pObserver
-     AND session = pSession
+  SELECT * FROM api.listener WHERE publisher = pPublisher AND session = pSession
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -99,13 +97,14 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.add_listener (
-  pObserver		numeric,
+  pPublisher	numeric,
   pSession		text,
-  pFilter		jsonb
+  pFilter		jsonb,
+  pParams		jsonb
 ) RETURNS		void
 AS $$
 BEGIN
-  PERFORM CreateListener(pObserver, pSession, pFilter);
+  PERFORM CreateListener(pPublisher, pSession, pFilter, pParams);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -116,13 +115,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.update_listener (
-  pObserver		numeric,
+  pPublisher	numeric,
   pSession		text,
-  pFilter		jsonb
+  pFilter		jsonb,
+  pParams		jsonb
 ) RETURNS		boolean
 AS $$
 BEGIN
-  RETURN EditListener(pObserver, pSession, pFilter);
+  RETURN EditListener(pPublisher, pSession, pFilter, pParams);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -133,17 +133,18 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.set_listener (
-  pObserver		numeric,
+  pPublisher	numeric,
   pSession		text,
-  pFilter		jsonb
+  pFilter		jsonb,
+  pParams		jsonb
 ) RETURNS       SETOF api.listener
 AS $$
 BEGIN
-  IF NOT api.update_listener(pObserver, pSession, pFilter) THEN
-    PERFORM api.add_listener(pObserver, pSession, pFilter);
+  IF NOT api.update_listener(pPublisher, pSession, pFilter, pParams) THEN
+    PERFORM api.add_listener(pPublisher, pSession, pFilter, pParams);
   END IF;
 
-  RETURN QUERY SELECT * FROM api.get_listener(pObserver, pSession);
+  RETURN QUERY SELECT * FROM api.get_listener(pPublisher, pSession);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -157,11 +158,11 @@ $$ LANGUAGE plpgsql
  * @return {record}
  */
 CREATE OR REPLACE FUNCTION api.get_listener (
-  pObserver		numeric,
+  pPublisher	numeric,
   pSession		text
 ) RETURNS       SETOF api.listener
 AS $$
-  SELECT * FROM api.listener(pObserver, pSession);
+  SELECT * FROM api.listener(pPublisher, pSession);
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -198,16 +199,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.subscribe_observer (
-  pObserver		text,
+  pCode			text,
   pSession		text,
-  pFilter		jsonb
+  pFilter		jsonb,
+  pParams		jsonb
 ) RETURNS		SETOF api.listener
 AS $$
-DECLARE
-  nObserver		numeric;
 BEGIN
-  nObserver := GetObserver(pObserver);
-  RETURN QUERY SELECT * FROM api.set_listener(nObserver, coalesce(pSession, current_session()), coalesce(pFilter, '{}'::jsonb));
+  RETURN QUERY SELECT * FROM api.set_listener(GetPublisher(pCode), coalesce(pSession, current_session()), pFilter, pParams);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -218,17 +217,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.unsubscribe_observer (
-  pObserver		text,
+  pCode			text,
   pSession		text
 ) RETURNS		void
 AS $$
-DECLARE
-  nObserver		numeric;
 BEGIN
-  nObserver := GetObserver(pObserver);
-  PERFORM DeleteListener(nObserver, coalesce(pSession, current_session()));
+  PERFORM DeleteListener(GetPublisher(pCode), coalesce(pSession, current_session()));
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
-
