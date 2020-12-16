@@ -3,6 +3,93 @@
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
+-- api.observer ----------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Возвращает данные наблюдателя.
+ * @param {text} pSession - Сессия
+ * @param {timestamptz} pDateFrom - Дата начала периода
+ * @return {SETOF json}
+ */
+CREATE OR REPLACE FUNCTION api.observer (
+  pSession		text,
+  pDateFrom		timestamptz
+) RETURNS       SETOF json
+AS $$
+DECLARE
+  l             record;
+  r             record;
+  e             record;
+
+  type			text;
+  hook			jsonb;
+
+  vPublisher	text;
+  vUserName		text;
+BEGIN
+  FOR l IN SELECT * FROM db.listener WHERE session = pSession
+  LOOP
+	SELECT code INTO vPublisher FROM db.publisher WHERE id = l.publisher;
+
+	IF vPublisher = 'notify' THEN
+
+	  type := l.params->>'type';
+	  hook := l.params->'hook';
+
+	  FOR r IN SELECT * FROM api.notification(pDateFrom) ORDER BY id
+	  LOOP
+		IF IsListenerFilter(vPublisher, l.filter, jsonb_build_object('entity', r.entitycode, 'class', r.classcode, 'action', r.actioncode, 'method', r.methodcode, 'object', r.object)) THEN
+		  IF type = 'object' THEN
+			FOR e IN EXECUTE format('SELECT * FROM api.get_%s($1)', r.entitycode) USING r.object
+			LOOP
+			  RETURN NEXT row_to_json(e);
+			END LOOP;
+		  ELSIF type = 'hook' THEN
+			FOR e IN SELECT * FROM api.run(coalesce(hook->>'method', 'POST'), hook->>'path', hook->'payload')
+			LOOP
+			  RETURN NEXT e.run;
+			END LOOP;
+		  ELSE
+			RETURN NEXT row_to_json(r);
+		  END IF;
+		END IF;
+	  END LOOP;
+
+	ELSIF vPublisher = 'log' THEN
+
+	  vUserName := current_username();
+
+	  FOR r IN
+	    SELECT *
+		  FROM api.event_log
+		 WHERE username = vUserName
+		   AND datetime >= pDateFrom
+		 ORDER BY id
+	  LOOP
+		IF IsListenerFilter(vPublisher, l.filter, jsonb_build_object('type', r.type, 'code', r.code, 'category', r.category)) THEN
+		  RETURN NEXT row_to_json(r);
+		END IF;
+	  END LOOP;
+
+	ELSIF vPublisher = 'geo' THEN
+
+	  FOR r IN SELECT * FROM api.object_coordinates(pDateFrom) ORDER BY validfromdate
+	  LOOP
+		IF IsListenerFilter(vPublisher, l.filter, jsonb_build_object('code', r.code, 'object', r.object)) THEN
+		  RETURN NEXT row_to_json(r);
+		END IF;
+	  END LOOP;
+	END IF;
+
+  END LOOP;
+
+  RETURN;
+END;
+$$ LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- api.publisher ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -51,7 +138,7 @@ $$ LANGUAGE SQL
  * @param {integer} pLimit - Лимит по количеству строк
  * @param {integer} pOffSet - Пропустить указанное число строк
  * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.object_group}
+ * @return {SETOF api.publisher}
  */
 CREATE OR REPLACE FUNCTION api.list_publisher (
   pSearch		jsonb DEFAULT null,
@@ -59,7 +146,7 @@ CREATE OR REPLACE FUNCTION api.list_publisher (
   pLimit		integer DEFAULT null,
   pOffSet		integer DEFAULT null,
   pOrderBy		jsonb DEFAULT null
-) RETURNS		SETOF api.object_group
+) RETURNS		SETOF api.publisher
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'publisher', pSearch, pFilter, pLimit, pOffSet, pOrderBy);

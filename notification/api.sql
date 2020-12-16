@@ -21,13 +21,7 @@ CREATE OR REPLACE FUNCTION api.notification (
   pUserId		numeric DEFAULT current_userid()
 ) RETURNS       SETOF api.notification
 AS $$
-  WITH member_group AS (
-  	SELECT pUserId AS userid UNION SELECT userid FROM db.member_group WHERE member = pUserId
-  )
-  SELECT n.*
-    FROM api.notification n INNER JOIN db.aou a ON n.object = a.object
-			                INNER JOIN member_group m ON a.userid = m.userid AND a.mask & B'100' = B'100'
-   WHERE datetime >= pDateFrom
+  SELECT * FROM Notification(pDateFrom, pUserId);
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -58,7 +52,7 @@ $$ LANGUAGE SQL
  * @param {integer} pLimit - Лимит по количеству строк
  * @param {integer} pOffSet - Пропустить указанное число строк
  * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.object_group}
+ * @return {SETOF api.notification}
  */
 CREATE OR REPLACE FUNCTION api.list_notification (
   pSearch		jsonb DEFAULT null,

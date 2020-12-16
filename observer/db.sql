@@ -268,6 +268,12 @@ BEGIN
   IF vCode = 'notify' THEN
   	arFilter := array_cat(arFilter, ARRAY['entities', 'classes', 'actions', 'methods', 'objects']);
   	PERFORM CheckJsonbKeys('/listener/filter', arFilter, pFilter);
+  ELSIF vCode = 'log' THEN
+  	arFilter := array_cat(arFilter, ARRAY['types', 'codes', 'categories']);
+  	PERFORM CheckJsonbKeys('/listener/filter', arFilter, pFilter);
+  ELSIF vCode = 'geo' THEN
+  	arFilter := array_cat(arFilter, ARRAY['codes', 'objects']);
+  	PERFORM CheckJsonbKeys('/listener/filter', arFilter, pFilter);
   END IF;
 END;
 $$ LANGUAGE plpgsql
@@ -338,27 +344,57 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION IsListenerFilter (
   pPublisher	text,
   pFilter		jsonb,
-  pEntity		text,
-  pClass		text,
-  pAction		text,
-  pMethod		text,
-  pObject		numeric
+  pData			jsonb
 ) RETURNS		boolean
 AS $$
 DECLARE
-  r				record;
+  f				record;
+  d				record;
 BEGIN
   IF pPublisher = 'notify' THEN
-	FOR r IN SELECT * FROM jsonb_to_record(pFilter) AS x(entities jsonb, classes jsonb, actions jsonb, methods jsonb, objects jsonb)
+
+	FOR f IN SELECT * FROM jsonb_to_record(pFilter) AS x(entities jsonb, classes jsonb, actions jsonb, methods jsonb, objects jsonb)
 	LOOP
-	  IF array_position(coalesce(JsonbToStrArray(r.entities), ARRAY[pEntity]), pEntity) IS NOT NULL AND
-		 array_position(coalesce(JsonbToStrArray(r.classes) , ARRAY[pClass]) , pClass ) IS NOT NULL AND
-		 array_position(coalesce(JsonbToStrArray(r.actions) , ARRAY[pAction]), pAction) IS NOT NULL AND
-		 array_position(coalesce(JsonbToStrArray(r.methods) , ARRAY[pMethod]), pMethod) IS NOT NULL AND
-		 array_position(coalesce(JsonbToNumArray(r.objects) , ARRAY[pObject]), pObject) IS NOT NULL
-	  THEN
-		 RETURN true;
-	  END IF;
+	  FOR d IN SELECT * FROM jsonb_to_record(pData) AS x(entity text, class text, action text, method text, object numeric)
+	  LOOP
+		IF array_position(coalesce(JsonbToStrArray(f.entities), ARRAY[d.entity]), d.entity) IS NOT NULL AND
+		   array_position(coalesce(JsonbToStrArray(f.classes) , ARRAY[d.class]) , d.class ) IS NOT NULL AND
+		   array_position(coalesce(JsonbToStrArray(f.actions) , ARRAY[d.action]), d.action) IS NOT NULL AND
+		   array_position(coalesce(JsonbToStrArray(f.methods) , ARRAY[d.method]), d.method) IS NOT NULL AND
+		   array_position(coalesce(JsonbToNumArray(f.objects) , ARRAY[d.object]), d.object) IS NOT NULL
+		THEN
+		   RETURN true;
+		END IF;
+	  END LOOP;
+	END LOOP;
+
+  ELSIF pPublisher = 'log' THEN
+
+	FOR f IN SELECT * FROM jsonb_to_record(pFilter) AS x(types jsonb, codes jsonb, categories jsonb)
+	LOOP
+	  FOR d IN SELECT * FROM jsonb_to_record(pData) AS x(type text, code numeric, category text)
+	  LOOP
+		IF array_position(coalesce(JsonbToStrArray(f.types)     , ARRAY[d.type])    , d.type) IS NOT NULL AND
+		   array_position(coalesce(JsonbToNumArray(f.codes)     , ARRAY[d.code])    , d.code) IS NOT NULL AND
+		   array_position(coalesce(JsonbToStrArray(f.categories), ARRAY[d.category]), d.category) IS NOT NULL
+		THEN
+		   RETURN true;
+		END IF;
+	  END LOOP;
+	END LOOP;
+
+  ELSIF pPublisher = 'geo' THEN
+
+	FOR f IN SELECT * FROM jsonb_to_record(pFilter) AS x(codes jsonb, objects jsonb)
+	LOOP
+	  FOR d IN SELECT * FROM jsonb_to_record(pData) AS x(code text, object numeric)
+	  LOOP
+		IF array_position(coalesce(JsonbToNumArray(f.codes)  , ARRAY[d.code])  , d.code) IS NOT NULL AND
+		   array_position(coalesce(JsonbToNumArray(f.objects), ARRAY[d.object]), d.object) IS NOT NULL
+		THEN
+		   RETURN true;
+		END IF;
+	  END LOOP;
 	END LOOP;
   END IF;
 

@@ -59,6 +59,30 @@ AS
 GRANT SELECT ON Notification TO administrator;
 
 --------------------------------------------------------------------------------
+-- Notification ----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION Notification (
+  pDateFrom     timestamptz,
+  pUserId		numeric DEFAULT current_userid()
+) RETURNS       SETOF Notification
+AS $$
+  WITH access AS (
+	WITH member_group AS (
+		SELECT pUserId AS userid UNION SELECT userid FROM db.member_group WHERE member = pUserId
+	)
+	SELECT a.object, bit_or(a.mask) AS mask
+	  FROM db.notification n INNER JOIN db.aou       a ON n.object = a.object
+							 INNER JOIN member_group m ON a.userid = m.userid
+     WHERE n.datetime >= pDateFrom
+	 GROUP BY a.object
+  )
+  SELECT n.* FROM Notification n INNER JOIN access a ON n.object = a.object AND a.mask & B'100' = B'100'
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- FUNCTION CreateNotification -------------------------------------------------
 --------------------------------------------------------------------------------
 

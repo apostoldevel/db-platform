@@ -141,27 +141,20 @@ $$ LANGUAGE plpgsql
 /**
  * Возвращает данные наблюдателя.
  * @param {text} pSession - Сессия
- * @param {double precision} pDateFrom - Дата в секундах и милисекундах
+ * @param {double precision} pTimestamp - Дата в секундах и милисекундах
  * @param {text} pAgent - Агент
  * @param {inet} pHost - IP адрес
  * @return {SETOF json}
  */
 CREATE OR REPLACE FUNCTION daemon.observer (
   pSession		text,
-  pDateFrom     double precision,
+  pTimestamp	double precision,
   pAgent        text DEFAULT null,
   pHost         inet DEFAULT null
 ) RETURNS       SETOF json
 AS $$
 DECLARE
   r             record;
-  n             record;
-  e             record;
-
-  type			text;
-  hook			jsonb;
-
-  vPublisher	text;
 
   vMessage      text;
   vContext      text;
@@ -173,33 +166,9 @@ BEGIN
 	PERFORM AuthenticateError(GetErrorMessage());
   END IF;
 
-  FOR r IN SELECT * FROM db.listener WHERE session = pSession
+  FOR r IN SELECT * FROM api.observer(pSession, to_timestamp(pTimestamp))
   LOOP
-	SELECT code INTO vPublisher FROM db.publisher WHERE id = r.publisher;
-
-	IF vPublisher = 'notify' THEN
-	  type := r.params->>'type';
-	  hook := r.params->'hook';
-
-	  FOR n IN SELECT * FROM api.notification(to_timestamp(pDateFrom))
-	  LOOP
-		IF IsListenerFilter(vPublisher, r.filter, n.entitycode, n.classcode, n.actioncode, n.methodcode, n.object) THEN
-		  IF type = 'object' THEN
-			FOR e IN EXECUTE format('SELECT * FROM api.get_%s($1)', n.entitycode) USING n.object
-			LOOP
-			  RETURN NEXT row_to_json(e);
-			END LOOP;
-		  ELSIF type = 'hook' THEN
-			FOR e IN SELECT * FROM api.run(coalesce(hook->>'method', 'POST'), hook->>'path', hook->'payload')
-			LOOP
-			  RETURN NEXT e.run;
-			END LOOP;
-		  ELSE
-			RETURN NEXT row_to_json(n);
-		  END IF;
-		END IF;
-	  END LOOP;
-	END IF;
+	RETURN NEXT r.observer;
   END LOOP;
 
   RETURN;

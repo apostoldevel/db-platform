@@ -20,9 +20,9 @@ GRANT SELECT ON api.event_log TO administrator;
  * @return {SETOF api.event_log} - Записи
  */
 CREATE OR REPLACE FUNCTION api.event_log (
-  pUserName         text DEFAULT null,
-  pType		    char DEFAULT null,
-  pCode		    numeric DEFAULT null,
+  pUserName		text DEFAULT null,
+  pType			char DEFAULT null,
+  pCode			numeric DEFAULT null,
   pDateFrom	    timestamp DEFAULT null,
   pDateTo	    timestamp DEFAULT null
 ) RETURNS	    SETOF api.event_log

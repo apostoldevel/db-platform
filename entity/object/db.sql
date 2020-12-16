@@ -2218,6 +2218,31 @@ AS
 GRANT SELECT ON ObjectCoordinates TO administrator;
 
 --------------------------------------------------------------------------------
+-- ObjectCoordinates -----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION ObjectCoordinates (
+  pDateFrom     timestamptz,
+  pUserId		numeric DEFAULT current_userid()
+) RETURNS       SETOF ObjectCoordinates
+AS $$
+  WITH access AS (
+	WITH member_group AS (
+		SELECT pUserId AS userid UNION SELECT userid FROM db.member_group WHERE member = pUserId
+	)
+	SELECT a.object, bit_or(a.mask) AS mask
+	  FROM db.object_coordinates oc INNER JOIN db.aou       a ON oc.object = a.object
+							        INNER JOIN member_group m ON a.userid = m.userid
+     WHERE oc.validfromdate <= pDateFrom
+	   AND oc.validtodate > pDateFrom
+	 GROUP BY a.object
+  )
+  SELECT oc.* FROM ObjectCoordinates oc INNER JOIN access a ON oc.object = a.object AND a.mask & B'100' = B'100'
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- NewObjectCoordinates --------------------------------------------------------
 --------------------------------------------------------------------------------
 

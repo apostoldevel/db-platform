@@ -598,7 +598,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает данные группы объектов.
- * @return {record}
+ * @return {SETOF api.object_group}
  */
 CREATE OR REPLACE FUNCTION api.get_object_group (
   pId         numeric
@@ -1122,6 +1122,20 @@ AS
   SELECT * FROM ObjectCoordinates;
 
 GRANT SELECT ON api.object_coordinates TO administrator;
+
+--------------------------------------------------------------------------------
+-- api.object_coordinates ------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.object_coordinates (
+  pDateFrom     timestamptz,
+  pUserId		numeric DEFAULT current_userid()
+) RETURNS       SETOF api.object_coordinates
+AS $$
+  SELECT * FROM ObjectCoordinates(pDateFrom, pUserId);
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
 -- api.set_object_coordinates --------------------------------------------------
