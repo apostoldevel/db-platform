@@ -310,7 +310,18 @@ CREATE OR REPLACE FUNCTION ObjectNotFound (
 ) RETURNS	void
 AS $$
 BEGIN
-  RAISE EXCEPTION 'ERR-40033: Не найден(а/о) % с идентификатором: % (%).', pWho, pId, pParam;
+  RAISE EXCEPTION 'ERR-40033: Не найден(а/о) % с идентификатором (%): %.', pWho, pParam, pId;
+END;
+$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+
+CREATE OR REPLACE FUNCTION ObjectNotFound (
+  pWho		varchar,
+  pParam	varchar,
+  pCode		varchar
+) RETURNS	void
+AS $$
+BEGIN
+  RAISE EXCEPTION 'ERR-40033: Не найден(а/о) % по %: %.', pWho, pParam, pCode;
 END;
 $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
