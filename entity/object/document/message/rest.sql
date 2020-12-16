@@ -172,6 +172,106 @@ BEGIN
       END LOOP;
     END LOOP;
 
+  WHEN '/message/send' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, GetRoutines('send_message', 'api', false));
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN EXECUTE format('SELECT row_to_json(api.send_message(%s)) FROM jsonb_to_recordset($1) AS x(%s)', array_to_string(GetRoutines('send_message', 'api', false, 'x'), ', '), array_to_string(GetRoutines('send_message', 'api', true), ', ')) USING pPayload
+      LOOP
+        RETURN NEXT r;
+      END LOOP;
+
+    ELSE
+
+      FOR r IN EXECUTE format('SELECT row_to_json(api.send_message(%s)) FROM jsonb_to_record($1) AS x(%s)', array_to_string(GetRoutines('send_message', 'api', false, 'x'), ', '), array_to_string(GetRoutines('send_message', 'api', true), ', ')) USING pPayload
+      LOOP
+        RETURN NEXT r;
+      END LOOP;
+
+    END IF;
+
+  WHEN '/message/send/mail' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, GetRoutines('send_mail', 'api', false));
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN EXECUTE format('SELECT row_to_json(api.send_mail(%s)) FROM jsonb_to_recordset($1) AS x(%s)', array_to_string(GetRoutines('send_mail', 'api', false, 'x'), ', '), array_to_string(GetRoutines('send_mail', 'api', true), ', ')) USING pPayload
+      LOOP
+        RETURN NEXT r;
+      END LOOP;
+
+    ELSE
+
+      FOR r IN EXECUTE format('SELECT row_to_json(api.send_mail(%s)) FROM jsonb_to_record($1) AS x(%s)', array_to_string(GetRoutines('send_mail', 'api', false, 'x'), ', '), array_to_string(GetRoutines('send_mail', 'api', true), ', ')) USING pPayload
+      LOOP
+        RETURN NEXT r;
+      END LOOP;
+
+    END IF;
+
+  WHEN '/message/send/sms' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, GetRoutines('send_sms', 'api', false));
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN EXECUTE format('SELECT row_to_json(api.send_sms(%s)) FROM jsonb_to_recordset($1) AS x(%s)', array_to_string(GetRoutines('send_sms', 'api', false, 'x'), ', '), array_to_string(GetRoutines('send_sms', 'api', true), ', ')) USING pPayload
+      LOOP
+        RETURN NEXT r;
+      END LOOP;
+
+    ELSE
+
+      FOR r IN EXECUTE format('SELECT row_to_json(api.send_sms(%s)) FROM jsonb_to_record($1) AS x(%s)', array_to_string(GetRoutines('send_sms', 'api', false, 'x'), ', '), array_to_string(GetRoutines('send_sms', 'api', true), ', ')) USING pPayload
+      LOOP
+        RETURN NEXT r;
+      END LOOP;
+
+    END IF;
+
+  WHEN '/message/send/push' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, GetRoutines('send_push', 'api', false));
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN EXECUTE format('SELECT row_to_json(api.send_push(%s)) FROM jsonb_to_recordset($1) AS x(%s)', array_to_string(GetRoutines('send_push', 'api', false, 'x'), ', '), array_to_string(GetRoutines('send_push', 'api', true), ', ')) USING pPayload
+      LOOP
+        RETURN NEXT r;
+      END LOOP;
+
+    ELSE
+
+      FOR r IN EXECUTE format('SELECT row_to_json(api.send_push(%s)) FROM jsonb_to_record($1) AS x(%s)', array_to_string(GetRoutines('send_push', 'api', false, 'x'), ', '), array_to_string(GetRoutines('send_push', 'api', true), ', ')) USING pPayload
+      LOOP
+        RETURN NEXT r;
+      END LOOP;
+
+    END IF;
+
   ELSE
     PERFORM RouteNotFound(pPath);
   END CASE;

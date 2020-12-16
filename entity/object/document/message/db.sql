@@ -459,7 +459,7 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- SendMessage -----------------------------------------------------------------
+-- SendMail --------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SendMail (
@@ -480,10 +480,10 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- SendSMS ---------------------------------------------------------------------
+-- SendM2M ---------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION SendSMS (
+CREATE OR REPLACE FUNCTION SendM2M (
   pParent       numeric,
   pProfile      text,
   pAddress      text,
@@ -501,10 +501,10 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- SendPush --------------------------------------------------------------------
+-- SendFCM ---------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION SendPush (
+CREATE OR REPLACE FUNCTION SendFCM (
   pParent       numeric,
   pProfile      text,
   pAddress      text,
@@ -522,10 +522,10 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- SendShortMessage ------------------------------------------------------------
+-- SendSMS ---------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION SendShortMessage (
+CREATE OR REPLACE FUNCTION SendSMS (
   pParent       numeric,
   pProfile      text,
   pMessage      text,
@@ -548,7 +548,7 @@ BEGIN
   IF vPhone IS NOT NULL THEN
     message := xmlelement(name "soap12:Envelope", xmlattributes('http://www.w3.org/2001/XMLSchema-instance' AS "xmlns:xsi", 'http://www.w3.org/2001/XMLSchema' AS "xmlns:xsd", 'http://www.w3.org/2003/05/soap-envelope' AS "xmlns:soap12"), xmlelement(name "soap12:Body", xmlelement(name "SendMessage", xmlattributes('http://mcommunicator.ru/M2M' AS xmlns), xmlelement(name "msid", vPhone), xmlelement(name "message", pMessage), xmlelement(name "naming", pProfile))));
     vContent := format('<?xml version="1.0" encoding="%s"?>', vCharSet) || xmlserialize(DOCUMENT message AS text);
-    nMessageId := SendSMS(pParent, pProfile, vPhone, 'SendMessage', vContent, pMessage);
+    nMessageId := SendM2M(pParent, pProfile, vPhone, 'SendMessage', vContent, pMessage);
     PERFORM WriteToEventLog('M', 1111, format('SMS передано на отправку: %s', nMessageId), nMessageId);
   ELSE
     PERFORM WriteToEventLog('E', 3111, 'Не удалось отправить SMS, телефон не установлен.', pParent);
@@ -561,10 +561,10 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- SendPushMessage -------------------------------------------------------------
+-- SendPush --------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION SendPushMessage (
+CREATE OR REPLACE FUNCTION SendPush (
   pObject       numeric,
   pSubject		text,
   pData         json,
@@ -592,7 +592,7 @@ BEGIN
 
 	  message := json_build_object('message', json_build_object('token', token, 'android', json_build_object('priority', pPriority), 'data', pData));
 
-	  nMessageId := SendPush(pObject, projectId, GetUserName(pUserId), pSubject, message::text);
+	  nMessageId := SendFCM(pObject, projectId, GetUserName(pUserId), pSubject, message::text);
 	  PERFORM WriteToEventLog('M', 1111, format('Push сообщение передано на отправку: %s', nMessageId), pObject);
     END LOOP;
   ELSE

@@ -196,3 +196,143 @@ END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.send_message ------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.send_message (
+  pAgent        text,
+  pProfile      text,
+  pAddress      text,
+  pSubject      text,
+  pContent      text,
+  pDescription  text default null
+) RETURNS       SETOF api.message
+AS $$
+DECLARE
+  nAgent		numeric;
+  nMessageId	numeric;
+BEGIN
+  nAgent := GetAgent(pAgent);
+  IF nAgent IS NULL THEN
+    PERFORM ObjectNotFound('агент', 'code', pAgent);
+  END IF;
+
+  nMessageId := SendMessage(null, nAgent, pProfile, pAddress, pSubject, pContent, pDescription);
+
+  RETURN QUERY SELECT * FROM api.message WHERE id = nMessageId;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.send_mail ---------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.send_mail (
+  pSubject      text,
+  pText			text,
+  pHTML			text,
+  pDescription  text DEFAULT null,
+  pUserId		numeric DEFAULT current_userid()
+) RETURNS	    SETOF api.message
+AS $$
+DECLARE
+  vProject		text;
+  vDomain		text;
+  vProfile		text;
+  vName			text;
+  vEmail		text;
+  vBody			text;
+  bVerified		bool;
+  nMessageId	numeric;
+BEGIN
+  SELECT name, email, email_verified, locale INTO vName, vEmail, bVerified
+	FROM db.user u INNER JOIN db.profile p ON u.id = p.userid
+   WHERE id = pUserId;
+
+  IF vEmail IS NULL THEN
+    PERFORM EmailAddressNotSet();
+  END IF;
+
+  IF NOT bVerified THEN
+    PERFORM EmailAddressNotVerified(vEmail);
+  END IF;
+
+  vProject := (RegGetValue(RegOpenKey('CURRENT_CONFIG', 'CONFIG\CurrentProject'), 'Name')).vString;
+  vDomain := (RegGetValue(RegOpenKey('CURRENT_CONFIG', 'CONFIG\CurrentProject'), 'Domain')).vString;
+
+  vProfile := format('info@%s', vDomain);
+
+  vBody := CreateMailBody(vProject, vProfile, vName, vEmail, pSubject, pText, pHTML);
+
+  nMessageId := SendMail(null, vProfile, vEmail, pSubject, vBody, pDescription);
+
+  RETURN QUERY SELECT * FROM api.message WHERE id = nMessageId;
+END
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.send_sms ----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.send_sms (
+  pProfile      text,
+  pMessage      text,
+  pUserId		numeric DEFAULT current_userid()
+) RETURNS	    SETOF api.message
+AS $$
+DECLARE
+  vCharSet      text;
+  vName			text;
+  vPhone        text;
+  bVerified		bool;
+  nMessageId	numeric;
+BEGIN
+  vCharSet := coalesce(nullif(pg_client_encoding(), 'UTF8'), 'utf-8');
+
+  SELECT name, phone, phone_verified, locale INTO vName, vPhone, bVerified
+	FROM db.user u INNER JOIN db.profile p ON u.id = p.userid
+   WHERE id = pUserId;
+
+  IF vPhone IS NULL THEN
+    PERFORM PhoneNumberNotSet();
+  END IF;
+
+  IF NOT bVerified THEN
+    PERFORM PhoneNumberNotVerified(vPhone);
+  END IF;
+
+  nMessageId := SendSMS(null, pProfile, pMessage, pUserId);
+
+  RETURN QUERY SELECT * FROM api.message WHERE id = nMessageId;
+END
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.send_push ---------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.send_push (
+  pObject       numeric,
+  pSubject		text,
+  pData         json,
+  pUserId       numeric DEFAULT current_userid()
+) RETURNS	    SETOF api.message
+AS $$
+DECLARE
+  nMessageId	numeric;
+BEGIN
+  nMessageId := SendPush(pObject, pSubject, pData, pUserId);
+
+  RETURN QUERY SELECT * FROM api.message WHERE id = nMessageId;
+END
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;

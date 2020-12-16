@@ -141,6 +141,10 @@ CREATE OR REPLACE FUNCTION GetAgent (
 ) RETURNS 	numeric
 AS $$
 BEGIN
+  IF StrPos(pCode, '.') = 0 THEN
+    pCode := pCode || '.agent';
+  END IF;
+
   RETURN GetReference(pCode, 'agent');
 END;
 $$ LANGUAGE plpgsql

@@ -78,6 +78,7 @@ AS $$
 	 GROUP BY a.object
   )
   SELECT n.* FROM Notification n INNER JOIN access a ON n.object = a.object AND a.mask & B'100' = B'100'
+   WHERE n.datetime >= pDateFrom
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

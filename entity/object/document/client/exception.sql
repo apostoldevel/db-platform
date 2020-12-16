@@ -44,6 +44,31 @@ CREATE OR REPLACE FUNCTION EmailAddressNotVerified (
 ) RETURNS	void
 AS $$
 BEGIN
-  RAISE EXCEPTION 'ERR-40000: Адрес электронной почты "%" не подтвержден клиентом.', pEmail;
+  RAISE EXCEPTION 'ERR-40000: Адрес электронной почты "%" не подтверждён.', pEmail;
+END;
+$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+
+--------------------------------------------------------------------------------
+-- FUNCTION PhoneNumberNotSet  -------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION PhoneNumberNotSet (
+) RETURNS	void
+AS $$
+BEGIN
+  RAISE EXCEPTION 'ERR-40000: Не задан номер телефона.';
+END;
+$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+
+--------------------------------------------------------------------------------
+-- FUNCTION PhoneNumberNotVerified  --------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION PhoneNumberNotVerified (
+  pPhone    text
+) RETURNS	void
+AS $$
+BEGIN
+  RAISE EXCEPTION 'ERR-40000: Телефон "%" не подтверждён.', pPhone;
 END;
 $$ LANGUAGE plpgsql STRICT IMMUTABLE;

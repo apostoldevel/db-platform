@@ -2238,6 +2238,8 @@ AS $$
 	 GROUP BY a.object
   )
   SELECT oc.* FROM ObjectCoordinates oc INNER JOIN access a ON oc.object = a.object AND a.mask & B'100' = B'100'
+   WHERE oc.validfromdate <= pDateFrom
+	 AND oc.validtodate > pDateFrom
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
