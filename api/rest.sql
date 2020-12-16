@@ -97,7 +97,7 @@ BEGIN
 
     FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(session text, close_all boolean)
     LOOP
-      FOR e IN SELECT * FROM api.signout(coalesce(r.session, current_session()), r.close_all) AS success
+      FOR e IN SELECT *, GetErrorMessage() AS message FROM api.signout(coalesce(r.session, current_session()), r.close_all) AS success
       LOOP
         RETURN NEXT row_to_json(e);
       END LOOP;
