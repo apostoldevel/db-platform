@@ -42,6 +42,25 @@ CREATE INDEX ON db.notification (userid);
 CREATE INDEX ON db.notification (datetime);
 
 --------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION db.ft_notification_after_insert()
+RETURNS trigger AS $$
+BEGIN
+  PERFORM pg_notify('notification', row_to_json(NEW)::text);
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+
+CREATE TRIGGER t_notification_after_insert
+  AFTER INSERT ON db.notification
+  FOR EACH ROW
+  EXECUTE PROCEDURE db.ft_notification_after_insert();
+
+--------------------------------------------------------------------------------
 -- VIEW Notification -----------------------------------------------------------
 --------------------------------------------------------------------------------
 
