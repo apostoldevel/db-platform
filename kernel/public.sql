@@ -161,11 +161,11 @@ $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION IntToStr (
   pValue	numeric,
-  pFormat	text DEFAULT '999999999999'
+  pFormat	text DEFAULT 'FM999999999990'
 ) RETURNS	text
 AS $$
 BEGIN
-  RETURN trim(to_char(pValue, pFormat));
+  RETURN to_char(pValue, pFormat);
 END;
 $$ LANGUAGE plpgsql;
 

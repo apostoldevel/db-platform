@@ -180,7 +180,7 @@ BEGIN
 
   SELECT s.id INTO nState FROM db.state s WHERE s.class = nClass AND s.code = pCode;
   IF NOT FOUND THEN
-    RAISE EXCEPTION 'Неверный код состояния: "%".', pCode;
+    RAISE EXCEPTION 'ERR-40000: Неверный код состояния: "%".', pCode;
   END IF;
 
   PERFORM ChangeObjectState(pObject, nState);
