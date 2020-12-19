@@ -194,6 +194,43 @@ $$ LANGUAGE plpgsql
   SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- daemon.init_listen ----------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Инициализация слушателей.
+ * @return {void}
+ */
+CREATE OR REPLACE FUNCTION daemon.init_listen (
+) RETURNS       SETOF json
+AS $$
+DECLARE
+  vMessage      text;
+  vContext      text;
+
+  ErrorCode     int;
+  ErrorMessage  text;
+BEGIN
+  PERFORM InitListen();
+EXCEPTION
+WHEN others THEN
+  GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
+
+  PERFORM SetErrorMessage(vMessage);
+
+  SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
+
+  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, vContext);
+
+  RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
+
+  RETURN;
+END;
+$$ LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- daemon.login ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**

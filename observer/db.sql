@@ -204,6 +204,26 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- FUNCTION InitListen ---------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION InitListen (
+) RETURNS 		void
+AS $$
+DECLARE
+  r				record;
+BEGIN
+  FOR r IN SELECT * FROM db.publisher
+  LOOP
+	EXECUTE format('LISTEN %s;', r.code);
+    PERFORM WriteToEventLog('M', 5000, format('Запущен слушатель: %s.', r.code));
+  END LOOP;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- CheckCodes ------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
