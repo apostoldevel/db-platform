@@ -95,7 +95,7 @@ DECLARE
 
 --  vCode         varchar;
 BEGIN
-  nObject := CreateObject(pParent, pType, pName);
+  nObject := CreateObject(pParent, pType, pName, pDescription);
 
   nEntity := GetObjectEntity(nObject);
   nClass := GetObjectClass(nObject);
@@ -128,24 +128,8 @@ CREATE OR REPLACE FUNCTION EditReference (
   pDescription  text DEFAULT null
 ) RETURNS       void
 AS $$
-DECLARE
-  cParent       numeric;
-  cType         numeric;
-  cName         varchar;
 BEGIN
-  SELECT parent, type, label INTO cParent, cType, cName FROM db.object WHERE id = pId;
-
-  pParent := coalesce(pParent, cParent, 0);
-  pType := coalesce(pType, cType);
-  pName := coalesce(pName, cName);
-
-  IF pParent <> coalesce(cParent, 0) THEN
-    UPDATE db.object SET parent = CheckNull(pParent) WHERE id = pId;
-  END IF;
-
-  IF pType <> cType THEN
-    UPDATE db.object SET type = pType WHERE id = pId;
-  END IF;
+  PERFORM EditObject(pId, pParent, pType, pName, pDescription);
 
   UPDATE db.reference
      SET code = coalesce(pCode, code),

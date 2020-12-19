@@ -576,3 +576,13 @@ BEGIN
   RAISE EXCEPTION 'ERR-40063: Не установлена конечная точка для пути: "%".', pPath;
 END;
 $$ LANGUAGE plpgsql STRICT IMMUTABLE;
+
+CREATE OR REPLACE FUNCTION InvalidCodes (
+  pValid    text[],
+  pInvalid  text[]
+) RETURNS	void
+AS $$
+BEGIN
+  RAISE EXCEPTION 'ERR-40010: Некоторые коды недействительны: {верные=[%], неверные=[%]}', array_to_string(pValid, ', '), array_to_string(pInvalid, ', ');
+END;
+$$ LANGUAGE plpgsql STRICT IMMUTABLE;

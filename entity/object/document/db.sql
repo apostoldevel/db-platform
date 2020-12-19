@@ -86,15 +86,16 @@ CREATE OR REPLACE FUNCTION CreateDocument (
   pParent	    numeric,
   pType		    numeric,
   pLabel	    text DEFAULT null,
-  pDescription  text DEFAULT null
+  pDescription  text DEFAULT null,
+  pData			text DEFAULT null
 ) RETURNS 	    numeric
 AS $$
 DECLARE
   nObject	    numeric;
-  nEntity      numeric;
+  nEntity		numeric;
   nClass        numeric;
 BEGIN
-  nObject := CreateObject(pParent, pType, pLabel);
+  nObject := CreateObject(pParent, pType, pLabel, coalesce(pData, pDescription));
 
   nEntity := GetObjectEntity(nObject);
   nClass := GetObjectClass(nObject);
@@ -118,11 +119,12 @@ CREATE OR REPLACE FUNCTION EditDocument (
   pParent       numeric DEFAULT null,
   pType         numeric DEFAULT null,
   pLabel        text DEFAULT null,
-  pDescription  text DEFAULT null
+  pDescription  text DEFAULT null,
+  pData			text DEFAULT null
 ) RETURNS       void
 AS $$
 BEGIN
-  PERFORM EditObject(pId, pParent, pType, pLabel);
+  PERFORM EditObject(pId, pParent, pType, pLabel, coalesce(pData, pDescription));
 
   UPDATE db.document
      SET description = CheckNull(coalesce(pDescription, description, '<null>'))
@@ -160,7 +162,7 @@ CREATE OR REPLACE VIEW ObjectDocument (Id, Object, Parent,
   Entity, EntityCode, EntityName,
   Class, ClassCode, ClassLabel,
   Type, TypeCode, TypeName, TypeDescription,
-  Label, Description,
+  Label, Description, Data,
   StateType, StateTypeCode, StateTypeName,
   State, StateCode, StateLabel, LastUpdate,
   Owner, OwnerCode, OwnerName, Created,
@@ -178,7 +180,7 @@ AS
          d.entity, e.code, e.name,
          d.class, ct.code, ct.label,
          o.type, t.code, t.name, t.description,
-         o.label, d.description,
+         o.label, d.description, o.data,
          o.state_type, st.code, st.name,
          o.state, s.code, s.label, o.udate,
          o.owner, w.username, w.name, o.pdate,

@@ -14,6 +14,7 @@ CREATE TABLE db.object (
     owner		numeric(12) NOT NULL,
     oper		numeric(12) NOT NULL,
     label		text,
+    data		text,
     pdate		timestamp NOT NULL DEFAULT Now(),
     ldate		timestamp NOT NULL DEFAULT Now(),
     udate		timestamp NOT NULL DEFAULT Now(),
@@ -41,6 +42,7 @@ COMMENT ON COLUMN db.object.suid IS 'Системный пользователь
 COMMENT ON COLUMN db.object.owner IS 'Владелец (пользователь)';
 COMMENT ON COLUMN db.object.oper IS 'Пользователь совершивший последнюю операцию';
 COMMENT ON COLUMN db.object.label IS 'Метка';
+COMMENT ON COLUMN db.object.data IS 'Данные';
 COMMENT ON COLUMN db.object.pdate IS 'Физическая дата';
 COMMENT ON COLUMN db.object.ldate IS 'Логическая дата';
 COMMENT ON COLUMN db.object.udate IS 'Дата последнего изменения';
@@ -58,6 +60,9 @@ CREATE INDEX ON db.object (oper);
 
 CREATE INDEX ON db.object (label);
 CREATE INDEX ON db.object (label text_pattern_ops);
+
+CREATE INDEX ON db.object (data);
+CREATE INDEX ON db.object (data text_pattern_ops);
 
 CREATE INDEX ON db.object (pdate);
 CREATE INDEX ON db.object (ldate);
@@ -533,7 +538,7 @@ CREATE OR REPLACE VIEW Object (Id, Parent,
   Entity, EntityCode, EntityName,
   Class, ClassCode, ClassLabel,
   Type, TypeCode, TypeName, TypeDescription,
-  Label,
+  Label, Data,
   StateType, StateTypeCode, StateTypeName,
   State, StateCode, StateLabel, LastUpdate,
   Owner, OwnerCode, OwnerName, Created,
@@ -543,7 +548,7 @@ CREATE OR REPLACE VIEW Object (Id, Parent,
          o.entity, e.code, e.name,
          o.class, ct.code, ct.label,
          o.type, t.code, t.name, t.description,
-         o.label,
+         o.label, o.data,
          o.state_type, st.code, st.name,
          o.state, s.code, s.label, o.udate,
          o.owner, w.username, w.name, o.pdate,
@@ -565,14 +570,15 @@ GRANT SELECT ON Object TO administrator;
 CREATE OR REPLACE FUNCTION CreateObject (
   pParent	numeric,
   pType     numeric,
-  pLabel	text DEFAULT null
+  pLabel	text DEFAULT null,
+  pData		text DEFAULT null
 ) RETURNS 	numeric
 AS $$
 DECLARE
   nId		numeric;
 BEGIN
-  INSERT INTO db.object (parent, type, label)
-  VALUES (pParent, pType, pLabel)
+  INSERT INTO db.object (parent, type, label, data)
+  VALUES (pParent, pType, pLabel, pData)
   RETURNING id INTO nId;
 
   RETURN nId;
@@ -586,17 +592,19 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EditObject (
-  pId           numeric,
-  pParent       numeric DEFAULT null,
-  pType         numeric DEFAULT null,
-  pLabel        text DEFAULT null
-) RETURNS       void
+  pId		numeric,
+  pParent	numeric DEFAULT null,
+  pType		numeric DEFAULT null,
+  pLabel	text DEFAULT null,
+  pData		text DEFAULT null
+) RETURNS	void
 AS $$
 BEGIN
   UPDATE db.object
      SET type = coalesce(pType, type),
          parent = CheckNull(coalesce(pParent, parent, 0)),
-         label = CheckNull(coalesce(pLabel, label, '<null>'))
+         label = CheckNull(coalesce(pLabel, label, '<null>')),
+         data = CheckNull(coalesce(pData, data, '<null>'))
    WHERE id = pId;
 END;
 $$ LANGUAGE plpgsql

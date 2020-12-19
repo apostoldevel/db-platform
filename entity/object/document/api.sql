@@ -21,17 +21,19 @@ GRANT SELECT ON api.document TO administrator;
  * @param {varchar} pType - Тип
  * @param {text} pLabel - Метка
  * @param {text} pDescription - Описание
+ * @param {text} pData - Данные
  * @return {numeric}
  */
 CREATE OR REPLACE FUNCTION api.add_document (
   pParent       numeric,
   pType         varchar,
   pLabel        text default null,
-  pDescription  text DEFAULT null
+  pDescription  text DEFAULT null,
+  pData			text DEFAULT null
 ) RETURNS       numeric
 AS $$
 BEGIN
-  RETURN CreateDocument(pParent, GetType(lower(pType)), pLabel, pDescription);
+  RETURN CreateDocument(pParent, GetType(lower(pType)), pLabel, pDescription, pData);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -46,6 +48,7 @@ $$ LANGUAGE plpgsql
  * @param {varchar} pType - Тип
  * @param {text} pLabel - Метка
  * @param {text} pDescription - Описание
+ * @param {text} pData - Данные
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_document (
@@ -53,12 +56,13 @@ CREATE OR REPLACE FUNCTION api.update_document (
   pParent       numeric default null,
   pType         varchar default null,
   pLabel        text default null,
-  pDescription  text DEFAULT null
+  pDescription  text DEFAULT null,
+  pData			text DEFAULT null
 ) RETURNS       void
 AS $$
 DECLARE
   nType         numeric;
-  nDocument       numeric;
+  nDocument		numeric;
 BEGIN
   SELECT t.id INTO nDocument FROM db.document t WHERE t.id = pId;
 
@@ -72,7 +76,7 @@ BEGIN
     SELECT o.type INTO nType FROM db.object o WHERE o.id = pId;
   END IF;
 
-  PERFORM EditDocument(nDocument, pParent, nType,pLabel, pDescription);
+  PERFORM EditDocument(nDocument, pParent, nType,pLabel, pDescription, pData);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -87,14 +91,15 @@ CREATE OR REPLACE FUNCTION api.set_document (
   pParent       numeric default null,
   pType         varchar default null,
   pLabel        text default null,
-  pDescription  text DEFAULT null
+  pDescription  text DEFAULT null,
+  pData			text DEFAULT null
 ) RETURNS       SETOF api.document
 AS $$
 BEGIN
   IF pId IS NULL THEN
-    pId := api.add_document(pParent, pType, pLabel, pDescription);
+    pId := api.add_document(pParent, pType, pLabel, pDescription, pData);
   ELSE
-    PERFORM api.update_document(pId, pParent, pType, pLabel, pDescription);
+    PERFORM api.update_document(pId, pParent, pType, pLabel, pDescription, pData);
   END IF;
 
   RETURN QUERY SELECT * FROM api.document WHERE id = pId;

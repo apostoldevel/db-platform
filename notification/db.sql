@@ -46,7 +46,7 @@ CREATE INDEX ON db.notification (datetime);
 CREATE OR REPLACE FUNCTION db.ft_notification_after_insert()
 RETURNS trigger AS $$
 BEGIN
-  PERFORM pg_notify('notification', row_to_json(NEW)::text);
+  PERFORM pg_notify('notify', row_to_json(NEW)::text);
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql

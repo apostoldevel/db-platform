@@ -140,15 +140,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает данные наблюдателя.
+ * @param {text} pPublisher - Издатель
  * @param {text} pSession - Сессия
- * @param {double precision} pTimestamp - Дата в секундах и милисекундах
+ * @param {json} pData - Данные
  * @param {text} pAgent - Агент
  * @param {inet} pHost - IP адрес
  * @return {SETOF json}
  */
 CREATE OR REPLACE FUNCTION daemon.observer (
-  pSession		text,
-  pTimestamp	double precision,
+  pPublisher	text,
+  pSession		varchar,
+  pData			jsonb,
   pAgent        text DEFAULT null,
   pHost         inet DEFAULT null
 ) RETURNS       SETOF json
@@ -166,9 +168,9 @@ BEGIN
 	PERFORM AuthenticateError(GetErrorMessage());
   END IF;
 
-  FOR r IN SELECT * FROM api.observer(pSession, to_timestamp(pTimestamp))
+  FOR r IN SELECT * FROM EventListener(pPublisher, pSession, pData) AS data
   LOOP
-	RETURN NEXT r.observer;
+	RETURN NEXT r.data;
   END LOOP;
 
   RETURN;

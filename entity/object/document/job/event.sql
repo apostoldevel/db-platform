@@ -12,6 +12,7 @@ CREATE OR REPLACE FUNCTION EventJobCreate (
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1010, 'Задание создано.', pObject);
+  PERFORM ExecuteObjectAction(pObject, GetAction('enable'));
 END;
 $$ LANGUAGE plpgsql;
 

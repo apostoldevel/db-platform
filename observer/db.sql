@@ -7,20 +7,16 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.publisher (
-    id			numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
-    code		text NOT NULL,
+    code		text PRIMARY KEY,
     name		text NOT NULL,
 	description text
 );
 
 COMMENT ON TABLE db.publisher IS 'Издатель.';
 
-COMMENT ON COLUMN db.publisher.id IS 'Идентификатор';
 COMMENT ON COLUMN db.publisher.code IS 'Код';
 COMMENT ON COLUMN db.publisher.name IS 'Наименование';
 COMMENT ON COLUMN db.publisher.description IS 'Описание';
-
-CREATE INDEX ON db.publisher (code);
 
 --------------------------------------------------------------------------------
 -- VIEW Publisher --------------------------------------------------------------
@@ -40,16 +36,11 @@ CREATE OR REPLACE FUNCTION CreatePublisher (
   pCode   		text,
   pName			text,
   pDescription	text DEFAULT null
-) RETURNS		numeric
+) RETURNS		void
 AS $$
-DECLARE
-  nId			numeric;
 BEGIN
   INSERT INTO db.publisher (code, name, description)
-  VALUES (pCode, pName, pDescription)
-  RETURNING id INTO nId;
-
-  RETURN nId;
+  VALUES (pCode, pName, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -60,18 +51,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EditPublisher (
-  pId       	numeric,
-  pCode   		text DEFAULT null,
+  pCode   		text,
   pName			text DEFAULT null,
   pDescription	text DEFAULT null
 ) RETURNS		void
 AS $$
 BEGIN
   UPDATE db.publisher
-     SET code = coalesce(pCode, code),
-         name = coalesce(pName, name),
+     SET name = coalesce(pName, name),
          description = coalesce(pDescription, description)
-   WHERE id = pId;
+   WHERE code = pCode;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -82,47 +71,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DeletePublisher (
-  pId		numeric
-) RETURNS 	void
+  pCode   		text
+) RETURNS 		void
 AS $$
 BEGIN
-  DELETE FROM db.publisher WHERE id = pId;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- FUNCTION GetPublisher -------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION GetPublisher (
-  pCode         text
-) RETURNS       numeric
-AS $$
-DECLARE
-  nId			numeric;
-BEGIN
-  SELECT id INTO nId FROM db.publisher WHERE code = pCode;
-  RETURN nId;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- FUNCTION GetPublisherCode ---------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION GetPublisherCode (
-  pId			numeric
-) RETURNS       text
-AS $$
-DECLARE
-  vCode			text;
-BEGIN
-  SELECT code INTO vCode FROM db.publisher WHERE id = pId;
-  RETURN vCode;
+  DELETE FROM db.publisher WHERE code = pCode;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -133,12 +86,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.listener (
-    publisher	numeric(12) NOT NULL,
+    publisher	text NOT NULL,
     session		varchar(40) NOT NULL,
     filter		jsonb NOT NULL,
     params		jsonb NOT NULL,
     CONSTRAINT pk_listener PRIMARY KEY(publisher, session),
-    CONSTRAINT fk_listener_publisher FOREIGN KEY (publisher) REFERENCES db.publisher(id),
+    CONSTRAINT fk_listener_publisher FOREIGN KEY (publisher) REFERENCES db.publisher(code),
     CONSTRAINT fk_listener_session FOREIGN KEY (session) REFERENCES db.session(code)
 );
 
@@ -155,8 +108,7 @@ COMMENT ON COLUMN db.listener.params IS 'Параметры';
 
 CREATE OR REPLACE VIEW Listener
 AS
-  SELECT l.publisher, o.code, o.name, o.description, l.session, l.filter, l.params
-    FROM db.listener l INNER JOIN publisher o on l.publisher = o.id;
+  SELECT * FROM db.listener;
 
 GRANT SELECT ON Listener TO administrator;
 
@@ -165,8 +117,8 @@ GRANT SELECT ON Listener TO administrator;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateListener (
-  pPublisher	numeric,
-  pSession		text,
+  pPublisher	text,
+  pSession		varchar,
   pFilter		jsonb,
   pParams		jsonb
 ) RETURNS		void
@@ -200,8 +152,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EditListener (
-  pPublisher	numeric,
-  pSession		text,
+  pPublisher	text,
+  pSession		varchar,
   pFilter		jsonb,
   pParams		jsonb
 ) RETURNS		boolean
@@ -240,8 +192,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DeleteListener (
-  pPublisher	numeric,
-  pSession		text
+  pPublisher	text,
+  pSession		varchar
 ) RETURNS 		void
 AS $$
 BEGIN
@@ -252,26 +204,93 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- CheckCodes ------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION CheckCodes (
+  pSource		text[],
+  pCodes		text[]
+) RETURNS       text[]
+AS $$
+DECLARE
+  arValid       text[];
+  arInvalid     text[];
+BEGIN
+  IF pCodes IS NOT NULL THEN
+    FOR i IN 1..array_length(pCodes, 1)
+    LOOP
+      IF array_position(pSource, pCodes[i]) IS NULL THEN
+        arInvalid := array_append(arInvalid, pCodes[i]);
+      ELSE
+        arValid := array_append(arValid, pCodes[i]);
+      END IF;
+    END LOOP;
+
+    IF arInvalid IS NOT NULL THEN
+
+      IF arValid IS NULL THEN
+        arValid := array_append(arValid, '');
+      END IF;
+
+      PERFORM InvalidCodes(arValid, arInvalid);
+    END IF;
+  END IF;
+
+  RETURN arValid;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- FUNCTION CheckListenerFilter ------------------------------------------------
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CheckListenerFilter (
-  pPublisher	numeric,
+  pPublisher	text,
   pFilter		jsonb
 ) RETURNS		void
 AS $$
 DECLARE
-  vCode			text;
+  r				record;
+
   arFilter		text[];
+  arSource		text[];
 BEGIN
-  vCode := GetPublisherCode(pPublisher);
-  IF vCode = 'notify' THEN
+  IF pPublisher = 'notify' THEN
+
   	arFilter := array_cat(arFilter, ARRAY['entities', 'classes', 'actions', 'methods', 'objects']);
   	PERFORM CheckJsonbKeys('/listener/filter', arFilter, pFilter);
-  ELSIF vCode = 'log' THEN
+
+	FOR r IN SELECT code FROM db.entity
+	LOOP
+	  arSource := array_append(arSource, r.code::text);
+	END LOOP;
+
+  	PERFORM CheckCodes(arSource, JsonbToStrArray(pFilter->'entities'));
+
+    arSource := NULL;
+
+	FOR r IN SELECT code FROM db.class_tree
+	LOOP
+	  arSource := array_append(arSource, r.code::text);
+	END LOOP;
+
+  	PERFORM CheckCodes(arSource, JsonbToStrArray(pFilter->'classes'));
+
+    arSource := NULL;
+
+	FOR r IN SELECT code FROM db.action
+	LOOP
+	  arSource := array_append(arSource, r.code::text);
+	END LOOP;
+
+  	PERFORM CheckCodes(arSource, JsonbToStrArray(pFilter->'actions'));
+
+  ELSIF pPublisher = 'log' THEN
   	arFilter := array_cat(arFilter, ARRAY['types', 'codes', 'categories']);
   	PERFORM CheckJsonbKeys('/listener/filter', arFilter, pFilter);
-  ELSIF vCode = 'geo' THEN
+  ELSIF pPublisher = 'geo' THEN
   	arFilter := array_cat(arFilter, ARRAY['codes', 'objects']);
   	PERFORM CheckJsonbKeys('/listener/filter', arFilter, pFilter);
   END IF;
@@ -285,13 +304,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CheckListenerParams (
-  pPublisher	numeric,
+  pPublisher	text,
   pParams		jsonb
 ) RETURNS		void
 AS $$
 DECLARE
-  vCode			text;
-
   type			text;
   path			text;
 
@@ -300,8 +317,7 @@ DECLARE
   arParams		text[];
   arValues      text[];
 BEGIN
-  vCode := GetPublisherCode(pPublisher);
-  IF vCode = 'notify' THEN
+  IF pPublisher = 'notify' THEN
 	arParams := array_cat(null, ARRAY['type', 'hook']);
 	PERFORM CheckJsonbKeys('/listener/params', arParams, pParams);
 
@@ -338,11 +354,12 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- FUNCTION IsListenerFilter ---------------------------------------------------
+-- FUNCTION FilterListener -----------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION IsListenerFilter (
+CREATE OR REPLACE FUNCTION FilterListener (
   pPublisher	text,
+  pSession		varchar,
   pFilter		jsonb,
   pData			jsonb
 ) RETURNS		boolean
@@ -350,56 +367,104 @@ AS $$
 DECLARE
   f				record;
   d				record;
+
+  nUserId		numeric;
+  vUserName		text;
+
+  vEntityCode	text;
+  vClassCode	text;
+  vActionCode	text;
+  vMethodCode	text;
 BEGIN
-  IF pPublisher = 'notify' THEN
+  SELECT userid INTO nUserId FROM db.session WHERE code = pSession;
 
-	FOR f IN SELECT * FROM jsonb_to_record(pFilter) AS x(entities jsonb, classes jsonb, actions jsonb, methods jsonb, objects jsonb)
-	LOOP
-	  FOR d IN SELECT * FROM jsonb_to_record(pData) AS x(entity text, class text, action text, method text, object numeric)
+  CASE pPublisher
+  WHEN 'notify' THEN
+
+	SELECT * INTO f FROM jsonb_to_record(pFilter) AS x(entities jsonb, classes jsonb, actions jsonb, methods jsonb, objects jsonb);
+	SELECT * INTO d FROM jsonb_to_record(pData) AS x(entity numeric, class numeric, action numeric, method numeric, object numeric);
+
+	SELECT code INTO vEntityCode FROM db.entity WHERE id = d.entity;
+	SELECT code INTO vClassCode FROM db.class_tree WHERE id = d.class;
+	SELECT code INTO vActionCode FROM db.action WHERE id = d.action;
+	SELECT code INTO vMethodCode FROM db.method WHERE id = d.method;
+
+	RETURN array_position(coalesce(JsonbToStrArray(f.entities), ARRAY[vEntityCode]), vEntityCode) IS NOT NULL AND
+           array_position(coalesce(JsonbToStrArray(f.classes), ARRAY[vClassCode]), vClassCode) IS NOT NULL AND
+           array_position(coalesce(JsonbToStrArray(f.actions), ARRAY[vActionCode]), vActionCode) IS NOT NULL AND
+           array_position(coalesce(JsonbToStrArray(f.methods), ARRAY[vMethodCode]), vMethodCode) IS NOT NULL AND
+           array_position(coalesce(JsonbToNumArray(f.objects), ARRAY[d.object]), d.object) IS NOT NULL AND
+	       CheckObjectAccess(d.object, B'100', nUserId);
+
+  WHEN 'log' THEN
+
+    SELECT username INTO vUserName FROM db.user WHERE id = nUserId;
+
+	SELECT * INTO f FROM jsonb_to_record(pFilter) AS x(types jsonb, codes jsonb, categories jsonb);
+	SELECT * INTO d FROM jsonb_to_record(pData) AS x(type text, code numeric, category text);
+
+	RETURN vUserName = pData->>'username' AND
+	       array_position(coalesce(JsonbToStrArray(f.types), ARRAY[d.type]), d.type) IS NOT NULL AND
+		   array_position(coalesce(JsonbToNumArray(f.codes), ARRAY[d.code]), d.code) IS NOT NULL AND
+		   array_position(coalesce(JsonbToStrArray(f.categories), ARRAY[d.category]), d.category) IS NOT NULL;
+
+  WHEN 'geo' THEN
+
+	SELECT * INTO f FROM jsonb_to_record(pFilter) AS x(codes jsonb, objects jsonb);
+	SELECT * INTO d FROM jsonb_to_record(pData) AS x(code text, object numeric);
+
+	RETURN array_position(coalesce(JsonbToNumArray(f.codes), ARRAY[d.code]), d.code) IS NOT NULL AND
+           array_position(coalesce(JsonbToNumArray(f.objects), ARRAY[d.object]), d.object) IS NOT NULL AND
+	       CheckObjectAccess(d.object, B'100', nUserId);
+
+  ELSE
+  	RETURN false;
+  END CASE;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION EventListener ------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION EventListener (
+  pPublisher	text,
+  pSession		varchar,
+  pData			jsonb
+) RETURNS       SETOF json
+AS $$
+DECLARE
+  r             record;
+  e             record;
+
+  type			text;
+  hook			jsonb;
+BEGIN
+  SELECT * INTO r FROM db.listener WHERE publisher = pPublisher AND session = pSession;
+
+  IF FOUND AND FilterListener(r.publisher, r.session, r.filter, pData) THEN
+	type := r.params->>'type';
+	hook := r.params->'hook';
+
+	IF type = 'object' THEN
+	  FOR e IN EXECUTE format('SELECT * FROM api.get_%s($1)', GetEntityCode((pData->>'entity')::numeric)) USING (pData->>'object')::numeric
 	  LOOP
-		IF array_position(coalesce(JsonbToStrArray(f.entities), ARRAY[d.entity]), d.entity) IS NOT NULL AND
-		   array_position(coalesce(JsonbToStrArray(f.classes) , ARRAY[d.class]) , d.class ) IS NOT NULL AND
-		   array_position(coalesce(JsonbToStrArray(f.actions) , ARRAY[d.action]), d.action) IS NOT NULL AND
-		   array_position(coalesce(JsonbToStrArray(f.methods) , ARRAY[d.method]), d.method) IS NOT NULL AND
-		   array_position(coalesce(JsonbToNumArray(f.objects) , ARRAY[d.object]), d.object) IS NOT NULL
-		THEN
-		   RETURN true;
-		END IF;
+		RETURN NEXT row_to_json(e);
 	  END LOOP;
-	END LOOP;
-
-  ELSIF pPublisher = 'log' THEN
-
-	FOR f IN SELECT * FROM jsonb_to_record(pFilter) AS x(types jsonb, codes jsonb, categories jsonb)
-	LOOP
-	  FOR d IN SELECT * FROM jsonb_to_record(pData) AS x(type text, code numeric, category text)
+	ELSIF type = 'hook' THEN
+	  FOR e IN SELECT * FROM api.run(coalesce(hook->>'method', 'POST'), hook->>'path', hook->'payload')
 	  LOOP
-		IF array_position(coalesce(JsonbToStrArray(f.types)     , ARRAY[d.type])    , d.type) IS NOT NULL AND
-		   array_position(coalesce(JsonbToNumArray(f.codes)     , ARRAY[d.code])    , d.code) IS NOT NULL AND
-		   array_position(coalesce(JsonbToStrArray(f.categories), ARRAY[d.category]), d.category) IS NOT NULL
-		THEN
-		   RETURN true;
-		END IF;
+		RETURN NEXT e.run;
 	  END LOOP;
-	END LOOP;
-
-  ELSIF pPublisher = 'geo' THEN
-
-	FOR f IN SELECT * FROM jsonb_to_record(pFilter) AS x(codes jsonb, objects jsonb)
-	LOOP
-	  FOR d IN SELECT * FROM jsonb_to_record(pData) AS x(code text, object numeric)
-	  LOOP
-		IF array_position(coalesce(JsonbToNumArray(f.codes)  , ARRAY[d.code])  , d.code) IS NOT NULL AND
-		   array_position(coalesce(JsonbToNumArray(f.objects), ARRAY[d.object]), d.object) IS NOT NULL
-		THEN
-		   RETURN true;
-		END IF;
-	  END LOOP;
-	END LOOP;
+	ELSE
+	  RETURN NEXT pData;
+	END IF;
   END IF;
 
-  RETURN false;
-END;
+  RETURN;
+END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
