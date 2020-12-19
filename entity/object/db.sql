@@ -191,7 +191,11 @@ BEGIN
 
   IF OLD.owner <> NEW.owner THEN
     DELETE FROM db.aou WHERE object = NEW.id AND userid = OLD.owner AND mask = B'111';
-    INSERT INTO db.aou SELECT NEW.id, NEW.owner, B'000', B'111';
+
+	UPDATE db.aou SET deny = B'000', allow = B'111' WHERE object = NEW.id AND userid = NEW.owner;
+	IF NOT FOUND THEN
+	  INSERT INTO db.aou SELECT NEW.id, NEW.owner, B'000', B'111';
+	END IF;
   END IF;
 
   NEW.oper := current_userid();
