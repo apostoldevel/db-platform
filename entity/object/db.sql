@@ -1294,7 +1294,9 @@ BEGIN
   PERFORM InitContext(pObject, nClass, pMethod, nAction);
   PERFORM InitParams(pParams);
 
-  PERFORM ExecuteAction(nClass, nAction);
+  BEGIN
+    PERFORM ExecuteAction(nClass, nAction);
+  END;
 
   PERFORM InitParams(jSaveParams);
   PERFORM InitContext(nSaveObject, nSaveClass, nSaveMethod, nSaveAction);
