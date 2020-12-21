@@ -332,3 +332,17 @@ END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- Actions ---------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+SELECT AddAction('heartbeat', 'Heartbeat');
+
+SELECT AddAction('available', 'Available');
+SELECT AddAction('preparing', 'Preparing');
+SELECT AddAction('finishing', 'Finishing');
+SELECT AddAction('reserved', 'Reserved');
+SELECT AddAction('unavailable', 'Unavailable');
+SELECT AddAction('faulted', 'Faulted');
+

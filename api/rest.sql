@@ -411,7 +411,7 @@ BEGIN
       PERFORM JsonIsEmpty();
     END IF;
 
-    arKeys := array_cat(arKeys, GetRoutines('get_method', 'api', false));
+    arKeys := array_cat(arKeys, GetRoutines('get_methods', 'api', false));
     arKeys := array_cat(arKeys, ARRAY['classcode', 'statecode', 'actioncode']);
 
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);

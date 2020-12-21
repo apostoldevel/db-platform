@@ -11,7 +11,7 @@ DECLARE
   nReference  numeric;
 BEGIN
   -- Объект
-  
+
   PERFORM CreateEntityObject(null);
 
   nObject := GetClass('object');
@@ -19,7 +19,7 @@ BEGIN
     -- Документ
 
     PERFORM CreateEntityDocument(nObject);
-  
+
     nDocument := GetClass('document');
 
       -- Адрес
@@ -55,6 +55,10 @@ BEGIN
       -- Календарь
 
       PERFORM CreateEntityCalendar(nReference);
+
+      -- Категория
+
+      PERFORM CreateEntityCategory(nReference);
 
       -- Модель
 
