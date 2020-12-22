@@ -2504,7 +2504,7 @@ address | STRING | Полный адрес.
 ------------ | ------------ | ------------
 code | STRING | Код клиента.
 userId | NUMERIC | Идентификатор учётной записи клиента.
-fullname | STRING | Полное наименование компании/Ф.И.О..
+fullname | STRING | Полное наименование компании/Ф.И.О.
 shortname | STRING | Краткое наименование компании.
 lastname | STRING | Фамилия.
 firstname | STRING | Имя.
@@ -2520,34 +2520,22 @@ localename | STRING | Наименование локали.
 
 Поле | Тип | Описание
 ------------ | ------------ | ------------
-code | STRING | Код клиента.
-userId | NUMERIC | Идентификатор учётной записи клиента.
-fullname | STRING | Полное наименование компании/Ф.И.О..
-shortname | STRING | Краткое наименование компании.
-lastname | STRING | Фамилия.
-firstname | STRING | Имя.
-middlename | STRING | Отчество.
-phone | JSON | Справочник телефонов.
-email | JSON | Электронные адреса.
-info | JSON | Дополнительная информация.
-locale | NUMERIC | Идентификатор локали.
-localecode | STRING | Код локали.
-localename | STRING | Наименование локали.
+agent | NUMERIC | Идентификатор агента.
+code | STRING | Код.
+profile | STRING | Профиль отправителя.
+address | STRING | Адрес получателя.
+subject | STRING | Тема.
+content | STRING | Содержимое.
 
 ### Устройство (device)
 
 Поле | Тип | Описание
 ------------ | ------------ | ------------
-code | STRING | Код клиента.
-userId | NUMERIC | Идентификатор учётной записи клиента.
-fullname | STRING | Полное наименование компании/Ф.И.О..
-shortname | STRING | Краткое наименование компании.
-lastname | STRING | Фамилия.
-firstname | STRING | Имя.
-middlename | STRING | Отчество.
-phone | JSON | Справочник телефонов.
-email | JSON | Электронные адреса.
-info | JSON | Дополнительная информация.
-locale | NUMERIC | Идентификатор локали.
-localecode | STRING | Код локали.
-localename | STRING | Наименование локали.
+model | NUMERIC | Идентификатор модели.
+client | NUMERIC | Идентификатор клиента.
+identity | STRING | Строковый идентификатор.
+version | STRING | Версия.
+serial | STRING | Серийный номер.
+address | STRING | Сетевой адрес.
+iccid | STRING | Integrated circuit card identifier (ICCID) — уникальный серийный номер SIM-карты.
+imsi | STRING | International Mobile Subscriber Identity (IMSI) — международный идентификатор мобильного абонента (индивидуальный номер абонента).
