@@ -387,26 +387,40 @@ CREATE OR REPLACE VIEW calendar_date (Id, Calendar, UserId, Date,
 AS
   SELECT id, calendar, userid, date,
          CASE 
-         WHEN flag & B'0111' = B'0111' THEN 'Праздничный и Выходной'
-         WHEN flag & B'0110' = B'0110' THEN 'Праздничный и Выходной'
-         WHEN flag & B'1000' = B'1000' THEN 'Рабочий (сокращённый)'
+         WHEN flag & B'1000' = B'1000' THEN 'Сокращённый'
          WHEN flag & B'0100' = B'0100' THEN 'Праздничный'
          WHEN flag & B'0010' = B'0010' THEN 'Выходной'
          WHEN flag & B'0001' = B'0001' THEN 'Не рабочий'
          ELSE 'Рабочий'
          END,
-         work_start, 
-         CASE 
+         CASE
+         WHEN flag & B'0001' = B'0001' THEN null
+         ELSE
+           work_start
+         END,
+         CASE
+         WHEN flag & B'0001' = B'0001' THEN null
          WHEN flag & B'1000' = B'1000' THEN work_start + (work_count - interval '1 hour') + rest_count
          ELSE
            work_start + work_count + rest_count
          END,
          CASE 
+         WHEN flag & B'0001' = B'0001' THEN null
          WHEN flag & B'1000' = B'1000' THEN work_count - interval '1 hour'
          ELSE
            work_count
          END,
-         rest_start, rest_count, flag
+         CASE
+         WHEN flag & B'0001' = B'0001' THEN null
+         ELSE
+           rest_start
+         END,
+         CASE
+         WHEN flag & B'0001' = B'0001' THEN null
+         ELSE
+           rest_count
+         END,
+         flag
     FROM db.cdate;
 
 --------------------------------------------------------------------------------
@@ -423,15 +437,15 @@ AS $$
   SELECT * 
     FROM calendar_date
    WHERE calendar = pCalendar
-     AND (date >= pDateFrom AND date <= pDateTo)
+     AND date BETWEEN pDateFrom AND pDateTo
      AND userid = pUserId
    UNION
   SELECT *
     FROM calendar_date
    WHERE calendar = pCalendar
-     AND (date >= pDateFrom AND date <= pDateTo)
+     AND date BETWEEN pDateFrom AND pDateTo
      AND userid IS NULL
-     AND date NOT IN (SELECT date FROM calendar_date WHERE calendar = pCalendar AND (date >= pDateFrom AND date <= pDateTo) AND userid = pUserId)
+     AND date NOT IN (SELECT date FROM calendar_date WHERE calendar = pCalendar AND date BETWEEN pDateFrom AND pDateTo AND userid = pUserId)
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

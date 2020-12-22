@@ -556,7 +556,7 @@ GRANT EXECUTE ON FUNCTION array_add_text(text[], text) TO PUBLIC;
 -- FUNCTION min_array ----------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION public.min_array (
+CREATE OR REPLACE FUNCTION min_array (
   parray	anyarray,
   pelement 	anyelement DEFAULT null
 ) RETURNS	anyelement
@@ -589,13 +589,13 @@ WHEN others THEN
 END;
 $$ LANGUAGE plpgsql;
 
-GRANT EXECUTE ON FUNCTION public.min_array(anyarray, anyelement) TO PUBLIC;
+GRANT EXECUTE ON FUNCTION min_array(anyarray, anyelement) TO PUBLIC;
 
 --------------------------------------------------------------------------------
 -- FUNCTION max_array ----------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION public.max_array (
+CREATE OR REPLACE FUNCTION max_array (
   parray	anyarray,
   pelement 	anyelement DEFAULT null
 ) RETURNS	anyelement
@@ -628,7 +628,7 @@ WHEN others THEN
 END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
-GRANT EXECUTE ON FUNCTION public.max_array(anyarray, anyelement) TO PUBLIC;
+GRANT EXECUTE ON FUNCTION max_array(anyarray, anyelement) TO PUBLIC;
 
 --------------------------------------------------------------------------------
 -- FUNCTION inet_to_array ------------------------------------------------------
