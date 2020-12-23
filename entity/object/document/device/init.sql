@@ -318,14 +318,14 @@ AS $$
 DECLARE
   nEntity       numeric;
 BEGIN
-  PERFORM AddAction('heartbeat', 'Сердцебиение');
+  PERFORM SetAction('heartbeat', 'Сердцебиение');
 
-  PERFORM AddAction('available', 'Доступен');
-  PERFORM AddAction('preparing', 'Подготовка');
-  PERFORM AddAction('finishing', 'Завершение');
-  PERFORM AddAction('reserved', 'Зарезервирован');
-  PERFORM AddAction('unavailable', 'Недоступен');
-  PERFORM AddAction('faulted', 'Ошибка');
+  PERFORM SetAction('available', 'Доступен');
+  PERFORM SetAction('preparing', 'Подготовка');
+  PERFORM SetAction('finishing', 'Завершение');
+  PERFORM SetAction('reserved', 'Зарезервирован');
+  PERFORM SetAction('unavailable', 'Недоступен');
+  PERFORM SetAction('faulted', 'Ошибка');
 
   -- Сущность
   nEntity := AddEntity('device', 'Устройство');

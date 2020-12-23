@@ -1286,15 +1286,16 @@ CREATE OR REPLACE FUNCTION EditAction (
   pCode		    varchar DEFAULT null,
   pName		    varchar DEFAULT null,
   pDescription	text DEFAULT null
-) RETURNS	    void
+) RETURNS	    boolean
 AS $$
-DECLARE
 BEGIN
   UPDATE db.action
      SET code = coalesce(pCode, code),
          name = coalesce(pName, name),
          description = NULLIF(coalesce(pDescription, description), '<null>')
    WHERE id = pId;
+
+  RETURN FOUND;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1306,10 +1307,36 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION DeleteAction (
   pId		numeric
-) RETURNS 	void
+) RETURNS 	boolean
 AS $$
 BEGIN
   DELETE FROM db.action WHERE id = pId;
+  RETURN FOUND;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION SetAction ----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION SetAction (
+  pCode		    varchar,
+  pName		    varchar,
+  pDescription	text DEFAULT null
+) RETURNS	    numeric
+AS $$
+DECLARE
+  nId		    numeric;
+BEGIN
+  nId := GetAction(pCode);
+  IF nId IS NULL THEN
+	nId := AddAction(pCode, pName, pDescription);
+  ELSE
+    PERFORM EditAction(nId, pCode, pName, pDescription);
+  END IF;
+  RETURN nId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
