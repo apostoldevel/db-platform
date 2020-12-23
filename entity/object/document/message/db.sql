@@ -23,7 +23,7 @@ COMMENT ON TABLE db.message IS 'Сообщение.';
 
 COMMENT ON COLUMN db.message.id IS 'Идентификатор';
 COMMENT ON COLUMN db.message.document IS 'Документ';
-COMMENT ON COLUMN db.message.agent IS 'Агент';
+COMMENT ON COLUMN db.message.agent IS 'Идентификатор агента';
 COMMENT ON COLUMN db.message.code IS 'Код';
 COMMENT ON COLUMN db.message.profile IS 'Профиль отправителя';
 COMMENT ON COLUMN db.message.address IS 'Адрес получателя';

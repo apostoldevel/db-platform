@@ -318,6 +318,15 @@ AS $$
 DECLARE
   nEntity       numeric;
 BEGIN
+  PERFORM AddAction('heartbeat', 'Сердцебиение');
+
+  PERFORM AddAction('available', 'Доступен');
+  PERFORM AddAction('preparing', 'Подготовка');
+  PERFORM AddAction('finishing', 'Завершение');
+  PERFORM AddAction('reserved', 'Зарезервирован');
+  PERFORM AddAction('unavailable', 'Недоступен');
+  PERFORM AddAction('faulted', 'Ошибка');
+
   -- Сущность
   nEntity := AddEntity('device', 'Устройство');
 
@@ -332,17 +341,3 @@ END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- Actions ---------------------------------------------------------------------
---------------------------------------------------------------------------------
-
-SELECT AddAction('heartbeat', 'Heartbeat');
-
-SELECT AddAction('available', 'Available');
-SELECT AddAction('preparing', 'Preparing');
-SELECT AddAction('finishing', 'Finishing');
-SELECT AddAction('reserved', 'Reserved');
-SELECT AddAction('unavailable', 'Unavailable');
-SELECT AddAction('faulted', 'Faulted');
-

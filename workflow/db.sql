@@ -962,7 +962,7 @@ CREATE TABLE db.state (
     type		numeric(12) NOT NULL,
     code		varchar(30) NOT NULL,
     label		text NOT NULL,
-    sequence            integer NOT NULL,
+    sequence	integer NOT NULL,
     CONSTRAINT fk_state_class FOREIGN KEY (class) REFERENCES db.class_tree(id),
     CONSTRAINT fk_state_type FOREIGN KEY (type) REFERENCES db.state_type(id)
 );
@@ -1024,7 +1024,7 @@ CREATE OR REPLACE FUNCTION AddState (
   pType		numeric,
   pCode		varchar,
   pLabel	text,
-  pSequence     integer DEFAULT null
+  pSequence	integer DEFAULT null
 ) RETURNS	numeric
 AS $$
 DECLARE
@@ -1057,7 +1057,7 @@ CREATE OR REPLACE FUNCTION EditState (
   pType		    numeric DEFAULT null,
   pCode		    varchar DEFAULT null,
   pLabel	    text DEFAULT null,
-  pSequence         integer DEFAULT null
+  pSequence		integer DEFAULT null
 ) RETURNS	    void
 AS $$
 BEGIN
@@ -1261,7 +1261,7 @@ GRANT SELECT ON Action TO administrator;
 CREATE OR REPLACE FUNCTION AddAction (
   pCode		    varchar,
   pName		    varchar,
-  pDescription      text DEFAULT null
+  pDescription	text DEFAULT null
 ) RETURNS	    numeric
 AS $$
 DECLARE
