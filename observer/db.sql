@@ -274,13 +274,15 @@ AS $$
 DECLARE
   r				record;
 
+  nMethod		numeric;
+
   arFilter		text[];
   arSource		text[];
 BEGIN
-  IF pPublisher = 'notify' THEN
-
+  CASE pPublisher
+  WHEN 'notify' THEN
   	arFilter := array_cat(arFilter, ARRAY['entities', 'classes', 'actions', 'methods', 'objects']);
-  	PERFORM CheckJsonbKeys('/listener/filter', arFilter, pFilter);
+  	PERFORM CheckJsonbKeys('/listener/notify/filter', arFilter, pFilter);
 
 	FOR r IN SELECT code FROM db.entity
 	LOOP
@@ -307,13 +309,29 @@ BEGIN
 
   	PERFORM CheckCodes(arSource, JsonbToStrArray(pFilter->'actions'));
 
-  ELSIF pPublisher = 'log' THEN
+    IF jsonb_typeof(pFilter->'methods') = 'array' THEN
+	  FOR r IN SELECT * FROM jsonb_array_elements_text(pFilter->'methods')
+	  LOOP
+		SELECT id INTO nMethod FROM db.method WHERE code = r.value;
+		IF NOT FOUND THEN
+		  RAISE EXCEPTION 'ERR-40000: Не найден метод по коду "%".', r.value;
+		END IF;
+	  END LOOP;
+	ELSE
+      PERFORM IncorrectJsonType(jsonb_typeof(pFilter->'methods'), 'array');
+    END IF;
+
+  WHEN 'log' THEN
   	arFilter := array_cat(arFilter, ARRAY['types', 'codes', 'categories']);
-  	PERFORM CheckJsonbKeys('/listener/filter', arFilter, pFilter);
-  ELSIF pPublisher = 'geo' THEN
+  	PERFORM CheckJsonbKeys('/listener/log/filter', arFilter, pFilter);
+
+  WHEN 'geo' THEN
   	arFilter := array_cat(arFilter, ARRAY['codes', 'objects']);
-  	PERFORM CheckJsonbKeys('/listener/filter', arFilter, pFilter);
-  END IF;
+  	PERFORM CheckJsonbKeys('/listener/geo/filter', arFilter, pFilter);
+
+  ELSE
+  	NULL;
+  END CASE;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -337,13 +355,14 @@ DECLARE
   arParams		text[];
   arValues      text[];
 BEGIN
-  IF pPublisher = 'notify' THEN
+  CASE pPublisher
+  WHEN 'notify' THEN
 	arParams := array_cat(null, ARRAY['type', 'hook']);
-	PERFORM CheckJsonbKeys('/listener/params', arParams, pParams);
+	PERFORM CheckJsonbKeys('/listener/notify/params', arParams, pParams);
 
 	type := pParams->>'type';
 
-	arValues := array_cat(null, ARRAY['notify', 'object', 'hook']);
+	arValues := array_cat(null, ARRAY['notify', 'object', 'mixed', 'hook']);
 	IF array_position(arValues, type) IS NULL THEN
 	  PERFORM IncorrectValueInArray(coalesce(type, '<null>'), 'type', arValues);
 	END IF;
@@ -356,7 +375,7 @@ BEGIN
 	  END IF;
 
 	  arParams := array_cat(null, ARRAY['method', 'path', 'payload']);
-	  PERFORM CheckJsonbKeys('/listener/params/hook', arParams, hook);
+	  PERFORM CheckJsonbKeys('/listener/notify/params/hook', arParams, hook);
 
 	  path := hook->>'path';
 	  IF path IS NULL THEN
@@ -367,7 +386,32 @@ BEGIN
 		PERFORM RouteNotFound(path);
 	  END IF;
 	END IF;
-  END IF;
+
+  WHEN 'log' THEN
+	arParams := array_cat(null, ARRAY['type']);
+	PERFORM CheckJsonbKeys('/listener/log/params', arParams, pParams);
+
+	type := pParams->>'type';
+
+	arValues := array_cat(null, ARRAY['notify']);
+	IF array_position(arValues, type) IS NULL THEN
+	  PERFORM IncorrectValueInArray(coalesce(type, '<null>'), 'type', arValues);
+	END IF;
+
+  WHEN 'geo' THEN
+	arParams := array_cat(null, ARRAY['type']);
+	PERFORM CheckJsonbKeys('/listener/geo/params', arParams, pParams);
+
+	type := pParams->>'type';
+
+	arValues := array_cat(null, ARRAY['notify']);
+	IF array_position(arValues, type) IS NULL THEN
+	  PERFORM IncorrectValueInArray(coalesce(type, '<null>'), 'type', arValues);
+	END IF;
+
+  ELSE
+  	NULL;
+  END CASE;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -387,14 +431,10 @@ AS $$
 DECLARE
   f				record;
   d				record;
+  n				record;
 
   nUserId		numeric;
   vUserName		text;
-
-  vEntityCode	text;
-  vClassCode	text;
-  vActionCode	text;
-  vMethodCode	text;
 BEGIN
   SELECT userid INTO nUserId FROM db.session WHERE code = pSession;
 
@@ -402,18 +442,14 @@ BEGIN
   WHEN 'notify' THEN
 
 	SELECT * INTO f FROM jsonb_to_record(pFilter) AS x(entities jsonb, classes jsonb, actions jsonb, methods jsonb, objects jsonb);
-	SELECT * INTO d FROM jsonb_to_record(pData) AS x(entity numeric, class numeric, action numeric, method numeric, object numeric);
+	SELECT * INTO d FROM jsonb_to_record(pData) AS x(id numeric, entity numeric, class numeric, action numeric, method numeric, object numeric);
+	SELECT * INTO n FROM Notification WHERE id = d.id;
 
-	SELECT code INTO vEntityCode FROM db.entity WHERE id = d.entity;
-	SELECT code INTO vClassCode FROM db.class_tree WHERE id = d.class;
-	SELECT code INTO vActionCode FROM db.action WHERE id = d.action;
-	SELECT code INTO vMethodCode FROM db.method WHERE id = d.method;
-
-	RETURN array_position(coalesce(JsonbToStrArray(f.entities), ARRAY[vEntityCode]), vEntityCode) IS NOT NULL AND
-           array_position(coalesce(JsonbToStrArray(f.classes), ARRAY[vClassCode]), vClassCode) IS NOT NULL AND
-           array_position(coalesce(JsonbToStrArray(f.actions), ARRAY[vActionCode]), vActionCode) IS NOT NULL AND
-           array_position(coalesce(JsonbToStrArray(f.methods), ARRAY[vMethodCode]), vMethodCode) IS NOT NULL AND
-           array_position(coalesce(JsonbToNumArray(f.objects), ARRAY[d.object]), d.object) IS NOT NULL AND
+	RETURN array_position(coalesce(JsonbToStrArray(f.entities), ARRAY[n.entitycode]), n.entitycode::text) IS NOT NULL AND
+           array_position(coalesce(JsonbToStrArray(f.classes) , ARRAY[n.classcode]) , n.classcode::text ) IS NOT NULL AND
+           array_position(coalesce(JsonbToStrArray(f.actions) , ARRAY[n.actioncode]), n.actioncode::text) IS NOT NULL AND
+           array_position(coalesce(JsonbToStrArray(f.methods) , ARRAY[n.methodcode]), n.methodcode::text) IS NOT NULL AND
+           array_position(coalesce(JsonbToNumArray(f.objects) , ARRAY[d.object])    , d.object    ) IS NOT NULL AND
 	       CheckObjectAccess(d.object, B'100', nUserId);
 
   WHEN 'log' THEN
@@ -421,9 +457,9 @@ BEGIN
     SELECT username INTO vUserName FROM db.user WHERE id = nUserId;
 
 	SELECT * INTO f FROM jsonb_to_record(pFilter) AS x(types jsonb, codes jsonb, categories jsonb);
-	SELECT * INTO d FROM jsonb_to_record(pData) AS x(type text, code numeric, category text);
+	SELECT * INTO d FROM jsonb_to_record(pData) AS x(type text, code numeric, username text, category text);
 
-	RETURN vUserName = pData->>'username' AND
+	RETURN vUserName = d.username AND
 	       array_position(coalesce(JsonbToStrArray(f.types), ARRAY[d.type]), d.type) IS NOT NULL AND
 		   array_position(coalesce(JsonbToNumArray(f.codes), ARRAY[d.code]), d.code) IS NOT NULL AND
 		   array_position(coalesce(JsonbToStrArray(f.categories), ARRAY[d.category]), d.category) IS NOT NULL;
@@ -433,14 +469,14 @@ BEGIN
 	SELECT * INTO f FROM jsonb_to_record(pFilter) AS x(codes jsonb, objects jsonb);
 	SELECT * INTO d FROM jsonb_to_record(pData) AS x(code text, object numeric);
 
-	RETURN array_position(coalesce(JsonbToNumArray(f.codes), ARRAY[d.code]), d.code) IS NOT NULL AND
+	RETURN array_position(coalesce(JsonbToStrArray(f.codes), ARRAY[d.code]), d.code) IS NOT NULL AND
            array_position(coalesce(JsonbToNumArray(f.objects), ARRAY[d.object]), d.object) IS NOT NULL AND
 	       CheckObjectAccess(d.object, B'100', nUserId);
 
   ELSE
   	RETURN false;
   END CASE;
-END;
+END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -459,28 +495,65 @@ DECLARE
   r             record;
   e             record;
 
-  type			text;
+  nId			numeric;
+
+  vType			text;
+
   hook			jsonb;
 BEGIN
   SELECT * INTO r FROM db.listener WHERE publisher = pPublisher AND session = pSession;
 
   IF FOUND AND FilterListener(r.publisher, r.session, r.filter, pData) THEN
-	type := r.params->>'type';
-	hook := r.params->'hook';
 
-	IF type = 'object' THEN
-	  FOR e IN EXECUTE format('SELECT * FROM api.get_%s($1)', GetEntityCode((pData->>'entity')::numeric)) USING (pData->>'object')::numeric
+	CASE pPublisher
+	WHEN 'notify' THEN
+	  vType := r.params->>'type';
+	  IF vType = 'object' THEN
+		FOR e IN EXECUTE format('SELECT * FROM api.get_%s($1)', GetEntityCode((pData->>'entity')::numeric)) USING (pData->>'object')::numeric
+		LOOP
+		  RETURN NEXT row_to_json(e);
+		END LOOP;
+	  ELSIF vType = 'mixed' THEN
+	    nId := pData->>'id';
+		FOR e IN SELECT * FROM Notification WHERE id = nId
+		LOOP
+		  RETURN NEXT row_to_json(e);
+		END LOOP;
+
+		FOR e IN EXECUTE format('SELECT * FROM api.get_%s($1)', GetEntityCode((pData->>'entity')::numeric)) USING (pData->>'object')::numeric
+		LOOP
+		  RETURN NEXT row_to_json(e);
+		END LOOP;
+	  ELSIF vType = 'hook' THEN
+        hook := r.params->'hook';
+		FOR e IN SELECT * FROM api.run(coalesce(hook->>'method', 'POST'), hook->>'path', hook->'payload')
+		LOOP
+		  RETURN NEXT e.run;
+		END LOOP;
+	  ELSE
+	    nId := pData->>'id';
+		FOR e IN SELECT * FROM Notification WHERE id = nId
+		LOOP
+		  RETURN NEXT row_to_json(e);
+		END LOOP;
+	  END IF;
+
+    WHEN 'log' THEN
+	  nId := pData->>'id';
+	  FOR e IN SELECT * FROM EventLog WHERE id = nId
 	  LOOP
 		RETURN NEXT row_to_json(e);
 	  END LOOP;
-	ELSIF type = 'hook' THEN
-	  FOR e IN SELECT * FROM api.run(coalesce(hook->>'method', 'POST'), hook->>'path', hook->'payload')
+
+    WHEN 'geo' THEN
+	  nId := pData->>'id';
+	  FOR e IN SELECT * FROM ObjectCoordinates WHERE id = nId
 	  LOOP
-		RETURN NEXT e.run;
+		RETURN NEXT row_to_json(e);
 	  END LOOP;
 	ELSE
 	  RETURN NEXT pData;
-	END IF;
+	END CASE;
   END IF;
 
   RETURN;

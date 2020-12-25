@@ -2205,6 +2205,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.object_coordinates (
+    id				bigserial PRIMARY KEY NOT NULL,
     object          numeric(12) NOT NULL,
     code            varchar(30) NOT NULL,
     latitude        numeric NOT NULL,
@@ -2214,12 +2215,12 @@ CREATE TABLE db.object_coordinates (
     description	    text,
     validFromDate   timestamptz DEFAULT Now() NOT NULL,
     validToDate     timestamptz DEFAULT TO_DATE('4433-12-31', 'YYYY-MM-DD') NOT NULL,
-    CONSTRAINT pk_object_coordinates PRIMARY KEY(object, code, validFromDate, validToDate),
     CONSTRAINT fk_object_coordinates_object FOREIGN KEY (object) REFERENCES db.object(id)
 );
 
 COMMENT ON TABLE db.object_coordinates IS 'Произвольные данные объекта.';
 
+COMMENT ON COLUMN db.object_coordinates.id IS 'Идентификатор';
 COMMENT ON COLUMN db.object_coordinates.object IS 'Объект';
 COMMENT ON COLUMN db.object_coordinates.code IS 'Код';
 COMMENT ON COLUMN db.object_coordinates.latitude IS 'Широта';
@@ -2232,6 +2233,25 @@ COMMENT ON COLUMN db.object_coordinates.validToDate IS 'Дата окончан�
 
 CREATE UNIQUE INDEX ON db.object_coordinates (object, code, validFromDate, validToDate);
 CREATE INDEX ON db.object_coordinates (object);
+
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION db.ft_object_coordinates_after_insert()
+RETURNS trigger AS $$
+BEGIN
+  PERFORM pg_notify('geo', json_build_object('id', NEW.id, 'object', NEW.object, 'code', NEW.code)::text);
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+
+CREATE TRIGGER t_object_coordinates_after_insert
+  AFTER INSERT ON db.object_coordinates
+  FOR EACH ROW
+  EXECUTE PROCEDURE db.ft_object_coordinates_after_insert();
 
 --------------------------------------------------------------------------------
 -- VIEW ObjectCoordinates ------------------------------------------------------
@@ -2275,22 +2295,23 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION NewObjectCoordinates (
-  pObject         numeric,
-  pCode           varchar,
-  pLatitude       numeric,
-  pLongitude      numeric,
-  pAccuracy       numeric DEFAULT 0,
-  pLabel          varchar DEFAULT null,
-  pDescription    text DEFAULT null,
-  pDateFrom       timestamptz DEFAULT Now()
-) RETURNS         void
+  pObject		numeric,
+  pCode			varchar,
+  pLatitude		numeric,
+  pLongitude	numeric,
+  pAccuracy		numeric DEFAULT 0,
+  pLabel		varchar DEFAULT null,
+  pDescription	text DEFAULT null,
+  pDateFrom		timestamptz DEFAULT Now()
+) RETURNS		bigint
 AS $$
 DECLARE
-  dtDateFrom      timestamp;
-  dtDateTo        timestamp;
+  nId			bigint;
+  dtDateFrom	timestamptz;
+  dtDateTo		timestamptz;
 BEGIN
   -- получим дату значения в текущем диапозоне дат
-  SELECT validFromDate, validToDate INTO dtDateFrom, dtDateTo
+  SELECT id, validFromDate, validToDate INTO nId, dtDateFrom, dtDateTo
     FROM db.object_coordinates
    WHERE object = pObject
      AND code = pCode
@@ -2316,8 +2337,11 @@ BEGIN
        AND validToDate > pDateFrom;
 
     INSERT INTO db.object_coordinates (object, code, latitude, longitude, accuracy, label, description, validFromDate, validToDate)
-    VALUES (pObject, pCode, pLatitude, pLongitude, pAccuracy, pLabel, pDescription, pDateFrom, coalesce(dtDateTo, MAXDATE()));
+    VALUES (pObject, pCode, pLatitude, pLongitude, pAccuracy, pLabel, pDescription, pDateFrom, coalesce(dtDateTo, MAXDATE()))
+    RETURNING id INTO nId;
   END IF;
+
+  RETURN nId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

@@ -3,16 +3,16 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.log (
-    id          bigserial PRIMARY KEY,
+    id          bigserial PRIMARY KEY NOT NULL,
     type        char DEFAULT 'M' NOT NULL,
     datetime	timestamp DEFAULT Now() NOT NULL,
     username	text NOT NULL,
     session     varchar(40),
     code        numeric(5) NOT NULL,
     text        text NOT NULL,
-    category    varchar(50),
+    category    text,
     object      numeric(12),
-    CONSTRAINT ch_event_log_type CHECK (type IN ('M', 'W', 'E', 'D'))
+    CONSTRAINT ch_log_type CHECK (type IN ('M', 'W', 'E', 'D'))
 );
 
 COMMENT ON TABLE db.log IS 'Журнал событий.';
@@ -34,7 +34,9 @@ CREATE INDEX ON db.log (code);
 CREATE INDEX ON db.log (category);
 CREATE INDEX ON db.log (object);
 
-CREATE OR REPLACE FUNCTION ft_event_log_insert()
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION ft_log_insert()
 RETURNS trigger AS $$
 BEGIN
   IF NULLIF(NEW.username, '') IS NULL THEN
@@ -55,10 +57,31 @@ $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
-CREATE TRIGGER t_event_log_insert
+--------------------------------------------------------------------------------
+
+CREATE TRIGGER t_log_insert
   BEFORE INSERT ON db.log
   FOR EACH ROW
-  EXECUTE PROCEDURE ft_event_log_insert();
+  EXECUTE PROCEDURE ft_log_insert();
+
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION db.ft_log_after_insert()
+RETURNS trigger AS $$
+BEGIN
+  PERFORM pg_notify('log', json_build_object('id', NEW.id, 'type', NEW.type, 'code', NEW.code, 'username', NEW.username, 'category', NEW.category)::text);
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+
+CREATE TRIGGER t_log_after_insert
+  AFTER INSERT ON db.log
+  FOR EACH ROW
+  EXECUTE PROCEDURE db.ft_log_after_insert();
 
 --------------------------------------------------------------------------------
 -- VIEW EventLog ---------------------------------------------------------------
@@ -88,7 +111,7 @@ CREATE OR REPLACE FUNCTION AddEventLog (
   pType		char,
   pCode		numeric,
   pText		text,
-  pCategory varchar DEFAULT null,
+  pCategory text DEFAULT null,
   pObject   numeric DEFAULT null
 ) RETURNS	numeric
 AS $$
@@ -112,7 +135,7 @@ CREATE OR REPLACE FUNCTION NewEventLog (
   pType		char,
   pCode		numeric,
   pText		text,
-  pCategory varchar DEFAULT null,
+  pCategory text DEFAULT null,
   pObject   numeric DEFAULT null
 ) RETURNS	void
 AS $$
