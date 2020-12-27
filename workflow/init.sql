@@ -206,6 +206,7 @@ AS $$
 BEGIN
   PERFORM AddAction('anything', 'Ничто');
 
+  PERFORM AddAction('add', 'Добавить');
   PERFORM AddAction('create', 'Создать');
   PERFORM AddAction('open', 'Открыть');
   PERFORM AddAction('edit', 'Изменить');
@@ -213,6 +214,7 @@ BEGIN
   PERFORM AddAction('enable', 'Включить');
   PERFORM AddAction('disable', 'Отключить');
   PERFORM AddAction('delete', 'Удалить');
+  PERFORM AddAction('remove', 'Удалить');
   PERFORM AddAction('restore', 'Восстановить');
   PERFORM AddAction('update', 'Обновить');
   PERFORM AddAction('drop', 'Уничтожить');

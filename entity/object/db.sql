@@ -1689,16 +1689,16 @@ $$ LANGUAGE plpgsql
  * @param {numeric} pObject - Идентификатор объекта
  * @param {text} pKey - Ключ
  * @param {timestamp} pDate - Дата
- * @return {text}
+ * @return {numeric}
  */
 CREATE OR REPLACE FUNCTION GetObjectLink (
   pObject	numeric,
   pKey	    text,
   pDate		timestamp DEFAULT oper_date()
-) RETURNS	text
+) RETURNS	numeric
 AS $$
 DECLARE
-  nLinked		numeric;
+  nLinked	numeric;
 BEGIN
   SELECT linked INTO nLinked
     FROM db.object_link
