@@ -1322,18 +1322,54 @@ fields | JSON array |  | **Необязательный**. Массив JSON str
 ------------ | ------------ | ------------
 id | NUMERIC | Идентификатор записи.
 object | NUMERIC | Идентификатор объекта.
-code | STRING | **Необязательный**. Код. По умолчанию `default`. Может использоваться в качестве идентификатора места положения (`home`, `work`)
-latitude | NUMERIC | **Обязательный**. Широта.
-longitude | NUMERIC | **Обязательный**. Долгота.
-accuracy | NUMERIC | **Необязательный**. Точность (высота над уровнем моря).
-label | STRING | **Необязательный**. Метка.
-description | STRING | **Необязательный**. Описание.
-data | JSON | **Необязательный**. Данные в произвольном формате.
+code | STRING | Код. По умолчанию `default`. Может использоваться в качестве идентификатора места положения (`home`, `work`)
+latitude | NUMERIC | Широта.
+longitude | NUMERIC | Долгота.
+accuracy | NUMERIC | Точность (высота над уровнем моря).
+label | STRING | Метка.
+description | STRING | Описание.
+data | JSON | Данные в произвольном формате.
 validfromdate | TIMESTAMP | Дата начала периода действия.
 validtodate | TIMESTAMP | Дата окончания периода действия.
 
 Формат `data` произвольный. Если данные передавались чезер [потоковый сервер](https://github.com/ufocomp/process-StreamServer), то в `data` в поле `device` будут содержаться данные GPS устройства.
 
+**Формат `data`:**
+
+```
+{
+  "device": {
+    "id": numeric,
+    "identity": string,
+    "serial": string,
+    "battery": numeric
+  }
+}
+```
+
+**Пример ответа:**
+````json
+{
+  "id": 70,
+  "object": 63,
+  "code": "default",
+  "latitude": 54.7119513000032,
+  "longitude": 20.5316411000007,
+  "accuracy": 0,
+  "label": "ANDROID-test",
+  "description": null,
+  "validfromdate": "2020-12-27T16:36:03.5391+03:00",
+  "validtodate": "2020-12-27T17:08:05.090964+03:00",
+  "data": {
+    "device": {
+      "id": 63,
+      "serial": "test",
+      "battery": 37,
+      "identity": "ANDROID-test"
+    }
+  }
+}
+````
 #### Список
 ```http request
 POST /api/v1/object/geolocation/list

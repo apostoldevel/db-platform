@@ -36,10 +36,27 @@ BEGIN
     arKeys := array_cat(arKeys, GetRoutines('subscribe_observer', 'api', false));
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-	FOR r IN EXECUTE format('SELECT row_to_json(api.subscribe_observer(%s)) FROM jsonb_to_record($1) AS x(%s)', array_to_string(GetRoutines('subscribe_observer', 'api', false, 'x'), ', '), array_to_string(GetRoutines('subscribe_observer', 'api', true), ', ')) USING pPayload
-	LOOP
-	  RETURN NEXT r;
-	END LOOP;
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(publisher text, filter jsonb, params jsonb)
+      LOOP
+        FOR e IN SELECT * FROM api.subscribe_observer(r.publisher, current_session(), r.filter, r.params)
+        LOOP
+          RETURN NEXT row_to_json(e);
+        END LOOP;
+      END LOOP;
+
+    ELSE
+
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(publisher text, filter jsonb, params jsonb)
+      LOOP
+        FOR e IN SELECT * FROM api.subscribe_observer(r.publisher, current_session(), r.filter, r.params)
+        LOOP
+          RETURN NEXT row_to_json(e);
+        END LOOP;
+      END LOOP;
+
+    END IF;
 
   WHEN '/observer/unsubscribe' THEN
 
@@ -50,10 +67,27 @@ BEGIN
     arKeys := array_cat(arKeys, GetRoutines('unsubscribe_observer', 'api', false));
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-	FOR r IN EXECUTE format('SELECT api.unsubscribe_observer(%s) FROM jsonb_to_record($1) AS x(%s)', array_to_string(GetRoutines('unsubscribe_observer', 'api', false, 'x'), ', '), array_to_string(GetRoutines('unsubscribe_observer', 'api', true), ', ')) USING pPayload
-	LOOP
-	  RETURN NEXT pPayload;
-	END LOOP;
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(publisher text, filter jsonb, params jsonb)
+      LOOP
+        FOR e IN SELECT * FROM api.unsubscribe_observer(r.publisher, current_session())
+        LOOP
+          RETURN NEXT row_to_json(e);
+        END LOOP;
+      END LOOP;
+
+    ELSE
+
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(publisher text, filter jsonb, params jsonb)
+      LOOP
+        FOR e IN SELECT * FROM api.unsubscribe_observer(r.publisher, current_session())
+        LOOP
+          RETURN NEXT row_to_json(e);
+        END LOOP;
+      END LOOP;
+
+    END IF;
 
   WHEN '/observer/publisher' THEN
 
@@ -160,9 +194,9 @@ BEGIN
       pPayload := '{}';
     END IF;
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(code text, session text, fields jsonb)
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(publisher text, session text, fields jsonb)
     LOOP
-      FOR e IN EXECUTE format('SELECT %s FROM api.listener($1, $2)', JsonbToFields(r.fields, GetColumns('listener', 'api'))) USING GetPublisher(r.code), coalesce(r.session, current_session())
+      FOR e IN EXECUTE format('SELECT %s FROM api.listener($1, $2)', JsonbToFields(r.fields, GetColumns('listener', 'api'))) USING r.publisher, coalesce(r.session, current_session())
       LOOP
         RETURN NEXT row_to_json(e);
       END LOOP;
