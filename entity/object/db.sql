@@ -2285,12 +2285,13 @@ $$ LANGUAGE plpgsql
 CREATE TABLE db.object_coordinates (
     id				bigserial PRIMARY KEY NOT NULL,
     object          numeric(12) NOT NULL,
-    code            varchar(30) NOT NULL,
+    code            text NOT NULL,
     latitude        numeric NOT NULL,
     longitude       numeric NOT NULL,
     accuracy        numeric NOT NULL DEFAULT 0,
-    label           varchar(50),
+    label           text,
     description	    text,
+    data			jsonb,
     validFromDate   timestamptz DEFAULT Now() NOT NULL,
     validToDate     timestamptz DEFAULT TO_DATE('4433-12-31', 'YYYY-MM-DD') NOT NULL,
     CONSTRAINT fk_object_coordinates_object FOREIGN KEY (object) REFERENCES db.object(id)
@@ -2306,6 +2307,7 @@ COMMENT ON COLUMN db.object_coordinates.longitude IS 'Долгота';
 COMMENT ON COLUMN db.object_coordinates.accuracy IS 'Точность (высота над уровнем моря)';
 COMMENT ON COLUMN db.object_coordinates.label IS 'Метка';
 COMMENT ON COLUMN db.object_coordinates.description IS 'Описание';
+COMMENT ON COLUMN db.object_coordinates.data IS 'Данные в произвольном формате';
 COMMENT ON COLUMN db.object_coordinates.validFromDate IS 'Дата начала периода действия';
 COMMENT ON COLUMN db.object_coordinates.validToDate IS 'Дата окончания периода действия';
 
@@ -2374,12 +2376,13 @@ $$ LANGUAGE SQL
 
 CREATE OR REPLACE FUNCTION NewObjectCoordinates (
   pObject		numeric,
-  pCode			varchar,
+  pCode			text,
   pLatitude		numeric,
   pLongitude	numeric,
   pAccuracy		numeric DEFAULT 0,
   pLabel		varchar DEFAULT null,
   pDescription	text DEFAULT null,
+  pData			jsonb DEFAULT null,
   pDateFrom		timestamptz DEFAULT Now()
 ) RETURNS		bigint
 AS $$
@@ -2414,8 +2417,8 @@ BEGIN
        AND validFromDate <= pDateFrom
        AND validToDate > pDateFrom;
 
-    INSERT INTO db.object_coordinates (object, code, latitude, longitude, accuracy, label, description, validFromDate, validToDate)
-    VALUES (pObject, pCode, pLatitude, pLongitude, pAccuracy, pLabel, pDescription, pDateFrom, coalesce(dtDateTo, MAXDATE()))
+    INSERT INTO db.object_coordinates (object, code, latitude, longitude, accuracy, label, description, data, validFromDate, validToDate)
+    VALUES (pObject, pCode, pLatitude, pLongitude, pAccuracy, pLabel, pDescription, pData, pDateFrom, coalesce(dtDateTo, MAXDATE()))
     RETURNING id INTO nId;
   END IF;
 
@@ -2431,7 +2434,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION DeleteObjectCoordinates (
   pObject	numeric,
-  pCode		varchar
+  pCode		text
 ) RETURNS	void
 AS $$
 BEGIN
@@ -2447,7 +2450,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION GetObjectCoordinates (
   pObject       numeric,
-  pCode         varchar
+  pCode         text
 ) RETURNS       ObjectCoordinates
 AS $$
   SELECT * FROM ObjectCoordinates WHERE object = pObject AND code = pCode;
@@ -2461,7 +2464,7 @@ $$ LANGUAGE SQL
 
 CREATE OR REPLACE FUNCTION GetObjectCoordinatesJson (
   pObject		numeric,
-  pCode			varchar DEFAULT NULL,
+  pCode			text DEFAULT NULL,
   pDateFrom		timestamptz DEFAULT Now()
 ) RETURNS		json
 AS $$

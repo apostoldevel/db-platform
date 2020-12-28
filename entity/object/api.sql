@@ -1154,6 +1154,7 @@ $$ LANGUAGE SQL
  * @param {numeric} pLongitude - Долгота
  * @param {numeric} pAccuracy - Точность (высота над уровнем моря)
  * @param {text} pDescription - Описание
+ * @param {jsonb} pData - Данные в произвольном формате
  * @return {SETOF api.object_coordinates}
  */
 CREATE OR REPLACE FUNCTION api.set_object_coordinates (
@@ -1163,13 +1164,14 @@ CREATE OR REPLACE FUNCTION api.set_object_coordinates (
   pLongitude    numeric,
   pAccuracy     numeric DEFAULT 0,
   pLabel        varchar DEFAULT null,
-  pDescription  text DEFAULT null
+  pDescription  text DEFAULT null,
+  pData			jsonb DEFAULT null
 ) RETURNS       SETOF api.object_coordinates
 AS $$
 BEGIN
   pCode := coalesce(pCode, 'default');
   pAccuracy := coalesce(pAccuracy, 0);
-  PERFORM NewObjectCoordinates(pId, pCode, pLatitude, pLongitude, pAccuracy, pLabel, pDescription);
+  PERFORM NewObjectCoordinates(pId, pCode, pLatitude, pLongitude, pAccuracy, pLabel, pDescription, pData);
   PERFORM SetObjectData(pId, GetObjectDataType('json'), 'geo', GetObjectCoordinatesJson(pId, pCode)::text);
 
   RETURN QUERY SELECT * FROM api.get_object_coordinates(pId, pCode);
@@ -1199,12 +1201,12 @@ BEGIN
   END IF;
 
   IF pCoordinates IS NOT NULL THEN
-    arKeys := array_cat(arKeys, ARRAY['code', 'latitude', 'longitude', 'accuracy', 'label', 'description']);
+    arKeys := array_cat(arKeys, ARRAY['code', 'latitude', 'longitude', 'accuracy', 'label', 'description', 'data']);
     PERFORM CheckJsonKeys('/object/coordinates', arKeys, pCoordinates);
 
-    FOR r IN SELECT * FROM json_to_recordset(pCoordinates) AS x(code varchar, latitude numeric, longitude numeric, accuracy numeric, label varchar, description text)
+    FOR r IN SELECT * FROM json_to_recordset(pCoordinates) AS x(code varchar, latitude numeric, longitude numeric, accuracy numeric, label varchar, description text, data jsonb)
     LOOP
-      RETURN NEXT api.set_object_coordinates(pId, r.code, r.latitude, r.longitude, r.accuracy, r.label, r.description);
+      RETURN NEXT api.set_object_coordinates(pId, r.code, r.latitude, r.longitude, r.accuracy, r.label, r.description, r.data);
     END LOOP;
   ELSE
     PERFORM JsonIsEmpty();
