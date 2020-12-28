@@ -1332,9 +1332,7 @@ data | JSON | **Необязательный**. Данные в произвол
 validfromdate | TIMESTAMP | Дата начала периода действия.
 validtodate | TIMESTAMP | Дата окончания периода действия.
 
-Формат `data` произвольный. Если данные передавались чезер [потоковый сервер](https://github.com/ufocomp/process-StreamServer), то в `data` в поле `device` будут содержаться данные GPS устройства. 
-
-
+Формат `data` произвольный. Если данные передавались чезер [потоковый сервер](https://github.com/ufocomp/process-StreamServer), то в `data` в поле `device` будут содержаться данные GPS устройства.
 
 #### Список
 ```http request
