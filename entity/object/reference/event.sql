@@ -12,7 +12,7 @@ CREATE OR REPLACE FUNCTION EventReferenceCreate (
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1010, 'Справочник создан.', pObject);
-  PERFORM ExecuteObjectAction(pObject, GetAction('enable'));
+  PERFORM DoEnable(pObject);
 END;
 $$ LANGUAGE plpgsql;
 

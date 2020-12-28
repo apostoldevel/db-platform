@@ -1066,99 +1066,6 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- FUNCTION IsCreated ----------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION IsCreated (
-  pObject	numeric
-) RETURNS 	boolean
-AS $$
-BEGIN
-  RETURN GetObjectStateTypeCode(pObject) = 'created';
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- FUNCTION IsEnabled ----------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION IsEnabled (
-  pObject	numeric
-) RETURNS 	boolean
-AS $$
-BEGIN
-  RETURN GetObjectStateTypeCode(pObject) = 'enabled';
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- FUNCTION IsDisabled ---------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION IsDisabled (
-  pObject	numeric
-) RETURNS 	boolean
-AS $$
-BEGIN
-  RETURN GetObjectStateTypeCode(pObject) = 'disabled';
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- FUNCTION IsDeleted ----------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION IsDeleted (
-  pObject	numeric
-) RETURNS 	boolean
-AS $$
-BEGIN
-  RETURN GetObjectStateTypeCode(pObject) = 'deleted';
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- FUNCTION IsActive -----------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION IsActive (
-  pObject	numeric
-) RETURNS 	boolean
-AS $$
-DECLARE
-  vCode		text;
-BEGIN
-  vCode := GetObjectStateTypeCode(pObject);
-  RETURN vCode = 'created' OR vCode = 'enabled';
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- FUNCTION IsActiveObject -----------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION IsActiveObject (
-  pObject	numeric
-) RETURNS 	boolean
-AS $$
-BEGIN
-  RETURN IsActive(pObject);
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
 -- FUNCTION GetNewState --------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -1450,6 +1357,129 @@ BEGIN
   END IF;
 
   RETURN null;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION IsCreated ----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION IsCreated (
+  pObject	numeric
+) RETURNS 	boolean
+AS $$
+BEGIN
+  RETURN GetObjectStateTypeCode(pObject) = 'created';
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION IsEnabled ----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION IsEnabled (
+  pObject	numeric
+) RETURNS 	boolean
+AS $$
+BEGIN
+  RETURN GetObjectStateTypeCode(pObject) = 'enabled';
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION IsDisabled ---------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION IsDisabled (
+  pObject	numeric
+) RETURNS 	boolean
+AS $$
+BEGIN
+  RETURN GetObjectStateTypeCode(pObject) = 'disabled';
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION IsDeleted ----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION IsDeleted (
+  pObject	numeric
+) RETURNS 	boolean
+AS $$
+BEGIN
+  RETURN GetObjectStateTypeCode(pObject) = 'deleted';
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION IsActive -----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION IsActive (
+  pObject	numeric
+) RETURNS 	boolean
+AS $$
+DECLARE
+  vCode		text;
+BEGIN
+  vCode := GetObjectStateTypeCode(pObject);
+  RETURN vCode = 'created' OR vCode = 'enabled';
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION DoEnable -----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION DoEnable (
+  pObject	numeric
+) RETURNS 	jsonb
+AS $$
+BEGIN
+  RETURN ExecuteObjectAction(pObject, GetAction('enable'));
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION DoDisable ----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION DoDisable (
+  pObject	numeric
+) RETURNS 	jsonb
+AS $$
+BEGIN
+  RETURN ExecuteObjectAction(pObject, GetAction('disable'));
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION DoDelete -----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION DoDelete (
+  pObject	numeric
+) RETURNS 	jsonb
+AS $$
+BEGIN
+  RETURN ExecuteObjectAction(pObject, GetAction('delete'));
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

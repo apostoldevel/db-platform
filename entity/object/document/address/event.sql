@@ -12,7 +12,7 @@ CREATE OR REPLACE FUNCTION EventAddressCreate (
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1010, 'Адрес создан.', pObject);
-  PERFORM ExecuteObjectAction(pObject, GetAction('enable'));
+  PERFORM DoEnable(pObject);
 END;
 $$ LANGUAGE plpgsql;
 

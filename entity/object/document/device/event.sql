@@ -12,7 +12,7 @@ CREATE OR REPLACE FUNCTION EventDeviceCreate (
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1010, 'Устройство создано.', pObject);
-  PERFORM ExecuteObjectAction(pObject, GetAction('enable'));
+  PERFORM DoEnable(pObject);
 END;
 $$ LANGUAGE plpgsql;
 
