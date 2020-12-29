@@ -21,9 +21,8 @@ SELECT CreateVendor(null, GetType('service.vendor'), 'mts.vendor', 'МТС', 'П
 SELECT CreateVendor(null, GetType('service.vendor'), 'google.vendor', 'Google', 'Google.');
 SELECT CreateVendor(null, GetType('service.vendor'), 'sberbank.vendor', 'Сбербанк', 'Сбербанк.');
 
-SELECT CreateAgent(null, GetType('system.agent'), 'system.agent', 'System', GetVendor('system.vendor'), 'Агент для обработки системных сообщений.');
-SELECT CreateAgent(null, GetType('system.agent'), 'event.agent', 'Event', GetVendor('system.vendor'), 'Агент для обработки системных событий.');
-SELECT CreateAgent(null, GetType('stream.agent'), 'udp.agent', 'UDP', GetVendor('system.vendor'), 'Агент для обработки данных по протоколу UDP.');
+SELECT CreateAgent(null, GetType('system.agent'), 'system.agent', 'Система', GetVendor('system.vendor'), 'Агент для обработки системных сообщений.');
+SELECT CreateAgent(null, GetType('system.agent'), 'event.agent', 'Событие', GetVendor('system.vendor'), 'Агент для обработки системных событий.');
 
 SELECT CreateAgent(null, GetType('email.agent'), 'smtp.agent', 'SMTP', GetVendor('system.vendor'), 'Агент для передачи электронной почты по протоколу SMTP.');
 SELECT CreateAgent(null, GetType('email.agent'), 'pop3.agent', 'POP3', GetVendor('system.vendor'), 'Агент для получения электронной почты по протоколу POP3.');
