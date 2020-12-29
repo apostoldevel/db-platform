@@ -80,7 +80,11 @@ $$ LANGUAGE plpgsql
  * @param {text} pSecret - Секретный код
  * @param {text} pAgent - Агент
  * @param {inet} pHost - IP адрес
- * @return {text}
+ * @out param {boolean} authorized - Результат авторизации
+ * @out param {numeric} userid - Идентификатор учётной записи
+ * @out param {text} code - Код авторизации (разрешение на авторизацию для OAuth2)
+ * @out param {text} message - Сообшение
+ * @return {record}
  */
 CREATE OR REPLACE FUNCTION api.authenticate (
   pSession			text,
@@ -88,6 +92,7 @@ CREATE OR REPLACE FUNCTION api.authenticate (
   pAgent			text DEFAULT null,
   pHost       		inet DEFAULT null,
   OUT authorized    boolean,
+  OUT userid		numeric,
   OUT code			text,
   OUT message		text
 ) RETURNS			record
@@ -95,6 +100,7 @@ AS $$
 BEGIN
   code := Authenticate(pSession, pSecret, pAgent, pHost);
   authorized := code IS NOT NULL;
+  userid := current_userid();
   message := GetErrorMessage();
 END;
 $$ LANGUAGE plpgsql
@@ -109,8 +115,9 @@ $$ LANGUAGE plpgsql
  * @param {text} pSession - Сессия
  * @param {text} pAgent - Агент
  * @param {inet} pHost - IP адрес
- * @param {boolean} authorized - Результат
- * @param {text} message - Сообшение
+ * @out param {boolean} authorized - Результат авторизации
+ * @out param {numeric} userid - Идентификатор учётной записи
+ * @out param {text} message - Сообшение
  * @return {record}
  */
 CREATE OR REPLACE FUNCTION api.authorize (
@@ -118,11 +125,13 @@ CREATE OR REPLACE FUNCTION api.authorize (
   pAgent            text DEFAULT null,
   pHost             inet DEFAULT null,
   OUT authorized    boolean,
+  OUT userid		numeric,
   OUT message       text
 ) RETURNS           record
 AS $$
 BEGIN
   authorized := Authorize(pSession, pAgent, pHost);
+  userid := current_userid();
   message := GetErrorMessage();
 END;
 $$ LANGUAGE plpgsql
