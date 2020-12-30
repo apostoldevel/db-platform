@@ -51,9 +51,24 @@ CREATE INDEX ON db.device (serial);
 
 CREATE OR REPLACE FUNCTION ft_device_before_insert()
 RETURNS trigger AS $$
+DECLARE
+  nOwner		numeric;
+  nUserId		numeric;
 BEGIN
   IF NEW.id IS NULL OR NEW.id = 0 THEN
     SELECT NEW.document INTO NEW.id;
+  END IF;
+
+  IF NEW.client IS NOT NULL THEN
+    SELECT owner INTO nOwner FROM db.object WHERE id = NEW.document;
+
+    nUserId := GetClientUserId(NEW.client);
+    IF nOwner <> nUserId THEN
+      UPDATE db.aou SET allow = allow | B'110' WHERE object = NEW.document AND userid = nUserId;
+      IF NOT FOUND THEN
+        INSERT INTO db.aou SELECT NEW.document, nUserId, B'000', B'110';
+      END IF;
+    END IF;
   END IF;
 
   RETURN NEW;
@@ -68,6 +83,48 @@ CREATE TRIGGER t_device_before_insert
   BEFORE INSERT ON db.device
   FOR EACH ROW
   EXECUTE PROCEDURE ft_device_before_insert();
+
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION ft_device_before_update()
+RETURNS trigger AS $$
+DECLARE
+  nOwner		numeric;
+  nUserId		numeric;
+BEGIN
+  IF OLD.client <> NEW.client THEN
+    SELECT owner INTO nOwner FROM db.object WHERE id = NEW.document;
+
+    IF NEW.client IS NOT NULL THEN
+      nUserId := GetClientUserId(NEW.client);
+      IF nOwner <> nUserId THEN
+        UPDATE db.aou SET allow = allow | B'110' WHERE object = NEW.document AND userid = nUserId;
+        IF NOT found THEN
+          INSERT INTO db.aou SELECT NEW.document, nUserId, B'000', B'110';
+        END IF;
+      END IF;
+    END IF;
+
+    IF OLD.client IS NOT NULL THEN
+      nUserId := GetClientUserId(OLD.client);
+      IF nOwner <> nUserId THEN
+        DELETE FROM db.aou WHERE object = OLD.document AND userid = nUserId;
+      END IF;
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+
+CREATE TRIGGER t_device_before_update
+  BEFORE UPDATE ON db.device
+  FOR EACH ROW
+  EXECUTE PROCEDURE ft_device_before_update();
 
 --------------------------------------------------------------------------------
 -- CreateDevice ----------------------------------------------------------------
@@ -189,6 +246,28 @@ DECLARE
 BEGIN
   SELECT id INTO nId FROM db.device WHERE identity = pIdentity;
   RETURN nId;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- SwitchDevice ----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION SwitchDevice (
+  pDevice	numeric,
+  pClient	numeric
+) RETURNS	void
+AS $$
+DECLARE
+  nUserId	numeric;
+BEGIN
+  nUserId := GetClientUserId(pClient);
+  IF nUserId IS NOT NULL THEN
+    UPDATE db.device SET client = pClient WHERE id = pDevice;
+    PERFORM SetObjectOwner(pDevice, nUserId);
+  END IF;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

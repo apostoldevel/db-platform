@@ -175,6 +175,27 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- FUNCTION api.switch_device --------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.switch_device (
+  pDevice			numeric,
+  pClient			numeric
+) RETURNS			void
+AS $$
+DECLARE
+  nClient			numeric;
+BEGIN
+  SELECT client INTO nClient FROM db.device WHERE id = pDevice;
+  IF FOUND AND coalesce(pClient, nClient) <> nClient THEN
+    PERFORM SwitchDevice(pDevice, pClient);
+  END IF;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- FUNCTION api.init_device ----------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -205,6 +226,7 @@ BEGIN
   IF nId IS NULL THEN
     nId := api.add_device(pParent, pType, nModel, pClient, pIdentity, pVersion, pSerial, pAddress, piccid, pimsi, pLabel, pDescription);
   ELSE
+    PERFORM api.switch_device(nId, pClient);
     PERFORM api.update_device(nId, pParent, pType, nModel, pClient, pIdentity, pVersion, pSerial, pAddress, piccid, pimsi, pLabel, pDescription);
   END IF;
 
