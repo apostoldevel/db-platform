@@ -2369,7 +2369,13 @@ CREATE TRIGGER t_object_coordinates_after_insert
 
 CREATE OR REPLACE VIEW ObjectCoordinates
 AS
-  SELECT * FROM db.object_coordinates;
+  SELECT oc.id, oc.object,
+         o.entity, o.entitycode, o.entityname,
+         o.class, o.classcode, o.classlabel,
+         o.type, o.typecode, o.typename, o.typedescription,
+         oc.code, oc.latitude, oc.longitude, oc.accuracy,
+         oc.label, oc.description, oc.data, oc.validfromdate, oc.validtodate
+    FROM db.object_coordinates oc INNER JOIN Object o on o.id = oc.object;
 
 GRANT SELECT ON ObjectCoordinates TO administrator;
 
