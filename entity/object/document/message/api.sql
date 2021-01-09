@@ -22,7 +22,7 @@ CREATE OR REPLACE FUNCTION api.message (
   pState    numeric
 ) RETURNS	SETOF api.message
 AS $$
-  SELECT * FROM api.message WHERE type = pType AND agent = pAgent AND state = pState ORDER BY profile;
+  SELECT * FROM api.message WHERE type = pType AND agent = pAgent AND state = pState;
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -38,6 +38,33 @@ CREATE OR REPLACE FUNCTION api.message (
 ) RETURNS	SETOF api.message
 AS $$
   SELECT * FROM api.message(CodeToType(coalesce(pType, 'message.outbox'), 'message'), GetAgent(pAgent), GetState(GetClass(SubStr(pType, StrPos(pType, '.') + 1)), pState));
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION api.outbox ---------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.outbox (
+  pState    numeric,
+  pType		numeric DEFAULT GetType('message.outbox')
+) RETURNS	SETOF api.message
+AS $$
+  SELECT * FROM api.message WHERE type = pType AND state = pState;
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION api.outbox ---------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.outbox (
+  pState    varchar
+) RETURNS	SETOF api.message
+AS $$
+  SELECT * FROM api.outbox(GetState(GetClass('outbox'), pState));
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

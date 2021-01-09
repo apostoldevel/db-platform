@@ -44,9 +44,15 @@ CREATE INDEX ON db.notification (datetime);
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION db.ft_notification_after_insert()
-RETURNS trigger AS $$
+RETURNS		trigger
+AS $$
 BEGIN
   PERFORM pg_notify('notify', row_to_json(NEW)::text);
+
+  IF GetClassCode(NEW.class) = 'outbox' AND GetActionCode(NEW.action) = 'submit' THEN
+  	PERFORM pg_notify('outbox', IntToStr(NEW.object));
+  END IF;
+
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql

@@ -1100,18 +1100,15 @@ AS $$
 DECLARE
   nId		numeric;
 BEGIN
+  WITH RECURSIVE classtree(id, parent, level) AS (
+	SELECT id, parent, level FROM db.class_tree WHERE id = pClass
+	 UNION ALL
+	SELECT c.id, c.parent, c.level
+      FROM db.class_tree c INNER JOIN classtree ct ON ct.parent = c.id
+  )
   SELECT s.id INTO nId
-    FROM db.state s INNER JOIN db.class_tree c ON c.id = s.class
+    FROM db.state s INNER JOIN classtree c ON s.class = c.id
    WHERE s.code = pCode
-     AND s.class IN (
-       WITH RECURSIVE classtree(id, parent) AS (
-         SELECT id, parent FROM db.class_tree WHERE id = pClass
-       UNION ALL
-         SELECT c.id, c.parent
-           FROM db.class_tree c INNER JOIN classtree ct ON ct.parent = c.id
-       )
-       SELECT id FROM classtree
-     )
    ORDER BY c.level DESC;
 
   RETURN nId;
@@ -1132,18 +1129,15 @@ AS $$
 DECLARE
   nId		numeric;
 BEGIN
+  WITH RECURSIVE classtree(id, parent, level) AS (
+	SELECT id, parent, level FROM db.class_tree WHERE id = pClass
+	 UNION ALL
+	SELECT c.id, c.parent, c.level
+      FROM db.class_tree c INNER JOIN classtree ct ON ct.parent = c.id
+  )
   SELECT s.id INTO nId
-    FROM db.state s INNER JOIN db.class_tree c ON c.id = s.class
+    FROM db.state s INNER JOIN classtree c ON s.class = c.id
    WHERE s.type = pType
-     AND s.class IN (
-       WITH RECURSIVE classtree(id, parent) AS (
-         SELECT id, parent FROM db.class_tree WHERE id = pClass
-       UNION ALL
-         SELECT c.id, c.parent
-           FROM db.class_tree c INNER JOIN classtree ct ON ct.parent = c.id
-       )
-       SELECT id FROM classtree
-     )
    ORDER BY c.level DESC;
 
   RETURN nId;
