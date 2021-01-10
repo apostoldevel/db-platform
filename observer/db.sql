@@ -263,6 +263,22 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- FUNCTION DoCheckListenerFilter ----------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION DoCheckListenerFilter (
+  pPublisher	text,
+  pFilter		jsonb
+) RETURNS		void
+AS $$
+BEGIN
+  RETURN;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- FUNCTION CheckListenerFilter ------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -330,8 +346,24 @@ BEGIN
   	PERFORM CheckJsonbKeys('/listener/geo/filter', arFilter, pFilter);
 
   ELSE
-  	NULL;
+  	PERFORM DoCheckListenerFilter(pPublisher, pFilter);
   END CASE;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION DoCheckListenerParams ----------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION DoCheckListenerParams (
+  pPublisher	text,
+  pParams		jsonb
+) RETURNS		void
+AS $$
+BEGIN
+  RETURN;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -410,9 +442,27 @@ BEGIN
 	END IF;
 
   ELSE
-  	NULL;
+  	PERFORM DoCheckListenerParams(pPublisher, pParams);
   END CASE;
 END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION DoFilterListener ---------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION DoFilterListener (
+  pPublisher	text,
+  pUserId		numeric,
+  pFilter		jsonb,
+  pData			jsonb
+) RETURNS		boolean
+AS $$
+BEGIN
+  RETURN false;
+END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -474,8 +524,25 @@ BEGIN
 	       CheckObjectAccess(d.object, B'100', nUserId);
 
   ELSE
-  	RETURN false;
+  	RETURN DoFilterListener(pPublisher, nUserId, pFilter, pData);
   END CASE;
+END
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION DoEventListener ----------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION DoEventListener (
+  pPublisher	text,
+  pData			jsonb
+) RETURNS       SETOF json
+AS $$
+BEGIN
+  RETURN NEXT pData;
+  RETURN;
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -551,8 +618,14 @@ BEGIN
 	  LOOP
 		RETURN NEXT row_to_json(e);
 	  END LOOP;
+
 	ELSE
-	  RETURN NEXT pData;
+
+	  FOR r IN SELECT * FROM DoEventListener(pPublisher, pData) AS data
+	  LOOP
+		RETURN NEXT r.data;
+	  END LOOP;
+
 	END CASE;
   END IF;
 
