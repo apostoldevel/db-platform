@@ -91,24 +91,15 @@ BEGIN
     PERFORM AddMemberToGroup(nUserId, GetGroup('user'));
 
     nArea := GetArea('default');
-    SELECT * INTO nId FROM db.member_area WHERE area = nArea AND member = nUserId;
-    IF NOT FOUND THEN
-      PERFORM AddMemberToArea(nUserId, nArea);
-      PERFORM SetDefaultArea(nArea, nUserId);
-    END IF;
+    PERFORM AddMemberToArea(nUserId, nArea);
+    PERFORM SetDefaultArea(nArea, nUserId);
 
     nInterface := GetInterface('I:1:0:0');
-    SELECT * INTO nId FROM db.member_interface WHERE interface = nInterface AND member = nUserId;
-    IF NOT FOUND THEN
-      PERFORM AddMemberToInterface(nUserId, nInterface);
-    END IF;
+    PERFORM AddMemberToInterface(nUserId, nInterface);
 
     nInterface := GetInterface('I:1:0:3');
-    SELECT * INTO nId FROM db.member_interface WHERE interface = nInterface AND member = nUserId;
-    IF NOT FOUND THEN
-      PERFORM AddMemberToInterface(nUserId, nInterface);
-      PERFORM SetDefaultInterface(nInterface, nUserId);
-    END IF;
+    PERFORM AddMemberToInterface(nUserId, nInterface);
+    PERFORM SetDefaultInterface(nInterface, nUserId);
 
     FOR r IN SELECT code FROM db.session WHERE userid = nUserId
     LOOP

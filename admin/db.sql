@@ -214,7 +214,7 @@ RETURNS trigger AS $$
 DECLARE
 BEGIN
   IF NEW.ID = NEW.PARENT THEN
-    NEW.PARENT := GetArea('default');
+    NEW.PARENT := GetArea('all');
   END IF;
 
   RETURN NEW;
@@ -654,6 +654,8 @@ COMMENT ON COLUMN db.member_group.member IS 'Участник';
 
 CREATE INDEX ON db.member_group (userid);
 CREATE INDEX ON db.member_group (member);
+
+CREATE UNIQUE INDEX ON db.member_group (userid, member);
 
 --------------------------------------------------------------------------------
 -- MemberGroup -----------------------------------------------------------------
@@ -3507,13 +3509,15 @@ $$ LANGUAGE plpgsql
  * Добавляет пользователя в группу.
  * @param {id} pMember - Идентификатор пользователя
  * @param {id} pGroup - Идентификатор группы
- * @return {void}
+ * @return {numeric}
  */
 CREATE OR REPLACE FUNCTION AddMemberToGroup (
   pMember	numeric,
   pGroup	numeric
-) RETURNS	void
+) RETURNS	numeric
 AS $$
+DECLARE
+  nId		numeric;
 BEGIN
   IF session_user <> 'kernel' THEN
     IF NOT IsUserRole(GetGroup('administrator')) THEN
@@ -3521,7 +3525,14 @@ BEGIN
     END IF;
   END IF;
 
-  INSERT INTO db.member_group (userid, member) VALUES (pGroup, pMember);
+  SELECT id INTO nId FROM db.member_group WHERE userid = pGroup AND member = pMember;
+
+  IF NOT FOUND THEN
+    INSERT INTO db.member_group (userid, member) VALUES (pGroup, pMember)
+    RETURNING id INTO nId;
+  END IF;
+
+  RETURN nId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -3645,22 +3656,7 @@ BEGIN
 
   INSERT INTO db.area (parent, type, code, name, description)
   VALUES (coalesce(pParent, GetArea('root')), pType, pCode, pName, pDescription) RETURNING Id INTO nId;
-/*
-  PERFORM RegSetValueEx(RegCreateKey('CURRENT_CONFIG', 'CONFIG\Department\' || pCode || '\IPTable'), 'LocalIP', 3, pString => '127.0.0.1, 192.168.0.*');
-  PERFORM RegSetValueEx(RegCreateKey('CURRENT_CONFIG', 'CONFIG\Department\' || pCode || '\IPTable'), 'EntrustedIP', 3, pString => null);
 
-  PERFORM RegSetValueEx(RegCreateKey('CURRENT_CONFIG', 'CONFIG\Department\' || pCode || '\mailerTransport'), 'class', 3, pString => 'SMTP');
-  PERFORM RegSetValueEx(RegCreateKey('CURRENT_CONFIG', 'CONFIG\Department\' || pCode || '\mailerTransport'), 'host', 3, pString => 'smtp.example.com:465');
-  PERFORM RegSetValueEx(RegCreateKey('CURRENT_CONFIG', 'CONFIG\Department\' || pCode || '\mailerTransport'), 'username', 3, pString => pCode || '@example.com');
-  PERFORM RegSetValueEx(RegCreateKey('CURRENT_CONFIG', 'CONFIG\Department\' || pCode || '\mailerTransport'), 'password', 3, pString => null);
-
-  PERFORM RegSetValueEx(RegCreateKey('CURRENT_CONFIG', 'CONFIG\Department\' || pCode || '\imapConnection'), 'imapPath', 3, pString => '{imap.example.com:993/imap/ssl/novalidate-cert}INBOX');
-  PERFORM RegSetValueEx(RegCreateKey('CURRENT_CONFIG', 'CONFIG\Department\' || pCode || '\imapConnection'), 'imapLogin', 3, pString => pCode || '@example.com');
-  PERFORM RegSetValueEx(RegCreateKey('CURRENT_CONFIG', 'CONFIG\Department\' || pCode || '\imapConnection'), 'imapPassword', 3, pString => null);
-  PERFORM RegSetValueEx(RegCreateKey('CURRENT_CONFIG', 'CONFIG\Department\' || pCode || '\imapConnection'), 'serverEncoding', 3, pString => 'utf-8');
-  PERFORM RegSetValueEx(RegCreateKey('CURRENT_CONFIG', 'CONFIG\Department\' || pCode || '\imapConnection'), 'attachmentsDir', 3, pString => '/uploads/message');
-  PERFORM RegSetValueEx(RegCreateKey('CURRENT_CONFIG', 'CONFIG\Department\' || pCode || '\imapConnection'), 'folderForMovingMsg', 3, pString => null);
-*/
   RETURN nId;
 END;
 $$ LANGUAGE plpgsql
@@ -3694,7 +3690,7 @@ BEGIN
 
   SELECT type, code INTO nType, vCode FROM db.area WHERE id = pId;
   IF NOT FOUND THEN
-    PERFORM AreaError(pId);
+    PERFORM AreaError();
   END IF;
 
   pCode := coalesce(pCode, vCode);
@@ -3827,7 +3823,8 @@ BEGIN
   END IF;
 
   SELECT id INTO nId FROM db.member_area WHERE area = pArea AND member = pMember;
-  IF not found THEN
+
+  IF NOT FOUND THEN
     INSERT INTO db.member_area (area, member) VALUES (pArea, pMember)
     RETURNING id INTO nId;
   END IF;
@@ -4091,7 +4088,8 @@ BEGIN
   END IF;
 
   SELECT id INTO nId FROM db.member_interface WHERE interface = pInterface AND member = pMember;
-  IF not found THEN
+
+  IF NOT FOUND THEN
     INSERT INTO db.member_interface (interface, member) VALUES (pInterface, pMember)
     RETURNING id INTO nId;
   END IF;

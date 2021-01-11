@@ -1672,7 +1672,7 @@ $$ LANGUAGE plpgsql
 /*
  * Устанавливает битовую маску доступа для методов и пользователя.
  * @param {numeric} pMethod - Идентификатор метода
- * @param {int} pMask - Маска доступа. Три бита (0ve) где: 0 - резерв, v - visible, e - enable
+ * @param {int} pMask - Маска доступа. Три бита (xve) где: x - execute, v - visible, e - enable
  * @param {numeric} pUserId - Идентификатор пользователся/группы
  * @return {void}
 */

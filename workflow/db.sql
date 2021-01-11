@@ -602,8 +602,10 @@ AS $$
 DECLARE
   r             record;
 
+  bMethod		bit(6);
   bDeny         bit(5);
   bAllow        bit(5);
+  bMask         bit(5);
 BEGIN
   IF session_user <> 'kernel' THEN
     IF NOT IsUserRole('administrator') THEN
@@ -615,6 +617,7 @@ BEGIN
 
   bDeny := coalesce(SubString(pMask FROM 1 FOR 5), B'00000');
   bAllow := coalesce(SubString(pMask FROM 6 FOR 5), B'00000');
+  bMask := (bAllow & ~bDeny);
 
   IF pMask IS NOT NULL THEN
     UPDATE db.acu SET deny = bDeny, allow = bAllow WHERE class = pClass AND userid = pUserId;
@@ -625,8 +628,25 @@ BEGIN
     DELETE FROM db.acu WHERE class = pClass AND userid = pUserId;
   END IF;
 
+  IF bMask & B'00010' = B'00010' THEN
+	bMethod := B'000111';
+  ELSE
+    bMethod := B'000000';
+  END IF;
+
+  FOR r IN SELECT id, visible FROM db.method WHERE class = pClass
+  LOOP
+	IF r.visible THEN
+	  bMethod := bMethod | B'000010';
+	ELSE
+	  bMethod := bMethod # B'000010';
+	END IF;
+
+	PERFORM chmodm(r.id, bMethod, pUserId);
+  END LOOP;
+
   IF coalesce(pObjectSet, false) THEN
-    FOR r IN SELECT o.id FROM db.object o INNER JOIN db.type t ON o.type = t.id WHERE t.class = pClass AND o.owner <> pUserId
+    FOR r IN SELECT id FROM db.object WHERE class = pClass AND owner <> pUserId
     LOOP
       PERFORM chmodo(r.id, SubString(bDeny FROM 3 FOR 3) || SubString(bAllow FROM 3 FOR 3), pUserId);
     END LOOP;
