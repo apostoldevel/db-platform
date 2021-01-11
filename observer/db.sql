@@ -194,10 +194,11 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION DeleteListener (
   pPublisher	text,
   pSession		varchar
-) RETURNS 		void
+) RETURNS 		boolean
 AS $$
 BEGIN
   DELETE FROM db.listener WHERE publisher = pPublisher AND session = pSession;
+  RETURN FOUND;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

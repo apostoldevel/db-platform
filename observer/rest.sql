@@ -73,7 +73,7 @@ BEGIN
       LOOP
         FOR e IN SELECT * FROM api.unsubscribe_observer(r.publisher, current_session())
         LOOP
-          RETURN NEXT row_to_json(e);
+          RETURN NEXT json_build_object('publisher', r.publisher, 'unsubscribe', e.unsubscribe_observer);
         END LOOP;
       END LOOP;
 
@@ -83,7 +83,7 @@ BEGIN
       LOOP
         FOR e IN SELECT * FROM api.unsubscribe_observer(r.publisher, current_session())
         LOOP
-          RETURN NEXT row_to_json(e);
+          RETURN NEXT json_build_object('publisher', r.publisher, 'unsubscribe', e.unsubscribe_observer);
         END LOOP;
       END LOOP;
 

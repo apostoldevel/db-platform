@@ -219,10 +219,10 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.unsubscribe_observer (
   pPublisher	text,
   pSession		varchar
-) RETURNS		void
+) RETURNS		boolean
 AS $$
 BEGIN
-  PERFORM DeleteListener(pPublisher, coalesce(pSession, current_session()));
+  RETURN DeleteListener(pPublisher, coalesce(pSession, current_session()));
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
