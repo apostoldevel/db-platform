@@ -2951,7 +2951,7 @@ DECLARE
   vSecret               text;
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(GetGroup('administrator')) THEN
+    IF NOT (IsUserRole(GetGroup('administrator')) OR IsUserRole(GetGroup('hr'))) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3063,7 +3063,7 @@ BEGIN
 
   IF session_user <> 'kernel' THEN
     IF pId <> current_userid() THEN
-      IF NOT IsUserRole(GetGroup('administrator')) OR r.readonly THEN
+      IF NOT (IsUserRole(GetGroup('administrator')) OR IsUserRole(GetGroup('hr'))) OR r.readonly THEN
         PERFORM AccessDenied();
       END IF;
     END IF;
@@ -3164,7 +3164,7 @@ DECLARE
   vUserName	varchar;
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(GetGroup('administrator')) THEN
+    IF NOT (IsUserRole(GetGroup('administrator')) OR IsUserRole(GetGroup('hr'))) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3179,7 +3179,7 @@ BEGIN
     PERFORM SystemRoleError();
   END IF;
 
-  IF found THEN
+  IF FOUND THEN
 
     UPDATE db.object SET oper = GetUser('admin') WHERE oper = pId;
     UPDATE db.object SET owner = GetUser('admin') WHERE owner = pId;
@@ -3218,7 +3218,7 @@ DECLARE
 BEGIN
   SELECT id INTO nId FROM db.user WHERE type = 'U' AND username = lower(pRoleName);
 
-  IF NOT found THEN
+  IF NOT FOUND THEN
     PERFORM UserNotFound(pRoleName);
   END IF;
 
