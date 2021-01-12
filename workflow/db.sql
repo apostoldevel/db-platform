@@ -1484,8 +1484,16 @@ CREATE TRIGGER t_method_before_insert
 
 CREATE OR REPLACE FUNCTION ft_method_after_insert()
 RETURNS trigger AS $$
+DECLARE
+  bAllow	bit(3);
 BEGIN
-  INSERT INTO db.amu SELECT NEW.id, userid, B'000', B'111' FROM db.acu WHERE class = NEW.class;
+  IF NEW.visible THEN
+	bAllow := B'111';
+  ELSE
+	bAllow := B'101';
+  END IF;
+
+  INSERT INTO db.amu SELECT NEW.id, userid, B'000', bAllow FROM db.acu WHERE class = NEW.class AND mask & B'00010' = B'00010';
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql
