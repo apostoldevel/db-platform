@@ -123,10 +123,8 @@ BEGIN
   INSERT INTO db.aom SELECT NEW.id;
   INSERT INTO db.aou (object, userid, deny, allow) SELECT NEW.id, userid, SubString(deny FROM 3 FOR 3), SubString(allow FROM 3 FOR 3) FROM db.acu WHERE class = NEW.class;
 
-  UPDATE db.aou SET deny = B'000', allow = B'111' WHERE object = NEW.id AND userid = NEW.owner;
-  IF NOT FOUND THEN
-    INSERT INTO db.aou SELECT NEW.id, NEW.owner, B'000', B'111';
-  END IF;
+  INSERT INTO db.aou SELECT NEW.id, NEW.owner, B'000', B'111'
+	ON CONFLICT (object, userid) DO UPDATE SET deny = B'000', allow = B'111';
 
   IF NEW.parent IS NOT NULL THEN
     SELECT owner INTO nUserId FROM db.object WHERE id = NEW.parent;
@@ -196,11 +194,8 @@ BEGIN
 
   IF OLD.owner <> NEW.owner THEN
     DELETE FROM db.aou WHERE object = NEW.id AND userid = OLD.owner AND mask = B'111';
-
-	UPDATE db.aou SET deny = B'000', allow = B'111' WHERE object = NEW.id AND userid = NEW.owner;
-	IF NOT FOUND THEN
-	  INSERT INTO db.aou SELECT NEW.id, NEW.owner, B'000', B'111';
-	END IF;
+	INSERT INTO db.aou SELECT NEW.id, NEW.owner, B'000', B'111'
+	  ON CONFLICT (object, userid) DO UPDATE SET deny = B'000', allow = B'111';
   END IF;
 
   NEW.oper := current_userid();
@@ -496,10 +491,8 @@ BEGIN
     bDeny := coalesce(SubString(pMask FROM 1 FOR 3), B'000');
     bAllow := coalesce(SubString(pMask FROM 4 FOR 3), B'000');
 
-    UPDATE db.aou SET deny = bDeny, allow = bAllow WHERE object = pObject AND userid = pUserId;
-    IF NOT FOUND THEN
-      INSERT INTO db.aou SELECT pObject, pUserId, bDeny, bAllow;
-    END IF;
+	INSERT INTO db.aou SELECT pObject, pUserId, bDeny, bAllow
+	  ON CONFLICT (object, userid) DO UPDATE SET deny = bDeny, allow = bAllow;
   ELSE
     DELETE FROM db.aou WHERE object = pObject AND userid = pUserId;
   END IF;
@@ -2377,7 +2370,7 @@ AS
          o.type, o.typecode, o.typename, o.typedescription,
          oc.code, oc.latitude, oc.longitude, oc.accuracy,
          oc.label, oc.description, oc.data, oc.validfromdate, oc.validtodate
-    FROM db.object_coordinates oc INNER JOIN Object o on o.id = oc.object;
+    FROM db.object_coordinates oc INNER JOIN Object o ON oc.object = o.id;
 
 GRANT SELECT ON ObjectCoordinates TO administrator;
 

@@ -1745,12 +1745,12 @@ CREATE TRIGGER t_amu_before
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION amu (
-  pUserId	numeric,
+  pUserId		numeric,
   OUT method	numeric,
-  OUT deny	bit,
-  OUT allow	bit,
-  OUT mask	bit
-) RETURNS	SETOF record
+  OUT deny		bit,
+  OUT allow		bit,
+  OUT mask		bit
+) RETURNS		SETOF record
 AS $$
   SELECT a.method, bit_or(a.deny), bit_or(a.allow), bit_or(a.mask)
     FROM db.amu a
@@ -1765,13 +1765,13 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION amu (
-  pUserId	numeric,
-  pMethod	numeric,
+  pUserId		numeric,
+  pMethod		numeric,
   OUT method	numeric,
-  OUT deny	bit,
-  OUT allow	bit,
-  OUT mask	bit
-) RETURNS	SETOF record
+  OUT deny		bit,
+  OUT allow		bit,
+  OUT mask		bit
+) RETURNS		SETOF record
 AS $$
   SELECT a.method, bit_or(a.deny), bit_or(a.allow), bit_or(a.mask)
     FROM db.amu a

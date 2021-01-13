@@ -3451,7 +3451,7 @@ DECLARE
 BEGIN
   IF session_user <> 'kernel' THEN
     IF pId <> current_userid() THEN
-      IF NOT IsUserRole(GetGroup('administrator')) THEN
+      IF NOT (IsUserRole(GetGroup('administrator')) OR IsUserRole(GetGroup('hr'))) THEN
         PERFORM AccessDenied();
       END IF;
     END IF;
@@ -3485,7 +3485,7 @@ DECLARE
   nId		numeric;
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(GetGroup('administrator')) THEN
+    IF NOT (IsUserRole(GetGroup('administrator')) OR IsUserRole(GetGroup('hr'))) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
