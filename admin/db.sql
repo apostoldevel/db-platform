@@ -336,13 +336,13 @@ RETURNS trigger AS $$
 BEGIN
   CASE NEW.username
   WHEN 'system' THEN
-    INSERT INTO db.acl SELECT NEW.id, B'00000000', B'10000011';
+    INSERT INTO db.acl SELECT NEW.id, B'00000000000', B'10000000011';
   WHEN 'administrator' THEN
-    INSERT INTO db.acl SELECT NEW.id, B'00000000', B'01111111';
+    INSERT INTO db.acl SELECT NEW.id, B'00000000000', B'01111111111';
   WHEN 'guest' THEN
-    INSERT INTO db.acl SELECT NEW.id, B'11111100', B'00000011';
+    INSERT INTO db.acl SELECT NEW.id, B'11111111100', B'00000000011';
   ELSE
-    INSERT INTO db.acl SELECT NEW.id, B'00000000', B'00000011';
+    INSERT INTO db.acl SELECT NEW.id, B'00000000000', B'00000000011';
   END CASE;
 
   RETURN NEW;
@@ -2495,7 +2495,20 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- db.acl ----------------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/*
+ Маска доступа:
+   s - substitute user;
+   L - unlock user;
+   l - lock user;
+   D - delete group;
+   U - update group;
+   C - create group;
+   d - delete user;
+   u - update user;
+   c - create user;
+   o - logout;
+   i - login
+ */
 CREATE TABLE db.acl (
     userId		numeric(12) PRIMARY KEY,
     deny		bit varying NOT NULL,
@@ -2506,9 +2519,9 @@ CREATE TABLE db.acl (
 COMMENT ON TABLE db.acl IS 'Список контроля доступа.';
 
 COMMENT ON COLUMN db.acl.userid IS 'Пользователь';
-COMMENT ON COLUMN db.acl.deny IS 'Запрещающие биты: {sULducoi}. Где: {s - substitute user; U - unlock user; L - lock user; d - delete user; u - update user; c - create user; o - logout; i - login}';
-COMMENT ON COLUMN db.acl.allow IS 'Разрешающие биты: {sULducoi}. Где: {s - substitute user; U - unlock user; L - lock user; d - delete user; u - update user; c - create user; o - logout; i - login}';
-COMMENT ON COLUMN db.acl.mask IS 'Маска доступа: {sULducoi}. Где: {s - substitute user; U - unlock user; L - lock user; d - delete user; u - update user; c - create user; o - logout; i - login}';
+COMMENT ON COLUMN db.acl.deny IS 'Запрещающие биты';
+COMMENT ON COLUMN db.acl.allow IS 'Разрешающие биты';
+COMMENT ON COLUMN db.acl.mask IS 'Маска доступа: {sLlDUCducoi}.';
 
 --------------------------------------------------------------------------------
 
@@ -2575,6 +2588,58 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- chmod -----------------------------------------------------------------------
+--------------------------------------------------------------------------------
+/*
+ * Устанавливает битовую маску доступа для пользователя.
+ * @param {bit varying} pMask - Маска доступа. (d:{sLlDUCducoi}a:{sLlDUCducoi})
+ Где: d - запрещающие биты; a - разрешающие биты:
+   s - substitute user;
+   L - unlock user;
+   l - lock user;
+   D - delete group;
+   U - update group;
+   C - create group;
+   d - delete user;
+   u - update user;
+   c - create user;
+   o - logout;
+   i - login
+ * @param {numeric} pUserId - Идентификатор пользователя/группы
+ * @return {void}
+*/
+CREATE OR REPLACE FUNCTION chmod (
+  pMask         bit varying,
+  pUserId       numeric DEFAULT current_userid()
+) RETURNS       void
+AS $$
+DECLARE
+  bDeny         bit varying;
+  bAllow        bit varying;
+BEGIN
+  IF session_user <> 'kernel' THEN
+    IF NOT IsUserRole(GetGroup('administrator')) THEN
+      PERFORM AccessDenied();
+    END IF;
+  END IF;
+
+  pMask := NULLIF(pMask, B'0000000000000000000000');
+
+  IF pMask IS NOT NULL THEN
+    bDeny := coalesce(SubString(pMask FROM 1 FOR 8), B'00000000000');
+    bAllow := coalesce(SubString(pMask FROM 9 FOR 8), B'00000000000');
+
+	INSERT INTO db.acl SELECT pUserId, bDeny, bAllow
+	  ON CONFLICT (userid) DO UPDATE SET deny = bDeny, allow = bAllow;
+  ELSE
+    DELETE FROM db.acl WHERE userid = pUserId;
+  END IF;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- FUNCTION SubstituteUser -----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
@@ -2592,7 +2657,7 @@ CREATE OR REPLACE FUNCTION SubstituteUser (
 AS $$
 BEGIN
   IF session_user <> 'kernel' THEN
-	IF NOT CheckAccessControlList(B'10000000', session_userid(pSession)) THEN
+	IF NOT CheckAccessControlList(B'10000000000', session_userid(pSession)) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3060,7 +3125,7 @@ DECLARE
   vSecret               text;
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT CheckAccessControlList(B'00000100') THEN
+    IF NOT CheckAccessControlList(B'00000000100') THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3114,7 +3179,7 @@ DECLARE
   nGroupId	    numeric;
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(GetGroup('administrator')) THEN
+	IF NOT CheckAccessControlList(B'00000100000') THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3172,7 +3237,7 @@ BEGIN
 
   IF session_user <> 'kernel' THEN
     IF pId <> current_userid() THEN
-	  IF NOT CheckAccessControlList(B'00001000') THEN
+	  IF NOT CheckAccessControlList(B'00000001000') THEN
 		PERFORM AccessDenied();
 	  END IF;
     END IF;
@@ -3236,7 +3301,7 @@ BEGIN
   END IF;
 
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(GetGroup('administrator')) OR r.readonly THEN
+    IF NOT CheckAccessControlList(B'00001000000') OR r.readonly THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3273,7 +3338,7 @@ DECLARE
   vUserName	varchar;
 BEGIN
   IF session_user <> 'kernel' THEN
-	IF NOT CheckAccessControlList(B'00010000') THEN
+	IF NOT CheckAccessControlList(B'00000010000') THEN
 	  PERFORM AccessDenied();
 	END IF;
   END IF;
@@ -3354,7 +3419,7 @@ DECLARE
   vGroupName    varchar;
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(GetGroup('administrator')) THEN
+	IF NOT CheckAccessControlList(B'00001000000') THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3561,7 +3626,7 @@ DECLARE
 BEGIN
   IF session_user <> 'kernel' THEN
     IF pId <> current_userid() THEN
-	  IF NOT CheckAccessControlList(B'00100000') THEN
+	  IF NOT CheckAccessControlList(B'00100000000') THEN
 		PERFORM AccessDenied();
 	  END IF;
     END IF;
@@ -3595,7 +3660,7 @@ DECLARE
   nId		numeric;
 BEGIN
   IF session_user <> 'kernel' THEN
-	IF NOT CheckAccessControlList(B'01000000') THEN
+	IF NOT CheckAccessControlList(B'01000000000') THEN
 	  PERFORM AccessDenied();
 	END IF;
   END IF;
@@ -4687,7 +4752,7 @@ BEGIN
     PERFORM LoginError();
   END IF;
 
-  IF NOT CheckAccessControlList(B'00000001', up.id) THEN
+  IF NOT CheckAccessControlList(B'00000000001', up.id) THEN
     PERFORM AccessDenied();
   END IF;
 
@@ -4852,7 +4917,7 @@ BEGIN
 
     SELECT userid INTO nUserId FROM db.session WHERE code = pSession;
 
-	IF NOT CheckAccessControlList(B'00000010', nUserId) THEN
+	IF NOT CheckAccessControlList(B'00000000010', nUserId) THEN
 	  PERFORM AccessDenied();
 	END IF;
 
@@ -5014,7 +5079,7 @@ DECLARE
 BEGIN
   IF session_user <> 'kernel' THEN
     nSUID := coalesce(session_userid(), GetUser(session_user));
-	IF NOT CheckAccessControlList(B'10000000', nSUID) THEN
+	IF NOT CheckAccessControlList(B'10000000000', nSUID) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
