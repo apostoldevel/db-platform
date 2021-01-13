@@ -165,6 +165,9 @@ BEGIN
       nState := AddState(pClass, rec_type.id, 'prepared', 'Подготовлено');
 
         PERFORM AddMethod(null, pClass, nState, GetAction('send'), pvisible => false);
+        PERFORM AddMethod(null, pClass, nState, GetAction('done'), pvisible => false);
+        PERFORM AddMethod(null, pClass, nState, GetAction('fail'), pvisible => false);
+
         PERFORM AddMethod(null, pClass, nState, GetAction('cancel'));
 
       nState := AddState(pClass, rec_type.id, 'sending', 'Отправка');
@@ -223,6 +226,14 @@ BEGIN
       LOOP
         IF rec_method.actioncode = 'send' THEN
           PERFORM AddTransition(rec_state.id, rec_method.id, GetState(pClass, 'sending'));
+        END IF;
+
+        IF rec_method.actioncode = 'done' THEN
+          PERFORM AddTransition(rec_state.id, rec_method.id, GetState(pClass, 'submitted'));
+        END IF;
+
+        IF rec_method.actioncode = 'fail' THEN
+          PERFORM AddTransition(rec_state.id, rec_method.id, GetState(pClass, 'failed'));
         END IF;
 
         IF rec_method.actioncode = 'cancel' THEN
