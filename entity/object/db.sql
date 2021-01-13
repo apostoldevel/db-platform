@@ -1341,15 +1341,11 @@ DECLARE
 BEGIN
   nMethod := GetObjectMethod(pObject, pAction);
 
-  IF nMethod IS NOT NULL THEN
-    RETURN ExecuteMethod(pObject, nMethod, pParams);
+  IF nMethod IS NULL THEN
+  	PERFORM MethodActionNotFound(pObject, pAction);
   END IF;
 
-  IF IsVisibleMethod(nMethod) THEN
-    PERFORM MethodActionNotFound(pObject, pAction);
-  END IF;
-
-  RETURN null;
+  RETURN ExecuteMethod(pObject, nMethod, pParams);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
