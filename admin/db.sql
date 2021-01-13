@@ -249,22 +249,22 @@ GRANT SELECT ON Area TO administrator;
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.user (
-    id                  numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_USER'),
-    type                char NOT NULL,
-    username            text NOT NULL,
-    name                text NOT NULL,
-    phone               text,
-    email               text,
-    description         text,
-    secret              bytea NOT NULL,
-    hash                text NOT NULL,
-    status              bit(4) DEFAULT B'0001' NOT NULL,
+    id					numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_USER'),
+    type				char NOT NULL,
+    username			text NOT NULL,
+    name				text NOT NULL,
+    phone				text,
+    email				text,
+    description			text,
+    secret				bytea NOT NULL,
+    hash				text NOT NULL,
+    status				bit(4) DEFAULT B'0001' NOT NULL,
     created             timestamp DEFAULT Now() NOT NULL,
     lock_date           timestamp DEFAULT NULL,
     expiry_date         timestamp DEFAULT NULL,
     pswhash             text DEFAULT NULL,
-    passwordchange      boolean DEFAULT true NOT NULL,
-    passwordnotchange   boolean DEFAULT false NOT NULL,
+    passwordchange		boolean DEFAULT true NOT NULL,
+    passwordnotchange	boolean DEFAULT false NOT NULL,
     readonly            boolean DEFAULT false NOT NULL,
     CONSTRAINT ch_user_type CHECK (type IN ('G', 'U'))
 );
@@ -328,6 +328,33 @@ CREATE TRIGGER t_user_before_insert
   BEFORE INSERT ON db.user
   FOR EACH ROW
   EXECUTE PROCEDURE db.ft_user_before_insert();
+
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION db.ft_user_after_insert()
+RETURNS trigger AS $$
+BEGIN
+  CASE NEW.username
+  WHEN 'system' THEN
+    INSERT INTO db.acl SELECT NEW.id, B'00000000', B'10000011';
+  WHEN 'administrator' THEN
+    INSERT INTO db.acl SELECT NEW.id, B'00000000', B'01111111';
+  WHEN 'guest' THEN
+    INSERT INTO db.acl SELECT NEW.id, B'11111100', B'00000011';
+  ELSE
+    INSERT INTO db.acl SELECT NEW.id, B'00000000', B'00000011';
+  END CASE;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+CREATE TRIGGER t_user_after_insert
+  AFTER INSERT ON db.user
+  FOR EACH ROW
+  EXECUTE PROCEDURE db.ft_user_after_insert();
 
 --------------------------------------------------------------------------------
 
@@ -2466,6 +2493,88 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- db.acl ----------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE TABLE db.acl (
+    userId		numeric(12) PRIMARY KEY,
+    deny		bit varying NOT NULL,
+    allow		bit varying NOT NULL,
+    mask		bit varying NOT NULL
+);
+
+COMMENT ON TABLE db.acl IS 'Список контроля доступа.';
+
+COMMENT ON COLUMN db.acl.userid IS 'Пользователь';
+COMMENT ON COLUMN db.acl.deny IS 'Запрещающие биты: {sULducoi}. Где: {s - substitute user; U - unlock user; L - lock user; d - delete user; u - update user; c - create user; o - logout; i - login}';
+COMMENT ON COLUMN db.acl.allow IS 'Разрешающие биты: {sULducoi}. Где: {s - substitute user; U - unlock user; L - lock user; d - delete user; u - update user; c - create user; o - logout; i - login}';
+COMMENT ON COLUMN db.acl.mask IS 'Маска доступа: {sULducoi}. Где: {s - substitute user; U - unlock user; L - lock user; d - delete user; u - update user; c - create user; o - logout; i - login}';
+
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION ft_acl_before()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.mask = NEW.allow & ~NEW.deny;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER t_acl_before
+  BEFORE INSERT OR UPDATE ON db.acl
+  FOR EACH ROW
+  EXECUTE PROCEDURE ft_acl_before();
+
+--------------------------------------------------------------------------------
+-- FUNCTION acl ----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION acl (
+  pUserId       numeric,
+  OUT deny      bit varying,
+  OUT allow     bit varying,
+  OUT mask      bit varying
+) RETURNS       SETOF record
+AS $$
+  WITH mg AS (
+      SELECT pUserId AS userid UNION SELECT userid FROM db.member_group WHERE member = pUserId
+  )
+  SELECT bit_or(a.deny), bit_or(a.allow), bit_or(a.mask)
+    FROM db.acl a INNER JOIN mg ON a.userid = mg.userid;
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- GetAccessControlListMask ----------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetAccessControlListMask (
+  pUserId	numeric DEFAULT current_userid()
+) RETURNS	bit varying
+AS $$
+  SELECT mask FROM acl(pUserId)
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- CheckAccessControlList ------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION CheckAccessControlList (
+  pMask		bit,
+  pUserId	numeric DEFAULT current_userid()
+) RETURNS	boolean
+AS $$
+BEGIN
+  RETURN coalesce(GetAccessControlListMask(pUserId) & pMask = pMask, false);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- FUNCTION SubstituteUser -----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
@@ -2483,7 +2592,7 @@ CREATE OR REPLACE FUNCTION SubstituteUser (
 AS $$
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(GetGroup('system'), session_userid(pSession)) THEN
+	IF NOT CheckAccessControlList(B'10000000', session_userid(pSession)) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -2951,7 +3060,7 @@ DECLARE
   vSecret               text;
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT (IsUserRole(GetGroup('administrator')) OR IsUserRole(GetGroup('hr'))) THEN
+    IF NOT CheckAccessControlList(B'00000100') THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3063,9 +3172,9 @@ BEGIN
 
   IF session_user <> 'kernel' THEN
     IF pId <> current_userid() THEN
-      IF NOT (IsUserRole(GetGroup('administrator')) OR IsUserRole(GetGroup('hr'))) OR r.readonly THEN
-        PERFORM AccessDenied();
-      END IF;
+	  IF NOT CheckAccessControlList(B'00001000') THEN
+		PERFORM AccessDenied();
+	  END IF;
     END IF;
   END IF;
 
@@ -3164,9 +3273,9 @@ DECLARE
   vUserName	varchar;
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT (IsUserRole(GetGroup('administrator')) OR IsUserRole(GetGroup('hr'))) THEN
-      PERFORM AccessDenied();
-    END IF;
+	IF NOT CheckAccessControlList(B'00010000') THEN
+	  PERFORM AccessDenied();
+	END IF;
   END IF;
 
   IF pId = current_userid() THEN
@@ -3184,6 +3293,7 @@ BEGIN
     UPDATE db.object SET oper = GetUser('admin') WHERE oper = pId;
     UPDATE db.object SET owner = GetUser('admin') WHERE owner = pId;
 
+    DELETE FROM db.acl WHERE userid = pId;
     DELETE FROM db.aou WHERE userid = pId;
 
     DELETE FROM db.member_area WHERE member = pId;
@@ -3451,9 +3561,9 @@ DECLARE
 BEGIN
   IF session_user <> 'kernel' THEN
     IF pId <> current_userid() THEN
-      IF NOT (IsUserRole(GetGroup('administrator')) OR IsUserRole(GetGroup('hr'))) THEN
-        PERFORM AccessDenied();
-      END IF;
+	  IF NOT CheckAccessControlList(B'00100000') THEN
+		PERFORM AccessDenied();
+	  END IF;
     END IF;
   END IF;
 
@@ -3485,9 +3595,9 @@ DECLARE
   nId		numeric;
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT (IsUserRole(GetGroup('administrator')) OR IsUserRole(GetGroup('hr'))) THEN
-      PERFORM AccessDenied();
-    END IF;
+	IF NOT CheckAccessControlList(B'01000000') THEN
+	  PERFORM AccessDenied();
+	END IF;
   END IF;
 
   SELECT id INTO nId FROM users WHERE id = pId;
@@ -4577,6 +4687,10 @@ BEGIN
     PERFORM LoginError();
   END IF;
 
+  IF NOT CheckAccessControlList(B'00000001', up.id) THEN
+    PERFORM AccessDenied();
+  END IF;
+
   IF get_bit(up.status, 1) = 1 THEN
     PERFORM UserLockError();
   END IF;
@@ -4738,6 +4852,10 @@ BEGIN
 
     SELECT userid INTO nUserId FROM db.session WHERE code = pSession;
 
+	IF NOT CheckAccessControlList(B'00000010', nUserId) THEN
+	  PERFORM AccessDenied();
+	END IF;
+
     IF pCloseAll THEN
       DELETE FROM db.session WHERE userid = nUserId;
       message := message || ' (с закрытием всех активных сессий)';
@@ -4896,7 +5014,7 @@ DECLARE
 BEGIN
   IF session_user <> 'kernel' THEN
     nSUID := coalesce(session_userid(), GetUser(session_user));
-    IF NOT IsUserRole(GetGroup('system'), nSUID) THEN
+	IF NOT CheckAccessControlList(B'10000000', nSUID) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
