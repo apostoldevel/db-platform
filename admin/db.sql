@@ -2614,6 +2614,7 @@ CREATE OR REPLACE FUNCTION chmod (
 ) RETURNS       void
 AS $$
 DECLARE
+  nSize         integer;
   bDeny         bit varying;
   bAllow        bit varying;
 BEGIN
@@ -2623,11 +2624,13 @@ BEGIN
     END IF;
   END IF;
 
-  pMask := NULLIF(pMask, B'0000000000000000000000');
+  nSize := bit_length(pMask) / 2;
+
+  pMask := NULLIF(pMask, dec_to_bin(0, nSize * 2)::varbit);
 
   IF pMask IS NOT NULL THEN
-    bDeny := coalesce(SubString(pMask FROM 1 FOR 8), B'00000000000');
-    bAllow := coalesce(SubString(pMask FROM 9 FOR 8), B'00000000000');
+    bDeny := coalesce(SubString(pMask FROM 1 FOR nSize), dec_to_bin(0, nSize)::varbit);
+    bAllow := coalesce(SubString(pMask FROM nSize + 1 FOR nSize), dec_to_bin(0, nSize)::varbit);
 
 	INSERT INTO db.acl SELECT pUserId, bDeny, bAllow
 	  ON CONFLICT (userid) DO UPDATE SET deny = bDeny, allow = bAllow;
