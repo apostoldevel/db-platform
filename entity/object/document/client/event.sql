@@ -76,7 +76,6 @@ AS $$
 DECLARE
   r             record;
 
-  nId           numeric;
   nArea         numeric;
   nUserId       numeric;
   nInterface    numeric;
