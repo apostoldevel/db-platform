@@ -549,9 +549,9 @@ BEGIN
     message := xmlelement(name "soap12:Envelope", xmlattributes('http://www.w3.org/2001/XMLSchema-instance' AS "xmlns:xsi", 'http://www.w3.org/2001/XMLSchema' AS "xmlns:xsd", 'http://www.w3.org/2003/05/soap-envelope' AS "xmlns:soap12"), xmlelement(name "soap12:Body", xmlelement(name "SendMessage", xmlattributes('http://mcommunicator.ru/M2M' AS xmlns), xmlelement(name "msid", vPhone), xmlelement(name "message", pMessage), xmlelement(name "naming", pProfile))));
     vContent := format('<?xml version="1.0" encoding="%s"?>', vCharSet) || xmlserialize(DOCUMENT message AS text);
     nMessageId := SendM2M(pParent, pProfile, vPhone, 'SendMessage', vContent, pMessage);
-    PERFORM WriteToEventLog('M', 1111, format('SMS передано на отправку: %s', nMessageId), nMessageId);
+    PERFORM WriteToEventLog('M', 1001, 'sms', format('SMS передано на отправку: %s', nMessageId), nMessageId);
   ELSE
-    PERFORM WriteToEventLog('E', 3111, 'Не удалось отправить SMS, телефон не установлен.', pParent);
+    PERFORM WriteToEventLog('E', 3001, 'sms', 'Не удалось отправить SMS, телефон не установлен.', pParent);
   END IF;
 
   RETURN nMessageId;
@@ -593,10 +593,10 @@ BEGIN
 	  message := json_build_object('message', json_build_object('token', token, 'android', json_build_object('priority', pPriority), 'data', pData));
 
 	  nMessageId := SendFCM(pObject, projectId, GetUserName(pUserId), pSubject, message::text);
-	  PERFORM WriteToEventLog('M', 1111, format('Push сообщение передано на отправку: %s', nMessageId), pObject);
+	  PERFORM WriteToEventLog('M', 1001, 'push', format('Push сообщение передано на отправку: %s', nMessageId), pObject);
     END LOOP;
   ELSE
-	PERFORM WriteToEventLog('E', 3111, 'Не удалось отправить Push сообщение, тоекн не установлен.', pObject);
+	PERFORM WriteToEventLog('E', 3001, 'push', 'Не удалось отправить Push сообщение, тоекн не установлен.', pObject);
   END IF;
 END
 $$ LANGUAGE plpgsql

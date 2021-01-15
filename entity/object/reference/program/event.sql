@@ -11,7 +11,7 @@ CREATE OR REPLACE FUNCTION EventProgramCreate (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1010, 'Программа создана.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'create', 'Программа создана.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -24,7 +24,7 @@ CREATE OR REPLACE FUNCTION EventProgramOpen (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1011, 'Программа открыта на просмотр.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'open', 'Программа открыта на просмотр.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -37,7 +37,7 @@ CREATE OR REPLACE FUNCTION EventProgramEdit (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1012, 'Программа изменёна.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'edit', 'Программа изменёна.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -50,7 +50,7 @@ CREATE OR REPLACE FUNCTION EventProgramSave (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1013, 'Программа сохранёна.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'save', 'Программа сохранёна.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -63,7 +63,7 @@ CREATE OR REPLACE FUNCTION EventProgramEnable (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1014, 'Программа открыта.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'enable', 'Программа открыта.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -76,7 +76,7 @@ CREATE OR REPLACE FUNCTION EventProgramDisable (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1015, 'Программа закрыта.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'disable', 'Программа закрыта.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -89,7 +89,7 @@ CREATE OR REPLACE FUNCTION EventProgramDelete (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1016, 'Программа удалёна.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'delete', 'Программа удалёна.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -102,7 +102,7 @@ CREATE OR REPLACE FUNCTION EventProgramRestore (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1017, 'Программа восстановлена.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'restore', 'Программа восстановлена.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -121,6 +121,6 @@ BEGIN
 
   DELETE FROM db.program WHERE id = pObject;
 
-  PERFORM WriteToEventLog('W', 2010, '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Программа уничтожена.');
+  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Программа уничтожена.');
 END;
 $$ LANGUAGE plpgsql;

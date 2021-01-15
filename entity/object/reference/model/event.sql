@@ -11,7 +11,7 @@ CREATE OR REPLACE FUNCTION EventModelCreate (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1010, 'Модель создана.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'create', 'Модель создана.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -24,7 +24,7 @@ CREATE OR REPLACE FUNCTION EventModelOpen (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1011, 'Модель открыта.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'open', 'Модель открыта.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -37,7 +37,7 @@ CREATE OR REPLACE FUNCTION EventModelEdit (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1012, 'Модель изменена.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'edit', 'Модель изменена.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -50,7 +50,7 @@ CREATE OR REPLACE FUNCTION EventModelSave (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1013, 'Модель сохранена.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'save', 'Модель сохранена.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -63,7 +63,7 @@ CREATE OR REPLACE FUNCTION EventModelEnable (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1014, 'Модель включена.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'enable', 'Модель включена.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -76,7 +76,7 @@ CREATE OR REPLACE FUNCTION EventModelDisable (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1015, 'Модель выключена.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'disable', 'Модель выключена.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -89,7 +89,7 @@ CREATE OR REPLACE FUNCTION EventModelDelete (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1016, 'Модель удалена.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'delete', 'Модель удалена.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -102,7 +102,7 @@ CREATE OR REPLACE FUNCTION EventModelRestore (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1017, 'Модель восстановлена.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'restore', 'Модель восстановлена.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -121,6 +121,6 @@ BEGIN
 
   DELETE FROM db.model WHERE id = pObject;
 
-  PERFORM WriteToEventLog('W', 2010, '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Модель уничтожена.');
+  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Модель уничтожена.');
 END;
 $$ LANGUAGE plpgsql;

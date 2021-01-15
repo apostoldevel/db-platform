@@ -11,7 +11,7 @@ CREATE OR REPLACE FUNCTION EventDeviceCreate (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1010, 'Устройство создано.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'create', 'Устройство создано.', pObject);
   PERFORM DoEnable(pObject);
 END;
 $$ LANGUAGE plpgsql;
@@ -25,7 +25,7 @@ CREATE OR REPLACE FUNCTION EventDeviceOpen (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1011, 'Устройство открыто на просмотр.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'open', 'Устройство открыто на просмотр.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -38,7 +38,7 @@ CREATE OR REPLACE FUNCTION EventDeviceEdit (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1012, 'Устройство изменено.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'edit', 'Устройство изменено.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -51,7 +51,7 @@ CREATE OR REPLACE FUNCTION EventDeviceSave (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1013, 'Устройство сохранено.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'save', 'Устройство сохранено.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -64,7 +64,7 @@ CREATE OR REPLACE FUNCTION EventDeviceEnable (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1014, 'Устройство включено.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'enable', 'Устройство включено.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -77,7 +77,7 @@ CREATE OR REPLACE FUNCTION EventDeviceHeartbeat (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1020, 'Устройство на связи.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'heartbeat', 'Устройство на связи.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -90,7 +90,7 @@ CREATE OR REPLACE FUNCTION EventDeviceAvailable (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1021, 'Устройство отправило статус: Available.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'available', 'Устройство отправило статус: Available.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -103,7 +103,7 @@ CREATE OR REPLACE FUNCTION EventDeviceUnavailable (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1028, 'Устройство отправило статус: Unavailable.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'unavailable', 'Устройство отправило статус: Unavailable.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -116,7 +116,7 @@ CREATE OR REPLACE FUNCTION EventDeviceFaulted (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1029, 'Устройство отправило статус: Faulted.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'faulted', 'Устройство отправило статус: Faulted.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -129,7 +129,7 @@ CREATE OR REPLACE FUNCTION EventDeviceDisable (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1015, 'Устройство отключено.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'disable', 'Устройство отключено.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -142,7 +142,7 @@ CREATE OR REPLACE FUNCTION EventDeviceDelete (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1016, 'Устройство удалено.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'delete', 'Устройство удалено.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -155,7 +155,7 @@ CREATE OR REPLACE FUNCTION EventDeviceRestore (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1017, 'Устройство восстановлено.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'restore', 'Устройство восстановлено.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -180,6 +180,6 @@ BEGIN
 
   DELETE FROM db.device WHERE id = pObject;
 
-  PERFORM WriteToEventLog('W', 2010, '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Устройство уничтожено.');
+  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Устройство уничтожено.');
 END;
 $$ LANGUAGE plpgsql;

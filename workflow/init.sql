@@ -206,40 +206,46 @@ AS $$
 BEGIN
   PERFORM AddAction('anything', 'Ничто');
 
+  PERFORM AddAction('abort', 'Прервать');
   PERFORM AddAction('add', 'Добавить');
+  PERFORM AddAction('approve', 'Утвердить');
+  PERFORM AddAction('available', 'Доступен');
+  PERFORM AddAction('cancel', 'Отменить');
+  PERFORM AddAction('check', 'Проверить');
+  PERFORM AddAction('complete', 'Завершить');
+  PERFORM AddAction('confirm', 'Подтвердить');
   PERFORM AddAction('create', 'Создать');
-  PERFORM AddAction('open', 'Открыть');
-  PERFORM AddAction('edit', 'Изменить');
-  PERFORM AddAction('save', 'Сохранить');
-  PERFORM AddAction('enable', 'Включить');
-  PERFORM AddAction('disable', 'Отключить');
   PERFORM AddAction('delete', 'Удалить');
-  PERFORM AddAction('remove', 'Удалить');
-  PERFORM AddAction('restore', 'Восстановить');
-  PERFORM AddAction('update', 'Обновить');
+  PERFORM AddAction('disable', 'Отключить');
+  PERFORM AddAction('done', 'Сделано');
   PERFORM AddAction('drop', 'Уничтожить');
+  PERFORM AddAction('edit', 'Изменить');
+  PERFORM AddAction('enable', 'Включить');
+  PERFORM AddAction('execute', 'Выполнить');
+  PERFORM AddAction('expire', 'Истекло');
+  PERFORM AddAction('fail', 'Неудача');
+  PERFORM AddAction('faulted', 'Ошибка');
+  PERFORM AddAction('finishing', 'Завершение');
+  PERFORM AddAction('heartbeat', 'Сердцебиение');
+  PERFORM AddAction('open', 'Открыть');
+  PERFORM AddAction('plan', 'Планировать');
+  PERFORM AddAction('postpone', 'Отложить');
+  PERFORM AddAction('preparing', 'Подготовка');
+  PERFORM AddAction('publish', 'Публиковать');
+  PERFORM AddAction('reconfirm', 'Переподтвердить');
+  PERFORM AddAction('remove', 'Удалить');
+  PERFORM AddAction('repeat', 'Повторить');
+  PERFORM AddAction('reserve', 'Резервировать');
+  PERFORM AddAction('reserved', 'Зарезервирован');
+  PERFORM AddAction('restore', 'Восстановить');
+  PERFORM AddAction('return', 'Вернуть');
+  PERFORM AddAction('save', 'Сохранить');
+  PERFORM AddAction('send', 'Отправить');
   PERFORM AddAction('start', 'Запустить');
   PERFORM AddAction('stop', 'Остановить');
-  PERFORM AddAction('check', 'Проверить');
-  PERFORM AddAction('cancel', 'Отменить');
-  PERFORM AddAction('postpone', 'Отложить');
-  PERFORM AddAction('reserve', 'Резервировать');
-  PERFORM AddAction('return', 'Вернуть');
   PERFORM AddAction('submit', 'Отправить');
-  PERFORM AddAction('send', 'Отправить');
-  PERFORM AddAction('abort', 'Прервать');
-  PERFORM AddAction('repeat', 'Повторить');
-  PERFORM AddAction('confirm', 'Подтвердить');
-  PERFORM AddAction('reconfirm', 'Переподтвердить');
-  PERFORM AddAction('execute', 'Выполнить');
-  PERFORM AddAction('complete', 'Завершить');
-  PERFORM AddAction('plan', 'Планировать');
-
-  ------------------------------------------------------------------------------
-
-  PERFORM AddAction('done', 'Сделано');
-  PERFORM AddAction('fail', 'Неудача');
-  PERFORM AddAction('expire', 'Истекло');
+  PERFORM AddAction('unavailable', 'Недоступен');
+  PERFORM AddAction('update', 'Обновить');  
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

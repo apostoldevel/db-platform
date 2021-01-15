@@ -11,7 +11,7 @@ CREATE OR REPLACE FUNCTION EventAddressCreate (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1010, 'Адрес создан.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'create', 'Адрес создан.', pObject);
   PERFORM DoEnable(pObject);
 END;
 $$ LANGUAGE plpgsql;
@@ -25,7 +25,7 @@ CREATE OR REPLACE FUNCTION EventAddressOpen (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1011, 'Адрес открыт на просмотр.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'open', 'Адрес открыт на просмотр.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -38,7 +38,7 @@ CREATE OR REPLACE FUNCTION EventAddressEdit (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1012, 'Адрес изменён.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'edit', 'Адрес изменён.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -51,7 +51,7 @@ CREATE OR REPLACE FUNCTION EventAddressSave (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1013, 'Адрес сохранён.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'save', 'Адрес сохранён.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -64,7 +64,7 @@ CREATE OR REPLACE FUNCTION EventAddressEnable (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1014, 'Адрес открыт.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'enable', 'Адрес открыт.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -77,7 +77,7 @@ CREATE OR REPLACE FUNCTION EventAddressDisable (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1015, 'Адрес закрыт.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'disable', 'Адрес закрыт.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -90,7 +90,7 @@ CREATE OR REPLACE FUNCTION EventAddressDelete (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1016, 'Адрес удалён.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'delete', 'Адрес удалён.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -103,7 +103,7 @@ CREATE OR REPLACE FUNCTION EventAddressRestore (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1017, 'Адрес восстановлен.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'restore', 'Адрес восстановлен.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -123,6 +123,6 @@ BEGIN
   DELETE FROM db.object_link WHERE linked = pObject;
   DELETE FROM db.address WHERE id = pObject;
 
-  PERFORM WriteToEventLog('W', 2010, '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Адрес уничтожен.');
+  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Адрес уничтожен.');
 END;
 $$ LANGUAGE plpgsql;

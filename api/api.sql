@@ -272,7 +272,7 @@ BEGIN
     vSelect := vSelect || E'\nOFFSET ' || pOffSet;
   END IF;
 
-  PERFORM WriteToEventLog('D', 9001, vSelect);
+  PERFORM WriteToEventLog('D', 9001, 'sql', vSelect);
 
   RETURN vSelect;
 END;
@@ -367,7 +367,7 @@ WHEN others THEN
   RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
 
   IF current_session() IS NOT NULL THEN
-	UPDATE db.api_log SET eventid = AddEventLog('E', ErrorCode, ErrorMessage) WHERE id = nApiId;
+	UPDATE db.api_log SET eventid = AddEventLog('E', ErrorCode, 'run', ErrorMessage) WHERE id = nApiId;
   END IF;
 END;
 $$ LANGUAGE plpgsql

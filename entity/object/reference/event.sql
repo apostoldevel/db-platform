@@ -11,7 +11,7 @@ CREATE OR REPLACE FUNCTION EventReferenceCreate (
 ) RETURNS        void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1010, 'Справочник создан.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'create', 'Справочник создан.', pObject);
   PERFORM DoEnable(pObject);
 END;
 $$ LANGUAGE plpgsql;
@@ -25,7 +25,7 @@ CREATE OR REPLACE FUNCTION EventReferenceOpen (
 ) RETURNS        void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1011, 'Справочник открыт.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'open', 'Справочник открыт.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -38,7 +38,7 @@ CREATE OR REPLACE FUNCTION EventReferenceEdit (
 ) RETURNS        void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1012, 'Справочник изменён.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'edit', 'Справочник изменён.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -51,7 +51,7 @@ CREATE OR REPLACE FUNCTION EventReferenceSave (
 ) RETURNS        void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1013, 'Справочник сохранён.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'save', 'Справочник сохранён.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -64,7 +64,7 @@ CREATE OR REPLACE FUNCTION EventReferenceEnable (
 ) RETURNS        void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1014, 'Справочник включен.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'enable', 'Справочник включен.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -77,7 +77,7 @@ CREATE OR REPLACE FUNCTION EventReferenceDisable (
 ) RETURNS        void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1015, 'Справочник выключен.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'disable', 'Справочник выключен.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -90,7 +90,7 @@ CREATE OR REPLACE FUNCTION EventReferenceDelete (
 ) RETURNS        void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1016, 'Справочник удалён.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'delete', 'Справочник удалён.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -103,7 +103,7 @@ CREATE OR REPLACE FUNCTION EventReferenceRestore (
 ) RETURNS        void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1017, 'Справочник восстановлен.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'restore', 'Справочник восстановлен.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -122,6 +122,6 @@ BEGIN
 
   DELETE FROM db.reference WHERE id = pObject;
 
-  PERFORM WriteToEventLog('W', 2010, '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Справочник уничтожен.');
+  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Справочник уничтожен.');
 END;
 $$ LANGUAGE plpgsql;

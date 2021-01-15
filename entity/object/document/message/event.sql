@@ -11,7 +11,7 @@ CREATE OR REPLACE FUNCTION EventMessageCreate (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1010, 'Сообщение создано.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'create', 'Сообщение создано.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -24,7 +24,7 @@ CREATE OR REPLACE FUNCTION EventMessageOpen (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1011, 'Сообщение открыто на просмотр.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'open', 'Сообщение открыто на просмотр.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -37,7 +37,7 @@ CREATE OR REPLACE FUNCTION EventMessageEdit (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1012, 'Сообщение изменёно.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'edit', 'Сообщение изменёно.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -50,7 +50,7 @@ CREATE OR REPLACE FUNCTION EventMessageSave (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1013, 'Сообщение сохранёно.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'save', 'Сообщение сохранёно.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -63,7 +63,7 @@ CREATE OR REPLACE FUNCTION EventMessageEnable (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1014, 'Сообщение открыто.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'enable', 'Сообщение открыто.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -76,7 +76,7 @@ CREATE OR REPLACE FUNCTION EventMessageSubmit (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1018, 'Сообщение готово к отправке.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'submit', 'Сообщение готово к отправке.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -89,7 +89,7 @@ CREATE OR REPLACE FUNCTION EventMessageSend (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1019, 'Сообщение отправляется.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'send', 'Сообщение отправляется.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -102,7 +102,7 @@ CREATE OR REPLACE FUNCTION EventMessageCancel (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1020, 'Отправка сообщения отменена.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'cancel', 'Отправка сообщения отменена.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -115,7 +115,7 @@ CREATE OR REPLACE FUNCTION EventMessageDone (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1020, 'Сообщение отправено.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'done', 'Сообщение отправено.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -128,7 +128,7 @@ CREATE OR REPLACE FUNCTION EventMessageFail (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1021, 'Сбой при отправке сообщения.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'Fail', 'Сбой при отправке сообщения.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -141,7 +141,7 @@ CREATE OR REPLACE FUNCTION EventMessageRepeat (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1022, 'Повторная отправка сообщения.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'repeat', 'Повторная отправка сообщения.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -154,7 +154,7 @@ CREATE OR REPLACE FUNCTION EventMessageDisable (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1015, 'Сообщение закрыто.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'disable', 'Сообщение закрыто.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -167,7 +167,7 @@ CREATE OR REPLACE FUNCTION EventMessageDelete (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1016, 'Сообщение удалёно.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'delete', 'Сообщение удалёно.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -180,7 +180,7 @@ CREATE OR REPLACE FUNCTION EventMessageRestore (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1017, 'Сообщение восстановлено.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'restore', 'Сообщение восстановлено.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -200,7 +200,7 @@ BEGIN
   DELETE FROM db.object_link WHERE linked = pObject;
   DELETE FROM db.message WHERE id = pObject;
 
-  PERFORM WriteToEventLog('W', 2010, '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Сообщение уничтожен.');
+  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Сообщение уничтожен.');
 END;
 $$ LANGUAGE plpgsql;
 
@@ -267,7 +267,7 @@ BEGIN
 	  vBody := CreateMailBody(vProject, vNoReply, null, vEmail, vSubject, vText, vHTML);
 
       PERFORM SendMail(pObject, vNoReply, vEmail, vSubject, vBody, vDescription);
-      PERFORM WriteToEventLog('M', 1110, vDescription, pObject);
+      PERFORM WriteToEventLog('M', 1001, 'email', vDescription, pObject);
     END IF;
   END IF;
 END;
@@ -328,7 +328,7 @@ BEGIN
 	  vBody := CreateMailBody(vProject, vNoReply, null, vEmail, vSubject, vText, vHTML);
 
       PERFORM SendMail(pObject, vNoReply, vEmail, vSubject, vBody, vDescription);
-      PERFORM WriteToEventLog('M', 1110, vDescription, pObject);
+      PERFORM WriteToEventLog('M', 1001, 'email', vDescription, pObject);
     END IF;
   END IF;
 END;

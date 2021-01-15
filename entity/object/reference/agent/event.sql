@@ -11,7 +11,7 @@ CREATE OR REPLACE FUNCTION EventAgentCreate (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1010, 'Агент создан.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'create', 'Агент создан.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -24,7 +24,7 @@ CREATE OR REPLACE FUNCTION EventAgentOpen (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1011, 'Агент открыт.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'open', 'Агент открыт.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -37,7 +37,7 @@ CREATE OR REPLACE FUNCTION EventAgentEdit (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1012, 'Агент изменён.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'edit', 'Агент изменён.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -50,7 +50,7 @@ CREATE OR REPLACE FUNCTION EventAgentSave (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1013, 'Агент сохранён.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'save', 'Агент сохранён.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -63,7 +63,7 @@ CREATE OR REPLACE FUNCTION EventAgentEnable (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1014, 'Агент включен.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'enable', 'Агент включен.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -76,7 +76,7 @@ CREATE OR REPLACE FUNCTION EventAgentDisable (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1015, 'Агент выключен.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'disable', 'Агент выключен.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -89,7 +89,7 @@ CREATE OR REPLACE FUNCTION EventAgentDelete (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1016, 'Агент удалён.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'delete', 'Агент удалён.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -102,7 +102,7 @@ CREATE OR REPLACE FUNCTION EventAgentRestore (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1017, 'Агент восстановлен.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'restore', 'Агент восстановлен.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -121,6 +121,6 @@ BEGIN
 
   DELETE FROM db.agent WHERE id = pObject;
 
-  PERFORM WriteToEventLog('W', 2010, '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Агент уничтожен.');
+  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Агент уничтожен.');
 END;
 $$ LANGUAGE plpgsql;

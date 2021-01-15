@@ -53,7 +53,7 @@ AS $$
 DECLARE
   nId           numeric;
 BEGIN
-  nId := AddEventLog(pType, pCode, pText);
+  nId := AddEventLog(pType, pCode, 'api', pText);
   RETURN QUERY SELECT * FROM api.get_event_log(nId);
 END;
 $$ LANGUAGE plpgsql

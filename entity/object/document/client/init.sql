@@ -40,24 +40,17 @@ BEGIN
 
       nState := AddState(pClass, rec_type.id, rec_type.code, 'Утверждён');
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('confirm'));
+        PERFORM AddMethod(null, pClass, nState, GetAction('confirm'), pVisible => false );
         PERFORM AddMethod(null, pClass, nState, GetAction('reconfirm'));
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('disable'), null, 'Скрыть');
-        PERFORM AddMethod(null, pClass, nState, GetAction('delete'));
-
-
-      nState := AddState(pClass, rec_type.id, 'confirmed', 'Подтверждён');
-
-        PERFORM AddMethod(null, pClass, nState, GetAction('enable'), null, 'Утвердить');
-        PERFORM AddMethod(null, pClass, nState, GetAction('disable'), null, 'Скрыть');
+        PERFORM AddMethod(null, pClass, nState, GetAction('disable'), null, 'Закрыть');
         PERFORM AddMethod(null, pClass, nState, GetAction('delete'));
 
     WHEN 'disabled' THEN
 
-      nState := AddState(pClass, rec_type.id, rec_type.code, 'Скрыт');
+      nState := AddState(pClass, rec_type.id, rec_type.code, 'Закрыт');
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('enable'), null, 'Утвердить');
+        PERFORM AddMethod(null, pClass, nState, GetAction('restore'));
         PERFORM AddMethod(null, pClass, nState, GetAction('delete'));
 
     WHEN 'deleted' THEN
@@ -95,27 +88,6 @@ BEGIN
 
       FOR rec_method IN SELECT * FROM Method WHERE state = rec_state.id
       LOOP
-        IF rec_method.actioncode = 'confirm' THEN
-          PERFORM AddTransition(rec_state.id, rec_method.id, GetState(pClass, 'confirmed'));
-        END IF;
-
-        IF rec_method.actioncode = 'disable' THEN
-          PERFORM AddTransition(rec_state.id, rec_method.id, GetState(pClass, 'disabled'));
-        END IF;
-
-        IF rec_method.actioncode = 'delete' THEN
-          PERFORM AddTransition(rec_state.id, rec_method.id, GetState(pClass, 'deleted'));
-        END IF;
-      END LOOP;
-
-    WHEN 'confirmed' THEN
-
-      FOR rec_method IN SELECT * FROM Method WHERE state = rec_state.id
-      LOOP
-        IF rec_method.actioncode = 'enable' THEN
-          PERFORM AddTransition(rec_state.id, rec_method.id, GetState(pClass, 'enabled'));
-        END IF;
-
         IF rec_method.actioncode = 'disable' THEN
           PERFORM AddTransition(rec_state.id, rec_method.id, GetState(pClass, 'disabled'));
         END IF;
@@ -199,13 +171,12 @@ BEGIN
       PERFORM AddEvent(pClass, nEvent, r.id, 'Клиент активен', 'EventClientEnable();');
     END IF;
 
-    IF r.code = 'reconfirm' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Переподтвердить адрес электронной почты', 'EventClientReconfirm();');
-    END IF;
-
     IF r.code = 'confirm' THEN
       PERFORM AddEvent(pClass, nEvent, r.id, 'Подтвердить адрес электронной почты', 'EventClientConfirm();');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Смена состояния', 'ChangeObjectState();');
+    END IF;
+
+    IF r.code = 'reconfirm' THEN
+      PERFORM AddEvent(pClass, nEvent, r.id, 'Переподтвердить адрес электронной почты', 'EventClientReconfirm();');
     END IF;
 
     IF r.code = 'disable' THEN

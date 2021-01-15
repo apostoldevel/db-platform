@@ -11,7 +11,7 @@ CREATE OR REPLACE FUNCTION EventJobCreate (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1010, 'Задание создано.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'create', 'Задание создано.', pObject);
   PERFORM DoEnable(pObject);
 END;
 $$ LANGUAGE plpgsql;
@@ -25,7 +25,7 @@ CREATE OR REPLACE FUNCTION EventJobOpen (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1011, 'Задание открыто на просмотр.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'open', 'Задание открыто на просмотр.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -38,7 +38,7 @@ CREATE OR REPLACE FUNCTION EventJobEdit (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1012, 'Задание изменено.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'edit', 'Задание изменено.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -51,7 +51,7 @@ CREATE OR REPLACE FUNCTION EventJobSave (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1013, 'Задание сохранено.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'save', 'Задание сохранено.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -64,7 +64,7 @@ CREATE OR REPLACE FUNCTION EventJobEnable (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1014, 'Задание открыто.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'enable', 'Задание открыто.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -77,7 +77,7 @@ CREATE OR REPLACE FUNCTION EventJobDisable (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1015, 'Задание закрыто.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'disable', 'Задание закрыто.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -90,7 +90,7 @@ CREATE OR REPLACE FUNCTION EventJobDelete (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1016, 'Задание удалено.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'delete', 'Задание удалено.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -103,7 +103,7 @@ CREATE OR REPLACE FUNCTION EventJobRestore (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1017, 'Задание восстановлено.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'restore', 'Задание восстановлено.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -121,7 +121,7 @@ DECLARE
   iPeriod		interval;
   nProgram		numeric;
 BEGIN
-  PERFORM WriteToEventLog('M', 1018, 'Задание выполняется.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'execute', 'Задание выполняется.', pObject);
 
   SELECT scheduler, program INTO nScheduler, nProgram FROM db.job WHERE id = pObject;
 
@@ -150,7 +150,7 @@ CREATE OR REPLACE FUNCTION EventJobComplete (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1019, 'Задание завершено.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'complete', 'Задание завершено.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -163,7 +163,7 @@ CREATE OR REPLACE FUNCTION EventJobDone (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1020, 'Задание выполнено.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'done', 'Задание выполнено.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -176,7 +176,7 @@ CREATE OR REPLACE FUNCTION EventJobFail (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1021, 'Сбой при выполнении задания.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'fail', 'Сбой при выполнении задания.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -189,7 +189,7 @@ CREATE OR REPLACE FUNCTION EventJobAbort (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1022, 'Задание прервано.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'abort', 'Задание прервано.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -202,7 +202,7 @@ CREATE OR REPLACE FUNCTION EventJobCancel (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1023, 'Задание отменено.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'cancel', 'Задание отменено.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -221,6 +221,6 @@ BEGIN
 
   DELETE FROM db.job WHERE id = pObject;
 
-  PERFORM WriteToEventLog('W', 2010, '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Задание уничтожено.');
+  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Задание уничтожено.');
 END;
 $$ LANGUAGE plpgsql;

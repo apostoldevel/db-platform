@@ -11,7 +11,7 @@ CREATE OR REPLACE FUNCTION EventDocumentCreate (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1010, 'Документ создан.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'create', 'Документ создан.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -24,7 +24,7 @@ CREATE OR REPLACE FUNCTION EventDocumentOpen (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1011, 'Документ открыт.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'open', 'Документ открыт.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -37,7 +37,7 @@ CREATE OR REPLACE FUNCTION EventDocumentEdit (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1012, 'Документ изменён.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'edit', 'Документ изменён.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -50,7 +50,7 @@ CREATE OR REPLACE FUNCTION EventDocumentSave (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1013, 'Документ сохранён.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'save', 'Документ сохранён.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -63,7 +63,7 @@ CREATE OR REPLACE FUNCTION EventDocumentEnable (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1014, 'Документ включен.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'enable', 'Документ включен.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -76,7 +76,7 @@ CREATE OR REPLACE FUNCTION EventDocumentDisable (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1015, 'Документ выключен.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'disable', 'Документ выключен.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -89,7 +89,7 @@ CREATE OR REPLACE FUNCTION EventDocumentDelete (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1016, 'Документ удалён.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'delete', 'Документ удалён.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -102,7 +102,7 @@ CREATE OR REPLACE FUNCTION EventDocumentRestore (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1017, 'Документ восстановлен.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'restore', 'Документ восстановлен.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -121,6 +121,6 @@ BEGIN
 
   DELETE FROM db.document WHERE id = pObject;
 
-  PERFORM WriteToEventLog('W', 2010, '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Документ уничтожен.');
+  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Документ уничтожен.');
 END;
 $$ LANGUAGE plpgsql;

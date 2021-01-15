@@ -10,9 +10,9 @@ SELECT InitEntity();
 SELECT InitAPI();
 
 SELECT CreatePublisher('notify', 'Уведомления', 'Уведомления о системных событиях.');
+SELECT CreatePublisher('notice', 'Извещения', 'Системные извещения.');
 SELECT CreatePublisher('log', 'Журналы', 'Журналы событий.');
 SELECT CreatePublisher('geo', 'Геолокация', 'Данные геолокации.');
-SELECT CreatePublisher('message', 'Сообщения', 'Сообщения пользователей.');
 
 SELECT FillCalendar(CreateCalendar(null, GetType('workday.calendar'), 'default.calendar', 'Календарь рабочих дней', 5, ARRAY[6,7], ARRAY[[1,1], [1,7], [2,23], [3,8], [5,1], [5,9], [6,12], [11,4]], '9 hour', '8 hour', '13 hour', '1 hour', 'Календарь рабочих дней.'), date(date_trunc('year', Now())), date((date_trunc('year', Now()) + interval '1 year') - interval '1 day'));
 
@@ -22,7 +22,7 @@ SELECT CreateVendor(null, GetType('service.vendor'), 'google.vendor', 'Google', 
 SELECT CreateVendor(null, GetType('service.vendor'), 'sberbank.vendor', 'Сбербанк', 'Сбербанк.');
 
 SELECT CreateAgent(null, GetType('system.agent'), 'system.agent', 'Система', GetVendor('system.vendor'), 'Агент для обработки системных сообщений.');
-SELECT CreateAgent(null, GetType('system.agent'), 'event.agent', 'Событие', GetVendor('system.vendor'), 'Агент для обработки системных событий.');
+SELECT CreateAgent(null, GetType('system.agent'), 'notice.agent', 'Извещение', GetVendor('system.vendor'), 'Агент для обработки системных извещений.');
 
 SELECT CreateAgent(null, GetType('email.agent'), 'smtp.agent', 'SMTP', GetVendor('system.vendor'), 'Агент для передачи электронной почты по протоколу SMTP.');
 SELECT CreateAgent(null, GetType('email.agent'), 'pop3.agent', 'POP3', GetVendor('system.vendor'), 'Агент для получения электронной почты по протоколу POP3.');

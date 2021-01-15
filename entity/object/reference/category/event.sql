@@ -11,7 +11,7 @@ CREATE OR REPLACE FUNCTION EventCategoryCreate (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1010, 'Категория создана.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'create', 'Категория создана.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -24,7 +24,7 @@ CREATE OR REPLACE FUNCTION EventCategoryOpen (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1011, 'Категория открыта.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'open', 'Категория открыта.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -37,7 +37,7 @@ CREATE OR REPLACE FUNCTION EventCategoryEdit (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1012, 'Категория изменена.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'edit', 'Категория изменена.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -50,7 +50,7 @@ CREATE OR REPLACE FUNCTION EventCategorySave (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1013, 'Категория сохранена.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'save', 'Категория сохранена.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -63,7 +63,7 @@ CREATE OR REPLACE FUNCTION EventCategoryEnable (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1014, 'Категория включена.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'enable', 'Категория включена.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -76,7 +76,7 @@ CREATE OR REPLACE FUNCTION EventCategoryDisable (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1015, 'Категория выключена.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'disable', 'Категория выключена.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -89,7 +89,7 @@ CREATE OR REPLACE FUNCTION EventCategoryDelete (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1016, 'Категория удалена.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'delete', 'Категория удалена.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -102,7 +102,7 @@ CREATE OR REPLACE FUNCTION EventCategoryRestore (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1017, 'Категория восстановлена.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'restore', 'Категория восстановлена.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -121,6 +121,6 @@ BEGIN
 
   DELETE FROM db.category WHERE id = pObject;
 
-  PERFORM WriteToEventLog('W', 2010, '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Категория уничтожена.');
+  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Категория уничтожена.');
 END;
 $$ LANGUAGE plpgsql;

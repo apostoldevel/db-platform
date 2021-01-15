@@ -11,7 +11,7 @@ CREATE OR REPLACE FUNCTION EventVendorCreate (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1010, 'Производитель создан.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'create', 'Производитель создан.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -24,7 +24,7 @@ CREATE OR REPLACE FUNCTION EventVendorOpen (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1011, 'Производитель открыт.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'open', 'Производитель открыт.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -37,7 +37,7 @@ CREATE OR REPLACE FUNCTION EventVendorEdit (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1012, 'Производитель изменён.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'edit', 'Производитель изменён.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -50,7 +50,7 @@ CREATE OR REPLACE FUNCTION EventVendorSave (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1013, 'Производитель сохранён.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'save', 'Производитель сохранён.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -63,7 +63,7 @@ CREATE OR REPLACE FUNCTION EventVendorEnable (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1014, 'Производитель включен.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'enable', 'Производитель включен.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -76,7 +76,7 @@ CREATE OR REPLACE FUNCTION EventVendorDisable (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1015, 'Производитель выключен.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'disable', 'Производитель выключен.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -89,7 +89,7 @@ CREATE OR REPLACE FUNCTION EventVendorDelete (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1016, 'Производитель удалён.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'delete', 'Производитель удалён.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -102,7 +102,7 @@ CREATE OR REPLACE FUNCTION EventVendorRestore (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1017, 'Производитель восстановлен.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'restore', 'Производитель восстановлен.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -121,6 +121,6 @@ BEGIN
 
   DELETE FROM db.vendor WHERE id = pObject;
 
-  PERFORM WriteToEventLog('W', 2010, '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Производитель уничтожен.');
+  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Производитель уничтожен.');
 END;
 $$ LANGUAGE plpgsql;

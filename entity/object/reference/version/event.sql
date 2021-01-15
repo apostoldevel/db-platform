@@ -11,7 +11,7 @@ CREATE OR REPLACE FUNCTION EventVersionCreate (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1010, 'Версия создана.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'create', 'Версия создана.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -24,7 +24,7 @@ CREATE OR REPLACE FUNCTION EventVersionOpen (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1011, 'Версия открыта на просмотр.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'open', 'Версия открыта на просмотр.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -37,7 +37,7 @@ CREATE OR REPLACE FUNCTION EventVersionEdit (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1012, 'Версия изменёна.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'edit', 'Версия изменёна.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -50,7 +50,7 @@ CREATE OR REPLACE FUNCTION EventVersionSave (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1013, 'Версия сохранёна.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'save', 'Версия сохранёна.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -63,7 +63,7 @@ CREATE OR REPLACE FUNCTION EventVersionEnable (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1014, 'Версия открыта.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'enable', 'Версия открыта.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -76,7 +76,7 @@ CREATE OR REPLACE FUNCTION EventVersionDisable (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1015, 'Версия закрыта.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'disable', 'Версия закрыта.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -89,7 +89,7 @@ CREATE OR REPLACE FUNCTION EventVersionDelete (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1016, 'Версия удалёна.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'delete', 'Версия удалёна.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -102,7 +102,7 @@ CREATE OR REPLACE FUNCTION EventVersionRestore (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1017, 'Версия восстановлена.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'restore', 'Версия восстановлена.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -121,6 +121,6 @@ BEGIN
 
   DELETE FROM db.version WHERE id = pObject;
 
-  PERFORM WriteToEventLog('W', 2010, '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Версия уничтожена.');
+  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Версия уничтожена.');
 END;
 $$ LANGUAGE plpgsql;

@@ -11,7 +11,7 @@ CREATE OR REPLACE FUNCTION EventObjectCreate (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1010, 'Объект создан.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'create', 'Объект создан.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -24,7 +24,7 @@ CREATE OR REPLACE FUNCTION EventObjectOpen (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1011, 'Объект открыт.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'open', 'Объект открыт.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -37,7 +37,7 @@ CREATE OR REPLACE FUNCTION EventObjectEdit (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1012, 'Объект изменён.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'edit', 'Объект изменён.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -50,7 +50,7 @@ CREATE OR REPLACE FUNCTION EventObjectSave (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1013, 'Объект сохранён.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'save', 'Объект сохранён.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -63,7 +63,7 @@ CREATE OR REPLACE FUNCTION EventObjectEnable (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1014, 'Объект включен.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'enable', 'Объект включен.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -76,7 +76,7 @@ CREATE OR REPLACE FUNCTION EventObjectDisable (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1015, 'Объект выключен.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'disable', 'Объект выключен.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -89,7 +89,7 @@ CREATE OR REPLACE FUNCTION EventObjectDelete (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1016, 'Объект удалён.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'delete', 'Объект удалён.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -102,7 +102,7 @@ CREATE OR REPLACE FUNCTION EventObjectRestore (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1017, 'Объект восстановлен.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'restore', 'Объект восстановлен.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -129,6 +129,6 @@ BEGIN
 
   DELETE FROM db.object WHERE id = pObject;
 
-  PERFORM WriteToEventLog('W', 2010, '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Объект уничтожен.');
+  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Объект уничтожен.');
 END;
 $$ LANGUAGE plpgsql;

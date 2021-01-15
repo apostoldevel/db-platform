@@ -8,7 +8,8 @@ CREATE TABLE db.log (
     datetime	timestamp DEFAULT Now() NOT NULL,
     username	text NOT NULL,
     session     varchar(40),
-    code        numeric(5) NOT NULL,
+    code        integer NOT NULL,
+    event		text NOT NULL,
     text        text NOT NULL,
     category    text,
     object      numeric(12),
@@ -23,6 +24,7 @@ COMMENT ON COLUMN db.log.datetime IS 'Дата и время события';
 COMMENT ON COLUMN db.log.username IS 'Имя пользователя';
 COMMENT ON COLUMN db.log.session IS 'Сессия';
 COMMENT ON COLUMN db.log.code IS 'Код события';
+COMMENT ON COLUMN db.log.event IS 'Событие';
 COMMENT ON COLUMN db.log.text IS 'Текст';
 COMMENT ON COLUMN db.log.category IS 'Категория';
 COMMENT ON COLUMN db.log.object IS 'Идентификатор объекта';
@@ -31,8 +33,8 @@ CREATE INDEX ON db.log (type);
 CREATE INDEX ON db.log (datetime);
 CREATE INDEX ON db.log (username);
 CREATE INDEX ON db.log (code);
+CREATE INDEX ON db.log (event);
 CREATE INDEX ON db.log (category);
-CREATE INDEX ON db.log (object);
 
 --------------------------------------------------------------------------------
 
@@ -69,7 +71,7 @@ CREATE TRIGGER t_log_insert
 CREATE OR REPLACE FUNCTION db.ft_log_after_insert()
 RETURNS trigger AS $$
 BEGIN
-  PERFORM pg_notify('log', json_build_object('id', NEW.id, 'type', NEW.type, 'code', NEW.code, 'username', NEW.username, 'category', NEW.category)::text);
+  PERFORM pg_notify('log', json_build_object('id', NEW.id, 'type', NEW.type, 'code', NEW.code, 'username', NEW.username, 'event', NEW.event, 'category', NEW.category)::text);
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql
@@ -88,7 +90,7 @@ CREATE TRIGGER t_log_after_insert
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE VIEW EventLog (Id, Type, TypeName, DateTime, UserName,
-  Session, Code, Text, Category, Object
+  Session, Code, Event, Text, Category, Object
 )
 AS
   SELECT id, type,
@@ -98,7 +100,7 @@ AS
          WHEN type = 'E' THEN 'Ошибка'
          WHEN type = 'D' THEN 'Отладка'
          END,
-         datetime, username, session, code, text, category, object
+         datetime, username, session, code, event, text, category, object
     FROM db.log;
 
 GRANT SELECT ON EventLog TO administrator;
@@ -109,7 +111,8 @@ GRANT SELECT ON EventLog TO administrator;
 
 CREATE OR REPLACE FUNCTION AddEventLog (
   pType		char,
-  pCode		numeric,
+  pCode		integer,
+  pEvent	text,
   pText		text,
   pCategory text DEFAULT null,
   pObject   numeric DEFAULT null
@@ -118,8 +121,8 @@ AS $$
 DECLARE
   nId		numeric;
 BEGIN
-  INSERT INTO db.log (type, code, text, category, object)
-  VALUES (pType, pCode, pText, pCategory, pObject)
+  INSERT INTO db.log (type, code, event, text, category, object)
+  VALUES (pType, pCode, pEvent, pText, pCategory, pObject)
   RETURNING id INTO nId;
   RETURN nId;
 END;
@@ -133,7 +136,8 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION NewEventLog (
   pType		char,
-  pCode		numeric,
+  pCode		integer,
+  pEvent	text,
   pText		text,
   pCategory text DEFAULT null,
   pObject   numeric DEFAULT null
@@ -142,7 +146,7 @@ AS $$
 DECLARE
   nId		numeric;
 BEGIN
-  nId := AddEventLog(pType, pCode, pText, pCategory, pObject);
+  nId := AddEventLog(pType, pCode, pEvent, pText, pCategory, pObject);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -154,7 +158,8 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION WriteToEventLog (
   pType		char,
-  pCode		numeric,
+  pCode		integer,
+  pEvent	text,
   pText		text,
   pObject   numeric DEFAULT null
 ) RETURNS	void
@@ -165,12 +170,10 @@ BEGIN
   IF pType IN ('M', 'W', 'E', 'D') THEN
 
     IF pObject IS NOT NULL THEN
-      SELECT code INTO vCategory FROM db.class_tree WHERE id = (
-        SELECT class FROM db.object WHERE id = pObject
-      );
+      SELECT GetClassCode(class) INTO vCategory FROM db.object WHERE id = pObject;
     END IF;
 
-    PERFORM NewEventLog(pType, pCode, pText, vCategory, pObject);
+    PERFORM NewEventLog(pType, pCode, pEvent, pText, vCategory, pObject);
   END IF;
 
   IF pType = 'D' AND GetDebugMode() THEN
@@ -178,8 +181,26 @@ BEGIN
   END IF;
 
   IF pType = 'N' THEN
-    RAISE NOTICE '[%] [%] [%] %', pType, pCode, pObject, pText;
+    RAISE NOTICE '[%] [%] [%] [%] %', pType, pCode, pEvent, pObject, pText;
   END IF;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- WriteToEventLog -------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION WriteToEventLog (
+  pType		char,
+  pCode		integer,
+  pText		text,
+  pObject   numeric DEFAULT null
+) RETURNS	void
+AS $$
+BEGIN
+  PERFORM WriteToEventLog(pType, pCode, 'log', pText, pObject);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

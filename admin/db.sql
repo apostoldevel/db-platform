@@ -4819,8 +4819,8 @@ BEGIN
 
   END IF;
 
-  INSERT INTO db.log (type, code, username, session, text)
-  VALUES ('M', 1001, pRoleName, vSession, 'Вход в систему.');
+  INSERT INTO db.log (type, code, username, session, event, text)
+  VALUES ('M', 1100, pRoleName, vSession, 'login', 'Вход в систему.');
 
   RETURN vSession;
 END;
@@ -4885,8 +4885,8 @@ BEGIN
         END IF;
       END IF;
 
-      INSERT INTO db.log (type, code, username, text)
-      VALUES ('E', 3001, pRoleName, message);
+      INSERT INTO db.log (type, code, username, event, text)
+      VALUES ('E', 3100, pRoleName, 'login', message);
     END IF;
 
     RETURN null;
@@ -4945,8 +4945,8 @@ BEGIN
 
     message := message || coalesce('. ' || pMessage, '.');
 
-    INSERT INTO db.log (type, code, username, session, text)
-    VALUES ('M', 1002, GetUserName(nUserId), pSession, message);
+    INSERT INTO db.log (type, code, username, session, event, text)
+    VALUES ('M', 1100, GetUserName(nUserId), pSession, 'logout', message);
 
     PERFORM SetErrorMessage(message);
     PERFORM SetCurrentSession(null);
@@ -4993,8 +4993,8 @@ WHEN others THEN
 	SELECT userid INTO nUserId FROM db.session WHERE code = pSession;
 
 	IF found THEN
-	  INSERT INTO db.log (type, code, username, session, text)
-	  VALUES ('E', 3002, GetUserName(nUserId), pSession, 'Выход из системы. ' || message);
+	  INSERT INTO db.log (type, code, username, session, event, text)
+	  VALUES ('E', 3100, GetUserName(nUserId), pSession, 'logout', 'Выход из системы. ' || message);
 	END IF;
   END IF;
 

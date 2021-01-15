@@ -217,7 +217,7 @@ BEGIN
   FOR r IN SELECT * FROM db.publisher
   LOOP
 	EXECUTE format('LISTEN %s;', r.code);
-    PERFORM WriteToEventLog('M', 5000, format('Запущен слушатель: %s.', r.code));
+    PERFORM WriteToEventLog('M', 5000, 'listen', format('Запущен слушатель: %s.', r.code));
   END LOOP;
 END;
 $$ LANGUAGE plpgsql
@@ -338,6 +338,10 @@ BEGIN
       PERFORM IncorrectJsonType(jsonb_typeof(pFilter->'methods'), 'array');
     END IF;
 
+  WHEN 'notice' THEN
+  	arFilter := array_cat(arFilter, ARRAY['categories']);
+  	PERFORM CheckJsonbKeys('/listener/notice/filter', arFilter, pFilter);
+
   WHEN 'log' THEN
   	arFilter := array_cat(arFilter, ARRAY['types', 'codes', 'categories']);
   	PERFORM CheckJsonbKeys('/listener/log/filter', arFilter, pFilter);
@@ -418,6 +422,17 @@ BEGIN
 	  IF QueryPath(path) IS NULL THEN
 		PERFORM RouteNotFound(path);
 	  END IF;
+	END IF;
+
+  WHEN 'notice' THEN
+	arParams := array_cat(null, ARRAY['type']);
+	PERFORM CheckJsonbKeys('/listener/notice/params', arParams, pParams);
+
+	type := pParams->>'type';
+
+	arValues := array_cat(null, ARRAY['notify']);
+	IF array_position(arValues, type) IS NULL THEN
+	  PERFORM IncorrectValueInArray(coalesce(type, '<null>'), 'type', arValues);
 	END IF;
 
   WHEN 'log' THEN
@@ -501,6 +516,15 @@ BEGIN
            array_position(coalesce(JsonbToStrArray(f.actions) , ARRAY[n.actioncode]), n.actioncode::text) IS NOT NULL AND
            array_position(coalesce(JsonbToStrArray(f.methods) , ARRAY[n.methodcode]), n.methodcode::text) IS NOT NULL AND
            array_position(coalesce(JsonbToNumArray(f.objects) , ARRAY[d.object])    , d.object    ) IS NOT NULL AND
+	       CheckObjectAccess(d.object, B'100', nUserId);
+
+  WHEN 'notice' THEN
+
+	SELECT * INTO f FROM jsonb_to_record(pFilter) AS x(categories jsonb);
+	SELECT * INTO d FROM jsonb_to_record(pData) AS x(userid numeric, object numeric, category text);
+
+	RETURN d.userid = nUserId AND
+		   array_position(coalesce(JsonbToStrArray(f.categories), ARRAY[d.category]), d.category) IS NOT NULL AND
 	       CheckObjectAccess(d.object, B'100', nUserId);
 
   WHEN 'log' THEN
@@ -605,6 +629,13 @@ BEGIN
 		  RETURN NEXT row_to_json(e);
 		END LOOP;
 	  END IF;
+
+    WHEN 'notice' THEN
+	  nId := pData->>'id';
+	  FOR e IN SELECT * FROM Notice WHERE id = nId
+	  LOOP
+		RETURN NEXT row_to_json(e);
+	  END LOOP;
 
     WHEN 'log' THEN
 	  nId := pData->>'id';

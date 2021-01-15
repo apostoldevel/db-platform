@@ -11,7 +11,7 @@ CREATE OR REPLACE FUNCTION EventClientCreate (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1010, 'Клиент создан.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'create', 'Клиент создан.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -24,7 +24,7 @@ CREATE OR REPLACE FUNCTION EventClientOpen (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1011, 'Клиент открыт на просмотр.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'open', 'Клиент открыт на просмотр.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -48,7 +48,7 @@ BEGIN
     PERFORM EventMessageConfirmEmail(pObject, new_email);
   END IF;
 
-  PERFORM WriteToEventLog('M', 1012, 'Клиент изменён.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'edit', 'Клиент изменён.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -61,7 +61,7 @@ CREATE OR REPLACE FUNCTION EventClientSave (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1013, 'Клиент сохранён.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'save', 'Клиент сохранён.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -109,7 +109,7 @@ BEGIN
     PERFORM EventMessageConfirmEmail(pObject);
   END IF;
 
-  PERFORM WriteToEventLog('M', 1014, 'Клиент утверждён.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'enable', 'Клиент утверждён.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -147,7 +147,7 @@ BEGIN
     END LOOP;
   END IF;
 
-  PERFORM WriteToEventLog('M', 1015, 'Клиент закрыт.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'disable', 'Клиент закрыт.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -179,7 +179,7 @@ BEGIN
     UPDATE db.user SET pswhash = null WHERE id = nUserId;
   END IF;
 
-  PERFORM WriteToEventLog('M', 1016, 'Клиент удалён.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'delete', 'Клиент удалён.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -192,7 +192,7 @@ CREATE OR REPLACE FUNCTION EventClientRestore (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1017, 'Клиент восстановлен.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'restore', 'Клиент восстановлен.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -220,7 +220,7 @@ BEGIN
   DELETE FROM db.client_name WHERE client = pObject;
   DELETE FROM db.client WHERE id = pObject;
 
-  PERFORM WriteToEventLog('W', 2010, '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Клиент уничтожен.');
+  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Клиент уничтожен.');
 END;
 $$ LANGUAGE plpgsql;
 

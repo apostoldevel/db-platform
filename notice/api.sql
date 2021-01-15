@@ -49,7 +49,7 @@ $$ LANGUAGE SQL
  * @param {numeric} pObject - Идентификатор объекта
  * @param {text} pText - Текст извещения
  * @param {text} pCategory - Категория извещения
- * @param {integer} pStatus - Статус: 0 - создано; 1 - доставлено; 2 - прочитано
+ * @param {integer} pStatus - Статус: 0 - создано; 1 - доставлено; 2 - прочитано; 3 - принято; 4 - отказано
  * @return {numeric} - Идентификатор извещения
  */
 CREATE OR REPLACE FUNCTION api.add_notice (
@@ -77,7 +77,7 @@ $$ LANGUAGE plpgsql
  * @param {numeric} pObject - Идентификатор объекта
  * @param {text} pText - Текст извещения
  * @param {text} pCategory - Категория извещения
- * @param {integer} pStatus - Статус: 0 - создано; 1 - доставлено; 2 - прочитано
+ * @param {integer} pStatus - Статус: 0 - создано; 1 - доставлено; 2 - прочитано; 3 - принято; 4 - отказано
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_notice (
