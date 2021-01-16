@@ -830,12 +830,8 @@ BEGIN
 
   SELECT * INTO cn FROM jsonb_to_record(pName) AS x(name varchar, short varchar, first varchar, last varchar, middle varchar);
 
-  IF NULLIF(trim(cn.name), '') IS NULL THEN
-    cn.name := pCode;
-  END IF;
-
   IF NULLIF(trim(cn.short), '') IS NULL THEN
-    cn.short := cn.name;
+    cn.short := coalesce(cn.name, pCode);
   END IF;
 
   IF pUserId = 0 THEN
