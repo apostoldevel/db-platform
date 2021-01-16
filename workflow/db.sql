@@ -159,7 +159,7 @@ BEGIN
       INSERT INTO db.acu SELECT NEW.id, GetGroup('operator'), B'00000', B'11110';
       INSERT INTO db.acu SELECT NEW.id, GetGroup('user'), B'00000', B'10100';
     ELSIF NEW.code = 'message' THEN
-      INSERT INTO db.acu SELECT NEW.id, GetGroup('user'), B'00000', B'11000';
+      INSERT INTO db.acu SELECT NEW.id, GetGroup('operator'), B'00000', B'11000';
       INSERT INTO db.acu SELECT NEW.id, GetGroup('user'), B'00000', B'11000';
       INSERT INTO db.acu SELECT NEW.id, GetUser('mailbot'), B'00000', B'01110';
     END IF;
