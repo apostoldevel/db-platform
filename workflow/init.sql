@@ -229,9 +229,9 @@ BEGIN
   PERFORM AddAction('heartbeat', 'Сердцебиение');
   PERFORM AddAction('open', 'Открыть');
   PERFORM AddAction('plan', 'Планировать');
+  PERFORM AddAction('post', 'Публиковать');
   PERFORM AddAction('postpone', 'Отложить');
   PERFORM AddAction('preparing', 'Подготовка');
-  PERFORM AddAction('publish', 'Публиковать');
   PERFORM AddAction('reconfirm', 'Переподтвердить');
   PERFORM AddAction('remove', 'Удалить');
   PERFORM AddAction('repeat', 'Повторить');
@@ -245,7 +245,7 @@ BEGIN
   PERFORM AddAction('stop', 'Остановить');
   PERFORM AddAction('submit', 'Отправить');
   PERFORM AddAction('unavailable', 'Недоступен');
-  PERFORM AddAction('update', 'Обновить');  
+  PERFORM AddAction('update', 'Обновить');
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

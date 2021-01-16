@@ -179,7 +179,7 @@ AS
   SELECT n.id, n.userid, n.object,
          o.entity, o.entitycode, o.entityname,
          o.class, o.classcode, o.classlabel,
-         o.type, o.typecode, o.typename, o.typedescription,
+         o.type, o.typecode, o.typename, o.typedescription, o.label,
          n.text, n.category, n.status,
          CASE
          WHEN n.status = 0 THEN 'created'

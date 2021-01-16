@@ -524,8 +524,7 @@ BEGIN
 	SELECT * INTO d FROM jsonb_to_record(pData) AS x(userid numeric, object numeric, category text);
 
 	RETURN d.userid = nUserId AND
-		   array_position(coalesce(JsonbToStrArray(f.categories), ARRAY[d.category]), d.category) IS NOT NULL AND
-	       CheckObjectAccess(d.object, B'100', nUserId);
+		   array_position(coalesce(JsonbToStrArray(f.categories), ARRAY[d.category]), d.category) IS NOT NULL;
 
   WHEN 'log' THEN
 
