@@ -154,13 +154,11 @@ BEGIN
     IF NEW.code = 'document' THEN
       INSERT INTO db.acu SELECT NEW.id, GetGroup('operator'), B'00000', B'11110';
       INSERT INTO db.acu SELECT NEW.id, GetGroup('user'), B'00000', B'11000';
-      --INSERT INTO db.acu SELECT NEW.id, GetGroup('guest'), B'00000', B'00000';
     ELSIF NEW.code = 'reference' THEN
       INSERT INTO db.acu SELECT NEW.id, GetGroup('operator'), B'00000', B'11110';
       INSERT INTO db.acu SELECT NEW.id, GetGroup('user'), B'00000', B'10100';
     ELSIF NEW.code = 'message' THEN
-      INSERT INTO db.acu SELECT NEW.id, GetGroup('operator'), B'00000', B'11000';
-      INSERT INTO db.acu SELECT NEW.id, GetGroup('user'), B'00000', B'11000';
+      UPDATE db.acu SET allow = B'11000' WHERE acu.class = NEW.id AND userid = GetGroup('operator');
       INSERT INTO db.acu SELECT NEW.id, GetUser('mailbot'), B'00000', B'01110';
     END IF;
   END IF;
@@ -1495,7 +1493,7 @@ BEGIN
 	bAllow := B'101';
   END IF;
 
-  INSERT INTO db.amu SELECT NEW.id, userid, B'000', bAllow FROM db.acu WHERE class = NEW.class AND mask & B'00010' = B'00010';
+  INSERT INTO db.amu SELECT NEW.id, userid, B'000', bAllow FROM db.acu WHERE class = NEW.class;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql
