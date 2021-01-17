@@ -221,7 +221,7 @@ GRANT SELECT ON Job TO administrator;
 
 CREATE OR REPLACE VIEW AccessJob
 AS
-  WITH RECURSIVE access AS (
+  WITH access AS (
     SELECT * FROM AccessObjectUser(GetEntity('job'), current_userid())
   )
   SELECT t.* FROM Job t INNER JOIN access ac ON t.id = ac.object;

@@ -532,7 +532,7 @@ GRANT SELECT ON Device TO administrator;
 
 CREATE OR REPLACE VIEW AccessDevice
 AS
-  WITH RECURSIVE access AS (
+  WITH access AS (
     SELECT * FROM AccessObjectUser(GetEntity('device'), current_userid())
   )
   SELECT d.* FROM Device d INNER JOIN access ac ON d.id = ac.object;

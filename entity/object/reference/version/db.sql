@@ -154,7 +154,7 @@ GRANT SELECT ON Version TO administrator;
 
 CREATE OR REPLACE VIEW AccessVersion
 AS
-  WITH RECURSIVE access AS (
+  WITH access AS (
     SELECT * FROM AccessObjectUser(GetEntity('version'), current_userid())
   )
   SELECT v.* FROM Version v INNER JOIN access ac ON v.id = ac.object;

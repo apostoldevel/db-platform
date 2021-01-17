@@ -207,8 +207,8 @@ BEGIN
   PERFORM AddAction('anything', 'Ничто');
 
   PERFORM AddAction('abort', 'Прервать');
-  PERFORM AddAction('add', 'Добавить');
-  PERFORM AddAction('approve', 'Утвердить');
+  PERFORM AddAction('accept', 'Принять');
+  PERFORM AddAction('alarm', 'Тревога');
   PERFORM AddAction('available', 'Доступен');
   PERFORM AddAction('cancel', 'Отменить');
   PERFORM AddAction('check', 'Проверить');
@@ -227,13 +227,12 @@ BEGIN
   PERFORM AddAction('faulted', 'Ошибка');
   PERFORM AddAction('finishing', 'Завершение');
   PERFORM AddAction('heartbeat', 'Сердцебиение');
+  PERFORM AddAction('invite', 'Пригласить');
   PERFORM AddAction('open', 'Открыть');
   PERFORM AddAction('plan', 'Планировать');
-  PERFORM AddAction('post', 'Публиковать');
   PERFORM AddAction('postpone', 'Отложить');
   PERFORM AddAction('preparing', 'Подготовка');
   PERFORM AddAction('reconfirm', 'Переподтвердить');
-  PERFORM AddAction('remove', 'Удалить');
   PERFORM AddAction('repeat', 'Повторить');
   PERFORM AddAction('reserve', 'Резервировать');
   PERFORM AddAction('reserved', 'Зарезервирован');

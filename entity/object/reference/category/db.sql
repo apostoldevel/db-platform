@@ -155,7 +155,7 @@ GRANT SELECT ON Category TO administrator;
 
 CREATE OR REPLACE VIEW AccessCategory
 AS
-  WITH RECURSIVE access AS (
+  WITH access AS (
     SELECT * FROM AccessObjectUser(GetEntity('category'), current_userid())
   )
   SELECT c.* FROM Category c INNER JOIN access ac ON c.id = ac.object;

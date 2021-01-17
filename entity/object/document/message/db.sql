@@ -267,7 +267,7 @@ GRANT SELECT ON Message TO administrator;
 
 CREATE OR REPLACE VIEW AccessMessage
 AS
-  WITH RECURSIVE access AS (
+  WITH access AS (
     SELECT * FROM AccessObjectUser(GetEntity('message'), current_userid())
   )
   SELECT m.* FROM Message m INNER JOIN access ac ON m.id = ac.object;

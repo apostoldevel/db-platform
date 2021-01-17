@@ -154,7 +154,7 @@ GRANT SELECT ON Vendor TO administrator;
 
 CREATE OR REPLACE VIEW AccessVendor
 AS
-  WITH RECURSIVE access AS (
+  WITH access AS (
     SELECT * FROM AccessObjectUser(GetEntity('vendor'), current_userid())
   )
   SELECT v.* FROM Vendor v INNER JOIN access ac ON v.id = ac.object;

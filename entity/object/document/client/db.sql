@@ -206,7 +206,7 @@ BEGIN
   END IF;
 
   IF NEW.Name IS NULL THEN
-    NEW.Name := 'Клиент ' || TRIM(TO_CHAR(NEW.Client, '999999999999'));
+    SELECT code INTO NEW.Name FROM db.client WHERE id = NEW.Client;
   END IF;
 
   UPDATE db.object SET label = NEW.Name WHERE Id = NEW.Client;
@@ -283,11 +283,11 @@ DECLARE
 BEGIN
   nId := null;
 
-  pName := NULLIF(pName, '');
-  pShort := NULLIF(pShort, '');
-  pFirst := NULLIF(pFirst, '');
-  pLast := NULLIF(pLast, '');
-  pMiddle := NULLIF(pMiddle, '');
+  pName := NULLIF(trim(pName), '');
+  pShort := NULLIF(trim(pShort), '');
+  pFirst := NULLIF(trim(pFirst), '');
+  pLast := NULLIF(trim(pLast), '');
+  pMiddle := NULLIF(trim(pMiddle), '');
 
   SELECT id INTO nLocale FROM db.locale WHERE code = coalesce(pLocaleCode, 'ru');
 
@@ -831,18 +831,18 @@ BEGIN
   SELECT * INTO cn FROM jsonb_to_record(pName) AS x(name varchar, short varchar, first varchar, last varchar, middle varchar);
 
   IF NULLIF(trim(cn.short), '') IS NULL THEN
-    cn.short := coalesce(cn.name, pCode);
+    cn.short := coalesce(NULLIF(trim(cn.name), ''), pCode);
   END IF;
 
   IF pUserId = 0 THEN
-    pUserId := CreateUser(pCode, pCode, cn.short, pPhone->>0, pEmail->>0, cn.name);
+    pUserId := CreateUser(pCode, pCode, cn.short, pPhone->>0, pEmail->>0, NULLIF(trim(cn.name), ''));
   END IF;
 
   INSERT INTO db.client (id, document, code, creation, userid, phone, email, info)
   VALUES (nDocument, nDocument, pCode, pCreation, pUserId, pPhone, pEmail, pInfo)
   RETURNING id INTO nClient;
 
-  PERFORM NewClientName(nClient, cn.name, cn.short, NULLIF(trim(cn.first), ''), NULLIF(trim(cn.last), ''), NULLIF(trim(cn.middle), ''));
+  PERFORM NewClientName(nClient, cn.name, cn.short, cn.first, cn.last, cn.middle);
 
   nMethod := GetMethod(nClass, null, GetAction('create'));
   PERFORM ExecuteMethod(nClient, nMethod);
@@ -1015,7 +1015,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE VIEW AccessClient
 AS
-  WITH RECURSIVE access AS (
+  WITH access AS (
     SELECT * FROM AccessObjectUser(GetEntity('client'), current_userid())
   )
   SELECT c.* FROM Client c INNER JOIN access ac ON c.id = ac.object;

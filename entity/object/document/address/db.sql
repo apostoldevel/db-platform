@@ -812,7 +812,7 @@ GRANT SELECT ON Address TO administrator;
 
 CREATE OR REPLACE VIEW AccessAddress
 AS
-  WITH RECURSIVE access AS (
+  WITH access AS (
     SELECT * FROM AccessObjectUser(GetEntity('address'), current_userid())
   )
   SELECT a.* FROM Address a INNER JOIN access ac ON a.id = ac.object;

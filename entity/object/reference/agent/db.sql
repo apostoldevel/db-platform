@@ -185,7 +185,7 @@ GRANT SELECT ON Agent TO administrator;
 
 CREATE OR REPLACE VIEW AccessAgent
 AS
-  WITH RECURSIVE access AS (
+  WITH access AS (
     SELECT * FROM AccessObjectUser(GetEntity('agent'), current_userid())
   )
   SELECT a.* FROM Agent a INNER JOIN access ac ON a.id = ac.object;

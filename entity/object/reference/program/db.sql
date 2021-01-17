@@ -177,7 +177,7 @@ GRANT SELECT ON Program TO administrator;
 
 CREATE OR REPLACE VIEW AccessProgram
 AS
-  WITH RECURSIVE access AS (
+  WITH access AS (
     SELECT * FROM AccessObjectUser(GetEntity('program'), current_userid())
   )
   SELECT p.* FROM Program p INNER JOIN access ac ON p.id = ac.object;

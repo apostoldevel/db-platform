@@ -240,7 +240,7 @@ GRANT SELECT ON Calendar TO administrator;
 
 CREATE OR REPLACE VIEW AccessCalendar
 AS
-  WITH RECURSIVE access AS (
+  WITH access AS (
     SELECT * FROM AccessObjectUser(GetEntity('calendar'), current_userid())
   )
   SELECT c.* FROM Calendar c INNER JOIN access ac ON c.id = ac.object;

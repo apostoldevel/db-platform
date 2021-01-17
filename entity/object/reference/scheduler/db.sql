@@ -191,7 +191,7 @@ GRANT SELECT ON Scheduler TO administrator;
 
 CREATE OR REPLACE VIEW AccessScheduler
 AS
-  WITH RECURSIVE access AS (
+  WITH access AS (
     SELECT * FROM AccessObjectUser(GetEntity('scheduler'), current_userid())
   )
   SELECT s.* FROM Scheduler s INNER JOIN access ac ON s.id = ac.object;

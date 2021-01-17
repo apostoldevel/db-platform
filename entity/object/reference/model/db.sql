@@ -181,7 +181,7 @@ GRANT SELECT ON Model TO administrator;
 
 CREATE OR REPLACE VIEW AccessModel
 AS
-  WITH RECURSIVE access AS (
+  WITH access AS (
     SELECT * FROM AccessObjectUser(GetEntity('model'), current_userid())
   )
   SELECT m.* FROM Model m INNER JOIN access ac ON m.id = ac.object;
