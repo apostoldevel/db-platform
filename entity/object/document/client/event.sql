@@ -89,7 +89,8 @@ BEGIN
 
     PERFORM AddMemberToGroup(nUserId, GetGroup('user'));
 
-    nArea := GetArea('default');
+    SELECT area INTO nArea FROM db.document WHERE id = pObject;
+
     PERFORM AddMemberToArea(nUserId, nArea);
     PERFORM SetDefaultArea(nArea, nUserId);
 
