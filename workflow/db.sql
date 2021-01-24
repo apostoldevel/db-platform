@@ -628,7 +628,7 @@ BEGIN
     DELETE FROM db.acu WHERE class = pClass AND userid = pUserId;
   END IF;
 
-  IF bMask & B'00010' = B'00010' THEN
+  IF bMask & B'01000' = B'01000' OR bMask & B'00010' = B'00010' THEN
 	bMethod := B'000111';
   ELSE
     bMethod := B'000000';

@@ -37,6 +37,16 @@ BEGIN
 
 	RETURN NEXT json_build_object('serverTime', trunc(extract(EPOCH FROM Now())));
 
+  WHEN '/search' THEN
+
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(text text)
+    LOOP
+      FOR e IN SELECT * FROM api.search(r.text)
+      LOOP
+        RETURN NEXT row_to_json(e);
+      END LOOP;
+    END LOOP;
+
   WHEN '/sign/in' THEN
 
     IF pPayload IS NULL THEN
