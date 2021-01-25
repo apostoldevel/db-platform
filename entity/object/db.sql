@@ -1300,20 +1300,17 @@ CREATE OR REPLACE FUNCTION ExecuteMethodForAllChild (
 ) RETURNS	jsonb
 AS $$
 DECLARE
+  r			record;
   nMethod	numeric;
-  rec		RECORD;
   result    jsonb;
 BEGIN
   result := jsonb_build_array();
 
-  FOR rec IN
-    SELECT o.id, t.class, o.state
-      FROM db.object o INNER JOIN db.type t ON o.type = t.id
-     WHERE o.parent = pObject AND t.class = pClass
+  FOR r IN SELECT id, class, state FROM db.object WHERE parent = pObject AND class = pClass
   LOOP
-    nMethod := GetMethod(rec.class, rec.state, pAction);
+    nMethod := GetMethod(r.class, r.state, pAction);
     IF nMethod IS NOT NULL THEN
-      result := result || ExecuteMethod(rec.id, nMethod, pParams);
+      result := result || ExecuteMethod(r.id, nMethod, pParams);
     END IF;
   END LOOP;
 
