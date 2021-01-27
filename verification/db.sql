@@ -48,10 +48,17 @@ BEGIN
       RETURN NULL;
     END IF;
 
-    NEW.used = true;
+    IF OLD.code <> NEW.code THEN
+      RAISE DEBUG 'Hacking alert: code (% <> %).', OLD.code, NEW.code;
+      RETURN NULL;
+    END IF;
 
     RETURN NEW;
   ELSIF (TG_OP = 'INSERT') THEN
+    IF NEW.type = 'M' THEN
+	  NEW.type := 'M';
+	END IF;
+
     IF NEW.validFromDate IS NULL THEN
       NEW.validFromDate := Now();
     END IF;
@@ -64,6 +71,16 @@ BEGIN
       END IF;
 
       NEW.validToDate := NEW.validFromDate + delta;
+    END IF;
+
+	IF NEW.code IS NULL THEN
+      IF NEW.type = 'M' THEN
+		NEW.code := gen_random_uuid()::text;
+      ELSIF NEW.type = 'P' THEN
+		NEW.code := random_between(100000, 999999)::text;
+	  ELSE
+		PERFORM InvalidVerificationCodeType(NEW.type);
+	  END IF;
     END IF;
 
     RETURN NEW;
@@ -131,7 +148,7 @@ BEGIN
        AND validToDate > pDateFrom;
   ELSE
     -- обновим дату значения в текущем диапозоне дат
-    UPDATE db.verification_code SET validToDate = pDateFrom
+    UPDATE db.verification_code SET used = true, validToDate = pDateFrom
      WHERE type = pType
        AND userid = pUserId
        AND validFromDate <= pDateFrom
@@ -143,6 +160,32 @@ BEGIN
   END IF;
 
   RETURN nId;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- NewVerificationCode ---------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION NewVerificationCode (
+  pUserId       numeric,
+  pType         char DEFAULT 'M',
+  pCode		    text DEFAULT null
+) RETURNS       numeric
+AS $$
+BEGIN
+  CASE pType
+  WHEN 'M' THEN
+    pCode := coalesce(pCode, gen_random_uuid()::text);
+  WHEN 'P' THEN
+    pCode := coalesce(pCode, random_between(100000, 999999)::text);
+  ELSE
+    PERFORM InvalidVerificationCodeType(pType);
+  END CASE;
+
+  RETURN AddVerificationCode(pUserId, pType, pCode);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -235,32 +278,6 @@ BEGIN
   END IF;
 
   RETURN nId;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- NewVerificationCode ---------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION NewVerificationCode (
-  pUserId       numeric,
-  pType         char DEFAULT 'M',
-  pCode		    text DEFAULT null
-) RETURNS       numeric
-AS $$
-BEGIN
-  CASE pType
-  WHEN 'M' THEN
-    pCode := coalesce(pCode, gen_random_uuid()::text);
-  WHEN 'P' THEN
-    pCode := coalesce(pCode, random_between(100000, 999999)::text);
-  ELSE
-    PERFORM InvalidVerificationCodeType(pType);
-  END CASE;
-
-  RETURN AddVerificationCode(pUserId, pType, pCode);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

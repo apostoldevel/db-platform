@@ -98,11 +98,43 @@ CREATE OR REPLACE FUNCTION DoConfirmEmail (
 ) RETURNS       void
 AS $$
 DECLARE
+  nId			numeric;
   nUserId       numeric;
 BEGIN
   SELECT userid INTO nUserId FROM db.verification_code WHERE id = pId;
   IF found THEN
-    PERFORM ExecuteObjectAction(GetClientByUserId(nUserId), GetAction('confirm'));
+    SELECT id INTO nId FROM db.client WHERE userid = nUserId;
+    IF found AND IsEnabled(nId) THEN
+      PERFORM ExecuteObjectAction(nId, GetAction('confirm'));
+    END IF;
+  END IF;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- DoConfirmPhone --------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * DO: Подтверждает номер телефона.
+ * @param {numeric} pId - Идентификатор кода подтверждения
+ * @return {void}
+ */
+CREATE OR REPLACE FUNCTION DoConfirmPhone (
+  pId		    numeric
+) RETURNS       void
+AS $$
+DECLARE
+  nId			numeric;
+  nUserId       numeric;
+BEGIN
+  SELECT userid INTO nUserId FROM db.verification_code WHERE id = pId;
+  IF found THEN
+    SELECT id INTO nId FROM db.client WHERE userid = nUserId;
+    IF found AND IsEnabled(nId) THEN
+      PERFORM ExecuteObjectAction(nId, GetAction('confirm'));
+    END IF;
   END IF;
 END;
 $$ LANGUAGE plpgsql

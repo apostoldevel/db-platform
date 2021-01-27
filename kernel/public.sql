@@ -841,9 +841,9 @@ CREATE OR REPLACE FUNCTION random_between (
 AS
 $$
 BEGIN
-  RETURN floor(random() * (high - low + 1) + low);
+  RETURN floor(random() * (high - low + 1)) + low;
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql VOLATILE;
 
 GRANT EXECUTE ON FUNCTION random_between(int, int) TO PUBLIC;
 

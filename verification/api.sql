@@ -66,9 +66,13 @@ BEGIN
 
   IF result THEN
     SELECT a.secret INTO vOAuthSecret FROM oauth2.audience a WHERE a.code = session_username();
-    IF vOAuthSecret IS NOT NULL THEN
-      PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
-      PERFORM DoConfirmEmail(nId);
+    IF found THEN
+	  PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
+      IF pType = 'M' THEN
+        PERFORM DoConfirmEmail(nId);
+      ELSIF pType = 'P' THEN
+        PERFORM DoConfirmPhone(nId);
+      END IF;
       PERFORM SubstituteUser(session_userid(), vOAuthSecret);
     END IF;
   END IF;
