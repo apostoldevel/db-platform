@@ -120,6 +120,9 @@ BEGIN
   -- Класс
   PERFORM CreateClassReference(pParent, nEntity);
 
+  -- API
+  PERFORM RegisterRoute('reference', AddEndpoint('SELECT * FROM rest.reference($1, $2);'));
+
   RETURN nEntity;
 END;
 $$ LANGUAGE plpgsql

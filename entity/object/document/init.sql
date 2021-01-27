@@ -120,6 +120,9 @@ BEGIN
   -- Класс
   PERFORM CreateClassDocument(pParent, nEntity);
 
+  -- API
+  PERFORM RegisterRoute('document', AddEndpoint('SELECT * FROM rest.document($1, $2);'));
+
   RETURN nEntity;
 END;
 $$ LANGUAGE plpgsql
