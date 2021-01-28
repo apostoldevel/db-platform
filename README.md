@@ -314,7 +314,7 @@ Host: localhost:8080
 Content-Type: application/json
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.[сокращенно для краткости].NorYsi-Ht826HUFCEArVZ60_dEUmYiJYXubnTyweIMg
 
-{"type": "physical", "name": {"name": "User Name", "short": "UserName", "first": "User", "last": "Name"}, "phone": "79001234567", "email": "mail@mail.ru", "info": {"profile": {"locale": "ru", "phone_verified": true}}}
+{"type": "physical", "name": {"name": "User Name", "short": "UserName", "first": "User", "last": "Name"}, "phone": "79001234567", "email": "mail@mail.ru", "profile": {"locale": "ru", "phone_verified": true}}
 ```
 
 Ответ (положительный):
