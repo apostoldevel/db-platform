@@ -13,6 +13,25 @@ AS
 GRANT SELECT ON api.object TO administrator;
 
 --------------------------------------------------------------------------------
+-- api.search ------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.search (
+  pText		text
+) RETURNS	SETOF api.object
+AS $$
+  WITH access AS (
+    SELECT object FROM aou(current_userid())
+  )
+  SELECT o.*
+    FROM api.object o INNER JOIN access a ON o.id = a.object
+   WHERE o.label ILIKE '%' || pText || '%'
+      OR o.data ILIKE '%' || pText || '%';
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- api.add_object --------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**

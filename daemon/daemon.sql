@@ -339,19 +339,11 @@ BEGIN
       IF NOT FOUND THEN
         jName := jsonb_build_object('name', account.name, 'first', profile.given_name, 'last', profile.family_name);
 
-        SELECT * INTO signup FROM api.signup(null, account.username, null, jName, account.phone, account.email, token.payload::jsonb);
+        SELECT * INTO signup FROM api.signup(null, account.username, null, jName, account.phone, account.email, row_to_json(profile)::jsonb);
 
         nUserId := signup.userid;
 
         INSERT INTO db.auth (userId, audience, code) VALUES (nUserId, nAudience, account.username);
-
-        UPDATE db.profile p
-           SET locale = coalesce(profile.locale, p.locale),
-               given_name = coalesce(profile.given_name, p.given_name),
-               family_name = coalesce(profile.family_name, p.family_name),
-               email_verified = coalesce(profile.email_verified, p.email_verified),
-               picture = coalesce(profile.picture, p.picture)
-         WHERE p.userid = nUserId;
       END IF;
 
       SELECT id INTO nAudience FROM oauth2.audience WHERE provider = GetProvider('default') AND application = nApplication;

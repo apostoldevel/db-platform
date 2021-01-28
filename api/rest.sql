@@ -84,13 +84,10 @@ BEGIN
     arKeys := array_cat(arKeys, GetRoutines('signup', 'api', false));
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(type varchar, username text, password text, name jsonb, phone text, email text, info jsonb, description text)
-    LOOP
-      FOR r IN EXECUTE format('SELECT row_to_json(api.signup(%s)) FROM jsonb_to_record($1) AS x(%s)', array_to_string(GetRoutines('signup', 'api', false, 'x'), ', '), array_to_string(GetRoutines('signup', 'api', true), ', ')) USING pPayload
-      LOOP
-        RETURN NEXT r;
-      END LOOP;
-    END LOOP;
+	FOR r IN EXECUTE format('SELECT row_to_json(api.signup(%s)) FROM jsonb_to_record($1) AS x(%s)', array_to_string(GetRoutines('signup', 'api', false, 'x'), ', '), array_to_string(GetRoutines('signup', 'api', true), ', ')) USING pPayload
+	LOOP
+	  RETURN NEXT r;
+	END LOOP;
 
   WHEN '/sign/out' THEN
 

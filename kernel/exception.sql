@@ -45,6 +45,15 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
+CREATE OR REPLACE FUNCTION UserTempLockError (
+  pDate		timestamptz
+) RETURNS	void
+AS $$
+BEGIN
+  PERFORM AuthenticateError(format('Учетная запись временно заблокирована до %s.', DateToStr(pDate)));
+END;
+$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+
 CREATE OR REPLACE FUNCTION PasswordExpired() RETURNS void
 AS $$
 BEGIN

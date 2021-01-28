@@ -449,7 +449,7 @@ COMMENT ON COLUMN db.profile.interface IS 'Идентификатор рабоч
 COMMENT ON COLUMN db.profile.state IS 'Состояние: 000 - Отключен; 001 - Подключен; 010 - локальный IP; 100 - доверительный IP';
 COMMENT ON COLUMN db.profile.session_limit IS 'Максимально допустимое количество одновременно открытых сессий.';
 COMMENT ON COLUMN db.profile.email_verified IS 'Электронный адрес подтверждён.';
-COMMENT ON COLUMN db.profile.phone_verified IS 'Телефон адрес подтверждён.';
+COMMENT ON COLUMN db.profile.phone_verified IS 'Телефон подтверждён.';
 COMMENT ON COLUMN db.profile.picture IS 'Логотип.';
 
 CREATE OR REPLACE FUNCTION db.ft_profile_before()
@@ -605,6 +605,50 @@ CREATE TRIGGER t_profile_login_state
   BEFORE UPDATE ON db.profile
   FOR EACH ROW
   EXECUTE PROCEDURE ft_profile_login_state();
+
+--------------------------------------------------------------------------------
+-- UpdateProfile ---------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION UpdateProfile (
+  pUserId       	numeric,
+  pFamilyName		text,
+  pGivenName		text,
+  pPatronymicName	text,
+  pLocale			numeric,
+  pArea				numeric,
+  pInterface		numeric,
+  pEmailVerified	bool,
+  pPhoneVerified	bool,
+  pPicture			text
+) RETURNS 	    	boolean
+AS $$
+BEGIN
+  IF session_user <> 'kernel' THEN
+    IF pUserId <> current_userid() THEN
+	  IF NOT CheckAccessControlList(B'00000000001000') THEN
+		PERFORM AccessDenied();
+	  END IF;
+    END IF;
+  END IF;
+
+  UPDATE db.profile
+	 SET family_name = coalesce(pFamilyName, family_name),
+	     given_name = coalesce(pGivenName, given_name),
+	     patronymic_name = coalesce(pPatronymicName, patronymic_name),
+	     locale = coalesce(pLocale, locale),
+		 area = coalesce(pArea, area),
+		 interface = coalesce(pInterface, interface),
+		 email_verified = coalesce(pEmailVerified, email_verified),
+		 phone_verified = coalesce(pPhoneVerified, phone_verified),
+		 picture = coalesce(pPicture, picture)
+   WHERE userid = pUserId;
+
+  RETURN FOUND;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
 -- users -----------------------------------------------------------------------
@@ -4769,8 +4813,8 @@ BEGIN
     PERFORM UserLockError();
   END IF;
 
-  IF up.lock_date IS NOT NULL AND up.lock_date <= now() THEN
-    PERFORM UserLockError();
+  IF up.lock_date IS NOT NULL AND up.lock_date >= now() THEN
+    PERFORM UserTempLockError(up.lock_date);
   END IF;
 
   IF get_bit(up.status, 0) = 1 THEN
@@ -4803,7 +4847,7 @@ BEGIN
     PERFORM SetCurrentSession(vSession);
     PERFORM SetCurrentUserId(up.id);
 
-    UPDATE db.user SET status = set_bit(set_bit(status, 3, 0), 2, 1) WHERE id = up.id;
+    UPDATE db.user SET status = set_bit(set_bit(status, 3, 0), 2, 1), lock_date = null WHERE id = up.id;
 
     UPDATE db.profile
        SET input_error = 0,
@@ -4882,8 +4926,8 @@ BEGIN
       SELECT input_error INTO nInputError FROM db.profile WHERE userid = up.id;
 
       IF found THEN
-        IF nInputError >= 3 THEN
-          PERFORM UserLock(up.id);
+        IF nInputError >= 5 THEN
+          UPDATE db.user SET lock_date = Now() + INTERVAL '1 min' WHERE id = up.id;
         END IF;
       END IF;
 
