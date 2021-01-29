@@ -651,6 +651,208 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- RECOVERY TICKET -------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- db.recovery_ticket ----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE TABLE db.recovery_ticket (
+    ticket			uuid PRIMARY KEY,
+    userId          numeric(12) NOT NULL,
+    securityAnswer	text NOT NULL,
+    used            boolean NOT NULL DEFAULT false,
+    validFromDate   timestamptz NOT NULL,
+    validToDate     timestamptz NOT NULL
+);
+
+COMMENT ON TABLE db.recovery_ticket IS 'Талон восстановления пароля.';
+
+COMMENT ON COLUMN db.recovery_ticket.ticket IS 'Талон';
+COMMENT ON COLUMN db.recovery_ticket.userId IS 'Идентификатор учётной записи';
+COMMENT ON COLUMN db.recovery_ticket.securityAnswer IS 'Секретный ответ';
+COMMENT ON COLUMN db.recovery_ticket.used IS 'Использован';
+COMMENT ON COLUMN db.recovery_ticket.validFromDate IS 'Дата начала действаия';
+COMMENT ON COLUMN db.recovery_ticket.validToDate IS 'Дата окончания действия';
+
+--------------------------------------------------------------------------------
+
+CREATE UNIQUE INDEX ON db.recovery_ticket (userid, validFromDate, validToDate);
+
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION db.ft_recovery_ticket_before()
+RETURNS TRIGGER
+AS $$
+BEGIN
+  IF (TG_OP = 'UPDATE') THEN
+
+    IF OLD.securityAnswer <> NEW.securityAnswer THEN
+      RAISE DEBUG 'Hacking alert: security answer (% <> %).', OLD.securityAnswer, NEW.securityAnswer;
+      RETURN NULL;
+    END IF;
+
+  ELSIF (TG_OP = 'INSERT') THEN
+
+    IF NEW.ticket IS NULL THEN
+      NEW.ticket := gen_random_uuid();
+    END IF;
+
+    IF NEW.validFromDate IS NULL THEN
+      NEW.validFromDate := Now();
+    END IF;
+
+    IF NEW.validToDate IS NULL THEN
+      NEW.validToDate := NEW.validFromDate + INTERVAL '1 hour';
+    END IF;
+
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = db, kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+
+CREATE TRIGGER t_recovery_ticket_before
+  BEFORE INSERT OR UPDATE ON db.recovery_ticket
+  FOR EACH ROW EXECUTE PROCEDURE db.ft_recovery_ticket_before();
+
+--------------------------------------------------------------------------------
+-- AddRecoveryTicket -----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION AddRecoveryTicket (
+  pUserId			numeric,
+  pSecurityAnswer	text,
+  pDateFrom			timestamptz DEFAULT Now(),
+  pDateTo			timestamptz DEFAULT null
+) RETURNS			uuid
+AS $$
+DECLARE
+  nTicket			uuid;
+  dtDateFrom		timestamptz;
+  dtDateTo			timestamptz;
+BEGIN
+  -- получим дату значения в текущем диапозоне дат
+  SELECT ticket, validFromDate, validToDate INTO nTicket, dtDateFrom, dtDateTo
+    FROM db.recovery_ticket
+   WHERE userid = pUserId
+     AND validFromDate <= pDateFrom
+     AND validToDate > pDateFrom;
+
+  IF coalesce(dtDateFrom, MINDATE()) = pDateFrom THEN
+    -- обновим значение в текущем диапозоне дат
+    UPDATE db.recovery_ticket SET securityAnswer = pSecurityAnswer
+     WHERE userid = pUserId
+       AND validFromDate <= pDateFrom
+       AND validToDate > pDateFrom;
+  ELSE
+    -- обновим дату значения в текущем диапозоне дат
+    UPDATE db.recovery_ticket SET used = true, validToDate = pDateFrom
+     WHERE userid = pUserId
+       AND validFromDate <= pDateFrom
+       AND validToDate > pDateFrom;
+
+    INSERT INTO db.recovery_ticket (userid, securityAnswer, validFromDate, validtodate)
+    VALUES (pUserId, pSecurityAnswer, pDateFrom, pDateTo)
+    RETURNING ticket INTO nTicket;
+  END IF;
+
+  RETURN nTicket;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- NewRecoveryTicket -----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION NewRecoveryTicket (
+  pUserId			numeric,
+  pSecurityAnswer	text,
+  pDateFrom			timestamptz DEFAULT Now(),
+  pDateTo			timestamptz DEFAULT Now() + INTERVAL '1 hour'
+) RETURNS			uuid
+AS $$
+BEGIN
+  RETURN AddRecoveryTicket(pUserId, crypt(pSecurityAnswer, gen_salt('md5')), pDateFrom, pDateTo);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- GetRecoveryTicket -----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetRecoveryTicket (
+  pUserId			numeric,
+  pDateFrom			timestamptz DEFAULT Now()
+) RETURNS			uuid
+AS $$
+DECLARE
+  nTicket			uuid;
+BEGIN
+  SELECT ticket INTO nTicket
+    FROM db.recovery_ticket
+   WHERE userid = pUserId
+     AND validFromDate <= pDateFrom
+     AND validToDate > pDateFrom;
+
+  RETURN nTicket;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- CheckRecoveryTicket ---------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION CheckRecoveryTicket (
+  pTicket			uuid,
+  pSecurityAnswer	text
+) RETURNS			numeric
+AS $$
+DECLARE
+  nUserId			numeric;
+  passed			boolean;
+  utilized			boolean;
+BEGIN
+  SELECT userId, (securityAnswer = crypt(pSecurityAnswer, securityAnswer)), used INTO nUserId, passed, utilized
+    FROM db.recovery_ticket
+   WHERE ticket = pTicket
+     AND validFromDate <= Now()
+     AND validtoDate > Now();
+
+  IF found THEN
+    IF utilized THEN
+      PERFORM SetErrorMessage('Талон восстановления пароля уже был использован.');
+    ELSE
+	  IF passed THEN
+		PERFORM SetErrorMessage('Успешно.');
+        UPDATE db.recovery_ticket SET used = true WHERE ticket = pTicket;
+		RETURN nUserId;
+	  ELSE
+		PERFORM SetErrorMessage('Секретный ответ не прошёл проверку.');
+	  END IF;
+    END IF;
+  ELSE
+    PERFORM SetErrorMessage('Талон восстановления пароля не найден.');
+  END IF;
+
+  RETURN null;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- users -----------------------------------------------------------------------
 --------------------------------------------------------------------------------
 

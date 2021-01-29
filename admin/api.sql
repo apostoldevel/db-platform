@@ -324,11 +324,11 @@ CREATE OR REPLACE FUNCTION api.add_user (
   pUserName             text,
   pPassword             text,
   pName                 text,
-  pPhone                text,
-  pEmail                text,
-  pDescription          text,
-  pPasswordChange       boolean,
-  pPasswordNotChange    boolean
+  pPhone                text DEFAULT null,
+  pEmail                text DEFAULT null,
+  pDescription          text DEFAULT null,
+  pPasswordChange       boolean DEFAULT true,
+  pPasswordNotChange    boolean DEFAULT false
 ) RETURNS               numeric
 AS $$
 BEGIN
@@ -356,14 +356,14 @@ $$ LANGUAGE plpgsql
  */
 CREATE OR REPLACE FUNCTION api.update_user (
   pId                   numeric,
-  pUserName             text,
-  pPassword             text,
-  pName                 text,
-  pPhone                text,
-  pEmail                text,
-  pDescription          text,
-  pPasswordChange       boolean,
-  pPasswordNotChange    boolean
+  pUserName             text DEFAULT null,
+  pPassword             text DEFAULT null,
+  pName                 text DEFAULT null,
+  pPhone                text DEFAULT null,
+  pEmail                text DEFAULT null,
+  pDescription          text DEFAULT null,
+  pPasswordChange       boolean DEFAULT null,
+  pPasswordNotChange    boolean DEFAULT null
 ) RETURNS               void
 AS $$
 BEGIN
@@ -379,14 +379,14 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION api.set_user (
   pId                   numeric,
-  pUserName             text,
-  pPassword             text,
-  pName                 text,
-  pPhone                text,
-  pEmail                text,
-  pDescription          text,
-  pPasswordChange       boolean,
-  pPasswordNotChange    boolean
+  pUserName             text DEFAULT null,
+  pPassword             text DEFAULT null,
+  pName                 text DEFAULT null,
+  pPhone                text DEFAULT null,
+  pEmail                text DEFAULT null,
+  pDescription          text DEFAULT null,
+  pPasswordChange       boolean DEFAULT null,
+  pPasswordNotChange    boolean DEFAULT null
 ) RETURNS               SETOF api.user
 AS $$
 BEGIN
@@ -468,7 +468,7 @@ $$ LANGUAGE plpgsql
 -- api.change_password ---------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Устанавливает пароль пользователя.
+ * Меняет пароль пользователя.
  * @param {numeric} pId - Идентификатор учетной записи
  * @param {text} pOldPass - Старый пароль
  * @param {text} pNewPass - Новый пароль
@@ -486,6 +486,107 @@ BEGIN
   END IF;
 
   PERFORM SetPassword(pId, pNewPass);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.recovery_password -------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Запускает процедуру востановления пароля пользователя.
+ * @param {text} pIdentifier - Идентификатор пользователя (username, email, phone)
+ * @return {uuid} - Талон восстановления (recovery ticket)
+ */
+CREATE OR REPLACE FUNCTION api.recovery_password (
+  pIdentifier		text
+) RETURNS			uuid
+AS $$
+DECLARE
+  nTicket			uuid;
+  nUserId			numeric;
+  vOAuthSecret		text;
+BEGIN
+  SELECT id INTO nUserId FROM db.user WHERE phone = TrimPhone(pIdentifier) AND type = 'U';
+
+  IF FOUND THEN
+    nTicket := GetRecoveryTicket(nUserId);
+    IF nTicket IS NULL THEN
+      IF IsUserRole(GetGroup('system'), session_userid()) THEN
+		SELECT a.secret INTO vOAuthSecret FROM oauth2.audience a WHERE a.code = session_username();
+		IF found THEN
+		  PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
+		  nTicket := RecoveryPasswordByPhone(nUserId);
+		  PERFORM SubstituteUser(session_userid(), vOAuthSecret);
+		END IF;
+	  ELSE
+		nTicket := RecoveryPasswordByPhone(nUserId);
+	  END IF;
+	END IF;
+  END IF;
+
+  SELECT id INTO nUserId FROM db.user WHERE email = pIdentifier AND type = 'U';
+
+  IF FOUND THEN
+    nTicket := GetRecoveryTicket(nUserId);
+    IF nTicket IS NULL THEN
+      IF IsUserRole(GetGroup('system'), session_userid()) THEN
+		SELECT a.secret INTO vOAuthSecret FROM oauth2.audience a WHERE a.code = session_username();
+		IF found THEN
+		  PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
+          nTicket := RecoveryPasswordByEmail(nUserId);
+		  PERFORM SubstituteUser(session_userid(), vOAuthSecret);
+		END IF;
+	  ELSE
+        nTicket := RecoveryPasswordByEmail(nUserId);
+	  END IF;
+	END IF;
+  END IF;
+
+  RETURN coalesce(nTicket, gen_random_uuid());
+END
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.reset_password ----------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Сбрасывает пароль пользователя.
+ * @param {uuid} pTicket -  Талон восстановления (recovery ticket)
+ * @param {text} vSecurityAnswer - Секретный ответ
+ * @param {text} pPassword - Новый пароль
+ * @return {void}
+ */
+CREATE OR REPLACE FUNCTION api.reset_password (
+  pTicket			uuid,
+  vSecurityAnswer	text,
+  pPassword			text,
+  OUT result    	bool,
+  OUT message   	text
+) RETURNS       	record
+AS $$
+DECLARE
+  nUserId			numeric;
+  vOAuthSecret		text;
+BEGIN
+  nUserId := CheckRecoveryTicket(pTicket, vSecurityAnswer);
+
+  result := nUserId IS NOT NULL;
+  message := GetErrorMessage();
+
+  IF result THEN
+    SELECT a.secret INTO vOAuthSecret FROM oauth2.audience a WHERE a.code = session_username();
+    IF found THEN
+	  PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
+      PERFORM SetPassword(nUserId, pPassword);
+      PERFORM SubstituteUser(session_userid(), vOAuthSecret);
+	ELSE
+      PERFORM SetPassword(nUserId, pPassword);
+    END IF;
+  END IF;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -854,13 +955,13 @@ AS
 GRANT SELECT ON api.member_group TO administrator;
 
 --------------------------------------------------------------------------------
--- api.member_group ------------------------------------------------------------
+-- api.group_member ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
  * Возвращает список пользователей группы.
  * @return {TABLE} - Группы
  */
-CREATE OR REPLACE FUNCTION api.member_group (
+CREATE OR REPLACE FUNCTION api.group_member (
   pGroupId    numeric
 ) RETURNS TABLE (
   id          numeric,
@@ -880,13 +981,13 @@ $$ LANGUAGE SQL
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- api.group_member ------------------------------------------------------------
+-- api.member_group ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
  * Возвращает список групп пользователя.
  * @return {TABLE} - Группы
  */
-CREATE OR REPLACE FUNCTION api.group_member (
+CREATE OR REPLACE FUNCTION api.member_group (
   pUserId     numeric DEFAULT current_userid()
 ) RETURNS TABLE (
   id          numeric,

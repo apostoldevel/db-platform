@@ -13,8 +13,6 @@ CREATE OR REPLACE FUNCTION rest.api (
 ) RETURNS   	SETOF json
 AS $$
 DECLARE
-  nId       	numeric;
-
   r         	record;
   e         	record;
 
@@ -22,7 +20,6 @@ DECLARE
   arJson    	json[];
 
   arKeys    	text[];
-  vUserName 	text;
 BEGIN
   IF NULLIF(pPath, '') IS NULL THEN
     PERFORM RouteIsEmpty();
@@ -36,79 +33,6 @@ BEGIN
   WHEN '/time' THEN
 
 	RETURN NEXT json_build_object('serverTime', trunc(extract(EPOCH FROM Now())));
-
-  WHEN '/search' THEN
-
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(text text)
-    LOOP
-      FOR e IN SELECT * FROM api.search(r.text)
-      LOOP
-        RETURN NEXT row_to_json(e);
-      END LOOP;
-    END LOOP;
-
-  WHEN '/sign/in' THEN
-
-    IF pPayload IS NULL THEN
-      PERFORM JsonIsEmpty();
-    END IF;
-
-    arKeys := array_cat(arKeys, GetRoutines('signin', 'api', false));
-    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
-
-    IF pPayload ? 'phone' THEN
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(phone text, password text, agent text, host inet)
-      LOOP
-        SELECT username INTO vUserName FROM db.user WHERE type = 'U' AND phone = r.phone;
-        RETURN NEXT row_to_json(api.signin(vUserName, NULLIF(r.password, ''), NULLIF(r.agent, ''), r.host));
-      END LOOP;
-    ELSIF pPayload ? 'email' THEN
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(email text, password text, agent text, host inet)
-      LOOP
-        SELECT username INTO vUserName FROM db.user WHERE type = 'U' AND email = r.email;
-        RETURN NEXT row_to_json(api.signin(vUserName, NULLIF(r.password, ''), NULLIF(r.agent, ''), r.host));
-      END LOOP;
-    ELSE
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(username text, password text, agent text, host inet)
-      LOOP
-        RETURN NEXT row_to_json(api.signin(NULLIF(r.username, ''), NULLIF(r.password, ''), NULLIF(r.agent, ''), r.host));
-      END LOOP;
-    END IF;
-
-  WHEN '/sign/up' THEN
-
-    IF pPayload IS NULL THEN
-      PERFORM JsonIsEmpty();
-    END IF;
-
-    arKeys := array_cat(arKeys, GetRoutines('signup', 'api', false));
-    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
-
-	FOR r IN EXECUTE format('SELECT row_to_json(api.signup(%s)) FROM jsonb_to_record($1) AS x(%s)', array_to_string(GetRoutines('signup', 'api', false, 'x'), ', '), array_to_string(GetRoutines('signup', 'api', true), ', ')) USING pPayload
-	LOOP
-	  RETURN NEXT r;
-	END LOOP;
-
-  WHEN '/sign/out' THEN
-
-    IF pPayload IS NOT NULL THEN
-      arKeys := array_cat(arKeys, GetRoutines('signout', 'api', false));
-      PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
-    ELSE
-      pPayload := '{}';
-    END IF;
-
-    IF current_session() IS NULL THEN
-      PERFORM LoginFailed();
-    END IF;
-
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(session text, close_all boolean)
-    LOOP
-      FOR e IN SELECT *, GetErrorMessage() AS message FROM api.signout(coalesce(r.session, current_session()), r.close_all) AS success
-      LOOP
-        RETURN NEXT row_to_json(e);
-      END LOOP;
-    END LOOP;
 
   WHEN '/authenticate' THEN
 
@@ -154,6 +78,24 @@ BEGIN
     FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(username text, password text)
     LOOP
       FOR e IN SELECT * FROM api.su(r.username, r.password) AS success
+      LOOP
+        RETURN NEXT row_to_json(e);
+      END LOOP;
+    END LOOP;
+
+  WHEN '/search' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    IF current_session() IS NULL THEN
+      PERFORM LoginFailed();
+    END IF;
+
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(text text)
+    LOOP
+      FOR e IN SELECT * FROM api.search(r.text)
       LOOP
         RETURN NEXT row_to_json(e);
       END LOOP;
@@ -248,21 +190,277 @@ BEGIN
       END LOOP;
     END LOOP;
 
-  WHEN '/state/type' THEN
+  ELSE
+    PERFORM RouteNotFound(pPath);
+  END CASE;
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(fields jsonb)
+  RETURN;
+END;
+$$ LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- REST API (sign) -------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Запрос данных в формате REST JSON API (sign).
+ * @param {text} pPath - Путь
+ * @param {jsonb} pPayload - Данные
+ * @return {SETOF json} - Записи в JSON
+ */
+CREATE OR REPLACE FUNCTION rest.sign (
+  pPath     	text,
+  pPayload  	jsonb DEFAULT null
+) RETURNS   	SETOF json
+AS $$
+DECLARE
+  r         	record;
+  e         	record;
+
+  arKeys    	text[];
+  vUserName 	text;
+BEGIN
+  IF NULLIF(pPath, '') IS NULL THEN
+    PERFORM RouteIsEmpty();
+  END IF;
+
+  CASE lower(pPath)
+  WHEN '/sign/in' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, GetRoutines('signin', 'api', false));
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF pPayload ? 'phone' THEN
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(phone text, password text, agent text, host inet)
+      LOOP
+        SELECT username INTO vUserName FROM db.user WHERE type = 'U' AND phone = r.phone;
+        RETURN NEXT row_to_json(api.signin(vUserName, NULLIF(r.password, ''), NULLIF(r.agent, ''), r.host));
+      END LOOP;
+    ELSIF pPayload ? 'email' THEN
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(email text, password text, agent text, host inet)
+      LOOP
+        SELECT username INTO vUserName FROM db.user WHERE type = 'U' AND email = r.email;
+        RETURN NEXT row_to_json(api.signin(vUserName, NULLIF(r.password, ''), NULLIF(r.agent, ''), r.host));
+      END LOOP;
+    ELSE
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(username text, password text, agent text, host inet)
+      LOOP
+        RETURN NEXT row_to_json(api.signin(NULLIF(r.username, ''), NULLIF(r.password, ''), NULLIF(r.agent, ''), r.host));
+      END LOOP;
+    END IF;
+
+  WHEN '/sign/up' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, GetRoutines('signup', 'api', false));
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+	FOR r IN EXECUTE format('SELECT row_to_json(api.signup(%s)) FROM jsonb_to_record($1) AS x(%s)', array_to_string(GetRoutines('signup', 'api', false, 'x'), ', '), array_to_string(GetRoutines('signup', 'api', true), ', ')) USING pPayload
+	LOOP
+	  RETURN NEXT r;
+	END LOOP;
+
+  WHEN '/sign/out' THEN
+
+    IF current_session() IS NULL THEN
+      PERFORM LoginFailed();
+    END IF;
+
+    IF pPayload IS NOT NULL THEN
+      arKeys := array_cat(arKeys, GetRoutines('signout', 'api', false));
+      PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+    ELSE
+      pPayload := '{}';
+    END IF;
+
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(session text, close_all boolean)
     LOOP
-      FOR e IN EXECUTE format('SELECT %s FROM api.state_type', JsonbToFields(r.fields, GetColumns('state_type', 'api')))
+      FOR e IN SELECT *, GetErrorMessage() AS message FROM api.signout(coalesce(r.session, current_session()), r.close_all) AS success
       LOOP
         RETURN NEXT row_to_json(e);
       END LOOP;
     END LOOP;
 
+   ELSE
+    PERFORM RouteNotFound(pPath);
+  END CASE;
+
+  RETURN;
+END;
+$$ LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- REST API (user) -------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Запрос данных в формате REST JSON API (user).
+ * @param {text} pPath - Путь
+ * @param {jsonb} pPayload - Данные
+ * @return {SETOF json} - Записи в JSON
+ */
+CREATE OR REPLACE FUNCTION rest.user (
+  pPath     	text,
+  pPayload  	jsonb DEFAULT null
+) RETURNS   	SETOF json
+AS $$
+DECLARE
+  r         	record;
+  e         	record;
+
+  arKeys    	text[];
+BEGIN
+  IF NULLIF(pPath, '') IS NULL THEN
+    PERFORM RouteIsEmpty();
+  END IF;
+
+  IF current_session() IS NULL THEN
+	PERFORM LoginFailed();
+  END IF;
+
+  CASE lower(pPath)
+  WHEN '/user/set' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['username', 'password', 'name', 'phone', 'email', 'description']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+	  FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(username text, password text, name text, phone text, email text, description text)
+	  LOOP
+		FOR e IN SELECT * FROM api.set_user(current_userid(), r.username, r.password, r.name, r.phone, r.email, r.description)
+		LOOP
+		  RETURN NEXT row_to_json(e);
+		END LOOP;
+	  END LOOP;
+
+    ELSE
+
+	  FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(username text, password text, name text, phone text, email text, description text)
+	  LOOP
+		FOR e IN SELECT * FROM api.set_user(current_userid(), r.username, r.password, r.name, r.phone, r.email, r.description)
+		LOOP
+		  RETURN NEXT row_to_json(e);
+		END LOOP;
+	  END LOOP;
+
+    END IF;
+
+  WHEN '/user/password' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['oldpass', 'newpass']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+	FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(oldpass text, newpass text)
+	LOOP
+	  FOR e IN SELECT true AS success FROM api.change_password(current_userid(), r.oldpass, r.newpass)
+	  LOOP
+		RETURN NEXT row_to_json(e);
+	  END LOOP;
+	END LOOP;
+
+  WHEN '/user/password/recovery' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['identifier']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+	FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(identifier text)
+	LOOP
+	  RETURN NEXT json_build_object('ticket', api.recovery_password(r.identifier));
+	END LOOP;
+
+  WHEN '/user/password/reset' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['ticket', 'securityanswer', 'password']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+	FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(ticket uuid, securityanswer text, password text)
+	LOOP
+	  FOR e IN SELECT * FROM api.reset_password(r.ticket, r.securityanswer, r.password)
+	  LOOP
+		RETURN NEXT row_to_json(e);
+	  END LOOP;
+	END LOOP;
+
+  ELSE
+    PERFORM RouteNotFound(pPath);
+  END CASE;
+
+  RETURN;
+END;
+$$ LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- REST API (state) ------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Запрос данных в формате REST JSON API (state).
+ * @param {text} pPath - Путь
+ * @param {jsonb} pPayload - Данные
+ * @return {SETOF json} - Записи в JSON
+ */
+CREATE OR REPLACE FUNCTION rest.state (
+  pPath     	text,
+  pPayload  	jsonb DEFAULT null
+) RETURNS   	SETOF json
+AS $$
+DECLARE
+  r         	record;
+  e         	record;
+
+  arKeys    	text[];
+BEGIN
+  IF NULLIF(pPath, '') IS NULL THEN
+    PERFORM RouteIsEmpty();
+  END IF;
+
+  IF current_session() IS NULL THEN
+	PERFORM LoginFailed();
+  END IF;
+
+  CASE lower(pPath)
   WHEN '/state' THEN
 
     FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(fields jsonb)
     LOOP
       FOR e IN EXECUTE format('SELECT %s FROM api.state', JsonbToFields(r.fields, GetColumns('state', 'api')))
+      LOOP
+        RETURN NEXT row_to_json(e);
+      END LOOP;
+    END LOOP;
+
+  WHEN '/state/type' THEN
+
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(fields jsonb)
+    LOOP
+      FOR e IN EXECUTE format('SELECT %s FROM api.state_type', JsonbToFields(r.fields, GetColumns('state_type', 'api')))
       LOOP
         RETURN NEXT row_to_json(e);
       END LOOP;
@@ -299,6 +497,45 @@ BEGIN
 
     END IF;
 
+  ELSE
+    PERFORM RouteNotFound(pPath);
+  END CASE;
+
+  RETURN;
+END;
+$$ LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- REST API (action) -----------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Запрос данных в формате REST JSON API (action).
+ * @param {text} pPath - Путь
+ * @param {jsonb} pPayload - Данные
+ * @return {SETOF json} - Записи в JSON
+ */
+CREATE OR REPLACE FUNCTION rest.action (
+  pPath     	text,
+  pPayload  	jsonb DEFAULT null
+) RETURNS   	SETOF json
+AS $$
+DECLARE
+  r         	record;
+  e         	record;
+
+  arKeys    	text[];
+BEGIN
+  IF NULLIF(pPath, '') IS NULL THEN
+    PERFORM RouteIsEmpty();
+  END IF;
+
+  IF current_session() IS NULL THEN
+	PERFORM LoginFailed();
+  END IF;
+
+  CASE lower(pPath)
   WHEN '/action' THEN
 
     FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(fields jsonb)
@@ -313,10 +550,6 @@ BEGIN
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
-    END IF;
-
-    IF current_session() IS NULL THEN
-      PERFORM LoginFailed();
     END IF;
 
     arKeys := array_cat(arKeys, ARRAY['object', 'action', 'code', 'params']);
@@ -344,6 +577,47 @@ BEGIN
 
     END IF;
 
+  ELSE
+    PERFORM RouteNotFound(pPath);
+  END CASE;
+
+  RETURN;
+END;
+$$ LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- REST API (method) -----------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Запрос данных в формате REST JSON API (method).
+ * @param {text} pPath - Путь
+ * @param {jsonb} pPayload - Данные
+ * @return {SETOF json} - Записи в JSON
+ */
+CREATE OR REPLACE FUNCTION rest.method (
+  pPath     	text,
+  pPayload  	jsonb DEFAULT null
+) RETURNS   	SETOF json
+AS $$
+DECLARE
+  nId       	numeric;
+
+  r         	record;
+  e         	record;
+
+  arKeys    	text[];
+BEGIN
+  IF NULLIF(pPath, '') IS NULL THEN
+    PERFORM RouteIsEmpty();
+  END IF;
+
+  IF current_session() IS NULL THEN
+	PERFORM LoginFailed();
+  END IF;
+
+  CASE lower(pPath)
   WHEN '/method' THEN
 
     FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(fields jsonb)
@@ -358,10 +632,6 @@ BEGIN
 
     IF pPayload IS NULL THEN
 	  PERFORM JsonIsEmpty();
-    END IF;
-
-    IF current_session() IS NULL THEN
-      PERFORM LoginFailed();
     END IF;
 
     arKeys := array_cat(arKeys, ARRAY['id', 'method', 'code', 'params']);
@@ -387,10 +657,6 @@ BEGIN
 
     IF pPayload IS NULL THEN
 	  PERFORM JsonIsEmpty();
-    END IF;
-
-    IF current_session() IS NULL THEN
-      PERFORM LoginFailed();
     END IF;
 
     arKeys := array_cat(arKeys, ARRAY['object', 'method', 'code', 'params']);
@@ -449,75 +715,62 @@ BEGIN
       END LOOP;
     END LOOP;
 
-  WHEN '/member/area' THEN
+  ELSE
+    PERFORM RouteNotFound(pPath);
+  END CASE;
+
+  RETURN;
+END;
+$$ LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- REST API (member) -----------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Запрос данных в формате REST JSON API (member).
+ * @param {text} pPath - Путь
+ * @param {jsonb} pPayload - Данные
+ * @return {SETOF json} - Записи в JSON
+ */
+CREATE OR REPLACE FUNCTION rest.member (
+  pPath     	text,
+  pPayload  	jsonb DEFAULT null
+) RETURNS   	SETOF json
+AS $$
+DECLARE
+  r         	record;
+BEGIN
+  IF NULLIF(pPath, '') IS NULL THEN
+    PERFORM RouteIsEmpty();
+  END IF;
+
+  IF current_session() IS NULL THEN
+	PERFORM LoginFailed();
+  END IF;
+
+  CASE lower(pPath)
+  WHEN '/member/group' THEN -- Группы пользователя
+
+	FOR r IN SELECT * FROM api.member_group(current_userid())
+	LOOP
+	  RETURN NEXT row_to_json(r);
+	END LOOP;
+
+  WHEN '/member/area' THEN -- Зоны пользователя
 
     FOR r IN SELECT * FROM api.member_area(current_userid())
     LOOP
       RETURN NEXT row_to_json(r);
     END LOOP;
 
-  WHEN '/member/interface' THEN
+  WHEN '/member/interface' THEN -- Интерфейсы пользователя
 
     FOR r IN SELECT * FROM api.member_interface(current_userid())
     LOOP
       RETURN NEXT row_to_json(r);
     END LOOP;
-
-  WHEN '/user/set' THEN
-
-    IF pPayload IS NULL THEN
-      PERFORM JsonIsEmpty();
-    END IF;
-
-    arKeys := array_cat(arKeys, GetRoutines('set_user', 'api', false));
-    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
-
-    IF jsonb_typeof(pPayload) = 'array' THEN
-
-      FOR r IN EXECUTE format('SELECT row_to_json(api.set_user(%s)) FROM jsonb_to_recordset($1) AS x(%s)', array_to_string(GetRoutines('set_user', 'api', false, 'x'), ', '), array_to_string(GetRoutines('set_user', 'api', true), ', ')) USING pPayload
-      LOOP
-        RETURN NEXT r;
-      END LOOP;
-
-    ELSE
-
-      FOR r IN EXECUTE format('SELECT row_to_json(api.set_user(%s)) FROM jsonb_to_record($1) AS x(%s)', array_to_string(GetRoutines('set_user', 'api', false, 'x'), ', '), array_to_string(GetRoutines('set_user', 'api', true), ', ')) USING pPayload
-      LOOP
-        RETURN NEXT r;
-      END LOOP;
-
-    END IF;
-
-  WHEN '/user/password' THEN
-
-    IF pPayload IS NULL THEN
-      PERFORM JsonIsEmpty();
-    END IF;
-
-    arKeys := array_cat(arKeys, ARRAY['id', 'username', 'oldpass', 'newpass']);
-    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
-
-    IF jsonb_typeof(pPayload) = 'array' THEN
-
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, username varchar, oldpass text, newpass text)
-      LOOP
-        FOR e IN SELECT true AS success FROM api.change_password(coalesce(r.id, GetUser(r.username)), r.oldpass, r.newpass)
-        LOOP
-          RETURN NEXT row_to_json(e);
-        END LOOP;
-      END LOOP;
-
-    ELSE
-
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, username varchar, oldpass text, newpass text)
-      LOOP
-        FOR e IN SELECT true AS success FROM api.change_password(coalesce(r.id, GetUser(r.username)), r.oldpass, r.newpass)
-        LOOP
-          RETURN NEXT row_to_json(e);
-        END LOOP;
-      END LOOP;
-
-    END IF;
 
   ELSE
     PERFORM RouteNotFound(pPath);

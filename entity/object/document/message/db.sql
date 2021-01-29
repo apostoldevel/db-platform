@@ -602,3 +602,129 @@ END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- RecoveryPasswordByEmail -----------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Запускает процедуру востановления пароля пользователя по адресу электронной почты.
+ * @param {text} pEmail - Адрес электронной почты пользователя.
+ * @return {uuid} - Талон восстановления (recovery ticket)
+ */
+CREATE OR REPLACE FUNCTION RecoveryPasswordByEmail (
+  pUserId			numeric
+) RETURNS			uuid
+AS $$
+DECLARE
+  nTicket			uuid;
+
+  vName				text;
+  vDomain       	text;
+  vUserName     	text;
+  vProject			text;
+  vEmail        	text;
+  vHost         	text;
+  vNoReply      	text;
+  vSupport			text;
+  vSubject      	text;
+  vText				text;
+  vHTML				text;
+  vBody				text;
+  vDescription  	text;
+  vSecurityAnswer	text;
+  bVerified     	bool;
+
+  vMessage      	text;
+  vContext      	text;
+
+  ErrorCode     	int;
+  ErrorMessage  	text;
+BEGIN
+  SELECT name, email, email_verified, locale INTO vName, vEmail, bVerified
+	FROM db.user u INNER JOIN db.profile p ON u.id = p.userid
+   WHERE id = pUserId;
+
+  IF vEmail IS NULL THEN
+    PERFORM EmailAddressNotSet();
+  END IF;
+
+  IF NOT bVerified THEN
+    PERFORM EmailAddressNotVerified(vEmail);
+  END IF;
+
+  vProject := (RegGetValue(RegOpenKey('CURRENT_CONFIG', 'CONFIG\CurrentProject'), 'Name')).vString;
+  vHost := (RegGetValue(RegOpenKey('CURRENT_CONFIG', 'CONFIG\CurrentProject'), 'Host')).vString;
+  vDomain := (RegGetValue(RegOpenKey('CURRENT_CONFIG', 'CONFIG\CurrentProject'), 'Domain')).vString;
+
+  vNoReply := format('noreply@%s', vDomain);
+  vSupport := format('support@%s', vDomain);
+
+  IF locale_code() = 'ru' THEN
+	vSubject := 'Сброс пароля.';
+	vDescription := 'Сброс пароля через email: ' || vEmail;
+  ELSE
+	vSubject := 'Password reset.';
+	vDescription := 'Reset password via email: ' || vEmail;
+  END IF;
+
+  vSecurityAnswer := encode(digest(gen_random_bytes(15), 'sha1'), 'hex');
+  nTicket := NewRecoveryTicket(pUserId, vSecurityAnswer, Now(), Now() + INTERVAL '1 hour');
+
+  vText := GetRecoveryPasswordEmailText(vName, vUserName, nTicket::text, vSecurityAnswer, vProject, vHost, vSupport);
+  vHTML := GetRecoveryPasswordEmailHTML(vName, vUserName, nTicket::text, vSecurityAnswer, vProject, vHost, vSupport);
+
+  vBody := CreateMailBody(vProject, vNoReply, null, vEmail, vSubject, vText, vHTML);
+
+  PERFORM SendMail(null, vNoReply, vEmail, vSubject, vBody, vDescription);
+  PERFORM CreateNotice(pUserId, null, vDescription);
+
+  PERFORM WriteToEventLog('M', 1001, 'email', vDescription);
+
+  RETURN nTicket;
+EXCEPTION
+WHEN others THEN
+  GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
+
+  PERFORM SetErrorMessage(vMessage);
+
+  SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
+
+  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, vContext);
+
+  RETURN null;
+END
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- RecoveryPasswordByPhone -----------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Запускает процедуру востановления пароля пользователя по номеру телефона.
+ * @param {numeric} pUserId - Идентификатор пользователя.
+ * @return {uuid} - Талон восстановления (recovery ticket)
+ */
+CREATE OR REPLACE FUNCTION RecoveryPasswordByPhone (
+  pUserId			numeric
+) RETURNS			uuid
+AS $$
+DECLARE
+  nTicket			uuid;
+  nMessageId		numeric;
+  vSecurityAnswer	text;
+BEGIN
+  vSecurityAnswer := random_between(100000, 999999)::text;
+
+  nMessageId := SendSMS(null, 'main', format('Код для восстановления пароля: %s. Никому его не сообщайте!', vSecurityAnswer), pUserId);
+  IF nMessageId IS NOT NULL THEN
+    PERFORM CreateNotice(pUserId, null, format('Код для восстановления пароля: %s.', vSecurityAnswer));
+    nTicket := NewRecoveryTicket(pUserId, vSecurityAnswer, Now(), Now() + INTERVAL '5 min');
+  END IF;
+
+  RETURN nTicket;
+END
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;

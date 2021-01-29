@@ -56,25 +56,25 @@ CREATE OR REPLACE FUNCTION api.confirm_verification_code (
 ) RETURNS       record
 AS $$
 DECLARE
-  nId           numeric;
+  nUserId		numeric;
   vOAuthSecret  text;
 BEGIN
-  nId := ConfirmVerificationCode(pType, pCode);
+  nUserId := ConfirmVerificationCode(pType, pCode);
 
-  result := nId IS NOT NULL;
+  result := nUserId IS NOT NULL;
   message := GetErrorMessage();
 
-  IF result THEN
-    SELECT a.secret INTO vOAuthSecret FROM oauth2.audience a WHERE a.code = session_username();
-    IF found THEN
+  IF result AND IsUserRole(GetGroup('system'), session_userid()) THEN
+	SELECT a.secret INTO vOAuthSecret FROM oauth2.audience a WHERE a.code = session_username();
+	IF found THEN
 	  PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
-      IF pType = 'M' THEN
-        PERFORM DoConfirmEmail(nId);
-      ELSIF pType = 'P' THEN
-        PERFORM DoConfirmPhone(nId);
-      END IF;
-      PERFORM SubstituteUser(session_userid(), vOAuthSecret);
-    END IF;
+	  IF pType = 'M' THEN
+		PERFORM DoConfirmEmail(nUserId);
+	  ELSIF pType = 'P' THEN
+		PERFORM DoConfirmPhone(nUserId);
+	  END IF;
+	  PERFORM SubstituteUser(session_userid(), vOAuthSecret);
+	END IF;
   END IF;
 END;
 $$ LANGUAGE plpgsql

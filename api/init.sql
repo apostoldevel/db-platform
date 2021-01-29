@@ -7,6 +7,12 @@ RETURNS			void
 AS $$
 BEGIN
   PERFORM RegisterRoute(null, AddEndpoint('SELECT * FROM rest.api($1, $2);'));
+  PERFORM RegisterRoute('sign', AddEndpoint('SELECT * FROM rest.sign($1, $2);'));
+  PERFORM RegisterRoute('user', AddEndpoint('SELECT * FROM rest.user($1, $2);'));
+  PERFORM RegisterRoute('state', AddEndpoint('SELECT * FROM rest.state($1, $2);'));
+  PERFORM RegisterRoute('action', AddEndpoint('SELECT * FROM rest.action($1, $2);'));
+  PERFORM RegisterRoute('method', AddEndpoint('SELECT * FROM rest.method($1, $2);'));
+  PERFORM RegisterRoute('member', AddEndpoint('SELECT * FROM rest.member($1, $2);'));
   PERFORM RegisterRoute('admin', AddEndpoint('SELECT * FROM rest.admin($1, $2);'));
   PERFORM RegisterRoute('current', AddEndpoint('SELECT * FROM rest.current($1, $2);'));
   PERFORM RegisterRoute('event', AddEndpoint('SELECT * FROM rest.event($1, $2);'));

@@ -14,7 +14,8 @@ CREATE TABLE db.verification_code (
     used            boolean NOT NULL DEFAULT false,
     validFromDate   timestamptz NOT NULL,
     validToDate     timestamptz NOT NULL,
-    CONSTRAINT ch_verification_type CHECK (type IN ('M', 'P'))
+    CONSTRAINT ch_verification_code_type CHECK (type IN ('M', 'P')),
+    CONSTRAINT fk_verification_code_userid FOREIGN KEY (userid) REFERENCES db.user(id)
 );
 
 COMMENT ON TABLE db.verification_code IS 'Код подтверждения.';
@@ -29,8 +30,7 @@ COMMENT ON COLUMN db.verification_code.validToDate IS 'Дата окончани
 
 --------------------------------------------------------------------------------
 
-CREATE UNIQUE INDEX ON db.verification_code (type, code, validFromDate, validToDate);
-CREATE INDEX ON db.verification_code (type, userid, validFromDate, validToDate);
+CREATE UNIQUE INDEX ON db.verification_code (type, userid, validFromDate, validToDate);
 
 --------------------------------------------------------------------------------
 
@@ -128,8 +128,8 @@ CREATE OR REPLACE FUNCTION AddVerificationCode (
 AS $$
 DECLARE
   nId           numeric;
-  dtDateFrom 	timestamp;
-  dtDateTo      timestamp;
+  dtDateFrom 	timestamptz;
+  dtDateTo      timestamptz;
 BEGIN
   -- получим дату значения в текущем диапозоне дат
   SELECT id, validFromDate, validToDate INTO nId, dtDateFrom, dtDateTo
@@ -210,19 +210,20 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- FUNCTION GetVerificationCodeId ----------------------------------------------
+-- FUNCTION CheckVerificationCode ----------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION GetVerificationCodeId (
+CREATE OR REPLACE FUNCTION CheckVerificationCode (
   pType         text,
   pCode		    text
 ) RETURNS       numeric
 AS $$
 DECLARE
-  nId           numeric;
+  nId			numeric;
+  nUserId		numeric;
   utilized      bool;
 BEGIN
-  SELECT id, used INTO nId, utilized
+  SELECT id, userid, used INTO nId, nUserId, utilized
     FROM db.verification_code
    WHERE type = pType
      AND code = pCode
@@ -233,8 +234,9 @@ BEGIN
     IF utilized THEN
       PERFORM SetErrorMessage('Код подтверждения уже был использован.');
     ELSE
+      UPDATE db.verification_code SET used = true WHERE id = nId;
       PERFORM SetErrorMessage('Успешно.');
-      RETURN nId;
+      RETURN nUserId;
     END IF;
   ELSE
     PERFORM SetErrorMessage('Код подтверждения не найден.');
@@ -256,15 +258,11 @@ CREATE OR REPLACE FUNCTION ConfirmVerificationCode (
 ) RETURNS       numeric
 AS $$
 DECLARE
-  nId           numeric;
   nUserId       numeric;
 BEGIN
-  nId := GetVerificationCodeId(pType, pCode);
-  IF nId IS NOT NULL THEN
+  nUserId := CheckVerificationCode(pType, pCode);
 
-    UPDATE db.verification_code SET used = true WHERE id = nId;
-    SELECT userid INTO nUserId FROM db.verification_code WHERE id = nId;
-
+  IF nUserId IS NOT NULL THEN
     CASE pType
     WHEN 'M' THEN
       UPDATE db.profile SET email_verified = true WHERE userId = nUserId;
@@ -277,7 +275,7 @@ BEGIN
     END CASE;
   END IF;
 
-  RETURN nId;
+  RETURN nUserId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

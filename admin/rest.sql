@@ -767,7 +767,7 @@ BEGIN
 
     FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, name varchar)
     LOOP
-      FOR e IN SELECT * FROM api.member_group(coalesce(r.id, GetGroup(r.name)))
+      FOR e IN SELECT * FROM api.group_member(coalesce(r.id, GetGroup(r.name)))
       LOOP
         RETURN NEXT row_to_json(e);
       END LOOP;
@@ -1284,7 +1284,7 @@ BEGIN
 
     FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, name varchar)
     LOOP
-      FOR e IN SELECT * FROM api.member_group(coalesce(r.id, GetGroup(r.name)))
+      FOR e IN SELECT * FROM api.group_member(coalesce(r.id, GetGroup(r.name)))
       LOOP
         RETURN NEXT row_to_json(e);
       END LOOP;
@@ -1301,7 +1301,7 @@ BEGIN
 
     FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, name varchar)
     LOOP
-      FOR e IN SELECT * FROM api.group_member(coalesce(r.id, GetUser(r.name)))
+      FOR e IN SELECT * FROM api.member_group(coalesce(r.id, GetUser(r.name)))
       LOOP
         RETURN NEXT row_to_json(e);
       END LOOP;

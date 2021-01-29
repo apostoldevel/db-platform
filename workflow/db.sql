@@ -1005,8 +1005,8 @@ CREATE UNIQUE INDEX ON db.state (class, code);
 CREATE OR REPLACE FUNCTION ft_state_insert()
 RETURNS trigger AS $$
 BEGIN
-  IF NULLIF(NEW.CODE, '') IS NULL THEN
-    NEW.CODE := encode(gen_random_bytes(12), 'hex');
+  IF NULLIF(NEW.code, '') IS NULL THEN
+    NEW.code := encode(gen_random_bytes(12), 'hex');
   END IF;
 
   RETURN NEW;

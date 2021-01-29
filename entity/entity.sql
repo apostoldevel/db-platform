@@ -90,23 +90,19 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * DO: Подтверждает адрес электронной почты.
- * @param {numeric} pId - Идентификатор кода подтверждения
+ * @param {numeric} pUserId - Идентификатор пользователя
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION DoConfirmEmail (
-  pId		    numeric
+  pUserId		numeric
 ) RETURNS       void
 AS $$
 DECLARE
   nId			numeric;
-  nUserId       numeric;
 BEGIN
-  SELECT userid INTO nUserId FROM db.verification_code WHERE id = pId;
-  IF found THEN
-    SELECT id INTO nId FROM db.client WHERE userid = nUserId;
-    IF found AND IsEnabled(nId) THEN
-      PERFORM ExecuteObjectAction(nId, GetAction('confirm'));
-    END IF;
+  SELECT id INTO nId FROM db.client WHERE userid = pUserId;
+  IF found AND IsEnabled(nId) THEN
+	PERFORM ExecuteObjectAction(nId, GetAction('confirm'));
   END IF;
 END;
 $$ LANGUAGE plpgsql
@@ -118,23 +114,19 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * DO: Подтверждает номер телефона.
- * @param {numeric} pId - Идентификатор кода подтверждения
+ * @param {numeric} pUserId - Идентификатор пользователя
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION DoConfirmPhone (
-  pId		    numeric
+  pUserId		numeric
 ) RETURNS       void
 AS $$
 DECLARE
   nId			numeric;
-  nUserId       numeric;
 BEGIN
-  SELECT userid INTO nUserId FROM db.verification_code WHERE id = pId;
-  IF found THEN
-    SELECT id INTO nId FROM db.client WHERE userid = nUserId;
-    IF found AND IsEnabled(nId) THEN
-      PERFORM ExecuteObjectAction(nId, GetAction('confirm'));
-    END IF;
+  SELECT id INTO nId FROM db.client WHERE userid = pUserId;
+  IF found AND IsEnabled(nId) THEN
+	PERFORM ExecuteObjectAction(nId, GetAction('confirm'));
   END IF;
 END;
 $$ LANGUAGE plpgsql
@@ -146,7 +138,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * DO: Возвращает токены FCM.
- * @param {numeric} pUserId - Идентификатор клиента
+ * @param {numeric} pUserId - Идентификатор пользователя
  * @return {text[]}
  */
 CREATE OR REPLACE FUNCTION DoFCMTokens (
