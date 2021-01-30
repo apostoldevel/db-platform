@@ -50,7 +50,7 @@ $$ LANGUAGE plpgsql
  * @param {varchar} pType - Tип устройства
  * @param {varchar} pModel - Required. This contains a value that identifies the model of the Device.
  * @param {numeric} pClient - Идентификатор клиента | null
- * @param {varchar} pIdentity - Строковый идентификатор зарядной станции
+ * @param {varchar} pIdentity - Строковый идентификатор устройства
  * @param {varchar} pVersion - Версия.
  * @param {varchar} pSerial - Серийный номер.
  * @param {varchar} pAddress - Сетевой адрес.
