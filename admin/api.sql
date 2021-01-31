@@ -551,6 +551,34 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- api.check_recovery_ticket ---------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Сверяет секретный ответ.
+ * @param {uuid} pTicket -  Талон восстановления (recovery ticket)
+ * @param {text} vSecurityAnswer - Секретный ответ
+ * @return {void}
+ */
+CREATE OR REPLACE FUNCTION api.check_recovery_ticket (
+  pTicket			uuid,
+  vSecurityAnswer	text,
+  OUT result    	bool,
+  OUT message   	text
+) RETURNS       	record
+AS $$
+DECLARE
+  nUserId			numeric;
+BEGIN
+  nUserId := CheckRecoveryTicket(pTicket, vSecurityAnswer);
+
+  result := nUserId IS NOT NULL;
+  message := GetErrorMessage();
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- api.reset_password ----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
@@ -579,6 +607,7 @@ BEGIN
 
   IF result THEN
     SELECT a.secret INTO vOAuthSecret FROM oauth2.audience a WHERE a.code = session_username();
+
     IF found THEN
 	  PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
       PERFORM SetPassword(nUserId, pPassword);
@@ -586,6 +615,8 @@ BEGIN
 	ELSE
       PERFORM SetPassword(nUserId, pPassword);
     END IF;
+
+    UPDATE db.recovery_ticket SET used = true WHERE ticket = pTicket;
   END IF;
 END;
 $$ LANGUAGE plpgsql

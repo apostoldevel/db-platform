@@ -836,7 +836,6 @@ BEGIN
     ELSE
 	  IF passed THEN
 		PERFORM SetErrorMessage('Успешно.');
-        UPDATE db.recovery_ticket SET used = true WHERE ticket = pTicket;
 		RETURN nUserId;
 	  ELSE
 		PERFORM SetErrorMessage('Секретный ответ не прошёл проверку.');

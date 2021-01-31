@@ -390,6 +390,23 @@ BEGIN
 	  RETURN NEXT json_build_object('ticket', api.recovery_password(r.identifier));
 	END LOOP;
 
+  WHEN '/user/security/answer' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['ticket', 'securityanswer']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+	FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(ticket uuid, securityanswer text)
+	LOOP
+	  FOR e IN SELECT * FROM api.check_recovery_ticket(r.ticket, r.securityanswer)
+	  LOOP
+		RETURN NEXT row_to_json(e);
+	  END LOOP;
+	END LOOP;
+
   WHEN '/user/password/reset' THEN
 
     IF pPayload IS NULL THEN
