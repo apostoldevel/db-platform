@@ -762,13 +762,17 @@ CREATE OR REPLACE VIEW Client (Id, Document, Code, Creation, UserId,
   Locale, LocaleCode, LocaleName, LocaleDescription
 )
 AS
+  WITH _current AS (
+    SELECT current_locale() AS locale, oper_date() AS date
+  )
   SELECT c.id, c.document, c.code, c.creation, c.userid,
          n.name, n.short, n.last, n.first, n.middle, b.amount AS balance,
          c.phone, c.email, c.info, p.email_verified, p.phone_verified,
          n.locale, l.code, l.name, l.description
-    FROM db.client c INNER JOIN db.locale      l ON l.id = current_locale()
-                     INNER JOIN db.client_name n ON c.id = n.client AND l.id = n.locale AND n.validFromDate <= Now() AND n.validToDate > Now()
-                      LEFT JOIN db.balance     b ON b.type = 1 AND c.id = b.client AND b.validFromDate <= Now() AND b.validToDate > Now()
+    FROM db.client c INNER JOIN _current         ON true
+                     INNER JOIN db.locale      l ON l.id = _current.locale
+                     INNER JOIN db.client_name n ON c.id = n.client AND l.id = n.locale AND n.validFromDate <= _current.date AND n.validToDate > _current.date
+                      LEFT JOIN db.balance     b ON b.type = 1 AND c.id = b.client AND b.validFromDate <= _current.date AND b.validToDate > _current.date
                       LEFT JOIN db.profile     p ON c.userid = p.userid;
 
 GRANT SELECT ON Client TO administrator;

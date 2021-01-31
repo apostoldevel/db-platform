@@ -505,18 +505,20 @@ DECLARE
   code      int;
   Result    text;
 BEGIN
-  FOR Key IN 1..Length(pPhone)
-  LOOP
-    ch := SubStr(pPhone, Key, 1);
-    code := ascii(ch);
-    IF code >= 48 AND code <= 57 THEN
-      Result := coalesce(Result, '') || ch;
-    END IF;
-  END LOOP;
+  IF pPhone IS NOT NULL THEN
+	FOR Key IN 1..Length(pPhone)
+	LOOP
+	  ch := SubStr(pPhone, Key, 1);
+	  code := ascii(ch);
+	  IF code >= 48 AND code <= 57 THEN
+		Result := coalesce(Result, '') || ch;
+	  END IF;
+	END LOOP;
 
-  ch := SubStr(Result, 1, 1);
-  IF ch != '7' OR length(Result) != 11 THEN
-    PERFORM InvalidPhoneNumber(pPhone);
+	ch := SubStr(Result, 1, 1);
+	IF ch != '7' OR length(Result) != 11 THEN
+	  PERFORM InvalidPhoneNumber(pPhone);
+	END IF;
   END IF;
 
   RETURN Result;

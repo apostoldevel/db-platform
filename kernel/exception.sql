@@ -373,11 +373,19 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
+CREATE OR REPLACE FUNCTION ChangesNotAllowed (
+) RETURNS	void
+AS $$
+BEGIN
+  RAISE EXCEPTION 'ERR-40038: Изменения документа в текущем статусе не допускаются.';
+END;
+$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+
 CREATE OR REPLACE FUNCTION RouteIsEmpty (
 ) RETURNS	void
 AS $$
 BEGIN
-  RAISE EXCEPTION 'ERR-40038: Путь не должен быть пустым.';
+  RAISE EXCEPTION 'ERR-40039: Путь не должен быть пустым.';
 END;
 $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
@@ -386,7 +394,7 @@ CREATE OR REPLACE FUNCTION RouteNotFound (
 ) RETURNS	void
 AS $$
 BEGIN
-  RAISE EXCEPTION 'ERR-40039: Не найден путь: "%".', pRoute;
+  RAISE EXCEPTION 'ERR-40040: Не найден путь: "%".', pRoute;
 END;
 $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
@@ -394,7 +402,7 @@ CREATE OR REPLACE FUNCTION JsonIsEmpty (
 ) RETURNS	void
 AS $$
 BEGIN
-  RAISE EXCEPTION 'ERR-40040: JSON не должен быть пустым';
+  RAISE EXCEPTION 'ERR-40041: JSON не должен быть пустым';
 END;
 $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
@@ -405,7 +413,7 @@ CREATE OR REPLACE FUNCTION IncorrectJsonKey (
 ) RETURNS	void
 AS $$
 BEGIN
-  RAISE EXCEPTION 'ERR-40041: [%] Недопустимый ключ "%" в JSON. Допустимые ключи: %.', pRoute, pKey, pArray;
+  RAISE EXCEPTION 'ERR-40042: [%] Недопустимый ключ "%" в JSON. Допустимые ключи: %.', pRoute, pKey, pArray;
 END;
 $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
@@ -415,7 +423,7 @@ CREATE OR REPLACE FUNCTION JsonKeyNotFound (
 ) RETURNS	void
 AS $$
 BEGIN
-  RAISE EXCEPTION 'ERR-40042: [%] Не найден обязательный ключ "%" в JSON.', pRoute, pKey;
+  RAISE EXCEPTION 'ERR-40043: [%] Не найден обязательный ключ "%" в JSON.', pRoute, pKey;
 END;
 $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
@@ -425,7 +433,7 @@ CREATE OR REPLACE FUNCTION IncorrectJsonType (
 ) RETURNS	void
 AS $$
 BEGIN
-  RAISE EXCEPTION 'ERR-40043: Неверный тип JSON "%", ожидается "%".', pType, pExpected;
+  RAISE EXCEPTION 'ERR-40044: Неверный тип JSON "%", ожидается "%".', pType, pExpected;
 END;
 $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
@@ -433,7 +441,7 @@ CREATE OR REPLACE FUNCTION MethodIsEmpty (
 ) RETURNS	void
 AS $$
 BEGIN
-  RAISE EXCEPTION 'ERR-40044: Идентификатор метода не должен быть пустым';
+  RAISE EXCEPTION 'ERR-40045: Идентификатор метода не должен быть пустым';
 END;
 $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
@@ -441,7 +449,7 @@ CREATE OR REPLACE FUNCTION ActionIsEmpty (
 ) RETURNS	void
 AS $$
 BEGIN
-  RAISE EXCEPTION 'ERR-40045: Идентификатор действия не должен быть пустым';
+  RAISE EXCEPTION 'ERR-40046: Идентификатор действия не должен быть пустым';
 END;
 $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
@@ -449,7 +457,7 @@ CREATE OR REPLACE FUNCTION ExecutorIsEmpty (
 ) RETURNS	void
 AS $$
 BEGIN
-  RAISE EXCEPTION 'ERR-40046: Исполнитель не должен быть пустым';
+  RAISE EXCEPTION 'ERR-40047: Исполнитель не должен быть пустым';
 END;
 $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
@@ -457,7 +465,7 @@ CREATE OR REPLACE FUNCTION IncorrectDateInterval (
 ) RETURNS	void
 AS $$
 BEGIN
-  RAISE EXCEPTION 'ERR-40047: Дата окончания периода не может быть меньше даты начала периода.';
+  RAISE EXCEPTION 'ERR-40048: Дата окончания периода не может быть меньше даты начала периода.';
 END;
 $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
@@ -465,7 +473,7 @@ CREATE OR REPLACE FUNCTION UserPasswordChange (
 ) RETURNS void
 AS $$
 BEGIN
-  RAISE EXCEPTION 'ERR-40048: Не удалось изменить пароль, установлен запрет на изменение пароля.';
+  RAISE EXCEPTION 'ERR-40049: Не удалось изменить пароль, установлен запрет на изменение пароля.';
 END;
 $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
@@ -473,7 +481,7 @@ CREATE OR REPLACE FUNCTION SystemRoleError (
 ) RETURNS void
 AS $$
 BEGIN
-  RAISE EXCEPTION 'ERR-40049: Операции изменения, удаления для системных ролей запрещены.';
+  RAISE EXCEPTION 'ERR-40050: Операции изменения, удаления для системных ролей запрещены.';
 END;
 $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
@@ -482,7 +490,7 @@ CREATE OR REPLACE FUNCTION LoginIpTableError (
 ) RETURNS void
 AS $$
 BEGIN
-  RAISE EXCEPTION 'ERR-40050: Вход в систему невозможен. Ограничен доступ по IP-адресу: %', host(pHost);
+  RAISE EXCEPTION 'ERR-40051: Вход в систему невозможен. Ограничен доступ по IP-адресу: %', host(pHost);
 END;
 $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
@@ -491,7 +499,7 @@ CREATE OR REPLACE FUNCTION IssuerNotFound (
 ) RETURNS void
 AS $$
 BEGIN
-  RAISE EXCEPTION 'ERR-40051: OAuth 2.0: Не найден эмитент: %', pCode;
+  RAISE EXCEPTION 'ERR-40052: OAuth 2.0: Не найден эмитент: %', pCode;
 END;
 $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
@@ -499,7 +507,7 @@ CREATE OR REPLACE FUNCTION AudienceNotFound()
 RETURNS void
 AS $$
 BEGIN
-  RAISE EXCEPTION 'ERR-40052: OAuth 2.0: Клиент не найден.';
+  RAISE EXCEPTION 'ERR-40053: OAuth 2.0: Клиент не найден.';
 END;
 $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
@@ -509,7 +517,7 @@ CREATE OR REPLACE FUNCTION StateByCodeNotFound (
 ) RETURNS	void
 AS $$
 BEGIN
-  RAISE EXCEPTION 'ERR-40053: Не найдено состояние по коду "%" для объекта "%".', pCode, pObject;
+  RAISE EXCEPTION 'ERR-40054: Не найдено состояние по коду "%" для объекта "%".', pCode, pObject;
 END;
 $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
@@ -518,7 +526,7 @@ CREATE OR REPLACE FUNCTION RecordExists (
 ) RETURNS	void
 AS $$
 BEGIN
-  RAISE EXCEPTION 'ERR-40054: Запись с кодом "%" уже существует.', pCode;
+  RAISE EXCEPTION 'ERR-40055: Запись с кодом "%" уже существует.', pCode;
 END;
 $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
@@ -526,7 +534,7 @@ CREATE OR REPLACE FUNCTION OperationNotPossible (
 ) RETURNS	void
 AS $$
 BEGIN
-  RAISE EXCEPTION 'ERR-40055: Операция невозможна, есть связанные документы.';
+  RAISE EXCEPTION 'ERR-40056: Операция невозможна, есть связанные документы.';
 END;
 $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
@@ -536,7 +544,7 @@ CREATE OR REPLACE FUNCTION ViewNotFound (
 ) RETURNS	void
 AS $$
 BEGIN
-  RAISE EXCEPTION 'ERR-40056: Представление "%.%" не найдено.', pScheme, pTable;
+  RAISE EXCEPTION 'ERR-40057: Представление "%.%" не найдено.', pScheme, pTable;
 END;
 $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
@@ -545,7 +553,7 @@ CREATE OR REPLACE FUNCTION InvalidVerificationCodeType (
 ) RETURNS	void
 AS $$
 BEGIN
-  RAISE EXCEPTION 'ERR-40057: Недопустимый код типа верификации: "%".', pType;
+  RAISE EXCEPTION 'ERR-40058: Недопустимый код типа верификации: "%".', pType;
 END;
 $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
