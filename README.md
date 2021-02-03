@@ -1,45 +1,80 @@
-Исходные коды базы данных многопользовательской, многоязычной событийной системы **Апостол**.
+# База данных системы **Апостол**.
 
-# Описание
+**Апостол** - Информационная многопользовательская многоязычная событийная система, исходные коды базы данных.
 
-**Введение**
+ОПИСАНИЕ
+-
 
-* [**Система**](https://github.com/ufocomp/db-platform/wiki/%D0%A1%D0%B8%D1%81%D1%82%D0%B5%D0%BC%D0%B0)
-* [**Платформа**](https://github.com/ufocomp/db-platform/wiki/%D0%9F%D0%BB%D0%B0%D1%82%D1%84%D0%BE%D1%80%D0%BC%D0%B0)
-* [**Архитектура**](https://github.com/ufocomp/db-platform/wiki/%D0%90%D1%80%D1%85%D0%B8%D1%82%D0%B5%D0%BA%D1%82%D1%83%D1%80%D0%B0)
+**Система** состоит из двух частей - **платформы** и **конфигурации**.
 
-**Общее**
+- Платформа - это технологии и протоколы, встроенные службы и модули.
+- Конфигурация - это бизнес логика конкретного проекта.
 
-* [**Знакомство с API**](https://github.com/ufocomp/db-platform/wiki/%D0%97%D0%BD%D0%B0%D0%BA%D0%BE%D0%BC%D1%81%D1%82%D0%B2%D0%BE-%D1%81-API)
-* [**Доступ к API**](https://github.com/ufocomp/db-platform/wiki/%D0%94%D0%BE%D1%81%D1%82%D1%83%D0%BF-%D0%BA-API)
-* [**Параметры запроса для списка**](https://github.com/ufocomp/db-platform/wiki/%D0%9F%D0%B0%D1%80%D0%B0%D0%BC%D0%B5%D1%82%D1%80%D1%8B-%D0%B7%D0%B0%D0%BF%D1%80%D0%BE%D1%81%D0%B0-%D0%B4%D0%BB%D1%8F-%D1%81%D0%BF%D0%B8%D1%81%D0%BA%D0%B0)
+**Платформа** построена на базе фреймворка [Апостол](https://github.com/ufocomp/apostol), имеет модульную конструкцию и включает в себя встроенную поддержку СУБД PostgreSQL.
 
-**API**
-* [**Подключение**](https://github.com/ufocomp/db-platform/wiki/%D0%9F%D0%BE%D0%B4%D0%BA%D0%BB%D1%8E%D1%87%D0%B5%D0%BD%D0%B8%D0%B5)
-* [**Регистрация**](https://github.com/ufocomp/db-platform/wiki/%D0%A0%D0%B5%D0%B3%D0%B8%D1%81%D1%82%D1%80%D0%B0%D1%86%D0%B8%D1%8F)
-* [**Вход в систему**](https://github.com/ufocomp/db-platform/wiki/%D0%92%D1%85%D0%BE%D0%B4-%D0%B2-%D1%81%D0%B8%D1%81%D1%82%D0%B5%D0%BC%D1%83)
-* [**Выход из системы**](https://github.com/ufocomp/db-platform/wiki/%D0%92%D1%8B%D1%85%D0%BE%D0%B4-%D0%B8%D0%B7-%D1%81%D0%B8%D1%81%D1%82%D0%B5%D0%BC%D1%8B)
-* [**Восстановление пароля**](https://github.com/ufocomp/db-platform/wiki/%D0%92%D0%BE%D1%81%D1%81%D1%82%D0%B0%D0%BD%D0%BE%D0%B2%D0%BB%D0%B5%D0%BD%D0%B8%D0%B5-%D0%BF%D0%B0%D1%80%D0%BE%D0%BB%D1%8F)
-* [**Текущие значения**](https://github.com/ufocomp/db-platform/wiki/%D0%A2%D0%B5%D0%BA%D1%83%D1%89%D0%B8%D0%B5-%D0%B7%D0%BD%D0%B0%D1%87%D0%B5%D0%BD%D0%B8%D1%8F)
-* [**Локализация**](https://github.com/ufocomp/db-platform/wiki/%D0%9B%D0%BE%D0%BA%D0%B0%D0%BB%D0%B8%D0%B7%D0%B0%D1%86%D0%B8%D1%8F)
-* [**Журнал событий**](https://github.com/ufocomp/db-platform/wiki/%D0%96%D1%83%D1%80%D0%BD%D0%B0%D0%BB-%D1%81%D0%BE%D0%B1%D1%8B%D1%82%D0%B8%D0%B9)
-* [**Коды подтверждения**](https://github.com/ufocomp/db-platform/wiki/%D0%9A%D0%BE%D0%B4%D1%8B-%D0%BF%D0%BE%D0%B4%D1%82%D0%B2%D0%B5%D1%80%D0%B6%D0%B4%D0%B5%D0%BD%D0%B8%D1%8F)
-* [**Реестр**](https://github.com/ufocomp/db-platform/wiki/%D0%A0%D0%B5%D0%B5%D1%81%D1%82%D1%80)
-* [**КЛАДР**](https://github.com/ufocomp/db-platform/wiki/%D0%9A%D0%9B%D0%90%D0%94%D0%A0)
-* **Конечные точки**
-  * [**Документооборота**](https://github.com/ufocomp/db-platform/wiki/%D0%9A%D0%BE%D0%BD%D0%B5%D1%87%D0%BD%D1%8B%D0%B5-%D1%82%D0%BE%D1%87%D0%BA%D0%B8-%D0%B4%D0%BE%D0%BA%D1%83%D0%BC%D0%B5%D0%BD%D1%82%D0%BE%D0%BE%D0%B1%D0%BE%D1%80%D0%BE%D1%82%D0%B0)
-  * [**Объекта**](https://github.com/ufocomp/db-platform/wiki/%D0%9A%D0%BE%D0%BD%D0%B5%D1%87%D0%BD%D1%8B%D0%B5-%D1%82%D0%BE%D1%87%D0%BA%D0%B8-%D0%BE%D0%B1%D1%8A%D0%B5%D0%BA%D1%82%D0%B0)
-    * [**Адрес**](https://github.com/ufocomp/db-platform/wiki/%D0%90%D0%B4%D1%80%D0%B5%D1%81-%D0%BE%D0%B1%D1%8A%D0%B5%D0%BA%D1%82%D0%B0)
-    * [**Геолокация**](https://github.com/ufocomp/db-platform/wiki/%D0%93%D0%B5%D0%BE%D0%BB%D0%BE%D0%BA%D0%B0%D1%86%D0%B8%D1%8F-%D0%BE%D0%B1%D1%8A%D0%B5%D0%BA%D1%82%D0%B0)
-    * [**Группы**](https://github.com/ufocomp/db-platform/wiki/%D0%93%D1%80%D1%83%D0%BF%D0%BF%D1%8B-%D0%BE%D0%B1%D1%8A%D0%B5%D0%BA%D1%82%D0%B0)
-    * [**Данные**](https://github.com/ufocomp/db-platform/wiki/%D0%94%D0%B0%D0%BD%D0%BD%D1%8B%D0%B5-%D0%BE%D0%B1%D1%8A%D0%B5%D0%BA%D1%82%D0%B0)
-    * [**Файл**](https://github.com/ufocomp/db-platform/wiki/%D0%A4%D0%B0%D0%B9%D0%BB%D1%8B-%D0%BE%D0%B1%D1%8A%D0%B5%D0%BA%D1%82%D0%B0)
-  * [**Классов**](https://github.com/ufocomp/db-platform/wiki/%D0%9A%D0%BE%D0%BD%D0%B5%D1%87%D0%BD%D1%8B%D0%B5-%D1%82%D0%BE%D1%87%D0%BA%D0%B8-%D0%BA%D0%BB%D0%B0%D1%81%D1%81%D0%BE%D0%B2)
-    - [Адрес (address)](https://github.com/ufocomp/db-platform/wiki/%D0%9A%D0%BB%D0%B0%D1%81%D1%81:-%D0%90%D0%B4%D1%80%D0%B5%D1%81-(address))
-    - [Задание (job)](https://github.com/ufocomp/db-platform/wiki/%D0%9A%D0%BB%D0%B0%D1%81%D1%81:-%D0%97%D0%B0%D0%B4%D0%B0%D0%BD%D0%B8%D0%B5-(job))
-    - [Клиент (client)](https://github.com/ufocomp/db-platform/wiki/%D0%9A%D0%BB%D0%B0%D1%81%D1%81:-%D0%9A%D0%BB%D0%B8%D0%B5%D0%BD%D1%82-(client))
-    - [Сообщение (message)](https://github.com/ufocomp/db-platform/wiki/%D0%9A%D0%BB%D0%B0%D1%81%D1%81:-%D0%A1%D0%BE%D0%BE%D0%B1%D1%89%D0%B5%D0%BD%D0%B8%D0%B5-(message))
-    - [Устройство (device)](https://github.com/ufocomp/db-platform/wiki/%D0%9A%D0%BB%D0%B0%D1%81%D1%81:-%D0%A3%D1%81%D1%82%D1%80%D0%BE%D0%B9%D1%81%D1%82%D0%B2%D0%BE-(device))
-  - [Аутентификация (authenticate)](https://github.com/ufocomp/db-platform/wiki/%D0%90%D1%83%D1%82%D0%B5%D0%BD%D1%82%D0%B8%D1%84%D0%B8%D0%BA%D0%B0%D1%86%D0%B8%D1%8F)
-  - [Авторизация (authorize)](https://github.com/ufocomp/db-platform/wiki/%D0%90%D0%B2%D1%82%D0%BE%D1%80%D0%B8%D0%B7%D0%B0%D1%86%D0%B8%D1%8F)
-  - [Кто я? (whoami)](https://github.com/ufocomp/db-platform/wiki/%D0%9A%D1%82%D0%BE-%D1%8F%3F)
+Платформа состоит из следующих модулей (частей):
+
+- [Сервера авторизации](https://github.com/ufocomp/module-AuthServer) (OAuth 2.0);
+- [Сервера приложений](https://github.com/ufocomp/module-AppServer) (REST API);
+- [Сервера сообщений](https://github.com/ufocomp/process-MessageServer) (SMTP/FCM/API);
+- [Сервера потоковых данных](https://github.com/ufocomp/process-StreamServer) (UDP);
+- [Веб-сервера](https://github.com/ufocomp/module-WebServer) (HTTP);
+- [WebSocket API](https://github.com/ufocomp/module-WebSocketAPI) (WebSocket).
+
+Платформа устанавливается на сервер из [исходных кодов](https://github.com/ufocomp/apostol-aws) в виде системной службы под операционную систему Linux.
+
+[База данных](https://github.com/ufocomp/db-platform) платформы написана на языке программирования PL/pgSQL.
+
+**Конфигурация** написана на языке программирования PL/pgSQL, используется для разработки бизнес-логики и RESTful API.
+
+Конфигурация базируется на API платформы и дополняет её функциями необходимыми для решения задач конкретного проекта.
+
+УСТАНОВКА
+-
+
+### PostgreSQL
+
+Для того чтобы установить PostgreSQL воспользуйтесь инструкцией по [этой](https://www.postgresql.org/download/) ссылке.
+
+### База данных
+
+Для того чтобы установить базу данных необходимо выполнить:
+
+1. Прописать наименование базы данных в файле db/sql/sets.conf
+1. Прописать пароли для пользователей СУБД [libpq-pgpass](https://postgrespro.ru/docs/postgrespro/13/libpq-pgpass):
+   ~~~
+   $ sudo -iu postgres -H vim .pgpass
+   ~~~
+   ~~~
+   *:*:*:kernel:kernel
+   *:*:*:admin:admin
+   *:*:*:daemon:daemon
+   ~~~
+1. Указать в файле настроек /etc/postgresql/{version}/main/postgresql.conf:
+   Пути поиска схемы kernel:
+   ~~~
+   search_path = '"$user", kernel, public'	# schema names
+   ~~~
+1. Указать в файле настроек /etc/postgresql/{version}/main/pg_hba.conf:
+   ~~~
+   # TYPE  DATABASE        USER            ADDRESS                 METHOD
+   local	all		kernel					md5
+   local	all		admin					md5
+   local	all		daemon					md5
+
+   host	all		kernel		127.0.0.1/32		md5
+   host	all		admin		127.0.0.1/32		md5
+   host	all		daemon		127.0.0.1/32		md5
+   ~~~
+1. Выполнить:
+   ~~~
+   $ cd db/
+   $ ./install.sh --make
+   ~~~
+
+###### Параметр `--make` необходим для установки базы данных в первый раз. Далее установочный скрипт можно запускать или без параметров или с параметром `--install`.
+
+ДОКУМЕНТАЦИЯ
+_
+
+[Подробная документация доступа по этой ссылке](https://github.com/ufocomp/db-platform/wiki)
