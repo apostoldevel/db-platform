@@ -28,8 +28,8 @@ GRANT SELECT ON api.resource_tree TO administrator;
 /**
  * Создаёт ресурс
  * @param {uuid} pId - Идентификатор
- * @param {uuid} pRoot - Идентификатор корневого узела (Передать null для создания корневого узла)
- * @param {uuid} pNode - Идентификатор узела родителя
+ * @param {uuid} pRoot - Идентификатор корневого узла (Передать null для создания корневого узла)
+ * @param {uuid} pNode - Идентификатор узла родителя
  * @param {text} pType - MIME тип
  * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
@@ -73,8 +73,8 @@ $$ LANGUAGE plpgsql
 /**
  * Обновляет ресурс
  * @param {uuid} pId - Идентификатор
- * @param {uuid} pRoot - Идентификатор корневого узела
- * @param {uuid} pNode - Идентификатор узела родителя
+ * @param {uuid} pRoot - Идентификатор корневого узла
+ * @param {uuid} pNode - Идентификатор узла родителя
  * @param {text} pType - MIME тип
  * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
@@ -168,7 +168,7 @@ $$ LANGUAGE SQL
 -- api.list_resource -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список структур.
+ * Возвращает список ресурсов.
  * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
  * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
  * @param {integer} pLimit - Лимит по количеству строк

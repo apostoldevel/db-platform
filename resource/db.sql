@@ -44,6 +44,12 @@ BEGIN
     NEW.root := NEW.id;
   END IF;
 
+  IF NEW.node IS NULL THEN
+    IF NEW.root <> NEW.id THEN
+      NEW.node := NEW.root;
+    END IF;
+  END IF;
+
   IF NEW.type IS NULL THEN
     NEW.type := 'text/plain';
   END IF;
@@ -228,8 +234,8 @@ $$ LANGUAGE plpgsql
 /**
  * Создаёт ресурс
  * @param {uuid} pId - Идентификатор
- * @param {uuid} pRoot - Идентификатор корневого узела (Передать null для создания корневого узла)
- * @param {uuid} pNode - Идентификатор узела родителя
+ * @param {uuid} pRoot - Идентификатор корневого узла (Передать null для создания корневого узла)
+ * @param {uuid} pNode - Идентификатор узла родителя
  * @param {text} pType - MIME тип
  * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
@@ -287,8 +293,8 @@ $$ LANGUAGE plpgsql
 /**
  * Обновляет ресурс
  * @param {uuid} pId - Идентификатор
- * @param {uuid} pRoot - Идентификатор корневого узела
- * @param {uuid} pNode - Идентификатор узела родителя
+ * @param {uuid} pRoot - Идентификатор корневого узла
+ * @param {uuid} pNode - Идентификатор узла родителя
  * @param {text} pType - MIME тип
  * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
@@ -359,8 +365,8 @@ $$ LANGUAGE plpgsql
 /**
  * Устанавливает ресурс
  * @param {uuid} pId - Идентификатор
- * @param {uuid} pRoot - Идентификатор корневого узела
- * @param {uuid} pNode - Идентификатор узела родителя
+ * @param {uuid} pRoot - Идентификатор корневого узла
+ * @param {uuid} pNode - Идентификатор узла родителя
  * @param {text} pType - MIME тип
  * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
@@ -427,7 +433,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE VIEW Resource (Id, Root, Node, Type, Level, Sequence,
-    Name, Description, Encoding, Data, 
+    Name, Description, Encoding, Data, Updated,
     Locale, LocaleCode, LocaleName, LocaleDescription
 )
 AS
@@ -435,7 +441,7 @@ AS
     SELECT * FROM current_locale() AS locale
   )
   SELECT r.id, r.root, r.node, r.type, r.level, r.sequence,
-         d.name, d.description, d.encoding, d.data,
+         d.name, d.description, d.encoding, d.data, d.updated,
          d.locale, l.code, l.name, l.description
     FROM db.resource r INNER JOIN _current         c ON true
                        INNER JOIN db.resource_data d ON d.resource = r.id AND d.locale = c.locale
