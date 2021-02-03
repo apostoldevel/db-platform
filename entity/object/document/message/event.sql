@@ -244,9 +244,9 @@ BEGIN
 
 	IF vEmail IS NOT NULL AND NOT bVerified THEN
 
-	  vProject := (RegGetValue(RegOpenKey('CURRENT_CONFIG', 'CONFIG\CurrentProject'), 'Name')).vString;
-	  vHost := (RegGetValue(RegOpenKey('CURRENT_CONFIG', 'CONFIG\CurrentProject'), 'Host')).vString;
-	  vDomain := (RegGetValue(RegOpenKey('CURRENT_CONFIG', 'CONFIG\CurrentProject'), 'Domain')).vString;
+	  vProject := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Name', nUserId);
+	  vHost := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Host', nUserId);
+	  vDomain := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Domain', nUserId);
 
 	  vCode := GetVerificationCode(NewVerificationCode(nUserId));
 
@@ -307,9 +307,9 @@ BEGIN
 	 WHERE id = nUserId;
 
 	IF vEmail IS NOT NULL AND bVerified THEN
-	  vProject := (RegGetValue(RegOpenKey('CURRENT_CONFIG', 'CONFIG\CurrentProject'), 'Name')).vString;
-	  vHost := (RegGetValue(RegOpenKey('CURRENT_CONFIG', 'CONFIG\CurrentProject'), 'Host')).vString;
-	  vDomain := (RegGetValue(RegOpenKey('CURRENT_CONFIG', 'CONFIG\CurrentProject'), 'Domain')).vString;
+	  vProject := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Name', nUserId);
+	  vHost := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Host', nUserId);
+	  vDomain := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Domain', nUserId);
 
 	  vNoReply := format('noreply@%s', vDomain);
 	  vSupport := format('support@%s', vDomain);

@@ -26,6 +26,117 @@ AS
 GRANT SELECT ON all_col_comments TO PUBLIC;
 
 --------------------------------------------------------------------------------
+-- get_columns -----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION get_columns (
+  pTable	text,
+  pSchema	text DEFAULT current_schema(),
+  pAlias	text DEFAULT null
+) RETURNS	text[]
+AS $$
+DECLARE
+  arResult	text[];
+  r			record;
+BEGIN
+  FOR r IN
+    SELECT column_name
+      FROM information_schema.columns
+     WHERE table_schema = lower(pSchema)
+       AND table_name = lower(pTable)
+     ORDER BY ordinal_position
+  LOOP
+    arResult := array_append(arResult, coalesce(pAlias || '.', '') || r.column_name::text);
+  END LOOP;
+
+  RETURN arResult;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+GRANT EXECUTE ON FUNCTION get_columns(text, text, text) TO PUBLIC;
+
+--------------------------------------------------------------------------------
+-- GetColumns ------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetColumns (
+  pTable	text,
+  pSchema	text DEFAULT current_schema(),
+  pAlias	text DEFAULT null
+) RETURNS	text[]
+AS $$
+BEGIN
+  RETURN get_columns(pTable, pSchema, pAlias);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+GRANT EXECUTE ON FUNCTION GetColumns(text, text, text) TO PUBLIC;
+
+--------------------------------------------------------------------------------
+-- get_routines ----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION get_routines (
+  pRoutine      text,
+  pSchema	    text DEFAULT current_schema(),
+  pDataType 	boolean DEFAULT false,
+  pAlias	    text DEFAULT null,
+  pNameFrom     int DEFAULT 2
+) RETURNS	    text[]
+AS $$
+DECLARE
+  r             record;
+  arResult      text[];
+BEGIN
+  FOR r IN
+    SELECT ip.ordinal_position, ip.parameter_name, ip.data_type
+      FROM information_schema.routines ir INNER JOIN information_schema.parameters ip ON ip.specific_name = ir.specific_name
+     WHERE ir.specific_schema = pSchema
+       AND ir.routine_name = pRoutine
+       AND ip.parameter_mode = 'IN'
+     ORDER BY ordinal_position
+  LOOP
+    IF pDataType THEN
+      arResult := array_append(arResult, SubStr(r.parameter_name::text, pNameFrom) || ' ' || r.data_type::text);
+    ELSE
+      arResult := array_append(arResult, coalesce(pAlias || '.', '') || SubStr(r.parameter_name::text, pNameFrom));
+    END IF;
+  END LOOP;
+
+  RETURN arResult;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+GRANT EXECUTE ON FUNCTION get_routines(text, text, boolean, text, int) TO PUBLIC;
+
+--------------------------------------------------------------------------------
+-- GetRoutines -----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetRoutines (
+  pRoutine      text,
+  pSchema	    text DEFAULT current_schema(),
+  pDataType 	boolean DEFAULT false,
+  pAlias	    text DEFAULT null,
+  pNameFrom     int DEFAULT 2
+) RETURNS	    text[]
+AS $$
+BEGIN
+  RETURN get_routines(pRoutine, pSchema, pDataType, pAlias, pNameFrom);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+GRANT EXECUTE ON FUNCTION GetRoutines(text, text, boolean, text, int) TO PUBLIC;
+
+--------------------------------------------------------------------------------
 -- FUNCTION array_pos ----------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -50,7 +161,7 @@ BEGIN
 
   RETURN i;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
 --------------------------------------------------------------------------------
 -- FUNCTION array_pos ----------------------------------------------------------
@@ -77,7 +188,7 @@ BEGIN
 
   RETURN i;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
 --------------------------------------------------------------------------------
 -- FUNCTION string_to_array_trim -----------------------------------------------
@@ -108,7 +219,7 @@ BEGIN
 
   RETURN arr;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
 --------------------------------------------------------------------------------
 -- FUNCTION str_to_inet --------------------------------------------------------
@@ -153,7 +264,7 @@ BEGIN
 
   host := replace(vHost, '*', '0') || '/' || nMask;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
 --------------------------------------------------------------------------------
 -- FUNCTION IntToStr -----------------------------------------------------------
@@ -167,7 +278,7 @@ AS $$
 BEGIN
   RETURN to_char(pValue, pFormat);
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
 GRANT EXECUTE ON FUNCTION IntToStr(numeric, text) TO PUBLIC;
 
@@ -183,7 +294,7 @@ AS $$
 BEGIN
   RETURN to_number(pValue, pFormat);
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
 GRANT EXECUTE ON FUNCTION IntToStr(numeric, text) TO PUBLIC;
 
@@ -199,7 +310,7 @@ AS $$
 BEGIN
   RETURN to_char(pValue, pFormat);
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
 GRANT EXECUTE ON FUNCTION DateToStr(timestamptz, text) TO PUBLIC;
 
@@ -213,7 +324,7 @@ AS $$
 BEGIN
   RETURN to_char(pValue, pFormat);
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
 GRANT EXECUTE ON FUNCTION DateToStr(timestamp, text) TO PUBLIC;
 
@@ -227,7 +338,7 @@ AS $$
 BEGIN
   RETURN to_char(pValue, pFormat);
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
 GRANT EXECUTE ON FUNCTION DateToStr(date, text) TO PUBLIC;
 
@@ -243,7 +354,7 @@ AS $$
 BEGIN
   RETURN to_date(pValue, pFormat);
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
 GRANT EXECUTE ON FUNCTION StrToDate(text, text) TO PUBLIC;
 
@@ -259,7 +370,7 @@ AS $$
 BEGIN
   RETURN to_timestamp(pValue, pFormat);
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
 GRANT EXECUTE ON FUNCTION StrToTimeStamp(text, text) TO PUBLIC;
 
@@ -275,7 +386,7 @@ AS $$
 BEGIN
   RETURN to_timestamp(pValue, pFormat);
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
 GRANT EXECUTE ON FUNCTION StrToTimeStamptz(text, text) TO PUBLIC;
 
@@ -288,7 +399,7 @@ AS $$
 BEGIN
   RETURN TO_DATE('2000-01-01', 'YYYY-MM-DD');
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
 GRANT EXECUTE ON FUNCTION MINDATE() TO PUBLIC;
 
@@ -301,9 +412,24 @@ AS $$
 BEGIN
   RETURN TO_DATE('4433-12-31', 'YYYY-MM-DD');
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
 GRANT EXECUTE ON FUNCTION MAXDATE() TO PUBLIC;
+
+--------------------------------------------------------------------------------
+-- FUNCTION CheckNull ----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION CheckNull (
+  pValue	uuid
+) RETURNS	uuid
+AS $$
+BEGIN
+  RETURN NULLIF(pValue, '00000000-0000-4000-8000-000000000000');
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+GRANT EXECUTE ON FUNCTION CheckNull(uuid) TO PUBLIC;
 
 --------------------------------------------------------------------------------
 -- FUNCTION CheckNull ----------------------------------------------------------
@@ -316,7 +442,7 @@ AS $$
 BEGIN
   RETURN NULLIF(pValue, '<null>');
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
 GRANT EXECUTE ON FUNCTION CheckNull(text) TO PUBLIC;
 
@@ -331,7 +457,7 @@ AS $$
 BEGIN
   RETURN NULLIF(pValue, '{}'::json);
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
 GRANT EXECUTE ON FUNCTION CheckNull(json) TO PUBLIC;
 
@@ -346,7 +472,7 @@ AS $$
 BEGIN
   RETURN NULLIF(pValue, '{}'::jsonb);
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
 GRANT EXECUTE ON FUNCTION CheckNull(jsonb) TO PUBLIC;
 
@@ -361,7 +487,7 @@ AS $$
 BEGIN
   RETURN NULLIF(pValue, 0);
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
 GRANT EXECUTE ON FUNCTION CheckNull(numeric) TO PUBLIC;
 
@@ -376,7 +502,7 @@ AS $$
 BEGIN
   RETURN NULLIF(pValue, -1);
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
 GRANT EXECUTE ON FUNCTION CheckNull(integer) TO PUBLIC;
 
@@ -391,7 +517,7 @@ AS $$
 BEGIN
   RETURN NULLIF(pValue, MINDATE());
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
 GRANT EXECUTE ON FUNCTION CheckNull(timestamp) TO PUBLIC;
 
@@ -451,80 +577,9 @@ BEGIN
 
   RETURN ' = ';
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
 GRANT EXECUTE ON FUNCTION GetCompare(text) TO PUBLIC;
-
---------------------------------------------------------------------------------
--- GetColumns ------------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION GetColumns (
-  pTable	text,
-  pSchema	text DEFAULT current_schema(),
-  pAlias	text DEFAULT null
-) RETURNS	text[]
-AS $$
-DECLARE
-  arResult	text[];
-  r		record;
-BEGIN
-  FOR r IN
-    SELECT column_name
-      FROM information_schema.columns
-     WHERE table_schema = lower(pSchema)
-       AND table_name = lower(pTable)
-     ORDER BY ordinal_position
-  LOOP
-    arResult := array_append(arResult, coalesce(pAlias || '.', '') || r.column_name::text);
-  END LOOP;
-
-  RETURN arResult;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
-GRANT EXECUTE ON FUNCTION GetColumns(text, text, text) TO PUBLIC;
-
---------------------------------------------------------------------------------
--- GetRoutines -----------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION GetRoutines (
-  pRoutine      text,
-  pSchema	    text DEFAULT current_schema(),
-  pDataType 	boolean DEFAULT false,
-  pAlias	    text DEFAULT null,
-  pNameFrom     int DEFAULT 2
-) RETURNS	    text[]
-AS $$
-DECLARE
-  r             record;
-  arResult      text[];
-BEGIN
-  FOR r IN
-    SELECT ip.ordinal_position, ip.parameter_name, ip.data_type
-      FROM information_schema.routines ir INNER JOIN information_schema.parameters ip ON ip.specific_name = ir.specific_name
-     WHERE ir.specific_schema = pSchema
-       AND ir.routine_name = pRoutine
-       AND ip.parameter_mode = 'IN'
-     ORDER BY ordinal_position
-  LOOP
-    IF pDataType THEN
-      arResult := array_append(arResult, SubStr(r.parameter_name::text, pNameFrom) || ' ' || r.data_type::text);
-    ELSE
-      arResult := array_append(arResult, coalesce(pAlias || '.', '') || SubStr(r.parameter_name::text, pNameFrom));
-    END IF;
-  END LOOP;
-
-  RETURN arResult;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
-GRANT EXECUTE ON FUNCTION GetRoutines(text, text, boolean, text, int) TO PUBLIC;
 
 --------------------------------------------------------------------------------
 -- array_add_text --------------------------------------------------------------
@@ -546,9 +601,7 @@ BEGIN
 
   RETURN arResult;
 END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
 GRANT EXECUTE ON FUNCTION array_add_text(text[], text) TO PUBLIC;
 
@@ -587,7 +640,7 @@ EXCEPTION
 WHEN others THEN
   RETURN null;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
 GRANT EXECUTE ON FUNCTION min_array(anyarray, anyelement) TO PUBLIC;
 
@@ -859,7 +912,7 @@ $$
 BEGIN
   RETURN QUERY EXECUTE 'SELECT x' || quote_literal(hex) || '::bigint';
 END
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql STABLE STRICT;
 
 GRANT EXECUTE ON FUNCTION hex_to_int(text) TO PUBLIC;
 
@@ -999,3 +1052,17 @@ END
 $$ LANGUAGE plpgsql IMMUTABLE;
 
 GRANT EXECUTE ON FUNCTION IEEE754_64(numeric) TO PUBLIC;
+
+--------------------------------------------------------------------------------
+-- FUNCTION null_uuid ----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION null_uuid (
+) RETURNS	uuid
+AS $$
+BEGIN
+  RETURN '00000000-0000-4000-8000-000000000000';
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+GRANT EXECUTE ON FUNCTION null_uuid() TO PUBLIC;

@@ -169,7 +169,7 @@ BEGIN
     PERFORM ObjectNotFound('язык', 'id', pLocale);
   END IF;
 
-  PERFORM SetLocale(pLocale);
+  PERFORM SetSessionLocale(pLocale);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -200,7 +200,7 @@ BEGIN
     PERFORM IncorrectCode(pCode, arCodes);
   END IF;
 
-  PERFORM SetLocale(GetLocale(pCode));
+  PERFORM SetSessionLocale(GetLocale(pCode));
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

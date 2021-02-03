@@ -62,7 +62,9 @@ CREATE OR REPLACE FUNCTION db.ft_document_update()
 RETURNS trigger AS $$
 BEGIN
   IF OLD.area <> NEW.area THEN
-    SELECT ChangeAreaError();
+    IF NOT IsUserRole(GetGroup('administrator')) THEN
+      PERFORM ChangeAreaError();
+    END IF;
   END IF;
 
   RETURN NEW;

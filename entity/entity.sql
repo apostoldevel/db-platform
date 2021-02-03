@@ -153,7 +153,7 @@ BEGIN
   SELECT c.id INTO nClient FROM db.client c WHERE c.userid = pUserId;
 
   IF NOT FOUND THEN
-    result := array_append(result, (RegGetValue(RegOpenKey('CURRENT_USER', 'CONFIG\Firebase\CloudMessaging', pUserId), 'Token')).vstring);
+    result := array_append(result, RegGetValueString('CURRENT_USER', 'CONFIG\Firebase\CloudMessaging', 'Token', pUserId));
   ELSE
 	FOR r IN SELECT address FROM db.device WHERE client = nClient
 	LOOP

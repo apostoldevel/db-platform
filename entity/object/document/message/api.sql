@@ -288,8 +288,8 @@ BEGIN
     PERFORM EmailAddressNotVerified(vEmail);
   END IF;
 
-  vProject := (RegGetValue(RegOpenKey('CURRENT_CONFIG', 'CONFIG\CurrentProject'), 'Name')).vString;
-  vDomain := (RegGetValue(RegOpenKey('CURRENT_CONFIG', 'CONFIG\CurrentProject'), 'Domain')).vString;
+  vProject := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Name', pUserId);
+  vDomain := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Domain', pUserId);
 
   vProfile := format('info@%s', vDomain);
 

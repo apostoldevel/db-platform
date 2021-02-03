@@ -279,12 +279,12 @@ BEGIN
 
     ELSE
 
-      UPDATE registry.value 
-         SET vtype = coalesce(pData.vType, vtype), 
-             vinteger = coalesce(pData.vInteger, vinteger), 
-             vnumeric = coalesce(pData.vNumeric, vnumeric), 
-             vdatetime = coalesce(pData.vDateTime, vdatetime), 
-             vstring = coalesce(pData.vString, vstring), 
+      UPDATE registry.value
+         SET vtype = coalesce(pData.vType, vtype),
+             vinteger = coalesce(pData.vInteger, vinteger),
+             vnumeric = coalesce(pData.vNumeric, vnumeric),
+             vdatetime = coalesce(pData.vDateTime, vdatetime),
+             vstring = coalesce(pData.vString, vstring),
              vboolean = coalesce(pData.vBoolean, vboolean)
        WHERE id = nId;
 
@@ -292,13 +292,13 @@ BEGIN
 
   ELSE
 
-    UPDATE registry.value 
+    UPDATE registry.value
        SET vname = coalesce(pValueName, vname),
-           vtype = coalesce(pData.vType, vtype), 
-           vinteger = coalesce(pData.vInteger, vinteger), 
-           vnumeric = coalesce(pData.vNumeric, vnumeric), 
-           vdatetime = coalesce(pData.vDateTime, vdatetime), 
-           vstring = coalesce(pData.vString, vstring), 
+           vtype = coalesce(pData.vType, vtype),
+           vinteger = coalesce(pData.vInteger, vinteger),
+           vnumeric = coalesce(pData.vNumeric, vnumeric),
+           vdatetime = coalesce(pData.vDateTime, vdatetime),
+           vstring = coalesce(pData.vString, vstring),
            vboolean = coalesce(pData.vBoolean, vboolean)
      WHERE id = nId;
 
@@ -342,12 +342,12 @@ BEGIN
 
     ELSE
 
-      UPDATE registry.value 
-         SET vtype = coalesce(pType, vtype), 
-             vinteger = coalesce(pInteger, vinteger), 
-             vnumeric = coalesce(pNumeric, vnumeric), 
-             vdatetime = coalesce(pDateTime, vdatetime), 
-             vstring = coalesce(pString, vstring), 
+      UPDATE registry.value
+         SET vtype = coalesce(pType, vtype),
+             vinteger = coalesce(pInteger, vinteger),
+             vnumeric = coalesce(pNumeric, vnumeric),
+             vdatetime = coalesce(pDateTime, vdatetime),
+             vstring = coalesce(pString, vstring),
              vboolean = coalesce(pBoolean, vboolean)
        WHERE id = nId;
 
@@ -355,13 +355,13 @@ BEGIN
 
   ELSE
 
-    UPDATE registry.value 
+    UPDATE registry.value
        SET vname = coalesce(pValueName, vname),
-           vtype = coalesce(pType, vtype), 
-           vinteger = coalesce(pInteger, vinteger), 
-           vnumeric = coalesce(pNumeric, vnumeric), 
-           vdatetime = coalesce(pDateTime, vdatetime), 
-           vstring = coalesce(pString, vstring), 
+           vtype = coalesce(pType, vtype),
+           vinteger = coalesce(pInteger, vinteger),
+           vnumeric = coalesce(pNumeric, vnumeric),
+           vdatetime = coalesce(pDateTime, vdatetime),
+           vstring = coalesce(pString, vstring),
            vboolean = coalesce(pBoolean, vboolean)
      WHERE id = nId;
 
@@ -393,9 +393,9 @@ BEGIN
   IF pParent IS NOT NULL THEN
     SELECT level + 1 INTO nLevel FROM registry.key WHERE id = pParent;
   END IF;
- 
-  INSERT INTO registry.key (root, parent, key, level) 
-  VALUES (pRoot, pParent, pKey, nLevel) 
+
+  INSERT INTO registry.key (root, parent, key, level)
+  VALUES (pRoot, pParent, pKey, nLevel)
   RETURNING id INTO nId;
 
   RETURN nId;
@@ -621,13 +621,14 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION RegDeleteKey (
   pKey		text,
-  pSubKey	text
+  pSubKey	text,
+  pUserId   numeric DEFAULT current_userid()
 ) RETURNS 	boolean
 AS $$
 DECLARE
   nKey		numeric;
 BEGIN
-  nKey := RegOpenKey(pKey, pSubKey);
+  nKey := RegOpenKey(pKey, pSubKey, pUserId);
   IF nKey IS NOT NULL THEN
 
     PERFORM DelRegKey(nKey);
@@ -650,14 +651,15 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION RegDeleteKeyValue (
   pKey          text,
   pSubKey       text,
-  pValueName    text
+  pValueName    text,
+  pUserId		numeric DEFAULT current_userid()
 ) RETURNS       boolean
 AS $$
 DECLARE
   nId           numeric;
   nKey          numeric;
 BEGIN
-  nKey := RegOpenKey(pKey, pSubKey);
+  nKey := RegOpenKey(pKey, pSubKey, pUserId);
   IF nKey IS NOT NULL THEN
 
     nId := GetRegKeyValue(nKey, pValueName);
@@ -685,13 +687,14 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION RegDeleteTree (
   pKey		text,
-  pSubKey	text
+  pSubKey	text,
+  pUserId	numeric DEFAULT current_userid()
 ) RETURNS 	boolean
 AS $$
 DECLARE
   nKey		numeric;
 BEGIN
-  nKey := RegOpenKey(pKey, pSubKey);
+  nKey := RegOpenKey(pKey, pSubKey, pUserId);
   IF nKey IS NOT NULL THEN
 
     PERFORM DelTreeRegKey(nKey);
@@ -899,3 +902,206 @@ AS
   SELECT * FROM registry.registry_value_ex(GetRegRoot(current_username()));
 
 GRANT ALL ON RegistryValueEx TO administrator;
+
+--------------------------------------------------------------------------------
+-- RegSetValueInteger ----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION RegSetValueInteger (
+  pKey		    text,
+  pSubKey		text,
+  pValueName	text,
+  pValue		integer,
+  pUserId		numeric DEFAULT current_userid()
+) RETURNS	    numeric
+AS $$
+BEGIN
+  RETURN RegSetValueEx(RegCreateKey(pKey, pSubKey, pUserId), pValueName, 0, pInteger => pValue);
+END
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- RegSetValueNumeric ----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION RegSetValueNumeric (
+  pKey		    text,
+  pSubKey		text,
+  pValueName	text,
+  pValue		numeric,
+  pUserId		numeric DEFAULT current_userid()
+) RETURNS	    numeric
+AS $$
+BEGIN
+  RETURN RegSetValueEx(RegCreateKey(pKey, pSubKey, pUserId), pValueName, 1, pNumeric => pValue);
+END
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- RegSetValueDate -------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION RegSetValueDate (
+  pKey		    text,
+  pSubKey		text,
+  pValueName	text,
+  pValue		timestamp,
+  pUserId		numeric DEFAULT current_userid()
+) RETURNS	    timestamp
+AS $$
+BEGIN
+  RETURN RegSetValueEx(RegCreateKey(pKey, pSubKey, pUserId), pValueName, 2, pDateTime => pValue);
+END
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- RegSetValueString -----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION RegSetValueString (
+  pKey		    text,
+  pSubKey		text,
+  pValueName	text,
+  pValue		text,
+  pUserId		numeric DEFAULT current_userid()
+) RETURNS	    text
+AS $$
+BEGIN
+  RETURN RegSetValueEx(RegCreateKey(pKey, pSubKey, pUserId), pValueName, 3, pString => pValue);
+END
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- RegSetValueBoolean ----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION RegSetValueBoolean (
+  pKey		    text,
+  pSubKey		text,
+  pValueName	text,
+  pValue		boolean,
+  pUserId		numeric DEFAULT current_userid()
+) RETURNS	    boolean
+AS $$
+BEGIN
+  RETURN RegSetValueEx(RegCreateKey(pKey, pSubKey, pUserId), pValueName, 4, pBoolean => pValue);
+END
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- RegGetValueType -------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION RegGetValueType (
+  pKey		    text,
+  pSubKey		text,
+  pValueName	text,
+  pUserId		numeric DEFAULT current_userid()
+) RETURNS	    integer
+AS $$
+BEGIN
+  RETURN (RegGetValue(RegOpenKey(pKey, pSubKey, pUserId), pValueName)).vtype;
+END
+$$ LANGUAGE plpgsql STABLE
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- RegGetValueInteger ----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION RegGetValueInteger (
+  pKey		    text,
+  pSubKey		text,
+  pValueName	text,
+  pUserId		numeric DEFAULT current_userid()
+) RETURNS	    integer
+AS $$
+BEGIN
+  RETURN (RegGetValue(RegOpenKey(pKey, pSubKey, pUserId), pValueName)).vInteger;
+END
+$$ LANGUAGE plpgsql STABLE
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- RegGetValueNumeric ----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION RegGetValueNumeric (
+  pKey		    text,
+  pSubKey		text,
+  pValueName	text,
+  pUserId		numeric DEFAULT current_userid()
+) RETURNS	    numeric
+AS $$
+BEGIN
+  RETURN (RegGetValue(RegOpenKey(pKey, pSubKey, pUserId), pValueName)).vNumeric;
+END
+$$ LANGUAGE plpgsql STABLE
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- RegGetValueDate -------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION RegGetValueDate (
+  pKey		    text,
+  pSubKey		text,
+  pValueName	text,
+  pUserId		numeric DEFAULT current_userid()
+) RETURNS	    timestamp
+AS $$
+BEGIN
+  RETURN (RegGetValue(RegOpenKey(pKey, pSubKey, pUserId), pValueName)).vDateTime;
+END
+$$ LANGUAGE plpgsql STABLE
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- RegGetValueString -----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION RegGetValueString (
+  pKey		    text,
+  pSubKey		text,
+  pValueName	text,
+  pUserId		numeric DEFAULT current_userid()
+) RETURNS	    text
+AS $$
+BEGIN
+  RETURN (RegGetValue(RegOpenKey(pKey, pSubKey, pUserId), pValueName)).vString;
+END
+$$ LANGUAGE plpgsql STABLE
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- RegGetValueBoolean ----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION RegGetValueBoolean (
+  pKey		    text,
+  pSubKey		text,
+  pValueName	text,
+  pUserId		numeric DEFAULT current_userid()
+) RETURNS	    boolean
+AS $$
+BEGIN
+  RETURN (RegGetValue(RegOpenKey(pKey, pSubKey, pUserId), pValueName)).vBoolean;
+END
+$$ LANGUAGE plpgsql STABLE
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;

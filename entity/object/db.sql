@@ -62,7 +62,7 @@ CREATE INDEX ON db.object (label);
 CREATE INDEX ON db.object (label text_pattern_ops);
 
 CREATE INDEX ON db.object (data);
-CREATE INDEX ON db.object (data text_pattern_ops);
+--CREATE INDEX ON db.object (data text_pattern_ops);
 
 CREATE INDEX ON db.object (pdate);
 CREATE INDEX ON db.object (ldate);
@@ -1254,7 +1254,7 @@ DECLARE
 BEGIN
   IF NOT CheckMethodAccess(pMethod, B'100') THEN
     SELECT label INTO sLabel FROM db.method WHERE id = pMethod;
-    PERFORM AccessDenied('метода ' || sLabel);
+    PERFORM ExecuteMethodError(sLabel);
   END IF;
 
   nSaveObject := context_object();

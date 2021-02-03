@@ -20,6 +20,7 @@ BEGIN
   PERFORM RegisterRoute('notification', AddEndpoint('SELECT * FROM rest.notification($1, $2);'));
   PERFORM RegisterRoute('observer', AddEndpoint('SELECT * FROM rest.observer($1, $2);'));
   PERFORM RegisterRoute('registry', AddEndpoint('SELECT * FROM rest.registry($1, $2);'));
+  PERFORM RegisterRoute('resource', AddEndpoint('SELECT * FROM rest.resource($1, $2);'));
   PERFORM RegisterRoute('session', AddEndpoint('SELECT * FROM rest.session($1, $2);'));
   PERFORM RegisterRoute('verification', AddEndpoint('SELECT * FROM rest.verification($1, $2);'));
   PERFORM RegisterRoute('workflow', AddEndpoint('SELECT * FROM rest.workflow($1, $2);'));

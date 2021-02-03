@@ -3,75 +3,6 @@
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
--- db.locale -------------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE TABLE db.locale (
-    id		    numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
-    code	    varchar(30) NOT NULL,
-    name	    varchar(50) NOT NULL,
-    description	text
-);
-
-COMMENT ON TABLE db.locale IS 'Локаль.';
-
-COMMENT ON COLUMN db.locale.id IS 'Идентификатор';
-COMMENT ON COLUMN db.locale.code IS 'Код';
-COMMENT ON COLUMN db.locale.name IS 'Наименование';
-COMMENT ON COLUMN db.locale.description IS 'Описание';
-
-CREATE UNIQUE INDEX ON db.locale(code);
-
-INSERT INTO db.locale (code, name, description) VALUES ('ru', 'Русский', 'Русский язык');
-INSERT INTO db.locale (code, name, description) VALUES ('en', 'English', 'English');
-
---------------------------------------------------------------------------------
--- FUNCTION GetLocale ----------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION GetLocale (
-  pCode		varchar
-) RETURNS	numeric
-AS $$
-DECLARE
-  nId		numeric;
-BEGIN
-  SELECT id INTO nId FROM db.locale WHERE code = pCode;
-  RETURN nId;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- FUNCTION GetLocaleCode ------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION GetLocaleCode (
-  pId		numeric
-) RETURNS	varchar
-AS $$
-DECLARE
-  vCode		varchar;
-BEGIN
-  SELECT code INTO vCode FROM db.locale WHERE id = pId;
-  return vCode;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- Locale ----------------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE VIEW Locale
-as
-  SELECT * FROM db.locale;
-
-GRANT SELECT ON Locale TO administrator;
-
---------------------------------------------------------------------------------
 -- db.interface ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -2738,6 +2669,344 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- FUNCTION SetSessionArea -----------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION SetSessionArea (
+  pArea 	numeric,
+  pSession	text DEFAULT current_session()
+) RETURNS 	void
+AS $$
+BEGIN
+  UPDATE db.session SET area = pArea WHERE code = pSession;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION GetSessionArea -----------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetSessionArea (
+  pSession	text DEFAULT current_session()
+)
+RETURNS 	numeric
+AS $$
+DECLARE
+  nArea	    numeric;
+BEGIN
+  IF pSession IS NOT NULL THEN
+    SELECT area INTO nArea FROM db.session WHERE code = pSession;
+  END IF;
+  RETURN nArea;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION current_area_type --------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION current_area_type (
+  pSession	text DEFAULT current_session()
+)
+RETURNS 	numeric
+AS $$
+DECLARE
+  nType     numeric;
+BEGIN
+  SELECT type INTO nType FROM db.area WHERE id = GetSessionArea(pSession);
+  RETURN nType;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION current_area -------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION current_area (
+  pSession	text DEFAULT current_session()
+)
+RETURNS 	numeric
+AS $$
+BEGIN
+  RETURN GetSessionArea(pSession);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION SetSessionInterface ------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION SetSessionInterface (
+  pInterface 	numeric,
+  pSession	    text DEFAULT current_session()
+) RETURNS 	    void
+AS $$
+BEGIN
+  UPDATE db.session SET interface = pInterface WHERE code = pSession;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION GetSessionInterface ------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetSessionInterface (
+  pSession	    text DEFAULT current_session()
+)
+RETURNS 	    numeric
+AS $$
+DECLARE
+  nInterface    numeric;
+BEGIN
+  IF pSession IS NOT NULL THEN
+    SELECT interface INTO nInterface FROM db.session WHERE code = pSession;
+  END IF;
+  RETURN nInterface;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION current_interface --------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION current_interface (
+  pSession	text DEFAULT current_session()
+)
+RETURNS 	numeric
+AS $$
+BEGIN
+  RETURN GetSessionInterface(pSession);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION SetOperDate --------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Устанавливает дату операционного дня.
+ * @param {timestamp} pOperDate - Дата операционного дня
+ * @param {text} pSession - Код сессии
+ * @return {void}
+ */
+CREATE OR REPLACE FUNCTION SetOperDate (
+  pOperDate 	timestamp,
+  pSession	    text DEFAULT current_session()
+) RETURNS 	    void
+AS $$
+BEGIN
+  UPDATE db.session SET oper_date = pOperDate WHERE code = pSession;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION SetOperDate --------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Устанавливает дату операционного дня.
+ * @param {timestamptz} pOperDate - Дата операционного дня
+ * @param {text} pSession - Код сессии
+ * @return {void}
+ */
+CREATE OR REPLACE FUNCTION SetOperDate (
+  pOperDate 	timestamptz,
+  pSession	    text DEFAULT current_session()
+) RETURNS 	    void
+AS $$
+BEGIN
+  UPDATE db.session SET oper_date = pOperDate WHERE code = pSession;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION GetOperDate --------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Возвращает дату операционного дня.
+ * @param {text} pSession - Код сессии
+ * @return {timestamp} - Дата операционного дня
+ */
+CREATE OR REPLACE FUNCTION GetOperDate (
+  pSession		text DEFAULT current_session()
+)
+RETURNS 		timestamp
+AS $$
+DECLARE
+  dtOperDate	timestamp;
+BEGIN
+  IF pSession IS NOT NULL THEN
+    SELECT oper_date INTO dtOperDate FROM db.session WHERE code = pSession;
+  END IF;
+  RETURN dtOperDate;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION oper_date ----------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Возвращает дату операционного дня.
+ * @param {text} pSession - Код сессии
+ * @return {timestamp} - Дата операционного дня
+ */
+CREATE OR REPLACE FUNCTION oper_date (
+  pSession		text DEFAULT current_session()
+)
+RETURNS 		timestamp
+AS $$
+DECLARE
+  dtOperDate	timestamp;
+BEGIN
+  dtOperDate := GetOperDate(pSession);
+  IF dtOperDate IS NULL THEN
+    dtOperDate := now();
+  END IF;
+  RETURN dtOperDate;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION SetSessionLocale ---------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Устанавливает по идентификатору текущий язык.
+ * @param {id} pLocale - Идентификатор языка
+ * @param {text} pSession - Код сессии
+ * @return {void}
+ */
+CREATE OR REPLACE FUNCTION SetSessionLocale (
+  pLocale   numeric,
+  pSession	text DEFAULT current_session()
+) RETURNS	void
+AS $$
+BEGIN
+  UPDATE db.session SET locale = pLocale WHERE code = pSession;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION SetSessionLocale ---------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Устанавливает по коду текущий язык.
+ * @param {text} pCode - Код языка
+ * @param {text} pSession - Код сессии
+ * @return {void}
+ */
+CREATE OR REPLACE FUNCTION SetSessionLocale (
+  pCode		text DEFAULT 'ru',
+  pSession	text DEFAULT current_session()
+) RETURNS	void
+AS $$
+DECLARE
+  nLocale	numeric;
+BEGIN
+  SELECT id INTO nLocale FROM db.locale WHERE code = pCode;
+  IF found THEN
+    PERFORM SetSessionLocale(nLocale, pSession);
+  END IF;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION GetSessionLocale ---------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Возвращает идентификатор текущего языка.
+ * @param {text} pSession - Код сессии
+ * @return {numeric} - Идентификатор языка.
+ */
+CREATE OR REPLACE FUNCTION GetSessionLocale (
+  pSession	text DEFAULT current_session()
+) RETURNS	numeric
+AS $$
+DECLARE
+  nLocale	numeric;
+BEGIN
+  SELECT locale INTO nLocale FROM db.session WHERE code = pSession;
+  RETURN nLocale;
+END;
+$$ LANGUAGE plpgsql STABLE STRICT
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION locale_code --------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Возвращает код текущего языка.
+ * @param {text} pSession - Код сессии
+ * @return {text} - Код языка
+ */
+CREATE OR REPLACE FUNCTION locale_code (
+  pSession	text DEFAULT current_session()
+) RETURNS	text
+AS $$
+DECLARE
+  vCode		text;
+BEGIN
+  SELECT code INTO vCode FROM db.locale WHERE id = GetSessionLocale(pSession);
+
+  IF vCode IS NULL THEN
+    vCode := RegGetValueString('CURRENT_CONFIG', 'CONFIG\System', 'LocaleCode');
+  END IF;
+
+  RETURN coalesce(vCode, 'en');
+END;
+$$ LANGUAGE plpgsql STABLE
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION current_locale -----------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Возвращает идентификатор текущего языка.
+ * @param {text} pSession - Код сессии
+ * @return {numeric} - Идентификатор языка.
+ */
+CREATE OR REPLACE FUNCTION current_locale (
+  pSession	text DEFAULT current_session()
+)
+RETURNS		numeric
+AS $$
+BEGIN
+  RETURN coalesce(GetSessionLocale(pSession), GetLocale(locale_code(pSession)));
+END;
+$$ LANGUAGE plpgsql STABLE
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- SECURITY --------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
 -- db.acl ----------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /*
@@ -2955,343 +3224,6 @@ END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- FUNCTION SetSessionArea -----------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION SetSessionArea (
-  pArea 	numeric,
-  pSession	text DEFAULT current_session()
-) RETURNS 	void
-AS $$
-BEGIN
-  UPDATE db.session SET area = pArea WHERE code = pSession;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- FUNCTION GetSessionArea -----------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION GetSessionArea (
-  pSession	text DEFAULT current_session()
-)
-RETURNS 	numeric
-AS $$
-DECLARE
-  nArea	    numeric;
-BEGIN
-  IF pSession IS NOT NULL THEN
-    SELECT area INTO nArea FROM db.session WHERE code = pSession;
-  END IF;
-  RETURN nArea;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- FUNCTION current_area_type --------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION current_area_type (
-  pSession	text DEFAULT current_session()
-)
-RETURNS 	numeric
-AS $$
-DECLARE
-  nType     numeric;
-BEGIN
-  SELECT type INTO nType FROM db.area WHERE id = GetSessionArea(pSession);
-  RETURN nType;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- FUNCTION current_area -------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION current_area (
-  pSession	text DEFAULT current_session()
-)
-RETURNS 	numeric
-AS $$
-BEGIN
-  RETURN GetSessionArea(pSession);
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- FUNCTION SetSessionInterface ------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION SetSessionInterface (
-  pInterface 	numeric,
-  pSession	    text DEFAULT current_session()
-) RETURNS 	    void
-AS $$
-BEGIN
-  UPDATE db.session SET interface = pInterface WHERE code = pSession;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- FUNCTION GetSessionInterface ------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION GetSessionInterface (
-  pSession	    text DEFAULT current_session()
-)
-RETURNS 	    numeric
-AS $$
-DECLARE
-  nInterface    numeric;
-BEGIN
-  IF pSession IS NOT NULL THEN
-    SELECT interface INTO nInterface FROM db.session WHERE code = pSession;
-  END IF;
-  RETURN nInterface;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- FUNCTION current_interface --------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION current_interface (
-  pSession	text DEFAULT current_session()
-)
-RETURNS 	numeric
-AS $$
-BEGIN
-  RETURN GetSessionInterface(pSession);
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- FUNCTION SetOperDate --------------------------------------------------------
---------------------------------------------------------------------------------
-/**
- * Устанавливает дату операционного дня.
- * @param {timestamp} pOperDate - Дата операционного дня
- * @param {text} pSession - Код сессии
- * @return {void}
- */
-CREATE OR REPLACE FUNCTION SetOperDate (
-  pOperDate 	timestamp,
-  pSession	    text DEFAULT current_session()
-) RETURNS 	    void
-AS $$
-BEGIN
-  UPDATE db.session SET oper_date = pOperDate WHERE code = pSession;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- FUNCTION SetOperDate --------------------------------------------------------
---------------------------------------------------------------------------------
-/**
- * Устанавливает дату операционного дня.
- * @param {timestamptz} pOperDate - Дата операционного дня
- * @param {text} pSession - Код сессии
- * @return {void}
- */
-CREATE OR REPLACE FUNCTION SetOperDate (
-  pOperDate 	timestamptz,
-  pSession	    text DEFAULT current_session()
-) RETURNS 	    void
-AS $$
-BEGIN
-  UPDATE db.session SET oper_date = pOperDate WHERE code = pSession;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- FUNCTION GetOperDate --------------------------------------------------------
---------------------------------------------------------------------------------
-/**
- * Возвращает дату операционного дня.
- * @param {text} pSession - Код сессии
- * @return {timestamp} - Дата операционного дня
- */
-CREATE OR REPLACE FUNCTION GetOperDate (
-  pSession	text DEFAULT current_session()
-)
-RETURNS 	timestamp
-AS $$
-DECLARE
-  dtOperDate	timestamp;
-BEGIN
-  IF pSession IS NOT NULL THEN
-    SELECT oper_date INTO dtOperDate FROM db.session WHERE code = pSession;
-  END IF;
-  RETURN dtOperDate;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- FUNCTION oper_date ----------------------------------------------------------
---------------------------------------------------------------------------------
-/**
- * Возвращает дату операционного дня.
- * @param {text} pSession - Код сессии
- * @return {timestamp} - Дата операционного дня
- */
-CREATE OR REPLACE FUNCTION oper_date (
-  pSession	text DEFAULT current_session()
-)
-RETURNS 	timestamp
-AS $$
-DECLARE
-  dtOperDate	timestamp;
-BEGIN
-  dtOperDate := GetOperDate(pSession);
-  IF dtOperDate IS NULL THEN
-    dtOperDate := now();
-  END IF;
-  RETURN dtOperDate;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- FUNCTION SetLocale ----------------------------------------------------------
---------------------------------------------------------------------------------
-/**
- * Устанавливает по идентификатору текущий язык.
- * @param {id} pLocale - Идентификатор языка
- * @param {text} pSession - Код сессии
- * @return {void}
- */
-CREATE OR REPLACE FUNCTION SetLocale (
-  pLocale   numeric,
-  pSession	text DEFAULT current_session()
-) RETURNS	void
-AS $$
-BEGIN
-  UPDATE db.session SET locale = pLocale WHERE code = pSession;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- FUNCTION SetLocale ----------------------------------------------------------
---------------------------------------------------------------------------------
-/**
- * Устанавливает по коду текущий язык.
- * @param {text} pCode - Код языка
- * @param {text} pSession - Код сессии
- * @return {void}
- */
-CREATE OR REPLACE FUNCTION SetLocale (
-  pCode		text DEFAULT 'ru',
-  pSession	text DEFAULT current_session()
-) RETURNS	void
-AS $$
-DECLARE
-  nLocale		numeric;
-BEGIN
-  SELECT id INTO nLocale FROM db.locale WHERE code = pCode;
-  IF found THEN
-    PERFORM SetLocale(nLocale, pSession);
-  END IF;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- FUNCTION GetSessionLocale ---------------------------------------------------
---------------------------------------------------------------------------------
-/**
- * Возвращает идентификатор текущего языка.
- * @param {text} pSession - Код сессии
- * @return {numeric} - Идентификатор языка.
- */
-CREATE OR REPLACE FUNCTION GetSessionLocale (
-  pSession	text DEFAULT current_session()
-)
-RETURNS		numeric
-AS $$
-DECLARE
-  nLocale		numeric;
-BEGIN
-  IF pSession IS NOT NULL THEN
-    SELECT locale INTO nLocale FROM db.session WHERE code = pSession;
-  END IF;
-  RETURN nLocale;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- FUNCTION locale_code --------------------------------------------------------
---------------------------------------------------------------------------------
-/**
- * Возвращает код текущего языка.
- * @param {text} pSession - Код сессии
- * @return {text} - Код языка
- */
-CREATE OR REPLACE FUNCTION locale_code (
-  pSession	text DEFAULT current_session()
-)
-RETURNS		text
-AS $$
-DECLARE
-  vCode		text;
-BEGIN
-  SELECT code INTO vCode FROM db.locale WHERE id = GetSessionLocale(pSession);
-  RETURN vCode;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- FUNCTION current_locale -----------------------------------------------------
---------------------------------------------------------------------------------
-/**
- * Возвращает идентификатор текущего языка.
- * @param {text} pSession - Код сессии
- * @return {numeric} - Идентификатор языка.
- */
-CREATE OR REPLACE FUNCTION current_locale (
-  pSession	text DEFAULT current_session()
-)
-RETURNS		numeric
-AS $$
-BEGIN
-  RETURN GetSessionLocale(pSession);
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- SECURITY --------------------------------------------------------------------
---------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
 -- IsUserRole ------------------------------------------------------------------
