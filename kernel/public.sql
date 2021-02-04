@@ -861,7 +861,7 @@ BEGIN
 
   RETURN null;
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql IMMUTABLE STRICT;
 
 GRANT EXECUTE ON FUNCTION find_value_in_array(anyarray, text) TO PUBLIC;
 

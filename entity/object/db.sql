@@ -1427,6 +1427,21 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- FUNCTION DoCreate -----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION DoCreate (
+  pObject	numeric
+) RETURNS 	jsonb
+AS $$
+BEGIN
+  RETURN ExecuteObjectAction(pObject, GetAction('create'));
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- FUNCTION DoEnable -----------------------------------------------------------
 --------------------------------------------------------------------------------
 
