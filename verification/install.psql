@@ -1,4 +1,4 @@
-\echo [M] ./verification/verification.psql
+\echo [M] ./verification/install.psql
 
 \echo [M] call db.sql
 \ir db.sql

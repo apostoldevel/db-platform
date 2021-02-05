@@ -1,0 +1,3 @@
+\echo [M] ./entity/update.psql
+
+\ir ./object/update.psql

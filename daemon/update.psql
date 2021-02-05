@@ -1,0 +1,2 @@
+\echo [M] ./daemon/update.psql
+\ir daemon.sql

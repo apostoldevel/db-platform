@@ -463,6 +463,57 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- FUNCTION ExecuteDynamicMethod -----------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION ExecuteDynamicMethod (
+  pPath     	text,
+  pPayload  	jsonb
+) RETURNS		jsonb
+AS $$
+DECLARE
+  r				record;
+
+  nObject		numeric;
+  nAction		numeric;
+
+  arKeys		text[];
+BEGIN
+  IF current_session() IS NULL THEN
+	PERFORM LoginFailed();
+  END IF;
+
+  SELECT GetAction(x[2]) INTO nAction FROM path_to_array(pPath) AS x;
+
+  IF nAction IS NULL THEN
+    PERFORM RouteNotFound(pPath);
+  END IF;
+
+  arKeys := array_cat(arKeys, ARRAY['id', 'params']);
+  PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+  FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, params jsonb)
+  LOOP
+	IF r.id IS NULL THEN
+	  PERFORM ObjectIsNull();
+	END IF;
+
+	SELECT id INTO nObject FROM db.object WHERE id = r.id;
+
+	IF NOT FOUND THEN
+	  PERFORM ObjectNotFound('object', 'id', r.id);
+	END IF;
+
+	RETURN ExecuteObjectAction(nObject, nAction, r.params);
+  END LOOP;
+
+  RETURN null;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- RegisterRoute ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 

@@ -1,13 +1,7 @@
-\echo [M] ./kernel/kernel.psql
-
-\echo [M] call dt.sql
-\ir dt.sql
+\echo [M] ./kernel/update.psql
 
 \echo [M] call public.sql
 \ir public.sql
-
-\echo [M] call sequence.sql
-\ir sequence.sql
 
 \echo [M] call general.sql
 \ir general.sql

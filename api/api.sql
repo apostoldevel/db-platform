@@ -326,13 +326,12 @@ BEGIN
 	PERFORM RouteNotFound(pPath);
   END IF;
 
-  arPath := path_to_array(pPath);
-
   nEndpoint := GetEndpoint(nPath, pMethod);
   IF nEndpoint IS NULL THEN
 	PERFORM EndPointNotSet(pPath);
   END IF;
 
+  arPath := path_to_array(pPath);
   nLength := array_length(arPath, 1);
 
   pPath := '/';
@@ -366,9 +365,8 @@ WHEN others THEN
 
   RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
 
-  IF current_session() IS NOT NULL THEN
-	UPDATE db.api_log SET eventid = AddEventLog('E', ErrorCode, 'run', ErrorMessage) WHERE id = nApiId;
-  END IF;
+  nApiId := AddApiLog(pPath, pPayload);
+  UPDATE db.api_log SET eventid = AddEventLog('E', ErrorCode, 'run', ErrorMessage) WHERE id = nApiId;
 END;
 $$ LANGUAGE plpgsql
   SECURITY DEFINER

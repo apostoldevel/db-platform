@@ -1,3 +1,6 @@
+\echo [M] call exception.sql
+\ir exception.sql
+
 \echo [M] call db.sql
 \ir db.sql
 
@@ -12,6 +15,3 @@
 
 \echo [M] call init.sql
 \ir init.sql
-
-\ir './reference/reference.psql'
-\ir './document/document.psql'

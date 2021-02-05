@@ -1,0 +1,17 @@
+\echo [M] call api.sql
+\ir api.sql
+
+\echo [M] call rest.sql
+\ir rest.sql
+
+\echo [M] call event.sql
+\ir event.sql
+
+\ir './agent/update.psql'
+\ir './calendar/update.psql'
+\ir './category/update.psql'
+\ir './model/update.psql'
+\ir './program/update.psql'
+\ir './scheduler/update.psql'
+\ir './vendor/update.psql'
+\ir './version/update.psql'

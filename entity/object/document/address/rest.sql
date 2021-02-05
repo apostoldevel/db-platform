@@ -300,7 +300,7 @@ BEGIN
     END LOOP;
 
   ELSE
-    PERFORM RouteNotFound(pPath);
+    RETURN NEXT ExecuteDynamicMethod(pPath, pPayload);
   END CASE;
 
   RETURN;

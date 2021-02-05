@@ -1,4 +1,4 @@
-\echo [M] ./admin/admin.psql
+\echo [M] ./workflow/install.psql
 
 \echo [M] call db.sql
 \ir db.sql

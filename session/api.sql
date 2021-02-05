@@ -20,7 +20,7 @@ BEGIN
   SELECT id INTO nId FROM db.area WHERE id = pArea;
 
   IF NOT FOUND THEN
-    PERFORM ObjectNotFound('зона', 'id', pArea);
+    PERFORM ObjectNotFound('область видимости', 'id', pArea);
   END IF;
 
   PERFORM SetArea(pArea);
@@ -47,7 +47,7 @@ BEGIN
   SELECT id INTO nId FROM db.area WHERE code = pArea;
 
   IF NOT FOUND THEN
-    PERFORM ObjectNotFound('зона', 'code', pArea);
+    PERFORM ObjectNotFound('область видимости', 'code', pArea);
   END IF;
 
   PERFORM SetArea(nId);

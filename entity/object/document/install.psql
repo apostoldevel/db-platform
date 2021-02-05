@@ -13,8 +13,8 @@
 \echo [M] call init.sql
 \ir init.sql
 
-\ir './address/address.psql'
-\ir './client/client.psql'
-\ir './device/device.psql'
-\ir './job/job.psql'
-\ir './message/message.psql'
+\ir './address/install.psql'
+\ir './client/install.psql'
+\ir './device/install.psql'
+\ir './job/install.psql'
+\ir './message/install.psql'

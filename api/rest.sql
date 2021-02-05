@@ -289,7 +289,7 @@ BEGIN
       END LOOP;
     END LOOP;
 
-   ELSE
+  ELSE
     PERFORM RouteNotFound(pPath);
   END CASE;
 

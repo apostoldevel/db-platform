@@ -1,7 +1,4 @@
-\echo [M] ./registry/registry.psql
-
-\echo [M] call db.sql
-\ir db.sql
+\echo [M] ./current/install.psql
 
 \echo [M] call api.sql
 \ir api.sql

@@ -1,0 +1,2 @@
+\echo [M] call ./daemon/install.sql
+\ir daemon.sql

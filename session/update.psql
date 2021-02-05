@@ -1,4 +1,4 @@
-\echo [M] ./current/current.psql
+\echo [M] ./session/update.psql
 
 \echo [M] call api.sql
 \ir api.sql

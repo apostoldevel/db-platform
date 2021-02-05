@@ -244,6 +244,7 @@ BEGIN
   PERFORM AddAction('return', 'Вернуть');
   PERFORM AddAction('save', 'Сохранить');
   PERFORM AddAction('send', 'Отправить');
+  PERFORM AddAction('sign', 'Подписать');
   PERFORM AddAction('start', 'Запустить');
   PERFORM AddAction('stop', 'Остановить');
   PERFORM AddAction('submit', 'Отправить');

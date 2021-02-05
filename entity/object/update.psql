@@ -1,0 +1,11 @@
+\echo [M] call api.sql
+\ir api.sql
+
+\echo [M] call rest.sql
+\ir rest.sql
+
+\echo [M] call event.sql
+\ir event.sql
+
+\ir './reference/update.psql'
+\ir './document/update.psql'

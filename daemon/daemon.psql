@@ -1,2 +1,0 @@
-\echo [M] call daemon.sql
-\ir daemon.sql

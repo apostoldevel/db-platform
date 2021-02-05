@@ -1,4 +1,7 @@
-\echo [M] ./session/session.psql
+\echo [M] ./log/install.psql
+
+\echo [M] call db.sql
+\ir db.sql
 
 \echo [M] call api.sql
 \ir api.sql

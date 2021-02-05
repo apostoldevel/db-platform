@@ -197,8 +197,8 @@ $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
 --------------------------------------------------------------------------------
 
-SELECT CreateExceptionResource(GetExceptionUUID(400, 3), 'ru', 'ExecuteMethodError', 'Недостаточно прав для выполнения метода %s');
-SELECT CreateExceptionResource(GetExceptionUUID(400, 3), 'en', 'ExecuteMethodError', 'Insufficient rights to execute method %s');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 3), 'ru', 'ExecuteMethodError', 'Недостаточно прав для выполнения метода: %s');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 3), 'en', 'ExecuteMethodError', 'Insufficient rights to execute method: %s');
 
 CREATE OR REPLACE FUNCTION ExecuteMethodError (
   pMessage	text
@@ -554,8 +554,8 @@ $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
 --------------------------------------------------------------------------------
 
-SELECT CreateExceptionResource(GetExceptionUUID(400, 30), 'ru', 'ObjectNotFound', 'Не найден(а/о) %s с идентификатором (%s): %s');
-SELECT CreateExceptionResource(GetExceptionUUID(400, 30), 'en', 'ObjectNotFound', 'Not found %s with id (%s): %s');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 30), 'ru', 'ObjectNotFound', 'Не найден(а/о) %s по %s: %s');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 30), 'en', 'ObjectNotFound', 'Not found %s with %s: %s');
 
 CREATE OR REPLACE FUNCTION ObjectNotFound (
   pWho		text,
@@ -586,8 +586,8 @@ $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
 --------------------------------------------------------------------------------
 
-SELECT CreateExceptionResource(GetExceptionUUID(400, 32), 'ru', 'MethodActionNotFound', 'Не найден метод объекта "%s", для действия: "%s" (%s)');
-SELECT CreateExceptionResource(GetExceptionUUID(400, 32), 'en', 'MethodActionNotFound', 'Object method "%s" not found, for action: "%s" (%s)');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 32), 'ru', 'MethodActionNotFound', 'Не найден метод объекта [%s], для действия: %s [%s]. Скорее всего, объект находится в другом состоянии');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 32), 'en', 'MethodActionNotFound', 'Object [%s] method not found, for action: %s [%s]. The object is most likely in a different state');
 
 CREATE OR REPLACE FUNCTION MethodActionNotFound (
   pObject	numeric,
@@ -595,7 +595,7 @@ CREATE OR REPLACE FUNCTION MethodActionNotFound (
 ) RETURNS	void
 AS $$
 BEGIN
-  RAISE EXCEPTION '%', format(GetExceptionStr(400, 32), pObject, pAction, GetActionCode(pAction));
+  RAISE EXCEPTION '%', format(GetExceptionStr(400, 32), pObject, GetActionCode(pAction), pAction);
 END;
 $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
@@ -816,6 +816,19 @@ CREATE OR REPLACE FUNCTION InvalidPhoneNumber (
 AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 48), pPhone);
+END;
+$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+
+--------------------------------------------------------------------------------
+
+SELECT CreateExceptionResource(GetExceptionUUID(400, 49), 'ru', 'ObjectIsNull', 'Не указан идентификатор объекта');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 49), 'en', 'ObjectIsNull', 'Object id not specified');
+
+CREATE OR REPLACE FUNCTION ObjectIsNull (
+) RETURNS	void
+AS $$
+BEGIN
+  RAISE EXCEPTION '%', GetExceptionStr(400, 49);
 END;
 $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
