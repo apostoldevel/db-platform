@@ -699,6 +699,35 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- PROCEDURE SetContextMethod --------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION SetContextMethod (
+  pMethod	numeric
+) RETURNS 	void
+AS $$
+BEGIN
+  PERFORM SetVar('context', 'method', pMethod);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- PROCEDURE ClearContextMethod ------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION ClearContextMethod (
+) RETURNS 	void
+AS $$
+BEGIN
+  PERFORM SetContextMethod(null);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- FUNCTION context_object -----------------------------------------------------
 --------------------------------------------------------------------------------
 

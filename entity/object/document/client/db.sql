@@ -771,7 +771,7 @@ AS
          n.locale, l.code, l.name, l.description
     FROM db.client c INNER JOIN _current         ON true
                      INNER JOIN db.locale      l ON l.id = _current.locale
-                     INNER JOIN db.client_name n ON c.id = n.client AND l.id = n.locale AND n.validFromDate <= _current.date AND n.validToDate > _current.date
+                      LEFT JOIN db.client_name n ON c.id = n.client AND l.id = n.locale AND n.validFromDate <= _current.date AND n.validToDate > _current.date
                       LEFT JOIN db.balance     b ON b.type = 1 AND c.id = b.client AND b.validFromDate <= _current.date AND b.validToDate > _current.date
                       LEFT JOIN db.profile     p ON c.userid = p.userid;
 

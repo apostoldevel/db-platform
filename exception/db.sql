@@ -834,6 +834,32 @@ $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
 --------------------------------------------------------------------------------
 
+SELECT CreateExceptionResource(GetExceptionUUID(400, 50), 'ru', 'PerformActionError', 'Вы не можете выполнить данное действие');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 50), 'en', 'PerformActionError', 'You cannot perform this action');
+
+CREATE OR REPLACE FUNCTION PerformActionError (
+) RETURNS	void
+AS $$
+BEGIN
+  RAISE EXCEPTION '%', GetExceptionStr(400, 50);
+END;
+$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+
+--------------------------------------------------------------------------------
+
+SELECT CreateExceptionResource(GetExceptionUUID(400, 51), 'ru', 'IdentityNotConfirmed', 'Личность не подтверждена');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 51), 'en', 'IdentityNotConfirmed', 'Identity not confirmed');
+
+CREATE OR REPLACE FUNCTION IdentityNotConfirmed (
+) RETURNS	void
+AS $$
+BEGIN
+  RAISE EXCEPTION '%', GetExceptionStr(400, 51);
+END;
+$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+
+--------------------------------------------------------------------------------
+
 SELECT CreateExceptionResource(GetExceptionUUID(400, 60), 'ru', 'JsonIsEmpty', 'JSON не должен быть пустым');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 60), 'en', 'JsonIsEmpty', 'JSON must not be empty');
 

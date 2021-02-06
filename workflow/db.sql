@@ -639,7 +639,7 @@ BEGIN
 	IF r.visible THEN
 	  bMethod := bMethod | B'000010';
 	ELSE
-	  bMethod := bMethod # B'000010';
+	  bMethod := bMethod & ~B'000010';
 	END IF;
 
 	PERFORM chmodm(r.id, bMethod, pUserId);
