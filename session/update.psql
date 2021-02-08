@@ -1,5 +1,3 @@
-\echo [M] ./session/update.psql
-
 \echo [M] call api.sql
 \ir api.sql
 

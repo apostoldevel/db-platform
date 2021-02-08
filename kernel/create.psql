@@ -1,0 +1,14 @@
+\echo [M] call dt.sql
+\ir dt.sql
+
+\echo [M] call public.sql
+\ir public.sql
+
+\echo [M] call sequence.sql
+\ir sequence.sql
+
+\echo [M] call general.sql
+\ir general.sql
+
+\echo [M] call jwt.sql
+\ir jwt.sql

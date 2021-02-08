@@ -1,0 +1,7 @@
+\ir './object/create.psql'
+
+\echo [M] call init.sql
+\ir init.sql
+
+\echo [M] call do.sql
+\ir do.sql

@@ -1,4 +1,8 @@
-\echo [M] ./log/update.psql
+\echo [M] call view.sql
+\ir view.sql
+
+\echo [M] call routine.sql
+\ir routine.sql
 
 \echo [M] call api.sql
 \ir api.sql

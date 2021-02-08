@@ -1,3 +1,4 @@
-\echo [M] ./entity/update.psql
+\ir './object/update.psql'
 
-\ir ./object/update.psql
+\echo [M] call do.sql
+\ir do.sql

@@ -1,2 +1,1 @@
-\echo [M] call db.sql
-\ir db.sql
+\ir routine.sql

@@ -1,0 +1,29 @@
+\echo [M] call table.sql
+\ir table.sql
+
+\echo [M] call view.sql
+\ir view.sql
+
+\echo [M] call routine.sql
+\ir routine.sql
+
+\echo [M] call api.sql
+\ir api.sql
+
+\echo [M] call rest.sql
+\ir rest.sql
+
+\echo [M] call event.sql
+\ir event.sql
+
+\echo [M] call init.sql
+\ir init.sql
+
+\ir './agent/create.psql'
+\ir './calendar/create.psql'
+\ir './category/create.psql'
+\ir './model/create.psql'
+\ir './program/create.psql'
+\ir './scheduler/create.psql'
+\ir './vendor/create.psql'
+\ir './version/create.psql'

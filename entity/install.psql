@@ -1,6 +1,0 @@
-\echo [M] ./entity/install.psql
-
-\ir './object/install.psql'
-
-\echo [M] call init.sql
-\ir init.sql
