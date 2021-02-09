@@ -511,36 +511,30 @@ BEGIN
   SELECT id INTO nUserId FROM db.user WHERE phone = TrimPhone(pIdentifier) AND type = 'U';
 
   IF FOUND THEN
-    nTicket := GetRecoveryTicket(nUserId);
-    IF nTicket IS NULL THEN
-      IF IsUserRole(GetGroup('system'), session_userid()) THEN
-		SELECT a.secret INTO vOAuthSecret FROM oauth2.audience a WHERE a.code = session_username();
-		IF found THEN
-		  PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
-		  nTicket := RecoveryPasswordByPhone(nUserId);
-		  PERFORM SubstituteUser(session_userid(), vOAuthSecret);
-		END IF;
-	  ELSE
+	IF IsUserRole(GetGroup('system'), session_userid()) THEN
+	  SELECT a.secret INTO vOAuthSecret FROM oauth2.audience a WHERE a.code = session_username();
+	  IF found THEN
+		PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
 		nTicket := RecoveryPasswordByPhone(nUserId);
+		PERFORM SubstituteUser(session_userid(), vOAuthSecret);
 	  END IF;
+	ELSE
+	  nTicket := RecoveryPasswordByPhone(nUserId);
 	END IF;
   END IF;
 
   SELECT id INTO nUserId FROM db.user WHERE email = pIdentifier AND type = 'U';
 
   IF FOUND THEN
-    nTicket := GetRecoveryTicket(nUserId);
-    IF nTicket IS NULL THEN
-      IF IsUserRole(GetGroup('system'), session_userid()) THEN
-		SELECT a.secret INTO vOAuthSecret FROM oauth2.audience a WHERE a.code = session_username();
-		IF found THEN
-		  PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
-          nTicket := RecoveryPasswordByEmail(nUserId);
-		  PERFORM SubstituteUser(session_userid(), vOAuthSecret);
-		END IF;
-	  ELSE
-        nTicket := RecoveryPasswordByEmail(nUserId);
+	IF IsUserRole(GetGroup('system'), session_userid()) THEN
+	  SELECT a.secret INTO vOAuthSecret FROM oauth2.audience a WHERE a.code = session_username();
+	  IF found THEN
+		PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
+		nTicket := RecoveryPasswordByEmail(nUserId);
+		PERFORM SubstituteUser(session_userid(), vOAuthSecret);
 	  END IF;
+	ELSE
+	  nTicket := RecoveryPasswordByEmail(nUserId);
 	END IF;
   END IF;
 
