@@ -61,12 +61,19 @@ CREATE INDEX ON db.object (oper);
 CREATE INDEX ON db.object (label);
 CREATE INDEX ON db.object (label text_pattern_ops);
 
---CREATE INDEX ON db.object (data);
---CREATE INDEX ON db.object (data text_pattern_ops);
-
 CREATE INDEX ON db.object (pdate);
 CREATE INDEX ON db.object (ldate);
 CREATE INDEX ON db.object (udate);
+
+--------------------------------------------------------------------------------
+
+ALTER TABLE db.object
+    ADD COLUMN searchable tsvector
+    GENERATED ALWAYS AS (to_tsvector('russian', coalesce(label, '') || ' ' || coalesce(data, ''))) STORED;
+
+COMMENT ON COLUMN db.object.searchable IS 'Полнотекстовый поиск';
+
+CREATE INDEX ON db.object USING GIN (searchable);
 
 --------------------------------------------------------------------------------
 

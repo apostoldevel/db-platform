@@ -22,11 +22,13 @@ CREATE OR REPLACE FUNCTION api.search (
 AS $$
   WITH access AS (
     SELECT object FROM aou(current_userid())
-  )
-  SELECT o.*
-    FROM api.object o INNER JOIN access a ON o.id = a.object
+  ), search AS (
+  SELECT o.id
+    FROM db.object o INNER JOIN access a ON o.id = a.object
    WHERE o.label ILIKE '%' || pText || '%'
-      OR o.data ILIKE '%' || pText || '%';
+      OR o.data ILIKE '%' || pText || '%'
+      OR o.searchable @@ websearch_to_tsquery('russian', pText)
+  ) SELECT o.* FROM api.object o INNER JOIN search s ON o.id = s.id;
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
