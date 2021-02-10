@@ -1429,10 +1429,9 @@ DECLARE
   nId		numeric;
 BEGIN
   SELECT id INTO nId FROM db.object_data_type WHERE code = pCode;
-
   RETURN nId;
 END;
-$$ LANGUAGE plpgsql
+$$ LANGUAGE plpgsql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1525,6 +1524,40 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- SetObjectDataJSON -----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION SetObjectDataJSON (
+  pObject	numeric,
+  pCode		varchar,
+  pData		json
+) RETURNS	void
+AS $$
+BEGIN
+  PERFORM SetObjectData(pObject, GetObjectDataType('json'), pCode, pData::text);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- SetObjectDataXML ------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION SetObjectDataXML (
+  pObject	numeric,
+  pCode		varchar,
+  pData		xml
+) RETURNS	void
+AS $$
+BEGIN
+  PERFORM SetObjectData(pObject, GetObjectDataType('xml'), pCode, pData::text);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- GetObjectData ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -1545,6 +1578,38 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- GetObjectDataJSON -----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetObjectDataJSON (
+  pObject	numeric,
+  pCode		varchar
+) RETURNS	json
+AS $$
+BEGIN
+  RETURN GetObjectData(pObject, GetObjectDataType('json'), pCode);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- GetObjectDataXML ------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetObjectDataXML (
+  pObject	numeric,
+  pCode		varchar
+) RETURNS	json
+AS $$
+BEGIN
+  RETURN GetObjectData(pObject, GetObjectDataType('xml'), pCode);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- GetObjectDataJson -----------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -1553,8 +1618,8 @@ CREATE OR REPLACE FUNCTION GetObjectDataJson (
 ) RETURNS	json
 AS $$
 DECLARE
+  r			record;
   arResult	json[];
-  r             record;
 BEGIN
   FOR r IN
     SELECT object, type, typeCode, Code, Data

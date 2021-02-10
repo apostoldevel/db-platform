@@ -1193,7 +1193,7 @@ BEGIN
   pCode := coalesce(pCode, 'default');
   pAccuracy := coalesce(pAccuracy, 0);
   PERFORM NewObjectCoordinates(pId, pCode, pLatitude, pLongitude, pAccuracy, pLabel, pDescription, pData);
-  PERFORM SetObjectData(pId, GetObjectDataType('json'), 'geo', GetObjectCoordinatesJson(pId, pCode)::text);
+  PERFORM SetObjectDataJSON(pId, 'geo', GetObjectCoordinatesJson(pId, pCode));
 
   RETURN QUERY SELECT * FROM api.get_object_coordinates(pId, pCode);
 END;

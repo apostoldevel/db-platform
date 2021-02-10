@@ -9,7 +9,7 @@
 CREATE OR REPLACE VIEW api.device
 AS
   SELECT o.*, g.data::json AS geo
-    FROM ObjectDevice o LEFT JOIN db.object_data g ON o.object = g.object AND g.code = 'geo';
+    FROM ObjectDevice o LEFT JOIN db.object_data g ON o.object = g.object AND g.type = GetObjectDataType('json') AND g.code = 'geo';
 
 GRANT SELECT ON api.device TO administrator;
 
