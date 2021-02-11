@@ -5,6 +5,3 @@
 
 \echo [M] call general.sql
 \ir general.sql
-
-\echo [M] call jwt.sql
-\ir jwt.sql
