@@ -529,6 +529,7 @@ DECLARE
 
   vType			text;
 
+  mixed			jsonb;
   hook			jsonb;
 BEGIN
   SELECT * INTO r FROM db.listener WHERE publisher = pPublisher AND session = pSession;
@@ -545,15 +546,20 @@ BEGIN
 		END LOOP;
 	  ELSIF vType = 'mixed' THEN
 	    nId := pData->>'id';
+
+        mixed := jsonb_build_object();
+
 		FOR e IN SELECT * FROM Notification WHERE id = nId
 		LOOP
-		  RETURN NEXT row_to_json(e);
+		  mixed := jsonb_build_object('notify', row_to_json(e));
 		END LOOP;
 
 		FOR e IN EXECUTE format('SELECT * FROM api.get_%s($1)', GetEntityCode((pData->>'entity')::numeric)) USING (pData->>'object')::numeric
 		LOOP
-		  RETURN NEXT row_to_json(e);
+		  mixed := mixed || jsonb_build_object('object', row_to_json(e));
 		END LOOP;
+
+        RETURN NEXT mixed;
 	  ELSIF vType = 'hook' THEN
         hook := r.params->'hook';
 		FOR e IN SELECT * FROM api.run(coalesce(hook->>'method', 'POST'), hook->>'path', hook->'payload')
