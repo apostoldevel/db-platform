@@ -39,14 +39,14 @@ $$ LANGUAGE SQL
 /**
  * Добавляет объект.
  * @param {numeric} pParent - Ссылка на родительский объект: api.object | null
- * @param {varchar} pType - Тип
+ * @param {text} pType - Тип
  * @param {text} pLabel - Метка
  * @param {text} pData - Данные
  * @return {numeric}
  */
 CREATE OR REPLACE FUNCTION api.add_object (
   pParent       numeric,
-  pType         varchar,
+  pType         text,
   pLabel        text default null,
   pData			text default null
 ) RETURNS       numeric
@@ -64,7 +64,7 @@ $$ LANGUAGE plpgsql
 /**
  * Редактирует объект.
  * @param {numeric} pParent - Ссылка на родительский объект: Object.Parent | null
- * @param {varchar} pType - Тип
+ * @param {text} pType - Тип
  * @param {text} pLabel - Метка
  * @param {text} pData - Данные
  * @return {void}
@@ -72,7 +72,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.update_object (
   pId		    numeric,
   pParent       numeric default null,
-  pType         varchar default null,
+  pType         text default null,
   pLabel        text default null,
   pData			text default null
 ) RETURNS       void
@@ -106,7 +106,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.set_object (
   pId		    numeric,
   pParent       numeric default null,
-  pType         varchar default null,
+  pType         text default null,
   pLabel        text default null,
   pData			text default null
 ) RETURNS       SETOF api.object
@@ -174,7 +174,7 @@ $$ LANGUAGE plpgsql
 /**
  * Изменить состояние объекта.
  * @param {numeric} pObject - Идентификатор объекта
- * @param {varchar} pCode - Код нового состояния объекта
+ * @param {text} pCode - Код нового состояния объекта
  * @out param {numeric} id - Идентификатор
  * @out param {boolean} result - Результат
  * @out param {text} message - Текст ошибки
@@ -182,7 +182,7 @@ $$ LANGUAGE plpgsql
  */
 CREATE OR REPLACE FUNCTION api.change_object_state (
   pObject       numeric,
-  pCode         varchar,
+  pCode         text,
   OUT id        numeric,
   OUT result	boolean,
   OUT message	text
@@ -552,14 +552,14 @@ GRANT SELECT ON api.object_group TO administrator;
 --------------------------------------------------------------------------------
 /**
  * Создаёт группу объектов.
- * @param {varchar} pCode - Код
- * @param {varchar} pName - Наименование
+ * @param {text} pCode - Код
+ * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
  * @return {numeric}
  */
 CREATE OR REPLACE FUNCTION api.add_object_group (
-  pCode         varchar,
-  pName         varchar,
+  pCode         text,
+  pName         text,
   pDescription  text DEFAULT null
 ) RETURNS       numeric
 AS $$
@@ -576,15 +576,15 @@ $$ LANGUAGE plpgsql
 /**
  * Обновляет группу объектов.
  * @param {numeric} pId - Идентификатор группы объектов
- * @param {varchar} pCode - Код
- * @param {varchar} pName - Наименование
+ * @param {text} pCode - Код
+ * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_object_group (
   pId               numeric,
-  pCode             varchar DEFAULT null,
-  pName             varchar DEFAULT null,
+  pCode             text DEFAULT null,
+  pName             text DEFAULT null,
   pDescription      text DEFAULT null
 ) RETURNS           void
 AS $$
@@ -601,8 +601,8 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION api.set_object_group (
   pId               numeric,
-  pCode             varchar DEFAULT null,
-  pName             varchar DEFAULT null,
+  pCode             text DEFAULT null,
+  pName             text DEFAULT null,
   pDescription      text DEFAULT null
 ) RETURNS           SETOF api.object_group
 AS $$
@@ -941,7 +941,7 @@ GRANT SELECT ON api.object_data_type TO administrator;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.get_object_data_type (
-  pCode		varchar
+  pCode		text
 ) RETURNS	numeric
 AS $$
 BEGIN
@@ -967,15 +967,15 @@ GRANT SELECT ON api.object_data TO administrator;
 /**
  * Устанавливает данные объекта
  * @param {numeric} pId - Идентификатор объекта
- * @param {varchar} pType - Код типа данных
- * @param {varchar} pCode - Код
+ * @param {text} pType - Код типа данных
+ * @param {text} pCode - Код
  * @param {text} pData - Данные
  * @return {numeric}
  */
 CREATE OR REPLACE FUNCTION api.set_object_data (
   pId           numeric,
-  pType         varchar,
-  pCode         varchar,
+  pType         text,
+  pCode         text,
   pData         text
 ) RETURNS       SETOF api.object_data
 AS $$
@@ -1029,7 +1029,7 @@ BEGIN
     arKeys := array_cat(arKeys, ARRAY['type', 'code', 'data']);
     PERFORM CheckJsonKeys('/object/data', arKeys, pData);
 
-    FOR r IN SELECT * FROM json_to_recordset(pData) AS data(type varchar, code varchar, data text)
+    FOR r IN SELECT * FROM json_to_recordset(pData) AS data(type text, code text, data text)
     LOOP
       RETURN NEXT api.set_object_data(pId, r.type, r.code, r.data);
     END LOOP;
@@ -1100,7 +1100,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.get_object_data (
   pId	    numeric,
   pType		numeric,
-  pCode		varchar
+  pCode		text
 ) RETURNS	SETOF api.object_data
 AS $$
   SELECT * FROM api.object_data WHERE object = pId AND type = pType AND code = pCode
@@ -1169,8 +1169,8 @@ $$ LANGUAGE SQL
 /**
  * Устанавливает координаты объекта
  * @param {numeric} pId - Идентификатор объекта
- * @param {varchar} pCode - Код
- * @param {varchar} pName - Наименование
+ * @param {text} pCode - Код
+ * @param {text} pName - Наименование
  * @param {numeric} pLatitude - Широта
  * @param {numeric} pLongitude - Долгота
  * @param {numeric} pAccuracy - Точность (высота над уровнем моря)
@@ -1180,11 +1180,11 @@ $$ LANGUAGE SQL
  */
 CREATE OR REPLACE FUNCTION api.set_object_coordinates (
   pId           numeric,
-  pCode         varchar,
+  pCode         text,
   pLatitude     numeric,
   pLongitude    numeric,
   pAccuracy     numeric DEFAULT 0,
-  pLabel        varchar DEFAULT null,
+  pLabel        text DEFAULT null,
   pDescription  text DEFAULT null,
   pData			jsonb DEFAULT null
 ) RETURNS       SETOF api.object_coordinates
@@ -1225,7 +1225,7 @@ BEGIN
     arKeys := array_cat(arKeys, ARRAY['code', 'latitude', 'longitude', 'accuracy', 'label', 'description', 'data']);
     PERFORM CheckJsonKeys('/object/coordinates', arKeys, pCoordinates);
 
-    FOR r IN SELECT * FROM json_to_recordset(pCoordinates) AS x(code varchar, latitude numeric, longitude numeric, accuracy numeric, label varchar, description text, data jsonb)
+    FOR r IN SELECT * FROM json_to_recordset(pCoordinates) AS x(code text, latitude numeric, longitude numeric, accuracy numeric, label text, description text, data jsonb)
     LOOP
       RETURN NEXT api.set_object_coordinates(pId, r.code, r.latitude, r.longitude, r.accuracy, r.label, r.description, r.data);
     END LOOP;
@@ -1295,7 +1295,7 @@ $$ LANGUAGE plpgsql
  */
 CREATE OR REPLACE FUNCTION api.get_object_coordinates (
   pId           numeric,
-  pCode         varchar,
+  pCode         text,
   pDateFrom     timestamptz DEFAULT oper_date()
 ) RETURNS       SETOF api.object_coordinates
 AS $$

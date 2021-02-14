@@ -5,16 +5,16 @@
  * Создаёт категорию
  * @param {numeric} pParent - Идентификатор объекта родителя
  * @param {numeric} pType - Идентификатор типа
- * @param {varchar} pCode - Код
- * @param {varchar} pName - Наименование
+ * @param {text} pCode - Код
+ * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
  * @return {numeric}
  */
 CREATE OR REPLACE FUNCTION CreateCategory (
   pParent       numeric,
   pType         numeric,
-  pCode         varchar,
-  pName         varchar,
+  pCode         text,
+  pName         text,
   pDescription	text default null
 ) RETURNS       numeric
 AS $$
@@ -51,8 +51,8 @@ $$ LANGUAGE plpgsql
  * @param {numeric} pId - Идентификатор
  * @param {numeric} pParent - Идентификатор объекта родителя
  * @param {numeric} pType - Идентификатор типа
- * @param {varchar} pCode - Код
- * @param {varchar} pName - Наименование
+ * @param {text} pCode - Код
+ * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
  * @return {void}
  */
@@ -60,8 +60,8 @@ CREATE OR REPLACE FUNCTION EditCategory (
   pId           numeric,
   pParent       numeric default null,
   pType         numeric default null,
-  pCode         varchar default null,
-  pName         varchar default null,
+  pCode         text default null,
+  pName         text default null,
   pDescription	text default null
 ) RETURNS       void
 AS $$
@@ -85,7 +85,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetCategory (
-  pCode		varchar
+  pCode		text
 ) RETURNS 	numeric
 AS $$
 BEGIN

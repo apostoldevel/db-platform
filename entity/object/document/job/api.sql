@@ -31,7 +31,7 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.job (
-  pStateType	varchar DEFAULT 'enabled',
+  pStateType	text DEFAULT 'enabled',
   pDateFrom		double precision DEFAULT null
 ) RETURNS		SETOF api.job
 AS $$
@@ -46,7 +46,7 @@ $$ LANGUAGE SQL
 /**
  * Добавляет задание.
  * @param {numeric} pParent - Ссылка на родительский объект: api.document | null
- * @param {varchar} pType - Tип
+ * @param {text} pType - Tип
  * @param {numeric} pScheduler - Планировщик
  * @param {numeric} pProgram - Программа
  * @param {timestamptz} pDateRun - Дата запуска
@@ -57,7 +57,7 @@ $$ LANGUAGE SQL
  */
 CREATE OR REPLACE FUNCTION api.add_job (
   pParent           numeric,
-  pType             varchar,
+  pType             text,
   pScheduler        numeric,
   pProgram          numeric,
   pDateRun          timestamptz default null,
@@ -79,7 +79,7 @@ $$ LANGUAGE plpgsql
 /**
  * Редактирует задание.
  * @param {numeric} pParent - Ссылка на родительский объект: Object.Parent | null
- * @param {varchar} pType - Tип
+ * @param {text} pType - Tип
  * @param {numeric} pScheduler - Планировщик
  * @param {numeric} pProgram - Программа
  * @param {timestamptz} pDateRun - Дата запуска
@@ -91,7 +91,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.update_job (
   pId               numeric,
   pParent           numeric default null,
-  pType             varchar default null,
+  pType             text default null,
   pScheduler        numeric default null,
   pProgram          numeric default null,
   pDateRun          timestamptz default null,
@@ -129,7 +129,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.set_job (
   pId               numeric,
   pParent           numeric default null,
-  pType             varchar default null,
+  pType             text default null,
   pScheduler        numeric default null,
   pProgram          numeric default null,
   pDateRun          timestamptz default null,

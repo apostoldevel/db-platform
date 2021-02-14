@@ -314,7 +314,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION AddRegKey (
   pRoot		numeric,
   pParent	numeric,
-  pKey		varchar
+  pKey		text
 ) RETURNS	numeric
 AS $$
 DECLARE
@@ -343,7 +343,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetRegRoot (
-  pKey		varchar
+  pKey		text
 ) RETURNS	numeric
 AS $$
 DECLARE
@@ -362,7 +362,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION GetRegKey (
   pParent	numeric,
-  pKey		varchar
+  pKey		text
 ) RETURNS	numeric
 AS $$
 DECLARE
@@ -381,7 +381,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION GetRegKeyValue (
   pKey		    numeric,
-  pValueName	varchar
+  pValueName	text
 ) RETURNS	    numeric
 AS $$
 DECLARE

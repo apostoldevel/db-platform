@@ -15,7 +15,7 @@ DECLARE
   nEntity       numeric;
   nClass        numeric;
 
---  vCode         varchar;
+--  vCode         text;
 BEGIN
   nObject := CreateObject(pParent, pType, pName, pDescription);
 
@@ -74,7 +74,7 @@ CREATE OR REPLACE FUNCTION GetReference (
 AS $$
 DECLARE
   nId           numeric;
---  vCode         varchar;
+--  vCode         text;
 BEGIN
 --  IF StrPos(pCode, '.') = 0 THEN
 --    SELECT code INTO vCode FROM db.entity WHERE Id = pEntity;
@@ -94,7 +94,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION GetReference (
   pCode         text,
-  pEntity       varchar DEFAULT null
+  pEntity       text DEFAULT null
 ) RETURNS       numeric
 AS $$
 BEGIN
@@ -110,10 +110,10 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION GetReferenceCode (
   pId           numeric
-) RETURNS       varchar
+) RETURNS       text
 AS $$
 DECLARE
-  vCode         varchar;
+  vCode         text;
 BEGIN
   SELECT code INTO vCode FROM db.reference WHERE id = pId;
   RETURN vCode;
@@ -128,10 +128,10 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION GetReferenceName (
   pId           numeric
-) RETURNS       varchar
+) RETURNS       text
 AS $$
 DECLARE
-  vName         varchar;
+  vName         text;
 BEGIN
   SELECT name INTO vName FROM db.reference WHERE id = pId;
   RETURN vName;

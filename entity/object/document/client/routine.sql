@@ -9,7 +9,7 @@
  * @param {text} pLast - Фамилия
  * @param {text} pMiddle - Отчество
  * @param {text} pShort - Краткое наименование компании
- * @param {varchar} pLocaleCode - Код языка
+ * @param {text} pLocaleCode - Код языка
  * @param {timestamp} pDateFrom - Дата изменения
  * @return {(void|exception)}
  */
@@ -20,7 +20,7 @@ CREATE OR REPLACE FUNCTION NewClientName (
   pFirst	    text default null,
   pLast		    text default null,
   pMiddle	    text default null,
-  pLocaleCode   varchar default locale_code(),
+  pLocaleCode   text default locale_code(),
   pDateFrom	    timestamp default oper_date()
 ) RETURNS 	    void
 AS $$
@@ -87,7 +87,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pFirst - Имя
  * @param {text} pLast - Фамилия
  * @param {text} pMiddle - Отчество
- * @param {varchar} pLocaleCode - Код языка
+ * @param {text} pLocaleCode - Код языка
  * @param {timestamp} pDateFrom - Дата изменения
  * @return {(void|exception)}
  */
@@ -98,7 +98,7 @@ CREATE OR REPLACE FUNCTION EditClientName (
   pFirst	    text default null,
   pLast		    text default null,
   pMiddle	    text default null,
-  pLocaleCode   varchar default locale_code(),
+  pLocaleCode   text default locale_code(),
   pDateFrom	    timestamp default oper_date()
 ) RETURNS 	    void
 AS $$
@@ -138,13 +138,13 @@ $$ LANGUAGE plpgsql
 /**
  * Возвращает наименование клиента.
  * @param {numeric} pClient - Идентификатор клиента
- * @param {varchar} pLocaleCode - Код языка
+ * @param {text} pLocaleCode - Код языка
  * @param {timestamp} pDate - Дата
  * @return {SETOF db.client_name}
  */
 CREATE OR REPLACE FUNCTION GetClientNameRec (
   pClient	    numeric,
-  pLocaleCode   varchar default locale_code(),
+  pLocaleCode   text default locale_code(),
   pDate		    timestamp default oper_date()
 ) RETURNS	    SETOF db.client_name
 AS $$
@@ -174,13 +174,13 @@ $$ LANGUAGE plpgsql
 /**
  * Возвращает наименование клиента.
  * @param {numeric} pClient - Идентификатор клиента
- * @param {varchar} pLocaleCode - Код языка
+ * @param {text} pLocaleCode - Код языка
  * @param {timestamp} pDate - Дата
  * @return {json}
  */
 CREATE OR REPLACE FUNCTION GetClientNameJson (
   pClient	    numeric,
-  pLocaleCode   varchar default locale_code(),
+  pLocaleCode   text default locale_code(),
   pDate		    timestamp default oper_date()
 ) RETURNS       SETOF json
 AS $$
@@ -217,13 +217,13 @@ $$ LANGUAGE plpgsql
 /**
  * Возвращает полное наименование клиента.
  * @param {numeric} pClient - Идентификатор клиента
- * @param {varchar} pLocaleCode - Код языка
+ * @param {text} pLocaleCode - Код языка
  * @param {timestamp} pDate - Дата
  * @return {(text|null|exception)}
  */
 CREATE OR REPLACE FUNCTION GetClientName (
   pClient       numeric,
-  pLocaleCode	varchar default locale_code(),
+  pLocaleCode	text default locale_code(),
   pDate		    timestamp default oper_date()
 ) RETURNS       text
 AS $$
@@ -244,13 +244,13 @@ $$ LANGUAGE plpgsql
 /**
  * Возвращает краткое наименование клиента.
  * @param {numeric} pClient - Идентификатор клиента
- * @param {varchar} pLocaleCode - Код языка
+ * @param {text} pLocaleCode - Код языка
  * @param {timestamp} pDate - Дата
  * @return {(text|null|exception)}
  */
 CREATE OR REPLACE FUNCTION GetClientShortName (
   pClient	    numeric,
-  pLocaleCode   varchar default locale_code(),
+  pLocaleCode   text default locale_code(),
   pDate         timestamp default oper_date()
 ) RETURNS       text
 AS $$
@@ -483,7 +483,7 @@ BEGIN
 
   nDocument := CreateDocument(pParent, pType, null, pDescription);
 
-  SELECT * INTO cn FROM jsonb_to_record(pName) AS x(name varchar, short varchar, first varchar, last varchar, middle varchar);
+  SELECT * INTO cn FROM jsonb_to_record(pName) AS x(name text, short text, first text, last text, middle text);
 
   IF NULLIF(trim(cn.short), '') IS NULL THEN
     cn.short := coalesce(NULLIF(trim(cn.name), ''), pCode);
@@ -550,7 +550,7 @@ DECLARE
   new           Client%rowtype;
 
   -- current
-  cCode		    varchar;
+  cCode		    text;
   cUserId	    numeric;
 BEGIN
   SELECT code, userid INTO cCode, cUserId FROM db.client WHERE id = pId;
@@ -578,7 +578,7 @@ BEGIN
          creation = CheckNull(coalesce(pCreation, creation, MINDATE()))
    WHERE id = pId;
 
-  FOR r IN SELECT * FROM jsonb_to_record(pName) AS x(name varchar, short varchar, first varchar, last varchar, middle varchar)
+  FOR r IN SELECT * FROM jsonb_to_record(pName) AS x(name text, short text, first text, last text, middle text)
   LOOP
     PERFORM EditClientName(pId, r.name, r.short, r.first, r.last, r.middle);
   END LOOP;
@@ -597,7 +597,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetClient (
-  pCode		varchar
+  pCode		text
 ) RETURNS	numeric
 AS $$
 DECLARE
@@ -616,10 +616,10 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION GetClientCode (
   pClient	numeric
-) RETURNS	varchar
+) RETURNS	text
 AS $$
 DECLARE
-  vCode     varchar;
+  vCode     text;
 BEGIN
   SELECT code INTO vCode FROM db.client WHERE id = pClient;
   RETURN vCode;

@@ -31,7 +31,7 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.device (
-  pState	varchar
+  pState	text
 ) RETURNS	SETOF api.device
 AS $$
 BEGIN
@@ -47,22 +47,22 @@ $$ LANGUAGE plpgsql
 /**
  * Создает устройтсво.
  * @param {numeric} pParent - Идентификатор родителя | null
- * @param {varchar} pType - Tип устройства
- * @param {varchar} pModel - Required. This contains a value that identifies the model of the Device.
+ * @param {text} pType - Tип устройства
+ * @param {text} pModel - Required. This contains a value that identifies the model of the Device.
  * @param {numeric} pClient - Идентификатор клиента | null
- * @param {varchar} pIdentity - Строковый идентификатор устройства
- * @param {varchar} pVersion - Версия.
- * @param {varchar} pSerial - Серийный номер.
- * @param {varchar} pAddress - Сетевой адрес.
- * @param {varchar} piccid - Integrated circuit card identifier (ICCID) — уникальный серийный номер SIM-карты.
- * @param {varchar} pimsi - International Mobile Subscriber Identity (IMSI) — международный идентификатор мобильного абонента (индивидуальный номер абонента).
- * @param {varchar} pLabel - Метка
- * @param {varchar} pDescription - Описание
+ * @param {text} pIdentity - Строковый идентификатор устройства
+ * @param {text} pVersion - Версия.
+ * @param {text} pSerial - Серийный номер.
+ * @param {text} pAddress - Сетевой адрес.
+ * @param {text} piccid - Integrated circuit card identifier (ICCID) — уникальный серийный номер SIM-карты.
+ * @param {text} pimsi - International Mobile Subscriber Identity (IMSI) — международный идентификатор мобильного абонента (индивидуальный номер абонента).
+ * @param {text} pLabel - Метка
+ * @param {text} pDescription - Описание
  * @return {numeric}
  */
 CREATE OR REPLACE FUNCTION api.add_device (
   pParent			numeric,
-  pType				varchar,
+  pType				text,
   pModel			numeric,
   pClient			numeric,
   pIdentity			text,
@@ -90,7 +90,7 @@ $$ LANGUAGE plpgsql
  * Меняет данные устройства.
  * @param {numeric} pId - Идентификатор зарядной станции (api.get_device)
  * @param {numeric} pParent - Идентификатор родителя | null
- * @param {varchar} pType - Tип устройства
+ * @param {text} pType - Tип устройства
  * @param {text} pModel - Required. This contains a value that identifies the model of the Device.
  * @param {numeric} pClient - Идентификатор клиента | null
  * @param {text} pIdentity - Строковый идентификатор зарядной станции
@@ -106,7 +106,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.update_device (
   pId				numeric,
   pParent			numeric default null,
-  pType				varchar default null,
+  pType				text default null,
   pModel			numeric default null,
   pClient			numeric default null,
   pIdentity			text default null,
@@ -148,7 +148,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.set_device (
   pId				numeric,
   pParent			numeric default null,
-  pType				varchar default null,
+  pType				text default null,
   pModel			numeric default null,
   pClient			numeric default null,
   pIdentity			text default null,
@@ -201,8 +201,8 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION api.init_device (
   pParent			numeric,
-  pType				varchar,
-  pModel			varchar,
+  pType				text,
+  pModel			text,
   pClient			numeric,
   pIdentity			text,
   pVersion			text default null,

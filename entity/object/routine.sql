@@ -376,10 +376,10 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION GetObjectTypeCode (
   pId		numeric
-) RETURNS	varchar
+) RETURNS	text
 AS $$
 DECLARE
-  vCode		varchar;
+  vCode		text;
 BEGIN
   SELECT code INTO vCode FROM db.type WHERE id = (
     SELECT type FROM db.object WHERE id = pId
@@ -544,11 +544,11 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION GetObjectStateCode (
   pObject	numeric,
   pDate		timestamp DEFAULT oper_date()
-) RETURNS 	varchar
+) RETURNS 	text
 AS $$
 DECLARE
   nState	numeric;
-  vCode		varchar;
+  vCode		text;
 BEGIN
   vCode := null;
 
@@ -597,7 +597,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION GetObjectStateTypeCode (
   pObject	numeric,
   pDate		timestamp DEFAULT oper_date()
-) RETURNS 	varchar
+) RETURNS 	text
 AS $$
 DECLARE
   nState	numeric;
@@ -1027,9 +1027,9 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateObjectGroup (
-  pCode         varchar,
-  pName         varchar,
-  pDescription  varchar
+  pCode         text,
+  pName         text,
+  pDescription  text
 ) RETURNS       numeric
 AS $$
 DECLARE
@@ -1051,9 +1051,9 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION EditObjectGroup (
   pId		    numeric,
-  pCode		    varchar DEFAULT null,
-  pName		    varchar DEFAULT null,
-  pDescription	varchar DEFAULT null
+  pCode		    text DEFAULT null,
+  pName		    text DEFAULT null,
+  pDescription	text DEFAULT null
 ) RETURNS	    void
 AS $$
 BEGIN
@@ -1072,7 +1072,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetObjectGroup (
-  pCode		varchar
+  pCode		text
 ) RETURNS	numeric
 AS $$
 DECLARE
@@ -1422,7 +1422,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetObjectDataType (
-  pCode		varchar
+  pCode		text
 ) RETURNS	numeric
 AS $$
 DECLARE
@@ -1442,7 +1442,7 @@ $$ LANGUAGE plpgsql STABLE STRICT
 CREATE OR REPLACE FUNCTION NewObjectData (
   pObject	numeric,
   pType		numeric,
-  pCode		varchar,
+  pCode		text,
   pData		text
 ) RETURNS	void
 AS $$
@@ -1461,7 +1461,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION EditObjectData (
   pObject	numeric,
   pType		numeric,
-  pCode		varchar,
+  pCode		text,
   pData		text
 ) RETURNS	void
 AS $$
@@ -1483,7 +1483,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION DeleteObjectData (
   pObject	numeric,
   pType		numeric,
-  pCode		varchar
+  pCode		text
 ) RETURNS	void
 AS $$
 BEGIN
@@ -1500,7 +1500,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION SetObjectData (
   pObject	numeric,
   pType		numeric,
-  pCode		varchar,
+  pCode		text,
   pData		text
 ) RETURNS	text
 AS $$
@@ -1529,7 +1529,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION SetObjectDataJSON (
   pObject	numeric,
-  pCode		varchar,
+  pCode		text,
   pData		json
 ) RETURNS	void
 AS $$
@@ -1546,7 +1546,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION SetObjectDataXML (
   pObject	numeric,
-  pCode		varchar,
+  pCode		text,
   pData		xml
 ) RETURNS	void
 AS $$
@@ -1564,7 +1564,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION GetObjectData (
   pObject	numeric,
   pType		numeric,
-  pCode		varchar
+  pCode		text
 ) RETURNS	text
 AS $$
 DECLARE
@@ -1583,7 +1583,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION GetObjectDataJSON (
   pObject	numeric,
-  pCode		varchar
+  pCode		text
 ) RETURNS	json
 AS $$
 BEGIN
@@ -1599,7 +1599,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION GetObjectDataXML (
   pObject	numeric,
-  pCode		varchar
+  pCode		text
 ) RETURNS	json
 AS $$
 BEGIN
@@ -1687,7 +1687,7 @@ CREATE OR REPLACE FUNCTION NewObjectCoordinates (
   pLatitude		numeric,
   pLongitude	numeric,
   pAccuracy		numeric DEFAULT 0,
-  pLabel		varchar DEFAULT null,
+  pLabel		text DEFAULT null,
   pDescription	text DEFAULT null,
   pData			jsonb DEFAULT null,
   pDateFrom		timestamptz DEFAULT Now()

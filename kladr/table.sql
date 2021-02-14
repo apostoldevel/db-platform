@@ -64,8 +64,8 @@ CREATE TABLE db.address_tree (
     id          serial PRIMARY KEY,
     parent      integer,
     code        varchar(17) NOT NULL,
-    name        varchar(50) NOT NULL,
-    short       varchar(30),
+    name        text NOT NULL,
+    short       text,
     index       varchar(6),
     level		numeric NOT NULL,
     CONSTRAINT fk_address_tree_parent FOREIGN KEY (parent) REFERENCES db.address_tree(id)

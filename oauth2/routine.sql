@@ -4,8 +4,8 @@
 
 CREATE OR REPLACE FUNCTION AddProvider (
   pType		    char,
-  pCode		    varchar,
-  pName		    varchar DEFAULT null
+  pCode		    text,
+  pName		    text DEFAULT null
 ) RETURNS 	    numeric
 AS $$
 DECLARE
@@ -31,7 +31,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetProvider (
-  pCode		varchar
+  pCode		text
 ) RETURNS 	numeric
 AS $$
 DECLARE
@@ -86,8 +86,8 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION AddApplication (
   pType		    char,
-  pCode		    varchar,
-  pName		    varchar DEFAULT null
+  pCode		    text,
+  pName		    text DEFAULT null
 ) RETURNS 	    numeric
 AS $$
 DECLARE
@@ -113,7 +113,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetApplication (
-  pCode		varchar
+  pCode		text
 ) RETURNS 	numeric
 AS $$
 DECLARE
@@ -150,8 +150,8 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION AddIssuer (
   pProvider     numeric,
-  pCode		    varchar,
-  pName		    varchar
+  pCode		    text,
+  pName		    text
 ) RETURNS 	    numeric
 AS $$
 DECLARE
@@ -177,7 +177,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetIssuer (
-  pCode		varchar
+  pCode		text
 ) RETURNS 	numeric
 AS $$
 DECLARE
@@ -213,8 +213,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddAlgorithm (
-  pCode		    varchar,
-  pName		    varchar
+  pCode		    text,
+  pName		    text
 ) RETURNS 	    numeric
 AS $$
 DECLARE
@@ -240,7 +240,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetAlgorithm (
-  pCode		varchar
+  pCode		text
 ) RETURNS 	numeric
 AS $$
 DECLARE
@@ -326,7 +326,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetAudience (
-  pCode		varchar
+  pCode		text
 ) RETURNS 	numeric
 AS $$
 DECLARE

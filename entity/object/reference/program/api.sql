@@ -18,18 +18,18 @@ GRANT SELECT ON api.program TO administrator;
 /**
  * Добавляет программу.
  * @param {numeric} pParent - Ссылка на родительский объект: api.document | null
- * @param {varchar} pType - Тип
- * @param {varchar} pCode - Код
- * @param {varchar} pName - Наименование
+ * @param {text} pType - Тип
+ * @param {text} pCode - Код
+ * @param {text} pName - Наименование
  * @param {text} pBody - Тело
  * @param {text} pDescription - Описание
  * @return {numeric}
  */
 CREATE OR REPLACE FUNCTION api.add_program (
   pParent       numeric,
-  pType         varchar,
-  pCode         varchar,
-  pName         varchar,
+  pType         text,
+  pCode         text,
+  pName         text,
   pBody         text,
   pDescription	text default null
 ) RETURNS       numeric
@@ -47,9 +47,9 @@ $$ LANGUAGE plpgsql
 /**
  * Редактирует программу.
  * @param {numeric} pParent - Ссылка на родительский объект: Object.Parent | null
- * @param {varchar} pType - Тип
- * @param {varchar} pCode - Код
- * @param {varchar} pName - Наименование
+ * @param {text} pType - Тип
+ * @param {text} pCode - Код
+ * @param {text} pName - Наименование
  * @param {text} pBody - Тело
  * @param {text} pDescription - Описание
  * @return {void}
@@ -57,9 +57,9 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.update_program (
   pId		    numeric,
   pParent       numeric default null,
-  pType         varchar default null,
-  pCode         varchar default null,
-  pName         varchar default null,
+  pType         text default null,
+  pCode         text default null,
+  pName         text default null,
   pBody         text default null,
   pDescription	text default null
 ) RETURNS       void
@@ -93,9 +93,9 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.set_program (
   pId           numeric,
   pParent       numeric default null,
-  pType         varchar default null,
-  pCode         varchar default null,
-  pName         varchar default null,
+  pType         text default null,
+  pCode         text default null,
+  pName         text default null,
   pBody         text default null,
   pDescription	text default null
 ) RETURNS       SETOF api.program

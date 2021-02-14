@@ -3,7 +3,7 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION JobExists (
-  pCode		varchar
+  pCode		text
 ) RETURNS	void
 AS $$
 BEGIN

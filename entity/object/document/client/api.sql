@@ -30,7 +30,7 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.client (
-  pState	varchar
+  pState	text
 ) RETURNS	SETOF api.client
 AS $$
 BEGIN
@@ -46,7 +46,7 @@ $$ LANGUAGE plpgsql
 /**
  * Добавляет нового клиента.
  * @param {numeric} pParent - Идентификатор родителя | null
- * @param {varchar} pType - Tип клиента
+ * @param {text} pType - Tип клиента
  * @param {text} pCode - ИНН - для юридического лица | Имя пользователя (login) | null
  * @param {numeric} pUserId - Идентификатор пользователя системы | null
  * @param {jsonb} pName - Полное наименование компании/Ф.И.О.
@@ -59,7 +59,7 @@ $$ LANGUAGE plpgsql
  */
 CREATE OR REPLACE FUNCTION api.add_client (
   pParent       numeric,
-  pType         varchar,
+  pType         text,
   pCode         text,
   pUserId       numeric,
   pName         jsonb,
@@ -94,7 +94,7 @@ $$ LANGUAGE plpgsql
  * Обновляет данные клиента.
  * @param {numeric} pId - Идентификатор (api.get_client)
  * @param {numeric} pParent - Идентификатор родителя | null
- * @param {varchar} pType - Tип клиента
+ * @param {text} pType - Tип клиента
  * @param {text} pCode - ИНН - для юридического лица | Имя пользователя (login) | null
  * @param {numeric} pUserId - Идентификатор пользователя системы | null
  * @param {jsonb} pName - Полное наименование компании/Ф.И.О.
@@ -108,7 +108,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.update_client (
   pId           numeric,
   pParent       numeric default null,
-  pType         varchar default null,
+  pType         text default null,
   pCode         text default null,
   pUserId       numeric default null,
   pName         jsonb default null,
@@ -152,7 +152,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.set_client (
   pId           numeric,
   pParent       numeric,
-  pType         varchar,
+  pType         text,
   pCode         text,
   pUserId       numeric,
   pName         jsonb,

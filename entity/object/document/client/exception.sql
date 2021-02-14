@@ -3,7 +3,7 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION ClientCodeExists (
-  pCode		varchar
+  pCode		text
 ) RETURNS	void
 AS $$
 BEGIN

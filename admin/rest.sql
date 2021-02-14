@@ -487,7 +487,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, username varchar, oldpass text, newpass text)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, username text, oldpass text, newpass text)
       LOOP
         FOR e IN SELECT true AS success FROM api.change_password(coalesce(r.id, GetUser(r.username)), r.oldpass, r.newpass)
         LOOP
@@ -497,7 +497,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, username varchar, oldpass text, newpass text)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, username text, oldpass text, newpass text)
       LOOP
         FOR e IN SELECT true AS success FROM api.change_password(coalesce(r.id, GetUser(r.username)), r.oldpass, r.newpass) AS success
         LOOP
@@ -518,7 +518,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, username varchar)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, username text)
       LOOP
         FOR e IN SELECT * FROM api.user_lock(coalesce(r.id, GetUser(r.username))) AS success
         LOOP
@@ -528,7 +528,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, username varchar)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, username text)
       LOOP
         FOR e IN SELECT * FROM api.user_lock(coalesce(r.id, GetUser(r.username))) AS success
         LOOP
@@ -549,7 +549,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, username varchar)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, username text)
       LOOP
         FOR e IN SELECT * FROM api.user_unlock(coalesce(r.id, GetUser(r.username))) AS success
         LOOP
@@ -559,7 +559,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, username varchar)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, username text)
       LOOP
         FOR e IN SELECT * FROM api.user_unlock(coalesce(r.id, GetUser(r.username))) AS success
         LOOP
@@ -580,14 +580,14 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, username varchar, type char)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, username text, type char)
       LOOP
         RETURN NEXT row_to_json(api.get_user_iptable(coalesce(r.id, GetUser(r.username)), r.type));
       END LOOP;
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, username varchar, type char)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, username text, type char)
       LOOP
         RETURN NEXT row_to_json(api.get_user_iptable(coalesce(r.id, GetUser(r.username)), r.type));
       END LOOP;
@@ -605,7 +605,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, username varchar, type char, iptable text)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, username text, type char, iptable text)
       LOOP
         FOR e IN SELECT * FROM api.set_user_iptable(coalesce(r.id, GetUser(r.username)), r.type, r.iptable) AS success
         LOOP
@@ -615,7 +615,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, username varchar, type char, iptable text)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, username text, type char, iptable text)
       LOOP
         FOR e IN SELECT * FROM api.set_user_iptable(coalesce(r.id, GetUser(r.username)), r.type, r.iptable) AS success
         LOOP
@@ -765,7 +765,7 @@ BEGIN
     arKeys := array_cat(arKeys, ARRAY['id', 'name']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, name varchar)
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, name text)
     LOOP
       FOR e IN SELECT * FROM api.group_member(coalesce(r.id, GetGroup(r.name)))
       LOOP
@@ -1009,7 +1009,7 @@ BEGIN
     arKeys := array_cat(arKeys, ARRAY['id', 'code']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, code varchar)
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, code text)
     LOOP
       FOR e IN SELECT * FROM api.area_member(coalesce(r.id, GetArea(r.code)))
       LOOP
@@ -1211,7 +1211,7 @@ BEGIN
     arKeys := array_cat(arKeys, ARRAY['id', 'sid']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, sid varchar)
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, sid text)
     LOOP
       FOR e IN SELECT * FROM api.interface_member(coalesce(r.id, GetInterface(r.sid)))
       LOOP
@@ -1282,7 +1282,7 @@ BEGIN
     arKeys := array_cat(arKeys, ARRAY['id', 'name']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, name varchar)
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, name text)
     LOOP
       FOR e IN SELECT * FROM api.group_member(coalesce(r.id, GetGroup(r.name)))
       LOOP
@@ -1299,7 +1299,7 @@ BEGIN
     arKeys := array_cat(arKeys, ARRAY['id', 'name']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, name varchar)
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, name text)
     LOOP
       FOR e IN SELECT * FROM api.member_group(coalesce(r.id, GetUser(r.name)))
       LOOP
@@ -1370,7 +1370,7 @@ BEGIN
     arKeys := array_cat(arKeys, ARRAY['id', 'name']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, name varchar)
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, name text)
     LOOP
       FOR e IN SELECT * FROM api.member_area(coalesce(r.id, GetUser(r.name), GetGroup(r.name)))
       LOOP
@@ -1441,7 +1441,7 @@ BEGIN
     arKeys := array_cat(arKeys, ARRAY['id', 'name']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, name varchar)
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, name text)
     LOOP
       FOR e IN SELECT * FROM api.member_interface(coalesce(r.id, GetUser(r.name), GetGroup(r.name)))
       LOOP

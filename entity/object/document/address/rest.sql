@@ -84,7 +84,7 @@ BEGIN
       pPayload := '{}';
     END IF;
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, code varchar)
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, code text)
     LOOP
       FOR e IN SELECT api.get_address_tree_history(coalesce(r.id, GetAddressTreeId(r.code))) AS history
       LOOP
@@ -103,7 +103,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(code varchar, short integer, level integer)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(code text, short integer, level integer)
       LOOP
         FOR e IN SELECT * FROM api.get_address_tree_string(r.code, coalesce(r.short, 0), coalesce(r.level, 0)) AS address
         LOOP
@@ -113,7 +113,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(code varchar, short integer, level integer)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(code text, short integer, level integer)
       LOOP
         FOR e IN SELECT * FROM api.get_address_tree_string(r.code, coalesce(r.short, 0), coalesce(r.level, 0)) AS address
         LOOP

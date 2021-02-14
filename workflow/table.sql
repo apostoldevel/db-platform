@@ -4,8 +4,8 @@
 
 CREATE TABLE db.entity (
     id			numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
-    code		varchar(30) NOT NULL,
-    name		varchar(50),
+    code		text NOT NULL,
+    name		text,
     description text
 );
 
@@ -26,7 +26,7 @@ CREATE TABLE db.class_tree (
     parent		numeric(12),
     entity		numeric(12) NOT NULL,
     level		integer NOT NULL,
-    code		varchar(30) NOT NULL,
+    code		text NOT NULL,
     label		text NOT NULL,
     abstract    boolean DEFAULT TRUE NOT NULL,
     CONSTRAINT fk_class_tree_parent FOREIGN KEY (parent) REFERENCES db.class_tree(id),
@@ -161,8 +161,8 @@ CREATE TRIGGER t_acu_before
 CREATE TABLE db.type (
     id			numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
     class		numeric(12) NOT NULL,
-    code        varchar(30) NOT NULL,
-    name 		varchar(50) NOT NULL,
+    code        text NOT NULL,
+    name 		text NOT NULL,
     description text,
     CONSTRAINT fk_type_class FOREIGN KEY (class) REFERENCES db.class_tree(id)
 );
@@ -185,8 +185,8 @@ CREATE UNIQUE INDEX ON db.type (class, code);
 
 CREATE TABLE db.state_type (
     id			numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
-    code		varchar(30) NOT NULL,
-    name		varchar(50) NOT NULL
+    code		text NOT NULL,
+    name		text NOT NULL
 );
 
 COMMENT ON TABLE db.state_type IS 'Тип состояния объекта.';
@@ -212,7 +212,7 @@ CREATE TABLE db.state (
     id			numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
     class		numeric(12) NOT NULL,
     type		numeric(12) NOT NULL,
-    code		varchar(30) NOT NULL,
+    code		text NOT NULL,
     label		text NOT NULL,
     sequence	integer NOT NULL,
     CONSTRAINT fk_state_class FOREIGN KEY (class) REFERENCES db.class_tree(id),
@@ -262,9 +262,9 @@ CREATE TRIGGER t_state_insert
 
 CREATE TABLE db.action (
     id			numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
-    code		varchar(30) NOT NULL,
-    name		varchar(50) NOT NULL,
-    description		text
+    code		text NOT NULL,
+    name		text NOT NULL,
+    description	text
 );
 
 COMMENT ON TABLE db.action IS 'Список действий.';
@@ -286,7 +286,7 @@ CREATE TABLE db.method (
     class		numeric(12) NOT NULL,
     state		numeric(12),
     action		numeric(12) NOT NULL,
-    code		varchar(30) NOT NULL,
+    code		text NOT NULL,
     label		text NOT NULL,
     sequence    integer NOT NULL,
     visible		boolean DEFAULT TRUE,
@@ -489,8 +489,8 @@ CREATE TRIGGER t_transition_before_insert
 
 CREATE TABLE db.event_type (
     id			numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
-    code		varchar(30) NOT NULL,
-    name		varchar(50) NOT NULL
+    code		text NOT NULL,
+    name		text NOT NULL
 );
 
 COMMENT ON TABLE db.event_type IS 'Тип события.';
@@ -540,4 +540,3 @@ CREATE INDEX ON db.event (class);
 CREATE INDEX ON db.event (type);
 CREATE INDEX ON db.event (action);
 CREATE INDEX ON db.event (enabled);
-

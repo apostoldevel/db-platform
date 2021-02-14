@@ -5,18 +5,18 @@
 CREATE OR REPLACE FUNCTION CreateAddress (
   pParent       numeric,
   pType         numeric,
-  pCode         varchar,
-  pIndex        varchar,
-  pCountry      varchar,
-  pRegion       varchar,
-  pDistrict     varchar,
-  pCity         varchar,
-  pSettlement   varchar,
-  pStreet       varchar,
-  pHouse        varchar,
-  pBuilding     varchar,
-  pStructure    varchar,
-  pApartment    varchar,
+  pCode         text,
+  pIndex        text,
+  pCountry      text,
+  pRegion       text,
+  pDistrict     text,
+  pCity         text,
+  pSettlement   text,
+  pStreet       text,
+  pHouse        text,
+  pBuilding     text,
+  pStructure    text,
+  pApartment    text,
   pAddress      text DEFAULT null
 ) RETURNS       numeric
 AS $$
@@ -141,18 +141,18 @@ CREATE OR REPLACE FUNCTION EditAddress (
   pId           numeric,
   pParent       numeric DEFAULT null,
   pType         numeric DEFAULT null,
-  pCode         varchar DEFAULT null,
-  pIndex        varchar DEFAULT null,
-  pCountry      varchar DEFAULT null,
-  pRegion       varchar DEFAULT null,
-  pDistrict     varchar DEFAULT null,
-  pCity         varchar DEFAULT null,
-  pSettlement   varchar DEFAULT null,
-  pStreet       varchar DEFAULT null,
-  pHouse        varchar DEFAULT null,
-  pBuilding     varchar DEFAULT null,
-  pStructure    varchar DEFAULT null,
-  pApartment    varchar DEFAULT null,
+  pCode         text DEFAULT null,
+  pIndex        text DEFAULT null,
+  pCountry      text DEFAULT null,
+  pRegion       text DEFAULT null,
+  pDistrict     text DEFAULT null,
+  pCity         text DEFAULT null,
+  pSettlement   text DEFAULT null,
+  pStreet       text DEFAULT null,
+  pHouse        text DEFAULT null,
+  pBuilding     text DEFAULT null,
+  pStructure    text DEFAULT null,
+  pApartment    text DEFAULT null,
   pAddress      text DEFAULT null
 ) RETURNS       void
 AS $$
@@ -393,13 +393,13 @@ $$ LANGUAGE plpgsql
 /**
  * Возвращает адрес объекта.
  * @param {numeric} pObject - Идентификатор объекта
- * @param {varchar} pKey - Ключ
+ * @param {text} pKey - Ключ
  * @param {timestamp} pDate - Дата
  * @return {text}
  */
 CREATE OR REPLACE FUNCTION GetObjectAddress (
   pObject	numeric,
-  pKey	    varchar,
+  pKey	    text,
   pDate		timestamp DEFAULT oper_date()
 ) RETURNS	text
 AS $$

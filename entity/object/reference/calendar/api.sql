@@ -11,8 +11,8 @@
  * @field {numeric} object - Идентификатор справочника
  * @field {numeric} parent - Идентификатор объекта родителя
  * @field {numeric} class - Идентификатор класса
- * @field {varchar} code - Код
- * @field {varchar} name - Наименование
+ * @field {text} code - Код
+ * @field {text} name - Наименование
  * @field {text} description - Описание
  * @field {numeric} week - Количество используемых (рабочих) дней в неделе
  * @field {integer[]} dayoff - Массив выходных дней в неделе. Допустимые значения [1..7, ...]
@@ -40,9 +40,9 @@ GRANT SELECT ON api.calendar TO administrator;
 /**
  * Создает календарь.
  * @param {numeric} pParent - Ссылка на родительский объект: api.document | null
- * @param {varchar} pType - Тип
- * @param {varchar} pCode - Код
- * @param {varchar} pName - Наименование
+ * @param {text} pType - Тип
+ * @param {text} pCode - Код
+ * @param {text} pName - Наименование
  * @param {numeric} pWeek - Количество используемых (рабочих) дней в неделе
  * @param {jsonb} pDayOff - Массив выходных дней в неделе. Допустимые значения [1..7, ...]
  * @param {jsonb} pHoliday - Двухмерный массив праздничных дней в году в формате [[MM,DD], ...]. Допустимые значения [[1..12,1..31], ...]
@@ -55,9 +55,9 @@ GRANT SELECT ON api.calendar TO administrator;
  */
 CREATE OR REPLACE FUNCTION api.add_calendar (
   pParent       numeric,
-  pType         varchar,
-  pCode         varchar,
-  pName         varchar,
+  pType         text,
+  pCode         text,
+  pName         text,
   pWeek         numeric,
   pDayOff       jsonb,
   pHoliday      jsonb,
@@ -103,9 +103,9 @@ $$ LANGUAGE plpgsql
  * Обновляет календарь.
  * @param {numeric} pId - Идентификатор календаря (api.get_calendar)
  * @param {numeric} pParent - Ссылка на родительский объект: api.document | null
- * @param {varchar} pType - Тип
- * @param {varchar} pCode - Код
- * @param {varchar} pName - Наименование
+ * @param {text} pType - Тип
+ * @param {text} pCode - Код
+ * @param {text} pName - Наименование
  * @param {numeric} pWeek - Количество используемых (рабочих) дней в неделе
  * @param {jsonb} pDayOff - Массив выходных дней в неделе. Допустимые значения [1..7, ...]
  * @param {jsonb} pHoliday - Двухмерный массив праздничных дней в году в формате [[MM,DD], ...]. Допустимые значения [[1..12,1..31], ...]
@@ -119,9 +119,9 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.update_calendar (
   pId           numeric,
   pParent       numeric DEFAULT null,
-  pType         varchar DEFAULT null,
-  pCode         varchar DEFAULT null,
-  pName         varchar DEFAULT null,
+  pType         text DEFAULT null,
+  pCode         text DEFAULT null,
+  pName         text DEFAULT null,
   pWeek         numeric DEFAULT null,
   pDayOff       jsonb DEFAULT null,
   pHoliday      jsonb DEFAULT null,
@@ -180,9 +180,9 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.set_calendar (
   pId           numeric,
   pParent       numeric DEFAULT null,
-  pType         varchar DEFAULT null,
-  pCode         varchar DEFAULT null,
-  pName         varchar DEFAULT null,
+  pType         text DEFAULT null,
+  pCode         text DEFAULT null,
+  pName         text DEFAULT null,
   pWeek         numeric DEFAULT null,
   pDayOff       jsonb DEFAULT null,
   pHoliday      jsonb DEFAULT null,

@@ -18,9 +18,9 @@ GRANT SELECT ON api.scheduler TO administrator;
 /**
  * Добавляет планировщик.
  * @param {numeric} pParent - Ссылка на родительский объект: api.document | null
- * @param {varchar} pType - Код типа
- * @param {varchar} pCode - Код
- * @param {varchar} pName - Наименование
+ * @param {text} pType - Код типа
+ * @param {text} pCode - Код
+ * @param {text} pName - Наименование
  * @param {interval} pPeriod - Период выполнения
  * @param {timestamptz} pDateStart - Дата начала выполнения
  * @param {timestamptz} pDateStop - Дата окончания выполнения
@@ -29,9 +29,9 @@ GRANT SELECT ON api.scheduler TO administrator;
  */
 CREATE OR REPLACE FUNCTION api.add_scheduler (
   pParent       numeric,
-  pType         varchar,
-  pCode         varchar,
-  pName         varchar,
+  pType         text,
+  pCode         text,
+  pName         text,
   pPeriod       interval default null,
   pDateStart    timestamptz default null,
   pDateStop     timestamptz default null,
@@ -51,9 +51,9 @@ $$ LANGUAGE plpgsql
 /**
  * Редактирует планировщик.
  * @param {numeric} pParent - Ссылка на родительский объект: Object.Parent | null
- * @param {varchar} pType - Код типа
- * @param {varchar} pCode - Код
- * @param {varchar} pName - Наименование
+ * @param {text} pType - Код типа
+ * @param {text} pCode - Код
+ * @param {text} pName - Наименование
  * @param {interval} pPeriod - Период выполнения
  * @param {timestamptz} pDateStart - Дата начала выполнения
  * @param {timestamptz} pDateStop - Дата окончания выполнения
@@ -63,9 +63,9 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.update_scheduler (
   pId		    numeric,
   pParent       numeric default null,
-  pType         varchar default null,
-  pCode         varchar default null,
-  pName         varchar default null,
+  pType         text default null,
+  pCode         text default null,
+  pName         text default null,
   pPeriod       interval default null,
   pDateStart    timestamptz default null,
   pDateStop     timestamptz default null,
@@ -101,9 +101,9 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.set_scheduler (
   pId           numeric,
   pParent       numeric default null,
-  pType         varchar default null,
-  pCode         varchar default null,
-  pName         varchar default null,
+  pType         text default null,
+  pCode         text default null,
+  pName         text default null,
   pPeriod       interval default null,
   pDateStart    timestamptz default null,
   pDateStop     timestamptz default null,

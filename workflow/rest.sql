@@ -383,7 +383,7 @@ BEGIN
     arKeys := array_cat(arKeys, ARRAY['id', 'code']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, code varchar)
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, code text)
     LOOP
       FOR e IN SELECT * FROM api.class_access(coalesce(r.id, GetClass(r.code)))
       LOOP
@@ -446,7 +446,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, code varchar, userid numeric)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, code text, userid numeric)
       LOOP
         FOR e IN SELECT * FROM api.decode_class_access(coalesce(r.id, GetClass(r.code)), coalesce(r.userid, current_userid()))
         LOOP
@@ -456,7 +456,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, code varchar, userid numeric)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, code text, userid numeric)
       LOOP
         FOR e IN SELECT * FROM api.decode_class_access(coalesce(r.id, GetClass(r.code)), coalesce(r.userid, current_userid()))
         LOOP

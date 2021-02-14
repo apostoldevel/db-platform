@@ -18,7 +18,7 @@ GRANT SELECT ON api.document TO administrator;
 /**
  * Добавляет документ.
  * @param {numeric} pParent - Ссылка на родительский объект: api.document | null
- * @param {varchar} pType - Тип
+ * @param {text} pType - Тип
  * @param {text} pLabel - Метка
  * @param {text} pDescription - Описание
  * @param {text} pData - Данные
@@ -26,7 +26,7 @@ GRANT SELECT ON api.document TO administrator;
  */
 CREATE OR REPLACE FUNCTION api.add_document (
   pParent       numeric,
-  pType         varchar,
+  pType         text,
   pLabel        text default null,
   pDescription  text DEFAULT null,
   pData			text DEFAULT null
@@ -45,7 +45,7 @@ $$ LANGUAGE plpgsql
 /**
  * Редактирует документ.
  * @param {numeric} pParent - Ссылка на родительский объект: Document.Parent | null
- * @param {varchar} pType - Тип
+ * @param {text} pType - Тип
  * @param {text} pLabel - Метка
  * @param {text} pDescription - Описание
  * @param {text} pData - Данные
@@ -54,7 +54,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.update_document (
   pId		    numeric,
   pParent       numeric default null,
-  pType         varchar default null,
+  pType         text default null,
   pLabel        text default null,
   pDescription  text DEFAULT null,
   pData			text DEFAULT null
@@ -89,7 +89,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.set_document (
   pId		    numeric,
   pParent       numeric default null,
-  pType         varchar default null,
+  pType         text default null,
   pLabel        text default null,
   pDescription  text DEFAULT null,
   pData			text DEFAULT null

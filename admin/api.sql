@@ -53,14 +53,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * @brief Выход из системы.
- * @param {text} pSession - Сессия
+ * @param {varchar} pSession - Сессия
  * @param {boolean} pCloseAll - Закрыть все сессии
  * @out param {boolean} result - Результат
  * @out param {text} message - Текст ошибки
  * @return {record}
  */
 CREATE OR REPLACE FUNCTION api.signout (
-  pSession      text DEFAULT current_session(),
+  pSession      varchar DEFAULT current_session(),
   pCloseAll 	boolean DEFAULT false
 ) RETURNS       boolean
 AS $$
@@ -76,7 +76,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * @brief Аутентификация.
- * @param {text} pSession - Сессия
+ * @param {varchar} pSession - Сессия
  * @param {text} pSecret - Секретный код
  * @param {text} pAgent - Агент
  * @param {inet} pHost - IP адрес
@@ -87,7 +87,7 @@ $$ LANGUAGE plpgsql
  * @return {record}
  */
 CREATE OR REPLACE FUNCTION api.authenticate (
-  pSession			text,
+  pSession			varchar,
   pSecret			text,
   pAgent			text DEFAULT null,
   pHost       		inet DEFAULT null,
@@ -112,7 +112,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Авторизовать.
- * @param {text} pSession - Сессия
+ * @param {varchar} pSession - Сессия
  * @param {text} pAgent - Агент
  * @param {inet} pHost - IP адрес
  * @out param {boolean} authorized - Результат авторизации
@@ -121,7 +121,7 @@ $$ LANGUAGE plpgsql
  * @return {record}
  */
 CREATE OR REPLACE FUNCTION api.authorize (
-  pSession          text,
+  pSession          varchar,
   pAgent            text DEFAULT null,
   pHost             inet DEFAULT null,
   OUT authorized    boolean,
@@ -751,7 +751,7 @@ GRANT SELECT ON api.group TO administrator;
 --------------------------------------------------------------------------------
 /**
  * Создаёт группу учётных записей пользователя.
- * @param {varchar} pUserName - Группа
+ * @param {text} pUserName - Группа
  * @param {text} pName - Полное имя
  * @param {text} pDescription - Описание
  * @return {numeric}
@@ -775,7 +775,7 @@ $$ LANGUAGE plpgsql
 /**
  * Обновляет учётные данные группы.
  * @param {numeric} pId - Идентификатор группы
- * @param {varchar} pUserName - Группа
+ * @param {text} pUserName - Группа
  * @param {text} pName - Полное имя
  * @param {text} pDescription - Описание
  * @return {void}
@@ -1133,16 +1133,16 @@ GRANT SELECT ON api.area TO administrator;
  * Создаёт зону.
  * @param {numeric} pParent - Идентификатор "родителя"
  * @param {numeric} pType - Идентификатор типа
- * @param {varchar} pCode - Код
- * @param {varchar} pName - Наименование
+ * @param {text} pCode - Код
+ * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
  * @return {numeric}
  */
 CREATE OR REPLACE FUNCTION api.add_area (
   pParent       numeric,
   pType         numeric,
-  pCode         varchar,
-  pName         varchar,
+  pCode         text,
+  pName         text,
   pDescription  text DEFAULT null
 ) RETURNS       numeric
 AS $$
@@ -1161,8 +1161,8 @@ $$ LANGUAGE plpgsql
  * @param {numeric} pId - Идентификатор зоны
  * @param {numeric} pParent - Идентификатор "родителя"
  * @param {numeric} pType - Идентификатор типа
- * @param {varchar} pCode - Код
- * @param {varchar} pName - Наименование
+ * @param {text} pCode - Код
+ * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
  * @param {timestamp} pValidFromDate - Дата открытия
  * @param {timestamp} pValidToDate - Дата закрытия
@@ -1172,8 +1172,8 @@ CREATE OR REPLACE FUNCTION api.update_area (
   pId               numeric,
   pParent           numeric DEFAULT null,
   pType             numeric DEFAULT null,
-  pCode             varchar DEFAULT null,
-  pName             varchar DEFAULT null,
+  pCode             text DEFAULT null,
+  pName             text DEFAULT null,
   pDescription      text DEFAULT null,
   pValidFromDate    timestamp DEFAULT null,
   pValidToDate      timestamp DEFAULT null
@@ -1194,8 +1194,8 @@ CREATE OR REPLACE FUNCTION api.set_area (
   pId               numeric,
   pParent           numeric DEFAULT null,
   pType             numeric DEFAULT null,
-  pCode             varchar DEFAULT null,
-  pName             varchar DEFAULT null,
+  pCode             text DEFAULT null,
+  pName             text DEFAULT null,
   pDescription      text DEFAULT null,
   pValidFromDate    timestamp DEFAULT null,
   pValidToDate      timestamp DEFAULT null
@@ -1497,13 +1497,13 @@ GRANT SELECT ON api.interface TO administrator;
 --------------------------------------------------------------------------------
 /**
  * Создаёт интерфейс.
- * @param {varchar} pName - Наименование
+ * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
  * @out param {numeric} id - Идентификатор интерфейса
  * @return {numeric}
  */
 CREATE OR REPLACE FUNCTION api.add_interface (
-  pName         varchar,
+  pName         text,
   pDescription  text DEFAULT null
 ) RETURNS       numeric
 AS $$
@@ -1520,13 +1520,13 @@ $$ LANGUAGE plpgsql
 /**
  * Обновляет интерфейс.
  * @param {numeric} pId - Идентификатор интерфейса
- * @param {varchar} pName - Наименование
+ * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_interface (
   pId           numeric,
-  pName         varchar,
+  pName         text,
   pDescription  text DEFAULT null
 ) RETURNS       void
 AS $$
@@ -1543,7 +1543,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION api.set_interface (
   pId           numeric,
-  pName         varchar,
+  pName         text,
   pDescription  text DEFAULT null
 ) RETURNS       SETOF api.interface
 AS $$

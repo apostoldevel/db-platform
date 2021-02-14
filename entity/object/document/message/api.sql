@@ -32,9 +32,9 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.message (
-  pType		varchar,
-  pAgent    varchar,
-  pState    varchar
+  pType		text,
+  pAgent    text,
+  pState    text
 ) RETURNS	SETOF api.message
 AS $$
   SELECT * FROM api.message(CodeToType(coalesce(pType, 'message.outbox'), 'message'), GetAgent(pAgent), GetState(GetClass(SubStr(pType, StrPos(pType, '.') + 1)), pState));
@@ -61,7 +61,7 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.outbox (
-  pState    varchar
+  pState    text
 ) RETURNS	SETOF api.message
 AS $$
   SELECT * FROM api.outbox(GetState(GetClass('outbox'), pState));
@@ -75,7 +75,7 @@ $$ LANGUAGE SQL
 /**
  * Добавляет сообщение.
  * @param {numeric} pParent - Родительский объект
- * @param {varchar} pType - Код типа
+ * @param {text} pType - Код типа
  * @param {numeric} pAgent - Агент
  * @param {text} pProfile - Профиль отправителя
  * @param {text} pAddress - Адрес получателя
@@ -86,7 +86,7 @@ $$ LANGUAGE SQL
  */
 CREATE OR REPLACE FUNCTION api.add_message (
   pParent       numeric,
-  pType         varchar,
+  pType         text,
   pAgent        numeric,
   pProfile      text,
   pAddress      text,
@@ -109,7 +109,7 @@ $$ LANGUAGE plpgsql
  * Обновляет сообщение.
  * @param {numeric} pId - Идентификатор
  * @param {numeric} pParent - Родительский объект
- * @param {varchar} pType - Код типа
+ * @param {text} pType - Код типа
  * @param {numeric} pAgent - Агент
  * @param {text} pProfile - Профиль отправителя
  * @param {text} pAddress - Адрес получателя
@@ -121,7 +121,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.update_message (
   pId           numeric,
   pParent       numeric default null,
-  pType         varchar default null,
+  pType         text default null,
   pAgent        numeric default null,
   pProfile      text default null,
   pAddress      text default null,
@@ -158,7 +158,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.set_message (
   pId           numeric,
   pParent       numeric default null,
-  pType         varchar default null,
+  pType         text default null,
   pAgent        numeric default null,
   pProfile      text default null,
   pAddress      text default null,

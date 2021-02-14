@@ -108,7 +108,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetMessageId (
-  pCode		varchar
+  pCode		text
 ) RETURNS	numeric
 AS $$
 DECLARE
@@ -127,10 +127,10 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION GetMessageCode (
   pId		numeric
-) RETURNS	varchar
+) RETURNS	text
 AS $$
 DECLARE
-  vCode		varchar;
+  vCode		text;
 BEGIN
   SELECT code INTO vCode FROM db.message WHERE id = pId;
   RETURN vCode;
@@ -144,7 +144,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetMessageState (
-  pCode		varchar
+  pCode		text
 ) RETURNS	numeric
 AS $$
 BEGIN

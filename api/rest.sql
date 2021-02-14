@@ -494,7 +494,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(fields jsonb, class numeric, code varchar)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(fields jsonb, class numeric, code text)
       LOOP
         FOR e IN EXECUTE format('SELECT %s FROM api.state($1)', JsonbToFields(r.fields, GetColumns('state', 'api'))) USING coalesce(r.class, GetClass(r.code))
         LOOP
@@ -504,7 +504,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(fields jsonb, class numeric, code varchar)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(fields jsonb, class numeric, code text)
       LOOP
         FOR e IN EXECUTE format('SELECT %s FROM api.state($1)', JsonbToFields(r.fields, GetColumns('state', 'api'))) USING coalesce(r.class, GetClass(r.code))
         LOOP
@@ -706,7 +706,7 @@ BEGIN
 
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(object numeric, class numeric, classcode varchar, state numeric, statecode varchar, action numeric, actioncode varchar)
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(object numeric, class numeric, classcode text, state numeric, statecode text, action numeric, actioncode text)
     LOOP
       nId := coalesce(r.class, GetClass(r.classcode), GetObjectClass(r.object));
       FOR e IN SELECT * FROM api.get_methods(nId, coalesce(r.state, GetState(nId, r.statecode), GetObjectState(r.object)), coalesce(r.action, GetAction(r.actioncode)))

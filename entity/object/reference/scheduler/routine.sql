@@ -5,8 +5,8 @@
  * Создаёт планировщик
  * @param {numeric} pParent - Идентификатор объекта родителя
  * @param {numeric} pType - Идентификатор типа
- * @param {varchar} pCode - Код
- * @param {varchar} pName - Наименование
+ * @param {text} pCode - Код
+ * @param {text} pName - Наименование
  * @param {interval} pPeriod - Период выполнения
  * @param {timestamptz} pDateStart - Дата начала выполнения
  * @param {timestamptz} pDateStop - Дата окончания выполнения
@@ -16,8 +16,8 @@
 CREATE OR REPLACE FUNCTION CreateScheduler (
   pParent       numeric,
   pType         numeric,
-  pCode         varchar,
-  pName         varchar,
+  pCode         text,
+  pName         text,
   pPeriod       interval default null,
   pDateStart    timestamptz default null,
   pDateStop     timestamptz default null,
@@ -57,8 +57,8 @@ $$ LANGUAGE plpgsql
  * @param {numeric} pId - Идентификатор
  * @param {numeric} pParent - Идентификатор объекта родителя
  * @param {numeric} pType - Идентификатор типа
- * @param {varchar} pCode - Код
- * @param {varchar} pName - Наименование
+ * @param {text} pCode - Код
+ * @param {text} pName - Наименование
  * @param {interval} pPeriod - Период выполнения
  * @param {timestamptz} pDateStart - Дата начала выполнения
  * @param {timestamptz} pDateStop - Дата окончания выполнения
@@ -69,8 +69,8 @@ CREATE OR REPLACE FUNCTION EditScheduler (
   pId           numeric,
   pParent       numeric default null,
   pType         numeric default null,
-  pCode         varchar default null,
-  pName         varchar default null,
+  pCode         text default null,
+  pName         text default null,
   pPeriod       interval default null,
   pDateStart    timestamptz default null,
   pDateStop     timestamptz default null,
@@ -103,7 +103,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetScheduler (
-  pCode		varchar
+  pCode		text
 ) RETURNS 	numeric
 AS $$
 BEGIN

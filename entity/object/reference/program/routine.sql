@@ -5,8 +5,8 @@
  * Создаёт программу
  * @param {numeric} pParent - Идентификатор объекта родителя
  * @param {numeric} pType - Идентификатор типа
- * @param {varchar} pCode - Код
- * @param {varchar} pName - Наименование
+ * @param {text} pCode - Код
+ * @param {text} pName - Наименование
  * @param {text} pBody - Тело
  * @param {text} pDescription - Описание
  * @return {numeric}
@@ -14,8 +14,8 @@
 CREATE OR REPLACE FUNCTION CreateProgram (
   pParent       numeric,
   pType         numeric,
-  pCode         varchar,
-  pName         varchar,
+  pCode         text,
+  pName         text,
   pBody         text,
   pDescription	text default null
 ) RETURNS       numeric
@@ -53,8 +53,8 @@ $$ LANGUAGE plpgsql
  * @param {numeric} pId - Идентификатор
  * @param {numeric} pParent - Идентификатор объекта родителя
  * @param {numeric} pType - Идентификатор типа
- * @param {varchar} pCode - Код
- * @param {varchar} pName - Наименование
+ * @param {text} pCode - Код
+ * @param {text} pName - Наименование
  * @param {text} pBody - Тело
  * @param {text} pDescription - Описание
  * @return {void}
@@ -63,8 +63,8 @@ CREATE OR REPLACE FUNCTION EditProgram (
   pId           numeric,
   pParent       numeric default null,
   pType         numeric default null,
-  pCode         varchar default null,
-  pName         varchar default null,
+  pCode         text default null,
+  pName         text default null,
   pBody         text default null,
   pDescription	text default null
 ) RETURNS       void
@@ -93,7 +93,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetProgram (
-  pCode		varchar
+  pCode		text
 ) RETURNS 	numeric
 AS $$
 BEGIN

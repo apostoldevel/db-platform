@@ -86,15 +86,15 @@ $$ LANGUAGE SQL
 /**
  * Создаёт тип.
  * @param {numeric} pClass - Идентификатор класса
- * @param {varchar} pCode - Код
- * @param {varchar} pName - Наименование
+ * @param {text} pCode - Код
+ * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
  * @return {numeric}
  */
 CREATE OR REPLACE FUNCTION api.add_type (
   pClass	    numeric,
-  pCode		    varchar,
-  pName		    varchar,
+  pCode		    text,
+  pName		    text,
   pDescription  text DEFAULT null
 ) RETURNS 	    numeric
 AS $$
@@ -112,8 +112,8 @@ $$ LANGUAGE plpgsql
  * Обновляет тип.
  * @param {numeric} pId - Идентификатор типа
  * @param {numeric} pClass - Идентификатор класса
- * @param {varchar} pCode - Код
- * @param {varchar} pName - Наименование
+ * @param {text} pCode - Код
+ * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
  * @out param {numeric} id - Идентификатор типа
  * @return {void}
@@ -121,8 +121,8 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.update_type (
   pId           numeric,
   pClass        numeric DEFAULT null,
-  pCode         varchar DEFAULT null,
-  pName         varchar DEFAULT null,
+  pCode         text DEFAULT null,
+  pName         text DEFAULT null,
   pDescription	text DEFAULT null
 ) RETURNS       void
 AS $$
@@ -140,8 +140,8 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.set_type (
   pId           numeric,
   pClass        numeric DEFAULT null,
-  pCode         varchar DEFAULT null,
-  pName         varchar DEFAULT null,
+  pCode         text DEFAULT null,
+  pName         text DEFAULT null,
   pDescription	text DEFAULT null
 ) RETURNS       SETOF api.type
 AS $$
@@ -198,11 +198,11 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 /**
  * Возвращает тип объекта по коду.
- * @param {varchar} pCode - Код типа объекта
+ * @param {text} pCode - Код типа объекта
  * @return {numeric} - Тип объекта
  */
 CREATE OR REPLACE FUNCTION api.get_type (
-  pCode		varchar
+  pCode		text
 ) RETURNS	numeric
 AS $$
 BEGIN
@@ -256,15 +256,15 @@ GRANT SELECT ON api.class TO administrator;
  * Создаёт класс.
  * @param {numeric} pParent - Идентификатор "родителя"
  * @param {numeric} pEntity - Идентификатор сущности
- * @param {varchar} pCode - Код
+ * @param {text} pCode - Код
  * @param {text} pLabel - Наименование
  * @param {boolean} pAbstract - Абстрактный (Да/Нет)
  * @return {numeric}
  */
 CREATE OR REPLACE FUNCTION api.add_class (
   pParent       numeric,
-  pEntity      numeric,
-  pCode         varchar,
+  pEntity		numeric,
+  pCode         text,
   pLabel        text,
   pAbstract     boolean DEFAULT true
 ) RETURNS       numeric
@@ -284,7 +284,7 @@ $$ LANGUAGE plpgsql
  * @param {numeric} pId - Идентификатор класса
  * @param {numeric} pParent - Идентификатор "родителя"
  * @param {numeric} pEntity - Идентификатор сущности
- * @param {varchar} pCode - Код
+ * @param {text} pCode - Код
  * @param {text} pLabel - Наименование
  * @param {boolean} pAbstract - Абстрактный (Да/Нет)
  * @out {numeric} id - Идентификатор класса
@@ -295,8 +295,8 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.update_class (
   pId           numeric,
   pParent       numeric,
-  pEntity      numeric,
-  pCode         varchar,
+  pEntity		numeric,
+  pCode         text,
   pLabel        text,
   pAbstract     boolean DEFAULT true
 ) RETURNS       void
@@ -315,8 +315,8 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.set_class (
   pId           numeric,
   pParent       numeric,
-  pEntity      numeric,
-  pCode         varchar,
+  pEntity		numeric,
+  pCode         text,
   pLabel        text,
   pAbstract     boolean DEFAULT true
 ) RETURNS       SETOF api.class
@@ -529,7 +529,7 @@ $$ LANGUAGE SQL
  * Создаёт состояние.
  * @param {numeric} pClass - Идентификатор класса
  * @param {numeric} pType - Идентификатор типа
- * @param {varchar} pCode - Код
+ * @param {text} pCode - Код
  * @param {text} pLabel - Наименование
  * @param {integer} pSequence - Очередность
  * @out param {numeric} id - Идентификатор состояния
@@ -540,7 +540,7 @@ $$ LANGUAGE SQL
 CREATE OR REPLACE FUNCTION api.add_state (
   pClass      numeric,
   pType       numeric,
-  pCode       varchar,
+  pCode       text,
   pLabel      text,
   pSequence   integer
 ) RETURNS     numeric
@@ -560,7 +560,7 @@ $$ LANGUAGE plpgsql
  * @param {numeric} pId - Идентификатор состояния
  * @param {numeric} pClass - Идентификатор класса
  * @param {numeric} pType - Идентификатор типа
- * @param {varchar} pCode - Код
+ * @param {text} pCode - Код
  * @param {text} pLabel - Наименование
  * @param {integer} pSequence - Очередность
  * @out param {numeric} id - Идентификатор состояния
@@ -572,7 +572,7 @@ CREATE OR REPLACE FUNCTION api.update_state (
   pId         numeric,
   pClass      numeric DEFAULT null,
   pType       numeric DEFAULT null,
-  pCode       varchar DEFAULT null,
+  pCode       text DEFAULT null,
   pLabel      text DEFAULT null,
   pSequence   integer DEFAULT null
 ) RETURNS     void
@@ -592,7 +592,7 @@ CREATE OR REPLACE FUNCTION api.set_state (
   pId           numeric,
   pClass        numeric DEFAULT null,
   pType         numeric DEFAULT null,
-  pCode         varchar DEFAULT null,
+  pCode         text DEFAULT null,
   pLabel        text DEFAULT null,
   pSequence     integer DEFAULT null
 ) RETURNS       SETOF api.state
@@ -767,7 +767,7 @@ $$ LANGUAGE SQL
  * @param {numeric} pClass - Идентификатор класса: api.class
  * @param {numeric} pState - Идентификатор состояния: api.state
  * @param {numeric} pAction - Идентификатор действия: api.action
- * @param {varchar} pCode - Код
+ * @param {text} pCode - Код
  * @param {text} pLabel - Наименование
  * @param {integer} pSequence - Очередность
  * @param {boolean} pVisible - Видимый: Да/Нет
@@ -778,7 +778,7 @@ CREATE OR REPLACE FUNCTION api.add_method (
   pClass        numeric,
   pState        numeric,
   pAction       numeric,
-  pCode         varchar,
+  pCode         text,
   pLabel        text,
   pSequence     integer,
   pVisible      boolean
@@ -801,7 +801,7 @@ $$ LANGUAGE plpgsql
  * @param {numeric} pClass - Идентификатор класса: api.class
  * @param {numeric} pState - Идентификатор состояния: api.state
  * @param {numeric} pAction - Идентификатор действия: api.action
- * @param {varchar} pCode - Код
+ * @param {text} pCode - Код
  * @param {text} pLabel - Наименование
  * @param {integer} pSequence - Очередность
  * @param {boolean} pVisible - Видимый: Да/Нет
@@ -813,7 +813,7 @@ CREATE OR REPLACE FUNCTION api.update_method (
   pClass        numeric DEFAULT null,
   pState        numeric DEFAULT null,
   pAction       numeric DEFAULT null,
-  pCode         varchar DEFAULT null,
+  pCode         text DEFAULT null,
   pLabel        text DEFAULT null,
   pSequence     integer DEFAULT null,
   pVisible      boolean DEFAULT null
@@ -836,7 +836,7 @@ CREATE OR REPLACE FUNCTION api.set_method (
   pClass        numeric DEFAULT null,
   pState        numeric DEFAULT null,
   pAction       numeric DEFAULT null,
-  pCode         varchar DEFAULT null,
+  pCode         text DEFAULT null,
   pLabel        text DEFAULT null,
   pSequence     integer DEFAULT null,
   pVisible      boolean DEFAULT null
@@ -1074,7 +1074,7 @@ GRANT SELECT ON api.transition TO administrator;
  * Создаёт переход в новое состояние.
  * @param {numeric} pState - Идентификатор состояния
  * @param {numeric} pMethod - Идентификатор метода (операции)
- * @param {varchar} pNewState - Идентификатор нового состояния
+ * @param {text} pNewState - Идентификатор нового состояния
  * @out param {numeric} id - Идентификатор перехода
  * @out param {boolean} result - Результат
  * @out param {text} message - Текст ошибки
@@ -1101,7 +1101,7 @@ $$ LANGUAGE plpgsql
  * @param {numeric} pId - Идентификатор перехода
  * @param {numeric} pState - Идентификатор состояния
  * @param {numeric} pMethod - Идентификатор метода (операции)
- * @param {varchar} pNewState - Идентификатор нового состояния
+ * @param {text} pNewState - Идентификатор нового состояния
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_transition (

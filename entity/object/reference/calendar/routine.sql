@@ -5,8 +5,8 @@
  * Создаёт календарь
  * @param {numeric} pParent - Идентификатор объекта родителя
  * @param {numeric} pType - Идентификатор типа
- * @param {varchar} pCode - Код
- * @param {varchar} pName - Наименование
+ * @param {text} pCode - Код
+ * @param {text} pName - Наименование
  * @param {numeric} pWeek - Количество используемых (рабочих) дней в неделе
  * @param {integer[]} pDayOff - Массив выходных дней в неделе. Допустимые значения [1..7, ...]
  * @param {integer[][]} pHoliday - Двухмерный массив праздничных дней в году. Допустимые значения [[1..12,1..31], ...]
@@ -20,8 +20,8 @@
 CREATE OR REPLACE FUNCTION CreateCalendar (
   pParent       numeric,
   pType         numeric,
-  pCode         varchar,
-  pName         varchar,
+  pCode         text,
+  pName         text,
   pWeek         numeric,
   pDayOff       integer[],
   pHoliday      integer[][],
@@ -65,8 +65,8 @@ $$ LANGUAGE plpgsql
  * @param {numeric} pId - Идентификатор
  * @param {numeric} pParent - Идентификатор объекта родителя
  * @param {numeric} pType - Идентификатор типа
- * @param {varchar} pCode - Код
- * @param {varchar} pName - Наименование
+ * @param {text} pCode - Код
+ * @param {text} pName - Наименование
  * @param {numeric} pWeek - Количество используемых (рабочих) дней в неделе
  * @param {integer[]} pDayOff - Массив выходных дней в неделе. Допустимые значения [1..7, ...]
  * @param {integer[][]} pHoliday - Двухмерный массив праздничных дней в году. Допустимые значения [[1..12,1..31], ...]
@@ -81,8 +81,8 @@ CREATE OR REPLACE FUNCTION EditCalendar (
   pId           numeric,
   pParent       numeric DEFAULT null,
   pType         numeric DEFAULT null,
-  pCode         varchar DEFAULT null,
-  pName         varchar DEFAULT null,
+  pCode         text DEFAULT null,
+  pName         text DEFAULT null,
   pWeek         numeric DEFAULT null,
   pDayOff       integer[] DEFAULT null,
   pHoliday      integer[][] DEFAULT null,
@@ -123,7 +123,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetCalendar (
-  pCode       varchar
+  pCode       text
 ) RETURNS     numeric
 AS $$
 BEGIN

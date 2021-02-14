@@ -126,14 +126,14 @@ CREATE TRIGGER t_client_update
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.client_name (
-    Id			    numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
-    Client		    numeric(12) NOT NULL,
-    Locale		    numeric(12) NOT NULL,
-    Name		    text NOT NULL,
-    Short		    text,
-    First		    text,
-    Last		    text,
-    Middle		    text,
+    id			    numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
+    client		    numeric(12) NOT NULL,
+    locale		    numeric(12) NOT NULL,
+    name		    text NOT NULL,
+    short		    text,
+    first		    text,
+    last		    text,
+    middle		    text,
     validFromDate	timestamp DEFAULT Now() NOT NULL,
     validToDate		timestamp DEFAULT TO_DATE('4433-12-31', 'YYYY-MM-DD') NOT NULL,
     CONSTRAINT fk_client_name_client FOREIGN KEY (client) REFERENCES db.client(id),

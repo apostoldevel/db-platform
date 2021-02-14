@@ -18,37 +18,37 @@ GRANT SELECT ON api.address TO administrator;
 /**
  * Добавляет новый адрес.
  * @param {numeric} pParent - Идентификатор родителя | null
- * @param {varchar} pType - Код типа адреса
- * @param {varchar} pCode - Код: ФФ СС РРР ГГГ ППП УУУУ. Где: ФФ - код страны; СС - код субъекта РФ; РРР - код района; ГГГ - код города; ППП - код населенного пункта; УУУУ - код улицы.
- * @param {varchar} pIndex - Почтовый индекс
- * @param {varchar} pCountry - Страна
- * @param {varchar} pRegion - Регион
- * @param {varchar} pDistrict - Район
- * @param {varchar} pCity - Город
- * @param {varchar} pSettlement - Населённый пункт
- * @param {varchar} pStreet - Улица
- * @param {varchar} pHouse - Дом
- * @param {varchar} pBuilding - Корпус
- * @param {varchar} pStructure - Строение
- * @param {varchar} pApartment - Квартира
+ * @param {text} pType - Код типа адреса
+ * @param {text} pCode - Код: ФФ СС РРР ГГГ ППП УУУУ. Где: ФФ - код страны; СС - код субъекта РФ; РРР - код района; ГГГ - код города; ППП - код населенного пункта; УУУУ - код улицы.
+ * @param {text} pIndex - Почтовый индекс
+ * @param {text} pCountry - Страна
+ * @param {text} pRegion - Регион
+ * @param {text} pDistrict - Район
+ * @param {text} pCity - Город
+ * @param {text} pSettlement - Населённый пункт
+ * @param {text} pStreet - Улица
+ * @param {text} pHouse - Дом
+ * @param {text} pBuilding - Корпус
+ * @param {text} pStructure - Строение
+ * @param {text} pApartment - Квартира
  * @param {text} pAddress - Полный адрес
  * @return {numeric}
  */
 CREATE OR REPLACE FUNCTION api.add_address (
   pParent       numeric,
-  pType         varchar,
-  pCode         varchar,
-  pIndex        varchar,
-  pCountry      varchar,
-  pRegion       varchar,
-  pDistrict     varchar,
-  pCity         varchar,
-  pSettlement   varchar,
-  pStreet       varchar,
-  pHouse        varchar,
-  pBuilding     varchar,
-  pStructure    varchar,
-  pApartment    varchar,
+  pType         text,
+  pCode         text,
+  pIndex        text,
+  pCountry      text,
+  pRegion       text,
+  pDistrict     text,
+  pCity         text,
+  pSettlement   text,
+  pStreet       text,
+  pHouse        text,
+  pBuilding     text,
+  pStructure    text,
+  pApartment    text,
   pAddress      text DEFAULT null
 ) RETURNS       numeric
 AS $$
@@ -66,38 +66,38 @@ $$ LANGUAGE plpgsql
  * Обновляет данные адреса.
  * @param {numeric} pId - Идентификатор адреса
  * @param {numeric} pParent - Идентификатор родителя | null
- * @param {varchar} pType - Код типа адреса
- * @param {varchar} pCode - Код: ФФ СС РРР ГГГ ППП УУУУ. Где: ФФ - код страны; СС - код субъекта РФ; РРР - код района; ГГГ - код города; ППП - код населенного пункта; УУУУ - код улицы.
- * @param {varchar} pIndex - Почтовый индекс
- * @param {varchar} pCountry - Страна
- * @param {varchar} pRegion - Регион
- * @param {varchar} pDistrict - Район
- * @param {varchar} pCity - Город
- * @param {varchar} pSettlement - Населённый пункт
- * @param {varchar} pStreet - Улица
- * @param {varchar} pHouse - Дом
- * @param {varchar} pBuilding - Корпус
- * @param {varchar} pStructure - Строение
- * @param {varchar} pApartment - Квартира
+ * @param {text} pType - Код типа адреса
+ * @param {text} pCode - Код: ФФ СС РРР ГГГ ППП УУУУ. Где: ФФ - код страны; СС - код субъекта РФ; РРР - код района; ГГГ - код города; ППП - код населенного пункта; УУУУ - код улицы.
+ * @param {text} pIndex - Почтовый индекс
+ * @param {text} pCountry - Страна
+ * @param {text} pRegion - Регион
+ * @param {text} pDistrict - Район
+ * @param {text} pCity - Город
+ * @param {text} pSettlement - Населённый пункт
+ * @param {text} pStreet - Улица
+ * @param {text} pHouse - Дом
+ * @param {text} pBuilding - Корпус
+ * @param {text} pStructure - Строение
+ * @param {text} pApartment - Квартира
  * @param {text} pAddress - Полный адрес
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_address (
   pId           numeric,
   pParent       numeric DEFAULT null,
-  pType         varchar DEFAULT null,
-  pCode         varchar DEFAULT null,
-  pIndex        varchar DEFAULT null,
-  pCountry      varchar DEFAULT null,
-  pRegion       varchar DEFAULT null,
-  pDistrict     varchar DEFAULT null,
-  pCity         varchar DEFAULT null,
-  pSettlement   varchar DEFAULT null,
-  pStreet       varchar DEFAULT null,
-  pHouse        varchar DEFAULT null,
-  pBuilding     varchar DEFAULT null,
-  pStructure    varchar DEFAULT null,
-  pApartment    varchar DEFAULT null,
+  pType         text DEFAULT null,
+  pCode         text DEFAULT null,
+  pIndex        text DEFAULT null,
+  pCountry      text DEFAULT null,
+  pRegion       text DEFAULT null,
+  pDistrict     text DEFAULT null,
+  pCity         text DEFAULT null,
+  pSettlement   text DEFAULT null,
+  pStreet       text DEFAULT null,
+  pHouse        text DEFAULT null,
+  pBuilding     text DEFAULT null,
+  pStructure    text DEFAULT null,
+  pApartment    text DEFAULT null,
   pAddress      text DEFAULT null
 ) RETURNS       void
 AS $$
@@ -129,19 +129,19 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.set_address (
   pId           numeric,
   pParent       numeric,
-  pType         varchar,
-  pCode         varchar,
-  pIndex        varchar,
-  pCountry      varchar,
-  pRegion       varchar,
-  pDistrict     varchar,
-  pCity         varchar,
-  pSettlement   varchar,
-  pStreet       varchar,
-  pHouse        varchar,
-  pBuilding     varchar,
-  pStructure    varchar,
-  pApartment    varchar,
+  pType         text,
+  pCode         text,
+  pIndex        text,
+  pCountry      text,
+  pRegion       text,
+  pDistrict     text,
+  pCity         text,
+  pSettlement   text,
+  pStreet       text,
+  pHouse        text,
+  pBuilding     text,
+  pStructure    text,
+  pApartment    text,
   pAddress      text DEFAULT null
 ) RETURNS       SETOF api.address
 AS $$
@@ -207,7 +207,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает адрес в виде строки
- * @param {varchar} pId - Идентификатор адреса
+ * @param {text} pId - Идентификатор адреса
  * @out param {text} address - Адрес в виде строки
  * @out param {boolean} result - Результат
  * @out param {text} message - Текст ошибки
@@ -246,19 +246,19 @@ CREATE OR REPLACE FUNCTION api.set_object_addresses (
   pObject       numeric,
   pAddress      numeric,
   pParent       numeric,
-  pType         varchar,
-  pCode         varchar,
-  pIndex        varchar,
-  pCountry      varchar,
-  pRegion       varchar,
-  pDistrict     varchar,
-  pCity         varchar,
-  pSettlement   varchar,
-  pStreet       varchar,
-  pHouse        varchar,
-  pBuilding     varchar,
-  pStructure    varchar,
-  pApartment    varchar,
+  pType         text,
+  pCode         text,
+  pIndex        text,
+  pCountry      text,
+  pRegion       text,
+  pDistrict     text,
+  pCity         text,
+  pSettlement   text,
+  pStreet       text,
+  pHouse        text,
+  pBuilding     text,
+  pStructure    text,
+  pApartment    text,
   pText         text DEFAULT null
 ) RETURNS       SETOF api.object_address
 AS $$
@@ -293,7 +293,7 @@ BEGIN
     arKeys := array_cat(arKeys, ARRAY['id', 'parent', 'type', 'code', 'index', 'country', 'region', 'district', 'city', 'settlement', 'street', 'house', 'building', 'structure', 'apartment', 'address']);
     PERFORM CheckJsonKeys('/object/address/addresses', arKeys, pAddresses);
 
-    FOR r IN SELECT * FROM json_to_recordset(pAddresses) AS addresses(id numeric, parent numeric, type varchar, code varchar, index varchar, country varchar, region varchar, district varchar, city varchar, settlement varchar, street varchar, house varchar, building varchar, structure varchar, apartment varchar, address text)
+    FOR r IN SELECT * FROM json_to_recordset(pAddresses) AS addresses(id numeric, parent numeric, type text, code text, index text, country text, region text, district text, city text, settlement text, street text, house text, building text, structure text, apartment text, address text)
     LOOP
       RETURN NEXT api.set_object_addresses(pObject, r.Id, r.Parent, r.Type, r.Code, r.Index, r.Country, r.Region, r.District, r.City, r.Settlement, r.Street, r.House, r.Building, r.Structure, r.Apartment, r.Address);
     END LOOP;

@@ -18,7 +18,7 @@ GRANT SELECT ON api.reference TO administrator;
 /**
  * Добавляет справочник.
  * @param {numeric} pParent - Ссылка на родительский объект: api.reference | null
- * @param {varchar} pType - Тип
+ * @param {text} pType - Тип
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
@@ -26,7 +26,7 @@ GRANT SELECT ON api.reference TO administrator;
  */
 CREATE OR REPLACE FUNCTION api.add_reference (
   pParent       numeric,
-  pType         varchar,
+  pType         text,
   pCode			text,
   pName			text,
   pDescription  text DEFAULT null
@@ -45,7 +45,7 @@ $$ LANGUAGE plpgsql
 /**
  * Редактирует справочник.
  * @param {numeric} pParent - Ссылка на родительский объект: Reference.Parent | null
- * @param {varchar} pType - Тип
+ * @param {text} pType - Тип
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
@@ -54,7 +54,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.update_reference (
   pId		    numeric,
   pParent       numeric DEFAULT null,
-  pType         varchar DEFAULT null,
+  pType         text DEFAULT null,
   pCode			text DEFAULT null,
   pName			text DEFAULT null,
   pDescription  text DEFAULT null
@@ -89,7 +89,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.set_reference (
   pId		    numeric,
   pParent       numeric DEFAULT null,
-  pType         varchar DEFAULT null,
+  pType         text DEFAULT null,
   pCode			text DEFAULT null,
   pName			text DEFAULT null,
   pDescription  text DEFAULT null

@@ -141,7 +141,7 @@ $$ LANGUAGE plpgsql
 /**
  * Возвращает данные наблюдателя.
  * @param {text} pPublisher - Издатель
- * @param {text} pSession - Сессия
+ * @param {varchar} pSession - Сессия
  * @param {json} pData - Данные
  * @param {text} pAgent - Агент
  * @param {inet} pHost - IP адрес
@@ -383,13 +383,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Авторизоваться по коду сессии.
- * @param {text} pSession - Сессия
+ * @param {varchar} pSession - Сессия
  * @param {text} pAgent - Агент
  * @param {inet} pHost - IP адрес
  * @return {record}
  */
 CREATE OR REPLACE FUNCTION daemon.authorize (
-  pSession      text,
+  pSession      varchar,
   pAgent        text DEFAULT null,
   pHost         inet DEFAULT null
 ) RETURNS       json
@@ -933,7 +933,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Авторизованный запрос данных в формате REST JSON API с аутентификацией по сессии и секретному коду.
- * @param {text} pSession - Сессия
+ * @param {varchar} pSession - Сессия
  * @param {text} pSecret - Секрет
  * @param {text} pMethod - HTTP-Метод
  * @param {text} pPath - Путь
@@ -943,7 +943,7 @@ $$ LANGUAGE plpgsql
  * @return {SETOF json} - Записи в JSON
  */
 CREATE OR REPLACE FUNCTION daemon.session_fetch (
-  pSession      text,
+  pSession      varchar,
   pSecret       text,
   pMethod		text,
   pPath         text,
@@ -1014,7 +1014,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pMethod - HTTP-Метод
  * @param {text} pPath - Путь
  * @param {json} pJson - Данные в JSON
- * @param {text} pSession - Сессия
+ * @param {varchar} pSession - Сессия
  * @param {double precision} pNonce - Время в миллисекундах
  * @param {text} pSignature - Подпись
  * @param {text} pAgent - Агент
@@ -1026,7 +1026,7 @@ CREATE OR REPLACE FUNCTION daemon.signed_fetch (
   pMethod		text,
   pPath         text,
   pJson         json DEFAULT null,
-  pSession      text DEFAULT null,
+  pSession      varchar DEFAULT null,
   pNonce        double precision DEFAULT null,
   pSignature    text DEFAULT null,
   pAgent        text DEFAULT null,

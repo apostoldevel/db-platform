@@ -7,7 +7,7 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetAreaType (
-  pCode		varchar
+  pCode		text
 ) RETURNS 	numeric
 AS $$
 DECLARE
@@ -201,7 +201,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION CreateAuth (
   pUserId       numeric,
   pAudience     numeric,
-  pCode		    varchar
+  pCode		    text
 ) RETURNS 	    numeric
 AS $$
 DECLARE
@@ -227,7 +227,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetAuth (
-  pCode		varchar
+  pCode		text
 ) RETURNS 	numeric
 AS $$
 DECLARE
@@ -540,7 +540,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION CreateIdToken (
   pAudience     numeric,
-  pSession      text,
+  pSession      varchar,
   pScopes       text[],
   pDateFrom     timestamptz DEFAULT Now(),
   pDateTo       timestamptz DEFAULT Now() + INTERVAL '1 hour'
@@ -695,7 +695,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION CreateTokenHeader (
   pOAuth2       numeric,
-  pSession      text,
+  pSession      varchar,
   pSalt         text,
   pAgent        text,
   pHost         inet
@@ -818,7 +818,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION NewTokenCode (
   pOAuth2       numeric,
-  pSession      text,
+  pSession      varchar,
   pSalt         text,
   pAgent        text,
   pHost         inet,
@@ -1210,11 +1210,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает секретный ключ сессии (тсс... никому не говорить 😉 !!!).
- * @param {text} pSession - Код сессии
+ * @param {varchar} pSession - Код сессии
  * @return {text}
  */
 CREATE OR REPLACE FUNCTION session_secret (
-  pSession	text DEFAULT current_session()
+  pSession	varchar DEFAULT current_session()
 )
 RETURNS		text
 AS $$
@@ -1239,7 +1239,7 @@ $$ LANGUAGE plpgsql
  * @return {text}
  */
 CREATE OR REPLACE FUNCTION session_area (
-  pSession	text DEFAULT current_session()
+  pSession	varchar DEFAULT current_session()
 )
 RETURNS		text
 AS $$
@@ -1260,11 +1260,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает агента сессии.
- * @param {text} pSession - Код сессии
+ * @param {varchar} pSession - Код сессии
  * @return {text}
  */
 CREATE OR REPLACE FUNCTION session_agent (
-  pSession	text DEFAULT current_session()
+  pSession	varchar DEFAULT current_session()
 )
 RETURNS		text
 AS $$
@@ -1285,11 +1285,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает IP адрес подключения.
- * @param {text} pSession - Код сессии
+ * @param {varchar} pSession - Код сессии
  * @return {text} - IP адрес
  */
 CREATE OR REPLACE FUNCTION session_host (
-  pSession	text DEFAULT current_session()
+  pSession	varchar DEFAULT current_session()
 )
 RETURNS		text
 AS $$
@@ -1363,11 +1363,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает имя пользователя сеанса.
- * @param {text} pSession - Код сессии
+ * @param {varchar} pSession - Код сессии
  * @return {text} - Имя (username) пользователя: users.username
  */
 CREATE OR REPLACE FUNCTION session_username (
-  pSession	text DEFAULT current_session()
+  pSession	varchar DEFAULT current_session()
 )
 RETURNS		text
 AS $$
@@ -1409,7 +1409,7 @@ $$ LANGUAGE plpgsql
  * @return {text} - Код авторизации
  */
 CREATE OR REPLACE FUNCTION oauth2_current_code (
-  pSession      text DEFAULT current_session()
+  pSession      varchar DEFAULT current_session()
 )
 RETURNS         text
 AS $$
@@ -1434,7 +1434,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION SetSessionArea (
   pArea 	numeric,
-  pSession	text DEFAULT current_session()
+  pSession	varchar DEFAULT current_session()
 ) RETURNS 	void
 AS $$
 BEGIN
@@ -1449,7 +1449,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetSessionArea (
-  pSession	text DEFAULT current_session()
+  pSession	varchar DEFAULT current_session()
 )
 RETURNS 	numeric
 AS $$
@@ -1470,7 +1470,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION current_area_type (
-  pSession	text DEFAULT current_session()
+  pSession	varchar DEFAULT current_session()
 )
 RETURNS 	numeric
 AS $$
@@ -1489,7 +1489,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION current_area (
-  pSession	text DEFAULT current_session()
+  pSession	varchar DEFAULT current_session()
 )
 RETURNS 	numeric
 AS $$
@@ -1506,7 +1506,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION SetSessionInterface (
   pInterface 	numeric,
-  pSession	    text DEFAULT current_session()
+  pSession	    varchar DEFAULT current_session()
 ) RETURNS 	    void
 AS $$
 BEGIN
@@ -1521,7 +1521,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetSessionInterface (
-  pSession	    text DEFAULT current_session()
+  pSession	    varchar DEFAULT current_session()
 )
 RETURNS 	    numeric
 AS $$

@@ -5,7 +5,7 @@
 CREATE TABLE db.interface (
     id              numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
     sid             varchar(18) NOT NULL,
-    name            varchar(50) NOT NULL,
+    name            text NOT NULL,
     description     text
 );
 
@@ -47,8 +47,8 @@ CREATE TRIGGER t_interface
 
 CREATE TABLE db.area_type (
     id        numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
-    code      varchar(30) NOT NULL,
-    name      varchar(50)
+    code      text NOT NULL,
+    name      text
 );
 
 COMMENT ON TABLE db.area_type IS 'Тип зоны.';
@@ -75,8 +75,8 @@ CREATE TABLE db.area (
     id              numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
     parent          numeric(12) DEFAULT NULL,
     type            numeric(12) NOT NULL,
-    code            varchar(30) NOT NULL,
-    name            varchar(50) NOT NULL,
+    code            text NOT NULL,
+    name            text NOT NULL,
     description     text,
     validFromDate   timestamp DEFAULT Now() NOT NULL,
     validToDate     timestamp,
@@ -106,8 +106,8 @@ CREATE OR REPLACE FUNCTION db.ft_area_before_insert()
 RETURNS trigger AS $$
 DECLARE
 BEGIN
-  IF NEW.ID = NEW.PARENT THEN
-    NEW.PARENT := GetArea('all');
+  IF NEW.id = NEW.parent THEN
+    NEW.parent := GetArea('all');
   END IF;
 
   RETURN NEW;
@@ -175,9 +175,9 @@ CREATE UNIQUE INDEX ON db.user (email);
 
 CREATE INDEX ON db.user (type);
 CREATE INDEX ON db.user (username);
-CREATE INDEX ON db.user (username varchar_pattern_ops);
-CREATE INDEX ON db.user (phone varchar_pattern_ops);
-CREATE INDEX ON db.user (email varchar_pattern_ops);
+CREATE INDEX ON db.user (username text_pattern_ops);
+CREATE INDEX ON db.user (phone text_pattern_ops);
+CREATE INDEX ON db.user (email text_pattern_ops);
 
 --------------------------------------------------------------------------------
 
@@ -380,7 +380,7 @@ DECLARE
 
   nRange	int;
 
-  vCode		varchar;
+  vCode		text;
 
   nOnLine	int;
   nLocal	int;

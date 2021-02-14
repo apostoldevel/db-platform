@@ -413,8 +413,8 @@ COMMENT ON COLUMN db.method_stack.result IS 'Результат выполени
 CREATE TABLE db.object_group (
     id          numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
     owner       numeric(12) NOT NULL,
-    code        varchar(30) NOT NULL,
-    name        varchar(50) NOT NULL,
+    code        text NOT NULL,
+    name        text NOT NULL,
     description text,
     CONSTRAINT fk_object_group_owner FOREIGN KEY (owner) REFERENCES db.user(id)
 );
@@ -570,8 +570,8 @@ CREATE TRIGGER t_object_file
 
 CREATE TABLE db.object_data_type (
     id			numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
-    code        varchar(30) NOT NULL,
-    name 		varchar(50) NOT NULL,
+    code        text NOT NULL,
+    name 		text NOT NULL,
     description	text
 );
 
@@ -595,7 +595,7 @@ INSERT INTO db.object_data_type (code, name, description) VALUES ('xml', 'XML', 
 CREATE TABLE db.object_data (
     object      numeric(12) NOT NULL,
     type        numeric(12) NOT NULL,
-    code        varchar(30) NOT NULL,
+    code        text NOT NULL,
     data        text,
     CONSTRAINT pk_object_data PRIMARY KEY(object, type, code),
     CONSTRAINT fk_object_data_object FOREIGN KEY (object) REFERENCES db.object(id),

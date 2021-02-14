@@ -3,8 +3,8 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddEntity (
-  pCode		    varchar,
-  pName		    varchar,
+  pCode		    text,
+  pName		    text,
   pDescription	text DEFAULT null
 ) RETURNS	    numeric
 AS $$
@@ -27,8 +27,8 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION EditEntity (
   pId		    numeric,
-  pCode		    varchar DEFAULT null,
-  pName		    varchar DEFAULT null,
+  pCode		    text DEFAULT null,
+  pName		    text DEFAULT null,
   pDescription	text DEFAULT null
 ) RETURNS	    void
 AS $$
@@ -64,7 +64,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetEntity (
-  pCode		varchar
+  pCode		text
 ) RETURNS 	numeric
 AS $$
 DECLARE
@@ -83,7 +83,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION GetClassLabel (
   pClass	numeric
-) RETURNS	varchar
+) RETURNS	text
 AS $$
 DECLARE
   vLabel	text;
@@ -102,7 +102,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION AddClass (
   pParent	numeric,
   pEntity   numeric,
-  pCode		varchar,
+  pCode		text,
   pLabel	text,
   pAbstract	boolean
 ) RETURNS	numeric
@@ -135,7 +135,7 @@ CREATE OR REPLACE FUNCTION EditClass (
   pId		numeric,
   pParent	numeric DEFAULT null,
   pEntity	numeric DEFAULT null,
-  pCode		varchar DEFAULT null,
+  pCode		text DEFAULT null,
   pLabel	text DEFAULT null,
   pAbstract	boolean DEFAULT null
 ) RETURNS	void
@@ -183,7 +183,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetClass (
-  pCode		varchar
+  pCode		text
 ) RETURNS 	numeric
 AS $$
 DECLARE
@@ -220,10 +220,10 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION GetClassCode (
   pId		numeric
-) RETURNS 	varchar
+) RETURNS 	text
 AS $$
 DECLARE
-  vCode		varchar;
+  vCode		text;
 BEGIN
   SELECT code INTO vCode FROM db.class_tree WHERE id = pId;
   RETURN vCode;
