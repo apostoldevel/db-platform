@@ -91,7 +91,7 @@ CREATE OR REPLACE FUNCTION EditClientName (
   pFirst	    text default null,
   pLast		    text default null,
   pMiddle	    text default null,
-  pLocale		text default current_locale(),
+  pLocale		uuid default current_locale(),
   pDateFrom	    timestamp default oper_date()
 ) RETURNS 	    void
 AS $$

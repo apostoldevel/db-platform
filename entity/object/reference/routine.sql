@@ -59,6 +59,11 @@ BEGIN
      SET name = CheckNull(coalesce(pName, name, '<null>')),
          description = CheckNull(coalesce(pDescription, description, '<null>'))
    WHERE reference = pId AND locale = pLocale;
+
+  IF NOT FOUND THEN
+	INSERT INTO db.reference_text (reference, locale, name, description)
+	VALUES (pId, pLocale, pName, pDescription);
+  END IF;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

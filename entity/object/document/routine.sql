@@ -58,6 +58,11 @@ BEGIN
   UPDATE db.document_text
      SET description = CheckNull(coalesce(pDescription, description, '<null>'))
    WHERE document = pId AND locale = pLocale;
+
+  IF NOT FOUND THEN
+	INSERT INTO db.document_text (document, locale, description)
+	VALUES (pId, pLocale, pDescription);
+  END IF;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

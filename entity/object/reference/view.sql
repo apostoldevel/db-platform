@@ -5,7 +5,7 @@
 CREATE OR REPLACE VIEW Reference
 AS
   SELECT r.*, rt.name, rt.description
-    FROM db.reference r INNER JOIN db.reference_text rt ON r.id = rt.reference AND rt.locale = current_locale();
+    FROM db.reference r LEFT JOIN db.reference_text rt ON r.id = rt.reference AND rt.locale = current_locale();
 
 GRANT SELECT ON Reference TO administrator;
 

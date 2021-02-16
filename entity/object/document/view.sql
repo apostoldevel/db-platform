@@ -16,7 +16,7 @@ CREATE OR REPLACE VIEW Document (Id, Object, Entity, Class, Type, Area, Descript
   )
   SELECT d.id, d.object, d.entity, d.class, d.type, d.area, dt.description,
          a.code, a.name, a.description
-    FROM db.document d INNER JOIN db.document_text dt ON d.id = dt.document AND dt.locale = current_locale()
+    FROM db.document d  LEFT JOIN db.document_text dt ON d.id = dt.document AND dt.locale = current_locale()
                        INNER JOIN _area_tree t ON d.area = t.id
                        INNER JOIN db.area a ON d.area = a.id;
 

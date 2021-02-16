@@ -249,6 +249,11 @@ BEGIN
          text = CheckNull(coalesce(pText, text, '<null>'))
    WHERE object = pId
      AND locale = pLocale;
+
+  IF NOT FOUND THEN
+	INSERT INTO db.object_text (object, locale, label, text)
+	VALUES (pId, pLocale, pLabel, pText);
+  END IF;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
