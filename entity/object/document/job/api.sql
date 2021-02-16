@@ -17,7 +17,7 @@ GRANT SELECT ON api.job TO administrator;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.job (
-  pStateType	numeric,
+  pStateType	uuid,
   pDateRun		timestamptz DEFAULT Now()
 ) RETURNS		SETOF api.job
 AS $$
@@ -45,26 +45,26 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 /**
  * Добавляет задание.
- * @param {numeric} pParent - Ссылка на родительский объект: api.document | null
+ * @param {uuid} pParent - Ссылка на родительский объект: api.document | null
  * @param {text} pType - Tип
- * @param {numeric} pScheduler - Планировщик
- * @param {numeric} pProgram - Программа
+ * @param {uuid} pScheduler - Планировщик
+ * @param {uuid} pProgram - Программа
  * @param {timestamptz} pDateRun - Дата запуска
  * @param {text} pCode - Код
  * @param {text} pLabel - Метка
  * @param {text} pDescription - Описание
- * @return {numeric}
+ * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION api.add_job (
-  pParent           numeric,
+  pParent           uuid,
   pType             text,
-  pScheduler        numeric,
-  pProgram          numeric,
+  pScheduler        uuid,
+  pProgram          uuid,
   pDateRun          timestamptz default null,
   pCode             text default null,
   pLabel            text default null,
   pDescription      text default null
-) RETURNS           numeric
+) RETURNS           uuid
 AS $$
 BEGIN
   RETURN CreateJob(pParent, CodeToType(lower(coalesce(pType, 'periodic.job')), 'job'), pScheduler, pProgram, pDateRun, pCode, pLabel, pDescription);
@@ -78,10 +78,10 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Редактирует задание.
- * @param {numeric} pParent - Ссылка на родительский объект: Object.Parent | null
+ * @param {uuid} pParent - Ссылка на родительский объект: Object.Parent | null
  * @param {text} pType - Tип
- * @param {numeric} pScheduler - Планировщик
- * @param {numeric} pProgram - Программа
+ * @param {uuid} pScheduler - Планировщик
+ * @param {uuid} pProgram - Программа
  * @param {timestamptz} pDateRun - Дата запуска
  * @param {text} pCode - Код
  * @param {text} pLabel - Метка
@@ -89,11 +89,11 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_job (
-  pId               numeric,
-  pParent           numeric default null,
+  pId               uuid,
+  pParent           uuid default null,
   pType             text default null,
-  pScheduler        numeric default null,
-  pProgram          numeric default null,
+  pScheduler        uuid default null,
+  pProgram          uuid default null,
   pDateRun          timestamptz default null,
   pCode             text default null,
   pLabel            text default null,
@@ -101,8 +101,8 @@ CREATE OR REPLACE FUNCTION api.update_job (
 ) RETURNS           void
 AS $$
 DECLARE
-  nType             numeric;
-  nJob				numeric;
+  nType             uuid;
+  nJob				uuid;
 BEGIN
   SELECT c.id INTO nJob FROM db.job c WHERE c.id = pId;
 
@@ -127,11 +127,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.set_job (
-  pId               numeric,
-  pParent           numeric default null,
+  pId               uuid,
+  pParent           uuid default null,
   pType             text default null,
-  pScheduler        numeric default null,
-  pProgram          numeric default null,
+  pScheduler        uuid default null,
+  pProgram          uuid default null,
   pDateRun          timestamptz default null,
   pCode             text default null,
   pLabel            text default null,
@@ -156,11 +156,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает задание
- * @param {numeric} pId - Идентификатор
+ * @param {uuid} pId - Идентификатор
  * @return {api.job} - Счёт
  */
 CREATE OR REPLACE FUNCTION api.get_job (
-  pId		numeric
+  pId		uuid
 ) RETURNS	api.job
 AS $$
   SELECT * FROM api.job WHERE id = pId

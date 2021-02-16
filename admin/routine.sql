@@ -8,12 +8,12 @@
 
 CREATE OR REPLACE FUNCTION GetAreaType (
   pCode		text
-) RETURNS 	numeric
+) RETURNS 	uuid
 AS $$
 DECLARE
-  nId		numeric;
+  nId		uuid;
 BEGIN
-  SELECT Id INTO nId FROM db.area_type WHERE Code = pCode;
+  SELECT id INTO nId FROM db.area_type WHERE code = pCode;
   RETURN nId;
 END;
 $$ LANGUAGE plpgsql STABLE STRICT
@@ -25,13 +25,13 @@ $$ LANGUAGE plpgsql STABLE STRICT
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION UpdateProfile (
-  pUserId       	numeric,
+  pUserId       	uuid,
   pFamilyName		text,
   pGivenName		text,
   pPatronymicName	text,
-  pLocale			numeric,
-  pArea				numeric,
-  pInterface		numeric,
+  pLocale			uuid,
+  pArea				uuid,
+  pInterface		uuid,
   pEmailVerified	bool,
   pPhoneVerified	bool,
   pPicture			text
@@ -69,7 +69,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddRecoveryTicket (
-  pUserId			numeric,
+  pUserId			uuid,
   pSecurityAnswer	text,
   pDateFrom			timestamptz DEFAULT Now(),
   pDateTo			timestamptz DEFAULT null
@@ -95,7 +95,7 @@ BEGIN
        AND validToDate > pDateFrom;
   ELSE
     -- обновим дату значения в текущем диапозоне дат
-    UPDATE db.recovery_ticket SET used = true, validToDate = pDateFrom
+    UPDATE db.recovery_ticket SET used = Now(), validToDate = pDateFrom
      WHERE userid = pUserId
        AND validFromDate <= pDateFrom
        AND validToDate > pDateFrom;
@@ -116,7 +116,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION NewRecoveryTicket (
-  pUserId			numeric,
+  pUserId			uuid,
   pSecurityAnswer	text,
   pDateFrom			timestamptz DEFAULT Now(),
   pDateTo			timestamptz DEFAULT Now() + INTERVAL '1 hour'
@@ -134,7 +134,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetRecoveryTicket (
-  pUserId			numeric,
+  pUserId			uuid,
   pDateFrom			timestamptz DEFAULT Now()
 ) RETURNS			uuid
 AS $$
@@ -160,14 +160,14 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION CheckRecoveryTicket (
   pTicket			uuid,
   pSecurityAnswer	text
-) RETURNS			numeric
+) RETURNS			uuid
 AS $$
 DECLARE
-  nUserId			numeric;
+  nUserId			uuid;
   passed			boolean;
   utilized			boolean;
 BEGIN
-  SELECT userId, (securityAnswer = crypt(pSecurityAnswer, securityAnswer)), used INTO nUserId, passed, utilized
+  SELECT userId, (securityAnswer = crypt(pSecurityAnswer, securityAnswer)), used IS NOT NULL INTO nUserId, passed, utilized
     FROM db.recovery_ticket
    WHERE ticket = pTicket
      AND validFromDate <= Now()
@@ -199,13 +199,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateAuth (
-  pUserId       numeric,
-  pAudience     numeric,
+  pUserId       uuid,
+  pAudience     integer,
   pCode		    text
-) RETURNS 	    numeric
+) RETURNS 	    void
 AS $$
-DECLARE
-  nId		    numeric;
 BEGIN
   IF session_user <> 'kernel' THEN
     IF NOT IsUserRole(GetGroup('administrator')) THEN
@@ -213,28 +211,7 @@ BEGIN
     END IF;
   END IF;
 
-  INSERT INTO db.auth (userId, audience, code) VALUES (pUserId, pAudience, pCode)
-  RETURNING Id INTO nId;
-
-  RETURN nId;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- FUNCTION GetAuth ------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION GetAuth (
-  pCode		text
-) RETURNS 	numeric
-AS $$
-DECLARE
-  nId		numeric;
-BEGIN
-  SELECT id INTO nId FROM db.auth WHERE code = pCode;
-  RETURN nId;
+  INSERT INTO db.auth (userId, audience, code) VALUES (pUserId, pAudience, pCode);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -245,7 +222,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetIPTableStr (
-  pUserId	numeric,
+  pUserId	uuid,
   pType		char DEFAULT 'A'
 ) RETURNS	text
 AS $$
@@ -297,7 +274,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetIPTableStr (
-  pUserId	numeric,
+  pUserId	uuid,
   pType		char,
   pIpTable	text
 ) RETURNS	void
@@ -338,7 +315,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CheckIPTable (
-  pUserId	numeric,
+  pUserId	uuid,
   pType		char,
   pHost		inet
 ) RETURNS	boolean
@@ -369,7 +346,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CheckIPTable (
-  pUserId	numeric,
+  pUserId	uuid,
   pHost		inet
 ) RETURNS	boolean
 AS $$
@@ -400,7 +377,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CheckSessionLimit (
-  pUserId	numeric
+  pUserId	uuid
 ) RETURNS	void
 AS $$
 DECLARE
@@ -435,7 +412,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION StrPwKey (
-  pUserId       numeric,
+  pUserId       uuid,
   pSecret       text,
   pCreated      timestamp
 ) RETURNS       text
@@ -447,7 +424,7 @@ BEGIN
   SELECT hash INTO vHash FROM db.user WHERE id = pUserId;
 
   IF found THEN
-    vStrPwKey := '{' || IntToStr(pUserId) || '-' || vHash || '-' || pSecret || '-' || current_database() || '-' || DateToStr(pCreated, 'YYYYMMDDHH24MISS') || '}';
+    vStrPwKey := '{' || pUserId::text || '-' || vHash || '-' || pSecret || '-' || current_database() || '-' || DateToStr(pCreated, 'YYYYMMDDHH24MISS') || '}';
   END IF;
 
   RETURN encode(digest(vStrPwKey, 'sha1'), 'hex');
@@ -461,7 +438,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateAccessToken (
-  pAudience     numeric,
+  pAudience     integer,
   pSubject      text,
   pDateFrom     timestamptz DEFAULT Now(),
   pDateTo       timestamptz DEFAULT Now() + INTERVAL '60 min'
@@ -469,7 +446,7 @@ CREATE OR REPLACE FUNCTION CreateAccessToken (
 AS $$
 DECLARE
   token         json;
-  nProvider     numeric;
+  nProvider     integer;
   vSecret       text;
   iss           text;
   aud           text;
@@ -490,8 +467,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateIdToken (
-  pAudience     numeric,
-  pUserId       numeric,
+  pAudience     integer,
+  pUserId       uuid,
   pScopes       text[],
   pDateFrom     timestamptz DEFAULT Now(),
   pDateTo       timestamptz DEFAULT Now() + INTERVAL '60 min'
@@ -500,7 +477,7 @@ AS $$
 DECLARE
   p             record;
 
-  nProvider     numeric;
+  nProvider     integer;
 
   vSecret       text;
 
@@ -539,7 +516,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateIdToken (
-  pAudience     numeric,
+  pAudience     integer,
   pSession      varchar,
   pScopes       text[],
   pDateFrom     timestamptz DEFAULT Now(),
@@ -547,7 +524,7 @@ CREATE OR REPLACE FUNCTION CreateIdToken (
 ) RETURNS       text
 AS $$
 DECLARE
-  nUserId       numeric;
+  nUserId       uuid;
 BEGIN
   SELECT userId INTO nUserId FROM db.session WHERE code = pSession;
   RETURN CreateIdToken(pAudience, nUserId, pScopes, pDateFrom, pDateTo);
@@ -653,15 +630,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateOAuth2 (
-  pAudience     numeric,
+  pAudience     integer,
   pScopes       text[],
   pAccessType   text DEFAULT null,
   pRedirectURI  text DEFAULT null,
   pState        text DEFAULT null
-) RETURNS       numeric
+) RETURNS       bigint
 AS $$
 DECLARE
-  nId           numeric;
+  nId           bigint;
 BEGIN
   pAccessType := coalesce(pAccessType, 'online');
 
@@ -680,7 +657,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateSystemOAuth2 (
-) RETURNS       numeric
+) RETURNS       bigint
 AS $$
 BEGIN
   RETURN CreateOAuth2(GetAudience(oauth2_system_client_id()), ARRAY['api']);
@@ -694,15 +671,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateTokenHeader (
-  pOAuth2       numeric,
+  pOAuth2       bigint,
   pSession      varchar,
   pSalt         text,
   pAgent        text,
   pHost         inet
-) RETURNS       numeric
+) RETURNS       bigint
 AS $$
 DECLARE
-  nId           numeric;
+  nId           bigint;
 BEGIN
   INSERT INTO db.token_header (oauth2, session, salt, agent, host)
   VALUES (pOAuth2, pSession, pSalt, pAgent, pHost)
@@ -719,15 +696,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddToken (
-  pHeader       numeric,
+  pHeader       bigint,
   pType         char,
   pToken        text,
   pDateFrom     timestamptz,
   pDateTo       timestamptz DEFAULT null
-) RETURNS       numeric
+) RETURNS       bigint
 AS $$
 DECLARE
-  nId           numeric;
+  nId           bigint;
   dtDateFrom 	timestamp;
   dtDateTo      timestamp;
 BEGIN
@@ -817,16 +794,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION NewTokenCode (
-  pOAuth2       numeric,
+  pOAuth2       bigint,
   pSession      varchar,
   pSalt         text,
   pAgent        text,
   pHost         inet,
   pCreated      timestamptz
-) RETURNS       numeric
+) RETURNS       bigint
 AS $$
 DECLARE
-  nHeader       numeric;
+  nHeader       bigint;
 BEGIN
   nHeader := CreateTokenHeader(pOAuth2, pSession, pSalt, pAgent, pHost);
   RETURN AddToken(nHeader, 'C', GenSecretKey(48), pCreated);
@@ -840,14 +817,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION NewToken (
-  pAudience     numeric,
-  pHeader       numeric,
+  pAudience     integer,
+  pHeader       bigint,
   pDateFrom     timestamptz DEFAULT Now(),
   pDateTo       timestamptz DEFAULT Now() + INTERVAL '1 hour'
 ) RETURNS       jsonb
 AS $$
 DECLARE
-  nOauth2       numeric;
+  nOauth2       bigint;
 
   access_token  text;
   refresh_token text;
@@ -910,19 +887,19 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION ExchangeToken (
-  pAudience     numeric,
+  pAudience     integer,
   pToken        text,
   pInterval     interval DEFAULT '1 hour',
   pType         char DEFAULT 'A'
 ) RETURNS       json
 AS $$
 DECLARE
-  nHeader       numeric;
-  nToken        numeric;
+  nHeader       bigint;
+  nToken        bigint;
   vType         text;
 BEGIN
   SELECT h.id, t.id INTO nHeader, nToken
-    FROM db.token_header h INNER JOIN db.token t ON h.id = t.header AND t.type = pType AND NOT (pType = 'C' AND t.used)
+    FROM db.token_header h INNER JOIN db.token t ON h.id = t.header AND t.type = pType AND NOT (pType = 'C' AND t.used IS NOT NULL)
    WHERE t.hash = GetTokenHash(pToken, GetSecretKey())
      AND t.validFromDate <= Now()
      AND t.validtoDate > Now();
@@ -944,7 +921,7 @@ BEGIN
   END IF;
 
   IF pType = 'C' THEN
-    UPDATE db.token SET used = true WHERE id = nToken;
+    UPDATE db.token SET used = Now() WHERE id = nToken;
   END IF;
 
   RETURN NewToken(pAudience, nHeader, Now(), Now() + pInterval);
@@ -958,7 +935,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateToken (
-  pAudience     numeric,
+  pAudience     integer,
   pCode         text,
   pInterval     interval DEFAULT '1 hour'
 ) RETURNS       jsonb
@@ -975,7 +952,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION UpdateToken (
-  pAudience     numeric,
+  pAudience     integer,
   pRefresh      text,
   pInterval     interval DEFAULT '1 hour'
 ) RETURNS       json
@@ -992,7 +969,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetToken (
-  pId       numeric
+  pId       bigint
 ) RETURNS   text
 AS $$
 DECLARE
@@ -1154,11 +1131,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetCurrentUserId (
-  pValue	numeric
+  pValue	uuid
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM SafeSetVar('user', trim(to_char(pValue, '999999990000')));
+  PERFORM SafeSetVar('user', pValue::text);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1169,10 +1146,10 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetCurrentUserId()
-RETURNS		numeric
+RETURNS		uuid
 AS $$
 BEGIN
-  RETURN to_number(SafeGetVar('user'), '999999990000');
+  RETURN SafeGetVar('user')::uuid;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1235,7 +1212,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает зону сессии.
- * @param {text} pSession - Код сессии
+ * @param {varchar} pSession - Код сессии
  * @return {text}
  */
 CREATE OR REPLACE FUNCTION session_area (
@@ -1310,16 +1287,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает идентификатор пользователя сеанса.
- * @param {text} pSession - Код сессии
+ * @param {varchar} pSession - Код сессии
  * @return {id} - Идентификатор пользователя: users.id
  */
 CREATE OR REPLACE FUNCTION session_userid (
-  pSession	text DEFAULT current_session()
+  pSession	varchar DEFAULT current_session()
 )
-RETURNS		numeric
+RETURNS		uuid
 AS $$
 DECLARE
-  nUserId	numeric;
+  nUserId	uuid;
 BEGIN
   IF pSession IS NOT NULL THEN
     SELECT suid INTO nUserId FROM db.session WHERE code = pSession;
@@ -1338,10 +1315,10 @@ $$ LANGUAGE plpgsql
  * @return {id} - Идентификатор пользователя: users.id
  */
 CREATE OR REPLACE FUNCTION current_userid()
-RETURNS		numeric
+RETURNS		uuid
 AS $$
 DECLARE
-  nUserId	numeric;
+  nUserId	uuid;
   vSession	text;
 BEGIN
   nUserId := GetCurrentUserId();
@@ -1433,7 +1410,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetSessionArea (
-  pArea 	numeric,
+  pArea 	uuid,
   pSession	varchar DEFAULT current_session()
 ) RETURNS 	void
 AS $$
@@ -1451,10 +1428,10 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION GetSessionArea (
   pSession	varchar DEFAULT current_session()
 )
-RETURNS 	numeric
+RETURNS 	uuid
 AS $$
 DECLARE
-  nArea	    numeric;
+  nArea	    uuid;
 BEGIN
   IF pSession IS NOT NULL THEN
     SELECT area INTO nArea FROM db.session WHERE code = pSession;
@@ -1472,10 +1449,10 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION current_area_type (
   pSession	varchar DEFAULT current_session()
 )
-RETURNS 	numeric
+RETURNS 	uuid
 AS $$
 DECLARE
-  nType     numeric;
+  nType     uuid;
 BEGIN
   SELECT type INTO nType FROM db.area WHERE id = GetSessionArea(pSession);
   RETURN nType;
@@ -1491,7 +1468,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION current_area (
   pSession	varchar DEFAULT current_session()
 )
-RETURNS 	numeric
+RETURNS 	uuid
 AS $$
 BEGIN
   RETURN GetSessionArea(pSession);
@@ -1505,7 +1482,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetSessionInterface (
-  pInterface 	numeric,
+  pInterface 	uuid,
   pSession	    varchar DEFAULT current_session()
 ) RETURNS 	    void
 AS $$
@@ -1523,10 +1500,10 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION GetSessionInterface (
   pSession	    varchar DEFAULT current_session()
 )
-RETURNS 	    numeric
+RETURNS 	    uuid
 AS $$
 DECLARE
-  nInterface    numeric;
+  nInterface    uuid;
 BEGIN
   IF pSession IS NOT NULL THEN
     SELECT interface INTO nInterface FROM db.session WHERE code = pSession;
@@ -1542,9 +1519,9 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION current_interface (
-  pSession	text DEFAULT current_session()
+  pSession	varchar DEFAULT current_session()
 )
-RETURNS 	numeric
+RETURNS 	uuid
 AS $$
 BEGIN
   RETURN GetSessionInterface(pSession);
@@ -1559,12 +1536,12 @@ $$ LANGUAGE plpgsql
 /**
  * Устанавливает дату операционного дня.
  * @param {timestamp} pOperDate - Дата операционного дня
- * @param {text} pSession - Код сессии
+ * @param {varchar} pSession - Код сессии
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION SetOperDate (
   pOperDate 	timestamp,
-  pSession	    text DEFAULT current_session()
+  pSession	    varchar DEFAULT current_session()
 ) RETURNS 	    void
 AS $$
 BEGIN
@@ -1580,12 +1557,12 @@ $$ LANGUAGE plpgsql
 /**
  * Устанавливает дату операционного дня.
  * @param {timestamptz} pOperDate - Дата операционного дня
- * @param {text} pSession - Код сессии
+ * @param {varchar} pSession - Код сессии
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION SetOperDate (
   pOperDate 	timestamptz,
-  pSession	    text DEFAULT current_session()
+  pSession	    varchar DEFAULT current_session()
 ) RETURNS 	    void
 AS $$
 BEGIN
@@ -1600,11 +1577,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает дату операционного дня.
- * @param {text} pSession - Код сессии
+ * @param {varchar} pSession - Код сессии
  * @return {timestamp} - Дата операционного дня
  */
 CREATE OR REPLACE FUNCTION GetOperDate (
-  pSession		text DEFAULT current_session()
+  pSession		varchar DEFAULT current_session()
 )
 RETURNS 		timestamp
 AS $$
@@ -1625,11 +1602,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает дату операционного дня.
- * @param {text} pSession - Код сессии
+ * @param {varchar} pSession - Код сессии
  * @return {timestamp} - Дата операционного дня
  */
 CREATE OR REPLACE FUNCTION oper_date (
-  pSession		text DEFAULT current_session()
+  pSession		varchar DEFAULT current_session()
 )
 RETURNS 		timestamp
 AS $$
@@ -1652,12 +1629,12 @@ $$ LANGUAGE plpgsql
 /**
  * Устанавливает по идентификатору текущий язык.
  * @param {id} pLocale - Идентификатор языка
- * @param {text} pSession - Код сессии
+ * @param {varchar} pSession - Код сессии
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION SetSessionLocale (
-  pLocale   numeric,
-  pSession	text DEFAULT current_session()
+  pLocale   uuid,
+  pSession	varchar DEFAULT current_session()
 ) RETURNS	void
 AS $$
 BEGIN
@@ -1673,16 +1650,16 @@ $$ LANGUAGE plpgsql
 /**
  * Устанавливает по коду текущий язык.
  * @param {text} pCode - Код языка
- * @param {text} pSession - Код сессии
+ * @param {varchar} pSession - Код сессии
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION SetSessionLocale (
   pCode		text DEFAULT 'ru',
-  pSession	text DEFAULT current_session()
+  pSession	varchar DEFAULT current_session()
 ) RETURNS	void
 AS $$
 DECLARE
-  nLocale	numeric;
+  nLocale	uuid;
 BEGIN
   SELECT id INTO nLocale FROM db.locale WHERE code = pCode;
   IF found THEN
@@ -1698,15 +1675,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает идентификатор текущего языка.
- * @param {text} pSession - Код сессии
- * @return {numeric} - Идентификатор языка.
+ * @param {varchar} pSession - Код сессии
+ * @return {uuid} - Идентификатор языка.
  */
 CREATE OR REPLACE FUNCTION GetSessionLocale (
-  pSession	text DEFAULT current_session()
-) RETURNS	numeric
+  pSession	varchar DEFAULT current_session()
+) RETURNS	uuid
 AS $$
 DECLARE
-  nLocale	numeric;
+  nLocale	uuid;
 BEGIN
   SELECT locale INTO nLocale FROM db.session WHERE code = pSession;
   RETURN nLocale;
@@ -1720,11 +1697,11 @@ $$ LANGUAGE plpgsql STABLE STRICT
 --------------------------------------------------------------------------------
 /**
  * Возвращает код текущего языка.
- * @param {text} pSession - Код сессии
+ * @param {varchar} pSession - Код сессии
  * @return {text} - Код языка
  */
 CREATE OR REPLACE FUNCTION locale_code (
-  pSession	text DEFAULT current_session()
+  pSession	varchar DEFAULT current_session()
 ) RETURNS	text
 AS $$
 DECLARE
@@ -1747,13 +1724,13 @@ $$ LANGUAGE plpgsql STABLE
 --------------------------------------------------------------------------------
 /**
  * Возвращает идентификатор текущего языка.
- * @param {text} pSession - Код сессии
- * @return {numeric} - Идентификатор языка.
+ * @param {varchar} pSession - Код сессии
+ * @return {uuid} - Идентификатор языка.
  */
 CREATE OR REPLACE FUNCTION current_locale (
-  pSession	text DEFAULT current_session()
+  pSession	varchar DEFAULT current_session()
 )
-RETURNS		numeric
+RETURNS		uuid
 AS $$
 BEGIN
   RETURN coalesce(GetSessionLocale(pSession), GetLocale(locale_code(pSession)));
@@ -1767,7 +1744,7 @@ $$ LANGUAGE plpgsql STABLE
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION acl (
-  pUserId       numeric,
+  pUserId       uuid,
   OUT deny      bit varying,
   OUT allow     bit varying,
   OUT mask      bit varying
@@ -1787,7 +1764,7 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetAccessControlListMask (
-  pUserId	numeric DEFAULT current_userid()
+  pUserId	uuid DEFAULT current_userid()
 ) RETURNS	bit varying
 AS $$
   SELECT mask FROM acl(pUserId)
@@ -1801,7 +1778,7 @@ $$ LANGUAGE SQL
 
 CREATE OR REPLACE FUNCTION CheckAccessControlList (
   pMask		bit,
-  pUserId	numeric DEFAULT current_userid()
+  pUserId	uuid DEFAULT current_userid()
 ) RETURNS	boolean
 AS $$
 BEGIN
@@ -1832,12 +1809,12 @@ $$ LANGUAGE plpgsql
    c - create user;
    o - logout;
    i - login
- * @param {numeric} pUserId - Идентификатор пользователя/группы
+ * @param {uuid} pUserId - Идентификатор пользователя/группы
  * @return {void}
 */
 CREATE OR REPLACE FUNCTION chmod (
   pMask         bit varying,
-  pUserId       numeric DEFAULT current_userid()
+  pUserId       uuid DEFAULT current_userid()
 ) RETURNS       void
 AS $$
 DECLARE
@@ -1874,15 +1851,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Меняет идентификатор текущего пользователя в активном сеансе
- * @param {numeric} pUserId - Идентификатор нового пользователя
+ * @param {uuid} pUserId - Идентификатор нового пользователя
  * @param {text} pPassword - Пароль текущего пользователя
- * @param {text} pSession - Код сессии
+ * @param {varchar} pSession - Код сессии
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION SubstituteUser (
-  pUserId	numeric,
+  pUserId	uuid,
   pPassword	text,
-  pSession	text DEFAULT current_session()
+  pSession	varchar DEFAULT current_session()
 ) RETURNS	void
 AS $$
 BEGIN
@@ -1916,13 +1893,13 @@ $$ LANGUAGE plpgsql
  * Меняет текущего пользователя в активном сеансе на указанного пользователя
  * @param {text} pRoleName - Имя пользователь для подстановки
  * @param {text} pPassword - Пароль текущего пользователя
- * @param {text} pSession - Код сессии
+ * @param {varchar} pSession - Код сессии
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION SubstituteUser (
   pRoleName	text,
   pPassword	text,
-  pSession	text DEFAULT current_session()
+  pSession	varchar DEFAULT current_session()
 ) RETURNS	void
 AS $$
 BEGIN
@@ -1937,21 +1914,20 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Проверяет роль пользователя.
- * @param {numeric} pRole - Идентификатор роли (группы)
- * @param {numeric} pUser - Идентификатор пользователя (учётной записи)
+ * @param {uuid} pRoleId - Идентификатор роли (группы)
+ * @param {uuid} pUserId - Идентификатор пользователя (учётной записи)
  * @return {boolean}
  */
 CREATE OR REPLACE FUNCTION IsUserRole (
-  pRole		numeric,
-  pUser		numeric DEFAULT current_userid()
+  pRoleId	uuid,
+  pUserId	uuid DEFAULT current_userid()
 ) RETURNS	boolean
 AS $$
 DECLARE
-  nId		numeric;
+  uId		uuid;
 BEGIN
-  SELECT id INTO nId FROM db.member_group WHERE userid = pRole AND member = pUser;
-
-  RETURN nId IS NOT NULL;
+  SELECT member INTO uId FROM db.member_group WHERE userid = pRoleId AND member = pUserId;
+  RETURN FOUND;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1972,8 +1948,8 @@ CREATE OR REPLACE FUNCTION IsUserRole (
 ) RETURNS	boolean
 AS $$
 DECLARE
-  nUserId	numeric;
-  nRoleId	numeric;
+  nUserId	uuid;
+  nRoleId	uuid;
 BEGIN
   SELECT id INTO nUserId FROM users WHERE username = lower(pUser);
   SELECT id INTO nRoleId FROM groups WHERE username = lower(pRole);
@@ -1997,8 +1973,9 @@ $$ LANGUAGE plpgsql
  * @param {text} pDescription - Описание
  * @param {boolean} pPasswordChange - Сменить пароль при следующем входе в систему
  * @param {boolean} pPasswordNotChange - Установить запрет на смену пароля самим пользователем
- * @param {numeric} pArea - Зона
- * @return {(id|exception)} - Id учётной записи или ошибку
+ * @param {uuid} pArea - Область видимости
+ * @param {uuid} pId - Идентификатор
+ * @return {uuid} - Id учётной записи или ошибку
  */
 CREATE OR REPLACE FUNCTION CreateUser (
   pRoleName             text,
@@ -2009,12 +1986,13 @@ CREATE OR REPLACE FUNCTION CreateUser (
   pDescription          text DEFAULT null,
   pPasswordChange       boolean DEFAULT true,
   pPasswordNotChange    boolean DEFAULT false,
-  pArea                 numeric DEFAULT current_area()
-) RETURNS               numeric
+  pArea                 uuid DEFAULT current_area(),
+  pId					uuid DEFAULT gen_kernel_uuid('a')
+) RETURNS               uuid
 AS $$
 DECLARE
-  nArea                 numeric;
-  nUserId		        numeric;
+  uId					uuid;
+  nArea                 uuid;
   vSecret               text;
 BEGIN
   IF session_user <> 'kernel' THEN
@@ -2025,28 +2003,28 @@ BEGIN
 
   nArea := coalesce(pArea, GetArea('guest'));
 
-  SELECT id INTO nUserId FROM users WHERE username = lower(pRoleName);
+  SELECT id INTO uId FROM users WHERE username = lower(pRoleName);
 
   IF found THEN
     PERFORM RoleExists(pRoleName);
   END IF;
 
-  INSERT INTO db.user (type, username, name, phone, email, description, passwordchange, passwordnotchange)
-  VALUES ('U', pRoleName, pName, pPhone, pEmail, pDescription, pPasswordChange, pPasswordNotChange)
-  RETURNING id, secret INTO nUserId, vSecret;
+  INSERT INTO db.user (id, type, username, name, phone, email, description, passwordchange, passwordnotchange)
+  VALUES (pId, 'U', pRoleName, pName, pPhone, pEmail, pDescription, pPasswordChange, pPasswordNotChange)
+  RETURNING secret INTO vSecret;
 
-  PERFORM AddMemberToInterface(nUserId, GetInterface('I:1:0:0'));
-  PERFORM AddMemberToArea(nUserId, nArea);
+  PERFORM AddMemberToInterface(pId, GetInterface('all'));
+  PERFORM AddMemberToArea(pId, nArea);
 
-  INSERT INTO db.profile (userid, area) VALUES (nUserId, nArea);
+  INSERT INTO db.profile (userid, area) VALUES (pId, nArea);
 
   IF NULLIF(pPassword, '') IS NULL THEN
     pPassword := encode(hmac(vSecret, GetSecretKey(), 'sha1'), 'hex');
   END IF;
 
-  PERFORM SetPassword(nUserId, pPassword);
+  PERFORM SetPassword(pId, pPassword);
 
-  RETURN nUserId;
+  RETURN pId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -2060,16 +2038,18 @@ $$ LANGUAGE plpgsql
  * @param {text} pRoleName - Группа
  * @param {text} pName - Полное имя
  * @param {text} pDescription - Описание
- * @return {(id|exception)} - Id группы или ошибку
- */
+ * @return {uuid} - Id группы или ошибку
+ * @param {uuid} pId - Идентификатор
+*/
 CREATE OR REPLACE FUNCTION CreateGroup (
   pRoleName     text,
   pName         text,
-  pDescription	text
-) RETURNS	    numeric
+  pDescription	text,
+  pId			uuid DEFAULT gen_kernel_uuid('a')
+) RETURNS	    uuid
 AS $$
 DECLARE
-  nGroupId	    numeric;
+  uId			uuid;
 BEGIN
   IF session_user <> 'kernel' THEN
 	IF NOT CheckAccessControlList(B'00000001000000') THEN
@@ -2077,16 +2057,16 @@ BEGIN
     END IF;
   END IF;
 
-  SELECT id INTO nGroupId FROM groups WHERE username = lower(pRoleName);
+  SELECT id INTO uId FROM groups WHERE username = lower(pRoleName);
 
   IF found THEN
     PERFORM RoleExists(pRoleName);
   END IF;
 
-  INSERT INTO db.user (type, username, name, description)
-  VALUES ('G', pRoleName, pName, pDescription) RETURNING Id INTO nGroupId;
+  INSERT INTO db.user (id, type, username, name, description)
+  VALUES (pId, 'G', pRoleName, pName, pDescription);
 
-  RETURN nGroupId;
+  RETURN pId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -2097,7 +2077,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Обновляет учётную запись пользователя.
- * @param {id} pId - Идентификатор учетной записи пользователя
+ * @param {uuid} pId - Идентификатор учетной записи пользователя
  * @param {text} pRoleName - Пользователь
  * @param {text} pPassword - Пароль
  * @param {text} pName - Полное имя
@@ -2109,7 +2089,7 @@ $$ LANGUAGE plpgsql
  * @return {(void|exception)}
  */
 CREATE OR REPLACE FUNCTION UpdateUser (
-  pId                   numeric,
+  pId                   uuid,
   pRoleName             text,
   pPassword             text DEFAULT null,
   pName                 text DEFAULT null,
@@ -2179,7 +2159,7 @@ $$ LANGUAGE plpgsql
  * @return {(void|exception)}
  */
 CREATE OR REPLACE FUNCTION UpdateGroup (
-  pId           numeric,
+  pId           uuid,
   pRoleName     text,
   pName         text,
   pDescription  text
@@ -2224,11 +2204,11 @@ $$ LANGUAGE plpgsql
  * @return {(void|exception)}
  */
 CREATE OR REPLACE FUNCTION DeleteUser (
-  pId		numeric
+  pId		uuid
 ) RETURNS	void
 AS $$
 DECLARE
-  vUserName	varchar;
+  vUserName	text;
 BEGIN
   IF session_user <> 'kernel' THEN
 	IF NOT CheckAccessControlList(B'00000000010000') THEN
@@ -2257,7 +2237,6 @@ BEGIN
     DELETE FROM db.member_area WHERE member = pId;
     DELETE FROM db.member_interface WHERE member = pId;
     DELETE FROM db.member_group WHERE member = pId;
-    DELETE FROM db.auth WHERE userid = pId;
     DELETE FROM db.session WHERE userid = pId;
     DELETE FROM db.profile WHERE userid = pId;
     DELETE FROM db.user WHERE id = pId;
@@ -2282,7 +2261,7 @@ CREATE OR REPLACE FUNCTION DeleteUser (
 ) RETURNS	void
 AS $$
 DECLARE
-  nId		numeric;
+  nId		uuid;
 BEGIN
   SELECT id INTO nId FROM db.user WHERE type = 'U' AND username = lower(pRoleName);
 
@@ -2305,11 +2284,11 @@ $$ LANGUAGE plpgsql
  * @return {(void|exception)}
  */
 CREATE OR REPLACE FUNCTION DeleteGroup (
-  pId		    numeric
+  pId		    uuid
 ) RETURNS	    void
 AS $$
 DECLARE
-  vGroupName    varchar;
+  vGroupName    text;
 BEGIN
   IF session_user <> 'kernel' THEN
 	IF NOT CheckAccessControlList(B'00000010000000') THEN
@@ -2362,10 +2341,10 @@ $$ LANGUAGE plpgsql
  */
 CREATE OR REPLACE FUNCTION GetUser (
   pRoleName	text
-) RETURNS	numeric
+) RETURNS	uuid
 AS $$
 DECLARE
-  nId		numeric;
+  nId		uuid;
 BEGIN
   SELECT id INTO nId FROM db.user WHERE type = 'U' AND username = lower(pRoleName);
 
@@ -2389,10 +2368,10 @@ $$ LANGUAGE plpgsql
  */
 CREATE OR REPLACE FUNCTION GetGroup (
   pRoleName     text
-) RETURNS	    numeric
+) RETURNS	    uuid
 AS $$
 DECLARE
-  nId		    numeric;
+  nId		    uuid;
 BEGIN
   SELECT id INTO nId FROM db.user WHERE type = 'G' AND username = lower(pRoleName);
 
@@ -2416,12 +2395,12 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION SetPassword (
-  pId			    numeric,
+  pId			    uuid,
   pPassword		    text
 ) RETURNS		    void
 AS $$
 DECLARE
-  nUserId		    numeric;
+  nUserId		    uuid;
   bPasswordChange	boolean;
   r			        record;
 BEGIN
@@ -2467,13 +2446,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Меняет пароль пользователя.
- * @param {numeric} pId - Идентификатор учетной записи
+ * @param {uuid} pId - Идентификатор учетной записи
  * @param {text} pOldPass - Старый пароль
  * @param {text} pNewPass - Новый пароль
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION ChangePassword (
-  pId		numeric,
+  pId		uuid,
   pOldPass	text,
   pNewPass	text
 ) RETURNS	boolean
@@ -2511,11 +2490,11 @@ $$ LANGUAGE plpgsql;
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION UserLock (
-  pId		numeric
+  pId		uuid
 ) RETURNS	void
 AS $$
 DECLARE
-  nId		numeric;
+  nId		uuid;
 BEGIN
   IF session_user <> 'kernel' THEN
     IF pId <> current_userid() THEN
@@ -2546,11 +2525,11 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION UserUnLock (
-  pId		numeric
+  pId		uuid
 ) RETURNS	void
 AS $$
 DECLARE
-  nId		numeric;
+  nId		uuid;
 BEGIN
   IF session_user <> 'kernel' THEN
 	IF NOT CheckAccessControlList(B'01000000000000') THEN
@@ -2575,17 +2554,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Добавляет пользователя в группу.
- * @param {id} pMember - Идентификатор пользователя
- * @param {id} pGroup - Идентификатор группы
- * @return {numeric}
+ * @param {uuid} pMember - Идентификатор пользователя
+ * @param {uuid} pGroup - Идентификатор группы
+ * @return {void}
  */
 CREATE OR REPLACE FUNCTION AddMemberToGroup (
-  pMember	numeric,
-  pGroup	numeric
-) RETURNS	numeric
+  pMember	uuid,
+  pGroup	uuid
+) RETURNS	void
 AS $$
-DECLARE
-  nId		numeric;
 BEGIN
   IF session_user <> 'kernel' THEN
 	IF NOT CheckAccessControlList(B'00001000000000') THEN
@@ -2593,14 +2570,7 @@ BEGIN
     END IF;
   END IF;
 
-  SELECT id INTO nId FROM db.member_group WHERE userid = pGroup AND member = pMember;
-
-  IF NOT FOUND THEN
-    INSERT INTO db.member_group (userid, member) VALUES (pGroup, pMember)
-    RETURNING id INTO nId;
-  END IF;
-
-  RETURN nId;
+  INSERT INTO db.member_group (userid, member) VALUES (pGroup, pMember) ON CONFLICT (userid, member) DO NOTHING;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -2611,13 +2581,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Удаляет группу для пользователя.
- * @param {id} pMember - Идентификатор пользователя
- * @param {id} pGroup - Идентификатор группы, при null удаляет все группы для указанного пользователя
+ * @param {uuid} pMember - Идентификатор пользователя
+ * @param {uuid} pGroup - Идентификатор группы, при null удаляет все группы для указанного пользователя
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION DeleteGroupForMember (
-  pMember	numeric,
-  pGroup	numeric DEFAULT null
+  pMember	uuid,
+  pGroup	uuid DEFAULT null
 ) RETURNS	void
 AS $$
 BEGIN
@@ -2638,13 +2608,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Удаляет пользователя из группу.
- * @param {id} pGroup - Идентификатор группы
- * @param {id} pMember - Идентификатор пользователя, при null удаляет всех пользователей из указанной группы
+ * @param {uuid} pGroup - Идентификатор группы
+ * @param {uuid} pMember - Идентификатор пользователя, при null удаляет всех пользователей из указанной группы
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION DeleteMemberFromGroup (
-  pGroup	numeric,
-  pMember	numeric DEFAULT null
+  pGroup	uuid,
+  pMember	uuid DEFAULT null
 ) RETURNS	void
 AS $$
 BEGIN
@@ -2665,7 +2635,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetUserName (
-  pId		numeric
+  pId		uuid
 ) RETURNS	text
 AS $$
 DECLARE
@@ -2683,8 +2653,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetGroupName (
-  pId		numeric
-) RETURNS	text
+  pId			uuid
+) RETURNS		text
 AS $$
 DECLARE
   vGroupName	text;
@@ -2701,15 +2671,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateArea (
-  pParent	    numeric,
-  pType		    numeric,
-  pCode		    varchar,
-  pName		    varchar,
-  pDescription	text DEFAULT null
-) RETURNS 	    numeric
+  pParent	    uuid,
+  pType		    uuid,
+  pCode		    text,
+  pName		    text,
+  pDescription	text DEFAULT null,
+  pId			uuid DEFAULT gen_kernel_uuid('8')
+) RETURNS 	    uuid
 AS $$
 DECLARE
-  nId		    numeric;
+  nId		    uuid;
 BEGIN
   IF session_user <> 'kernel' THEN
     IF NOT IsUserRole(GetGroup('administrator')) THEN
@@ -2722,8 +2693,8 @@ BEGIN
     PERFORM RecordExists(pCode);
   END IF;
 
-  INSERT INTO db.area (parent, type, code, name, description)
-  VALUES (coalesce(pParent, GetArea('root')), pType, pCode, pName, pDescription) RETURNING Id INTO nId;
+  INSERT INTO db.area (id, parent, type, code, name, description)
+  VALUES (pId, coalesce(pParent, GetArea('root')), pType, pCode, pName, pDescription) RETURNING Id INTO nId;
 
   RETURN nId;
 END;
@@ -2736,19 +2707,19 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EditArea (
-  pId			    numeric,
-  pParent		    numeric DEFAULT null,
-  pType			    numeric DEFAULT null,
-  pCode			    varchar DEFAULT null,
-  pName			    varchar DEFAULT null,
+  pId			    uuid,
+  pParent		    uuid DEFAULT null,
+  pType			    uuid DEFAULT null,
+  pCode			    text DEFAULT null,
+  pName			    text DEFAULT null,
   pDescription		text DEFAULT null,
   pValidFromDate	timestamp DEFAULT null,
   pValidToDate		timestamp DEFAULT null
 ) RETURNS void
 AS $$
 DECLARE
-  vCode             varchar;
-  nType             numeric;
+  vCode             text;
+  nType             uuid;
 BEGIN
   IF session_user <> 'kernel' THEN
     IF NOT IsUserRole(GetGroup('administrator')) THEN
@@ -2795,11 +2766,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DeleteArea (
-  pId			numeric
+  pId			uuid
 ) RETURNS       void
 AS $$
 DECLARE
-  nId           numeric;
+  nId           uuid;
 BEGIN
   IF session_user <> 'kernel' THEN
     IF NOT IsUserRole(GetGroup('administrator')) THEN
@@ -2824,10 +2795,10 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION GetArea (
   pCode		text
-) RETURNS	numeric
+) RETURNS	uuid
 AS $$
 DECLARE
-  nId		numeric;
+  nId		uuid;
 BEGIN
   SELECT id INTO nId FROM db.area WHERE code = pCode;
   RETURN nId;
@@ -2841,11 +2812,11 @@ $$ LANGUAGE plpgsql STABLE STRICT
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetAreaCode (
-  pId		numeric
-) RETURNS	varchar
+  pId		uuid
+) RETURNS	text
 AS $$
 DECLARE
-  vCode		varchar;
+  vCode		text;
 BEGIN
   SELECT code INTO vCode FROM db.area WHERE id = pId;
   RETURN vCode;
@@ -2859,11 +2830,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetAreaName (
-  pId		numeric
-) RETURNS	varchar
+  pId		uuid
+) RETURNS	text
 AS $$
 DECLARE
-  vName		varchar;
+  vName		text;
 BEGIN
   SELECT name INTO vName FROM db.area WHERE id = pId;
   RETURN vName;
@@ -2877,12 +2848,10 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddMemberToArea (
-  pMember	numeric,
-  pArea		numeric
-) RETURNS   numeric
+  pMember	uuid,
+  pArea		uuid
+) RETURNS   void
 AS $$
-DECLARE
-  nId		numeric;
 BEGIN
   IF session_user <> 'kernel' THEN
 	IF NOT CheckAccessControlList(B'00001000000000') THEN
@@ -2890,14 +2859,7 @@ BEGIN
     END IF;
   END IF;
 
-  SELECT id INTO nId FROM db.member_area WHERE area = pArea AND member = pMember;
-
-  IF NOT FOUND THEN
-    INSERT INTO db.member_area (area, member) VALUES (pArea, pMember)
-    RETURNING id INTO nId;
-  END IF;
-
-  RETURN nId;
+  INSERT INTO db.member_area (area, member) VALUES (pArea, pMember) ON CONFLICT DO NOTHING;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -2913,8 +2875,8 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION DeleteAreaForMember (
-  pMember	numeric,
-  pArea		numeric DEFAULT null
+  pMember	uuid,
+  pArea		uuid DEFAULT null
 ) RETURNS   void
 AS $$
 BEGIN
@@ -2940,8 +2902,8 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION DeleteMemberFromArea (
-  pArea		numeric,
-  pMember	numeric DEFAULT null
+  pArea		uuid,
+  pMember	uuid DEFAULT null
 ) RETURNS   void
 AS $$
 BEGIN
@@ -2962,13 +2924,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetArea (
-  pArea	        numeric,
-  pMember	    numeric DEFAULT current_userid(),
-  pSession	    text DEFAULT current_session()
+  pArea	        uuid,
+  pMember	    uuid DEFAULT current_userid(),
+  pSession	    varchar DEFAULT current_session()
 ) RETURNS	    void
 AS $$
 DECLARE
-  vUserName     varchar;
+  vUserName     text;
   vDepName      text;
 BEGIN
   vDepName := GetAreaName(pArea);
@@ -2996,13 +2958,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Проверяет доступ к зоне.
- * @param {numeric} pArea - Идентификатор зоны
- * @param {numeric} pMember - Идентификатор роли (группы/учётной записи)
+ * @param {uuid} pArea - Идентификатор зоны
+ * @param {uuid} pMember - Идентификатор роли (группы/учётной записи)
  * @return {boolean}
  */
 CREATE OR REPLACE FUNCTION IsMemberArea (
-  pArea		numeric,
-  pMember   numeric DEFAULT current_userid()
+  pArea		uuid,
+  pMember   uuid DEFAULT current_userid()
 ) RETURNS	boolean
 AS $$
 DECLARE
@@ -3018,7 +2980,7 @@ BEGIN
     SELECT a.id, a.parent
       FROM db.area a, area_tree t
      WHERE a.id = t.parent
-  ) SELECT count(a.id) INTO nCount
+  ) SELECT count(m.member) INTO nCount
       FROM db.member_area m INNER JOIN area_tree a ON m.area = a.id
        AND member IN (
          SELECT pMember
@@ -3037,8 +2999,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetDefaultArea (
-  pArea	    numeric DEFAULT current_area(),
-  pMember	numeric DEFAULT current_userid()
+  pArea	    uuid DEFAULT current_area(),
+  pMember	uuid DEFAULT current_userid()
 ) RETURNS	void
 AS $$
 BEGIN
@@ -3053,11 +3015,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetDefaultArea (
-  pMember   numeric DEFAULT current_userid()
-) RETURNS	numeric
+  pMember   uuid DEFAULT current_userid()
+) RETURNS	uuid
 AS $$
 DECLARE
-  nArea	    numeric;
+  nArea	    uuid;
 BEGIN
   SELECT area INTO nArea FROM db.profile WHERE userid = pMember;
   RETURN nArea;
@@ -3071,12 +3033,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateInterface (
-  pName		    varchar,
-  pDescription	text
-) RETURNS 	    numeric
+  pCode		    text,
+  pName		    text,
+  pDescription	text,
+  pId		    uuid DEFAULT gen_kernel_uuid('8')
+) RETURNS 	    uuid
 AS $$
 DECLARE
-  nId		    numeric;
+  nId		    uuid;
 BEGIN
   IF session_user <> 'kernel' THEN
     IF NOT IsUserRole(GetGroup('administrator')) THEN
@@ -3084,8 +3048,8 @@ BEGIN
     END IF;
   END IF;
 
-  INSERT INTO db.interface (name, description)
-  VALUES (pName, pDescription) RETURNING Id INTO nId;
+  INSERT INTO db.interface (id, code, name, description)
+  VALUES (pId, pCode, pName, pDescription) RETURNING Id INTO nId;
 
   RETURN nId;
 END;
@@ -3098,9 +3062,10 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION UpdateInterface (
-  pId		    numeric,
-  pName		    varchar,
-  pDescription	text
+  pId		    uuid,
+  pCode		    text DEFAULT null,
+  pName		    text DEFAULT null,
+  pDescription	text DEFAULT null
 ) RETURNS 	    void
 AS $$
 BEGIN
@@ -3110,7 +3075,11 @@ BEGIN
     END IF;
   END IF;
 
-  UPDATE db.interface SET Name = pName, Description = pDescription WHERE Id = pId;
+  UPDATE db.interface
+     SET code = coalesce(pCode, code),
+         name = coalesce(pName, name),
+         description = CheckNull(coalesce(pDescription, description, '<null>'))
+   WHERE Id = pId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -3121,7 +3090,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DeleteInterface (
-  pId		numeric
+  pId		uuid
 ) RETURNS 	void
 AS $$
 BEGIN
@@ -3142,12 +3111,10 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddMemberToInterface (
-  pMember       numeric,
-  pInterface    numeric
-) RETURNS       numeric
+  pMember       uuid,
+  pInterface    uuid
+) RETURNS       void
 AS $$
-DECLARE
-  nId		    numeric;
 BEGIN
   IF session_user <> 'kernel' THEN
 	IF NOT CheckAccessControlList(B'00001000000000') THEN
@@ -3155,14 +3122,7 @@ BEGIN
     END IF;
   END IF;
 
-  SELECT id INTO nId FROM db.member_interface WHERE interface = pInterface AND member = pMember;
-
-  IF NOT FOUND THEN
-    INSERT INTO db.member_interface (interface, member) VALUES (pInterface, pMember)
-    RETURNING id INTO nId;
-  END IF;
-
-  RETURN nId;
+  INSERT INTO db.member_interface (interface, member) VALUES (pInterface, pMember) ON CONFLICT DO NOTHING;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -3173,8 +3133,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DeleteInterfaceForMember (
-  pMember	    numeric,
-  pInterface	numeric DEFAULT null
+  pMember	    uuid,
+  pInterface	uuid DEFAULT null
 ) RETURNS       void
 AS $$
 BEGIN
@@ -3195,8 +3155,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DeleteMemberFromInterface (
-  pInterface	numeric,
-  pMember	    numeric DEFAULT null
+  pInterface	uuid,
+  pMember	    uuid DEFAULT null
 ) RETURNS       void
 AS $$
 BEGIN
@@ -3213,43 +3173,17 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- GetInterfaceSID -------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION GetInterfaceSID (
-  pId		numeric
-) RETURNS 	text
-AS $$
-DECLARE
-  vSID		text;
-BEGIN
-  IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(GetGroup('administrator')) THEN
-      PERFORM AccessDenied();
-    END IF;
-  END IF;
-
-  SELECT sid INTO vSID FROM db.interface WHERE id = pId;
-
-  RETURN vSID;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
 -- GetInterface ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetInterface (
-  pSID		text
-) RETURNS 	numeric
+  pCode		text
+) RETURNS 	uuid
 AS $$
 DECLARE
-  nId		numeric;
+  nId		uuid;
 BEGIN
-  SELECT id INTO nId FROM db.interface WHERE SID = pSID;
-
+  SELECT id INTO nId FROM db.interface WHERE code = pCode;
   RETURN nId;
 END;
 $$ LANGUAGE plpgsql
@@ -3261,14 +3195,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetInterfaceName (
-  pId		numeric
-) RETURNS 	varchar
+  pId		uuid
+) RETURNS 	text
 AS $$
 DECLARE
-  vName		varchar;
+  vName		text;
 BEGIN
   SELECT name INTO vName FROM db.interface WHERE id = pId;
-
   RETURN vName;
 END;
 $$ LANGUAGE plpgsql
@@ -3280,13 +3213,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetInterface (
-  pInterface	numeric,
-  pMember	    numeric DEFAULT current_userid(),
-  pSession	    text DEFAULT current_session()
+  pInterface	uuid,
+  pMember	    uuid DEFAULT current_userid(),
+  pSession	    varchar DEFAULT current_session()
 ) RETURNS	    void
 AS $$
 DECLARE
-  vUserName     varchar;
+  vUserName     text;
   vInterface    text;
 BEGIN
   vInterface := GetInterfaceName(pInterface);
@@ -3314,13 +3247,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Проверяет доступ к интерфейсу.
- * @param {numeric} pInterface - Идентификатор интерфейса
- * @param {numeric} pMember - Идентификатор роли (группы/учётной записи)
+ * @param {uuid} pInterface - Идентификатор интерфейса
+ * @param {uuid} pMember - Идентификатор роли (группы/учётной записи)
  * @return {boolean}
  */
 CREATE OR REPLACE FUNCTION IsMemberInterface (
-  pInterface    numeric,
-  pMember       numeric DEFAULT current_userid()
+  pInterface    uuid,
+  pMember       uuid DEFAULT current_userid()
 ) RETURNS       boolean
 AS $$
 DECLARE
@@ -3330,7 +3263,7 @@ BEGIN
     RETURN false;
   END IF;
 
-  SELECT count(id) INTO nCount
+  SELECT count(member) INTO nCount
     FROM db.member_interface
    WHERE interface = pInterface
      AND member IN (
@@ -3350,8 +3283,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetDefaultInterface (
-  pInterface	numeric DEFAULT current_interface(),
-  pMember	    numeric DEFAULT current_userid()
+  pInterface	uuid DEFAULT current_interface(),
+  pMember	    uuid DEFAULT current_userid()
 ) RETURNS	    void
 AS $$
 BEGIN
@@ -3366,11 +3299,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetDefaultInterface (
-  pMember	    numeric DEFAULT current_userid()
-) RETURNS	    numeric
+  pMember	    uuid DEFAULT current_userid()
+) RETURNS	    uuid
 AS $$
 DECLARE
-  nInterface	numeric;
+  nInterface	uuid;
 BEGIN
   SELECT interface INTO nInterface FROM db.profile WHERE userid = pMember;
   RETURN nInterface;
@@ -3410,7 +3343,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CheckPassword (
-  pUserId	numeric,
+  pUserId	uuid,
   pPassword	text
 ) RETURNS 	boolean
 AS $$
@@ -3458,7 +3391,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION ValidSession (
-  pSession	    text DEFAULT current_session()
+  pSession	    varchar DEFAULT current_session()
 ) RETURNS 	    boolean
 AS $$
 DECLARE
@@ -3490,7 +3423,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION ValidSecret (
   pSecret       text,
-  pSession	    text DEFAULT current_session()
+  pSession	    varchar DEFAULT current_session()
 ) RETURNS 	    boolean
 AS $$
 DECLARE
@@ -3521,14 +3454,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Вход в систему по ключу сессии.
- * @param {text} pSession - Сессия
+ * @param {varchar} pSession - Сессия
  * @param {text} pAgent - Агент
  * @param {inet} pHost - IP адрес
  * @param {text} pSalt - Случайное значение соли для ключа аутентификации
  * @return {text} - Код авторизации. Если вернёт null вызвать GetErrorMessage для просмотра сообщения об ошибке.
  */
 CREATE OR REPLACE FUNCTION SessionIn (
-  pSession      text,
+  pSession      varchar,
   pAgent        text DEFAULT null,
   pHost         inet DEFAULT null,
   pSalt         text DEFAULT null
@@ -3538,15 +3471,12 @@ AS $$
 DECLARE
   up	        db.user%rowtype;
 
-  nUserId       numeric DEFAULT null;
-  nToken        numeric DEFAULT null;
-  nArea	        numeric DEFAULT null;
-  nInterface    numeric DEFAULT null;
+  nUserId       uuid DEFAULT null;
+  nToken        bigint DEFAULT null;
 BEGIN
   IF ValidSession(pSession) THEN
 
-	SELECT userid, area, interface
-	  INTO nUserId, nArea, nInterface
+	SELECT userid, area, interface INTO nUserId
 	  FROM db.session
 	 WHERE code = pSession;
 
@@ -3608,7 +3538,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Вход в систему по паре имя пользователя и пароль.
- * @param {numeric} pOAuth2 - Параметры авторизации через OAuth 2.0
+ * @param {bigint} pOAuth2 - Параметры авторизации через OAuth 2.0
  * @param {text} pRoleName - Пользователь (login)
  * @param {text} pPassword - Пароль
  * @param {text} pAgent - Агент
@@ -3616,7 +3546,7 @@ $$ LANGUAGE plpgsql
  * @return {text} - Сессия. Если вернёт null вызвать GetErrorMessage для просмотра сообщения об ошибке.
  */
 CREATE OR REPLACE FUNCTION Login (
-  pOAuth2       numeric,
+  pOAuth2       bigint,
   pRoleName     text,
   pPassword     text,
   pAgent        text DEFAULT null,
@@ -3626,8 +3556,8 @@ AS $$
 DECLARE
   up            db.user%rowtype;
 
-  nArea         numeric DEFAULT null;
-  nInterface    numeric DEFAULT null;
+  nArea         uuid DEFAULT null;
+  nInterface    uuid DEFAULT null;
 
   vSession      text DEFAULT null;
 BEGIN
@@ -3719,7 +3649,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * @brief Вход в систему по имени и паролю пользователя.
- * @param {numeric} pOAuth2 - Параметры авторизации через OAuth 2.0
+ * @param {bigint} pOAuth2 - Параметры авторизации через OAuth 2.0
  * @param {text} pRoleName - Пользователь (login)
  * @param {text} pPassword - Пароль
  * @param {text} pAgent - Агент
@@ -3727,7 +3657,7 @@ $$ LANGUAGE plpgsql
  * @return {text} - Сессия. Если вернёт null вызвать GetErrorMessage для просмотра сообщения об ошибке.
  */
 CREATE OR REPLACE FUNCTION SignIn (
-  pOAuth2       numeric,
+  pOAuth2       bigint,
   pRoleName     text,
   pPassword     text,
   pAgent        text DEFAULT null,
@@ -3787,19 +3717,19 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Выход из системы по ключу сессии.
- * @param {text} pSession - Сессия
+ * @param {varchar} pSession - Сессия
  * @param {boolean} pCloseAll - Закрыть все сессии
  * @param {text} pMessage - Сообщение
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION SessionOut (
-  pSession      text,
+  pSession      varchar,
   pCloseAll     boolean,
   pMessage      text DEFAULT null
 ) RETURNS 	    boolean
 AS $$
 DECLARE
-  nUserId	    numeric;
+  nUserId	    uuid;
   nCount	    integer;
 
   message	    text;
@@ -3852,17 +3782,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Выход из системы по ключу сессии.
- * @param {text} pSession - Сессия
+ * @param {varchar} pSession - Сессия
  * @param {boolean} pCloseAll - Закрыть все сессии
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION SignOut (
-  pSession      text DEFAULT current_session(),
+  pSession      varchar DEFAULT current_session(),
   pCloseAll     boolean DEFAULT false
 ) RETURNS       boolean
 AS $$
 DECLARE
-  nUserId       numeric;
+  nUserId       uuid;
   message       text;
 BEGIN
   RETURN SessionOut(pSession, pCloseAll);
@@ -3895,14 +3825,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * @brief Аутентификация.
- * @param {text} pSession - Сессия
+ * @param {varchar} pSession - Сессия
  * @param {text} pSecret - Секретный код
  * @param {text} pAgent - Агент
  * @param {inet} pHost - IP адрес
  * @return {text} - Новый код аутентификации. Если вернёт null вызвать GetErrorMessage для просмотра сообщения об ошибке.
  */
 CREATE OR REPLACE FUNCTION Authenticate (
-  pSession      text,
+  pSession      varchar,
   pSecret       text,
   pAgent        text DEFAULT null,
   pHost         inet DEFAULT null
@@ -3929,13 +3859,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Авторизовать.
- * @param {text} pSession - Сессия
+ * @param {varchar} pSession - Сессия
  * @param {text} pAgent - Агент
  * @param {inet} pHost - IP адрес
  * @return {boolean} Если вернёт false вызвать GetErrorMessage для просмотра сообщения об ошибке.
  */
 CREATE OR REPLACE FUNCTION Authorize (
-  pSession      text,
+  pSession      varchar,
   pAgent        text DEFAULT null,
   pHost         inet DEFAULT null
 )
@@ -3953,8 +3883,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetSession (
-  pUserId       numeric,
-  pOAuth2       numeric DEFAULT CreateSystemOAuth2(),
+  pUserId       uuid,
+  pOAuth2       bigint DEFAULT CreateSystemOAuth2(),
   pAgent        text DEFAULT null,
   pHost         inet DEFAULT null,
   pNew          bool DEFAULT false
@@ -3963,10 +3893,9 @@ AS $$
 DECLARE
   up            db.user%rowtype;
 
-  nArea         numeric;
-  nInterface	numeric;
-
-  nSUID         numeric;
+  nArea         uuid;
+  nInterface	uuid;
+  nSUID         uuid;
 
   vSession      text;
 BEGIN

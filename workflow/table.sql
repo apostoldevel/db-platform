@@ -3,7 +3,7 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.entity (
-    id			numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
+    id			uuid PRIMARY KEY DEFAULT gen_kernel_uuid('b'),
     code		text NOT NULL,
     name		text,
     description text
@@ -22,15 +22,13 @@ CREATE UNIQUE INDEX ON db.entity (code);
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.class_tree (
-    id			numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
-    parent		numeric(12),
-    entity		numeric(12) NOT NULL,
+    id			uuid PRIMARY KEY DEFAULT gen_kernel_uuid('b'),
+    parent		uuid REFERENCES db.class_tree(id),
+    entity		uuid NOT NULL REFERENCES db.entity(id),
     level		integer NOT NULL,
     code		text NOT NULL,
     label		text NOT NULL,
-    abstract    boolean DEFAULT TRUE NOT NULL,
-    CONSTRAINT fk_class_tree_parent FOREIGN KEY (parent) REFERENCES db.class_tree(id),
-    CONSTRAINT fk_class_tree_entity FOREIGN KEY (entity) REFERENCES db.entity(id)
+    abstract    boolean DEFAULT TRUE NOT NULL
 );
 
 COMMENT ON TABLE db.class_tree IS 'Дерево классов.';
@@ -56,20 +54,16 @@ CREATE OR REPLACE FUNCTION ft_class_tree_after_insert()
 RETURNS trigger AS $$
 BEGIN
   IF NEW.parent IS NULL THEN
-    --INSERT INTO db.acu SELECT NEW.id, GetGroup('system'), B'00000', B'00000';
     INSERT INTO db.acu SELECT NEW.id, GetGroup('administrator'), B'00000', B'11111';
     INSERT INTO db.acu SELECT NEW.id, GetUser('apibot'), B'00000', B'01110';
   ELSE
     INSERT INTO db.acu SELECT NEW.id, userid, deny, allow FROM db.acu WHERE class = NEW.parent;
 
     IF NEW.code = 'document' THEN
-      INSERT INTO db.acu SELECT NEW.id, GetGroup('operator'), B'00000', B'11110';
       INSERT INTO db.acu SELECT NEW.id, GetGroup('user'), B'00000', B'11000';
     ELSIF NEW.code = 'reference' THEN
-      INSERT INTO db.acu SELECT NEW.id, GetGroup('operator'), B'00000', B'11110';
       INSERT INTO db.acu SELECT NEW.id, GetGroup('user'), B'00000', B'10100';
     ELSIF NEW.code = 'message' THEN
-      UPDATE db.acu SET allow = B'11000' WHERE acu.class = NEW.id AND userid = GetGroup('operator');
       INSERT INTO db.acu SELECT NEW.id, GetUser('mailbot'), B'00000', B'01110';
     END IF;
   END IF;
@@ -112,13 +106,12 @@ CREATE TRIGGER t_class_tree_before_delete
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.acu (
-    class		numeric(12) NOT NULL,
-    userid		numeric(12) NOT NULL,
+    class		uuid NOT NULL REFERENCES db.class_tree(id) ON DELETE CASCADE,
+    userid		uuid NOT NULL REFERENCES db.user(id) ON DELETE CASCADE,
     deny		bit(5) NOT NULL,
     allow		bit(5) NOT NULL,
     mask		bit(5) DEFAULT B'00000' NOT NULL,
-    CONSTRAINT fk_acu_class FOREIGN KEY (class) REFERENCES db.class_tree(id),
-    CONSTRAINT fk_acu_userid FOREIGN KEY (userid) REFERENCES db.user(id)
+    PRIMARY KEY (class, userid)
 );
 
 COMMENT ON TABLE db.acu IS 'Доступ пользователя к классам.';
@@ -131,8 +124,6 @@ COMMENT ON COLUMN db.acu.mask IS 'Маска доступа: {acsud}. Где: {a
 
 CREATE INDEX ON db.acu (class);
 CREATE INDEX ON db.acu (userid);
-
-CREATE UNIQUE INDEX ON db.acu (class, userid);
 
 --------------------------------------------------------------------------------
 
@@ -149,6 +140,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+--------------------------------------------------------------------------------
+
 CREATE TRIGGER t_acu_before
   BEFORE INSERT OR UPDATE ON db.acu
   FOR EACH ROW
@@ -159,12 +152,11 @@ CREATE TRIGGER t_acu_before
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.type (
-    id			numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
-    class		numeric(12) NOT NULL,
+    id			uuid PRIMARY KEY DEFAULT gen_kernel_uuid('b'),
+    class		uuid NOT NULL REFERENCES db.class_tree(id),
     code        text NOT NULL,
     name 		text NOT NULL,
-    description text,
-    CONSTRAINT fk_type_class FOREIGN KEY (class) REFERENCES db.class_tree(id)
+    description text
 );
 
 COMMENT ON TABLE db.type IS 'Тип.';
@@ -184,7 +176,7 @@ CREATE UNIQUE INDEX ON db.type (class, code);
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.state_type (
-    id			numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
+    id			uuid PRIMARY KEY,
     code		text NOT NULL,
     name		text NOT NULL
 );
@@ -198,25 +190,16 @@ COMMENT ON COLUMN db.state_type.name IS 'Наименование типа со�
 CREATE UNIQUE INDEX ON db.state_type (code);
 
 --------------------------------------------------------------------------------
-
-INSERT INTO db.state_type (code, name) VALUES ('created', 'Создан');
-INSERT INTO db.state_type (code, name) VALUES ('enabled', 'Включен');
-INSERT INTO db.state_type (code, name) VALUES ('disabled', 'Отключен');
-INSERT INTO db.state_type (code, name) VALUES ('deleted', 'Удалён');
-
---------------------------------------------------------------------------------
 -- db.state --------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.state (
-    id			numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
-    class		numeric(12) NOT NULL,
-    type		numeric(12) NOT NULL,
+    id			uuid PRIMARY KEY DEFAULT gen_kernel_uuid('b'),
+    class		uuid NOT NULL REFERENCES db.class_tree(id),
+    type		uuid NOT NULL REFERENCES db.state_type(id),
     code		text NOT NULL,
     label		text NOT NULL,
-    sequence	integer NOT NULL,
-    CONSTRAINT fk_state_class FOREIGN KEY (class) REFERENCES db.class_tree(id),
-    CONSTRAINT fk_state_type FOREIGN KEY (type) REFERENCES db.state_type(id)
+    sequence	integer NOT NULL
 );
 
 COMMENT ON TABLE db.state IS 'Список состояний объекта.';
@@ -235,33 +218,11 @@ CREATE INDEX ON db.state (code);
 CREATE UNIQUE INDEX ON db.state (class, code);
 
 --------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION ft_state_insert()
-RETURNS trigger AS $$
-BEGIN
-  IF NULLIF(NEW.code, '') IS NULL THEN
-    NEW.code := encode(gen_random_bytes(12), 'hex');
-  END IF;
-
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
-
-CREATE TRIGGER t_state_insert
-  BEFORE INSERT ON db.state
-  FOR EACH ROW
-  EXECUTE PROCEDURE ft_state_insert();
-
---------------------------------------------------------------------------------
 -- ACTION ----------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.action (
-    id			numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
+    id			uuid PRIMARY KEY DEFAULT gen_kernel_uuid('b'),
     code		text NOT NULL,
     name		text NOT NULL,
     description	text
@@ -281,18 +242,15 @@ CREATE UNIQUE INDEX ON db.action (code);
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.method (
-    id			numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
-    parent		numeric(12),
-    class		numeric(12) NOT NULL,
-    state		numeric(12),
-    action		numeric(12) NOT NULL,
+    id			uuid PRIMARY KEY DEFAULT gen_kernel_uuid('b'),
+    parent		uuid REFERENCES db.method(id),
+    class		uuid NOT NULL REFERENCES db.class_tree(id),
+    state		uuid REFERENCES db.state(id),
+    action		uuid NOT NULL REFERENCES db.action(id),
     code		text NOT NULL,
     label		text NOT NULL,
     sequence    integer NOT NULL,
-    visible		boolean DEFAULT TRUE,
-    CONSTRAINT fk_method_class FOREIGN KEY (class) REFERENCES db.class_tree(id),
-    CONSTRAINT fk_method_state FOREIGN KEY (state) REFERENCES db.state(id),
-    CONSTRAINT fk_method_action FOREIGN KEY (action) REFERENCES db.action(id)
+    visible		boolean DEFAULT true
 );
 
 COMMENT ON TABLE db.method IS 'Методы класса.';
@@ -313,7 +271,6 @@ CREATE INDEX ON db.method (parent);
 CREATE INDEX ON db.method (class);
 CREATE INDEX ON db.method (state);
 CREATE INDEX ON db.method (action);
-CREATE INDEX ON db.method (visible);
 
 CREATE UNIQUE INDEX ON db.method (class, state, action);
 CREATE UNIQUE INDEX ON db.method (class, code);
@@ -323,8 +280,6 @@ CREATE UNIQUE INDEX ON db.method (class, code);
 CREATE OR REPLACE FUNCTION db.ft_method_before_insert()
 RETURNS trigger AS $$
 BEGIN
-  NEW.state = NULLIF(NEW.state, 0);
-
   IF NEW.code IS NULL THEN
     NEW.code := coalesce(GetStateCode(NEW.state), 'null') || ':' || GetActionCode(NEW.action);
   END IF;
@@ -399,13 +354,12 @@ CREATE TRIGGER t_method_before_delete
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.amu (
-    method		numeric(12) NOT NULL,
-    userid		numeric(12) NOT NULL,
+    method		uuid NOT NULL REFERENCES db.method(id) ON DELETE CASCADE,
+    userid		uuid NOT NULL REFERENCES db.user(id) ON DELETE CASCADE,
     deny		bit(3) NOT NULL,
     allow		bit(3) NOT NULL,
     mask		bit(3) DEFAULT B'000' NOT NULL,
-    CONSTRAINT fk_amu_method FOREIGN KEY (method) REFERENCES db.method(id),
-    CONSTRAINT fk_amu_userid FOREIGN KEY (userid) REFERENCES db.user(id)
+    PRIMARY KEY (method, userid)
 );
 
 COMMENT ON TABLE db.amu IS 'Доступ пользователя к методам класса.';
@@ -416,8 +370,6 @@ COMMENT ON COLUMN db.amu.mask IS 'Маска доступа. Шесть бит (
 
 CREATE INDEX ON db.amu (method);
 CREATE INDEX ON db.amu (userid);
-
-CREATE UNIQUE INDEX ON db.amu (method, userid);
 
 --------------------------------------------------------------------------------
 
@@ -444,13 +396,10 @@ CREATE TRIGGER t_amu_before
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.transition (
-    id			numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
-    state		numeric(12),
-    method		numeric(12) NOT NULL,
-    newstate    numeric(12) NOT NULL,
-    CONSTRAINT fk_transition_state FOREIGN KEY (state) REFERENCES db.state(id),
-    CONSTRAINT fk_transition_method FOREIGN KEY (method) REFERENCES db.method(id),
-    CONSTRAINT fk_transition_newstate FOREIGN KEY (newstate) REFERENCES db.state(id)
+    id			uuid PRIMARY KEY DEFAULT gen_kernel_uuid('b'),
+    state		uuid REFERENCES db.state(id),
+    method		uuid NOT NULL UNIQUE REFERENCES db.method(id),
+    newstate    uuid NOT NULL REFERENCES db.state(id)
 );
 
 COMMENT ON TABLE db.transition IS 'Переходы из одного состояния в другое.';
@@ -461,34 +410,14 @@ COMMENT ON COLUMN db.transition.method IS 'Совершаемая операци
 COMMENT ON COLUMN db.transition.newstate IS 'Состояние (новое)';
 
 CREATE INDEX ON db.transition (state);
-CREATE UNIQUE INDEX ON db.transition (method);
-
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION db.ft_transition_before_insert()
-RETURNS trigger AS $$
-BEGIN
-  NEW.STATE = NULLIF(NEW.STATE, 0);
-
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
-
-CREATE TRIGGER t_transition_before_insert
-  BEFORE INSERT ON db.transition
-  FOR EACH ROW
-  EXECUTE PROCEDURE db.ft_transition_before_insert();
+CREATE INDEX ON db.transition (method);
 
 --------------------------------------------------------------------------------
 -- EVENT -----------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.event_type (
-    id			numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
+    id			uuid PRIMARY KEY,
     code		text NOT NULL,
     name		text NOT NULL
 );
@@ -502,27 +431,18 @@ COMMENT ON COLUMN db.event_type.name IS 'Наименование типа со�
 CREATE UNIQUE INDEX ON db.event_type (code);
 
 --------------------------------------------------------------------------------
-
-INSERT INTO db.event_type (code, name) VALUES ('parent', 'События класса родителя');
-INSERT INTO db.event_type (code, name) VALUES ('event', 'Событие');
-INSERT INTO db.event_type (code, name) VALUES ('plpgsql', 'PL/pgSQL код');
-
---------------------------------------------------------------------------------
 -- db.event --------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.event (
-    id			numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
-    class		numeric(12) NOT NULL,
-    type		numeric(12) NOT NULL,
-    action		numeric(12) NOT NULL,
+    id			uuid PRIMARY KEY DEFAULT gen_kernel_uuid('b'),
+    class		uuid NOT NULL REFERENCES db.class_tree(id),
+    type		uuid NOT NULL REFERENCES db.event_type(id),
+    action		uuid NOT NULL REFERENCES db.action(id),
     label		text NOT NULL,
     text		text,
     sequence	integer NOT NULL,
-    enabled		boolean DEFAULT TRUE NOT NULL,
-    CONSTRAINT fk_event_class FOREIGN KEY (class) REFERENCES db.class_tree(id),
-    CONSTRAINT fk_event_type FOREIGN KEY (type) REFERENCES db.event_type(id),
-    CONSTRAINT fk_event_action FOREIGN KEY (action) REFERENCES db.action(id)
+    enabled		boolean DEFAULT TRUE NOT NULL
 );
 
 COMMENT ON TABLE db.event IS 'События.';
@@ -539,4 +459,3 @@ COMMENT ON COLUMN db.event.enabled IS 'Включено: Да/Нет';
 CREATE INDEX ON db.event (class);
 CREATE INDEX ON db.event (type);
 CREATE INDEX ON db.event (action);
-CREATE INDEX ON db.event (enabled);

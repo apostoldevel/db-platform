@@ -61,7 +61,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, fields jsonb)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, fields jsonb)
       LOOP
         FOR e IN EXECUTE format('SELECT %s FROM api.get_notification($1)', JsonbToFields(r.fields, GetColumns('notification', 'api'))) USING r.id
         LOOP
@@ -71,7 +71,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, fields jsonb)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, fields jsonb)
       LOOP
         FOR e IN EXECUTE format('SELECT %s FROM api.get_notification($1)', JsonbToFields(r.fields, GetColumns('notification', 'api'))) USING r.id
         LOOP

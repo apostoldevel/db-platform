@@ -7,18 +7,16 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.device (
-    id                  numeric(12) PRIMARY KEY,
-    document            numeric(12) NOT NULL,
-    model               numeric(12) NOT NULL,
-    client				numeric(12),
+    id                  uuid PRIMARY KEY,
+    document            uuid NOT NULL REFERENCES db.document(id) ON DELETE CASCADE,
+    model               uuid NOT NULL REFERENCES db.model(id) ON DELETE RESTRICT,
+    client				uuid REFERENCES db.client(id) ON DELETE CASCADE,
     identity            text NOT NULL,
     version             text,
     serial              text,
     address				text,
     iccid               text,
-    imsi                text,
-    CONSTRAINT fk_device_document FOREIGN KEY (document) REFERENCES db.document(id),
-    CONSTRAINT fk_device_client FOREIGN KEY (client) REFERENCES db.client(id)
+    imsi                text
 );
 
 --------------------------------------------------------------------------------
@@ -52,10 +50,10 @@ CREATE INDEX ON db.device (serial);
 CREATE OR REPLACE FUNCTION ft_device_before_insert()
 RETURNS trigger AS $$
 DECLARE
-  nOwner		numeric;
-  nUserId		numeric;
+  nOwner		uuid;
+  nUserId		uuid;
 BEGIN
-  IF NEW.id IS NULL OR NEW.id = 0 THEN
+  IF NEW.id IS NULL THEN
     SELECT NEW.document INTO NEW.id;
   END IF;
 
@@ -89,8 +87,8 @@ CREATE TRIGGER t_device_before_insert
 CREATE OR REPLACE FUNCTION ft_device_before_update()
 RETURNS trigger AS $$
 DECLARE
-  nOwner		numeric;
-  nUserId		numeric;
+  nOwner		uuid;
+  nUserId		uuid;
 BEGIN
   IF OLD.client <> NEW.client THEN
     SELECT owner INTO nOwner FROM db.object WHERE id = NEW.document;
@@ -131,8 +129,8 @@ CREATE TRIGGER t_device_before_update
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.device_notification (
-    id              numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_STATUS'),
-    device          numeric(12) NOT NULL,
+    id              uuid PRIMARY KEY DEFAULT gen_kernel_uuid('8'),
+    device          uuid NOT NULL,
     interfaceId		integer NOT NULL DEFAULT 0,
     status          text NOT NULL,
     errorCode       text NOT NULL,
@@ -170,8 +168,8 @@ CREATE UNIQUE INDEX ON db.device_notification (device, interfaceId, validFromDat
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.device_value (
-    id			    numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_STATUS'),
-    device          numeric(12) NOT NULL,
+    id			    uuid PRIMARY KEY DEFAULT gen_kernel_uuid('8'),
+    device          uuid NOT NULL,
     type			integer NOT NULL,
     value			jsonb NOT NULL,
     validFromDate	timestamp DEFAULT NOW() NOT NULL,
@@ -196,4 +194,3 @@ CREATE INDEX ON db.device_value (device);
 CREATE INDEX ON db.device_value (type);
 
 CREATE UNIQUE INDEX ON db.device_value (device, type, validFromDate, validToDate);
-

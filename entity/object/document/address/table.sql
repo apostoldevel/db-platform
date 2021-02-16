@@ -3,8 +3,8 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.address (
-    id			numeric(12) PRIMARY KEY,
-    document	numeric(12) NOT NULL,
+    id			uuid PRIMARY KEY,
+    document	uuid NOT NULL REFERENCES db.document(id) ON DELETE CASCADE,
     code		text NOT NULL,
     index		text,
     country		text,
@@ -17,8 +17,7 @@ CREATE TABLE db.address (
     building	text,
     structure	text,
     apartment	text,
-    sortnum		numeric NOT NULL,
-    CONSTRAINT fk_address_document FOREIGN KEY (document) REFERENCES db.document(id)
+    sortnum		integer NOT NULL
 );
 
 COMMENT ON TABLE db.address IS 'Адрес объекта.';
@@ -47,7 +46,7 @@ CREATE INDEX ON db.address (code);
 CREATE OR REPLACE FUNCTION ft_address_insert()
 RETURNS trigger AS $$
 BEGIN
-  IF NULLIF(NEW.id, 0) IS NULL THEN
+  IF NEW.id IS NULL THEN
     SELECT NEW.document INTO NEW.id;
   END IF;
 
@@ -67,4 +66,3 @@ CREATE TRIGGER t_address_insert
   BEFORE INSERT ON db.address
   FOR EACH ROW
   EXECUTE PROCEDURE ft_address_insert();
-

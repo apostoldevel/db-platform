@@ -17,22 +17,22 @@ GRANT SELECT ON api.program TO administrator;
 --------------------------------------------------------------------------------
 /**
  * Добавляет программу.
- * @param {numeric} pParent - Ссылка на родительский объект: api.document | null
+ * @param {uuid} pParent - Ссылка на родительский объект: api.document | null
  * @param {text} pType - Тип
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
  * @param {text} pBody - Тело
  * @param {text} pDescription - Описание
- * @return {numeric}
+ * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION api.add_program (
-  pParent       numeric,
+  pParent       uuid,
   pType         text,
   pCode         text,
   pName         text,
   pBody         text,
   pDescription	text default null
-) RETURNS       numeric
+) RETURNS       uuid
 AS $$
 BEGIN
   RETURN CreateProgram(pParent, CodeToType(lower(coalesce(pType, 'plpgsql')), 'program'), pCode, pName, pBody, pDescription);
@@ -46,7 +46,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Редактирует программу.
- * @param {numeric} pParent - Ссылка на родительский объект: Object.Parent | null
+ * @param {uuid} pParent - Ссылка на родительский объект: Object.Parent | null
  * @param {text} pType - Тип
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
@@ -55,8 +55,8 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_program (
-  pId		    numeric,
-  pParent       numeric default null,
+  pId		    uuid,
+  pParent       uuid default null,
   pType         text default null,
   pCode         text default null,
   pName         text default null,
@@ -65,8 +65,8 @@ CREATE OR REPLACE FUNCTION api.update_program (
 ) RETURNS       void
 AS $$
 DECLARE
-  nType         numeric;
-  nProgram      numeric;
+  nType         uuid;
+  nProgram      uuid;
 BEGIN
   SELECT t.id INTO nProgram FROM db.program t WHERE t.id = pId;
 
@@ -91,8 +91,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.set_program (
-  pId           numeric,
-  pParent       numeric default null,
+  pId           uuid,
+  pParent       uuid default null,
   pType         text default null,
   pCode         text default null,
   pName         text default null,
@@ -118,11 +118,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает программу
- * @param {numeric} pId - Идентификатор
+ * @param {uuid} pId - Идентификатор
  * @return {api.program}
  */
 CREATE OR REPLACE FUNCTION api.get_program (
-  pId		numeric
+  pId		uuid
 ) RETURNS	api.program
 AS $$
   SELECT * FROM api.program WHERE id = pId

@@ -7,10 +7,9 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.agent (
-    id          numeric(12) PRIMARY KEY,
-    reference   numeric(12) NOT NULL,
-    vendor      numeric(12) NOT NULL,
-    CONSTRAINT fk_agent_reference FOREIGN KEY (reference) REFERENCES db.reference(id)
+    id          uuid PRIMARY KEY,
+    reference   uuid NOT NULL REFERENCES db.reference(id) ON DELETE CASCADE,
+    vendor      uuid NOT NULL
 );
 
 COMMENT ON TABLE db.agent IS 'Агент.';
@@ -27,7 +26,7 @@ CREATE OR REPLACE FUNCTION ft_agent_insert()
 RETURNS trigger AS $$
 DECLARE
 BEGIN
-  IF NULLIF(NEW.id, 0) IS NULL THEN
+  IF NEW.id IS NULL THEN
     SELECT NEW.reference INTO NEW.id;
   END IF;
 
@@ -43,4 +42,3 @@ CREATE TRIGGER t_agent_insert
   BEFORE INSERT ON db.agent
   FOR EACH ROW
   EXECUTE PROCEDURE ft_agent_insert();
-

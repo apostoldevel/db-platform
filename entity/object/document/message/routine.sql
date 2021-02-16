@@ -3,9 +3,9 @@
 --------------------------------------------------------------------------------
 /**
  * Создаёт новое сообщение
- * @param {numeric} pParent - Родительский объект
- * @param {numeric} pType - Тип
- * @param {numeric} pAgent - Агент
+ * @param {uuid} pParent - Родительский объект
+ * @param {uuid} pType - Тип
+ * @param {uuid} pAgent - Агент
  * @param {text} pProfile - Профиль отправителя
  * @param {text} pAddress - Адрес получателя
  * @param {text} pSubject - Тема
@@ -14,22 +14,22 @@
  * @return {(id|exception)} - Id сообщения или ошибку
  */
 CREATE OR REPLACE FUNCTION CreateMessage (
-  pParent       numeric,
-  pType         numeric,
-  pAgent        numeric,
+  pParent       uuid,
+  pType         uuid,
+  pAgent        uuid,
   pProfile      text,
   pAddress      text,
   pSubject      text,
   pContent      text,
   pDescription  text DEFAULT null
-) RETURNS       numeric
+) RETURNS       uuid
 AS $$
 DECLARE
-  nMessage      numeric;
-  nDocument     numeric;
+  nMessage      uuid;
+  nDocument     uuid;
 
-  nClass        numeric;
-  nMethod       numeric;
+  nClass        uuid;
+  nMethod       uuid;
 BEGIN
   SELECT class INTO nClass FROM db.type WHERE id = pType;
 
@@ -43,7 +43,7 @@ BEGIN
   VALUES (nDocument, nDocument, pAgent, pProfile, pAddress, pSubject, pContent)
   RETURNING id INTO nMessage;
 
-  nMethod := GetMethod(nClass, null, GetAction('create'));
+  nMethod := GetMethod(nClass, GetAction('create'));
   PERFORM ExecuteMethod(nMessage, nMethod);
 
   return nMessage;
@@ -57,10 +57,10 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Редактирует сообщение.
- * @param {numeric} pId - Идентификатор
- * @param {numeric} pParent - Родительский объект
- * @param {numeric} pType - Тип
- * @param {numeric} pAgent - Агент
+ * @param {uuid} pId - Идентификатор
+ * @param {uuid} pParent - Родительский объект
+ * @param {uuid} pType - Тип
+ * @param {uuid} pAgent - Агент
  * @param {text} pProfile - Профиль отправителя
  * @param {text} pAddress - Адрес получателя
  * @param {text} pSubject - Тема
@@ -69,10 +69,10 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION EditMessage (
-  pId           numeric,
-  pParent       numeric DEFAULT null,
-  pType         numeric DEFAULT null,
-  pAgent        numeric DEFAULT null,
+  pId           uuid,
+  pParent       uuid DEFAULT null,
+  pType         uuid DEFAULT null,
+  pAgent        uuid DEFAULT null,
   pProfile      text DEFAULT null,
   pAddress      text DEFAULT null,
   pSubject      text DEFAULT null,
@@ -81,8 +81,8 @@ CREATE OR REPLACE FUNCTION EditMessage (
 ) RETURNS 	    void
 AS $$
 DECLARE
-  nClass        numeric;
-  nMethod       numeric;
+  nClass        uuid;
+  nMethod       uuid;
 BEGIN
   PERFORM EditDocument(pId, pParent, pType, null, pDescription);
 
@@ -96,7 +96,7 @@ BEGIN
 
   SELECT class INTO nClass FROM type WHERE id = pType;
 
-  nMethod := GetMethod(nClass, null, GetAction('edit'));
+  nMethod := GetMethod(nClass, GetAction('edit'));
   PERFORM ExecuteMethod(pId, nMethod);
 END;
 $$ LANGUAGE plpgsql
@@ -109,10 +109,10 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION GetMessageId (
   pCode		text
-) RETURNS	numeric
+) RETURNS	uuid
 AS $$
 DECLARE
-  nId		numeric;
+  nId		uuid;
 BEGIN
   SELECT id INTO nId FROM db.message WHERE code = pCode;
   RETURN nId;
@@ -126,7 +126,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetMessageCode (
-  pId		numeric
+  pId		uuid
 ) RETURNS	text
 AS $$
 DECLARE
@@ -145,7 +145,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION GetMessageState (
   pCode		text
-) RETURNS	numeric
+) RETURNS	uuid
 AS $$
 BEGIN
   RETURN GetState(GetEntity('message'), pCode);
@@ -282,18 +282,18 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SendMessage (
-  pParent       numeric,
-  pAgent        numeric,
+  pParent       uuid,
+  pAgent        uuid,
   pProfile      text,
   pAddress      text,
   pSubject      text,
   pContent      text,
   pDescription  text DEFAULT null,
-  pType         numeric DEFAULT GetType('message.outbox')
-) RETURNS	    numeric
+  pType         uuid DEFAULT GetType('message.outbox')
+) RETURNS	    uuid
 AS $$
 DECLARE
-  nMessageId    numeric;
+  nMessageId    uuid;
 BEGIN
   nMessageId := CreateMessage(pParent, pType, pAgent, pProfile, pAddress, pSubject, pContent, pDescription);
   PERFORM ExecuteObjectAction(nMessageId, GetAction('submit'));
@@ -308,14 +308,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SendMail (
-  pParent       numeric,
+  pParent       uuid,
   pProfile      text,
   pAddress      text,
   pSubject      text,
   pContent      text,
   pDescription  text DEFAULT null,
-  pAgent        numeric DEFAULT GetAgent('smtp.agent')
-) RETURNS	    numeric
+  pAgent        uuid DEFAULT GetAgent('smtp.agent')
+) RETURNS	    uuid
 AS $$
 BEGIN
   RETURN SendMessage(pParent, pAgent, pProfile, pAddress, pSubject, pContent, pDescription);
@@ -329,14 +329,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SendM2M (
-  pParent       numeric,
+  pParent       uuid,
   pProfile      text,
   pAddress      text,
   pSubject      text,
   pContent      text,
   pDescription  text DEFAULT null,
-  pAgent        numeric DEFAULT GetAgent('m2m.agent')
-) RETURNS	    numeric
+  pAgent        uuid DEFAULT GetAgent('m2m.agent')
+) RETURNS	    uuid
 AS $$
 BEGIN
   RETURN SendMessage(pParent, pAgent, pProfile, pAddress, pSubject, pContent, pDescription);
@@ -350,14 +350,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SendFCM (
-  pParent       numeric,
+  pParent       uuid,
   pProfile      text,
   pAddress      text,
   pSubject      text,
   pContent      text,
   pDescription  text DEFAULT null,
-  pAgent        numeric DEFAULT GetAgent('fcm.agent')
-) RETURNS	    numeric
+  pAgent        uuid DEFAULT GetAgent('fcm.agent')
+) RETURNS	    uuid
 AS $$
 BEGIN
   RETURN SendMessage(pParent, pAgent, pProfile, pAddress, pSubject, pContent, pDescription);
@@ -371,14 +371,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SendSMS (
-  pParent       numeric,
+  pParent       uuid,
   pProfile      text,
   pMessage      text,
-  pUserId       numeric DEFAULT current_userid()
-) RETURNS	    numeric
+  pUserId       uuid DEFAULT current_userid()
+) RETURNS	    uuid
 AS $$
 DECLARE
-  nMessageId    numeric;
+  nMessageId    uuid;
 
   vCharSet      text;
   vPhone        text;
@@ -410,15 +410,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SendPush (
-  pObject       numeric,
+  pObject       uuid,
   pSubject		text,
   pData         json,
-  pUserId       numeric DEFAULT current_userid(),
+  pUserId       uuid DEFAULT current_userid(),
   pPriority		text DEFAULT 'normal'
 ) RETURNS	    void
 AS $$
 DECLARE
-  nMessageId    numeric;
+  nMessageId    uuid;
 
   tokens		text[];
 
@@ -457,7 +457,7 @@ $$ LANGUAGE plpgsql
  * @return {uuid} - Талон восстановления (recovery ticket)
  */
 CREATE OR REPLACE FUNCTION RecoveryPasswordByEmail (
-  pUserId			numeric
+  pUserId			uuid
 ) RETURNS			uuid
 AS $$
 DECLARE
@@ -548,16 +548,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Запускает процедуру востановления пароля пользователя по номеру телефона.
- * @param {numeric} pUserId - Идентификатор пользователя.
+ * @param {uuid} pUserId - Идентификатор пользователя.
  * @return {uuid} - Талон восстановления (recovery ticket)
  */
 CREATE OR REPLACE FUNCTION RecoveryPasswordByPhone (
-  pUserId			numeric
+  pUserId			uuid
 ) RETURNS			uuid
 AS $$
 DECLARE
   nTicket			uuid;
-  nMessageId		numeric;
+  nMessageId		uuid;
   vSecurityAnswer	text;
 BEGIN
   vSecurityAnswer := random_between(100000, 999999)::text;

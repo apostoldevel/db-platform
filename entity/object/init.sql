@@ -7,14 +7,14 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddObjectEvents (
-  pClass        numeric
+  pClass        uuid
 )
 RETURNS         void
 AS $$
 DECLARE
   r             record;
 
-  nEvent        numeric;
+  nEvent        uuid;
 BEGIN
   nEvent := GetEventType('event');
 
@@ -73,13 +73,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateClassObject (
-  pParent       numeric,
-  pEntity       numeric
+  pParent       uuid,
+  pEntity       uuid
 )
-RETURNS         numeric
+RETURNS         uuid
 AS $$
 DECLARE
-  nClass        numeric;
+  nClass        uuid;
 BEGIN
   -- Класс
   nClass := AddClass(pParent, pEntity, 'object', 'Объект', true);
@@ -101,12 +101,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateEntityObject (
-  pParent       numeric
+  pParent       uuid
 )
-RETURNS         numeric
+RETURNS         uuid
 AS $$
 DECLARE
-  nEntity       numeric;
+  nEntity       uuid;
 BEGIN
   -- Сущность
   nEntity := AddEntity('object', 'Объект');

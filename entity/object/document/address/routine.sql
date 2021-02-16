@@ -3,8 +3,8 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateAddress (
-  pParent       numeric,
-  pType         numeric,
+  pParent       uuid,
+  pType         uuid,
   pCode         text,
   pIndex        text,
   pCountry      text,
@@ -18,7 +18,7 @@ CREATE OR REPLACE FUNCTION CreateAddress (
   pStructure    text,
   pApartment    text,
   pAddress      text DEFAULT null
-) RETURNS       numeric
+) RETURNS       uuid
 AS $$
 DECLARE
   r             db.address%rowtype;
@@ -27,10 +27,10 @@ DECLARE
   sShort        text;
   sAddress      text;
 
-  nAddress      numeric;
-  nClass        numeric;
-  nDocument     numeric;
-  nMethod       numeric;
+  nAddress      uuid;
+  nClass        uuid;
+  nDocument     uuid;
+  nMethod       uuid;
 BEGIN
   SELECT class INTO nClass FROM db.type WHERE id = pType;
 
@@ -124,7 +124,7 @@ BEGIN
   VALUES (nDocument, nDocument, pCode, pIndex, pCountry, pRegion, pDistrict, pCity, pSettlement, pStreet, pHouse, pBuilding, pStructure, pApartment, 0)
   RETURNING id INTO nAddress;
 
-  nMethod := GetMethod(nClass, null, GetAction('create'));
+  nMethod := GetMethod(nClass, GetAction('create'));
   PERFORM ExecuteMethod(nAddress, nMethod);
 
   RETURN nAddress;
@@ -138,9 +138,9 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EditAddress (
-  pId           numeric,
-  pParent       numeric DEFAULT null,
-  pType         numeric DEFAULT null,
+  pId           uuid,
+  pParent       uuid DEFAULT null,
+  pType         uuid DEFAULT null,
   pCode         text DEFAULT null,
   pIndex        text DEFAULT null,
   pCountry      text DEFAULT null,
@@ -163,12 +163,12 @@ DECLARE
   sShort		text;
   sAddress	    text;
 
-  nClass        numeric;
-  nMethod       numeric;
+  nClass        uuid;
+  nMethod       uuid;
 
   -- current
-  cParent	    numeric;
-  cType		    numeric;
+  cParent	    uuid;
+  cType		    uuid;
 BEGIN
   SELECT parent, type INTO cParent, cType FROM db.object WHERE id = pId;
 
@@ -302,7 +302,7 @@ BEGIN
    WHERE id = pId;
 
   nClass := GetObjectClass(pId);
-  nMethod := GetMethod(nClass, null, GetAction('edit'));
+  nMethod := GetMethod(nClass, GetAction('edit'));
   PERFORM ExecuteMethod(pId, nMethod);
 END;
 $$ LANGUAGE plpgsql
@@ -314,7 +314,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetAddressString (
-  pId		numeric
+  pId		uuid
 ) RETURNS   text
 AS $$
 DECLARE
@@ -392,19 +392,19 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает адрес объекта.
- * @param {numeric} pObject - Идентификатор объекта
+ * @param {uuid} pObject - Идентификатор объекта
  * @param {text} pKey - Ключ
  * @param {timestamp} pDate - Дата
  * @return {text}
  */
 CREATE OR REPLACE FUNCTION GetObjectAddress (
-  pObject	numeric,
+  pObject	uuid,
   pKey	    text,
   pDate		timestamp DEFAULT oper_date()
 ) RETURNS	text
 AS $$
 DECLARE
-  nAddress		numeric;
+  nAddress		uuid;
 BEGIN
   SELECT linked INTO nAddress
     FROM db.object_link
@@ -424,7 +424,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetObjectAddresses (
-  pObject	numeric,
+  pObject	uuid,
   pDate		timestamp DEFAULT oper_date()
 ) RETURNS	text[]
 AS $$
@@ -453,7 +453,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetObjectAddressesJson (
-  pObject	numeric,
+  pObject	uuid,
   pDate		timestamp DEFAULT oper_date()
 ) RETURNS	json
 AS $$
@@ -482,7 +482,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetObjectAddressesJsonb (
-  pObject	numeric,
+  pObject	uuid,
   pDate		timestamp DEFAULT oper_date()
 ) RETURNS	jsonb
 AS $$

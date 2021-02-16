@@ -6,9 +6,9 @@ CREATE OR REPLACE FUNCTION InitEntity()
 RETURNS       void
 AS $$
 DECLARE
-  nObject     numeric;
-  nDocument   numeric;
-  nReference  numeric;
+  nObject     uuid;
+  nDocument   uuid;
+  nReference  uuid;
 BEGIN
   -- Объект
 

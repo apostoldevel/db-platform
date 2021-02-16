@@ -42,11 +42,11 @@ CREATE OR REPLACE FUNCTION AddApiLog (
   pJson         jsonb,
   pNonce        double precision DEFAULT null,
   pSignature    text DEFAULT null
-) RETURNS       numeric
+) RETURNS       bigint
 AS $$
 DECLARE
-  nId           numeric;
-  nUserId       numeric;
+  nId           bigint;
+  nUserId       uuid;
 
   vSession      text;
   vUserName     text;
@@ -76,14 +76,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION NewApiLog (
-  pPath        text,
+  pPath			text,
   pJson         jsonb,
   pNonce        double precision DEFAULT null,
   pSignature    text DEFAULT null
 ) RETURNS       void
 AS $$
 DECLARE
-  nId           numeric;
+  nId           bigint;
 BEGIN
   nId := AddApiLog(pPath, pJson, pNonce, pSignature);
 END;
@@ -114,7 +114,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DeleteApiLog (
-  pId		numeric
+  pId		bigint
 ) RETURNS	void
 AS $$
 BEGIN

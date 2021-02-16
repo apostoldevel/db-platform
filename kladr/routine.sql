@@ -3,16 +3,16 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddAddressTree (
-  pParent   numeric,
+  pParent   integer,
   pCode     varchar,
   pName     varchar,
   pShort    varchar,
   pIndex    varchar,
   pLevel    integer
-) RETURNS   numeric
+) RETURNS   integer
 AS $$
 DECLARE
-  nId       numeric;
+  nId       integer;
 BEGIN
   INSERT INTO db.address_tree (parent, code, name, short, index, level)
   VALUES (pParent, pCode, pName, pShort, pIndex, pLevel)
@@ -29,14 +29,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddKladrToTree (
-  pParent   numeric,
+  pParent   integer,
   pCode     varchar,
   pLevel    integer
-) RETURNS   numeric
+) RETURNS   integer
 AS $$
 DECLARE
   r         db.kladr%rowtype;
-  nId       numeric;
+  nId       integer;
 BEGIN
   SELECT * INTO r FROM db.kladr WHERE code = pCode || '00';
   nId := AddAddressTree(pParent, '01' || pCode || '0000', r.name, r.socr, r.index, pLevel);
@@ -52,14 +52,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddStreetToTree (
-  pParent   numeric,
+  pParent   integer,
   pCode     varchar,
   pLevel    integer
-) RETURNS   numeric
+) RETURNS   integer
 AS $$
 DECLARE
   r         db.street%rowtype;
-  nId       numeric;
+  nId       integer;
 BEGIN
   SELECT * INTO r FROM db.street WHERE code = pCode || '00';
   nId := AddAddressTree(pParent, '01' || pCode, r.name, r.socr, r.index, pLevel);
@@ -75,7 +75,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CopyFromKladr (
-  pParent   numeric,
+  pParent   integer,
   pCode     varchar
 ) RETURNS   void
 AS $$
@@ -85,7 +85,7 @@ DECLARE
   nCLev     integer;
   nIndex    integer;
 
-  IdList    numeric[];
+  IdList    integer[];
   sList     text[];
 BEGIN
   IdList[0] := pParent;
@@ -157,7 +157,7 @@ CREATE OR REPLACE FUNCTION LoadFromKladr (
 AS $$
 DECLARE
   Rec       record;
-  nId       numeric;
+  nId       integer;
   i         integer;
 BEGIN
   nId := AddAddressTree(null, '01000000000000000', 'Российская Федерация', null, null, 0);
@@ -192,10 +192,10 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION GetAddressTreeId (
   pCode		varchar
-) RETURNS   numeric
+) RETURNS   integer
 AS $$
 DECLARE
-  nId		numeric;
+  nId		integer;
 BEGIN
   SELECT id INTO nId FROM db.address_tree WHERE code = pCode;
 

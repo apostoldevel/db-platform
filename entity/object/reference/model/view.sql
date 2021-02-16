@@ -8,8 +8,8 @@ CREATE OR REPLACE VIEW Model (Id, Reference, Code, Name, Description,
 AS
   SELECT m.id, m.reference, r.code, r.name, r.description, m.vendor,
          v.code, v.name, v.description
-    FROM db.model m INNER JOIN db.reference r ON m.reference = r.id
-                    INNER JOIN db.reference v ON m.vendor = v.id;
+    FROM db.model m INNER JOIN Reference r ON m.reference = r.id
+                    INNER JOIN Reference v ON m.vendor = v.id;
 
 GRANT SELECT ON Model TO administrator;
 

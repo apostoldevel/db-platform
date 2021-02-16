@@ -3,30 +3,19 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.object (
-    id			numeric(12) PRIMARY KEY,
-    parent		numeric(12),
-    entity		numeric(12) NOT NULL,
-    class		numeric(12) NOT NULL,
-    type		numeric(12) NOT NULL,
-    state_type  numeric(12),
-    state		numeric(12),
-    suid		numeric(12) NOT NULL,
-    owner		numeric(12) NOT NULL,
-    oper		numeric(12) NOT NULL,
-    label		text,
-    data		text,
+    id			uuid PRIMARY KEY,
+    parent		uuid REFERENCES db.object(id),
+    entity		uuid NOT NULL REFERENCES db.entity(id),
+    class		uuid NOT NULL REFERENCES db.class_tree(id),
+    type		uuid NOT NULL REFERENCES db.type(id),
+    state_type  uuid REFERENCES db.state_type(id),
+    state		uuid REFERENCES db.state(id),
+    suid		uuid NOT NULL REFERENCES db.user(id),
+    owner		uuid NOT NULL REFERENCES db.user(id),
+    oper		uuid NOT NULL REFERENCES db.user(id),
     pdate		timestamp NOT NULL DEFAULT Now(),
     ldate		timestamp NOT NULL DEFAULT Now(),
-    udate		timestamp NOT NULL DEFAULT Now(),
-    CONSTRAINT fk_object_parent FOREIGN KEY (parent) REFERENCES db.object(id),
-    CONSTRAINT fk_object_entity FOREIGN KEY (entity) REFERENCES db.entity(id),
-    CONSTRAINT fk_object_class FOREIGN KEY (class) REFERENCES db.class_tree(id),
-    CONSTRAINT fk_object_type FOREIGN KEY (type) REFERENCES db.type(id),
-    CONSTRAINT fk_object_state_type FOREIGN KEY (state_type) REFERENCES db.state_type(id),
-    CONSTRAINT fk_object_state FOREIGN KEY (state) REFERENCES db.state(id),
-    CONSTRAINT fk_object_suid FOREIGN KEY (suid) REFERENCES db.user(id),
-    CONSTRAINT fk_object_owner FOREIGN KEY (owner) REFERENCES db.user(id),
-    CONSTRAINT fk_object_oper FOREIGN KEY (oper) REFERENCES db.user(id)
+    udate		timestamp NOT NULL DEFAULT Now()
 );
 
 COMMENT ON TABLE db.object IS 'Список объектов.';
@@ -41,8 +30,6 @@ COMMENT ON COLUMN db.object.state IS 'Состояние';
 COMMENT ON COLUMN db.object.suid IS 'Системный пользователь';
 COMMENT ON COLUMN db.object.owner IS 'Владелец (пользователь)';
 COMMENT ON COLUMN db.object.oper IS 'Пользователь совершивший последнюю операцию';
-COMMENT ON COLUMN db.object.label IS 'Метка';
-COMMENT ON COLUMN db.object.data IS 'Данные';
 COMMENT ON COLUMN db.object.pdate IS 'Физическая дата';
 COMMENT ON COLUMN db.object.ldate IS 'Логическая дата';
 COMMENT ON COLUMN db.object.udate IS 'Дата последнего изменения';
@@ -58,22 +45,52 @@ CREATE INDEX ON db.object (suid);
 CREATE INDEX ON db.object (owner);
 CREATE INDEX ON db.object (oper);
 
-CREATE INDEX ON db.object (label);
-CREATE INDEX ON db.object (label text_pattern_ops);
-
 CREATE INDEX ON db.object (pdate);
 CREATE INDEX ON db.object (ldate);
 CREATE INDEX ON db.object (udate);
 
 --------------------------------------------------------------------------------
+-- db.object_text --------------------------------------------------------------
+--------------------------------------------------------------------------------
 
-ALTER TABLE db.object
-    ADD COLUMN searchable tsvector
-    GENERATED ALWAYS AS (to_tsvector('russian', coalesce(label, '') || ' ' || coalesce(data, ''))) STORED;
+CREATE TABLE db.object_text (
+    object		uuid NOT NULL REFERENCES db.object(id) ON DELETE CASCADE,
+    locale		uuid NOT NULL REFERENCES db.locale(id) ON DELETE RESTRICT,
+    label		text,
+    text		text,
+    PRIMARY KEY (object, locale)
+);
 
-COMMENT ON COLUMN db.object.searchable IS 'Полнотекстовый поиск';
+--------------------------------------------------------------------------------
 
-CREATE INDEX ON db.object USING GIN (searchable);
+COMMENT ON TABLE db.object_text IS 'Текст объекта.';
+
+COMMENT ON COLUMN db.object_text.object IS 'Идентификатор объекта';
+COMMENT ON COLUMN db.object_text.locale IS 'Идентификатор локали';
+COMMENT ON COLUMN db.object_text.label IS 'Метка.';
+COMMENT ON COLUMN db.object_text.text IS 'Текст.';
+
+--------------------------------------------------------------------------------
+
+CREATE INDEX ON db.object_text (object);
+CREATE INDEX ON db.object_text (locale);
+
+CREATE INDEX ON db.object_text (label);
+CREATE INDEX ON db.object_text (label text_pattern_ops);
+
+ALTER TABLE db.object_text
+    ADD COLUMN searchable_en tsvector
+    GENERATED ALWAYS AS (to_tsvector('english', coalesce(label, '') || ' ' || coalesce(text, ''))) STORED;
+
+ALTER TABLE db.object_text
+    ADD COLUMN searchable_ru tsvector
+    GENERATED ALWAYS AS (to_tsvector('russian', coalesce(label, '') || ' ' || coalesce(text, ''))) STORED;
+
+COMMENT ON COLUMN db.object_text.searchable_en IS 'Полнотекстовый поиск (en)';
+COMMENT ON COLUMN db.object_text.searchable_ru IS 'Полнотекстовый поиск (ru)';
+
+CREATE INDEX ON db.object_text USING GIN (searchable_en);
+CREATE INDEX ON db.object_text USING GIN (searchable_ru);
 
 --------------------------------------------------------------------------------
 
@@ -86,15 +103,15 @@ BEGIN
     PERFORM AccessDeniedForUser(session_user);
   END IF;
 
+  IF NEW.id IS NULL THEN
+    SELECT gen_kernel_uuid('8') INTO NEW.id;
+  END IF;
+
   SELECT class INTO NEW.class FROM db.type WHERE id = NEW.type;
   SELECT entity, abstract INTO NEW.entity, bAbstract FROM db.class_tree WHERE id = NEW.class;
 
   IF bAbstract THEN
     PERFORM AbstractError();
-  END IF;
-
-  IF NULLIF(NEW.id, 0) IS NULL THEN
-    SELECT NEXTVAL('SEQUENCE_ID') INTO NEW.id;
   END IF;
 
   SELECT type INTO NEW.state_type FROM db.state WHERE id = NEW.state;
@@ -125,7 +142,7 @@ CREATE TRIGGER t_object_before_insert
 CREATE OR REPLACE FUNCTION db.ft_object_after_insert()
 RETURNS trigger AS $$
 DECLARE
-  nUserId	numeric;
+  nUserId	uuid;
 BEGIN
   INSERT INTO db.aom SELECT NEW.id;
   INSERT INTO db.aou (object, userid, deny, allow) SELECT NEW.id, userid, SubString(deny FROM 3 FOR 3), SubString(allow FROM 3 FOR 3) FROM db.acu WHERE class = NEW.class;
@@ -170,7 +187,6 @@ BEGIN
   END IF;
 
   IF NOT CheckObjectAccess(NEW.id, B'010') THEN
-    --RAISE NOTICE 'Object: %, Type: %, Owner: %, UserId: %', NEW.id, GetTypeCode(NEW.type), NEW.owner, current_userid();
     PERFORM AccessDenied();
   END IF;
 
@@ -257,9 +273,9 @@ CREATE TRIGGER t_object_before_delete
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.aom (
-    object		NUMERIC(12) NOT NULL,
-    mask		BIT(9) DEFAULT B'111100000' NOT NULL,
-    CONSTRAINT fk_aom_object FOREIGN KEY (object) REFERENCES db.object(id)
+    object		uuid NOT NULL REFERENCES db.object(id) ON DELETE CASCADE,
+    mask		bit(9) DEFAULT B'111100000' NOT NULL,
+    PRIMARY KEY (object)
 );
 
 COMMENT ON TABLE db.aom IS 'Маска доступа к объекту.';
@@ -267,23 +283,18 @@ COMMENT ON TABLE db.aom IS 'Маска доступа к объекту.';
 COMMENT ON COLUMN db.aom.object IS 'Объект';
 COMMENT ON COLUMN db.aom.mask IS 'Маска доступа. Девять бит (a:{u:sud}{g:sud}{o:sud}), по три бита на действие s - select, u - update, d - delete, для: a - all (все) = u - user (владелец) g - group (группа) o - other (остальные)';
 
-CREATE UNIQUE INDEX ON db.aom (object);
-
 --------------------------------------------------------------------------------
 -- TABLE db.aou ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.aou (
-    object		numeric(12) NOT NULL,
-    userid		numeric(12) NOT NULL,
+    object		uuid NOT NULL REFERENCES db.object(id) ON DELETE CASCADE,
+    userid		uuid NOT NULL REFERENCES db.user(id) ON DELETE CASCADE,
     deny		bit(3) NOT NULL,
     allow		bit(3) NOT NULL,
     mask		bit(3) DEFAULT B'000' NOT NULL,
-    entity		numeric(12) NOT NULL,
-    CONSTRAINT pk_aou PRIMARY KEY(object, userid),
-    CONSTRAINT fk_aou_object FOREIGN KEY (object) REFERENCES db.object(id),
-    CONSTRAINT fk_aou_userid FOREIGN KEY (userid) REFERENCES db.user(id),
-    CONSTRAINT fk_aou_entity FOREIGN KEY (entity) REFERENCES db.entity(id)
+    entity		uuid NOT NULL REFERENCES db.entity(id) ON DELETE RESTRICT,
+    PRIMARY KEY (object, userid)
 );
 
 COMMENT ON TABLE db.aou IS 'Доступ пользователя и групп пользователей к объекту.';
@@ -325,13 +336,11 @@ CREATE TRIGGER t_aou_before
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.object_state (
-    id			    numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
-    object		    numeric(12) NOT NULL,
-    state		    numeric(12) NOT NULL,
+    id			    uuid PRIMARY KEY DEFAULT gen_kernel_uuid('8'),
+    object		    uuid NOT NULL REFERENCES db.object(id),
+    state		    uuid NOT NULL REFERENCES db.state(id),
     validFromDate	timestamp DEFAULT Now() NOT NULL,
-    validToDate		timestamp DEFAULT TO_DATE('4433-12-31', 'YYYY-MM-DD') NOT NULL,
-    CONSTRAINT fk_object_state_object FOREIGN KEY (object) REFERENCES db.object(id),
-    CONSTRAINT fk_object_state_state FOREIGN KEY (state) REFERENCES db.state(id)
+    validToDate		timestamp DEFAULT TO_DATE('4433-12-31', 'YYYY-MM-DD') NOT NULL
 );
 
 COMMENT ON TABLE db.object_state IS 'Состояние объекта.';
@@ -392,12 +401,10 @@ CREATE TRIGGER t_object_state_change
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.method_stack (
-    object		numeric(12) NOT NULL,
-    method		numeric(12) NOT NULL,
+    object		uuid NOT NULL REFERENCES db.object(id),
+    method		uuid NOT NULL REFERENCES db.method(id),
     result		jsonb DEFAULT NULL,
-    CONSTRAINT pk_object_method PRIMARY KEY(object, method),
-    CONSTRAINT fk_method_stack_object FOREIGN KEY (object) REFERENCES db.object(id),
-    CONSTRAINT fk_method_stack_method FOREIGN KEY (method) REFERENCES db.method(id)
+    PRIMARY KEY (object, method)
 );
 
 COMMENT ON TABLE db.method_stack IS 'Стек выполнения метода.';
@@ -411,12 +418,11 @@ COMMENT ON COLUMN db.method_stack.result IS 'Результат выполени
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.object_group (
-    id          numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
-    owner       numeric(12) NOT NULL,
+    id          uuid PRIMARY KEY,
+    owner       uuid NOT NULL REFERENCES db.user(id) ON DELETE CASCADE,
     code        text NOT NULL,
     name        text NOT NULL,
-    description text,
-    CONSTRAINT fk_object_group_owner FOREIGN KEY (owner) REFERENCES db.user(id)
+    description text
 );
 
 COMMENT ON TABLE db.object_group IS 'Группа объектов.';
@@ -436,6 +442,10 @@ CREATE UNIQUE INDEX ON db.object_group (code);
 CREATE OR REPLACE FUNCTION db.ft_object_group_insert()
 RETURNS trigger AS $$
 BEGIN
+  IF NEW.id IS NULL THEN
+    NEW.id := gen_random_uuid();
+  END IF;
+
   IF NEW.owner IS NULL THEN
     NEW.owner := current_userid();
   END IF;
@@ -462,16 +472,13 @@ CREATE TRIGGER t_object_group
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.object_group_member (
-    id          numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
-    gid         numeric(12) NOT NULL,
-    object      numeric(12) NOT NULL,
-    CONSTRAINT fk_object_group_member_gid FOREIGN KEY (gid) REFERENCES db.object_group(id),
-    CONSTRAINT fk_object_group_member_object FOREIGN KEY (object) REFERENCES db.object(id)
+    gid         uuid NOT NULL REFERENCES db.object_group(id) ON DELETE CASCADE,
+    object      uuid NOT NULL REFERENCES db.object(id) ON DELETE CASCADE,
+    PRIMARY KEY (gid, object)
 );
 
 COMMENT ON TABLE db.object_group_member IS 'Члены группы объектов.';
 
-COMMENT ON COLUMN db.object_group_member.id IS 'Идентификатор';
 COMMENT ON COLUMN db.object_group_member.gid IS 'Группа';
 COMMENT ON COLUMN db.object_group_member.object IS 'Объект';
 
@@ -483,14 +490,12 @@ CREATE INDEX ON db.object_group_member (object);
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.object_link (
-    id              numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
-    object          numeric(12) NOT NULL,
-    linked          numeric(12) NOT NULL,
+    id              uuid PRIMARY KEY DEFAULT gen_kernel_uuid('8'),
+    object          uuid NOT NULL REFERENCES db.object(id) ON DELETE CASCADE,
+    linked          uuid NOT NULL REFERENCES db.object(id) ON DELETE CASCADE,
     key             text NOT NULL,
     validFromDate	timestamp DEFAULT Now() NOT NULL,
-    validToDate		timestamp DEFAULT TO_DATE('4433-12-31', 'YYYY-MM-DD') NOT NULL,
-    CONSTRAINT fk_object_link_object FOREIGN KEY (object) REFERENCES db.object(id),
-    CONSTRAINT fk_object_link_linked FOREIGN KEY (linked) REFERENCES db.object(id)
+    validToDate		timestamp DEFAULT TO_DATE('4433-12-31', 'YYYY-MM-DD') NOT NULL
 );
 
 --------------------------------------------------------------------------------
@@ -513,18 +518,17 @@ CREATE UNIQUE INDEX ON db.object_link (object, linked, validFromDate, validToDat
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.object_file (
-    object      numeric(12) NOT NULL,
+    object      uuid NOT NULL REFERENCES db.object(id) ON DELETE CASCADE,
     file_name	text NOT NULL,
     file_path	text NOT NULL,
-    file_size	numeric DEFAULT 0,
+    file_size	integer DEFAULT 0,
     file_date	timestamp DEFAULT NULL,
     file_data	bytea DEFAULT NULL,
     file_hash	text DEFAULT NULL,
     file_text	text,
     file_type	text,
     load_date	timestamp DEFAULT Now() NOT NULL,
-    CONSTRAINT pk_object_file PRIMARY KEY(object, file_name, file_path),
-    CONSTRAINT fk_object_file_object FOREIGN KEY (object) REFERENCES db.object(id)
+    CONSTRAINT pk_object_file PRIMARY KEY(object, file_name, file_path)
 );
 
 COMMENT ON TABLE db.object_file IS 'Файлы объекта.';
@@ -540,6 +544,7 @@ COMMENT ON COLUMN db.object_file.file_text IS 'Произвольный текс
 COMMENT ON COLUMN db.object_file.file_type IS 'Тип файла в формате MIME';
 COMMENT ON COLUMN db.object_file.load_date IS 'Дата загрузки';
 
+CREATE INDEX ON db.object_file (object);
 CREATE INDEX ON db.object_file (file_hash);
 
 --------------------------------------------------------------------------------
@@ -565,41 +570,16 @@ CREATE TRIGGER t_object_file
   EXECUTE PROCEDURE db.ft_object_file_insert();
 
 --------------------------------------------------------------------------------
--- db.object_data_type ---------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE TABLE db.object_data_type (
-    id			numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
-    code        text NOT NULL,
-    name 		text NOT NULL,
-    description	text
-);
-
-COMMENT ON TABLE db.object_data_type IS 'Тип произвольных данных объекта.';
-
-COMMENT ON COLUMN db.object_data_type.id IS 'Идентификатор';
-COMMENT ON COLUMN db.object_data_type.code IS 'Код';
-COMMENT ON COLUMN db.object_data_type.name IS 'Наименование';
-COMMENT ON COLUMN db.object_data_type.description IS 'Описание';
-
-CREATE INDEX ON db.object_data_type (code);
-
-INSERT INTO db.object_data_type (code, name, description) VALUES ('text', 'Текст', 'Произвольная строка');
-INSERT INTO db.object_data_type (code, name, description) VALUES ('json', 'JSON', 'JavaScript Object Notation');
-INSERT INTO db.object_data_type (code, name, description) VALUES ('xml', 'XML', 'eXtensible Markup Language');
-
---------------------------------------------------------------------------------
 -- db.object_data --------------------------------------------------------------
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.object_data (
-    object      numeric(12) NOT NULL,
-    type        numeric(12) NOT NULL,
+    object      uuid NOT NULL REFERENCES db.object(id) ON DELETE CASCADE,
+    type        text NOT NULL DEFAULT 'text',
     code        text NOT NULL,
     data        text,
-    CONSTRAINT pk_object_data PRIMARY KEY(object, type, code),
-    CONSTRAINT fk_object_data_object FOREIGN KEY (object) REFERENCES db.object(id),
-    CONSTRAINT fk_object_data_type FOREIGN KEY (type) REFERENCES db.object_data_type(id)
+    PRIMARY KEY (object, type, code),
+    CHECK (type IN ('text', 'json', 'xml', 'base64'))
 );
 
 COMMENT ON TABLE db.object_data IS 'Произвольные данные объекта.';
@@ -610,14 +590,16 @@ COMMENT ON COLUMN db.object_data.code IS 'Код';
 COMMENT ON COLUMN db.object_data.data IS 'Данные';
 
 CREATE INDEX ON db.object_data (object);
+CREATE INDEX ON db.object_data (type);
+CREATE INDEX ON db.object_data (code);
 
 --------------------------------------------------------------------------------
 -- db.object_coordinates -------------------------------------------------------
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.object_coordinates (
-    id				bigserial PRIMARY KEY NOT NULL,
-    object          numeric(12) NOT NULL,
+    id				uuid PRIMARY KEY DEFAULT gen_kernel_uuid('8'),
+    object          uuid NOT NULL REFERENCES db.object(id),
     code            text NOT NULL,
     latitude        numeric NOT NULL,
     longitude       numeric NOT NULL,
@@ -626,8 +608,7 @@ CREATE TABLE db.object_coordinates (
     description	    text,
     data			jsonb,
     validFromDate   timestamptz DEFAULT Now() NOT NULL,
-    validToDate     timestamptz DEFAULT TO_DATE('4433-12-31', 'YYYY-MM-DD') NOT NULL,
-    CONSTRAINT fk_object_coordinates_object FOREIGN KEY (object) REFERENCES db.object(id)
+    validToDate     timestamptz DEFAULT TO_DATE('4433-12-31', 'YYYY-MM-DD') NOT NULL
 );
 
 COMMENT ON TABLE db.object_coordinates IS 'Произвольные данные объекта.';
@@ -667,4 +648,3 @@ CREATE TRIGGER t_object_coordinates_after_insert
   AFTER INSERT ON db.object_coordinates
   FOR EACH ROW
   EXECUTE PROCEDURE db.ft_object_coordinates_after_insert();
-

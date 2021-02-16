@@ -3,11 +3,11 @@
 --------------------------------------------------------------------------------
 /**
  * Создаёт календарь
- * @param {numeric} pParent - Идентификатор объекта родителя
- * @param {numeric} pType - Идентификатор типа
+ * @param {uuid} pParent - Идентификатор объекта родителя
+ * @param {uuid} pType - Идентификатор типа
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
- * @param {numeric} pWeek - Количество используемых (рабочих) дней в неделе
+ * @param {uuid} pWeek - Количество используемых (рабочих) дней в неделе
  * @param {integer[]} pDayOff - Массив выходных дней в неделе. Допустимые значения [1..7, ...]
  * @param {integer[][]} pHoliday - Двухмерный массив праздничных дней в году. Допустимые значения [[1..12,1..31], ...]
  * @param {interval} pWorkStart - Начало рабочего дня
@@ -18,11 +18,11 @@
  * @return {(id|exception)} - Id или ошибку
  */
 CREATE OR REPLACE FUNCTION CreateCalendar (
-  pParent       numeric,
-  pType         numeric,
+  pParent       uuid,
+  pType         uuid,
   pCode         text,
   pName         text,
-  pWeek         numeric,
+  pWeek         integer,
   pDayOff       integer[],
   pHoliday      integer[][],
   pWorkStart    interval,
@@ -30,12 +30,12 @@ CREATE OR REPLACE FUNCTION CreateCalendar (
   pRestStart    interval,
   pRestCount    interval,
   pDescription  text DEFAULT null
-) RETURNS       numeric
+) RETURNS       uuid
 AS $$
 DECLARE
-  nReference    numeric;
-  nClass        numeric;
-  nMethod       numeric;
+  nReference    uuid;
+  nClass        uuid;
+  nMethod       uuid;
 BEGIN
   SELECT class INTO nClass FROM db.type WHERE id = pType;
 
@@ -45,10 +45,10 @@ BEGIN
 
   nReference := CreateReference(pParent, pType, pCode, pName, pDescription);
 
-  INSERT INTO db.calendar (reference, week, dayoff, holiday, work_start, work_count, rest_start, rest_count)
-  VALUES (nReference, pWeek, pDayOff, pHoliday, pWorkStart, pWorkCount, pRestStart, pRestCount);
+  INSERT INTO db.calendar (id, reference, week, dayoff, holiday, work_start, work_count, rest_start, rest_count)
+  VALUES (nReference, nReference, pWeek, pDayOff, pHoliday, pWorkStart, pWorkCount, pRestStart, pRestCount);
 
-  nMethod := GetMethod(nClass, null, GetAction('create'));
+  nMethod := GetMethod(nClass, GetAction('create'));
   PERFORM ExecuteMethod(nReference, nMethod);
 
   RETURN nReference;
@@ -62,12 +62,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Редактирует календарь
- * @param {numeric} pId - Идентификатор
- * @param {numeric} pParent - Идентификатор объекта родителя
- * @param {numeric} pType - Идентификатор типа
+ * @param {uuid} pId - Идентификатор
+ * @param {uuid} pParent - Идентификатор объекта родителя
+ * @param {uuid} pType - Идентификатор типа
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
- * @param {numeric} pWeek - Количество используемых (рабочих) дней в неделе
+ * @param {integer} pWeek - Количество используемых (рабочих) дней в неделе
  * @param {integer[]} pDayOff - Массив выходных дней в неделе. Допустимые значения [1..7, ...]
  * @param {integer[][]} pHoliday - Двухмерный массив праздничных дней в году. Допустимые значения [[1..12,1..31], ...]
  * @param {interval} pWorkStart - Начало рабочего дня
@@ -78,12 +78,12 @@ $$ LANGUAGE plpgsql
  * @return {(void|exception)}
  */
 CREATE OR REPLACE FUNCTION EditCalendar (
-  pId           numeric,
-  pParent       numeric DEFAULT null,
-  pType         numeric DEFAULT null,
+  pId           uuid,
+  pParent       uuid DEFAULT null,
+  pType         uuid DEFAULT null,
   pCode         text DEFAULT null,
   pName         text DEFAULT null,
-  pWeek         numeric DEFAULT null,
+  pWeek         integer DEFAULT null,
   pDayOff       integer[] DEFAULT null,
   pHoliday      integer[][] DEFAULT null,
   pWorkStart    interval DEFAULT null,
@@ -94,8 +94,8 @@ CREATE OR REPLACE FUNCTION EditCalendar (
 ) RETURNS       void
 AS $$
 DECLARE
-  nClass        numeric;
-  nMethod       numeric;
+  nClass        uuid;
+  nMethod       uuid;
 BEGIN
   PERFORM EditReference(pId, pParent, pType, pCode, pName, pDescription);
 
@@ -111,7 +111,7 @@ BEGIN
 
   SELECT class INTO nClass FROM db.object WHERE id = pId;
 
-  nMethod := GetMethod(nClass, null, GetAction('edit'));
+  nMethod := GetMethod(nClass, GetAction('edit'));
   PERFORM ExecuteMethod(pId, nMethod);
 END;
 $$ LANGUAGE plpgsql
@@ -124,7 +124,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION GetCalendar (
   pCode       text
-) RETURNS     numeric
+) RETURNS     uuid
 AS $$
 BEGIN
   RETURN GetReference(pCode, 'calendar');
@@ -138,18 +138,18 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddCalendarDate (
-  pCalendar     numeric,
+  pCalendar     uuid,
   pDate         date,
   pFlag         bit,
   pWorkStart    interval,
   pWorkCount    interval,
   pRestStart    interval,
   pRestCount    interval,
-  pUserId       numeric DEFAULT null
-) RETURNS       numeric
+  pUserId       uuid DEFAULT null
+) RETURNS       uuid
 AS $$
 DECLARE
-  nId           numeric;
+  nId           uuid;
   r             db.calendar%rowtype;
 BEGIN
   SELECT * INTO r FROM db.calendar WHERE id = pCalendar;
@@ -170,15 +170,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EditCalendarDate (
-  pId           numeric,
-  pCalendar     numeric DEFAULT null,
+  pId           uuid,
+  pCalendar     uuid DEFAULT null,
   pDate         date DEFAULT null,
   pFlag         bit DEFAULT null,
   pWorkStart    interval DEFAULT null,
   pWorkCount    interval DEFAULT null,
   pRestStart    interval DEFAULT null,
   pRestCount    interval DEFAULT null,
-  pUserId       numeric DEFAULT null
+  pUserId       uuid DEFAULT null
 ) RETURNS       void
 AS $$
 BEGIN
@@ -202,7 +202,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DeleteCalendarDate (
-  pId         numeric
+  pId         uuid
 ) RETURNS     void
 AS $$
 BEGIN
@@ -217,15 +217,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetCalendarDate (
-  pCalendar   numeric,
+  pCalendar   uuid,
   pDate       date,
-  pUserId     numeric DEFAULT null
-) RETURNS     numeric
+  pUserId     uuid DEFAULT null
+) RETURNS     uuid
 AS $$
 DECLARE
-  nId         numeric;
+  nId         uuid;
 BEGIN
-  SELECT id INTO nId FROM db.cdate WHERE calendar = pCalendar AND date = pDate AND coalesce(userid, 0) = coalesce(pUserId, 0);
+  SELECT id INTO nId FROM db.cdate WHERE calendar = pCalendar AND date = pDate AND userid IS NOT DISTINCT FROM pUserId;
   RETURN nId;
 END;
 $$ LANGUAGE plpgsql
@@ -237,24 +237,24 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION calendar_date (
-  pCalendar   numeric,
+  pCalendar   uuid,
   pDateFrom   date,
   pDateTo     date,
-  pUserId     numeric DEFAULT null
+  pUserId     uuid DEFAULT null
 ) RETURNS     SETOF calendar_date
 AS $$
   SELECT *
     FROM calendar_date
    WHERE calendar = pCalendar
      AND date BETWEEN pDateFrom AND pDateTo
-     AND userid = pUserId
+     AND userid IS NOT DISTINCT FROM pUserId
    UNION
   SELECT *
     FROM calendar_date
    WHERE calendar = pCalendar
      AND date BETWEEN pDateFrom AND pDateTo
      AND userid IS NULL
-     AND date NOT IN (SELECT date FROM calendar_date WHERE calendar = pCalendar AND date BETWEEN pDateFrom AND pDateTo AND userid = pUserId)
+     AND date NOT IN (SELECT date FROM calendar_date WHERE calendar = pCalendar AND date BETWEEN pDateFrom AND pDateTo AND userid IS NOT DISTINCT FROM pUserId)
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -267,18 +267,18 @@ $$ LANGUAGE SQL
  * @param {id} pCalendar - Календарь
  * @param {date} pDateFrom - Дата начала периода
  * @param {date} pDateTo - Дата окончания периода
- * @param {numeric} pUserId - Идентификатор учётной записи пользователя
+ * @param {uuid} pUserId - Идентификатор учётной записи пользователя
  * @return {(id|exception)} - Id или ошибку
  */
 CREATE OR REPLACE FUNCTION FillCalendar (
-  pCalendar   numeric,
+  pCalendar   uuid,
   pDateFrom   date,
   pDateTo     date,
-  pUserId     numeric DEFAULT null
+  pUserId     uuid DEFAULT null
 ) RETURNS     void
 AS $$
 DECLARE
-  nId         numeric;
+  nId         uuid;
 
   i           integer;
   r           db.calendar%rowtype;

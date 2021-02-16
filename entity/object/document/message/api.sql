@@ -17,9 +17,9 @@ GRANT SELECT ON api.message TO administrator;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.message (
-  pType		numeric,
-  pAgent    numeric,
-  pState    numeric
+  pType		uuid,
+  pAgent    uuid,
+  pState    uuid
 ) RETURNS	SETOF api.message
 AS $$
   SELECT * FROM api.message WHERE type = pType AND agent = pAgent AND state = pState;
@@ -47,8 +47,8 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.outbox (
-  pState    numeric,
-  pType		numeric DEFAULT GetType('message.outbox')
+  pState    uuid,
+  pType		uuid DEFAULT GetType('message.outbox')
 ) RETURNS	SETOF api.message
 AS $$
   SELECT * FROM api.message WHERE type = pType AND state = pState;
@@ -74,26 +74,26 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 /**
  * Добавляет сообщение.
- * @param {numeric} pParent - Родительский объект
+ * @param {uuid} pParent - Родительский объект
  * @param {text} pType - Код типа
- * @param {numeric} pAgent - Агент
+ * @param {uuid} pAgent - Агент
  * @param {text} pProfile - Профиль отправителя
  * @param {text} pAddress - Адрес получателя
  * @param {text} pSubject - Тема
  * @param {text} pContent - Содержимое
  * @param {text} pDescription - Описание
- * @return {numeric}
+ * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION api.add_message (
-  pParent       numeric,
+  pParent       uuid,
   pType         text,
-  pAgent        numeric,
+  pAgent        uuid,
   pProfile      text,
   pAddress      text,
   pSubject      text,
   pContent		text,
   pDescription  text default null
-) RETURNS       numeric
+) RETURNS       uuid
 AS $$
 BEGIN
   RETURN CreateMessage(pParent, CodeToType(coalesce(lower(pType), 'message.outbox'), 'message'), pAgent, pProfile, pAddress, pSubject, pContent, pDescription);
@@ -107,10 +107,10 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Обновляет сообщение.
- * @param {numeric} pId - Идентификатор
- * @param {numeric} pParent - Родительский объект
+ * @param {uuid} pId - Идентификатор
+ * @param {uuid} pParent - Родительский объект
  * @param {text} pType - Код типа
- * @param {numeric} pAgent - Агент
+ * @param {uuid} pAgent - Агент
  * @param {text} pProfile - Профиль отправителя
  * @param {text} pAddress - Адрес получателя
  * @param {text} pSubject - Тема
@@ -119,10 +119,10 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_message (
-  pId           numeric,
-  pParent       numeric default null,
+  pId           uuid,
+  pParent       uuid default null,
   pType         text default null,
-  pAgent        numeric default null,
+  pAgent        uuid default null,
   pProfile      text default null,
   pAddress      text default null,
   pSubject      text default null,
@@ -131,8 +131,8 @@ CREATE OR REPLACE FUNCTION api.update_message (
 ) RETURNS       void
 AS $$
 DECLARE
-  nMessage      numeric;
-  nType         numeric;
+  nMessage      uuid;
+  nType         uuid;
 BEGIN
   SELECT a.id INTO nMessage FROM db.message a WHERE a.id = pId;
   IF NOT FOUND THEN
@@ -156,10 +156,10 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.set_message (
-  pId           numeric,
-  pParent       numeric default null,
+  pId           uuid,
+  pParent       uuid default null,
   pType         text default null,
-  pAgent        numeric default null,
+  pAgent        uuid default null,
   pProfile      text default null,
   pAddress      text default null,
   pSubject      text default null,
@@ -185,11 +185,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает клиента
- * @param {numeric} pId - Идентификатор адреса
+ * @param {uuid} pId - Идентификатор адреса
  * @return {api.message} - Адрес
  */
 CREATE OR REPLACE FUNCTION api.get_message (
-  pId		numeric
+  pId		uuid
 ) RETURNS	SETOF api.message
 AS $$
   SELECT * FROM api.message WHERE id = pId
@@ -238,8 +238,8 @@ CREATE OR REPLACE FUNCTION api.send_message (
 ) RETURNS       SETOF api.message
 AS $$
 DECLARE
-  nAgent		numeric;
-  nMessageId	numeric;
+  nAgent		uuid;
+  nMessageId	uuid;
 BEGIN
   nAgent := GetAgent(pAgent);
   IF nAgent IS NULL THEN
@@ -263,7 +263,7 @@ CREATE OR REPLACE FUNCTION api.send_mail (
   pText			text,
   pHTML			text,
   pDescription  text DEFAULT null,
-  pUserId		numeric DEFAULT current_userid()
+  pUserId		uuid DEFAULT current_userid()
 ) RETURNS	    SETOF api.message
 AS $$
 DECLARE
@@ -274,7 +274,7 @@ DECLARE
   vEmail		text;
   vBody			text;
   bVerified		bool;
-  nMessageId	numeric;
+  nMessageId	uuid;
 BEGIN
   SELECT name, email, email_verified, locale INTO vName, vEmail, bVerified
 	FROM db.user u INNER JOIN db.profile p ON u.id = p.userid
@@ -310,7 +310,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.send_sms (
   pProfile      text,
   pMessage      text,
-  pUserId		numeric DEFAULT current_userid()
+  pUserId		uuid DEFAULT current_userid()
 ) RETURNS	    SETOF api.message
 AS $$
 DECLARE
@@ -318,7 +318,7 @@ DECLARE
   vName			text;
   vPhone        text;
   bVerified		bool;
-  nMessageId	numeric;
+  nMessageId	uuid;
 BEGIN
   vCharSet := coalesce(nullif(pg_client_encoding(), 'UTF8'), 'utf-8');
 
@@ -347,14 +347,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.send_push (
-  pObject       numeric,
+  pObject       uuid,
   pSubject		text,
   pData         json,
-  pUserId       numeric DEFAULT current_userid()
+  pUserId       uuid DEFAULT current_userid()
 ) RETURNS	    SETOF api.message
 AS $$
 DECLARE
-  nMessageId	numeric;
+  nMessageId	uuid;
 BEGIN
   nMessageId := SendPush(pObject, pSubject, pData, pUserId);
 

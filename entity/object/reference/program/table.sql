@@ -7,10 +7,9 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.program (
-    id			    numeric(12) PRIMARY KEY,
-    reference		numeric(12) NOT NULL,
-    body            text NOT NULL,
-    CONSTRAINT fk_program_reference FOREIGN KEY (reference) REFERENCES db.reference(id)
+    id			    uuid PRIMARY KEY,
+    reference		uuid NOT NULL REFERENCES db.reference(id) ON DELETE CASCADE,
+    body            text NOT NULL
 );
 
 COMMENT ON TABLE db.program IS 'Программа.';
@@ -27,7 +26,7 @@ CREATE OR REPLACE FUNCTION ft_program_insert()
 RETURNS trigger AS $$
 DECLARE
 BEGIN
-  IF NULLIF(NEW.id, 0) IS NULL THEN
+  IF NEW.id IS NULL THEN
     SELECT NEW.reference INTO NEW.id;
   END IF;
 

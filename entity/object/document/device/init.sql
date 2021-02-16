@@ -7,12 +7,12 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddDeviceMethods (
-  pClass        numeric
+  pClass        uuid
 )
 RETURNS void
 AS $$
 DECLARE
-  nState        numeric;
+  nState        uuid;
 
   rec_type      record;
   rec_state     record;
@@ -187,15 +187,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddDeviceEvents (
-  pClass        numeric
+  pClass        uuid
 )
 RETURNS         void
 AS $$
 DECLARE
   r             record;
 
-  nParent       numeric;
-  nEvent        numeric;
+  nParent       uuid;
+  nEvent        uuid;
 BEGIN
   nParent := GetEventType('parent');
   nEvent := GetEventType('event');
@@ -278,13 +278,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateClassDevice (
-  pParent       numeric,
-  pEntity       numeric
+  pParent       uuid,
+  pEntity       uuid
 )
-RETURNS         numeric
+RETURNS         uuid
 AS $$
 DECLARE
-  nClass        numeric;
+  nClass        uuid;
 BEGIN
   -- Класс
   nClass := AddClass(pParent, pEntity, 'device', 'Устройство', false);
@@ -311,12 +311,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateEntityDevice (
-  pParent       numeric
+  pParent       uuid
 )
-RETURNS         numeric
+RETURNS         uuid
 AS $$
 DECLARE
-  nEntity       numeric;
+  nEntity       uuid;
 BEGIN
   PERFORM SetAction('heartbeat', 'Сердцебиение');
 

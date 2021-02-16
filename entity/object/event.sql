@@ -7,7 +7,7 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventObjectCreate (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 BEGIN
@@ -20,7 +20,7 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventObjectOpen (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 BEGIN
@@ -33,7 +33,7 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventObjectEdit (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 BEGIN
@@ -46,7 +46,7 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventObjectSave (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 BEGIN
@@ -59,7 +59,7 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventObjectEnable (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 BEGIN
@@ -72,7 +72,7 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventObjectDisable (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 BEGIN
@@ -85,7 +85,7 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventObjectDelete (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 BEGIN
@@ -98,7 +98,7 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventObjectRestore (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 BEGIN
@@ -111,7 +111,7 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventObjectDrop (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 DECLARE

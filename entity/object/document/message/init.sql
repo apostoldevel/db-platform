@@ -7,12 +7,12 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddInboxMethods (
-  pClass            numeric
+  pClass            uuid
 )
 RETURNS             void
 AS $$
 DECLARE
-  nState            numeric;
+  nState            uuid;
 
   rec_type          record;
   rec_state         record;
@@ -132,12 +132,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddOutboxMethods (
-  pClass            numeric
+  pClass            uuid
 )
 RETURNS             void
 AS $$
 DECLARE
-  nState            numeric;
+  nState            uuid;
 
   rec_type          record;
   rec_state         record;
@@ -304,14 +304,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddMessageEvents (
-  pClass        numeric
+  pClass        uuid
 )
 RETURNS         void
 AS $$
 DECLARE
   r             record;
 
-  nParent       numeric;
+  nParent       uuid;
 BEGIN
   nParent := GetEventType('parent');
 
@@ -329,15 +329,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddInboxEvents (
-  pClass        numeric
+  pClass        uuid
 )
 RETURNS         void
 AS $$
 DECLARE
   r             record;
 
-  nParent       numeric;
-  nEvent        numeric;
+  nParent       uuid;
+  nEvent        uuid;
 BEGIN
   nParent := GetEventType('parent');
   nEvent := GetEventType('event');
@@ -401,15 +401,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddOutboxEvents (
-  pClass        numeric
+  pClass        uuid
 )
 RETURNS         void
 AS $$
 DECLARE
   r             record;
 
-  nParent       numeric;
-  nEvent        numeric;
+  nParent       uuid;
+  nEvent        uuid;
 BEGIN
   nParent := GetEventType('parent');
   nEvent := GetEventType('event');
@@ -493,13 +493,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateClassMessage (
-  pParent       numeric,
-  pEntity       numeric
+  pParent       uuid,
+  pEntity       uuid
 )
-RETURNS         numeric
+RETURNS         uuid
 AS $$
 DECLARE
-  nClass        numeric;
+  nClass        uuid;
 BEGIN
   -- Класс
   nClass := AddClass(pParent, pEntity, 'message', 'Сообщения', true);
@@ -523,13 +523,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateClassInbox (
-  pParent       numeric,
-  pEntity       numeric
+  pParent       uuid,
+  pEntity       uuid
 )
-RETURNS         numeric
+RETURNS         uuid
 AS $$
 DECLARE
-  nClass        numeric;
+  nClass        uuid;
 BEGIN
   -- Класс
   nClass := AddClass(pParent, pEntity, 'inbox', 'Входящее', false);
@@ -554,13 +554,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateClassOutbox (
-  pParent       numeric,
-  pEntity       numeric
+  pParent       uuid,
+  pEntity       uuid
 )
-RETURNS         numeric
+RETURNS         uuid
 AS $$
 DECLARE
-  nClass        numeric;
+  nClass        uuid;
 BEGIN
   -- Класс
   nClass := AddClass(pParent, pEntity, 'outbox', 'Исходящее', false);
@@ -585,13 +585,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateEntityMessage (
-  pParent       numeric
+  pParent       uuid
 )
-RETURNS         numeric
+RETURNS         uuid
 AS $$
 DECLARE
-  nEntity       numeric;
-  nClass        numeric;
+  nEntity       uuid;
+  nClass        uuid;
 BEGIN
   -- Сущность
   nEntity := AddEntity('message', 'Сообщение');

@@ -7,7 +7,7 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE oauth2.provider (
-    id          numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
+    id          serial PRIMARY KEY,
     type        char NOT NULL,
     code        text NOT NULL,
     name        text,
@@ -32,7 +32,7 @@ CREATE INDEX ON oauth2.provider (code text_pattern_ops);
 --------------------------------------------------------------------------------
 
 CREATE TABLE oauth2.application (
-    id          numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
+    id          serial PRIMARY KEY,
     type        char NOT NULL,
     code        text NOT NULL,
     name        text,
@@ -57,11 +57,10 @@ CREATE INDEX ON oauth2.application (code text_pattern_ops);
 --------------------------------------------------------------------------------
 
 CREATE TABLE oauth2.issuer (
-    id          numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
-    provider    numeric(12) NOT NULL,
+    id          serial PRIMARY KEY,
+    provider    integer NOT NULL REFERENCES oauth2.provider,
     code        text NOT NULL,
-    name        text,
-    CONSTRAINT fk_issuer_provider FOREIGN KEY (provider) REFERENCES oauth2.provider(id)
+    name        text
 );
 
 COMMENT ON TABLE oauth2.issuer IS 'Издатель.';
@@ -82,7 +81,7 @@ CREATE INDEX ON oauth2.issuer (code text_pattern_ops);
 --------------------------------------------------------------------------------
 
 CREATE TABLE oauth2.algorithm (
-    id          numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
+    id          serial PRIMARY KEY,
     code        text NOT NULL,
     name        text
 );
@@ -100,16 +99,14 @@ CREATE INDEX ON oauth2.algorithm (code);
 --------------------------------------------------------------------------------
 
 CREATE TABLE oauth2.audience (
-    id          numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
-    provider    numeric(12) NOT NULL,
-    application numeric(12) NOT NULL,
-    algorithm   numeric(12) NOT NULL,
+    id          serial PRIMARY KEY,
+    provider    integer NOT NULL REFERENCES oauth2.provider,
+    application integer NOT NULL REFERENCES oauth2.application,
+    algorithm   integer NOT NULL,
     code        text NOT NULL,
     secret      text NOT NULL,
     hash        text NOT NULL,
-    name        text,
-    CONSTRAINT fk_audience_provider FOREIGN KEY (provider) REFERENCES oauth2.provider(id),
-    CONSTRAINT fk_audience_application FOREIGN KEY (application) REFERENCES oauth2.application(id)
+    name        text
 );
 
 COMMENT ON TABLE oauth2.audience IS 'Аудитория (Клиенты OAuth 2.0).';
@@ -128,4 +125,3 @@ CREATE UNIQUE INDEX ON oauth2.audience (provider, code);
 CREATE INDEX ON oauth2.audience (provider);
 CREATE INDEX ON oauth2.audience (code);
 CREATE INDEX ON oauth2.audience (code text_pattern_ops);
-

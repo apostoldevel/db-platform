@@ -44,13 +44,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddPath (
-  pRoot		numeric,
-  pParent	numeric,
+  pRoot		uuid,
+  pParent	uuid,
   pName     text
-) RETURNS	numeric
+) RETURNS	uuid
 AS $$
 DECLARE
-  nId		numeric;
+  nId		uuid;
   nLevel	integer;
 BEGIN
   nLevel := 0;
@@ -75,12 +75,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetPath (
-  pParent		numeric,
+  pParent		uuid,
   pName			text
-) RETURNS		numeric
+) RETURNS		uuid
 AS $$
 DECLARE
-  nId			numeric;
+  nId			uuid;
 BEGIN
   IF pParent IS NULL THEN
     SELECT id INTO nId FROM db.path WHERE parent IS NULL AND name = pName;
@@ -99,7 +99,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DeletePath (
-  pId		numeric
+  pId		uuid
 ) RETURNS	void
 AS $$
 BEGIN
@@ -114,7 +114,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DeletePaths (
-  pId		numeric
+  pId		uuid
 ) RETURNS	void
 AS $$
 DECLARE
@@ -137,10 +137,10 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION AddEndPoint (
   pDefinition	text
-) RETURNS		numeric
+) RETURNS		uuid
 AS $$
 DECLARE
-  nId			numeric;
+  nId			uuid;
 BEGIN
   INSERT INTO db.endpoint (definition)
   VALUES (pDefinition)
@@ -157,7 +157,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EditEndPoint (
-  pId			numeric,
+  pId			uuid,
   pDefinition	text
 ) RETURNS		void
 AS $$
@@ -175,12 +175,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetEndpoint (
-  pPath			numeric,
+  pPath			uuid,
   pMethod       text DEFAULT 'POST'
-) RETURNS	    numeric
+) RETURNS	    uuid
 AS $$
 DECLARE
-  nEndpoint		numeric;
+  nEndpoint		uuid;
 BEGIN
   SELECT endpoint INTO nEndpoint FROM db.route WHERE method = pMethod AND path = pPath;
   RETURN nEndpoint;
@@ -194,7 +194,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DeleteEndpoint (
-  pId		numeric
+  pId		uuid
 ) RETURNS	void
 AS $$
 BEGIN
@@ -209,7 +209,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetEndpointDefinition (
-  pId		numeric
+  pId		uuid
 ) RETURNS	text
 AS $$
   SELECT definition FROM db.endpoint WHERE id = pId
@@ -223,12 +223,12 @@ $$ LANGUAGE SQL
 
 CREATE OR REPLACE FUNCTION RegisterPath (
   pPath			text
-) RETURNS		numeric
+) RETURNS		uuid
 AS $$
 DECLARE
-  nId			numeric;
-  nRoot			numeric;
-  nParent		numeric;
+  nId			uuid;
+  nRoot			uuid;
+  nParent		uuid;
 
   arPath		text[];
   i				integer;
@@ -264,7 +264,7 @@ CREATE OR REPLACE FUNCTION UnregisterPath (
 ) RETURNS		void
 AS $$
 DECLARE
-  nPath			numeric;
+  nPath			uuid;
 BEGIN
   nPath := FindPath(pPath);
   IF nPath IS NOT NULL THEN
@@ -281,10 +281,10 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION FindPath (
   pPath			text
-) RETURNS		numeric
+) RETURNS		uuid
 AS $$
 DECLARE
-  nId			numeric;
+  nId			uuid;
   arPath		text[];
   i				integer;
 BEGIN
@@ -308,11 +308,11 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION QueryPath (
   pPath			text
-) RETURNS		numeric
+) RETURNS		uuid
 AS $$
 DECLARE
-  nId			numeric;
-  nParent		numeric;
+  nId			uuid;
+  nParent		uuid;
   arPath		text[];
   Index			integer;
 BEGIN
@@ -341,7 +341,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CollectPath (
-  pId		numeric
+  pId		uuid
 ) RETURNS	text
 AS $$
 DECLARE
@@ -382,8 +382,8 @@ AS $$
 DECLARE
   r				record;
 
-  nObject		numeric;
-  nAction		numeric;
+  nObject		uuid;
+  nAction		uuid;
 
   arKeys		text[];
 BEGIN
@@ -400,7 +400,7 @@ BEGIN
   arKeys := array_cat(arKeys, ARRAY['id', 'params']);
   PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-  FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, params jsonb)
+  FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, params jsonb)
   LOOP
 	IF r.id IS NULL THEN
 	  PERFORM ObjectIsNull();
@@ -427,14 +427,14 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION RegisterRoute (
   pPath			text,
-  pEndpoint		numeric,
+  pEndpoint		uuid,
   pVersion		text DEFAULT 'v1',
   pNamespace	text DEFAULT 'api',
   pMethod		text[] DEFAULT ARRAY['GET','POST']
 ) RETURNS	    void
 AS $$
 DECLARE
-  nPath			numeric;
+  nPath			uuid;
 BEGIN
   pPath := '/' || pNamespace || '/' || pVersion || coalesce('/' || pPath, '');
 
@@ -466,7 +466,7 @@ CREATE OR REPLACE FUNCTION UnregisterRoute (
 ) RETURNS	    void
 AS $$
 DECLARE
-  nPath			numeric;
+  nPath			uuid;
 BEGIN
   pPath := '/' || pNamespace || '/' || pVersion || coalesce('/' || pPath, '');
 

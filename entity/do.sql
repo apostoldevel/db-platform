@@ -7,15 +7,15 @@
 --------------------------------------------------------------------------------
 /**
  * DO: Подтверждает адрес электронной почты.
- * @param {numeric} pUserId - Идентификатор пользователя
+ * @param {uuid} pUserId - Идентификатор пользователя
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION DoConfirmEmail (
-  pUserId		numeric
+  pUserId		uuid
 ) RETURNS       void
 AS $$
 DECLARE
-  nId			numeric;
+  nId			uuid;
 BEGIN
   SELECT id INTO nId FROM db.client WHERE userid = pUserId;
   IF found AND IsEnabled(nId) THEN
@@ -31,15 +31,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * DO: Подтверждает номер телефона.
- * @param {numeric} pUserId - Идентификатор пользователя
+ * @param {uuid} pUserId - Идентификатор пользователя
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION DoConfirmPhone (
-  pUserId		numeric
+  pUserId		uuid
 ) RETURNS       void
 AS $$
 DECLARE
-  nId			numeric;
+  nId			uuid;
 BEGIN
   SELECT id INTO nId FROM db.client WHERE userid = pUserId;
   IF found AND IsEnabled(nId) THEN
@@ -55,17 +55,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * DO: Возвращает токены FCM.
- * @param {numeric} pUserId - Идентификатор пользователя
+ * @param {uuid} pUserId - Идентификатор пользователя
  * @return {text[]}
  */
 CREATE OR REPLACE FUNCTION DoFCMTokens (
-  pUserId		numeric
+  pUserId		uuid
 ) RETURNS       text[]
 AS $$
 DECLARE
   r				record;
   result		text[];
-  nClient		numeric;
+  nClient		uuid;
 BEGIN
   SELECT c.id INTO nClient FROM db.client c WHERE c.userid = pUserId;
 

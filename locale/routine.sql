@@ -4,10 +4,10 @@
 
 CREATE OR REPLACE FUNCTION GetLocale (
   pCode		text
-) RETURNS	numeric
+) RETURNS	uuid
 AS $$
 DECLARE
-  nId		numeric;
+  nId		uuid;
 BEGIN
   SELECT id INTO nId FROM db.locale WHERE code = pCode;
   RETURN nId;
@@ -21,7 +21,7 @@ $$ LANGUAGE plpgsql STABLE STRICT
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetLocaleCode (
-  pId		numeric
+  pId		uuid
 ) RETURNS	text
 AS $$
 DECLARE

@@ -17,7 +17,7 @@ GRANT SELECT ON api.scheduler TO administrator;
 --------------------------------------------------------------------------------
 /**
  * Добавляет планировщик.
- * @param {numeric} pParent - Ссылка на родительский объект: api.document | null
+ * @param {uuid} pParent - Ссылка на родительский объект: api.document | null
  * @param {text} pType - Код типа
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
@@ -25,10 +25,10 @@ GRANT SELECT ON api.scheduler TO administrator;
  * @param {timestamptz} pDateStart - Дата начала выполнения
  * @param {timestamptz} pDateStop - Дата окончания выполнения
  * @param {text} pDescription - Описание
- * @return {numeric}
+ * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION api.add_scheduler (
-  pParent       numeric,
+  pParent       uuid,
   pType         text,
   pCode         text,
   pName         text,
@@ -36,7 +36,7 @@ CREATE OR REPLACE FUNCTION api.add_scheduler (
   pDateStart    timestamptz default null,
   pDateStop     timestamptz default null,
   pDescription	text default null
-) RETURNS       numeric
+) RETURNS       uuid
 AS $$
 BEGIN
   RETURN CreateScheduler(pParent, CodeToType(lower(coalesce(pType, 'job')), 'scheduler'), pCode, pName, pPeriod, pDateStart, pDateStop, pDescription);
@@ -50,7 +50,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Редактирует планировщик.
- * @param {numeric} pParent - Ссылка на родительский объект: Object.Parent | null
+ * @param {uuid} pParent - Ссылка на родительский объект: Object.Parent | null
  * @param {text} pType - Код типа
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
@@ -61,8 +61,8 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_scheduler (
-  pId		    numeric,
-  pParent       numeric default null,
+  pId		    uuid,
+  pParent       uuid default null,
   pType         text default null,
   pCode         text default null,
   pName         text default null,
@@ -73,8 +73,8 @@ CREATE OR REPLACE FUNCTION api.update_scheduler (
 ) RETURNS       void
 AS $$
 DECLARE
-  nType         numeric;
-  nScheduler    numeric;
+  nType         uuid;
+  nScheduler    uuid;
 BEGIN
   SELECT t.id INTO nScheduler FROM db.scheduler t WHERE t.id = pId;
 
@@ -99,8 +99,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.set_scheduler (
-  pId           numeric,
-  pParent       numeric default null,
+  pId           uuid,
+  pParent       uuid default null,
   pType         text default null,
   pCode         text default null,
   pName         text default null,
@@ -128,11 +128,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает планировщик
- * @param {numeric} pId - Идентификатор
+ * @param {uuid} pId - Идентификатор
  * @return {api.scheduler}
  */
 CREATE OR REPLACE FUNCTION api.get_scheduler (
-  pId		numeric
+  pId		uuid
 ) RETURNS	api.scheduler
 AS $$
   SELECT * FROM api.scheduler WHERE id = pId

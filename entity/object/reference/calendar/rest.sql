@@ -48,7 +48,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid)
       LOOP
         FOR e IN SELECT r.id, api.get_methods(GetObjectClass(r.id), GetObjectState(r.id)) as method FROM api.get_calendar(r.id) ORDER BY id
         LOOP
@@ -58,7 +58,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid)
       LOOP
         FOR e IN SELECT r.id, api.get_methods(GetObjectClass(r.id), GetObjectState(r.id)) as method FROM api.get_calendar(r.id) ORDER BY id
         LOOP
@@ -135,7 +135,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, fields jsonb)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, fields jsonb)
       LOOP
         FOR e IN EXECUTE format('SELECT %s FROM api.get_calendar($1)', JsonbToFields(r.fields, GetColumns('calendar', 'api'))) USING r.id
         LOOP
@@ -145,7 +145,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, fields jsonb)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, fields jsonb)
       LOOP
         FOR e IN EXECUTE format('SELECT %s FROM api.get_calendar($1)', JsonbToFields(r.fields, GetColumns('calendar', 'api'))) USING r.id
         LOOP
@@ -183,7 +183,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(calendar numeric, calendarcode text, datefrom date, dateto date, userid numeric)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(calendar uuid, calendarcode text, datefrom date, dateto date, userid uuid)
       LOOP
         FOR e IN SELECT * FROM api.fill_calendar(coalesce(r.calendar, GetCalendar(coalesce(r.calendarcode, 'default'))), r.datefrom, r.dateto, r.userid) AS success
         LOOP
@@ -193,7 +193,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(calendar numeric, calendarcode text, datefrom date, dateto date, userid numeric)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(calendar uuid, calendarcode text, datefrom date, dateto date, userid uuid)
       LOOP
         FOR e IN SELECT * FROM api.fill_calendar(coalesce(r.calendar, GetCalendar(coalesce(r.calendarcode, 'default'))), r.datefrom, r.dateto, r.userid) AS success
         LOOP
@@ -214,7 +214,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(calendar numeric, calendarcode text, datefrom date, dateto date, userid numeric)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(calendar uuid, calendarcode text, datefrom date, dateto date, userid uuid)
       LOOP
         FOR e IN SELECT * FROM api.list_calendar_date(coalesce(r.calendar, GetCalendar(coalesce(r.calendarcode, 'default'))), r.datefrom, r.dateto, r.userid)
         LOOP
@@ -224,7 +224,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(calendar numeric, calendarcode text, datefrom date, dateto date, userid numeric)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(calendar uuid, calendarcode text, datefrom date, dateto date, userid uuid)
       LOOP
         FOR e IN SELECT * FROM api.list_calendar_date(coalesce(r.calendar, GetCalendar(coalesce(r.calendarcode, 'default'))), r.datefrom, r.dateto, r.userid)
         LOOP
@@ -245,7 +245,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(calendar numeric, calendarcode text, datefrom date, dateto date, userid numeric)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(calendar uuid, calendarcode text, datefrom date, dateto date, userid uuid)
       LOOP
         FOR e IN SELECT * FROM api.list_calendar_user(coalesce(r.calendar, GetCalendar(coalesce(r.calendarcode, 'default'))), r.datefrom, r.dateto, r.userid)
         LOOP
@@ -255,7 +255,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(calendar numeric, calendarcode text, datefrom date, dateto date, userid numeric)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(calendar uuid, calendarcode text, datefrom date, dateto date, userid uuid)
       LOOP
         FOR e IN SELECT * FROM api.list_calendar_user(coalesce(r.calendar, GetCalendar(coalesce(r.calendarcode, 'default'))), r.datefrom, r.dateto, r.userid)
         LOOP
@@ -276,14 +276,14 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(calendar numeric, calendarcode text, date date, userid numeric)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(calendar uuid, calendarcode text, date date, userid uuid)
       LOOP
         RETURN NEXT row_to_json(api.get_calendar_date(coalesce(r.calendar, GetCalendar(coalesce(r.calendarcode, 'default'))), r.date, r.userid));
       END LOOP;
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(calendar numeric, calendarcode text, date date, userid numeric)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(calendar uuid, calendarcode text, date date, userid uuid)
       LOOP
         RETURN NEXT row_to_json(api.get_calendar_date(coalesce(r.calendar, GetCalendar(coalesce(r.calendarcode, 'default'))), r.date, r.userid));
       END LOOP;
@@ -301,14 +301,14 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(calendar numeric, calendarcode text, date date, flag bit(4), workstart interval, workcount interval, reststart interval, restcount interval, userid numeric)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(calendar uuid, calendarcode text, date date, flag bit(4), workstart interval, workcount interval, reststart interval, restcount interval, userid uuid)
       LOOP
         RETURN NEXT row_to_json(api.set_calendar_date(coalesce(r.calendar, GetCalendar(coalesce(r.calendarcode, 'default'))), r.date, r.flag, r.workstart, r.workcount, r.reststart, r.restcount, r.userid));
       END LOOP;
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(calendar numeric, calendarcode text, date date, flag bit(4), workstart interval, workcount interval, reststart interval, restcount interval, userid numeric)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(calendar uuid, calendarcode text, date date, flag bit(4), workstart interval, workcount interval, reststart interval, restcount interval, userid uuid)
       LOOP
         RETURN NEXT row_to_json(api.set_calendar_date(coalesce(r.calendar, GetCalendar(coalesce(r.calendarcode, 'default'))), r.date, r.flag, r.workstart, r.workcount, r.reststart, r.restcount, r.userid));
       END LOOP;
@@ -326,7 +326,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(calendar numeric, calendarcode text, date date, userid numeric)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(calendar uuid, calendarcode text, date date, userid uuid)
       LOOP
         FOR e IN SELECT * FROM api.delete_calendar_date(coalesce(r.calendar, GetCalendar(coalesce(r.calendarcode, 'default'))), r.date, r.userid) AS success
         LOOP
@@ -336,7 +336,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(calendar numeric, calendarcode text, date date, userid numeric)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(calendar uuid, calendarcode text, date date, userid uuid)
       LOOP
         FOR e IN SELECT * FROM api.delete_calendar_date(coalesce(r.calendar, GetCalendar(coalesce(r.calendarcode, 'default'))), r.date, r.userid) AS success
         LOOP

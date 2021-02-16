@@ -7,9 +7,8 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.vendor (
-    id			    numeric(12) PRIMARY KEY,
-    reference		numeric(12) NOT NULL,
-    CONSTRAINT fk_vendor_reference FOREIGN KEY (reference) REFERENCES db.reference(id)
+    id			    uuid PRIMARY KEY,
+    reference		uuid NOT NULL REFERENCES db.reference(id) ON DELETE CASCADE
 );
 
 COMMENT ON TABLE db.vendor IS 'Производитель (поставщик).';
@@ -25,7 +24,7 @@ CREATE OR REPLACE FUNCTION ft_vendor_insert()
 RETURNS trigger AS $$
 DECLARE
 BEGIN
-  IF NULLIF(NEW.id, 0) IS NULL THEN
+  IF NEW.id IS NULL THEN
     SELECT NEW.reference INTO NEW.id;
   END IF;
 

@@ -38,7 +38,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid)
       LOOP
         FOR e IN SELECT * FROM Class WHERE id = GetObjectClass(r.id)
         LOOP
@@ -48,7 +48,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid)
       LOOP
         FOR e IN SELECT * FROM Class WHERE id = GetObjectClass(r.id)
         LOOP
@@ -69,7 +69,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, fields jsonb)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, fields jsonb)
       LOOP
         FOR e IN EXECUTE format('SELECT %s FROM api.type WHERE id = GetObjectType($1)', JsonbToFields(r.fields, GetColumns('type', 'api'))) USING r.id
         LOOP
@@ -79,7 +79,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, fields jsonb)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, fields jsonb)
       LOOP
         FOR e IN EXECUTE format('SELECT %s FROM api.type WHERE id = GetObjectType($1)', JsonbToFields(r.fields, GetColumns('type', 'api'))) USING r.id
         LOOP
@@ -100,7 +100,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, fields jsonb)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, fields jsonb)
       LOOP
         FOR e IN EXECUTE format('SELECT %s FROM api.state WHERE id = GetObjectState($1)', JsonbToFields(r.fields, GetColumns('state', 'api'))) USING r.id
         LOOP
@@ -110,7 +110,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, fields jsonb)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, fields jsonb)
       LOOP
         FOR e IN EXECUTE format('SELECT %s FROM api.state WHERE id = GetObjectState($1)', JsonbToFields(r.fields, GetColumns('state', 'api'))) USING r.id
         LOOP
@@ -131,7 +131,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid)
       LOOP
         FOR e IN SELECT r.id, api.get_methods(GetObjectClass(r.id), GetObjectState(r.id)) as method FROM api.get_object(r.id)
         LOOP
@@ -141,7 +141,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid)
       LOOP
         FOR e IN SELECT r.id, api.get_methods(GetObjectClass(r.id), GetObjectState(r.id)) as method FROM api.get_object(r.id)
         LOOP
@@ -166,14 +166,14 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, method numeric, code text, params jsonb)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, method uuid, code text, params jsonb)
       LOOP
         RETURN NEXT api.execute_method(r.id, coalesce(r.method, GetObjectMethod(r.id, GetAction(r.code))), r.params);
       END LOOP;
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, method numeric, code text, params jsonb)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, method uuid, code text, params jsonb)
       LOOP
         RETURN NEXT api.execute_method(r.id, coalesce(r.method, GetObjectMethod(r.id, GetAction(r.code))), r.params);
       END LOOP;
@@ -195,7 +195,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, action numeric, code text, params jsonb)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, action uuid, code text, params jsonb)
       LOOP
         FOR e IN SELECT * FROM api.execute_object_action(r.id, coalesce(r.action, GetAction(r.code)), r.params)
         LOOP
@@ -205,7 +205,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, action numeric, code text, params jsonb)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, action uuid, code text, params jsonb)
       LOOP
         FOR e IN SELECT * FROM api.execute_object_action(r.id, coalesce(r.action, GetAction(r.code)), r.params)
         LOOP
@@ -282,7 +282,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, fields jsonb)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, fields jsonb)
       LOOP
         FOR e IN EXECUTE format('SELECT %s FROM api.get_object($1)', JsonbToFields(r.fields, GetColumns('object', 'api'))) USING r.id
         LOOP
@@ -292,7 +292,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, fields jsonb)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, fields jsonb)
       LOOP
         FOR e IN EXECUTE format('SELECT %s FROM api.get_object($1)', JsonbToFields(r.fields, GetColumns('object', 'api'))) USING r.id
         LOOP
@@ -330,7 +330,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid)
       LOOP
         FOR e IN SELECT * FROM api.object_force_delete(r.id) AS success
         LOOP
@@ -340,7 +340,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid)
       LOOP
         FOR e IN SELECT * FROM api.object_force_delete(r.id) AS success
         LOOP
@@ -358,7 +358,7 @@ BEGIN
     arKeys := array_cat(arKeys, ARRAY['id']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric)
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid)
     LOOP
       FOR e IN SELECT * FROM api.object_access(r.id)
       LOOP
@@ -377,7 +377,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, mask int, userid numeric)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, mask int, userid uuid)
       LOOP
         PERFORM api.chmodo(r.id, r.mask, r.userid);
         RETURN NEXT row_to_json(r);
@@ -385,7 +385,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, mask int, userid numeric)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, mask int, userid uuid)
       LOOP
         PERFORM api.chmodo(r.id, r.mask, r.userid);
         RETURN NEXT row_to_json(r);
@@ -485,7 +485,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, code text, fields jsonb)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, code text, fields jsonb)
       LOOP
         FOR e IN EXECUTE format('SELECT %s FROM api.get_object_group($1)', JsonbToFields(r.fields, GetColumns('object_group', 'api'))) USING coalesce(r.id, GetObjectGroup(r.code))
         LOOP
@@ -495,7 +495,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, code text, fields jsonb)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, code text, fields jsonb)
       LOOP
         FOR e IN EXECUTE format('SELECT %s FROM api.get_object_group($1)', JsonbToFields(r.fields, GetColumns('object_group', 'api'))) USING coalesce(r.id, GetObjectGroup(r.code))
         LOOP
@@ -531,7 +531,7 @@ BEGIN
     arKeys := array_cat(arKeys, ARRAY['id', 'code']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, code text)
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, code text)
     LOOP
       FOR e IN SELECT * FROM api.object_group_member(coalesce(r.id, GetObjectGroup(r.code)))
       LOOP
@@ -550,7 +550,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, code text, object numeric)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, code text, object uuid)
       LOOP
         PERFORM api.add_object_to_group(coalesce(r.id, GetObjectGroup(r.code)), r.object);
         RETURN NEXT row_to_json(r);
@@ -558,7 +558,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, code text, object numeric)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, code text, object uuid)
       LOOP
         PERFORM api.add_object_to_group(coalesce(r.id, GetObjectGroup(r.code)), r.object);
         RETURN NEXT row_to_json(r);
@@ -577,7 +577,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, code text, object numeric)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, code text, object uuid)
       LOOP
         PERFORM api.delete_object_from_group(coalesce(r.id, GetObjectGroup(r.code)), r.object);
         RETURN NEXT row_to_json(r);
@@ -585,7 +585,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, code text, object numeric)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, code text, object uuid)
       LOOP
         PERFORM api.delete_object_from_group(coalesce(r.id, GetObjectGroup(r.code)), r.object);
         RETURN NEXT row_to_json(r);
@@ -604,7 +604,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, clear boolean, files json)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, clear boolean, files json)
       LOOP
 		IF coalesce(r.clear, false) THEN
 	  	  PERFORM api.clear_object_files(r.id);
@@ -622,7 +622,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, clear boolean, files json)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, clear boolean, files json)
       LOOP
 		IF coalesce(r.clear, false) THEN
 	  	  PERFORM api.clear_object_files(r.id);
@@ -651,7 +651,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, clear boolean, files json)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, clear boolean, files json)
       LOOP
 		IF coalesce(r.clear, false) THEN
 	  	  PERFORM api.clear_object_files(r.id);
@@ -665,7 +665,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, clear boolean, files json)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, clear boolean, files json)
       LOOP
 		IF coalesce(r.clear, false) THEN
 	  	  PERFORM api.clear_object_files(r.id);
@@ -690,7 +690,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, name text, fields jsonb)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, name text, fields jsonb)
       LOOP
         FOR e IN EXECUTE format('SELECT %s FROM api.get_object_file($1, $2)', JsonbToFields(r.fields, GetColumns('object_file', 'api'))) USING r.id, r.name
         LOOP
@@ -700,7 +700,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, name text, fields jsonb)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, name text, fields jsonb)
       LOOP
         FOR e IN EXECUTE format('SELECT %s FROM api.get_object_file($1, $2)', JsonbToFields(r.fields, GetColumns('object_file', 'api'))) USING r.id, r.name
         LOOP
@@ -738,7 +738,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid)
       LOOP
         PERFORM api.clear_object_files(r.id);
         RETURN NEXT row_to_json(r);
@@ -746,7 +746,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid)
       LOOP
         PERFORM api.clear_object_files(r.id);
         RETURN NEXT row_to_json(r);
@@ -765,7 +765,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, data json)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, data json)
       LOOP
         IF r.data IS NOT NULL THEN
           FOR e IN SELECT * FROM api.set_object_data_json(r.id, r.data)
@@ -779,7 +779,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, data json)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, data json)
       LOOP
         IF r.data IS NOT NULL THEN
           FOR e IN SELECT * FROM api.set_object_data_json(r.id, r.data)
@@ -804,7 +804,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, data json)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, data json)
       LOOP
         FOR e IN SELECT * FROM api.set_object_data_json(r.id, r.data)
         LOOP
@@ -814,7 +814,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, data json)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, data json)
       LOOP
         FOR e IN SELECT * FROM api.set_object_data_json(r.id, r.data)
         LOOP
@@ -830,14 +830,14 @@ BEGIN
       PERFORM JsonIsEmpty();
     END IF;
 
-    arKeys := array_cat(arKeys, ARRAY['id', 'type', 'typecode', 'code', 'fields']);
+    arKeys := array_cat(arKeys, ARRAY['id', 'type', 'code', 'fields']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(fields jsonb, id numeric, type numeric, typecode text, code text)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(fields jsonb, id uuid, type text, code text)
       LOOP
-        FOR e IN EXECUTE format('SELECT %s FROM api.get_object_data($1, $2, $3)', JsonbToFields(r.fields, GetColumns('object_data', 'api'))) USING r.id, coalesce(r.type, GetObjectDataType(r.typecode)), r.code
+        FOR e IN EXECUTE format('SELECT %s FROM api.get_object_data($1, $2, $3)', JsonbToFields(r.fields, GetColumns('object_data', 'api'))) USING r.id, r.type, r.code
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -845,9 +845,9 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(fields jsonb, id numeric, type numeric, typecode text, code text)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(fields jsonb, id uuid, type text, code text)
       LOOP
-        FOR e IN EXECUTE format('SELECT %s FROM api.get_object_data($1, $2, $3)', JsonbToFields(r.fields, GetColumns('object_data', 'api'))) USING r.id, coalesce(r.type, GetObjectDataType(r.typecode)), r.code
+        FOR e IN EXECUTE format('SELECT %s FROM api.get_object_data($1, $2, $3)', JsonbToFields(r.fields, GetColumns('object_data', 'api'))) USING r.id, r.type, r.code
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -883,7 +883,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, addresses json)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, addresses json)
       LOOP
         IF r.addresses IS NOT NULL THEN
           FOR e IN SELECT * FROM api.set_object_addresses_json(r.id, r.addresses)
@@ -897,7 +897,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, addresses json)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, addresses json)
       LOOP
         IF r.addresses IS NOT NULL THEN
           FOR e IN SELECT * FROM api.set_object_addresses_json(r.id, r.addresses)
@@ -922,7 +922,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, address numeric, datefrom timestamp)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, address uuid, datefrom timestamp)
       LOOP
         FOR e IN SELECT * FROM api.set_object_address(r.id, r.address, coalesce(r.datefrom, oper_date()))
         LOOP
@@ -932,7 +932,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, address numeric, datefrom timestamp)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, address uuid, datefrom timestamp)
       LOOP
         FOR e IN SELECT * FROM api.set_object_address(r.id, r.address, coalesce(r.datefrom, oper_date()))
         LOOP
@@ -953,7 +953,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, fields jsonb)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, fields jsonb)
       LOOP
         FOR e IN EXECUTE format('SELECT %s FROM api.get_object_address($1)', JsonbToFields(r.fields, GetColumns('object_address', 'api'))) USING r.id
         LOOP
@@ -963,7 +963,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, fields jsonb)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, fields jsonb)
       LOOP
         FOR e IN EXECUTE format('SELECT %s FROM api.get_object_address($1)', JsonbToFields(r.fields, GetColumns('object_address', 'api'))) USING r.id
         LOOP
@@ -1001,7 +1001,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, coordinates json)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, coordinates json)
       LOOP
         IF r.coordinates IS NOT NULL THEN
           FOR e IN SELECT * FROM api.set_object_coordinates_json(r.id, r.coordinates) AS id
@@ -1015,7 +1015,7 @@ BEGIN
 
       ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, coordinates json)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, coordinates json)
       LOOP
         IF r.coordinates IS NOT NULL THEN
           FOR e IN SELECT * FROM api.set_object_coordinates_json(r.id, r.coordinates) AS id
@@ -1040,7 +1040,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, coordinates json)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, coordinates json)
       LOOP
         FOR e IN SELECT * FROM api.set_object_coordinates_json(r.id, r.coordinates) AS id
         LOOP
@@ -1050,7 +1050,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, coordinates json)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, coordinates json)
       LOOP
         FOR e IN SELECT * FROM api.set_object_coordinates_json(r.id, r.coordinates) AS id
         LOOP
@@ -1071,7 +1071,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, code text, fields jsonb)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, code text, fields jsonb)
       LOOP
         FOR e IN EXECUTE format('SELECT %s FROM api.get_object_coordinates($1, $2)', JsonbToFields(r.fields, GetColumns('object_coordinates', 'api'))) USING r.id, coalesce(r.code, 'default')
         LOOP
@@ -1081,7 +1081,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, code text, fields jsonb)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, code text, fields jsonb)
       LOOP
         FOR e IN EXECUTE format('SELECT %s FROM api.get_object_coordinates($1, $2)', JsonbToFields(r.fields, GetColumns('object_coordinates', 'api'))) USING r.id, coalesce(r.code, 'default')
         LOOP

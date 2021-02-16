@@ -16,20 +16,59 @@ GRANT SELECT ON api.object TO administrator;
 -- api.search ------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION api.search (
+CREATE OR REPLACE FUNCTION api.search_en (
   pText		text
 ) RETURNS	SETOF api.object
 AS $$
   WITH access AS (
     SELECT object FROM aou(current_userid())
   ), search AS (
-  SELECT o.id
-    FROM db.object o INNER JOIN access a ON o.id = a.object
+  SELECT o.object
+    FROM db.object_text o INNER JOIN access a ON o.object = a.object
    WHERE o.label ILIKE '%' || pText || '%'
-      OR o.data ILIKE '%' || pText || '%'
-      OR o.searchable @@ websearch_to_tsquery('russian', pText)
-  ) SELECT o.* FROM api.object o INNER JOIN search s ON o.id = s.id;
+      OR o.text ILIKE '%' || pText || '%'
+      OR o.searchable_en @@ websearch_to_tsquery('english', pText)
+  ) SELECT o.* FROM api.object o INNER JOIN search s ON o.id = s.object;
 $$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.search_ru (
+  pText		text
+) RETURNS	SETOF api.object
+AS $$
+  WITH access AS (
+    SELECT object FROM aou(current_userid())
+  ), search AS (
+  SELECT o.object
+    FROM db.object_text o INNER JOIN access a ON o.object = a.object
+   WHERE o.label ILIKE '%' || pText || '%'
+      OR o.text ILIKE '%' || pText || '%'
+      OR o.searchable_ru @@ websearch_to_tsquery('russian', pText)
+  ) SELECT o.* FROM api.object o INNER JOIN search s ON o.id = s.object;
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.search (
+  pText			text,
+  pLocaleCode	text DEFAULT locale_code()
+) RETURNS		SETOF api.object
+AS $$
+BEGIN
+  IF pLocaleCode = 'ru' THEN
+  	RETURN QUERY SELECT * FROM api.search_ru(pText);
+  ELSE
+  	RETURN QUERY SELECT * FROM api.search_en(pText);
+  END IF;
+
+  RETURN;
+END
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -38,18 +77,18 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 /**
  * Добавляет объект.
- * @param {numeric} pParent - Ссылка на родительский объект: api.object | null
+ * @param {uuid} pParent - Ссылка на родительский объект: api.object | null
  * @param {text} pType - Тип
  * @param {text} pLabel - Метка
  * @param {text} pData - Данные
- * @return {numeric}
+ * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION api.add_object (
-  pParent       numeric,
+  pParent       uuid,
   pType         text,
   pLabel        text default null,
   pData			text default null
-) RETURNS       numeric
+) RETURNS       uuid
 AS $$
 BEGIN
   RETURN CreateObject(pParent, GetType(lower(pType)), pLabel, pData);
@@ -63,23 +102,23 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Редактирует объект.
- * @param {numeric} pParent - Ссылка на родительский объект: Object.Parent | null
+ * @param {uuid} pParent - Ссылка на родительский объект: Object.Parent | null
  * @param {text} pType - Тип
  * @param {text} pLabel - Метка
  * @param {text} pData - Данные
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_object (
-  pId		    numeric,
-  pParent       numeric default null,
+  pId		    uuid,
+  pParent       uuid default null,
   pType         text default null,
   pLabel        text default null,
   pData			text default null
 ) RETURNS       void
 AS $$
 DECLARE
-  nType         numeric;
-  nObject       numeric;
+  nType         uuid;
+  nObject       uuid;
 BEGIN
   SELECT t.id INTO nObject FROM db.object t WHERE t.id = pId;
 
@@ -104,8 +143,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.set_object (
-  pId		    numeric,
-  pParent       numeric default null,
+  pId		    uuid,
+  pParent       uuid default null,
   pType         text default null,
   pLabel        text default null,
   pData			text default null
@@ -129,11 +168,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает объект
- * @param {numeric} pId - Идентификатор
+ * @param {uuid} pId - Идентификатор
  * @return {api.object}
  */
 CREATE OR REPLACE FUNCTION api.get_object (
-  pId		numeric
+  pId		uuid
 ) RETURNS	api.object
 AS $$
   SELECT * FROM api.object WHERE id = pId
@@ -169,67 +208,15 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- api.change_object_state -----------------------------------------------------
---------------------------------------------------------------------------------
-/**
- * Изменить состояние объекта.
- * @param {numeric} pObject - Идентификатор объекта
- * @param {text} pCode - Код нового состояния объекта
- * @out param {numeric} id - Идентификатор
- * @out param {boolean} result - Результат
- * @out param {text} message - Текст ошибки
- * @return {record}
- */
-CREATE OR REPLACE FUNCTION api.change_object_state (
-  pObject       numeric,
-  pCode         text,
-  OUT id        numeric,
-  OUT result	boolean,
-  OUT message	text
-) RETURNS       record
-AS $$
-DECLARE
-  nEntity       numeric;
-  nType         numeric;
-  nClass        numeric;
-  nState        numeric;
-BEGIN
-  id := pObject;
-
-  SELECT o.type INTO nType FROM db.object o WHERE o.id = pObject;
-  SELECT t.class INTO nClass FROM db.type t WHERE t.id = nType;
-
-  nEntity := GetEntity(nClass);
-  IF nEntity IS NULL THEN
-    PERFORM ObjectNotFound('object', 'id', pObject);
-  END IF;
-
-  SELECT s.id INTO nState FROM db.state s WHERE s.class = nClass AND s.code = pCode;
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'ERR-40000: Неверный код состояния: "%".', pCode;
-  END IF;
-
-  PERFORM ChangeObjectState(pObject, nState);
-  SELECT * INTO result, message FROM result_success();
-EXCEPTION
-WHEN others THEN
-  GET STACKED DIAGNOSTICS message = MESSAGE_TEXT;
-  result := false;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
 -- api.get_object_label --------------------------------------------------------
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.get_object_label (
-  pObject       numeric
+  pObject       uuid
 ) RETURNS       text
 AS $$
 DECLARE
-  nId           numeric;
+  nId           uuid;
 BEGIN
   SELECT o.id INTO nId FROM db.object o WHERE o.id = pObject;
   IF NOT FOUND THEN
@@ -247,15 +234,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.set_object_label (
-  pObject       numeric,
+  pObject       uuid,
   pLabel        text,
-  OUT id        numeric,
+  OUT id        uuid,
   OUT result    boolean,
   OUT message   text
 ) RETURNS       record
 AS $$
 DECLARE
-  nId           numeric;
+  nId           uuid;
 BEGIN
   id := null;
 
@@ -282,17 +269,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Принудительно "удаляет" документ (минуя события документооборота).
- * @param {numeric} pId - Идентификатор объекта
- * @out param {numeric} id - Идентификатор
+ * @param {uuid} pId - Идентификатор объекта
+ * @out param {uuid} id - Идентификатор
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.object_force_delete (
-  pId	        numeric
+  pId	        uuid
 ) RETURNS	    void
 AS $$
 DECLARE
-  nId		    numeric;
-  nState	    numeric;
+  nId		    uuid;
+  nState	    uuid;
 BEGIN
   SELECT o.id INTO nId FROM db.object o WHERE o.id = pId;
 
@@ -320,8 +307,8 @@ $$ LANGUAGE plpgsql
  * @return {SETOF record} - Запись
  */
 CREATE OR REPLACE FUNCTION api.decode_object_access (
-  pId       numeric,
-  pUserId	numeric DEFAULT current_userid(),
+  pId       uuid,
+  pUserId	uuid DEFAULT current_userid(),
   OUT s		boolean,
   OUT u		boolean,
   OUT d		boolean
@@ -350,7 +337,7 @@ GRANT SELECT ON api.object_access TO administrator;
  * @return {SETOF api.object_access} - Запись
  */
 CREATE OR REPLACE FUNCTION api.object_access (
-  pId       numeric
+  pId       uuid
 ) RETURNS 	SETOF api.object_access
 AS $$
   SELECT * FROM api.object_access WHERE object = pId;
@@ -367,20 +354,20 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 /**
  * Выполняет действие над объектом.
- * @param {numeric} pObject - Идентификатор объекта
- * @param {numeric} pAction - Идентификатор действия
+ * @param {uuid} pObject - Идентификатор объекта
+ * @param {uuid} pAction - Идентификатор действия
  * @param {jsonb} pParams - Параметры в формате JSON
  * @return {jsonb}
  */
 CREATE OR REPLACE FUNCTION api.execute_object_action (
-  pObject		numeric,
-  pAction		numeric,
+  pObject		uuid,
+  pAction		uuid,
   pParams		jsonb DEFAULT null
 ) RETURNS		jsonb
 AS $$
 DECLARE
-  nId			numeric;
-  nMethod		numeric;
+  nId			uuid;
+  nMethod		uuid;
 BEGIN
   SELECT o.id INTO nId FROM db.object o WHERE o.id = pObject;
 
@@ -409,16 +396,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Выполняет действие над объектом по коду.
- * @param {numeric} pObject - Идентификатор объекта
+ * @param {uuid} pObject - Идентификатор объекта
  * @param {text} pCode - Код действия
  * @param {jsonb} pParams - Параметры в формате JSON
- * @out param {numeric} id - Идентификатор объекта
+ * @out param {uuid} id - Идентификатор объекта
  * @out param {boolean} result - Результат
  * @out param {text} message - Текст ошибки
  * @return {jsonb}
  */
 CREATE OR REPLACE FUNCTION api.execute_object_action (
-  pObject       numeric,
+  pObject       uuid,
   pCode         text,
   pParams		jsonb DEFAULT null
 ) RETURNS       jsonb
@@ -451,20 +438,20 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Выполняет метод объекта.
- * @param {numeric} pObject - Идентификатор объекта
- * @param {numeric} pMethod - Идентификатор метода
+ * @param {uuid} pObject - Идентификатор объекта
+ * @param {uuid} pMethod - Идентификатор метода
  * @param {jsonb} pParams - Параметры в формате JSON
  * @return {jsonb}
  */
 CREATE OR REPLACE FUNCTION api.execute_method (
-  pObject       numeric,
-  pMethod       numeric,
+  pObject       uuid,
+  pMethod       uuid,
   pParams		jsonb DEFAULT null
 ) RETURNS       jsonb
 AS $$
 DECLARE
-  nId           numeric;
-  nMethod       numeric;
+  nId           uuid;
+  nMethod       uuid;
 BEGIN
   SELECT o.id INTO nId FROM db.object o WHERE o.id = pObject;
 
@@ -493,21 +480,21 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Выполняет метод объекта.
- * @param {numeric} pObject - Идентификатор объекта
+ * @param {uuid} pObject - Идентификатор объекта
  * @param {text} pCode - Код метода
  * @param {jsonb} pParams - Параметры в формате JSON
  * @return {jsonb}
  */
 CREATE OR REPLACE FUNCTION api.execute_method (
-  pObject       numeric,
+  pObject       uuid,
   pCode         text,
   pParams		jsonb DEFAULT null
 ) RETURNS       jsonb
 AS $$
 DECLARE
-  nId           numeric;
-  nClass        numeric;
-  nMethod       numeric;
+  nId           uuid;
+  nClass        uuid;
+  nMethod       uuid;
 BEGIN
   SELECT o.id INTO nId FROM db.object o WHERE o.id = pObject;
 
@@ -555,13 +542,13 @@ GRANT SELECT ON api.object_group TO administrator;
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
- * @return {numeric}
+ * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION api.add_object_group (
   pCode         text,
   pName         text,
   pDescription  text DEFAULT null
-) RETURNS       numeric
+) RETURNS       uuid
 AS $$
 BEGIN
   RETURN CreateObjectGroup(pCode, pName, pDescription);
@@ -575,14 +562,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Обновляет группу объектов.
- * @param {numeric} pId - Идентификатор группы объектов
+ * @param {uuid} pId - Идентификатор группы объектов
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_object_group (
-  pId               numeric,
+  pId               uuid,
   pCode             text DEFAULT null,
   pName             text DEFAULT null,
   pDescription      text DEFAULT null
@@ -600,7 +587,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.set_object_group (
-  pId               numeric,
+  pId               uuid,
   pCode             text DEFAULT null,
   pName             text DEFAULT null,
   pDescription      text DEFAULT null
@@ -627,7 +614,7 @@ $$ LANGUAGE plpgsql
  * @return {SETOF api.object_group}
  */
 CREATE OR REPLACE FUNCTION api.get_object_group (
-  pId         numeric
+  pId         uuid
 ) RETURNS     SETOF api.object_group
 AS $$
   SELECT * FROM api.object_group WHERE id = pId;
@@ -667,13 +654,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Добавляет объект в группу.
- * @param {numeric} pObjectGroup - Идентификатор группу объектов
- * @param {numeric} pMember - Идентификатор пользователя/группы
+ * @param {uuid} pObjectGroup - Идентификатор группу объектов
+ * @param {uuid} pMember - Идентификатор пользователя/группы
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.add_object_to_group (
-  pGroup    numeric,
-  pObject   numeric
+  pGroup    uuid,
+  pObject   uuid
 ) RETURNS   void
 AS $$
 BEGIN
@@ -688,13 +675,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Удалить объект из группы.
- * @param {numeric} pObjectGroup - Идентификатор зоны
- * @param {numeric} pMember - Идентификатор пользователя, при null удаляет всех пользователей из указанной зоны
+ * @param {uuid} pObjectGroup - Идентификатор зоны
+ * @param {uuid} pMember - Идентификатор пользователя, при null удаляет всех пользователей из указанной зоны
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.delete_object_from_group (
-  pGroup    numeric,
-  pObject   numeric DEFAULT null
+  pGroup    uuid,
+  pObject   uuid DEFAULT null
 ) RETURNS   void
 AS $$
 BEGIN
@@ -722,7 +709,7 @@ GRANT SELECT ON api.object_group_member TO administrator;
  * @return {SETOF api.object}
  */
 CREATE OR REPLACE FUNCTION api.object_group_member (
-  pGroupId      numeric
+  pGroupId      uuid
 ) RETURNS       SETOF api.object
 AS $$
   SELECT o.*
@@ -751,14 +738,14 @@ GRANT SELECT ON api.object_file TO administrator;
 --------------------------------------------------------------------------------
 /**
  * Связывает файл с объектом
- * @param {numeric} pId - Идентификатор объекта
+ * @param {uuid} pId - Идентификатор объекта
  * @return {SETOF api.object_file}
  */
 CREATE OR REPLACE FUNCTION api.set_object_file (
-  pId	    numeric,
+  pId	    uuid,
   pName		text,
   pPath		text,
-  pSize		numeric,
+  pSize		integer,
   pDate		timestamp,
   pData		bytea DEFAULT null,
   pHash		text DEFAULT null,
@@ -779,14 +766,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.set_object_files_json (
-  pId       numeric,
+  pId       uuid,
   pFiles    json
 ) RETURNS   SETOF api.object_file
 AS $$
 DECLARE
   r         record;
   arKeys    text[];
-  nId       numeric;
+  nId       uuid;
 BEGIN
   SELECT o.id INTO nId FROM db.object o WHERE o.id = pId;
 
@@ -817,7 +804,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.set_object_files_jsonb (
-  pId           numeric,
+  pId           uuid,
   pFiles        jsonb
 ) RETURNS       SETOF api.object_file
 AS $$
@@ -833,7 +820,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.get_object_files_json (
-  pId	    numeric
+  pId	    uuid
 ) RETURNS	json
 AS $$
 BEGIN
@@ -848,7 +835,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.get_object_files_jsonb (
-  pId	    numeric
+  pId	    uuid
 ) RETURNS	jsonb
 AS $$
 BEGIN
@@ -863,11 +850,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает файлы объекта
- * @param {numeric} pId - Идентификатор объекта
+ * @param {uuid} pId - Идентификатор объекта
  * @return {api.object_file}
  */
 CREATE OR REPLACE FUNCTION api.get_object_file (
-  pId       numeric,
+  pId       uuid,
   pName     text
 ) RETURNS	SETOF api.object_file
 AS $$
@@ -908,11 +895,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Удаляет все файлы объекта
- * @param {numeric} pId - Идентификатор объекта
+ * @param {uuid} pId - Идентификатор объекта
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.clear_object_files (
-  pId       numeric
+  pId       uuid
 ) RETURNS	void
 AS $$
 BEGIN
@@ -925,31 +912,6 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- OBJECT DATA -----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
---------------------------------------------------------------------------------
--- api.object_data_type --------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE VIEW api.object_data_type
-AS
-  SELECT * FROM ObjectDataType;
-
-GRANT SELECT ON api.object_data_type TO administrator;
-
---------------------------------------------------------------------------------
--- api.get_object_data_type_by_code --------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION api.get_object_data_type (
-  pCode		text
-) RETURNS	numeric
-AS $$
-BEGIN
-  RETURN GetObjectDataType(pCode);
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
 -- api.object_data -------------------------------------------------------------
@@ -966,14 +928,14 @@ GRANT SELECT ON api.object_data TO administrator;
 --------------------------------------------------------------------------------
 /**
  * Устанавливает данные объекта
- * @param {numeric} pId - Идентификатор объекта
+ * @param {uuid} pId - Идентификатор объекта
  * @param {text} pType - Код типа данных
  * @param {text} pCode - Код
  * @param {text} pData - Данные
- * @return {numeric}
+ * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION api.set_object_data (
-  pId           numeric,
+  pId           uuid,
   pType         text,
   pCode         text,
   pData         text
@@ -981,23 +943,21 @@ CREATE OR REPLACE FUNCTION api.set_object_data (
 AS $$
 DECLARE
   r             record;
-  nType         numeric;
+  nType         uuid;
   arTypes       text[];
 BEGIN
   pType := lower(pType);
 
-  FOR r IN SELECT code FROM db.object_data_type
+  FOR r IN SELECT type FROM db.object_data
   LOOP
-    arTypes := array_append(arTypes, r.code::text);
+    arTypes := array_append(arTypes, r.type);
   END LOOP;
 
-  IF array_position(arTypes, pType::text) IS NULL THEN
+  IF array_position(arTypes, pType) IS NULL THEN
     PERFORM IncorrectCode(pType, arTypes);
   END IF;
 
-  nType := GetObjectDataType(pType);
-
-  PERFORM SetObjectData(pId, nType, pCode, pData);
+  PERFORM SetObjectData(pId, pType, pCode, pData);
 
   RETURN QUERY SELECT * FROM api.get_object_data(pId, nType, pCode);
 END;
@@ -1010,12 +970,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.set_object_data_json (
-  pId           numeric,
+  pId           uuid,
   pData	        json
 ) RETURNS       SETOF api.object_data
 AS $$
 DECLARE
-  nId           numeric;
+  nId           uuid;
   arKeys        text[];
   r             record;
 BEGIN
@@ -1048,7 +1008,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.set_object_data_jsonb (
-  pId       numeric,
+  pId       uuid,
   pData     jsonb
 ) RETURNS   SETOF api.object_data
 AS $$
@@ -1064,7 +1024,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.get_object_data_json (
-  pId	    numeric
+  pId	    uuid
 ) RETURNS	json
 AS $$
 BEGIN
@@ -1079,7 +1039,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.get_object_data_jsonb (
-  pId	    numeric
+  pId	    uuid
 ) RETURNS	jsonb
 AS $$
 BEGIN
@@ -1094,12 +1054,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает данные объекта
- * @param {numeric} pId - Идентификатор объекта
+ * @param {uuid} pId - Идентификатор объекта
  * @return {api.object_data}
  */
 CREATE OR REPLACE FUNCTION api.get_object_data (
-  pId	    numeric,
-  pType		numeric,
+  pId	    uuid,
+  pType		text,
   pCode		text
 ) RETURNS	SETOF api.object_data
 AS $$
@@ -1155,7 +1115,7 @@ GRANT SELECT ON api.object_coordinates TO administrator;
 
 CREATE OR REPLACE FUNCTION api.object_coordinates (
   pDateFrom     timestamptz,
-  pUserId		numeric DEFAULT current_userid()
+  pUserId		uuid DEFAULT current_userid()
 ) RETURNS       SETOF api.object_coordinates
 AS $$
   SELECT * FROM ObjectCoordinates(pDateFrom, pUserId);
@@ -1168,7 +1128,7 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 /**
  * Устанавливает координаты объекта
- * @param {numeric} pId - Идентификатор объекта
+ * @param {uuid} pId - Идентификатор объекта
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
  * @param {numeric} pLatitude - Широта
@@ -1179,7 +1139,7 @@ $$ LANGUAGE SQL
  * @return {SETOF api.object_coordinates}
  */
 CREATE OR REPLACE FUNCTION api.set_object_coordinates (
-  pId           numeric,
+  pId           uuid,
   pCode         text,
   pLatitude     numeric,
   pLongitude    numeric,
@@ -1206,13 +1166,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.set_object_coordinates_json (
-  pId           numeric,
+  pId           uuid,
   pCoordinates  json
 ) RETURNS       SETOF api.object_coordinates
 AS $$
 DECLARE
   r             record;
-  nId           numeric;
+  nId           uuid;
   arKeys        text[];
 BEGIN
   SELECT o.id INTO nId FROM db.object o WHERE o.id = pId;
@@ -1244,7 +1204,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.set_object_coordinates_jsonb (
-  pId           numeric,
+  pId           uuid,
   pCoordinates  jsonb
 ) RETURNS       SETOF api.object_coordinates
 AS $$
@@ -1260,7 +1220,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.get_object_coordinates_json (
-  pId	    numeric
+  pId	    uuid
 ) RETURNS	json
 AS $$
 BEGIN
@@ -1275,7 +1235,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.get_object_coordinates_jsonb (
-  pId	    numeric
+  pId	    uuid
 ) RETURNS	jsonb
 AS $$
 BEGIN
@@ -1290,11 +1250,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает данные объекта
- * @param {numeric} pId - Идентификатор объекта
+ * @param {uuid} pId - Идентификатор объекта
  * @return {api.object_coordinates}
  */
 CREATE OR REPLACE FUNCTION api.get_object_coordinates (
-  pId           numeric,
+  pId           uuid,
   pCode         text,
   pDateFrom     timestamptz DEFAULT oper_date()
 ) RETURNS       SETOF api.object_coordinates

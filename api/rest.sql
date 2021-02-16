@@ -494,7 +494,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(fields jsonb, class numeric, code text)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(fields jsonb, class uuid, code text)
       LOOP
         FOR e IN EXECUTE format('SELECT %s FROM api.state($1)', JsonbToFields(r.fields, GetColumns('state', 'api'))) USING coalesce(r.class, GetClass(r.code))
         LOOP
@@ -504,7 +504,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(fields jsonb, class numeric, code text)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(fields jsonb, class uuid, code text)
       LOOP
         FOR e IN EXECUTE format('SELECT %s FROM api.state($1)', JsonbToFields(r.fields, GetColumns('state', 'api'))) USING coalesce(r.class, GetClass(r.code))
         LOOP
@@ -574,7 +574,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(object numeric, action numeric, code text, params jsonb)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(object uuid, action uuid, code text, params jsonb)
       LOOP
         FOR e IN SELECT * FROM api.execute_object_action(r.object, coalesce(r.action, GetAction(r.code)), r.params)
         LOOP
@@ -584,7 +584,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(object numeric, action numeric, code text, params jsonb)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(object uuid, action uuid, code text, params jsonb)
       LOOP
         FOR e IN SELECT * FROM api.execute_object_action(r.object, coalesce(r.action, GetAction(r.code)), r.params)
         LOOP
@@ -619,7 +619,7 @@ CREATE OR REPLACE FUNCTION rest.method (
 ) RETURNS   	SETOF json
 AS $$
 DECLARE
-  nId       	numeric;
+  nId       	uuid;
 
   r         	record;
   e         	record;
@@ -656,14 +656,14 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, method numeric, code text, params jsonb)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, method uuid, code text, params jsonb)
       LOOP
         RETURN NEXT api.execute_method(r.id, coalesce(r.method, GetObjectMethod(r.id, GetAction(r.code))), r.params);
       END LOOP;
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, method numeric, code text, params jsonb)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, method uuid, code text, params jsonb)
       LOOP
         RETURN NEXT api.execute_method(r.id, coalesce(r.method, GetObjectMethod(r.id, GetAction(r.code))), r.params);
       END LOOP;
@@ -681,14 +681,14 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(object numeric, method numeric, code text, params jsonb)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(object uuid, method uuid, code text, params jsonb)
       LOOP
         RETURN NEXT api.execute_method(r.object, coalesce(r.method, GetObjectMethod(r.object, GetAction(r.code))), r.params);
       END LOOP;
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(object numeric, method numeric, code text, params jsonb)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(object uuid, method uuid, code text, params jsonb)
       LOOP
         RETURN NEXT api.execute_method(r.object, coalesce(r.method, GetObjectMethod(r.object, GetAction(r.code))), r.params);
       END LOOP;
@@ -706,7 +706,7 @@ BEGIN
 
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(object numeric, class numeric, classcode text, state numeric, statecode text, action numeric, actioncode text)
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(object uuid, class uuid, classcode text, state uuid, statecode text, action uuid, actioncode text)
     LOOP
       nId := coalesce(r.class, GetClass(r.classcode), GetObjectClass(r.object));
       FOR e IN SELECT * FROM api.get_methods(nId, coalesce(r.state, GetState(nId, r.statecode), GetObjectState(r.object)), coalesce(r.action, GetAction(r.actioncode)))

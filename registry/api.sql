@@ -11,9 +11,9 @@ GRANT SELECT ON api.registry TO administrator;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.registry (
-  pId		numeric,
-  pKey		numeric,
-  pSubKey	numeric
+  pId		uuid,
+  pKey		uuid,
+  pSubKey	uuid
 ) RETURNS	SETOF api.registry
 AS $$
   SELECT *
@@ -36,9 +36,9 @@ GRANT SELECT ON api.registry_ex TO administrator;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.registry_ex (
-  pId		numeric,
-  pKey		numeric,
-  pSubKey	numeric
+  pId		uuid,
+  pKey		uuid,
+  pSubKey	uuid
 ) RETURNS	SETOF api.registry_ex
 AS $$
   SELECT *
@@ -61,9 +61,9 @@ GRANT SELECT ON api.registry_key TO administrator;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.registry_key (
-  pId		numeric,
-  pRoot		numeric,
-  pParent	numeric,
+  pId		uuid,
+  pRoot		uuid,
+  pParent	uuid,
   pKey		text
 ) RETURNS	SETOF api.registry_key
 AS $$
@@ -96,8 +96,8 @@ GRANT SELECT ON api.registry_value_ex TO administrator;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.registry_value (
-  pId		numeric,
-  pKey		numeric
+  pId		uuid,
+  pKey		uuid
 ) RETURNS	SETOF api.registry_value
 AS $$
   SELECT *
@@ -111,8 +111,8 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.registry_value_ex (
-  pId		numeric,
-  pKey		numeric
+  pId		uuid,
+  pKey		uuid
 ) RETURNS	SETOF api.registry_value_ex
 AS $$
   SELECT *
@@ -126,7 +126,7 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.registry_get_reg_key (
-  pKey      numeric
+  pKey      uuid
 ) RETURNS   text
 AS $$
 BEGIN
@@ -144,7 +144,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pKey - Ключ: CURRENT_CONFIG | CURRENT_USER
  * @param {text} pSubKey - Подключ: Указанный подключ должен быть подключем ключа, указанного в параметре pKey.
                                     Этот подключ не должен начинатся и заканчиваться знаком обратной черты ('\').
- * @out param {numeric} id - Идентификатор подключа
+ * @out param {uuid} id - Идентификатор подключа
  * @out param {text} key - Ключ
  * @out param {text} subkey - Подключ
  * @return {record}
@@ -153,7 +153,7 @@ CREATE OR REPLACE FUNCTION api.registry_enum_key (
   pKey      text,
   pSubKey   text
 ) RETURNS TABLE (
-  id	    numeric,
+  id	    uuid,
   key	    text,
   subkey    text
 )
@@ -171,7 +171,7 @@ $$ LANGUAGE SQL
  * @param {text} pKey - Ключ: CURRENT_CONFIG | CURRENT_USER
  * @param {text} pSubKey - Подключ: Указанный подключ должен быть подключем ключа, указанного в параметре pKey.
                                     Этот подключ не должен начинатся и заканчиваться знаком обратной черты ('\').
- * @out param {numeric} id - Идентификатор значения
+ * @out param {uuid} id - Идентификатор значения
  * @out param {text} key - Ключ
  * @out param {text} subkey - Подключ
  * @out param {text} valuename - Имя значения
@@ -182,7 +182,7 @@ CREATE OR REPLACE FUNCTION api.registry_enum_value (
   pKey      text,
   pSubKey   text
 ) RETURNS TABLE (
-  id	    numeric,
+  id	    uuid,
   key	    text,
   subkey    text,
   valuename text,
@@ -202,7 +202,7 @@ $$ LANGUAGE SQL
  * @param {text} pKey - Ключ: CURRENT_CONFIG | CURRENT_USER
  * @param {text} pSubKey - Подключ: Указанный подключ должен быть подключем ключа, указанного в параметре pKey.
                                     Этот подключ не должен начинатся и заканчиваться знаком обратной черты ('\').
- * @out param {numeric} id - Идентификатор значения
+ * @out param {uuid} id - Идентификатор значения
  * @out param {text} key - Ключ
  * @out param {text} subkey - Подключ
  * @out param {text} valuename - Имя значения
@@ -218,7 +218,7 @@ CREATE OR REPLACE FUNCTION api.registry_enum_value_ex (
   pKey        text,
   pSubKey     text
 ) RETURNS TABLE (
-  id	      numeric,
+  id	      uuid,
   key	      text,
   subkey      text,
   valuename   text,
@@ -250,16 +250,16 @@ $$ LANGUAGE SQL
                                                                              3 - Строка;
                                                                              4 - Логический.
  * @param {anynonarray} pData - Данные для установки их по указанному имени значения.
- * @return {numeric}
+ * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION api.registry_write (
-  pId         numeric,
+  pId         uuid,
   pKey        text,
   pSubKey     text,
   pValueName  text,
   pType       integer,
   pData       anynonarray
-) RETURNS     numeric
+) RETURNS     uuid
 AS $$
 DECLARE
   vData       Variant;
@@ -342,7 +342,7 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.registry_delete_value (
-  pId           numeric,
+  pId           uuid,
   pKey          text,
   pSubKey       text,
   pValueName	text

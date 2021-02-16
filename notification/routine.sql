@@ -4,7 +4,7 @@
 
 CREATE OR REPLACE FUNCTION Notification (
   pDateFrom     timestamptz,
-  pUserId		numeric DEFAULT current_userid()
+  pUserId		uuid DEFAULT current_userid()
 ) RETURNS       SETOF Notification
 AS $$
   WITH access AS (
@@ -28,17 +28,17 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateNotification (
-  pEntity	numeric,
-  pClass	numeric,
-  pAction	numeric,
-  pMethod   numeric,
-  pObject	numeric,
-  pUserId	numeric DEFAULT current_userid(),
+  pEntity	uuid,
+  pClass	uuid,
+  pAction	uuid,
+  pMethod   uuid,
+  pObject	uuid,
+  pUserId	uuid DEFAULT current_userid(),
   pDateTime timestamptz DEFAULT Now()
-) RETURNS	numeric
+) RETURNS	uuid
 AS $$
 DECLARE
-  nId		numeric;
+  nId		uuid;
 BEGIN
   INSERT INTO db.notification (entity, class, action, method, object, userid, datetime)
   VALUES (pEntity, pClass, pAction, pMethod, pObject, pUserId, pDateTime)
@@ -55,13 +55,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EditNotification (
-  pId       numeric,
-  pEntity	numeric DEFAULT null,
-  pClass	numeric DEFAULT null,
-  pMethod   numeric DEFAULT null,
-  pAction	numeric DEFAULT null,
-  pObject	numeric DEFAULT null,
-  pUserId	numeric DEFAULT null,
+  pId       uuid,
+  pEntity	uuid DEFAULT null,
+  pClass	uuid DEFAULT null,
+  pMethod   uuid DEFAULT null,
+  pAction	uuid DEFAULT null,
+  pObject	uuid DEFAULT null,
+  pUserId	uuid DEFAULT null,
   pDateTime timestamptz DEFAULT null
 ) RETURNS	void
 AS $$
@@ -85,7 +85,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DeleteNotification (
-  pId		numeric
+  pId		uuid
 ) RETURNS 	void
 AS $$
 BEGIN
@@ -100,16 +100,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddNotification (
-  pClass		numeric,
-  pAction		numeric,
-  pMethod   	numeric,
-  pObject		numeric,
-  pUserId		numeric DEFAULT current_userid(),
+  pClass		uuid,
+  pAction		uuid,
+  pMethod   	uuid,
+  pObject		uuid,
+  pUserId		uuid DEFAULT current_userid(),
   pDateTime 	timestamptz DEFAULT Now()
 ) RETURNS		void
 AS $$
 DECLARE
-  nEntity		numeric;
+  nEntity		uuid;
 BEGIN
   SELECT entity INTO nEntity FROM db.class_tree WHERE id = pClass;
   PERFORM CreateNotification(nEntity, pClass, pAction, pMethod, pObject, pUserId, pDateTime);

@@ -7,7 +7,7 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventDeviceCreate (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 BEGIN
@@ -21,7 +21,7 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventDeviceOpen (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 BEGIN
@@ -34,7 +34,7 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventDeviceEdit (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 BEGIN
@@ -47,7 +47,7 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventDeviceSave (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 BEGIN
@@ -60,7 +60,7 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventDeviceEnable (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 BEGIN
@@ -73,7 +73,7 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventDeviceHeartbeat (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 BEGIN
@@ -86,7 +86,7 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventDeviceAvailable (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 BEGIN
@@ -99,7 +99,7 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventDeviceUnavailable (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 BEGIN
@@ -112,7 +112,7 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventDeviceFaulted (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 BEGIN
@@ -125,7 +125,7 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventDeviceDisable (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 BEGIN
@@ -138,7 +138,7 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventDeviceDelete (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 BEGIN
@@ -151,7 +151,7 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventDeviceRestore (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 BEGIN
@@ -164,7 +164,7 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventDeviceDrop (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 DECLARE

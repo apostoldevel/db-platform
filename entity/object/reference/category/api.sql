@@ -17,20 +17,20 @@ GRANT SELECT ON api.category TO administrator;
 --------------------------------------------------------------------------------
 /**
  * Добавляет категорию.
- * @param {numeric} pParent - Ссылка на родительский объект: api.document | null
+ * @param {uuid} pParent - Ссылка на родительский объект: api.document | null
  * @param {text} pType - Тип
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
- * @return {numeric}
+ * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION api.add_category (
-  pParent       numeric,
+  pParent       uuid,
   pType         text,
   pCode         text,
   pName         text,
   pDescription	text default null
-) RETURNS       numeric
+) RETURNS       uuid
 AS $$
 BEGIN
   RETURN CreateCategory(pParent, CodeToType(lower(coalesce(pType, 'service')), 'category'), pCode, pName, pDescription);
@@ -44,7 +44,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Редактирует категорию.
- * @param {numeric} pParent - Ссылка на родительский объект: Object.Parent | null
+ * @param {uuid} pParent - Ссылка на родительский объект: Object.Parent | null
  * @param {text} pType - Тип
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
@@ -52,8 +52,8 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_category (
-  pId		    numeric,
-  pParent       numeric default null,
+  pId		    uuid,
+  pParent       uuid default null,
   pType         text default null,
   pCode         text default null,
   pName         text default null,
@@ -61,8 +61,8 @@ CREATE OR REPLACE FUNCTION api.update_category (
 ) RETURNS       void
 AS $$
 DECLARE
-  nType         numeric;
-  nCategory        numeric;
+  nType         uuid;
+  nCategory		uuid;
 BEGIN
   SELECT t.id INTO nCategory FROM db.category t WHERE t.id = pId;
 
@@ -87,8 +87,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.set_category (
-  pId           numeric,
-  pParent       numeric default null,
+  pId           uuid,
+  pParent       uuid default null,
   pType         text default null,
   pCode         text default null,
   pName         text default null,
@@ -113,11 +113,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает категорию
- * @param {numeric} pId - Идентификатор
+ * @param {uuid} pId - Идентификатор
  * @return {api.category}
  */
 CREATE OR REPLACE FUNCTION api.get_category (
-  pId		numeric
+  pId		uuid
 ) RETURNS	api.category
 AS $$
   SELECT * FROM api.category WHERE id = pId

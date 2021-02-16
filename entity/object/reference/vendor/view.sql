@@ -5,7 +5,7 @@
 CREATE OR REPLACE VIEW Vendor (Id, Reference, Code, Name, Description)
 AS
   SELECT v.id, v.reference, d.code, d.name, d.description
-    FROM db.vendor v INNER JOIN db.reference d ON v.reference = d.id;
+    FROM db.vendor v INNER JOIN Reference d ON v.reference = d.id;
 
 GRANT SELECT ON Vendor TO administrator;
 

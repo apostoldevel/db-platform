@@ -7,7 +7,7 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventMessageCreate (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 BEGIN
@@ -20,7 +20,7 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventMessageOpen (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 BEGIN
@@ -33,7 +33,7 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventMessageEdit (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 BEGIN
@@ -46,7 +46,7 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventMessageSave (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 BEGIN
@@ -59,7 +59,7 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventMessageEnable (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 BEGIN
@@ -72,7 +72,7 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventMessageSubmit (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 BEGIN
@@ -85,7 +85,7 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventMessageSend (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 BEGIN
@@ -98,7 +98,7 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventMessageCancel (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 BEGIN
@@ -111,7 +111,7 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventMessageDone (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 BEGIN
@@ -124,7 +124,7 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventMessageFail (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 BEGIN
@@ -137,7 +137,7 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventMessageRepeat (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 BEGIN
@@ -150,7 +150,7 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventMessageDisable (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 BEGIN
@@ -163,7 +163,7 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventMessageDelete (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 BEGIN
@@ -176,7 +176,7 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventMessageRestore (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 BEGIN
@@ -189,7 +189,7 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventMessageDrop (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 DECLARE
@@ -209,12 +209,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventMessageConfirmEmail (
-  pObject		numeric default context_object(),
+  pObject		uuid default context_object(),
   pParams		jsonb default context_params()
 ) RETURNS		void
 AS $$
 DECLARE
-  nUserId       numeric;
+  nUserId       uuid;
   vCode			text;
   vName			text;
   vDomain       text;
@@ -278,11 +278,11 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventMessageAccountInfo (
-  pObject		numeric default context_object()
+  pObject		uuid default context_object()
 ) RETURNS		void
 AS $$
 DECLARE
-  nUserId       numeric;
+  nUserId       uuid;
   vSecret       text;
   vName			text;
   vDomain       text;

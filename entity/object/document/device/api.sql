@@ -9,7 +9,7 @@
 CREATE OR REPLACE VIEW api.device
 AS
   SELECT o.*, g.data::json AS geo
-    FROM ObjectDevice o LEFT JOIN db.object_data g ON o.object = g.object AND g.type = GetObjectDataType('json') AND g.code = 'geo';
+    FROM ObjectDevice o LEFT JOIN db.object_data g ON o.object = g.object AND g.type = 'json' AND g.code = 'geo';
 
 GRANT SELECT ON api.device TO administrator;
 
@@ -18,7 +18,7 @@ GRANT SELECT ON api.device TO administrator;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.device (
-  pState	numeric
+  pState	uuid
 ) RETURNS	SETOF api.device
 AS $$
   SELECT * FROM api.device WHERE state = pState;
@@ -46,10 +46,10 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Создает устройтсво.
- * @param {numeric} pParent - Идентификатор родителя | null
+ * @param {uuid} pParent - Идентификатор родителя | null
  * @param {text} pType - Tип устройства
  * @param {text} pModel - Required. This contains a value that identifies the model of the Device.
- * @param {numeric} pClient - Идентификатор клиента | null
+ * @param {uuid} pClient - Идентификатор клиента | null
  * @param {text} pIdentity - Строковый идентификатор устройства
  * @param {text} pVersion - Версия.
  * @param {text} pSerial - Серийный номер.
@@ -58,13 +58,13 @@ $$ LANGUAGE plpgsql
  * @param {text} pimsi - International Mobile Subscriber Identity (IMSI) — международный идентификатор мобильного абонента (индивидуальный номер абонента).
  * @param {text} pLabel - Метка
  * @param {text} pDescription - Описание
- * @return {numeric}
+ * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION api.add_device (
-  pParent			numeric,
+  pParent			uuid,
   pType				text,
-  pModel			numeric,
-  pClient			numeric,
+  pModel			uuid,
+  pClient			uuid,
   pIdentity			text,
   pVersion			text default null,
   pSerial			text default null,
@@ -73,7 +73,7 @@ CREATE OR REPLACE FUNCTION api.add_device (
   pimsi				text default null,
   pLabel			text default null,
   pDescription		text default null
-) RETURNS			numeric
+) RETURNS			uuid
 AS $$
 BEGIN
   RETURN CreateDevice(pParent, CodeToType(lower(coalesce(pType, 'mobile')), 'device'),
@@ -88,11 +88,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Меняет данные устройства.
- * @param {numeric} pId - Идентификатор зарядной станции (api.get_device)
- * @param {numeric} pParent - Идентификатор родителя | null
+ * @param {uuid} pId - Идентификатор зарядной станции (api.get_device)
+ * @param {uuid} pParent - Идентификатор родителя | null
  * @param {text} pType - Tип устройства
  * @param {text} pModel - Required. This contains a value that identifies the model of the Device.
- * @param {numeric} pClient - Идентификатор клиента | null
+ * @param {uuid} pClient - Идентификатор клиента | null
  * @param {text} pIdentity - Строковый идентификатор зарядной станции
  * @param {text} pVersion - Версия.
  * @param {text} pSerial - Серийный номер.
@@ -104,11 +104,11 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_device (
-  pId				numeric,
-  pParent			numeric default null,
+  pId				uuid,
+  pParent			uuid default null,
   pType				text default null,
-  pModel			numeric default null,
-  pClient			numeric default null,
+  pModel			uuid default null,
+  pClient			uuid default null,
   pIdentity			text default null,
   pVersion			text default null,
   pSerial			text default null,
@@ -120,13 +120,13 @@ CREATE OR REPLACE FUNCTION api.update_device (
 ) RETURNS			void
 AS $$
 DECLARE
-  nId				numeric;
-  nType				numeric;
+  nId				uuid;
+  nType				uuid;
 BEGIN
   SELECT c.id INTO nId FROM db.device c WHERE c.id = pId;
 
   IF NOT FOUND THEN
-    PERFORM ObjectNotFound('зарядная станция', 'id', pId);
+    PERFORM ObjectNotFound('устройство', 'id', pId);
   END IF;
 
   IF pType IS NOT NULL THEN
@@ -146,11 +146,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.set_device (
-  pId				numeric,
-  pParent			numeric default null,
+  pId				uuid,
+  pParent			uuid default null,
   pType				text default null,
-  pModel			numeric default null,
-  pClient			numeric default null,
+  pModel			uuid default null,
+  pClient			uuid default null,
   pIdentity			text default null,
   pVersion			text default null,
   pSerial			text default null,
@@ -179,12 +179,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.switch_device (
-  pDevice			numeric,
-  pClient			numeric
+  pDevice			uuid,
+  pClient			uuid
 ) RETURNS			void
 AS $$
 DECLARE
-  nClient			numeric;
+  nClient			uuid;
 BEGIN
   SELECT client INTO nClient FROM db.device WHERE id = pDevice;
   IF FOUND AND coalesce(pClient, nClient) <> nClient THEN
@@ -200,10 +200,10 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.init_device (
-  pParent			numeric,
+  pParent			uuid,
   pType				text,
   pModel			text,
-  pClient			numeric,
+  pClient			uuid,
   pIdentity			text,
   pVersion			text default null,
   pSerial			text default null,
@@ -215,8 +215,8 @@ CREATE OR REPLACE FUNCTION api.init_device (
 ) RETURNS			SETOF api.device
 AS $$
 DECLARE
-  nId				numeric;
-  nModel			numeric;
+  nId				uuid;
+  nModel			uuid;
 BEGIN
   pIdentity := coalesce(pIdentity, pSerial);
   nModel := GetModel(pModel);
@@ -240,12 +240,12 @@ $$ LANGUAGE plpgsql
 -- api.get_device --------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает зарядную станцию по идентификатору
- * @param {numeric} pId - Идентификатор зарядной станции
+ * Возвращает устройство по идентификатору
+ * @param {uuid} pId - Идентификатор зарядной станции
  * @return {api.device} - Устройство
  */
 CREATE OR REPLACE FUNCTION api.get_device (
-  pId           numeric
+  pId           uuid
 ) RETURNS       api.device
 AS $$
   SELECT * FROM api.device WHERE id = pId
@@ -257,8 +257,8 @@ $$ LANGUAGE SQL
 -- api.get_device --------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает зарядную станцию по строковому идентификатору
- * @param {numeric} pId - Идентификатор зарядной станции
+ * Возвращает устройство по строковому идентификатору
+ * @param {uuid} pId - Идентификатор зарядной станции
  * @return {api.device} - Устройство
  */
 CREATE OR REPLACE FUNCTION api.get_device (
@@ -274,7 +274,7 @@ $$ LANGUAGE SQL
 -- api.list_device -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список зарядных станций.
+ * Возвращает список устройств.
  * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
  * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
  * @param {integer} pLimit - Лимит по количеству строк
@@ -315,14 +315,14 @@ GRANT SELECT ON api.device_notification TO administrator;
 -- api.device_notification -----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает уведомления о статусе зарядной станций
- * @param {numeric} pDevice - Идентификатор зарядной станции
+ * Возвращает уведомления о статусе устройства
+ * @param {uuid} pDevice - Идентификатор зарядной станции
  * @param {integer} pInterfaceId - Идентификатор разъёма зарядной станции
  * @param {timestamptz} pDate - Дата и время
  * @return {SETOF api.device_notification}
  */
 CREATE OR REPLACE FUNCTION api.device_notification (
-  pDevice       numeric,
+  pDevice       uuid,
   pInterfaceId  integer default null,
   pDate         timestamptz default current_timestamp at time zone 'utc'
 ) RETURNS	    SETOF api.device_notification
@@ -340,12 +340,12 @@ $$ LANGUAGE SQL
 -- api.get_device_notification -------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает уведомление о статусе зарядной станции.
- * @param {numeric} pId - Идентификатор
+ * Возвращает уведомление о статусе устройства.
+ * @param {uuid} pId - Идентификатор
  * @return {api.device_notification}
  */
 CREATE OR REPLACE FUNCTION api.get_device_notification (
-  pId		numeric
+  pId		uuid
 ) RETURNS	api.device_notification
 AS $$
   SELECT * FROM api.device_notification WHERE id = pId
@@ -357,7 +357,7 @@ $$ LANGUAGE SQL
 -- api.list_device_notification ------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает уведомления о статусе зарядных станций.
+ * Возвращает уведомления о статусе устройств.
  * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
  * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
  * @param {integer} pLimit - Лимит по количеству строк
@@ -398,12 +398,12 @@ GRANT SELECT ON api.device_value TO administrator;
 -- api.get_device_value --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает показания счётчика зарядной станции.
- * @param {numeric} pId - Идентификатор
+ * Возвращает значение устройства.
+ * @param {uuid} pId - Идентификатор
  * @return {api.device_value}
  */
 CREATE OR REPLACE FUNCTION api.get_device_value (
-  pId		numeric
+  pId		uuid
 ) RETURNS	api.device_value
 AS $$
   SELECT * FROM api.device_value WHERE id = pId
@@ -412,10 +412,10 @@ $$ LANGUAGE SQL
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- api.list_device_value --------------------------------------------------------
+-- api.list_device_value -------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает показания счётчика зарядных станций.
+ * Возвращает значения устройств.
  * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
  * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
  * @param {integer} pLimit - Лимит по количеству строк

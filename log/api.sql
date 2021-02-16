@@ -22,7 +22,7 @@ GRANT SELECT ON api.event_log TO administrator;
 CREATE OR REPLACE FUNCTION api.event_log (
   pUserName		text DEFAULT null,
   pType			char DEFAULT null,
-  pCode			numeric DEFAULT null,
+  pCode			integer DEFAULT null,
   pDateFrom	    timestamp DEFAULT null,
   pDateTo	    timestamp DEFAULT null
 ) RETURNS	    SETOF api.event_log
@@ -46,12 +46,12 @@ $$ LANGUAGE SQL
 
 CREATE OR REPLACE FUNCTION api.write_to_log (
   pType		    text,
-  pCode		    numeric,
+  pCode		    integer,
   pText		    text
 ) RETURNS	    SETOF api.event_log
 AS $$
 DECLARE
-  nId           numeric;
+  nId           bigint;
 BEGIN
   nId := AddEventLog(pType, pCode, 'api', pText);
   RETURN QUERY SELECT * FROM api.get_event_log(nId);
@@ -65,11 +65,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает событие
- * @param {numeric} pId - Идентификатор
+ * @param {bigint} pId - Идентификатор
  * @return {api.event_log}
  */
 CREATE OR REPLACE FUNCTION api.get_event_log (
-  pId		numeric
+  pId		bigint
 ) RETURNS	api.event_log
 AS $$
   SELECT * FROM api.event_log WHERE id = pId
@@ -130,7 +130,7 @@ GRANT SELECT ON api.user_log TO administrator;
  */
 CREATE OR REPLACE FUNCTION api.user_log (
   pType		    char DEFAULT null,
-  pCode		    numeric DEFAULT null,
+  pCode		    integer DEFAULT null,
   pDateFrom	    timestamp DEFAULT null,
   pDateTo	    timestamp DEFAULT null
 ) RETURNS	    SETOF api.user_log
@@ -152,11 +152,11 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 /**
  * Возвращает событие
- * @param {numeric} pId - Идентификатор
+ * @param {bigint} pId - Идентификатор
  * @return {api.user_log}
  */
 CREATE OR REPLACE FUNCTION api.get_user_log (
-  pId		numeric
+  pId		bigint
 ) RETURNS	api.user_log
 AS $$
   SELECT * FROM api.user_log WHERE id = pId

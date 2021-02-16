@@ -7,7 +7,7 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventClientCreate (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 BEGIN
@@ -20,7 +20,7 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventClientOpen (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 BEGIN
@@ -33,7 +33,7 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventClientEdit (
-  pObject	numeric default context_object(),
+  pObject	uuid default context_object(),
   pParams	jsonb default context_params()
 ) RETURNS	void
 AS $$
@@ -57,7 +57,7 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventClientSave (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 BEGIN
@@ -70,15 +70,15 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventClientEnable (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 DECLARE
   r             record;
 
-  nArea         numeric;
-  nUserId       numeric;
-  nInterface    numeric;
+  nArea         uuid;
+  nUserId       uuid;
+  nInterface    uuid;
 BEGIN
   SELECT userid INTO nUserId FROM db.client WHERE id = pObject;
 
@@ -94,10 +94,10 @@ BEGIN
     PERFORM AddMemberToArea(nUserId, nArea);
     PERFORM SetDefaultArea(nArea, nUserId);
 
-    nInterface := GetInterface('I:1:0:0');
+    nInterface := GetInterface('all');
     PERFORM AddMemberToInterface(nUserId, nInterface);
 
-    nInterface := GetInterface('I:1:0:3');
+    nInterface := GetInterface('user');
     PERFORM AddMemberToInterface(nUserId, nInterface);
     PERFORM SetDefaultInterface(nInterface, nUserId);
 
@@ -119,12 +119,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventClientDisable (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 DECLARE
   r         record;
-  nUserId	numeric;
+  nUserId	uuid;
 BEGIN
   SELECT userid INTO nUserId FROM db.client WHERE id = pObject;
 
@@ -139,7 +139,7 @@ BEGIN
     PERFORM AddMemberToArea(nUserId, GetArea('guest'));
 
     PERFORM SetDefaultArea(GetArea('guest'), nUserId);
-    PERFORM SetDefaultInterface(GetInterface('I:1:0:4'), nUserId);
+    PERFORM SetDefaultInterface(GetInterface('guest'), nUserId);
 
     FOR r IN SELECT code FROM db.session WHERE userid = nUserId
     LOOP
@@ -157,11 +157,11 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventClientDelete (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 DECLARE
-  nUserId	numeric;
+  nUserId	uuid;
 BEGIN
   SELECT userid INTO nUserId FROM db.client WHERE id = pObject;
 
@@ -189,7 +189,7 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventClientRestore (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 BEGIN
@@ -202,12 +202,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventClientDrop (
-  pObject	numeric default context_object()
+  pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
 DECLARE
   r		    record;
-  nUserId   numeric;
+  nUserId   uuid;
 BEGIN
   SELECT label INTO r FROM db.object WHERE id = pObject;
 
@@ -230,11 +230,11 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventClientConfirm (
-  pObject	    numeric default context_object()
+  pObject	    uuid default context_object()
 ) RETURNS	    void
 AS $$
 DECLARE
-  nUserId       numeric;
+  nUserId       uuid;
   vEmail        text;
   bVerified     bool;
 BEGIN
@@ -264,11 +264,11 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventClientReconfirm (
-  pObject	    numeric default context_object()
+  pObject	    uuid default context_object()
 ) RETURNS	    void
 AS $$
 DECLARE
-  nUserId       numeric;
+  nUserId       uuid;
 BEGIN
   SELECT userid INTO nUserId FROM db.client WHERE id = pObject;
   IF nUserId IS NOT NULL THEN

@@ -7,11 +7,11 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.verification_code (
-    id              serial PRIMARY KEY,
-    userId          numeric(12) NOT NULL,
+    id              uuid PRIMARY KEY DEFAULT gen_kernel_uuid('8'),
+    userId          uuid NOT NULL,
     type            char NOT NULL,
     code            text NOT NULL,
-    used            boolean NOT NULL DEFAULT false,
+    used            timestamptz,
     validFromDate   timestamptz NOT NULL,
     validToDate     timestamptz NOT NULL,
     CONSTRAINT ch_verification_code_type CHECK (type IN ('M', 'P')),
@@ -97,4 +97,3 @@ $$ LANGUAGE plpgsql
 CREATE TRIGGER t_verification_code_before
   BEFORE INSERT OR UPDATE OR DELETE ON db.verification_code
   FOR EACH ROW EXECUTE PROCEDURE db.ft_verification_code_before();
-

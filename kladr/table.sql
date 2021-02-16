@@ -67,7 +67,7 @@ CREATE TABLE db.address_tree (
     name        text NOT NULL,
     short       text,
     index       varchar(6),
-    level		numeric NOT NULL,
+    level		integer NOT NULL,
     CONSTRAINT fk_address_tree_parent FOREIGN KEY (parent) REFERENCES db.address_tree(id)
 );
 
@@ -83,4 +83,3 @@ COMMENT ON COLUMN db.address_tree.level IS 'Уровень';
 
 CREATE INDEX ON db.address_tree (parent);
 CREATE UNIQUE INDEX ON db.address_tree (code);
-

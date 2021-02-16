@@ -60,7 +60,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION SetResourceData (
   pResource	    uuid,
-  pLocale		numeric,
+  pLocale		uuid,
   pName			text,
   pDescription	text,
   pEncoding		text,
@@ -94,7 +94,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pEncoding - Кодировка
  * @param {text} pData - Данные
  * @param {integer} pSequence - Очерёдность
- * @param {numeric} pLocale - Локаль
+ * @param {uuid} pLocale - Локаль
  * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION CreateResource (
@@ -107,7 +107,7 @@ CREATE OR REPLACE FUNCTION CreateResource (
   pEncoding		text DEFAULT null,
   pData			text DEFAULT null,
   pSequence     integer DEFAULT null,
-  pLocale		numeric DEFAULT current_locale()
+  pLocale		uuid DEFAULT current_locale()
 ) RETURNS       uuid
 AS $$
 DECLARE
@@ -153,7 +153,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pEncoding - Кодировка
  * @param {text} pData - Данные
  * @param {integer} pSequence - Очерёдность
- * @param {numeric} pLocale - Локаль
+ * @param {uuid} pLocale - Локаль
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION UpdateResource (
@@ -166,7 +166,7 @@ CREATE OR REPLACE FUNCTION UpdateResource (
   pEncoding		text DEFAULT null,
   pData			text DEFAULT null,
   pSequence     integer DEFAULT null,
-  pLocale		numeric DEFAULT current_locale()
+  pLocale		uuid DEFAULT current_locale()
 ) RETURNS       void
 AS $$
 DECLARE
@@ -225,7 +225,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pEncoding - Кодировка
  * @param {text} pData - Данные
  * @param {integer} pSequence - Очерёдность
- * @param {numeric} pLocale - Локаль
+ * @param {uuid} pLocale - Локаль
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION SetResource (
@@ -238,7 +238,7 @@ CREATE OR REPLACE FUNCTION SetResource (
   pEncoding		text DEFAULT null,
   pData			text DEFAULT null,
   pSequence     integer DEFAULT null,
-  pLocale		numeric DEFAULT current_locale()
+  pLocale		uuid DEFAULT current_locale()
 ) RETURNS       uuid
 AS $$
 DECLARE
@@ -267,7 +267,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION GetResource (
   pResource	    uuid,
-  pLocale		numeric DEFAULT current_locale()
+  pLocale		uuid DEFAULT current_locale()
 ) RETURNS		text
 AS $$
 DECLARE

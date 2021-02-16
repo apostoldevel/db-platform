@@ -8,13 +8,11 @@
 
 CREATE TABLE db.resource (
     id			    uuid PRIMARY KEY,
-    root            uuid NOT NULL,
-    node            uuid,
+    root            uuid NOT NULL REFERENCES db.resource(id),
+    node            uuid REFERENCES db.resource(id),
     type			text NOT NULL,
     level           integer NOT NULL,
-    sequence		integer NOT NULL,
-    CONSTRAINT fk_resource_root FOREIGN KEY (root) REFERENCES db.resource(id),
-    CONSTRAINT fk_resource_node FOREIGN KEY (node) REFERENCES db.resource(id)
+    sequence		integer NOT NULL
 );
 
 COMMENT ON TABLE db.resource IS 'Ресурс.';
@@ -28,8 +26,6 @@ COMMENT ON COLUMN db.resource.sequence IS 'Очерёдность';
 
 CREATE INDEX ON db.resource (root);
 CREATE INDEX ON db.resource (node);
-CREATE INDEX ON db.resource (type);
-CREATE INDEX ON db.resource (sequence);
 
 --------------------------------------------------------------------------------
 
@@ -37,7 +33,7 @@ CREATE OR REPLACE FUNCTION ft_resource_before()
 RETURNS trigger AS $$
 BEGIN
   IF NEW.id IS NULL THEN
-    NEW.id := gen_random_uuid();
+    NEW.id := gen_kernel_uuid('8');
   END IF;
 
   IF NEW.root IS NULL THEN
@@ -76,16 +72,14 @@ CREATE TRIGGER t_resource_before
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.resource_data (
-    resource		uuid NOT NULL,
-    locale		    numeric(12) NOT NULL,
+    resource		uuid NOT NULL REFERENCES db.resource(id),
+    locale		    uuid NOT NULL REFERENCES db.locale(id),
     name			text,
     description		text,
     encoding		text,
     data			text,
     updated			timestamptz DEFAULT Now() NOT NULL,
-    CONSTRAINT pk_resource_data PRIMARY KEY (resource, locale),
-    CONSTRAINT fk_resource_data_resource FOREIGN KEY (resource) REFERENCES db.resource(id),
-    CONSTRAINT fk_resource_data_locale FOREIGN KEY (locale) REFERENCES db.locale(id)
+    PRIMARY KEY (resource, locale)
 );
 
 --------------------------------------------------------------------------------
@@ -145,4 +139,3 @@ CREATE TRIGGER t_resource_data_before
   BEFORE INSERT OR UPDATE ON db.resource_data
   FOR EACH ROW
   EXECUTE PROCEDURE ft_resource_data_before();
-

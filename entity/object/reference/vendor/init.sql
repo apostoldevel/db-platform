@@ -7,15 +7,15 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddVendorEvents (
-  pClass        numeric
+  pClass        uuid
 )
 RETURNS         void
 AS $$
 DECLARE
   r             record;
 
-  nParent       numeric;
-  nEvent        numeric;
+  nParent       uuid;
+  nEvent        uuid;
 BEGIN
   nParent := GetEventType('parent');
   nEvent := GetEventType('event');
@@ -79,13 +79,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateClassVendor (
-  pParent       numeric,
-  pEntity       numeric
+  pParent       uuid,
+  pEntity       uuid
 )
-RETURNS         numeric
+RETURNS         uuid
 AS $$
 DECLARE
-  nClass        numeric;
+  nClass        uuid;
 BEGIN
   -- Класс
   nClass := AddClass(pParent, pEntity, 'vendor', 'Производитель', false);
@@ -112,12 +112,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateEntityVendor (
-  pParent       numeric
+  pParent       uuid
 )
-RETURNS         numeric
+RETURNS         uuid
 AS $$
 DECLARE
-  nEntity       numeric;
+  nEntity       uuid;
 BEGIN
   -- Сущность
   nEntity := AddEntity('vendor', 'Производитель');

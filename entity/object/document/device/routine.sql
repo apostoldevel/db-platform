@@ -3,10 +3,10 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateDevice (
-  pParent			numeric,
-  pType				numeric,
-  pModel			numeric,
-  pClient			numeric,
+  pParent			uuid,
+  pType				uuid,
+  pModel			uuid,
+  pClient			uuid,
   pIdentity			text,
   pVersion			text,
   pSerial			text default null,
@@ -15,12 +15,12 @@ CREATE OR REPLACE FUNCTION CreateDevice (
   pimsi				text default null,
   pLabel			text default null,
   pDescription		text default null
-) RETURNS			numeric
+) RETURNS			uuid
 AS $$
 DECLARE
-  nDocument			numeric;
-  nClass			numeric;
-  nMethod			numeric;
+  nDocument			uuid;
+  nClass			uuid;
+  nMethod			uuid;
 BEGIN
   SELECT class INTO nClass FROM db.type WHERE id = pType;
 
@@ -39,7 +39,7 @@ BEGIN
   INSERT INTO db.device (id, document, model, client, identity, version, serial, address, iccid, imsi)
   VALUES (nDocument, nDocument, pModel, pClient, pIdentity, pVersion, pSerial, pAddress, piccid, pimsi);
 
-  nMethod := GetMethod(nClass, null, GetAction('create'));
+  nMethod := GetMethod(nClass, GetAction('create'));
   PERFORM ExecuteMethod(nDocument, nMethod);
 
   RETURN nDocument;
@@ -53,11 +53,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EditDevice (
-  pId				numeric,
-  pParent			numeric default null,
-  pType				numeric default null,
-  pModel			numeric default null,
-  pClient			numeric default null,
+  pId				uuid,
+  pParent			uuid default null,
+  pType				uuid default null,
+  pModel			uuid default null,
+  pClient			uuid default null,
   pIdentity			text default null,
   pVersion			text default null,
   pSerial			text default null,
@@ -69,11 +69,11 @@ CREATE OR REPLACE FUNCTION EditDevice (
 ) RETURNS			void
 AS $$
 DECLARE
-  nDocument			numeric;
+  nDocument			uuid;
   vIdentity			text;
 
-  nClass			numeric;
-  nMethod			numeric;
+  nClass			uuid;
+  nMethod			uuid;
 BEGIN
   SELECT identity INTO vIdentity FROM db.device WHERE id = pId;
   IF vIdentity <> coalesce(pIdentity, vIdentity) THEN
@@ -98,7 +98,7 @@ BEGIN
 
   SELECT class INTO nClass FROM db.type WHERE id = pType;
 
-  nMethod := GetMethod(nClass, null, GetAction('edit'));
+  nMethod := GetMethod(nClass, GetAction('edit'));
   PERFORM ExecuteMethod(pId, nMethod);
 END;
 $$ LANGUAGE plpgsql
@@ -111,10 +111,10 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION GetDevice (
   pIdentity text
-) RETURNS	numeric
+) RETURNS	uuid
 AS $$
 DECLARE
-  nId		numeric;
+  nId		uuid;
 BEGIN
   SELECT id INTO nId FROM db.device WHERE identity = pIdentity;
   RETURN nId;
@@ -128,12 +128,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SwitchDevice (
-  pDevice	numeric,
-  pClient	numeric
+  pDevice	uuid,
+  pClient	uuid
 ) RETURNS	void
 AS $$
 DECLARE
-  nUserId	numeric;
+  nUserId	uuid;
 BEGIN
   nUserId := GetClientUserId(pClient);
   IF nUserId IS NOT NULL THEN
@@ -150,17 +150,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddDeviceNotification (
-  pDevice           numeric,
+  pDevice           uuid,
   pInterfaceId		integer,
   pStatus		    text,
   pErrorCode		text,
   pInfo			    text,
   pVendorErrorCode	text,
   pTimeStamp		timestamp
-) RETURNS 		    numeric
+) RETURNS 		    uuid
 AS $$
 DECLARE
-  nId			    numeric;
+  nId			    uuid;
 
   dtDateFrom 		timestamp;
   dtDateTo 		    timestamp;
@@ -208,7 +208,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetJsonDeviceNotification (
-  pDevice		numeric,
+  pDevice		uuid,
   pInterfaceId  integer default null,
   pDate         timestamp default current_timestamp at time zone 'utc'
 ) RETURNS	    json
@@ -239,14 +239,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddDeviceValue (
-  pDevice           numeric,
+  pDevice           uuid,
   pType				integer,
   pValue			jsonb,
   pTimeStamp		timestamp default now()
-) RETURNS 		    numeric
+) RETURNS 		    uuid
 AS $$
 DECLARE
-  nId			    numeric;
+  nId			    uuid;
 
   dtDateFrom 		timestamp;
   dtDateTo 		    timestamp;

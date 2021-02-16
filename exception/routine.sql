@@ -474,7 +474,7 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 24), 'ru', 'UserNotFound', 
 SELECT CreateExceptionResource(GetExceptionUUID(400, 24), 'en', 'UserNotFound', 'User with id "%s" does not exist');
 
 CREATE OR REPLACE FUNCTION UserNotFound (
-  pId		numeric
+  pId		uuid
 ) RETURNS	void
 AS $$
 BEGIN
@@ -560,7 +560,7 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 30), 'en', 'ObjectNotFound'
 CREATE OR REPLACE FUNCTION ObjectNotFound (
   pWho		text,
   pParam	text,
-  pId		numeric
+  pId		uuid
 ) RETURNS	void
 AS $$
 BEGIN
@@ -590,8 +590,8 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 32), 'ru', 'MethodActionNot
 SELECT CreateExceptionResource(GetExceptionUUID(400, 32), 'en', 'MethodActionNotFound', 'Object [%s] method not found, for action: %s [%s]. The object is most likely in a different state');
 
 CREATE OR REPLACE FUNCTION MethodActionNotFound (
-  pObject	numeric,
-  pAction	numeric
+  pObject	uuid,
+  pAction	uuid
 ) RETURNS	void
 AS $$
 BEGIN
@@ -605,8 +605,8 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 33), 'ru', 'MethodNotFound'
 SELECT CreateExceptionResource(GetExceptionUUID(400, 33), 'en', 'MethodNotFound', 'Method "%s" of object "%s" not found');
 
 CREATE OR REPLACE FUNCTION MethodNotFound (
-  pObject	numeric,
-  pMethod	numeric
+  pObject	uuid,
+  pMethod	uuid
 ) RETURNS	void
 AS $$
 BEGIN
@@ -620,7 +620,7 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 34), 'ru', 'MethodByCodeNot
 SELECT CreateExceptionResource(GetExceptionUUID(400, 34), 'en', 'MethodByCodeNotFound', 'No method found by code "%s" for object "%s"');
 
 CREATE OR REPLACE FUNCTION MethodByCodeNotFound (
-  pObject	numeric,
+  pObject	uuid,
   pCode     text
 ) RETURNS	void
 AS $$
@@ -635,7 +635,7 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 35), 'ru', 'ChangeObjectSta
 SELECT CreateExceptionResource(GetExceptionUUID(400, 35), 'en', 'ChangeObjectStateError', 'Failed to change object state: %s');
 
 CREATE OR REPLACE FUNCTION ChangeObjectStateError (
-  pObject	numeric
+  pObject	uuid
 ) RETURNS	void
 AS $$
 BEGIN
@@ -662,7 +662,7 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 37), 'ru', 'StateByCodeNotF
 SELECT CreateExceptionResource(GetExceptionUUID(400, 37), 'en', 'StateByCodeNotFound', 'No state found by code "%s" for object "%s"');
 
 CREATE OR REPLACE FUNCTION StateByCodeNotFound (
-  pObject	numeric,
+  pObject	uuid,
   pCode     text
 ) RETURNS	void
 AS $$

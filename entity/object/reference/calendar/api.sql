@@ -7,25 +7,25 @@
 --------------------------------------------------------------------------------
 /**
  * Календарь
- * @field {numeric} id - Идентификатор
- * @field {numeric} object - Идентификатор справочника
- * @field {numeric} parent - Идентификатор объекта родителя
- * @field {numeric} class - Идентификатор класса
+ * @field {uuid} id - Идентификатор
+ * @field {uuid} object - Идентификатор справочника
+ * @field {uuid} parent - Идентификатор объекта родителя
+ * @field {uuid} class - Идентификатор класса
  * @field {text} code - Код
  * @field {text} name - Наименование
  * @field {text} description - Описание
- * @field {numeric} week - Количество используемых (рабочих) дней в неделе
+ * @field {integer} week - Количество используемых (рабочих) дней в неделе
  * @field {integer[]} dayoff - Массив выходных дней в неделе. Допустимые значения [1..7, ...]
  * @field {integer[][]} holiday - Массив праздничных дней в году. Допустимые значения [[1..12,1..31], ...]
  * @field {interval} workstart - Начало рабочего дня
  * @field {interval} workcount - Количество рабочих часов
  * @field {interval} reststart - Начало перерыва
  * @field {interval} restcount - Количество часов перерыва
- * @field {numeric} state - Идентификатор состояния
+ * @field {uuid} state - Идентификатор состояния
  * @field {timestamp} lastupdate - Дата последнего обновления
- * @field {numeric} owner - Идентификатор учётной записи владельца
+ * @field {uuid} owner - Идентификатор учётной записи владельца
  * @field {timestamp} created - Дата создания
- * @field {numeric} oper - Идентификатор учётной записи оператора
+ * @field {uuid} oper - Идентификатор учётной записи оператора
  * @field {timestamp} operdate - Дата операции
  */
 CREATE OR REPLACE VIEW api.calendar
@@ -39,11 +39,11 @@ GRANT SELECT ON api.calendar TO administrator;
 --------------------------------------------------------------------------------
 /**
  * Создает календарь.
- * @param {numeric} pParent - Ссылка на родительский объект: api.document | null
+ * @param {uuid} pParent - Ссылка на родительский объект: api.document | null
  * @param {text} pType - Тип
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
- * @param {numeric} pWeek - Количество используемых (рабочих) дней в неделе
+ * @param {integer} pWeek - Количество используемых (рабочих) дней в неделе
  * @param {jsonb} pDayOff - Массив выходных дней в неделе. Допустимые значения [1..7, ...]
  * @param {jsonb} pHoliday - Двухмерный массив праздничных дней в году в формате [[MM,DD], ...]. Допустимые значения [[1..12,1..31], ...]
  * @param {interval} pWorkStart - Начало рабочего дня
@@ -51,14 +51,14 @@ GRANT SELECT ON api.calendar TO administrator;
  * @param {interval} pRestStart - Начало перерыва
  * @param {interval} pRestCount - Количество часов перерыва
  * @param {text} pDescription - Описание
- * @return {numeric}
+ * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION api.add_calendar (
-  pParent       numeric,
+  pParent       uuid,
   pType         text,
   pCode         text,
   pName         text,
-  pWeek         numeric,
+  pWeek         integer,
   pDayOff       jsonb,
   pHoliday      jsonb,
   pWorkStart    interval,
@@ -66,7 +66,7 @@ CREATE OR REPLACE FUNCTION api.add_calendar (
   pRestStart    interval,
   pRestCount    interval,
   pDescription  text DEFAULT null
-) RETURNS       numeric
+) RETURNS       uuid
 AS $$
 DECLARE
   aHoliday      integer[][2];
@@ -101,12 +101,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Обновляет календарь.
- * @param {numeric} pId - Идентификатор календаря (api.get_calendar)
- * @param {numeric} pParent - Ссылка на родительский объект: api.document | null
+ * @param {uuid} pId - Идентификатор календаря (api.get_calendar)
+ * @param {uuid} pParent - Ссылка на родительский объект: api.document | null
  * @param {text} pType - Тип
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
- * @param {numeric} pWeek - Количество используемых (рабочих) дней в неделе
+ * @param {integer} pWeek - Количество используемых (рабочих) дней в неделе
  * @param {jsonb} pDayOff - Массив выходных дней в неделе. Допустимые значения [1..7, ...]
  * @param {jsonb} pHoliday - Двухмерный массив праздничных дней в году в формате [[MM,DD], ...]. Допустимые значения [[1..12,1..31], ...]
  * @param {interval} pWorkStart - Начало рабочего дня
@@ -117,12 +117,12 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_calendar (
-  pId           numeric,
-  pParent       numeric DEFAULT null,
+  pId           uuid,
+  pParent       uuid DEFAULT null,
   pType         text DEFAULT null,
   pCode         text DEFAULT null,
   pName         text DEFAULT null,
-  pWeek         numeric DEFAULT null,
+  pWeek         integer DEFAULT null,
   pDayOff       jsonb DEFAULT null,
   pHoliday      jsonb DEFAULT null,
   pWorkStart    interval DEFAULT null,
@@ -134,8 +134,8 @@ CREATE OR REPLACE FUNCTION api.update_calendar (
 AS $$
 DECLARE
   r             record;
-  nType         numeric;
-  nCalendar     numeric;
+  nType         uuid;
+  nCalendar     uuid;
   aHoliday      integer[][2];
 BEGIN
   SELECT c.id INTO nCalendar FROM calendar c WHERE c.id = pId;
@@ -178,12 +178,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.set_calendar (
-  pId           numeric,
-  pParent       numeric DEFAULT null,
+  pId           uuid,
+  pParent       uuid DEFAULT null,
   pType         text DEFAULT null,
   pCode         text DEFAULT null,
   pName         text DEFAULT null,
-  pWeek         numeric DEFAULT null,
+  pWeek         integer DEFAULT null,
   pDayOff       jsonb DEFAULT null,
   pHoliday      jsonb DEFAULT null,
   pWorkStart    interval DEFAULT null,
@@ -211,11 +211,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает календарь.
- * @param {numeric} pId - Идентификатор календаря
+ * @param {uuid} pId - Идентификатор календаря
  * @return {api.calendar} - Календарь
  */
 CREATE OR REPLACE FUNCTION api.get_calendar (
-  pId           numeric
+  pId           uuid
 ) RETURNS       SETOF api.calendar
 AS $$
   SELECT * FROM api.calendar WHERE id = pId
@@ -255,17 +255,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Заполняет календарь датами.
- * @param {numeric} pCalendar - Идентификатор календаря
+ * @param {uuid} pCalendar - Идентификатор календаря
  * @param {date} pDateFrom - Дата начала периода
  * @param {date} pDateTo - Дата окончания периода
- * @param {numeric} pUserId - Идентификатор учётной записи пользователя
+ * @param {uuid} pUserId - Идентификатор учётной записи пользователя
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.fill_calendar (
-  pCalendar     numeric,
+  pCalendar     uuid,
   pDateFrom     date,
   pDateTo       date,
-  pUserId       numeric DEFAULT null
+  pUserId       uuid DEFAULT null
 ) RETURNS       void
 AS $$
 BEGIN
@@ -301,17 +301,17 @@ GRANT SELECT ON api.calendardate TO administrator;
 /**
  * Возвращает даты календаря за указанный период и для заданного пользователя.
  * Даты календаря пользовоталя переопределяют даты календаря для всех пользователей (общие даты)
- * @param {numeric} pCalendar - Идентификатор календаря
+ * @param {uuid} pCalendar - Идентификатор календаря
  * @param {date} pDateFrom - Дата начала периода
  * @param {date} pDateTo - Дата окончания периода
- * @param {numeric} pUserId - Идентификатор учётной записи пользователя
+ * @param {uuid} pUserId - Идентификатор учётной записи пользователя
  * @return {SETOF api.calendar_date} - Даты календаря
  */
 CREATE OR REPLACE FUNCTION api.list_calendar_date (
-  pCalendar     numeric,
+  pCalendar     uuid,
   pDateFrom     date,
   pDateTo       date,
-  pUserId       numeric DEFAULT null
+  pUserId       uuid DEFAULT null
 ) RETURNS       SETOF api.calendar_date
 AS $$
   SELECT * FROM calendar_date(pCalendar, coalesce(pDateFrom, date_trunc('year', now())::date), coalesce(pDateTo, (date_trunc('year', now()) + INTERVAL '1 year' - INTERVAL '1 day')::date), pUserId) ORDER BY date;
@@ -324,17 +324,17 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 /**
  * Возвращает только даты календаря заданного пользователя за указанный период.
- * @param {numeric} pCalendar - Идентификатор календаря
+ * @param {uuid} pCalendar - Идентификатор календаря
  * @param {date} pDateFrom - Дата начала периода
  * @param {date} pDateTo - Дата окончания периода
- * @param {numeric} pUserId - Идентификатор учётной записи пользователя
+ * @param {uuid} pUserId - Идентификатор учётной записи пользователя
  * @return {SETOF api.calendar_date} - Даты календаря
  */
 CREATE OR REPLACE FUNCTION api.list_calendar_user (
-  pCalendar     numeric,
+  pCalendar     uuid,
   pDateFrom     date,
   pDateTo       date,
-  pUserId       numeric DEFAULT null
+  pUserId       uuid DEFAULT null
 ) RETURNS       SETOF api.calendar_date
 AS $$
   SELECT *
@@ -352,15 +352,15 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 /**
  * Возвращает дату календаря для заданного пользователя.
- * @param {numeric} pCalendar - Идентификатор календаря
+ * @param {uuid} pCalendar - Идентификатор календаря
  * @param {date} pDate - Дата
- * @param {numeric} pUserId - Идентификатор учётной записи пользователя
+ * @param {uuid} pUserId - Идентификатор учётной записи пользователя
  * @return {api.calendardate} - Дата календаря
  */
 CREATE OR REPLACE FUNCTION api.get_calendar_date (
-  pCalendar     numeric,
+  pCalendar     uuid,
   pDate         date,
-  pUserId       numeric DEFAULT null
+  pUserId       uuid DEFAULT null
 ) RETURNS       SETOF api.calendar_date
 AS $$
   SELECT * FROM calendar_date(pCalendar, pDate, pDate, pUserId);
@@ -373,30 +373,30 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 /**
  * Заполняет календарь датами.
- * @param {numeric} pCalendar - Идентификатор календаря
+ * @param {uuid} pCalendar - Идентификатор календаря
  * @param {date} pDate - Дата
  * @param {bit} pFlag - Флаг: 1000 - Предпраздничный; 0100 - Праздничный; 0010 - Выходной; 0001 - Нерабочий; 0000 - Рабочий.
  * @param {interval} pWorkStart - Начало рабочего дня
  * @param {interval} pWorkCount - Количество рабочих часов
  * @param {interval} pRestStart - Начало перерыва
  * @param {interval} pRestCount - Количество часов перерыва
- * @param {numeric} pUserId - Идентификатор учётной записи пользователя
- * @out param {numeric} id - Идентификатор даты календаря
- * @return {numeric}
+ * @param {uuid} pUserId - Идентификатор учётной записи пользователя
+ * @out param {uuid} id - Идентификатор даты календаря
+ * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION api.set_calendar_date (
-  pCalendar     numeric,
+  pCalendar     uuid,
   pDate         date,
   pFlag         bit DEFAULT null,
   pWorkStart    interval DEFAULT null,
   pWorkCount    interval DEFAULT null,
   pRestStart    interval DEFAULT null,
   pRestCount    interval DEFAULT null,
-  pUserId       numeric DEFAULT null
-) RETURNS       numeric
+  pUserId       uuid DEFAULT null
+) RETURNS       uuid
 AS $$
 DECLARE
-  nId           numeric;
+  nId           uuid;
   r             record;
 BEGIN
   nId := GetCalendarDate(pCalendar, pDate, pUserId);
@@ -426,18 +426,18 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Удаляет дату календаря.
- * @param {numeric} pCalendar - Идентификатор календаря
+ * @param {uuid} pCalendar - Идентификатор календаря
  * @param {date} pDate - Дата
- * @param {numeric} pUserId - Идентификатор учётной записи пользователя
+ * @param {uuid} pUserId - Идентификатор учётной записи пользователя
  */
 CREATE OR REPLACE FUNCTION api.delete_calendar_date (
-  pCalendar     numeric,
+  pCalendar     uuid,
   pDate         date,
-  pUserId       numeric DEFAULT null
+  pUserId       uuid DEFAULT null
 ) RETURNS       void
 AS $$
 DECLARE
-  nId           numeric;
+  nId           uuid;
 BEGIN
   nId := GetCalendarDate(pCalendar, pDate, pUserId);
   IF nId IS NOT NULL THEN

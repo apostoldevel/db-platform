@@ -1,6 +1,6 @@
 CREATE TYPE TVarType AS ENUM ('kernel', 'context');
 
-CREATE TYPE Id AS (Id NUMERIC(12));
+CREATE TYPE Id AS (Id uuid);
 CREATE TYPE Cardinal AS (Cardinal NUMERIC(14));
 CREATE TYPE Amount AS (Amount NUMERIC(15,5));
 CREATE TYPE Currency AS (Currency NUMERIC(12,4));

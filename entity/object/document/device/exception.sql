@@ -16,7 +16,7 @@ $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION UnknownTransaction (
-  pId		numeric
+  pId		uuid
 ) RETURNS	void
 AS $$
 BEGIN

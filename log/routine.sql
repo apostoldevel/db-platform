@@ -8,11 +8,11 @@ CREATE OR REPLACE FUNCTION AddEventLog (
   pEvent	text,
   pText		text,
   pCategory text DEFAULT null,
-  pObject   numeric DEFAULT null
-) RETURNS	numeric
+  pObject   uuid DEFAULT null
+) RETURNS	bigint
 AS $$
 DECLARE
-  nId		numeric;
+  nId		bigint;
 BEGIN
   INSERT INTO db.log (type, code, event, text, category, object)
   VALUES (pType, pCode, pEvent, pText, pCategory, pObject)
@@ -33,11 +33,11 @@ CREATE OR REPLACE FUNCTION NewEventLog (
   pEvent	text,
   pText		text,
   pCategory text DEFAULT null,
-  pObject   numeric DEFAULT null
+  pObject   uuid DEFAULT null
 ) RETURNS	void
 AS $$
 DECLARE
-  nId		numeric;
+  nId		bigint;
 BEGIN
   nId := AddEventLog(pType, pCode, pEvent, pText, pCategory, pObject);
 END;
@@ -54,7 +54,7 @@ CREATE OR REPLACE FUNCTION WriteToEventLog (
   pCode		integer,
   pEvent	text,
   pText		text,
-  pObject   numeric DEFAULT null
+  pObject   uuid DEFAULT null
 ) RETURNS	void
 AS $$
 DECLARE
@@ -89,7 +89,7 @@ CREATE OR REPLACE FUNCTION WriteToEventLog (
   pType		char,
   pCode		integer,
   pText		text,
-  pObject   numeric DEFAULT null
+  pObject   uuid DEFAULT null
 ) RETURNS	void
 AS $$
 BEGIN
@@ -104,7 +104,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DeleteEventLog (
-  pId		numeric
+  pId		bigint
 ) RETURNS	void
 AS $$
 BEGIN

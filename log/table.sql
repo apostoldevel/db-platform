@@ -12,7 +12,7 @@ CREATE TABLE db.log (
     event		text NOT NULL,
     text        text NOT NULL,
     category    text,
-    object      numeric(12),
+    object      uuid,
     CONSTRAINT ch_log_type CHECK (type IN ('M', 'W', 'E', 'D'))
 );
 

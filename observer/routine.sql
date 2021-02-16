@@ -230,7 +230,7 @@ AS $$
 DECLARE
   r				record;
 
-  nMethod		numeric;
+  nMethod		uuid;
 
   arFilter		text[];
   arSource		text[];
@@ -410,7 +410,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION DoFilterListener (
   pPublisher	text,
-  pUserId		numeric,
+  pUserId		uuid,
   pFilter		jsonb,
   pData			jsonb
 ) RETURNS		boolean
@@ -438,7 +438,7 @@ DECLARE
   d				record;
   n				record;
 
-  nUserId		numeric;
+  nUserId		uuid;
   vUserName		text;
 BEGIN
   SELECT userid INTO nUserId FROM db.session WHERE code = pSession;
@@ -447,7 +447,7 @@ BEGIN
   WHEN 'notify' THEN
 
 	SELECT * INTO f FROM jsonb_to_record(pFilter) AS x(entities jsonb, classes jsonb, actions jsonb, methods jsonb, objects jsonb);
-	SELECT * INTO d FROM jsonb_to_record(pData) AS x(id numeric, entity numeric, class numeric, action numeric, method numeric, object numeric);
+	SELECT * INTO d FROM jsonb_to_record(pData) AS x(id uuid, entity uuid, class uuid, action uuid, method uuid, object uuid);
 	SELECT * INTO n FROM Notification WHERE id = d.id;
 
 	RETURN array_position(coalesce(JsonbToStrArray(f.entities), ARRAY[n.entitycode]), n.entitycode::text) IS NOT NULL AND
@@ -460,7 +460,7 @@ BEGIN
   WHEN 'notice' THEN
 
 	SELECT * INTO f FROM jsonb_to_record(pFilter) AS x(categories jsonb);
-	SELECT * INTO d FROM jsonb_to_record(pData) AS x(userid numeric, object numeric, category text);
+	SELECT * INTO d FROM jsonb_to_record(pData) AS x(userid uuid, object uuid, category text);
 
 	RETURN d.userid = nUserId AND
 		   array_position(coalesce(JsonbToStrArray(f.categories), ARRAY[d.category]), d.category) IS NOT NULL;
@@ -470,7 +470,7 @@ BEGIN
     SELECT username INTO vUserName FROM db.user WHERE id = nUserId;
 
 	SELECT * INTO f FROM jsonb_to_record(pFilter) AS x(types jsonb, codes jsonb, categories jsonb);
-	SELECT * INTO d FROM jsonb_to_record(pData) AS x(type text, code numeric, username text, category text);
+	SELECT * INTO d FROM jsonb_to_record(pData) AS x(type text, code integer, username text, category text);
 
 	RETURN vUserName = d.username AND
 	       array_position(coalesce(JsonbToStrArray(f.types), ARRAY[d.type]), d.type) IS NOT NULL AND
@@ -480,7 +480,7 @@ BEGIN
   WHEN 'geo' THEN
 
 	SELECT * INTO f FROM jsonb_to_record(pFilter) AS x(codes jsonb, objects jsonb);
-	SELECT * INTO d FROM jsonb_to_record(pData) AS x(code text, object numeric);
+	SELECT * INTO d FROM jsonb_to_record(pData) AS x(code text, object uuid);
 
 	RETURN array_position(coalesce(JsonbToStrArray(f.codes), ARRAY[d.code]), d.code) IS NOT NULL AND
            array_position(coalesce(JsonbToNumArray(f.objects), ARRAY[d.object]), d.object) IS NOT NULL AND
@@ -525,7 +525,7 @@ DECLARE
   r             record;
   e             record;
 
-  nId			numeric;
+  nId			uuid;
 
   vType			text;
 
@@ -540,7 +540,7 @@ BEGIN
 	WHEN 'notify' THEN
 	  vType := r.params->>'type';
 	  IF vType = 'object' THEN
-		FOR e IN EXECUTE format('SELECT * FROM api.get_%s($1)', GetEntityCode((pData->>'entity')::numeric)) USING (pData->>'object')::numeric
+		FOR e IN EXECUTE format('SELECT * FROM api.get_%s($1)', GetEntityCode((pData->>'entity')::uuid)) USING (pData->>'object')::uuid
 		LOOP
 		  RETURN NEXT row_to_json(e);
 		END LOOP;
@@ -554,7 +554,7 @@ BEGIN
 		  mixed := jsonb_build_object('notify', row_to_json(e));
 		END LOOP;
 
-		FOR e IN EXECUTE format('SELECT * FROM api.get_%s($1)', GetEntityCode((pData->>'entity')::numeric)) USING (pData->>'object')::numeric
+		FOR e IN EXECUTE format('SELECT * FROM api.get_%s($1)', GetEntityCode((pData->>'entity')::uuid)) USING (pData->>'object')::uuid
 		LOOP
 		  mixed := mixed || jsonb_build_object('object', row_to_json(e));
 		END LOOP;

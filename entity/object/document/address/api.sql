@@ -17,7 +17,7 @@ GRANT SELECT ON api.address TO administrator;
 --------------------------------------------------------------------------------
 /**
  * Добавляет новый адрес.
- * @param {numeric} pParent - Идентификатор родителя | null
+ * @param {uuid} pParent - Идентификатор родителя | null
  * @param {text} pType - Код типа адреса
  * @param {text} pCode - Код: ФФ СС РРР ГГГ ППП УУУУ. Где: ФФ - код страны; СС - код субъекта РФ; РРР - код района; ГГГ - код города; ППП - код населенного пункта; УУУУ - код улицы.
  * @param {text} pIndex - Почтовый индекс
@@ -32,10 +32,10 @@ GRANT SELECT ON api.address TO administrator;
  * @param {text} pStructure - Строение
  * @param {text} pApartment - Квартира
  * @param {text} pAddress - Полный адрес
- * @return {numeric}
+ * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION api.add_address (
-  pParent       numeric,
+  pParent       uuid,
   pType         text,
   pCode         text,
   pIndex        text,
@@ -50,7 +50,7 @@ CREATE OR REPLACE FUNCTION api.add_address (
   pStructure    text,
   pApartment    text,
   pAddress      text DEFAULT null
-) RETURNS       numeric
+) RETURNS       uuid
 AS $$
 BEGIN
   RETURN CreateAddress(pParent, CodeToType(lower(coalesce(pType, 'post')), 'address'), pCode, pIndex, pCountry, pRegion, pDistrict, pCity, pSettlement, pStreet, pHouse, pBuilding, pStructure, pApartment, pAddress);
@@ -64,8 +64,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Обновляет данные адреса.
- * @param {numeric} pId - Идентификатор адреса
- * @param {numeric} pParent - Идентификатор родителя | null
+ * @param {uuid} pId - Идентификатор адреса
+ * @param {uuid} pParent - Идентификатор родителя | null
  * @param {text} pType - Код типа адреса
  * @param {text} pCode - Код: ФФ СС РРР ГГГ ППП УУУУ. Где: ФФ - код страны; СС - код субъекта РФ; РРР - код района; ГГГ - код города; ППП - код населенного пункта; УУУУ - код улицы.
  * @param {text} pIndex - Почтовый индекс
@@ -83,8 +83,8 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_address (
-  pId           numeric,
-  pParent       numeric DEFAULT null,
+  pId           uuid,
+  pParent       uuid DEFAULT null,
   pType         text DEFAULT null,
   pCode         text DEFAULT null,
   pIndex        text DEFAULT null,
@@ -102,8 +102,8 @@ CREATE OR REPLACE FUNCTION api.update_address (
 ) RETURNS       void
 AS $$
 DECLARE
-  nAddress      numeric;
-  nType         numeric;
+  nAddress      uuid;
+  nType         uuid;
 BEGIN
   SELECT a.id INTO nAddress FROM db.address a WHERE a.id = pId;
   IF NOT FOUND THEN
@@ -127,8 +127,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.set_address (
-  pId           numeric,
-  pParent       numeric,
+  pId           uuid,
+  pParent       uuid,
   pType         text,
   pCode         text,
   pIndex        text,
@@ -163,11 +163,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает клиента
- * @param {numeric} pId - Идентификатор адреса
+ * @param {uuid} pId - Идентификатор адреса
  * @return {api.address} - Адрес
  */
 CREATE OR REPLACE FUNCTION api.get_address (
-  pId		numeric
+  pId		uuid
 ) RETURNS	SETOF api.address
 AS $$
   SELECT * FROM api.address WHERE id = pId
@@ -214,7 +214,7 @@ $$ LANGUAGE plpgsql
  * @return {record}
  */
 CREATE OR REPLACE FUNCTION api.get_address_string (
-  pId           numeric
+  pId           uuid
 ) RETURNS       text
 AS $$
 BEGIN
@@ -243,9 +243,9 @@ GRANT SELECT ON api.object_address TO administrator;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.set_object_addresses (
-  pObject       numeric,
-  pAddress      numeric,
-  pParent       numeric,
+  pObject       uuid,
+  pAddress      uuid,
+  pParent       uuid,
   pType         text,
   pCode         text,
   pIndex        text,
@@ -275,13 +275,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.set_object_addresses_json (
-  pObject       numeric,
+  pObject       uuid,
   pAddresses    json
 ) RETURNS       SETOF api.object_address
 AS $$
 DECLARE
   r             record;
-  nId           numeric;
+  nId           uuid;
   arKeys        text[];
 BEGIN
   SELECT o.id INTO nId FROM db.object o WHERE o.id = pObject;
@@ -293,7 +293,7 @@ BEGIN
     arKeys := array_cat(arKeys, ARRAY['id', 'parent', 'type', 'code', 'index', 'country', 'region', 'district', 'city', 'settlement', 'street', 'house', 'building', 'structure', 'apartment', 'address']);
     PERFORM CheckJsonKeys('/object/address/addresses', arKeys, pAddresses);
 
-    FOR r IN SELECT * FROM json_to_recordset(pAddresses) AS addresses(id numeric, parent numeric, type text, code text, index text, country text, region text, district text, city text, settlement text, street text, house text, building text, structure text, apartment text, address text)
+    FOR r IN SELECT * FROM json_to_recordset(pAddresses) AS addresses(id uuid, parent uuid, type text, code text, index text, country text, region text, district text, city text, settlement text, street text, house text, building text, structure text, apartment text, address text)
     LOOP
       RETURN NEXT api.set_object_addresses(pObject, r.Id, r.Parent, r.Type, r.Code, r.Index, r.Country, r.Region, r.District, r.City, r.Settlement, r.Street, r.House, r.Building, r.Structure, r.Apartment, r.Address);
     END LOOP;
@@ -312,7 +312,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.set_object_addresses_jsonb (
-  pObject       numeric,
+  pObject       uuid,
   pAddresses	jsonb
 ) RETURNS       SETOF api.object_address
 AS $$
@@ -328,7 +328,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.get_object_addresses_json (
-  pObject	numeric
+  pObject	uuid
 ) RETURNS	json
 AS $$
 BEGIN
@@ -343,7 +343,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.get_object_addresses_jsonb (
-  pObject	numeric
+  pObject	uuid
 ) RETURNS	jsonb
 AS $$
 BEGIN
@@ -358,17 +358,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Устанавливает адрес объекта
- * @param {numeric} pObject - Идентификатор объекта
- * @param {numeric} pAddress - Идентификатор адреса
+ * @param {uuid} pObject - Идентификатор объекта
+ * @param {uuid} pAddress - Идентификатор адреса
  * @param {timestamp} pDateFrom - Дата операции
- * @out param {numeric} id - Идентификатор
+ * @out param {uuid} id - Идентификатор
  * @out param {boolean} result - Результат
  * @out param {text} message - Текст ошибки
  * @return {SETOF api.object_address}
  */
 CREATE OR REPLACE FUNCTION api.set_object_address (
-  pObject     numeric,
-  pAddress    numeric,
+  pObject     uuid,
+  pAddress    uuid,
   pDateFrom   timestamp DEFAULT oper_date()
 ) RETURNS     SETOF api.object_address
 AS $$
@@ -385,13 +385,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Удаляет адрес объекта
- * @param {numeric} pObject - Идентификатор объекта
- * @param {numeric} pAddress - Идентификатор адреса
+ * @param {uuid} pObject - Идентификатор объекта
+ * @param {uuid} pAddress - Идентификатор адреса
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.delete_object_address (
-  pObject     numeric,
-  pAddress    numeric
+  pObject     uuid,
+  pAddress    uuid
 ) RETURNS     void
 AS $$
 BEGIN
@@ -406,12 +406,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает адрес объекта
- * @param {numeric} pId - Идентификатор адреса
+ * @param {uuid} pId - Идентификатор адреса
  * @return {api.object_address}
  */
 CREATE OR REPLACE FUNCTION api.get_object_address (
-  pObject       numeric,
-  pAddress      numeric
+  pObject       uuid,
+  pAddress      uuid
 ) RETURNS       SETOF api.object_address
 AS $$
   SELECT * FROM api.object_address WHERE object = pObject AND address = pAddress;

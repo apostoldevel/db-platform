@@ -5,7 +5,7 @@
 CREATE OR REPLACE VIEW Program (Id, Reference, Code, Name, Description, Body)
 AS
   SELECT p.id, p.reference, r.code, r.name, r.description, p.body
-    FROM db.program p INNER JOIN db.reference r ON p.reference = r.id;
+    FROM db.program p INNER JOIN Reference r ON p.reference = r.id;
 
 GRANT SELECT ON Program TO administrator;
 

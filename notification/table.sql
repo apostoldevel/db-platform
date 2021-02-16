@@ -7,19 +7,14 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.notification (
-    id			bigserial PRIMARY KEY,
-    entity		numeric(12) NOT NULL,
-    class		numeric(12) NOT NULL,
-    action		numeric(12) NOT NULL,
-    method		numeric(12) NOT NULL,
-    object		numeric(12) NOT NULL,
-    userid      numeric(12) NOT NULL,
-    datetime    timestamptz NOT NULL DEFAULT Now(),
-    CONSTRAINT fk_notification_entity FOREIGN KEY (entity) REFERENCES db.entity(id),
-    CONSTRAINT fk_notification_class FOREIGN KEY (class) REFERENCES db.class_tree(id),
-    CONSTRAINT fk_notification_action FOREIGN KEY (action) REFERENCES db.action(id),
-    CONSTRAINT fk_notification_method FOREIGN KEY (method) REFERENCES db.method(id),
-    CONSTRAINT fk_notification_userid FOREIGN KEY (userid) REFERENCES db.user(id)
+    id			uuid PRIMARY KEY DEFAULT gen_kernel_uuid('8'),
+    entity		uuid NOT NULL REFERENCES db.entity(id) ON DELETE CASCADE,
+    class		uuid NOT NULL REFERENCES db.class_tree(id) ON DELETE CASCADE,
+    action		uuid NOT NULL REFERENCES db.action(id) ON DELETE CASCADE,
+    method		uuid NOT NULL REFERENCES db.method(id) ON DELETE CASCADE,
+    object		uuid NOT NULL REFERENCES db.object(id) ON DELETE CASCADE,
+    userid      uuid NOT NULL REFERENCES db.user(id) ON DELETE CASCADE,
+    datetime    timestamptz NOT NULL DEFAULT Now()
 );
 
 COMMENT ON TABLE db.notification IS 'Уведомления.';
@@ -50,7 +45,7 @@ BEGIN
   PERFORM pg_notify('notify', row_to_json(NEW)::text);
 
   IF GetClassCode(NEW.class) = 'outbox' AND GetActionCode(NEW.action) = 'submit' THEN
-  	PERFORM pg_notify('outbox', IntToStr(NEW.object));
+  	PERFORM pg_notify('outbox', NEW.object::text);
   END IF;
 
   RETURN NEW;

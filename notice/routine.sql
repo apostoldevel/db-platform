@@ -3,23 +3,23 @@
 --------------------------------------------------------------------------------
 /**
  * Создаёт новое извещение
- * @param {numeric} pUserId - Идентификатор пользователя
- * @param {numeric} pObject - Идентификатор объекта
+ * @param {uuid} pUserId - Идентификатор пользователя
+ * @param {uuid} pObject - Идентификатор объекта
  * @param {text} pText - Текст извещения
  * @param {text} pCategory - Категория извещения
  * @param {integer} pStatus - Статус: 0 - создано; 1 - доставлено; 2 - прочитано; 3 - принято; 4 - отказано
- * @return {numeric} - Идентификатор извещения
+ * @return {uuid} - Идентификатор извещения
  */
 CREATE OR REPLACE FUNCTION CreateNotice (
-  pUserId		numeric,
-  pObject		numeric,
+  pUserId		uuid,
+  pObject		uuid,
   pText			text,
   pCategory		text default null,
   pStatus		integer default null
-) RETURNS		numeric
+) RETURNS		uuid
 AS $$
 DECLARE
-  nNotice		numeric;
+  nNotice		uuid;
 BEGIN
   INSERT INTO db.notice (userid, object, text, category, status)
   VALUES (pUserId, pObject, pText, coalesce(pCategory, 'notice'), coalesce(pStatus, 0))
@@ -36,18 +36,18 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Меняет извещение.
- * @param {numeric} pId - Идентификатор извещения
- * @param {numeric} pUserId - Идентификатор пользователя
- * @param {numeric} pObject - Идентификатор объекта
+ * @param {uuid} pId - Идентификатор извещения
+ * @param {uuid} pUserId - Идентификатор пользователя
+ * @param {uuid} pObject - Идентификатор объекта
  * @param {text} pText - Текст извещения
  * @param {text} pCategory - Категория извещения
  * @param {integer} pStatus - Статус: 0 - создано; 1 - доставлено; 2 - прочитано; 3 - принято; 4 - отказано
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION EditNotice (
-  pId			numeric,
-  pUserId		numeric default null,
-  pObject		numeric default null,
+  pId			uuid,
+  pUserId		uuid default null,
+  pObject		uuid default null,
   pText			text default null,
   pCategory		text default null,
   pStatus		integer default null
@@ -72,13 +72,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetNotice (
-  pId			numeric,
-  pUserId		numeric default null,
-  pObject		numeric default null,
+  pId			uuid,
+  pUserId		uuid default null,
+  pObject		uuid default null,
   pText			text default null,
   pCategory		text default null,
   pStatus		integer default null
-) RETURNS		numeric
+) RETURNS		uuid
 AS $$
 BEGIN
   IF pId IS NULL THEN
@@ -98,11 +98,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Удаляет извещение.
- * @param {numeric} pId - Идентификатор извещения
+ * @param {uuid} pId - Идентификатор извещения
  * @return {boolean}
  */
 CREATE OR REPLACE FUNCTION DeleteNotice (
-  pId			numeric
+  pId			uuid
 ) RETURNS		boolean
 AS $$
 BEGIN

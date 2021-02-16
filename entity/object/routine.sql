@@ -3,8 +3,8 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION aou (
-  pUserId       numeric,
-  OUT object    numeric,
+  pUserId       uuid,
+  OUT object    uuid,
   OUT deny      bit,
   OUT allow     bit,
   OUT mask      bit
@@ -25,9 +25,9 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION aou (
-  pUserId       numeric,
-  pObject       numeric,
-  OUT object    numeric,
+  pUserId       uuid,
+  pObject       uuid,
+  OUT object    uuid,
   OUT deny      bit,
   OUT allow     bit,
   OUT mask      bit
@@ -49,8 +49,8 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetObjectMask (
-  pObject	numeric,
-  pUserId	numeric DEFAULT current_userid()
+  pObject	uuid,
+  pUserId	uuid DEFAULT current_userid()
 ) RETURNS	bit
 AS $$
   SELECT CASE
@@ -69,8 +69,8 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetObjectAccessMask (
-  pObject	numeric,
-  pUserId	numeric DEFAULT current_userid()
+  pObject	uuid,
+  pUserId	uuid DEFAULT current_userid()
 ) RETURNS	bit
 AS $$
   SELECT mask FROM aou(pUserId, pObject)
@@ -83,9 +83,9 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CheckObjectAccess (
-  pObject	numeric,
+  pObject	uuid,
   pMask		bit,
-  pUserId	numeric DEFAULT current_userid()
+  pUserId	uuid DEFAULT current_userid()
 ) RETURNS	boolean
 AS $$
 BEGIN
@@ -100,8 +100,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DecodeObjectAccess (
-  pObject	numeric,
-  pUserId	numeric DEFAULT current_userid(),
+  pObject	uuid,
+  pUserId	uuid DEFAULT current_userid(),
   OUT s		boolean,
   OUT u		boolean,
   OUT d		boolean
@@ -125,7 +125,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetObjectMembers (
-  pObject	numeric
+  pObject	uuid
 ) RETURNS 	SETOF ObjectMembers
 AS $$
   SELECT * FROM ObjectMembers WHERE object = pObject;
@@ -138,15 +138,15 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 /*
  * Устанавливает битовую маску доступа для объекта и пользователя.
- * @param {numeric} pObject - Идентификатор объекта
+ * @param {uuid} pObject - Идентификатор объекта
  * @param {bit} pMask - Маска доступа. Шесть бит (d:{sud}a:{sud}) где: d - запрещающие биты; a - разрешающие биты: {s - select, u - update, d - delete}
- * @param {numeric} pUserId - Идентификатор пользователя/группы
+ * @param {uuid} pUserId - Идентификатор пользователя/группы
  * @return {void}
 */
 CREATE OR REPLACE FUNCTION chmodo (
-  pObject       numeric,
+  pObject       uuid,
   pMask         bit,
-  pUserId       numeric DEFAULT current_userid()
+  pUserId       uuid DEFAULT current_userid()
 ) RETURNS       void
 AS $$
 DECLARE
@@ -180,17 +180,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AccessObjectUser (
-  pEntity	numeric,
-  pUserId	numeric DEFAULT current_userid()
+  pEntity	uuid,
+  pUserId	uuid DEFAULT current_userid()
 ) RETURNS TABLE (
-    object  numeric
+    object  uuid
 )
 AS $$
-  WITH membergroup AS (
+  WITH _membergroup AS (
       SELECT pUserId AS userid UNION SELECT userid FROM db.member_group WHERE member = pUserId
   )
   SELECT a.object
-    FROM db.aou a INNER JOIN membergroup m ON a.userid = m.userid AND a.entity = pEntity
+    FROM db.aou a INNER JOIN _membergroup m ON a.userid = m.userid AND a.entity = pEntity
    GROUP BY a.object
   HAVING bit_or(a.mask) & B'100' = B'100'
 $$ LANGUAGE SQL
@@ -202,20 +202,24 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateObject (
-  pParent	numeric,
-  pType     numeric,
+  pParent	uuid,
+  pType     uuid,
   pLabel	text DEFAULT null,
-  pData		text DEFAULT null
-) RETURNS 	numeric
+  pText		text DEFAULT null,
+  pLocale	uuid DEFAULT current_locale()
+) RETURNS 	uuid
 AS $$
 DECLARE
-  nId		numeric;
+  uId		uuid;
 BEGIN
-  INSERT INTO db.object (parent, type, label, data)
-  VALUES (pParent, pType, pLabel, pData)
-  RETURNING id INTO nId;
+  INSERT INTO db.object (parent, type)
+  VALUES (pParent, pType)
+  RETURNING id INTO uId;
 
-  RETURN nId;
+  INSERT INTO db.object_text (object, locale, label, text)
+  VALUES (uId, pLocale, pLabel, pText);
+
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -226,20 +230,25 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EditObject (
-  pId		numeric,
-  pParent	numeric DEFAULT null,
-  pType		numeric DEFAULT null,
+  pId		uuid,
+  pParent	uuid DEFAULT null,
+  pType		uuid DEFAULT null,
   pLabel	text DEFAULT null,
-  pData		text DEFAULT null
+  pText		text DEFAULT null,
+  pLocale	uuid DEFAULT current_locale()
 ) RETURNS	void
 AS $$
 BEGIN
   UPDATE db.object
      SET type = coalesce(pType, type),
-         parent = CheckNull(coalesce(pParent, parent, 0)),
-         label = CheckNull(coalesce(pLabel, label, '<null>')),
-         data = CheckNull(coalesce(pData, data, '<null>'))
+         parent = CheckNull(coalesce(pParent, parent, 0))
    WHERE id = pId;
+
+  UPDATE db.object_text
+     SET label = CheckNull(coalesce(pLabel, label, '<null>')),
+         text = CheckNull(coalesce(pText, text, '<null>'))
+   WHERE object = pId
+     AND locale = pLocale;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -250,8 +259,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetObjectParent (
-  nObject	numeric,
-  pParent	numeric
+  nObject	uuid,
+  pParent	uuid
 ) RETURNS	void
 AS $$
 BEGIN
@@ -266,11 +275,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetObjectEntity (
-  nObject	numeric
-) RETURNS	numeric
+  nObject	uuid
+) RETURNS	uuid
 AS $$
 DECLARE
-  nEntity  numeric;
+  nEntity	uuid;
 BEGIN
   SELECT entity INTO nEntity FROM db.object WHERE id = nObject;
   RETURN nEntity;
@@ -284,11 +293,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetObjectParent (
-  nObject	numeric
-) RETURNS	numeric
+  nObject	uuid
+) RETURNS	uuid
 AS $$
 DECLARE
-  nParent	numeric;
+  nParent	uuid;
 BEGIN
   SELECT parent INTO nParent FROM db.object WHERE id = nObject;
   RETURN nParent;
@@ -302,14 +311,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetObjectLabel (
-  pObject	numeric
+  pObject	uuid,
+  pLocale	uuid DEFAULT current_locale()
 ) RETURNS	text
 AS $$
 DECLARE
   vLabel	text;
 BEGIN
-  SELECT label INTO vLabel FROM db.object WHERE id = pObject;
-
+  SELECT label INTO vLabel FROM db.object_text WHERE object = pObject AND locale = pLocale;
   RETURN vLabel;
 END;
 $$ LANGUAGE plpgsql
@@ -321,12 +330,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetObjectLabel (
-  pObject	numeric,
-  pLabel    text
+  pObject	uuid,
+  pLabel    text,
+  pLocale	uuid DEFAULT current_locale()
 ) RETURNS	void
 AS $$
 BEGIN
-  UPDATE db.object SET label = pLabel WHERE id = pObject;
+  UPDATE db.object_text SET label = pLabel WHERE object = pObject AND locale = pLocale;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -337,14 +347,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetObjectClass (
-  pId		numeric
-) RETURNS	numeric
+  pId		uuid
+) RETURNS	uuid
 AS $$
 DECLARE
-  nClass	numeric;
+  nClass	uuid;
 BEGIN
   SELECT class INTO nClass FROM db.object WHERE id = pId;
-
   RETURN nClass;
 END;
 $$ LANGUAGE plpgsql
@@ -356,14 +365,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetObjectType (
-  pId		numeric
-) RETURNS	numeric
+  pId		uuid
+) RETURNS	uuid
 AS $$
 DECLARE
-  nType         numeric;
+  nType		uuid;
 BEGIN
   SELECT type INTO nType FROM db.object WHERE id = pId;
-
   RETURN nType;
 END;
 $$ LANGUAGE plpgsql
@@ -375,7 +383,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetObjectTypeCode (
-  pId		numeric
+  pId		uuid
 ) RETURNS	text
 AS $$
 DECLARE
@@ -396,14 +404,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetObjectState (
-  pId		numeric
-) RETURNS	numeric
+  pId		uuid
+) RETURNS	uuid
 AS $$
 DECLARE
-  nState	numeric;
+  nState	uuid;
 BEGIN
   SELECT state INTO nState FROM db.object WHERE id = pId;
-
   RETURN nState;
 END;
 $$ LANGUAGE plpgsql
@@ -415,8 +422,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetObjectOwner (
-  pId		numeric,
-  pOwner    numeric
+  pId		uuid,
+  pOwner    uuid
 ) RETURNS 	void
 AS $$
 BEGIN
@@ -431,14 +438,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetObjectOwner (
-  pId		numeric
-) RETURNS 	numeric
+  pId		uuid
+) RETURNS 	uuid
 AS $$
 DECLARE
-  nOwner	numeric;
+  nOwner	uuid;
 BEGIN
   SELECT owner INTO nOwner FROM db.object WHERE id = pId;
-
   RETURN nOwner;
 END;
 $$ LANGUAGE plpgsql
@@ -450,14 +456,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetObjectOper (
-  pId		numeric
-) RETURNS 	numeric
+  pId		uuid
+) RETURNS 	uuid
 AS $$
 DECLARE
-  nOper	numeric;
+  nOper		uuid;
 BEGIN
   SELECT oper INTO nOper FROM db.object WHERE id = pId;
-
   RETURN nOper;
 END;
 $$ LANGUAGE plpgsql
@@ -469,13 +474,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddObjectState (
-  pObject       numeric,
-  pState        numeric,
+  pObject       uuid,
+  pState        uuid,
   pDateFrom     timestamp DEFAULT oper_date()
-) RETURNS       numeric
+) RETURNS       uuid
 AS $$
 DECLARE
-  nId           numeric;
+  nId           uuid;
 
   dtDateFrom    timestamp;
   dtDateTo      timestamp;
@@ -518,12 +523,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetObjectState (
-  pObject	numeric,
+  pObject	uuid,
   pDate		timestamp
-) RETURNS	numeric
+) RETURNS	uuid
 AS $$
 DECLARE
-  nState	numeric;
+  nState	uuid;
 BEGIN
   SELECT state INTO nState
     FROM db.object_state
@@ -542,12 +547,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetObjectStateCode (
-  pObject	numeric,
+  pObject	uuid,
   pDate		timestamp DEFAULT oper_date()
 ) RETURNS 	text
 AS $$
 DECLARE
-  nState	numeric;
+  nState	uuid;
   vCode		text;
 BEGIN
   vCode := null;
@@ -571,12 +576,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetObjectStateType (
-  pObject	numeric,
+  pObject	uuid,
   pDate		timestamp DEFAULT oper_date()
-) RETURNS	numeric
+) RETURNS	uuid
 AS $$
 DECLARE
-  nState	numeric;
+  nState	uuid;
 BEGIN
   SELECT state INTO nState
     FROM db.object_state
@@ -595,12 +600,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetObjectStateTypeCode (
-  pObject	numeric,
+  pObject	uuid,
   pDate		timestamp DEFAULT oper_date()
 ) RETURNS 	text
 AS $$
 DECLARE
-  nState	numeric;
+  nState	uuid;
 BEGIN
   SELECT state INTO nState
     FROM db.object_state
@@ -622,14 +627,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetNewState (
-  pMethod	numeric
-) RETURNS 	numeric
+  pMethod	uuid
+) RETURNS 	uuid
 AS $$
 DECLARE
-  nNewState	numeric;
+  nNewState	uuid;
 BEGIN
   SELECT newstate INTO nNewState FROM db.transition WHERE method = pMethod;
-
   RETURN nNewState;
 END;
 $$ LANGUAGE plpgsql
@@ -641,13 +645,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION ChangeObjectState (
-  pObject	numeric DEFAULT context_object(),
-  pMethod	numeric DEFAULT context_method()
+  pObject	uuid DEFAULT context_object(),
+  pMethod	uuid DEFAULT context_method()
 ) RETURNS 	void
 AS $$
 DECLARE
-  nNewState	numeric;
-  nAction	numeric;
+  nNewState	uuid;
+  nAction	uuid;
 BEGIN
   nNewState := GetNewState(pMethod);
   IF nNewState IS NOT NULL THEN
@@ -665,17 +669,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetObjectMethod (
-  pObject	numeric,
-  pAction	numeric
-) RETURNS	numeric
+  pObject	uuid,
+  pAction	uuid
+) RETURNS	uuid
 AS $$
 DECLARE
-  nClass	numeric;
-  nState	numeric;
+  nClass	uuid;
+  nState	uuid;
 BEGIN
   SELECT class, state INTO nClass, nState FROM db.object WHERE id = pObject;
-
-  RETURN GetMethod(nClass, nState, pAction);
+  RETURN GetMethod(nClass, pAction, nState);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -687,8 +690,8 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION AddMethodStack (
   pResult   jsonb,
-  pObject	numeric DEFAULT context_object(),
-  pMethod	numeric DEFAULT context_method()
+  pObject	uuid DEFAULT context_object(),
+  pMethod	uuid DEFAULT context_method()
 ) RETURNS	void
 AS $$
 BEGIN
@@ -706,8 +709,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION ClearMethodStack (
-  pObject	numeric,
-  pMethod	numeric
+  pObject	uuid,
+  pMethod	uuid
 ) RETURNS	void
 AS $$
   SELECT AddMethodStack(NULL, pObject, pMethod);
@@ -720,8 +723,8 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetMethodStack (
-  pObject	numeric,
-  pMethod	numeric
+  pObject	uuid,
+  pMethod	uuid
 ) RETURNS	jsonb
 AS $$
   SELECT result FROM db.method_stack WHERE object = pObject AND method = pMethod
@@ -734,12 +737,12 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION ExecuteAction (
-  pClass	numeric DEFAULT context_class(),
-  pAction	numeric DEFAULT context_action()
+  pClass	uuid DEFAULT context_class(),
+  pAction	uuid DEFAULT context_action()
 ) RETURNS	void
 AS $$
 DECLARE
-  nClass	numeric;
+  nClass	uuid;
   Rec		record;
 BEGIN
   FOR Rec IN
@@ -771,22 +774,22 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION ExecuteMethod (
-  pObject       numeric,
-  pMethod       numeric,
+  pObject       uuid,
+  pMethod       uuid,
   pParams		jsonb DEFAULT null
 ) RETURNS       jsonb
 AS $$
 DECLARE
-  nSaveObject	numeric;
-  nSaveClass	numeric;
-  nSaveMethod	numeric;
-  nSaveAction	numeric;
+  nSaveObject	uuid;
+  nSaveClass	uuid;
+  nSaveMethod	uuid;
+  nSaveAction	uuid;
   jSaveParams	jsonb;
 
   sLabel        text;
 
-  nClass        numeric;
-  nAction       numeric;
+  nClass        uuid;
+  nAction       uuid;
 BEGIN
   IF NOT CheckMethodAccess(pMethod, B'100') THEN
     SELECT label INTO sLabel FROM db.method WHERE id = pMethod;
@@ -828,23 +831,23 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION ExecuteMethodForAllChild (
-  pObject	numeric DEFAULT context_object(),
-  pClass	numeric DEFAULT context_class(),
-  pMethod	numeric DEFAULT context_method(),
-  pAction	numeric DEFAULT context_action(),
+  pObject	uuid DEFAULT context_object(),
+  pClass	uuid DEFAULT context_class(),
+  pMethod	uuid DEFAULT context_method(),
+  pAction	uuid DEFAULT context_action(),
   pParams	jsonb DEFAULT context_params()
 ) RETURNS	jsonb
 AS $$
 DECLARE
   r			record;
-  nMethod	numeric;
+  nMethod	uuid;
   result    jsonb;
 BEGIN
   result := jsonb_build_array();
 
   FOR r IN SELECT id, class, state FROM db.object WHERE parent = pObject AND class = pClass
   LOOP
-    nMethod := GetMethod(r.class, r.state, pAction);
+    nMethod := GetMethod(r.class, pAction, r.state);
     IF nMethod IS NOT NULL THEN
       result := result || ExecuteMethod(r.id, nMethod, pParams);
     END IF;
@@ -864,13 +867,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION ExecuteObjectAction (
-  pObject	numeric,
-  pAction	numeric,
+  pObject	uuid,
+  pAction	uuid,
   pParams	jsonb DEFAULT null
 ) RETURNS 	jsonb
 AS $$
 DECLARE
-  nMethod	numeric;
+  nMethod	uuid;
 BEGIN
   nMethod := GetObjectMethod(pObject, pAction);
 
@@ -889,7 +892,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION IsCreated (
-  pObject	numeric
+  pObject	uuid
 ) RETURNS 	boolean
 AS $$
 BEGIN
@@ -904,7 +907,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION IsEnabled (
-  pObject	numeric
+  pObject	uuid
 ) RETURNS 	boolean
 AS $$
 BEGIN
@@ -919,7 +922,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION IsDisabled (
-  pObject	numeric
+  pObject	uuid
 ) RETURNS 	boolean
 AS $$
 BEGIN
@@ -934,7 +937,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION IsDeleted (
-  pObject	numeric
+  pObject	uuid
 ) RETURNS 	boolean
 AS $$
 BEGIN
@@ -949,7 +952,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION IsActive (
-  pObject	numeric
+  pObject	uuid
 ) RETURNS 	boolean
 AS $$
 DECLARE
@@ -967,7 +970,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DoCreate (
-  pObject	numeric
+  pObject	uuid
 ) RETURNS 	jsonb
 AS $$
 BEGIN
@@ -982,7 +985,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DoEnable (
-  pObject	numeric
+  pObject	uuid
 ) RETURNS 	jsonb
 AS $$
 BEGIN
@@ -997,7 +1000,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DoDisable (
-  pObject	numeric
+  pObject	uuid
 ) RETURNS 	jsonb
 AS $$
 BEGIN
@@ -1012,7 +1015,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DoDelete (
-  pObject	numeric
+  pObject	uuid
 ) RETURNS 	jsonb
 AS $$
 BEGIN
@@ -1030,10 +1033,10 @@ CREATE OR REPLACE FUNCTION CreateObjectGroup (
   pCode         text,
   pName         text,
   pDescription  text
-) RETURNS       numeric
+) RETURNS       uuid
 AS $$
 DECLARE
-  nId           numeric;
+  nId           uuid;
 BEGIN
   INSERT INTO db.object_group (code, name, description)
   VALUES (pCode, pName, pDescription)
@@ -1050,7 +1053,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EditObjectGroup (
-  pId		    numeric,
+  pId		    uuid,
   pCode		    text DEFAULT null,
   pName		    text DEFAULT null,
   pDescription	text DEFAULT null
@@ -1073,13 +1076,12 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION GetObjectGroup (
   pCode		text
-) RETURNS	numeric
+) RETURNS	uuid
 AS $$
 DECLARE
-  nId		numeric;
+  nId		uuid;
 BEGIN
   SELECT id INTO nId FROM db.object_group WHERE code = pCode;
-
   RETURN nId;
 END;
 $$ LANGUAGE plpgsql
@@ -1091,7 +1093,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION ObjectGroup (
-  pOwner    numeric DEFAULT current_userid()
+  pOwner    uuid DEFAULT current_userid()
 ) RETURNS	SETOF ObjectGroup
 AS $$
   SELECT * FROM ObjectGroup WHERE owner = pOwner
@@ -1104,20 +1106,13 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddObjectToGroup (
-  pGroup	numeric,
-  pObject	numeric
-) RETURNS	numeric
+  pGroup	uuid,
+  pObject	uuid
+) RETURNS	void
 AS $$
-DECLARE
-  nId		numeric;
 BEGIN
-  SELECT id INTO nId FROM db.object_group_member WHERE gid = pGroup AND object = pObject;
-  IF NOT found THEN
-    INSERT INTO db.object_group_member (gid, object) VALUES (pGroup, pObject)
-    RETURNING id INTO nId;
-  END IF;
-
-  RETURN nId;
+  INSERT INTO db.object_group_member (gid, object) VALUES (pGroup, pObject)
+    ON CONFLICT DO NOTHING;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1128,8 +1123,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DeleteObjectFromGroup (
-  pGroup	numeric,
-  pObject	numeric
+  pGroup	uuid,
+  pObject	uuid
 ) RETURNS	void
 AS $$
 DECLARE
@@ -1156,22 +1151,22 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Устанавливает связь с объектом.
- * @param {numeric} pObject - Идентификатор объекта
- * @param {numeric} pLinked - Идентификатор связанного объекта
+ * @param {uuid} pObject - Идентификатор объекта
+ * @param {uuid} pLinked - Идентификатор связанного объекта
  * @param {text} pKey - Ключ
  * @param {timestamp} pDateFrom - Дата начала периода
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION SetObjectLink (
-  pObject       numeric,
-  pLinked       numeric,
+  pObject       uuid,
+  pLinked       uuid,
   pKey          text,
   pDateFrom     timestamp DEFAULT oper_date()
-) RETURNS       numeric
+) RETURNS       uuid
 AS $$
 DECLARE
-  nId           numeric;
-  nLinked       numeric;
+  nId           uuid;
+  nLinked       uuid;
 
   dtDateFrom    timestamp;
   dtDateTo      timestamp;
@@ -1210,19 +1205,19 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает связанный с объектом объект.
- * @param {numeric} pObject - Идентификатор объекта
+ * @param {uuid} pObject - Идентификатор объекта
  * @param {text} pKey - Ключ
  * @param {timestamp} pDate - Дата
- * @return {numeric}
+ * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION GetObjectLink (
-  pObject	numeric,
+  pObject	uuid,
   pKey	    text,
   pDate		timestamp DEFAULT oper_date()
-) RETURNS	numeric
+) RETURNS	uuid
 AS $$
 DECLARE
-  nLinked	numeric;
+  nLinked	uuid;
 BEGIN
   SELECT linked INTO nLinked
     FROM db.object_link
@@ -1242,10 +1237,10 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION NewObjectFile (
-  pObject	numeric,
+  pObject	uuid,
   pName		text,
   pPath		text,
-  pSize		numeric,
+  pSize		integer,
   pDate		timestamp,
   pData		bytea DEFAULT null,
   pHash		text DEFAULT null,
@@ -1266,10 +1261,10 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EditObjectFile (
-  pObject   numeric,
+  pObject   uuid,
   pName		text,
   pPath		text DEFAULT null,
-  pSize		numeric DEFAULT null,
+  pSize		integer DEFAULT null,
   pDate		timestamp DEFAULT null,
   pData		bytea DEFAULT null,
   pHash		text DEFAULT null,
@@ -1301,7 +1296,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DeleteObjectFile (
-  pObject   numeric,
+  pObject   uuid,
   pName		text,
   pPath		text DEFAULT null
 ) RETURNS	void
@@ -1318,10 +1313,10 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetObjectFile (
-  pObject	numeric,
+  pObject	uuid,
   pName		text,
   pPath		text,
-  pSize		numeric,
+  pSize		integer,
   pDate		timestamp,
   pData		bytea DEFAULT null,
   pHash		text DEFAULT null,
@@ -1353,7 +1348,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetObjectFiles (
-  pObject	numeric
+  pObject	uuid
 ) RETURNS	text[][]
 AS $$
 DECLARE
@@ -1381,7 +1376,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetObjectFilesJson (
-  pObject	numeric
+  pObject	uuid
 ) RETURNS	json
 AS $$
 DECLARE
@@ -1407,7 +1402,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetObjectFilesJsonb (
-  pObject	numeric
+  pObject	uuid
 ) RETURNS	jsonb
 AS $$
 BEGIN
@@ -1418,30 +1413,12 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- GetObjectDataType -----------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION GetObjectDataType (
-  pCode		text
-) RETURNS	numeric
-AS $$
-DECLARE
-  nId		numeric;
-BEGIN
-  SELECT id INTO nId FROM db.object_data_type WHERE code = pCode;
-  RETURN nId;
-END;
-$$ LANGUAGE plpgsql STABLE STRICT
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
 -- NewObjectData ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION NewObjectData (
-  pObject	numeric,
-  pType		numeric,
+  pObject	uuid,
+  pType		text,
   pCode		text,
   pData		text
 ) RETURNS	void
@@ -1459,8 +1436,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EditObjectData (
-  pObject	numeric,
-  pType		numeric,
+  pObject	uuid,
+  pType		text,
   pCode		text,
   pData		text
 ) RETURNS	void
@@ -1481,8 +1458,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DeleteObjectData (
-  pObject	numeric,
-  pType		numeric,
+  pObject	uuid,
+  pType		text,
   pCode		text
 ) RETURNS	void
 AS $$
@@ -1498,8 +1475,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetObjectData (
-  pObject	numeric,
-  pType		numeric,
+  pObject	uuid,
+  pType		text,
   pCode		text,
   pData		text
 ) RETURNS	text
@@ -1528,13 +1505,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetObjectDataJSON (
-  pObject	numeric,
+  pObject	uuid,
   pCode		text,
   pData		json
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM SetObjectData(pObject, GetObjectDataType('json'), pCode, pData::text);
+  PERFORM SetObjectData(pObject, 'json', pCode, pData::text);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1545,13 +1522,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetObjectDataXML (
-  pObject	numeric,
+  pObject	uuid,
   pCode		text,
   pData		xml
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM SetObjectData(pObject, GetObjectDataType('xml'), pCode, pData::text);
+  PERFORM SetObjectData(pObject, 'xml', pCode, pData::text);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1562,8 +1539,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetObjectData (
-  pObject	numeric,
-  pType		numeric,
+  pObject	uuid,
+  pType		text,
   pCode		text
 ) RETURNS	text
 AS $$
@@ -1582,12 +1559,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetObjectDataJSON (
-  pObject	numeric,
+  pObject	uuid,
   pCode		text
 ) RETURNS	json
 AS $$
 BEGIN
-  RETURN GetObjectData(pObject, GetObjectDataType('json'), pCode);
+  RETURN GetObjectData(pObject, 'json', pCode);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1598,12 +1575,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetObjectDataXML (
-  pObject	numeric,
+  pObject	uuid,
   pCode		text
 ) RETURNS	json
 AS $$
 BEGIN
-  RETURN GetObjectData(pObject, GetObjectDataType('xml'), pCode);
+  RETURN GetObjectData(pObject, 'xml', pCode);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1614,7 +1591,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetObjectDataJson (
-  pObject	numeric
+  pObject	uuid
 ) RETURNS	json
 AS $$
 DECLARE
@@ -1622,7 +1599,7 @@ DECLARE
   arResult	json[];
 BEGIN
   FOR r IN
-    SELECT object, type, typeCode, Code, Data
+    SELECT object, type, Code, Data
       FROM ObjectData
      WHERE object = pObject
   LOOP
@@ -1640,7 +1617,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetObjectDataJsonb (
-  pObject	numeric
+  pObject	uuid
 ) RETURNS	jsonb
 AS $$
 BEGIN
@@ -1656,7 +1633,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION ObjectCoordinates (
   pDateFrom     timestamptz,
-  pUserId		numeric DEFAULT current_userid()
+  pUserId		uuid DEFAULT current_userid()
 ) RETURNS       SETOF ObjectCoordinates
 AS $$
   WITH access AS (
@@ -1682,7 +1659,7 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION NewObjectCoordinates (
-  pObject		numeric,
+  pObject		uuid,
   pCode			text,
   pLatitude		numeric,
   pLongitude	numeric,
@@ -1740,7 +1717,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DeleteObjectCoordinates (
-  pObject	numeric,
+  pObject	uuid,
   pCode		text
 ) RETURNS	void
 AS $$
@@ -1756,7 +1733,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetObjectCoordinates (
-  pObject       numeric,
+  pObject       uuid,
   pCode         text
 ) RETURNS       ObjectCoordinates
 AS $$
@@ -1770,7 +1747,7 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetObjectCoordinatesJson (
-  pObject		numeric,
+  pObject		uuid,
   pCode			text DEFAULT NULL,
   pDateFrom		timestamptz DEFAULT Now()
 ) RETURNS		json
@@ -1801,7 +1778,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetObjectCoordinatesJsonb (
-  pObject	numeric
+  pObject	uuid
 ) RETURNS	jsonb
 AS $$
 BEGIN

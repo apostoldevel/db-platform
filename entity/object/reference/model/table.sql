@@ -7,10 +7,9 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.model (
-    id			    numeric(12) PRIMARY KEY,
-    reference		numeric(12) NOT NULL,
-    vendor          numeric(12) NOT NULL,
-    CONSTRAINT fk_model_reference FOREIGN KEY (reference) REFERENCES db.reference(id)
+    id			    uuid PRIMARY KEY,
+    reference		uuid NOT NULL REFERENCES db.reference(id) ON DELETE CASCADE,
+    vendor          uuid NOT NULL REFERENCES db.vendor(id) ON DELETE RESTRICT
 );
 
 COMMENT ON TABLE db.model IS 'Модель.';
@@ -20,6 +19,7 @@ COMMENT ON COLUMN db.model.reference IS 'Справочник.';
 COMMENT ON COLUMN db.model.vendor IS 'Производитель (поставщик).';
 
 CREATE INDEX ON db.model (reference);
+CREATE INDEX ON db.model (vendor);
 
 --------------------------------------------------------------------------------
 
@@ -27,7 +27,7 @@ CREATE OR REPLACE FUNCTION ft_model_insert()
 RETURNS trigger AS $$
 DECLARE
 BEGIN
-  IF NULLIF(NEW.id, 0) IS NULL THEN
+  IF NEW.id IS NULL THEN
     SELECT NEW.reference INTO NEW.id;
   END IF;
 

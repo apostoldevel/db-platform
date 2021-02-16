@@ -38,4 +38,3 @@ COMMENT ON COLUMN db.listener.publisher IS 'Издатель';
 COMMENT ON COLUMN db.listener.session IS 'Код сессии';
 COMMENT ON COLUMN db.listener.filter IS 'Фильтр';
 COMMENT ON COLUMN db.listener.params IS 'Параметры';
-

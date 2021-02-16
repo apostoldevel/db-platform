@@ -7,12 +7,11 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.scheduler (
-    id			    numeric(12) PRIMARY KEY,
-    reference		numeric(12) NOT NULL,
+    id			    uuid PRIMARY KEY,
+    reference		uuid NOT NULL REFERENCES db.reference(id) ON DELETE CASCADE,
     period          interval,
-    dateStart       timestamptz DEFAULT Now() NOT NULL,
-    dateStop        timestamptz DEFAULT TO_DATE('4433-12-31', 'YYYY-MM-DD') NOT NULL,
-    CONSTRAINT fk_scheduler_reference FOREIGN KEY (reference) REFERENCES db.reference(id)
+    dateStart       timestamptz NOT NULL DEFAULT Now(),
+    dateStop        timestamptz NOT NULL DEFAULT TO_DATE('4433-12-31', 'YYYY-MM-DD')
 );
 
 COMMENT ON TABLE db.scheduler IS 'Планировщик.';
@@ -31,7 +30,7 @@ CREATE OR REPLACE FUNCTION ft_scheduler_insert()
 RETURNS trigger AS $$
 DECLARE
 BEGIN
-  IF NULLIF(NEW.id, 0) IS NULL THEN
+  IF NEW.id IS NULL THEN
     SELECT NEW.reference INTO NEW.id;
   END IF;
 
@@ -55,4 +54,3 @@ CREATE TRIGGER t_scheduler_insert
   BEFORE INSERT ON db.scheduler
   FOR EACH ROW
   EXECUTE PROCEDURE ft_scheduler_insert();
-

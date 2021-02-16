@@ -7,7 +7,7 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DefaultMethods (
-  pClass            numeric
+  pClass            uuid
 )
 RETURNS             void
 AS $$
@@ -31,7 +31,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DefaultTransition (
-  pClass            numeric
+  pClass            uuid
 )
 RETURNS             void
 AS $$
@@ -72,13 +72,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddDefaultMethods (
-  pClass            numeric,
+  pClass            uuid,
   pNames            text[] DEFAULT null
 )
 RETURNS             void
 AS $$
 DECLARE
-  nState            numeric;
+  nState            uuid;
 
   rec_type          record;
   rec_state         record;
@@ -204,52 +204,66 @@ CREATE OR REPLACE FUNCTION InitWorkFlow()
 RETURNS     void
 AS $$
 BEGIN
-  PERFORM AddAction('anything', 'Ничто');
 
-  PERFORM AddAction('abort', 'Прервать');
-  PERFORM AddAction('accept', 'Принять');
-  PERFORM AddAction('add', 'Добавить');
-  PERFORM AddAction('alarm', 'Тревога');
-  PERFORM AddAction('approve', 'Утвердить');
-  PERFORM AddAction('available', 'Доступен');
-  PERFORM AddAction('cancel', 'Отменить');
-  PERFORM AddAction('check', 'Проверить');
-  PERFORM AddAction('complete', 'Завершить');
-  PERFORM AddAction('confirm', 'Подтвердить');
-  PERFORM AddAction('create', 'Создать');
-  PERFORM AddAction('delete', 'Удалить');
-  PERFORM AddAction('disable', 'Отключить');
-  PERFORM AddAction('done', 'Сделано');
-  PERFORM AddAction('drop', 'Уничтожить');
-  PERFORM AddAction('edit', 'Изменить');
-  PERFORM AddAction('enable', 'Включить');
-  PERFORM AddAction('execute', 'Выполнить');
-  PERFORM AddAction('expire', 'Истекло');
-  PERFORM AddAction('fail', 'Неудача');
-  PERFORM AddAction('faulted', 'Ошибка');
-  PERFORM AddAction('finishing', 'Завершение');
-  PERFORM AddAction('heartbeat', 'Сердцебиение');
-  PERFORM AddAction('invite', 'Пригласить');
-  PERFORM AddAction('open', 'Открыть');
-  PERFORM AddAction('plan', 'Планировать');
-  PERFORM AddAction('post', 'Публиковать');
-  PERFORM AddAction('postpone', 'Отложить');
-  PERFORM AddAction('preparing', 'Подготовка');
-  PERFORM AddAction('reconfirm', 'Переподтвердить');
-  PERFORM AddAction('remove', 'Удалить');
-  PERFORM AddAction('repeat', 'Повторить');
-  PERFORM AddAction('reserve', 'Резервировать');
-  PERFORM AddAction('reserved', 'Зарезервирован');
-  PERFORM AddAction('restore', 'Восстановить');
-  PERFORM AddAction('return', 'Вернуть');
-  PERFORM AddAction('save', 'Сохранить');
-  PERFORM AddAction('send', 'Отправить');
-  PERFORM AddAction('sign', 'Подписать');
-  PERFORM AddAction('start', 'Запустить');
-  PERFORM AddAction('stop', 'Остановить');
-  PERFORM AddAction('submit', 'Отправить');
-  PERFORM AddAction('unavailable', 'Недоступен');
-  PERFORM AddAction('update', 'Обновить');
+  INSERT INTO db.state_type (id, code, name) VALUES ('00000000-0000-4000-b001-000000000001', 'created', 'Создан');
+  INSERT INTO db.state_type (id, code, name) VALUES ('00000000-0000-4000-b001-000000000002', 'enabled', 'Включен');
+  INSERT INTO db.state_type (id, code, name) VALUES ('00000000-0000-4000-b001-000000000003', 'disabled', 'Отключен');
+  INSERT INTO db.state_type (id, code, name) VALUES ('00000000-0000-4000-b001-000000000004', 'deleted', 'Удалён');
+
+  --------------------------------------------------------------------------------
+
+  INSERT INTO db.event_type (id, code, name) VALUES ('00000000-0000-4000-b002-000000000001', 'parent', 'События класса родителя');
+  INSERT INTO db.event_type (id, code, name) VALUES ('00000000-0000-4000-b002-000000000002', 'event', 'Событие');
+  INSERT INTO db.event_type (id, code, name) VALUES ('00000000-0000-4000-b002-000000000003', 'plpgsql', 'PL/pgSQL код');
+
+  --------------------------------------------------------------------------------
+
+  PERFORM AddAction('00000000-0000-4000-b003-000000000000', 'anything', 'Ничто');
+
+  PERFORM AddAction('00000000-0000-4000-b003-000000000001', 'abort', 'Прервать');
+  PERFORM AddAction('00000000-0000-4000-b003-000000000002', 'accept', 'Принять');
+  PERFORM AddAction('00000000-0000-4000-b003-000000000003', 'add', 'Добавить');
+  PERFORM AddAction('00000000-0000-4000-b003-000000000004', 'alarm', 'Тревога');
+  PERFORM AddAction('00000000-0000-4000-b003-000000000005', 'approve', 'Утвердить');
+  PERFORM AddAction('00000000-0000-4000-b003-000000000006', 'available', 'Доступен');
+  PERFORM AddAction('00000000-0000-4000-b003-000000000007', 'cancel', 'Отменить');
+  PERFORM AddAction('00000000-0000-4000-b003-000000000008', 'check', 'Проверить');
+  PERFORM AddAction('00000000-0000-4000-b003-000000000009', 'complete', 'Завершить');
+  PERFORM AddAction('00000000-0000-4000-b003-000000000010', 'confirm', 'Подтвердить');
+  PERFORM AddAction('00000000-0000-4000-b003-000000000011', 'create', 'Создать');
+  PERFORM AddAction('00000000-0000-4000-b003-000000000012', 'delete', 'Удалить');
+  PERFORM AddAction('00000000-0000-4000-b003-000000000013', 'disable', 'Отключить');
+  PERFORM AddAction('00000000-0000-4000-b003-000000000014', 'done', 'Сделано');
+  PERFORM AddAction('00000000-0000-4000-b003-000000000015', 'drop', 'Уничтожить');
+  PERFORM AddAction('00000000-0000-4000-b003-000000000016', 'edit', 'Изменить');
+  PERFORM AddAction('00000000-0000-4000-b003-000000000017', 'enable', 'Включить');
+  PERFORM AddAction('00000000-0000-4000-b003-000000000018', 'execute', 'Выполнить');
+  PERFORM AddAction('00000000-0000-4000-b003-000000000019', 'expire', 'Истекло');
+  PERFORM AddAction('00000000-0000-4000-b003-000000000020', 'fail', 'Неудача');
+  PERFORM AddAction('00000000-0000-4000-b003-000000000021', 'faulted', 'Ошибка');
+  PERFORM AddAction('00000000-0000-4000-b003-000000000022', 'finishing', 'Завершение');
+  PERFORM AddAction('00000000-0000-4000-b003-000000000023', 'heartbeat', 'Сердцебиение');
+  PERFORM AddAction('00000000-0000-4000-b003-000000000024', 'invite', 'Пригласить');
+  PERFORM AddAction('00000000-0000-4000-b003-000000000025', 'open', 'Открыть');
+  PERFORM AddAction('00000000-0000-4000-b003-000000000026', 'plan', 'Планировать');
+  PERFORM AddAction('00000000-0000-4000-b003-000000000027', 'post', 'Публиковать');
+  PERFORM AddAction('00000000-0000-4000-b003-000000000028', 'postpone', 'Отложить');
+  PERFORM AddAction('00000000-0000-4000-b003-000000000029', 'preparing', 'Подготовка');
+  PERFORM AddAction('00000000-0000-4000-b003-000000000030', 'reconfirm', 'Переподтвердить');
+  PERFORM AddAction('00000000-0000-4000-b003-000000000031', 'remove', 'Удалить');
+  PERFORM AddAction('00000000-0000-4000-b003-000000000032', 'repeat', 'Повторить');
+  PERFORM AddAction('00000000-0000-4000-b003-000000000033', 'reserve', 'Резервировать');
+  PERFORM AddAction('00000000-0000-4000-b003-000000000034', 'reserved', 'Зарезервирован');
+  PERFORM AddAction('00000000-0000-4000-b003-000000000035', 'restore', 'Восстановить');
+  PERFORM AddAction('00000000-0000-4000-b003-000000000036', 'return', 'Вернуть');
+  PERFORM AddAction('00000000-0000-4000-b003-000000000037', 'save', 'Сохранить');
+  PERFORM AddAction('00000000-0000-4000-b003-000000000038', 'send', 'Отправить');
+  PERFORM AddAction('00000000-0000-4000-b003-000000000039', 'sign', 'Подписать');
+  PERFORM AddAction('00000000-0000-4000-b003-000000000040', 'start', 'Запустить');
+  PERFORM AddAction('00000000-0000-4000-b003-000000000041', 'stop', 'Остановить');
+  PERFORM AddAction('00000000-0000-4000-b003-000000000042', 'submit', 'Отправить');
+  PERFORM AddAction('00000000-0000-4000-b003-000000000043', 'unavailable', 'Недоступен');
+  PERFORM AddAction('00000000-0000-4000-b003-000000000044', 'update', 'Обновить');
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

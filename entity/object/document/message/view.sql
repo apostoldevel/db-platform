@@ -12,7 +12,7 @@ AS
          o.type, t.code, t.name, t.description,
          m.agent, ra.code, ra.name, ra.description,
          m.code, m.profile, m.address, m.subject, m.content
-    FROM db.message m INNER JOIN db.reference ra ON m.agent = ra.id
+    FROM db.message m INNER JOIN Reference ra ON m.agent = ra.id
                       INNER JOIN db.object o ON ra.object = o.id
                       INNER JOIN db.type t ON o.type = t.id;
 

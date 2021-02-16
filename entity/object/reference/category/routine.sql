@@ -3,25 +3,25 @@
 --------------------------------------------------------------------------------
 /**
  * Создаёт категорию
- * @param {numeric} pParent - Идентификатор объекта родителя
- * @param {numeric} pType - Идентификатор типа
+ * @param {uuid} pParent - Идентификатор объекта родителя
+ * @param {uuid} pType - Идентификатор типа
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
- * @return {numeric}
+ * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION CreateCategory (
-  pParent       numeric,
-  pType         numeric,
+  pParent       uuid,
+  pType         uuid,
   pCode         text,
   pName         text,
   pDescription	text default null
-) RETURNS       numeric
+) RETURNS       uuid
 AS $$
 DECLARE
-  nReference	numeric;
-  nClass        numeric;
-  nMethod       numeric;
+  nReference	uuid;
+  nClass        uuid;
+  nMethod       uuid;
 BEGIN
   SELECT class INTO nClass FROM db.type WHERE id = pType;
 
@@ -34,7 +34,7 @@ BEGIN
   INSERT INTO db.category (id, reference)
   VALUES (nReference, nReference);
 
-  nMethod := GetMethod(nClass, null, GetAction('create'));
+  nMethod := GetMethod(nClass, GetAction('create'));
   PERFORM ExecuteMethod(nReference, nMethod);
 
   RETURN nReference;
@@ -48,32 +48,32 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Редактирует категорию
- * @param {numeric} pId - Идентификатор
- * @param {numeric} pParent - Идентификатор объекта родителя
- * @param {numeric} pType - Идентификатор типа
+ * @param {uuid} pId - Идентификатор
+ * @param {uuid} pParent - Идентификатор объекта родителя
+ * @param {uuid} pType - Идентификатор типа
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION EditCategory (
-  pId           numeric,
-  pParent       numeric default null,
-  pType         numeric default null,
+  pId           uuid,
+  pParent       uuid default null,
+  pType         uuid default null,
   pCode         text default null,
   pName         text default null,
   pDescription	text default null
 ) RETURNS       void
 AS $$
 DECLARE
-  nClass        numeric;
-  nMethod       numeric;
+  nClass        uuid;
+  nMethod       uuid;
 BEGIN
   PERFORM EditReference(pId, pParent, pType, pCode, pName, pDescription);
 
   SELECT class INTO nClass FROM db.object WHERE id = pId;
 
-  nMethod := GetMethod(nClass, null, GetAction('edit'));
+  nMethod := GetMethod(nClass, GetAction('edit'));
   PERFORM ExecuteMethod(pId, nMethod);
 END;
 $$ LANGUAGE plpgsql
@@ -86,7 +86,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION GetCategory (
   pCode		text
-) RETURNS 	numeric
+) RETURNS 	uuid
 AS $$
 BEGIN
   RETURN GetReference(pCode, 'category');

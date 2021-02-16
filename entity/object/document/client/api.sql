@@ -17,7 +17,7 @@ GRANT SELECT ON api.client TO administrator;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.client (
-  pState	numeric
+  pState	uuid
 ) RETURNS	SETOF api.client
 AS $$
   SELECT * FROM api.client WHERE state = pState;
@@ -45,33 +45,33 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Добавляет нового клиента.
- * @param {numeric} pParent - Идентификатор родителя | null
+ * @param {uuid} pParent - Идентификатор родителя | null
  * @param {text} pType - Tип клиента
  * @param {text} pCode - ИНН - для юридического лица | Имя пользователя (login) | null
- * @param {numeric} pUserId - Идентификатор пользователя системы | null
+ * @param {uuid} pUserId - Идентификатор пользователя системы | null
  * @param {jsonb} pName - Полное наименование компании/Ф.И.О.
  * @param {jsonb} pPhone - Телефоны
  * @param {jsonb} pEmail - Электронные адреса
  * @param {jsonb} pInfo - Дополнительная информация
  * @param {timestamp} pCreation - Дата открытия | Дата рождения | null
  * @param {text} pDescription - Информация о клиенте
- * @return {numeric}
+ * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION api.add_client (
-  pParent       numeric,
+  pParent       uuid,
   pType         text,
   pCode         text,
-  pUserId       numeric,
+  pUserId       uuid,
   pName         jsonb,
   pPhone        jsonb DEFAULT null,
   pEmail        jsonb DEFAULT null,
   pInfo         jsonb DEFAULT null,
   pCreation     timestamp default null,
   pDescription  text DEFAULT null
-) RETURNS       numeric
+) RETURNS       uuid
 AS $$
 DECLARE
-  nClient       numeric;
+  nClient       uuid;
   arKeys        text[];
 BEGIN
   pType := lower(coalesce(pType, 'physical'));
@@ -92,11 +92,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Обновляет данные клиента.
- * @param {numeric} pId - Идентификатор (api.get_client)
- * @param {numeric} pParent - Идентификатор родителя | null
+ * @param {uuid} pId - Идентификатор (api.get_client)
+ * @param {uuid} pParent - Идентификатор родителя | null
  * @param {text} pType - Tип клиента
  * @param {text} pCode - ИНН - для юридического лица | Имя пользователя (login) | null
- * @param {numeric} pUserId - Идентификатор пользователя системы | null
+ * @param {uuid} pUserId - Идентификатор пользователя системы | null
  * @param {jsonb} pName - Полное наименование компании/Ф.И.О.
  * @param {jsonb} pPhone - Телефоны
  * @param {jsonb} pEmail - Электронные адреса
@@ -106,11 +106,11 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_client (
-  pId           numeric,
-  pParent       numeric default null,
+  pId           uuid,
+  pParent       uuid default null,
   pType         text default null,
   pCode         text default null,
-  pUserId       numeric default null,
+  pUserId       uuid default null,
   pName         jsonb default null,
   pPhone        jsonb DEFAULT null,
   pEmail        jsonb DEFAULT null,
@@ -120,8 +120,8 @@ CREATE OR REPLACE FUNCTION api.update_client (
 ) RETURNS       void
 AS $$
 DECLARE
-  nType         numeric;
-  nClient       numeric;
+  nType         uuid;
+  nClient       uuid;
   arKeys        text[];
 BEGIN
   SELECT c.id INTO nClient FROM db.client c WHERE c.id = pId;
@@ -150,11 +150,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.set_client (
-  pId           numeric,
-  pParent       numeric,
+  pId           uuid,
+  pParent       uuid,
   pType         text,
   pCode         text,
-  pUserId       numeric,
+  pUserId       uuid,
   pName         jsonb,
   pPhone        jsonb DEFAULT null,
   pEmail        jsonb DEFAULT null,
@@ -181,11 +181,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает клиента
- * @param {numeric} pId - Идентификатор
+ * @param {uuid} pId - Идентификатор
  * @return {api.client} - Клиент
  */
 CREATE OR REPLACE FUNCTION api.get_client (
-  pId		numeric
+  pId		uuid
 ) RETURNS	SETOF api.client
 AS $$
   SELECT * FROM api.client WHERE id = pId

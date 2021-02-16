@@ -3,27 +3,27 @@
 --------------------------------------------------------------------------------
 /**
  * Создаёт программу
- * @param {numeric} pParent - Идентификатор объекта родителя
- * @param {numeric} pType - Идентификатор типа
+ * @param {uuid} pParent - Идентификатор объекта родителя
+ * @param {uuid} pType - Идентификатор типа
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
  * @param {text} pBody - Тело
  * @param {text} pDescription - Описание
- * @return {numeric}
+ * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION CreateProgram (
-  pParent       numeric,
-  pType         numeric,
+  pParent       uuid,
+  pType         uuid,
   pCode         text,
   pName         text,
   pBody         text,
   pDescription	text default null
-) RETURNS       numeric
+) RETURNS       uuid
 AS $$
 DECLARE
-  nReference	numeric;
-  nClass        numeric;
-  nMethod       numeric;
+  nReference	uuid;
+  nClass        uuid;
+  nMethod       uuid;
 BEGIN
   SELECT class INTO nClass FROM db.type WHERE id = pType;
 
@@ -36,7 +36,7 @@ BEGIN
   INSERT INTO db.program (reference, body)
   VALUES (nReference, pBody);
 
-  nMethod := GetMethod(nClass, null, GetAction('create'));
+  nMethod := GetMethod(nClass, GetAction('create'));
   PERFORM ExecuteMethod(nReference, nMethod);
 
   RETURN nReference;
@@ -50,9 +50,9 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Редактирует агента
- * @param {numeric} pId - Идентификатор
- * @param {numeric} pParent - Идентификатор объекта родителя
- * @param {numeric} pType - Идентификатор типа
+ * @param {uuid} pId - Идентификатор
+ * @param {uuid} pParent - Идентификатор объекта родителя
+ * @param {uuid} pType - Идентификатор типа
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
  * @param {text} pBody - Тело
@@ -60,9 +60,9 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION EditProgram (
-  pId           numeric,
-  pParent       numeric default null,
-  pType         numeric default null,
+  pId           uuid,
+  pParent       uuid default null,
+  pType         uuid default null,
   pCode         text default null,
   pName         text default null,
   pBody         text default null,
@@ -70,8 +70,8 @@ CREATE OR REPLACE FUNCTION EditProgram (
 ) RETURNS       void
 AS $$
 DECLARE
-  nClass        numeric;
-  nMethod       numeric;
+  nClass        uuid;
+  nMethod       uuid;
 BEGIN
   PERFORM EditReference(pId, pParent, pType, pCode, pName, pDescription);
 
@@ -81,7 +81,7 @@ BEGIN
 
   SELECT class INTO nClass FROM db.object WHERE id = pId;
 
-  nMethod := GetMethod(nClass, null, GetAction('edit'));
+  nMethod := GetMethod(nClass, GetAction('edit'));
   PERFORM ExecuteMethod(pId, nMethod);
 END;
 $$ LANGUAGE plpgsql
@@ -94,7 +94,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION GetProgram (
   pCode		text
-) RETURNS 	numeric
+) RETURNS 	uuid
 AS $$
 BEGIN
   RETURN GetReference(pCode, 'program');
@@ -108,7 +108,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetProgramBody (
-  pId       numeric
+  pId       uuid
 ) RETURNS 	text
 AS $$
   SELECT body FROM db.program WHERE id = pId;

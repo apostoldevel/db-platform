@@ -27,7 +27,7 @@ CREATE OR REPLACE FUNCTION api.signin (
 ) RETURNS       record
 AS $$
 DECLARE
-  nAudience     numeric;
+  nAudience     integer;
 BEGIN
   SELECT a.id INTO nAudience FROM oauth2.audience a WHERE a.code = oauth2_current_client_id();
 
@@ -81,7 +81,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pAgent - Агент
  * @param {inet} pHost - IP адрес
  * @out param {boolean} authorized - Результат авторизации
- * @out param {numeric} userid - Идентификатор учётной записи
+ * @out param {uuid} userid - Идентификатор учётной записи
  * @out param {text} code - Код авторизации (разрешение на авторизацию для OAuth2)
  * @out param {text} message - Сообшение
  * @return {record}
@@ -92,7 +92,7 @@ CREATE OR REPLACE FUNCTION api.authenticate (
   pAgent			text DEFAULT null,
   pHost       		inet DEFAULT null,
   OUT authorized    boolean,
-  OUT userid		numeric,
+  OUT userid		uuid,
   OUT code			text,
   OUT message		text
 ) RETURNS			record
@@ -116,7 +116,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pAgent - Агент
  * @param {inet} pHost - IP адрес
  * @out param {boolean} authorized - Результат авторизации
- * @out param {numeric} userid - Идентификатор учётной записи
+ * @out param {uuid} userid - Идентификатор учётной записи
  * @out param {text} message - Сообшение
  * @return {record}
  */
@@ -125,7 +125,7 @@ CREATE OR REPLACE FUNCTION api.authorize (
   pAgent            text DEFAULT null,
   pHost             inet DEFAULT null,
   OUT authorized    boolean,
-  OUT userid		numeric,
+  OUT userid		uuid,
   OUT message       text
 ) RETURNS           record
 AS $$
@@ -232,12 +232,12 @@ GRANT SELECT ON api.session TO administrator;
 --------------------------------------------------------------------------------
 /**
  * Активные сессии.
- * @param {numeric} pUserId - Идентификатор пользователя
+ * @param {uuid} pUserId - Идентификатор пользователя
  * @param {text} pUsername - Наименование пользователя (login)
  * @return {SETOF api.session} - Записи
  */
 CREATE OR REPLACE FUNCTION api.session (
-  pUserId       numeric DEFAULT null,
+  pUserId       uuid DEFAULT null,
   pUsername     text DEFAULT null
 ) RETURNS	    SETOF api.session
 AS $$
@@ -256,7 +256,7 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 /**
  * Возвращает сессию
- * @param {numeric} pId - Идентификатор
+ * @param {varchar} pCode - Идентификатор
  * @return {api.session}
  */
 CREATE OR REPLACE FUNCTION api.get_session (
@@ -318,7 +318,7 @@ GRANT SELECT ON api.user TO administrator;
  * @param {text} pDescription - Описание
  * @param {boolean} pPasswordChange - Сменить пароль при следующем входе в систему
  * @param {boolean} pPasswordNotChange - Установить запрет на смену пароля самим пользователем
- * @return {numeric}
+ * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION api.add_user (
   pUserName             text,
@@ -329,7 +329,7 @@ CREATE OR REPLACE FUNCTION api.add_user (
   pDescription          text DEFAULT null,
   pPasswordChange       boolean DEFAULT true,
   pPasswordNotChange    boolean DEFAULT false
-) RETURNS               numeric
+) RETURNS               uuid
 AS $$
 BEGIN
   RETURN CreateUser(pUserName, pPassword, pName, pPhone, pEmail, pDescription, pPasswordChange, pPasswordNotChange);
@@ -343,7 +343,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Обновляет учётную запись пользователя.
- * @param {numeric} pId - Идентификатор учетной записи
+ * @param {uuid} pId - Идентификатор учетной записи
  * @param {text} pUserName - Пользователь
  * @param {text} pPassword - Пароль
  * @param {text} pName - Полное имя
@@ -355,7 +355,7 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_user (
-  pId                   numeric,
+  pId                   uuid,
   pUserName             text DEFAULT null,
   pPassword             text DEFAULT null,
   pName                 text DEFAULT null,
@@ -378,7 +378,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.set_user (
-  pId                   numeric,
+  pId                   uuid,
   pUserName             text DEFAULT null,
   pPassword             text DEFAULT null,
   pName                 text DEFAULT null,
@@ -407,11 +407,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Удаляет учётную запись пользователя.
- * @param {numeric} pId - Идентификатор учётной записи пользователя
+ * @param {uuid} pId - Идентификатор учётной записи пользователя
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.delete_user (
-  pId         numeric
+  pId         uuid
 ) RETURNS     void
 AS $$
 BEGIN
@@ -429,7 +429,7 @@ $$ LANGUAGE plpgsql
  * @return {SETOF api.user} - Учётная запись пользователя
  */
 CREATE OR REPLACE FUNCTION api.get_user (
-  pId         numeric DEFAULT current_userid()
+  pId         uuid DEFAULT current_userid()
 ) RETURNS     SETOF api.user
 AS $$
   SELECT * FROM api.user WHERE id = pId;
@@ -469,13 +469,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Меняет пароль пользователя.
- * @param {numeric} pId - Идентификатор учетной записи
+ * @param {uuid} pId - Идентификатор учетной записи
  * @param {text} pOldPass - Старый пароль
  * @param {text} pNewPass - Новый пароль
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.change_password (
-  pId           numeric,
+  pId           uuid,
   pOldPass      text,
   pNewPass      text
 ) RETURNS       void
@@ -505,7 +505,7 @@ CREATE OR REPLACE FUNCTION api.recovery_password (
 AS $$
 DECLARE
   nTicket			uuid;
-  nUserId			numeric;
+  nUserId			uuid;
   vOAuthSecret		text;
 BEGIN
   SELECT id INTO nUserId FROM db.user WHERE phone = TrimPhone(pIdentifier) AND type = 'U';
@@ -561,7 +561,7 @@ CREATE OR REPLACE FUNCTION api.check_recovery_ticket (
 ) RETURNS       	record
 AS $$
 DECLARE
-  nUserId			numeric;
+  nUserId			uuid;
 BEGIN
   nUserId := CheckRecoveryTicket(pTicket, vSecurityAnswer);
 
@@ -591,7 +591,7 @@ CREATE OR REPLACE FUNCTION api.reset_password (
 ) RETURNS       	record
 AS $$
 DECLARE
-  nUserId			numeric;
+  nUserId			uuid;
   vOAuthSecret		text;
 BEGIN
   nUserId := CheckRecoveryTicket(pTicket, vSecurityAnswer);
@@ -610,7 +610,7 @@ BEGIN
       PERFORM SetPassword(nUserId, pPassword);
     END IF;
 
-    UPDATE db.recovery_ticket SET used = true WHERE ticket = pTicket;
+    UPDATE db.recovery_ticket SET used = Now() WHERE ticket = pTicket;
   END IF;
 END;
 $$ LANGUAGE plpgsql
@@ -625,8 +625,8 @@ $$ LANGUAGE plpgsql
  * @return {record} - Группы
  */
 CREATE OR REPLACE FUNCTION api.user_member (
-  pUserId numeric DEFAULT current_userid()
-) RETURNS TABLE (id numeric, username text, name text, description text)
+  pUserId uuid DEFAULT current_userid()
+) RETURNS TABLE (id uuid, username text, name text, description text)
 AS $$
   SELECT g.id, g.username, g.name, g.description
     FROM db.member_group m INNER JOIN groups g ON g.id = m.userid
@@ -643,8 +643,8 @@ $$ LANGUAGE SQL
  * @return {record} - Группы
  */
 CREATE OR REPLACE FUNCTION api.member_user (
-  pUserId numeric DEFAULT current_userid()
-) RETURNS TABLE (id numeric, username text, name text, description text)
+  pUserId uuid DEFAULT current_userid()
+) RETURNS TABLE (id uuid, username text, name text, description text)
 AS $$
   SELECT * FROM api.user_member(pUserId);
 $$ LANGUAGE SQL
@@ -656,11 +656,11 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 /**
  * Блокирует учётную запись пользователя.
- * @param {numeric} pId - Идентификатор учётной записи пользователя
+ * @param {uuid} pId - Идентификатор учётной записи пользователя
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.user_lock (
-  pId           numeric
+  pId           uuid
 ) RETURNS       void
 AS $$
 BEGIN
@@ -675,13 +675,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Снимает блокировку с учётной записи пользователя.
- * @param {numeric} pId - Идентификатор учётной записи пользователя
- * @out param {numeric} result - Результат
- * @out param {text} message - Текст ошибки/результата
+ * @param {uuid} pId - Идентификатор учётной записи пользователя
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.user_unlock (
-  pId       numeric
+  pId       uuid
 ) RETURNS   void
 AS $$
 BEGIN
@@ -696,17 +694,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает таблицу IP-адресов в виде одной строки.
- * @param {numeric} pId - Идентификатор учётной записи пользователя
+ * @param {uuid} pId - Идентификатор учётной записи пользователя
  * @param {char} pType - Тип: A - allow; D - denied'
- * @out param {numeric} id - Идентификатор учётной записи пользователя
+ * @out param {uuid} id - Идентификатор учётной записи пользователя
  * @out param {char} type - Тип: A - allow; D - denied'
  * @out param {text} iptable - IP-адреса в виде одной строки
  * @return {text}
  */
 CREATE OR REPLACE FUNCTION api.get_user_iptable (
-  pId		numeric,
+  pId		uuid,
   pType		char
-) RETURNS TABLE (id numeric, type char, iptable text)
+) RETURNS TABLE (id uuid, type char, iptable text)
 AS $$
   SELECT pId, pType, GetIPTableStr(pId, pType);
 $$ LANGUAGE SQL
@@ -718,13 +716,13 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 /**
  * Устанавливает таблицу IP-адресов из строки.
- * @param {numeric} pId - Идентификатор учётной записи пользователя
+ * @param {uuid} pId - Идентификатор учётной записи пользователя
  * @param {char} pType - Тип: A - allow; D - denied'
  * @param {text} pIpTable - IP-адреса в виде одной строки
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.set_user_iptable (
-  pId       	numeric,
+  pId       	uuid,
   pType     	char,
   pIpTable  	text
 ) RETURNS   	void
@@ -754,13 +752,13 @@ GRANT SELECT ON api.group TO administrator;
  * @param {text} pUserName - Группа
  * @param {text} pName - Полное имя
  * @param {text} pDescription - Описание
- * @return {numeric}
+ * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION api.add_group (
   pUserName     text,
   pName         text,
   pDescription  text
-) RETURNS       numeric
+) RETURNS       uuid
 AS $$
 BEGIN
   RETURN CreateGroup(pUserName, pName, pDescription);
@@ -774,14 +772,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Обновляет учётные данные группы.
- * @param {numeric} pId - Идентификатор группы
+ * @param {uuid} pId - Идентификатор группы
  * @param {text} pUserName - Группа
  * @param {text} pName - Полное имя
  * @param {text} pDescription - Описание
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_group (
-  pId           numeric,
+  pId           uuid,
   pUserName     text,
   pName         text,
   pDescription  text
@@ -799,7 +797,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.set_group (
-  pId           numeric,
+  pId           uuid,
   pUserName     text,
   pName         text,
   pDescription  text
@@ -823,14 +821,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Удаляет группу.
- * @param {numeric} pId - Идентификатор группы
- * @out {numeric} id - Идентификатор группы
- * @out param {numeric} result - Результат
- * @out param {text} message - Текст ошибки
+ * @param {uuid} pId - Идентификатор группы
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.delete_group (
-  pId           numeric
+  pId           uuid
 ) RETURNS       void
 AS $$
 BEGIN
@@ -848,7 +843,7 @@ $$ LANGUAGE plpgsql
  * @return {SETOF api.group} - Группа
  */
 CREATE OR REPLACE FUNCTION api.get_group (
-  pId         numeric
+  pId         uuid
 ) RETURNS     SETOF api.group
 AS $$
   SELECT * FROM api.group WHERE id = pId;
@@ -888,13 +883,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Добавляет пользователя в группу.
- * @param {numeric} pGroup - Идентификатор группы
- * @param {numeric} pMember - Идентификатор пользователя
+ * @param {uuid} pGroup - Идентификатор группы
+ * @param {uuid} pMember - Идентификатор пользователя
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.group_member_add (
-  pGroup        numeric,
-  pMember       numeric
+  pGroup        uuid,
+  pMember       uuid
 ) RETURNS       void
 AS $$
 BEGIN
@@ -909,13 +904,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Добавляет пользователя в группу.
- * @param {numeric} pMember - Идентификатор пользователя
- * @param {numeric} pGroup - Идентификатор группы
+ * @param {uuid} pMember - Идентификатор пользователя
+ * @param {uuid} pGroup - Идентификатор группы
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.member_group_add (
-  pMember       numeric,
-  pGroup        numeric
+  pMember       uuid,
+  pGroup        uuid
 ) RETURNS       void
 AS $$
 BEGIN
@@ -930,13 +925,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Удаляет пользователя из группу.
- * @param {numeric} pGroup - Идентификатор группы
- * @param {numeric} pMember - Идентификатор пользователя, при null удаляет всех пользователей из указанной группы
+ * @param {uuid} pGroup - Идентификатор группы
+ * @param {uuid} pMember - Идентификатор пользователя, при null удаляет всех пользователей из указанной группы
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.group_member_delete (
-  pGroup        numeric,
-  pMember       numeric DEFAULT null
+  pGroup        uuid,
+  pMember       uuid DEFAULT null
 ) RETURNS       void
 AS $$
 BEGIN
@@ -951,15 +946,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Удаляет группу для пользователя.
- * @param {numeric} pMember - Идентификатор пользователя
- * @param {numeric} pGroup - Идентификатор группы, при null удаляет все группы для указанного пользователя
- * @out param {numeric} result - Результат
- * @out param {text} message - Текст ошибки
+ * @param {uuid} pMember - Идентификатор пользователя
+ * @param {uuid} pGroup - Идентификатор группы, при null удаляет все группы для указанного пользователя
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.member_group_delete (
-  pMember       numeric,
-  pGroup        numeric
+  pMember       uuid,
+  pGroup        uuid
 ) RETURNS       void
 AS $$
 BEGIN
@@ -987,9 +980,9 @@ GRANT SELECT ON api.member_group TO administrator;
  * @return {TABLE} - Группы
  */
 CREATE OR REPLACE FUNCTION api.group_member (
-  pGroupId    numeric
+  pGroupId    uuid
 ) RETURNS TABLE (
-  id          numeric,
+  id          uuid,
   username    text,
   name        text,
   email       text,
@@ -1013,9 +1006,9 @@ $$ LANGUAGE SQL
  * @return {TABLE} - Группы
  */
 CREATE OR REPLACE FUNCTION api.member_group (
-  pUserId     numeric DEFAULT current_userid()
+  pUserId     uuid DEFAULT current_userid()
 ) RETURNS TABLE (
-  id          numeric,
+  id          uuid,
   username    text,
   name        text,
   description text
@@ -1031,7 +1024,7 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.get_groups_json (
-  pMember       numeric
+  pMember       uuid
 ) RETURNS       json
 AS $$
 DECLARE
@@ -1054,13 +1047,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Проверяет роль пользователя.
- * @param {numeric} pRole - Идентификатор роли (группы)
- * @param {numeric} pUser - Идентификатор пользователя (учётной записи)
+ * @param {uuid} pRole - Идентификатор роли (группы)
+ * @param {uuid} pUser - Идентификатор пользователя (учётной записи)
  * @return {boolean}
  */
 CREATE OR REPLACE FUNCTION api.is_user_role (
-  pRole         numeric,
-  pUser         numeric DEFAULT current_userid()
+  pRole         uuid,
+  pUser         uuid DEFAULT current_userid()
 ) RETURNS       boolean
 AS $$
 BEGIN
@@ -1106,11 +1099,11 @@ GRANT SELECT ON api.area_type TO administrator;
 --------------------------------------------------------------------------------
 /**
  * Позвращает тип зоны.
- * @param {numeric} pId - Идентификатор типа зоны
+ * @param {uuid} pId - Идентификатор типа области видимости
  * @return {record} - Запись
  */
 CREATE OR REPLACE FUNCTION api.get_area_type (
-  pId		numeric
+  pId		uuid
 ) RETURNS	SETOF api.area_type
 AS $$
   SELECT * FROM api.area_type WHERE id = pId
@@ -1130,24 +1123,24 @@ GRANT SELECT ON api.area TO administrator;
 -- api.add_area ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Создаёт зону.
- * @param {numeric} pParent - Идентификатор "родителя"
- * @param {numeric} pType - Идентификатор типа
+ * Создаёт область видимости.
+ * @param {uuid} pParent - Идентификатор "родителя"
+ * @param {uuid} pType - Идентификатор типа
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
- * @return {numeric}
+ * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION api.add_area (
-  pParent       numeric,
-  pType         numeric,
+  pParent       uuid,
+  pType         uuid,
   pCode         text,
   pName         text,
   pDescription  text DEFAULT null
-) RETURNS       numeric
+) RETURNS       uuid
 AS $$
 BEGIN
-  RETURN CreateArea(pParent, pType, pCode, pName, pDescription);
+  RETURN CreateArea(gen_kernel_uuid('8'), pParent, pType, pCode, pName, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1157,10 +1150,10 @@ $$ LANGUAGE plpgsql
 -- api.update_area -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Обновляет зону.
- * @param {numeric} pId - Идентификатор зоны
- * @param {numeric} pParent - Идентификатор "родителя"
- * @param {numeric} pType - Идентификатор типа
+ * Обновляет область видимости.
+ * @param {uuid} pId - Идентификатор области видимости
+ * @param {uuid} pParent - Идентификатор "родителя"
+ * @param {uuid} pType - Идентификатор типа
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
@@ -1169,9 +1162,9 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_area (
-  pId               numeric,
-  pParent           numeric DEFAULT null,
-  pType             numeric DEFAULT null,
+  pId               uuid,
+  pParent           uuid DEFAULT null,
+  pType             uuid DEFAULT null,
   pCode             text DEFAULT null,
   pName             text DEFAULT null,
   pDescription      text DEFAULT null,
@@ -1191,9 +1184,9 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.set_area (
-  pId               numeric,
-  pParent           numeric DEFAULT null,
-  pType             numeric DEFAULT null,
+  pId               uuid,
+  pParent           uuid DEFAULT null,
+  pType             uuid DEFAULT null,
   pCode             text DEFAULT null,
   pName             text DEFAULT null,
   pDescription      text DEFAULT null,
@@ -1218,12 +1211,12 @@ $$ LANGUAGE plpgsql
 -- api.delete_area -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Удаляет зону.
- * @param {numeric} pId - Идентификатор зоны
+ * Удаляет область видимости.
+ * @param {uuid} pId - Идентификатор
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.delete_area (
-  pId       numeric
+  pId       uuid
 ) RETURNS   void
 AS $$
 BEGIN
@@ -1237,12 +1230,12 @@ $$ LANGUAGE plpgsql
 -- api.safely_delete_area ------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Безопасно удаляет зону.
- * @param {numeric} pId - Идентификатор зоны
+ * Безопасно удаляет область видимости.
+ * @param {uuid} pId - Идентификатор
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.safely_delete_area (
-  pId       numeric
+  pId       uuid
 ) RETURNS   bool
 AS $$
 DECLARE
@@ -1265,7 +1258,7 @@ $$ LANGUAGE plpgsql
 -- api.clear_area --------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Удаляет зоны без документов.
+ * Удаляет области видимости без документов.
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.clear_area (
@@ -1297,11 +1290,11 @@ $$ LANGUAGE plpgsql
 -- api.get_area ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает данные зоны.
- * @return {record} - Данные зоны
+ * Возвращает данные области видимости.
+ * @return {SETOF api.area}
  */
 CREATE OR REPLACE FUNCTION api.get_area (
-  pId         numeric
+  pId         uuid
 ) RETURNS     SETOF api.area
 AS $$
   SELECT * FROM api.area WHERE id = pId;
@@ -1340,14 +1333,14 @@ $$ LANGUAGE plpgsql
 -- api.area_member_add ---------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Добавляет пользователя или группу в зону.
- * @param {numeric} pArea - Идентификатор зоны
- * @param {numeric} pMember - Идентификатор пользователя/группы
+ * Добавляет пользователя или группу в область видимости.
+ * @param {uuid} pArea - Идентификатор области видимости
+ * @param {uuid} pMember - Идентификатор пользователя/группы
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.area_member_add (
-  pArea       numeric,
-  pMember     numeric
+  pArea       uuid,
+  pMember     uuid
 ) RETURNS     void
 AS $$
 BEGIN
@@ -1361,14 +1354,14 @@ $$ LANGUAGE plpgsql
 -- api.member_area_add ---------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Добавляет пользователя или группу в зону.
- * @param {numeric} pMember - Идентификатор пользователя/группы
- * @param {numeric} pArea - Идентификатор зоны
+ * Добавляет пользователя или группу в область видимости.
+ * @param {uuid} pMember - Идентификатор пользователя/группы
+ * @param {uuid} pArea - Идентификатор области видимости
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.member_area_add (
-  pMember     numeric,
-  pArea       numeric
+  pMember     uuid,
+  pArea       uuid
 ) RETURNS     void
 AS $$
 BEGIN
@@ -1382,14 +1375,14 @@ $$ LANGUAGE plpgsql
 -- api.area_member_delete ------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Удаляет пользователя из зоны.
- * @param {numeric} pArea - Идентификатор зоны
- * @param {numeric} pMember - Идентификатор пользователя, при null удаляет всех пользователей из указанной зоны
+ * Удаляет пользователя из области видимости.
+ * @param {uuid} pArea - Идентификатор области видимости
+ * @param {uuid} pMember - Идентификатор пользователя, при null удаляет всех пользователей из указанной области видимости
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.area_member_delete (
-  pArea       numeric,
-  pMember     numeric DEFAULT null
+  pArea       uuid,
+  pMember     uuid DEFAULT null
 ) RETURNS     void
 AS $$
 BEGIN
@@ -1403,14 +1396,14 @@ $$ LANGUAGE plpgsql
 -- api.member_area_delete ------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Удаляет зону для пользователя.
- * @param {numeric} pMember - Идентификатор пользователя
- * @param {numeric} pArea - Идентификатор зоны, при null удаляет все зоны для указанного пользователя
+ * Удаляет область видимости для пользователя.
+ * @param {uuid} pMember - Идентификатор пользователя
+ * @param {uuid} pArea - Идентификатор области видимости, при null удаляет все области видимости для указанного пользователя
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.member_area_delete (
-  pMember     numeric,
-  pArea       numeric
+  pMember     uuid,
+  pArea       uuid
 ) RETURNS     void
 AS $$
 BEGIN
@@ -1434,13 +1427,13 @@ GRANT SELECT ON api.member_area TO administrator;
 -- api.area_member -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список участников зоны.
+ * Возвращает список участников области видимости.
  * @return {SETOF record} - Запись
  */
 CREATE OR REPLACE FUNCTION api.area_member (
-  pAreaId     numeric
+  pAreaId     uuid
 ) RETURNS TABLE (
-  id          numeric,
+  id          uuid,
   type        char,
   username    text,
   name        text,
@@ -1458,11 +1451,11 @@ $$ LANGUAGE SQL
 -- api.member_area -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает зоны доступные участнику.
- * @return {record} - Данные зоны
+ * Возвращает области видимости доступные участнику.
+ * @return {record} - Данные области видимости
  */
 CREATE OR REPLACE FUNCTION api.member_area (
-  pUserId   numeric DEFAULT current_userid()
+  pUserId   uuid DEFAULT current_userid()
 ) RETURNS   SETOF api.area
 AS $$
   WITH RECURSIVE area_tree(id, parent) AS (
@@ -1497,18 +1490,19 @@ GRANT SELECT ON api.interface TO administrator;
 --------------------------------------------------------------------------------
 /**
  * Создаёт интерфейс.
+ * @param {text} pCode - Код
  * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
- * @out param {numeric} id - Идентификатор интерфейса
- * @return {numeric}
+ * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION api.add_interface (
+  pCode         text,
   pName         text,
   pDescription  text DEFAULT null
-) RETURNS       numeric
+) RETURNS       uuid
 AS $$
 BEGIN
-  RETURN CreateInterface(pName, pDescription);
+  RETURN CreateInterface(pCode, pName, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1519,19 +1513,21 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Обновляет интерфейс.
- * @param {numeric} pId - Идентификатор интерфейса
+ * @param {uuid} pId - Идентификатор интерфейса
+ * @param {text} pCode - Код
  * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_interface (
-  pId           numeric,
+  pId           uuid,
+  pCode         text,
   pName         text,
   pDescription  text DEFAULT null
 ) RETURNS       void
 AS $$
 BEGIN
-  PERFORM UpdateInterface(pId, pName, pDescription);
+  PERFORM UpdateInterface(pId, pCode, pName, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1542,16 +1538,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.set_interface (
-  pId           numeric,
+  pId           uuid,
+  pCode         text,
   pName         text,
   pDescription  text DEFAULT null
 ) RETURNS       SETOF api.interface
 AS $$
 BEGIN
   IF pId IS NULL THEN
-    pId := api.add_interface(pName, pDescription);
+    pId := api.add_interface(pCode, pName, pDescription);
   ELSE
-    PERFORM api.update_interface(pId, pName, pDescription);
+    PERFORM api.update_interface(pId, pCode, pName, pDescription);
   END IF;
 
   RETURN QUERY SELECT * FROM api.interface WHERE id = pId;
@@ -1565,12 +1562,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Удаляет интерфейс.
- * @param {numeric} pId - Идентификатор интерфейса
- * @out {numeric} id - Идентификатор интерфейса
+ * @param {uuid} pId - Идентификатор интерфейса
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.delete_interface (
-  pId         numeric
+  pId         uuid
 ) RETURNS     void
 AS $$
 BEGIN
@@ -1588,7 +1584,7 @@ $$ LANGUAGE plpgsql
  * @return {record} - Данные интерфейса
  */
 CREATE OR REPLACE FUNCTION api.get_interface (
-  pId		numeric
+  pId		uuid
 ) RETURNS	SETOF api.interface
 AS $$
   SELECT * FROM api.interface WHERE id = pId;
@@ -1628,13 +1624,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Добавляет пользователя или группу к интерфейсу.
- * @param {numeric} pInterface - Идентификатор интерфейса
- * @param {numeric} pMember - Идентификатор пользователя/группы
+ * @param {uuid} pMember - Идентификатор пользователя/группы
+ * @param {uuid} pInterface - Идентификатор интерфейса
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.interface_member_add (
-  pMember       numeric,
-  pInterface	numeric
+  pMember       uuid,
+  pInterface	uuid
 ) RETURNS       void
 AS $$
 BEGIN
@@ -1649,13 +1645,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Добавляет пользователя или группу к интерфейсу.
- * @param {numeric} pMember - Идентификатор пользователя/группы
- * @param {numeric} pInterface - Идентификатор интерфейса
+ * @param {uuid} pMember - Идентификатор пользователя/группы
+ * @param {uuid} pInterface - Идентификатор интерфейса
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.member_interface_add (
-  pMember       numeric,
-  pInterface	numeric
+  pMember       uuid,
+  pInterface	uuid
 ) RETURNS       void
 AS $$
 BEGIN
@@ -1670,13 +1666,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Удаляет пользователя или группу из интерфейса.
- * @param {numeric} pInterface - Идентификатор интерфейса
- * @param {numeric} pMember - Идентификатор пользователя/группы, при null удаляет всех пользователей из указанного интерфейса
+ * @param {uuid} pInterface - Идентификатор интерфейса
+ * @param {uuid} pMember - Идентификатор пользователя/группы, при null удаляет всех пользователей из указанного интерфейса
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.interface_member_delete (
-  pInterface	numeric,
-  pMember       numeric DEFAULT null
+  pInterface	uuid,
+  pMember       uuid DEFAULT null
 ) RETURNS       void
 AS $$
 BEGIN
@@ -1691,13 +1687,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Удаляет интерфейс для пользователя или группу.
- * @param {numeric} pMember - Идентификатор пользователя/группы
- * @param {numeric} pInterface - Идентификатор интерфейса, при null удаляет все рабочие места для указанного пользователя
+ * @param {uuid} pMember - Идентификатор пользователя/группы
+ * @param {uuid} pInterface - Идентификатор интерфейса, при null удаляет все рабочие места для указанного пользователя
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.member_interface_delete (
-  pMember       numeric,
-  pInterface	numeric
+  pMember       uuid,
+  pInterface	uuid
 ) RETURNS       void
 AS $$
 BEGIN
@@ -1725,9 +1721,9 @@ GRANT SELECT ON api.member_interface TO administrator;
  * @return {SETOF record} - Запись
  */
 CREATE OR REPLACE FUNCTION api.interface_member (
-  pInterfaceId  numeric
+  pInterfaceId  uuid
 ) RETURNS TABLE (
-  id            numeric,
+  id            uuid,
   type          char,
   username      text,
   name          text,
@@ -1749,7 +1745,7 @@ $$ LANGUAGE SQL
  * @return {record} - Данные интерфейса
  */
 CREATE OR REPLACE FUNCTION api.member_interface (
-  pUserId   numeric DEFAULT current_userid()
+  pUserId   uuid DEFAULT current_userid()
 ) RETURNS   SETOF api.interface
 AS $$
   SELECT *
@@ -1770,17 +1766,17 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 /*
  * Устанавливает битовую маску доступа для класса и пользователя.
- * @param {numeric} pClass - Идентификатор класса
+ * @param {uuid} pClass - Идентификатор класса
  * @param {int} pMask - Маска доступа. Десять бит (d:{acsud}a:{acsud}) где: d - запрещающие биты; a - разрешающие биты: {a - access; c - create; s - select, u - update, d - delete}
- * @param {numeric} pUserId - Идентификатор пользователя/группы
+ * @param {uuid} pUserId - Идентификатор пользователя/группы
  * @param {boolean} pRecursive - Рекурсивно установить права для всех нижестоящих классов.
  * @param {boolean} pObjectSet - Установить права на объектах (документах) принадлежащих указанному классу.
  * @return {void}
 */
 CREATE OR REPLACE FUNCTION api.chmodc (
-  pClass        numeric,
+  pClass        uuid,
   pMask         int,
-  pUserId       numeric default current_userid(),
+  pUserId       uuid default current_userid(),
   pRecursive	boolean default true,
   pObjectSet	boolean default false
 ) RETURNS       void
@@ -1797,15 +1793,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /*
  * Устанавливает битовую маску доступа для методов и пользователя.
- * @param {numeric} pMethod - Идентификатор метода
+ * @param {uuid} pMethod - Идентификатор метода
  * @param {int} pMask - Маска доступа. Три бита (xve) где: x - execute, v - visible, e - enable
- * @param {numeric} pUserId - Идентификатор пользователся/группы
+ * @param {uuid} pUserId - Идентификатор пользователся/группы
  * @return {void}
 */
 CREATE OR REPLACE FUNCTION api.chmodm (
-  pMethod	numeric,
+  pMethod	uuid,
   pMask		int,
-  pUserId	numeric default current_userid()
+  pUserId	uuid default current_userid()
 ) RETURNS 	void
 AS $$
 BEGIN
@@ -1820,15 +1816,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /*
  * Устанавливает битовую маску доступа для объекта и пользователя.
- * @param {numeric} pObject - Идентификатор объекта
+ * @param {uuid} pObject - Идентификатор объекта
  * @param {int} pMask - Маска доступа. Три бита (sud) где: s - select, u - update, d - delete
- * @param {numeric} pUserId - Идентификатор пользователся/группы
+ * @param {uuid} pUserId - Идентификатор пользователся/группы
  * @return {void}
 */
 CREATE OR REPLACE FUNCTION api.chmodo (
-  pObject	numeric,
+  pObject	uuid,
   pMask		int,
-  pUserId	numeric default current_userid()
+  pUserId	uuid default current_userid()
 ) RETURNS 	void
 AS $$
 BEGIN

@@ -47,11 +47,11 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 /**
  * Возвращает событие
- * @param {numeric} pId - Идентификатор
+ * @param {bigint} pId - Идентификатор
  * @return {api.log}
  */
 CREATE OR REPLACE FUNCTION api.get_log (
-  pId		numeric
+  pId		bigint
 ) RETURNS	api.log
 AS $$
   SELECT * FROM api.log WHERE id = pId
@@ -301,8 +301,8 @@ DECLARE
 
   arPath		text[];
 
-  nPath			numeric;
-  nEndpoint		numeric;
+  nPath			uuid;
+  nEndpoint		uuid;
 
   nLength		integer;
 

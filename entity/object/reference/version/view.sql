@@ -5,7 +5,7 @@
 CREATE OR REPLACE VIEW Version (Id, Reference, Code, Name, Description)
 AS
   SELECT v.id, v.reference, d.code, d.name, d.description
-    FROM db.version v INNER JOIN db.reference d ON v.reference = d.id;
+    FROM db.version v INNER JOIN Reference d ON v.reference = d.id;
 
 GRANT SELECT ON Version TO administrator;
 
@@ -47,6 +47,6 @@ AS
          o.owner, o.ownercode, o.ownername, o.created,
          o.oper, o.opercode, o.opername, o.operdate
     FROM AccessVersion v INNER JOIN Reference r ON v.reference = r.id
-                        INNER JOIN Object    o ON v.reference = o.id;
+                         INNER JOIN Object    o ON v.reference = o.id;
 
 GRANT SELECT ON ObjectVersion TO administrator;

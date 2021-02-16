@@ -17,20 +17,20 @@ GRANT SELECT ON api.document TO administrator;
 --------------------------------------------------------------------------------
 /**
  * Добавляет документ.
- * @param {numeric} pParent - Ссылка на родительский объект: api.document | null
+ * @param {uuid} pParent - Ссылка на родительский объект: api.document | null
  * @param {text} pType - Тип
  * @param {text} pLabel - Метка
  * @param {text} pDescription - Описание
  * @param {text} pData - Данные
- * @return {numeric}
+ * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION api.add_document (
-  pParent       numeric,
+  pParent       uuid,
   pType         text,
   pLabel        text default null,
   pDescription  text DEFAULT null,
   pData			text DEFAULT null
-) RETURNS       numeric
+) RETURNS       uuid
 AS $$
 BEGIN
   RETURN CreateDocument(pParent, GetType(lower(pType)), pLabel, pDescription, pData);
@@ -44,7 +44,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Редактирует документ.
- * @param {numeric} pParent - Ссылка на родительский объект: Document.Parent | null
+ * @param {uuid} pParent - Ссылка на родительский объект: Document.Parent | null
  * @param {text} pType - Тип
  * @param {text} pLabel - Метка
  * @param {text} pDescription - Описание
@@ -52,8 +52,8 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_document (
-  pId		    numeric,
-  pParent       numeric default null,
+  pId		    uuid,
+  pParent       uuid default null,
   pType         text default null,
   pLabel        text default null,
   pDescription  text DEFAULT null,
@@ -61,8 +61,8 @@ CREATE OR REPLACE FUNCTION api.update_document (
 ) RETURNS       void
 AS $$
 DECLARE
-  nType         numeric;
-  nDocument		numeric;
+  nType         uuid;
+  nDocument		uuid;
 BEGIN
   SELECT t.id INTO nDocument FROM db.document t WHERE t.id = pId;
 
@@ -87,8 +87,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.set_document (
-  pId		    numeric,
-  pParent       numeric default null,
+  pId		    uuid,
+  pParent       uuid default null,
   pType         text default null,
   pLabel        text default null,
   pDescription  text DEFAULT null,
@@ -113,11 +113,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает документ
- * @param {numeric} pId - Идентификатор
+ * @param {uuid} pId - Идентификатор
  * @return {api.document}
  */
 CREATE OR REPLACE FUNCTION api.get_document (
-  pId		numeric
+  pId		uuid
 ) RETURNS	api.document
 AS $$
   SELECT * FROM api.document WHERE id = pId

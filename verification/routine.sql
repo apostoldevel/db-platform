@@ -3,15 +3,15 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddVerificationCode (
-  pUserId       numeric,
+  pUserId       uuid,
   pType         char,
   pCode		    text,
   pDateFrom     timestamptz DEFAULT Now(),
   pDateTo       timestamptz DEFAULT null
-) RETURNS       numeric
+) RETURNS       uuid
 AS $$
 DECLARE
-  nId           numeric;
+  nId           uuid;
   dtDateFrom 	timestamptz;
   dtDateTo      timestamptz;
 BEGIN
@@ -32,7 +32,7 @@ BEGIN
        AND validToDate > pDateFrom;
   ELSE
     -- обновим дату значения в текущем диапозоне дат
-    UPDATE db.verification_code SET used = true, validToDate = pDateFrom
+    UPDATE db.verification_code SET used = Now(), validToDate = pDateFrom
      WHERE type = pType
        AND userid = pUserId
        AND validFromDate <= pDateFrom
@@ -54,10 +54,10 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION NewVerificationCode (
-  pUserId       numeric,
+  pUserId       uuid,
   pType         char DEFAULT 'M',
   pCode		    text DEFAULT null
-) RETURNS       numeric
+) RETURNS       uuid
 AS $$
 BEGIN
   CASE pType
@@ -80,7 +80,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetVerificationCode (
-  pId           numeric
+  pId           uuid
 ) RETURNS 	    text
 AS $$
 DECLARE
@@ -100,11 +100,11 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION CheckVerificationCode (
   pType         text,
   pCode		    text
-) RETURNS       numeric
+) RETURNS       uuid
 AS $$
 DECLARE
-  nId			numeric;
-  nUserId		numeric;
+  nId			uuid;
+  nUserId		uuid;
   utilized      bool;
 BEGIN
   SELECT id, userid, used INTO nId, nUserId, utilized
@@ -118,7 +118,7 @@ BEGIN
     IF utilized THEN
       PERFORM SetErrorMessage('Код подтверждения уже был использован.');
     ELSE
-      UPDATE db.verification_code SET used = true WHERE id = nId;
+      UPDATE db.verification_code SET used = Now() WHERE id = nId;
       PERFORM SetErrorMessage('Успешно.');
       RETURN nUserId;
     END IF;
@@ -139,10 +139,10 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION ConfirmVerificationCode (
   pType         text,
   pCode		    text
-) RETURNS       numeric
+) RETURNS       uuid
 AS $$
 DECLARE
-  nUserId       numeric;
+  nUserId       uuid;
 BEGIN
   nUserId := CheckVerificationCode(pType, pCode);
 

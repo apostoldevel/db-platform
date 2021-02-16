@@ -3,20 +3,20 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateJob (
-  pParent           numeric,
-  pType             numeric,
-  pScheduler        numeric default null,
-  pProgram          numeric default null,
+  pParent           uuid,
+  pType             uuid,
+  pScheduler        uuid default null,
+  pProgram          uuid default null,
   pDateRun          timestamptz default null,
   pCode             text default null,
   pLabel            text default null,
   pDescription      text default null
-) RETURNS           numeric
+) RETURNS           uuid
 AS $$
 DECLARE
-  nDocument         numeric;
-  nClass            numeric;
-  nMethod           numeric;
+  nDocument         uuid;
+  nClass            uuid;
+  nMethod           uuid;
 BEGIN
   SELECT class INTO nClass FROM db.type WHERE id = pType;
 
@@ -35,7 +35,7 @@ BEGIN
   INSERT INTO db.job (id, document, code, scheduler, program, daterun)
   VALUES (nDocument, nDocument, pCode, pScheduler, pProgram, pDateRun);
 
-  nMethod := GetMethod(nClass, null, GetAction('create'));
+  nMethod := GetMethod(nClass, GetAction('create'));
   PERFORM ExecuteMethod(nDocument, nMethod);
 
   RETURN nDocument;
@@ -49,11 +49,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EditJob (
-  pId               numeric,
-  pParent           numeric default null,
-  pType             numeric default null,
-  pScheduler        numeric default null,
-  pProgram          numeric default null,
+  pId               uuid,
+  pParent           uuid default null,
+  pType             uuid default null,
+  pScheduler        uuid default null,
+  pProgram          uuid default null,
   pDateRun          timestamptz default null,
   pCode             text default null,
   pLabel            text default null,
@@ -61,14 +61,14 @@ CREATE OR REPLACE FUNCTION EditJob (
 ) RETURNS           void
 AS $$
 DECLARE
-  nDocument         numeric;
+  nDocument         uuid;
   vCode             text;
 
   old               db.job%rowtype;
   new               db.job%rowtype;
 
-  nClass            numeric;
-  nMethod           numeric;
+  nClass            uuid;
+  nMethod           uuid;
 BEGIN
   SELECT code INTO vCode FROM db.job WHERE id = pId;
 
@@ -94,7 +94,7 @@ BEGIN
 
   SELECT class INTO nClass FROM db.type WHERE id = pType;
 
-  nMethod := GetMethod(nClass, null, GetAction('edit'));
+  nMethod := GetMethod(nClass, GetAction('edit'));
   PERFORM ExecuteMethod(pId, nMethod, jsonb_build_object('old', row_to_json(old), 'new', row_to_json(new)));
 END;
 $$ LANGUAGE plpgsql
@@ -107,10 +107,10 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION GetJob (
   pCode     text
-) RETURNS	numeric
+) RETURNS	uuid
 AS $$
 DECLARE
-  nId		numeric;
+  nId		uuid;
 BEGIN
   SELECT id INTO nId FROM db.job WHERE code = pCode;
   RETURN nId;

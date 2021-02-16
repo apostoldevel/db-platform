@@ -37,10 +37,10 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 /**
  * Возвращает идентификатор авторизированного пользователя.
- * @return {numeric} - Идентификатор пользователя: users.id
+ * @return {uuid} - Идентификатор пользователя: users.id
  */
 CREATE OR REPLACE FUNCTION api.current_userid()
-RETURNS         numeric
+RETURNS         uuid
 AS $$
 BEGIN
   RETURN current_userid();

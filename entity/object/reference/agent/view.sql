@@ -8,8 +8,8 @@ CREATE OR REPLACE VIEW Agent (Id, Reference, Code, Name, Description,
 AS
   SELECT a.id, a.reference, mr.code, mr.name, mr.description, a.vendor,
          vr.code, vr.name, vr.description
-    FROM db.agent a INNER JOIN db.reference mr ON a.reference = mr.id
-                    INNER JOIN db.reference vr ON a.vendor = vr.id;
+    FROM db.agent a INNER JOIN Reference mr ON a.reference = mr.id
+                    INNER JOIN Reference vr ON a.vendor = vr.id;
 
 GRANT SELECT ON Agent TO administrator;
 
@@ -42,7 +42,7 @@ CREATE OR REPLACE VIEW ObjectAgent (Id, Object, Parent,
   Oper, OperCode, OperName, OperDate
 )
 AS
-  SELECT a.id, r.object, o.parent,
+  SELECT a.id, o.id, o.parent,
          o.entity, o.entitycode, o.entityname,
          o.class, o.classcode, o.classlabel,
          o.type, o.typecode, o.typename, o.typedescription,

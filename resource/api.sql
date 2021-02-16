@@ -53,7 +53,7 @@ CREATE OR REPLACE FUNCTION api.create_resource (
 ) RETURNS       uuid
 AS $$
 DECLARE
-  nLocale		numeric;
+  nLocale		uuid;
 BEGIN
   SELECT id INTO nLocale FROM db.locale WHERE code = pLocaleCode;
 
@@ -98,7 +98,7 @@ CREATE OR REPLACE FUNCTION api.update_resource (
 ) RETURNS       void
 AS $$
 DECLARE
-  nLocale		numeric;
+  nLocale		uuid;
 BEGIN
   SELECT id INTO nLocale FROM db.locale WHERE code = pLocaleCode;
 
@@ -130,7 +130,7 @@ CREATE OR REPLACE FUNCTION api.set_resource (
 ) RETURNS       SETOF api.resource
 AS $$
 DECLARE
-  nLocale		numeric;
+  nLocale		uuid;
   uResource		uuid;
 BEGIN
   SELECT id INTO nLocale FROM db.locale WHERE code = pLocaleCode;
@@ -152,7 +152,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает ресурс
- * @param {numeric} pId - Идентификатор
+ * @param {uuid} pId - Идентификатор
  * @return {api.resource}
  */
 CREATE OR REPLACE FUNCTION api.get_resource (

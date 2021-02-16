@@ -45,20 +45,20 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 /**
  * Добавляет извещение.
- * @param {numeric} pUserId - Идентификатор пользователя
- * @param {numeric} pObject - Идентификатор объекта
+ * @param {uuid} pUserId - Идентификатор пользователя
+ * @param {uuid} pObject - Идентификатор объекта
  * @param {text} pText - Текст извещения
  * @param {text} pCategory - Категория извещения
  * @param {integer} pStatus - Статус: 0 - создано; 1 - доставлено; 2 - прочитано; 3 - принято; 4 - отказано
- * @return {numeric} - Идентификатор извещения
+ * @return {uuid} - Идентификатор извещения
  */
 CREATE OR REPLACE FUNCTION api.add_notice (
-  pUserId		numeric,
-  pObject		numeric,
+  pUserId		uuid,
+  pObject		uuid,
   pText			text,
   pCategory		text default null,
   pStatus		integer default null
-) RETURNS		numeric
+) RETURNS		uuid
 AS $$
 BEGIN
   RETURN CreateNotice(coalesce(pUserId, current_userid()), pObject, pText, pCategory, pStatus);
@@ -72,18 +72,18 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Редактирует извещение.
- * @param {numeric} pId - Идентификатор извещения
- * @param {numeric} pUserId - Идентификатор пользователя
- * @param {numeric} pObject - Идентификатор объекта
+ * @param {uuid} pId - Идентификатор извещения
+ * @param {uuid} pUserId - Идентификатор пользователя
+ * @param {uuid} pObject - Идентификатор объекта
  * @param {text} pText - Текст извещения
  * @param {text} pCategory - Категория извещения
  * @param {integer} pStatus - Статус: 0 - создано; 1 - доставлено; 2 - прочитано; 3 - принято; 4 - отказано
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_notice (
-  pId			numeric,
-  pUserId		numeric default null,
-  pObject		numeric default null,
+  pId			uuid,
+  pUserId		uuid default null,
+  pObject		uuid default null,
   pText			text default null,
   pCategory		text default null,
   pStatus		integer default null
@@ -101,9 +101,9 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.set_notice (
-  pId			numeric,
-  pUserId		numeric default null,
-  pObject		numeric default null,
+  pId			uuid,
+  pUserId		uuid default null,
+  pObject		uuid default null,
   pText			text default null,
   pCategory		text default null,
   pStatus		integer default null
@@ -127,11 +127,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает извещение
- * @param {numeric} pId - Идентификатор
+ * @param {uuid} pId - Идентификатор
  * @return {api.notice} - Счёт
  */
 CREATE OR REPLACE FUNCTION api.get_notice (
-  pId		numeric
+  pId		uuid
 ) RETURNS	api.notice
 AS $$
   SELECT * FROM api.notice WHERE id = pId
@@ -144,7 +144,7 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.delete_notice (
-  pId			numeric
+  pId			uuid
 ) RETURNS		boolean
 AS $$
 DECLARE

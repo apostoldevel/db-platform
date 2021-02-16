@@ -18,7 +18,7 @@ GRANT SELECT ON api.notification TO administrator;
 
 CREATE OR REPLACE FUNCTION api.notification (
   pDateFrom     timestamptz,
-  pUserId		numeric DEFAULT current_userid()
+  pUserId		uuid DEFAULT current_userid()
 ) RETURNS       SETOF api.notification
 AS $$
   SELECT * FROM Notification(pDateFrom, pUserId);
@@ -34,7 +34,7 @@ $$ LANGUAGE SQL
  * @return {record}
  */
 CREATE OR REPLACE FUNCTION api.get_notification (
-  pId           numeric
+  pId           uuid
 ) RETURNS       SETOF api.notification
 AS $$
   SELECT * FROM api.notification WHERE id = pId;

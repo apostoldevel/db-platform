@@ -7,15 +7,15 @@
 --------------------------------------------------------------------------------
 /**
  * Устанавливает зону.
- * @param {numeric} pArea - Идентификатор зоны
+ * @param {uuid} pArea - Идентификатор зоны
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.set_session_area (
-  pArea     numeric
+  pArea     uuid
 ) RETURNS   void
 AS $$
 DECLARE
-  nId		numeric;
+  nId		uuid;
 BEGIN
   SELECT id INTO nId FROM db.area WHERE id = pArea;
 
@@ -42,7 +42,7 @@ CREATE OR REPLACE FUNCTION api.set_session_area (
 ) RETURNS   void
 AS $$
 DECLARE
-  nId		numeric;
+  nId		uuid;
 BEGIN
   SELECT id INTO nId FROM db.area WHERE code = pArea;
 
@@ -61,15 +61,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Устанавливает интерфейс.
- * @param {numeric} pInterface - Идентификатор интерфейса
+ * @param {uuid} pInterface - Идентификатор интерфейса
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.set_session_interface (
-  pInterface	numeric
+  pInterface	uuid
 ) RETURNS       void
 AS $$
 DECLARE
-  nId			numeric;
+  nId			uuid;
 BEGIN
   SELECT id INTO nId FROM db.interface WHERE id = pInterface;
 
@@ -88,23 +88,23 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Устанавливает интерфейс.
- * @param {numeric} pInterface - Идентификатор интерфейса
+ * @param {uuid} pInterface - Идентификатор интерфейса
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.set_session_interface (
-  pInterface	text
+  pInterface	uuid
 ) RETURNS       void
 AS $$
 DECLARE
-  nId			numeric;
+  uId			uuid;
 BEGIN
-  SELECT id INTO nId FROM db.interface WHERE sid = pInterface;
+  SELECT id INTO uId FROM db.interface WHERE id = pInterface;
 
   IF NOT FOUND THEN
-    PERFORM ObjectNotFound('интерфейс', 'sid', pInterface);
+    PERFORM ObjectNotFound('интерфейс', 'id', pInterface);
   END IF;
 
-  PERFORM SetInterface(nId);
+  PERFORM SetInterface(uId);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -153,15 +153,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Устанавливает по идентификатору текущий язык.
- * @param {numeric} pLocale - Идентификатор языка
+ * @param {uuid} pLocale - Идентификатор языка
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.set_session_locale (
-  pLocale     numeric
+  pLocale     uuid
 ) RETURNS     void
 AS $$
 DECLARE
-  nId         numeric;
+  nId         uuid;
 BEGIN
   SELECT id INTO nId FROM db.locale WHERE id = pLocale;
 

@@ -19,17 +19,17 @@ GRANT SELECT ON api.verification_code TO administrator;
  * Создает новый код верификации.
  * @param {char} pType - Тип: [M]ail - Почта; [P]hone - Телефон;
  * @param {text} pCode - Код: Если не указать то буде создан автоматически.
- * @param {numeric} pUserId - Идентификатор учётной записи.
+ * @param {uuid} pUserId - Идентификатор учётной записи.
  * @return {SETOF api.verification_code}
  */
 CREATE OR REPLACE FUNCTION api.new_verification_code (
   pType         char,
   pCode		    text DEFAULT null,
-  pUserId       numeric DEFAULT current_userid()
+  pUserId       uuid DEFAULT current_userid()
 ) RETURNS       SETOF api.verification_code
 AS $$
 DECLARE
-  nId           numeric;
+  nId           uuid;
 BEGIN
   nId := NewVerificationCode(pUserId, pType, pCode);
   RETURN QUERY SELECT * FROM api.verification_code WHERE id = nId;
@@ -56,7 +56,7 @@ CREATE OR REPLACE FUNCTION api.confirm_verification_code (
 ) RETURNS       record
 AS $$
 DECLARE
-  nUserId		numeric;
+  nUserId		uuid;
   vOAuthSecret  text;
 BEGIN
   nUserId := ConfirmVerificationCode(pType, pCode);
@@ -89,7 +89,7 @@ $$ LANGUAGE plpgsql
  * @return {record} - Данные интерфейса
  */
 CREATE OR REPLACE FUNCTION api.get_verification_code (
-  pId		numeric
+  pId		uuid
 ) RETURNS	SETOF api.verification_code
 AS $$
   SELECT * FROM api.verification_code WHERE id = pId;

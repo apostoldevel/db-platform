@@ -36,7 +36,7 @@ BEGIN
     arKeys := array_cat(arKeys, ARRAY['id', 'code']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, code text)
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, code text)
     LOOP
       FOR e IN SELECT * FROM api.set_session_area(coalesce(r.id, GetArea(r.code))) AS success
       LOOP
@@ -53,7 +53,7 @@ BEGIN
     arKeys := array_cat(arKeys, ARRAY['id', 'code']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, code text)
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, code text)
     LOOP
       FOR e IN SELECT * FROM api.set_session_interface(coalesce(r.id, GetInterface(r.code))) AS success
       LOOP
@@ -70,7 +70,7 @@ BEGIN
     arKeys := array_cat(arKeys, ARRAY['id', 'code']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, code text)
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, code text)
     LOOP
       FOR e IN SELECT * FROM api.set_session_locale(coalesce(r.id, GetLocale(r.code))) AS success
       LOOP

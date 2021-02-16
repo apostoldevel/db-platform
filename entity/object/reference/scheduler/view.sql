@@ -8,7 +8,7 @@ CREATE OR REPLACE VIEW Scheduler (Id, Reference, Code, Name, Description,
 AS
   SELECT s.id, s.reference, d.code, d.name, d.description,
          s.period, s.dateStart, s.dateStop
-    FROM db.scheduler s INNER JOIN db.reference d ON s.reference = d.id;
+    FROM db.scheduler s INNER JOIN Reference d ON s.reference = d.id;
 
 GRANT SELECT ON Scheduler TO administrator;
 

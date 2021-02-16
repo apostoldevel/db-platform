@@ -3,30 +3,29 @@
 --------------------------------------------------------------------------------
 /**
  * Добавляет/обновляет наименование клиента.
- * @param {numeric} pClient - Идентификатор клиента
+ * @param {uuid} pClient - Идентификатор клиента
  * @param {text} pName - Полное наименование компании/Ф.И.О.
  * @param {text} pFirst - Имя
  * @param {text} pLast - Фамилия
  * @param {text} pMiddle - Отчество
  * @param {text} pShort - Краткое наименование компании
- * @param {text} pLocaleCode - Код языка
+ * @param {uuid} pLocale - Идентификатор локали
  * @param {timestamp} pDateFrom - Дата изменения
  * @return {(void|exception)}
  */
 CREATE OR REPLACE FUNCTION NewClientName (
-  pClient	    numeric,
+  pClient	    uuid,
   pName		    text,
   pShort	    text default null,
   pFirst	    text default null,
   pLast		    text default null,
   pMiddle	    text default null,
-  pLocaleCode   text default locale_code(),
+  pLocale		uuid default current_locale(),
   pDateFrom	    timestamp default oper_date()
 ) RETURNS 	    void
 AS $$
 DECLARE
-  nId		    numeric;
-  nLocale       numeric;
+  nId		    uuid;
 
   dtDateFrom    timestamp;
   dtDateTo 	    timestamp;
@@ -39,37 +38,31 @@ BEGIN
   pLast := NULLIF(trim(pLast), '');
   pMiddle := NULLIF(trim(pMiddle), '');
 
-  SELECT id INTO nLocale FROM db.locale WHERE code = coalesce(pLocaleCode, 'ru');
-
-  IF not found THEN
-    PERFORM IncorrectLocaleCode(pLocaleCode);
-  END IF;
-
   -- получим дату значения в текущем диапозоне дат
   SELECT validFromDate, validToDate INTO dtDateFrom, dtDateTo
     FROM db.client_name
-   WHERE Client = pClient
-     AND Locale = nLocale
+   WHERE client = pClient
+     AND locale = pLocale
      AND validFromDate <= pDateFrom
      AND validToDate > pDateFrom;
 
   IF coalesce(dtDateFrom, MINDATE()) = pDateFrom THEN
     -- обновим значение в текущем диапозоне дат
     UPDATE db.client_name SET name = pName, short = pShort, first = pFirst, last = pLast, middle = pMiddle
-     WHERE Client = pClient
-       AND Locale = nLocale
+     WHERE client = pClient
+       AND locale = pLocale
        AND validFromDate <= pDateFrom
        AND validToDate > pDateFrom;
   ELSE
     -- обновим дату значения в текущем диапозоне дат
     UPDATE db.client_name SET validToDate = pDateFrom
-     WHERE Client = pClient
-       AND Locale = nLocale
+     WHERE client = pClient
+       AND locale = pLocale
        AND validFromDate <= pDateFrom
        AND validToDate > pDateFrom;
 
     INSERT INTO db.client_name (client, locale, name, short, first, last, middle, validfromdate, validToDate)
-    VALUES (pClient, nLocale, pName, pShort, pFirst, pLast, pMiddle, pDateFrom, coalesce(dtDateTo, MAXDATE()));
+    VALUES (pClient, pLocale, pName, pShort, pFirst, pLast, pMiddle, pDateFrom, coalesce(dtDateTo, MAXDATE()));
   END IF;
 END;
 $$ LANGUAGE plpgsql
@@ -81,36 +74,36 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Добавляет/обновляет наименование клиента (вызывает метод действия 'edit').
- * @param {numeric} pClient - Идентификатор клиента
+ * @param {uuid} pClient - Идентификатор клиента
  * @param {text} pName - Полное наименование компании/Ф.И.О.
  * @param {text} pShort - Краткое наименование компании
  * @param {text} pFirst - Имя
  * @param {text} pLast - Фамилия
  * @param {text} pMiddle - Отчество
- * @param {text} pLocaleCode - Код языка
+ * @param {uuid} pLocale - Идентификатор локали
  * @param {timestamp} pDateFrom - Дата изменения
  * @return {(void|exception)}
  */
 CREATE OR REPLACE FUNCTION EditClientName (
-  pClient	    numeric,
+  pClient	    uuid,
   pName		    text,
   pShort	    text default null,
   pFirst	    text default null,
   pLast		    text default null,
   pMiddle	    text default null,
-  pLocaleCode   text default locale_code(),
+  pLocale		text default current_locale(),
   pDateFrom	    timestamp default oper_date()
 ) RETURNS 	    void
 AS $$
 DECLARE
-  nMethod	    numeric;
+  nMethod	    uuid;
 
   vHash		    text;
   cHash		    text;
 
   r		        record;
 BEGIN
-  SELECT * INTO r FROM GetClientNameRec(pClient, pLocaleCode, pDateFrom);
+  SELECT * INTO r FROM GetClientNameRec(pClient, pLocale, pDateFrom);
 
   pName := coalesce(pName, r.name);
   pShort := coalesce(pShort, r.short, '<null>');
@@ -122,9 +115,9 @@ BEGIN
   cHash := encode(digest(r.name || coalesce(r.short, '<null>') || coalesce(r.first, '<null>') || coalesce(r.last, '<null>') || coalesce(r.middle, '<null>'), 'md5'), 'hex');
 
   IF vHash <> cHash THEN
-    PERFORM NewClientName(pClient, pName, CheckNull(pShort), CheckNull(pFirst), CheckNull(pLast), CheckNull(pMiddle), pLocaleCode, pDateFrom);
+    PERFORM NewClientName(pClient, pName, CheckNull(pShort), CheckNull(pFirst), CheckNull(pLast), CheckNull(pMiddle), pLocale, pDateFrom);
 
-    nMethod := GetMethod(GetObjectClass(pClient), null, GetAction('edit'));
+    nMethod := GetMethod(GetObjectClass(pClient), GetAction('edit'));
     PERFORM ExecuteMethod(pClient, nMethod);
   END IF;
 END;
@@ -137,30 +130,22 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает наименование клиента.
- * @param {numeric} pClient - Идентификатор клиента
- * @param {text} pLocaleCode - Код языка
+ * @param {uuid} pClient - Идентификатор клиента
+ * @param {uuid} pLocale - Идентификатор локали
  * @param {timestamp} pDate - Дата
  * @return {SETOF db.client_name}
  */
 CREATE OR REPLACE FUNCTION GetClientNameRec (
-  pClient	    numeric,
-  pLocaleCode   text default locale_code(),
+  pClient	    uuid,
+  pLocale		uuid default current_locale(),
   pDate		    timestamp default oper_date()
 ) RETURNS	    SETOF db.client_name
 AS $$
-DECLARE
-  nLocale       numeric;
 BEGIN
-  SELECT id INTO nLocale FROM db.locale WHERE code = coalesce(pLocaleCode, 'ru');
-
-  IF NOT FOUND THEN
-    PERFORM IncorrectLocaleCode(pLocaleCode);
-  END IF;
-
   RETURN QUERY SELECT *
     FROM db.client_name n
    WHERE n.client = pClient
-     AND n.locale = nLocale
+     AND n.locale = pLocale
      AND n.validFromDate <= pDate
      AND n.validToDate > pDate;
 END;
@@ -173,32 +158,25 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает наименование клиента.
- * @param {numeric} pClient - Идентификатор клиента
- * @param {text} pLocaleCode - Код языка
+ * @param {uuid} pClient - Идентификатор клиента
+ * @param {uuid} pLocale - Идентификатор локали
  * @param {timestamp} pDate - Дата
  * @return {json}
  */
 CREATE OR REPLACE FUNCTION GetClientNameJson (
-  pClient	    numeric,
-  pLocaleCode   text default locale_code(),
+  pClient	    uuid,
+  pLocale		uuid default current_locale(),
   pDate		    timestamp default oper_date()
 ) RETURNS       SETOF json
 AS $$
 DECLARE
   r             record;
-  nLocale       numeric;
 BEGIN
-  SELECT id INTO nLocale FROM db.locale WHERE code = coalesce(pLocaleCode, 'ru');
-
-  IF NOT FOUND THEN
-    PERFORM IncorrectLocaleCode(pLocaleCode);
-  END IF;
-
   FOR r IN
     SELECT *
       FROM db.client_name n
      WHERE n.client = pClient
-       AND n.locale = nLocale
+       AND n.locale = pLocale
        AND n.validFromDate <= pDate
        AND n.validToDate > pDate
   LOOP
@@ -216,21 +194,21 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает полное наименование клиента.
- * @param {numeric} pClient - Идентификатор клиента
- * @param {text} pLocaleCode - Код языка
+ * @param {uuid} pClient - Идентификатор клиента
+ * @param {uuid} pLocale - Идентификатор локали
  * @param {timestamp} pDate - Дата
  * @return {(text|null|exception)}
  */
 CREATE OR REPLACE FUNCTION GetClientName (
-  pClient       numeric,
-  pLocaleCode	text default locale_code(),
+  pClient       uuid,
+  pLocale		uuid default current_locale(),
   pDate		    timestamp default oper_date()
 ) RETURNS       text
 AS $$
 DECLARE
   vName		    text;
 BEGIN
-  SELECT name INTO vName FROM GetClientNameRec(pClient, pLocaleCode, pDate);
+  SELECT name INTO vName FROM GetClientNameRec(pClient, pLocale, pDate);
 
   RETURN vName;
 END;
@@ -243,21 +221,21 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает краткое наименование клиента.
- * @param {numeric} pClient - Идентификатор клиента
- * @param {text} pLocaleCode - Код языка
+ * @param {uuid} pClient - Идентификатор клиента
+ * @param {uuid} pLocale - Идентификатор локали
  * @param {timestamp} pDate - Дата
  * @return {(text|null|exception)}
  */
 CREATE OR REPLACE FUNCTION GetClientShortName (
-  pClient	    numeric,
-  pLocaleCode   text default locale_code(),
+  pClient	    uuid,
+  pLocale		uuid default current_locale(),
   pDate         timestamp default oper_date()
 ) RETURNS       text
 AS $$
 DECLARE
   vShort        text;
 BEGIN
-  SELECT short INTO vShort FROM GetClientNameRec(pClient, pLocaleCode, pDate);
+  SELECT short INTO vShort FROM GetClientNameRec(pClient, pLocale, pDate);
 
   RETURN vShort;
 END;
@@ -270,14 +248,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Меняет баланс Клиента.
- * @param {numeric} pClient - Клиент
+ * @param {uuid} pClient - Клиент
  * @param {numeric} pAmount - Сумма
  * @param {integer} pType - Тип
  * @param {timestamptz} pDateFrom - Дата
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION ChangeBalance (
-  pClient       numeric,
+  pClient       uuid,
   pAmount       numeric,
   pType         integer DEFAULT 1,
   pDateFrom     timestamptz DEFAULT Now()
@@ -323,7 +301,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Новое движение по счёту.
- * @param {numeric} pClient - Клиент
+ * @param {uuid} pClient - Клиент
  * @param {numeric} pDebit - Сумма обота по дебету
  * @param {numeric} pCredit - Сумма обота по кредиту
  * @param {integer} pType - Тип
@@ -331,15 +309,15 @@ $$ LANGUAGE plpgsql
  * @return {numeric}
  */
 CREATE OR REPLACE FUNCTION NewTurnOver (
-  pClient       numeric,
+  pClient       uuid,
   pDebit        numeric,
   pCredit       numeric,
   pType         integer DEFAULT 1,
   pTurnDate     timestamptz DEFAULT Now()
-) RETURNS       numeric
+) RETURNS       uuid
 AS $$
 DECLARE
-  nId           numeric;
+  nId           uuid;
 BEGIN
   INSERT INTO db.turn_over (type, client, debit, credit, turn_date)
   VALUES (pType, pClient, pDebit, pCredit, pTurnDate)
@@ -356,21 +334,21 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Обновляет баланс клиента.
- * @param {numeric} pClient - Клиент
+ * @param {uuid} pClient - Клиент
  * @param {numeric} pAmount - Сумма изменения остатка. Если сумма положительная, то счёт кредитуется, если сумма отрицательная - счёт дебетуется.
  * @param {integer} pType - Тип
  * @param {timestamptz} pDateFrom - Дата
  * @return {numeric} - Баланс (остаток на счёте)
  */
 CREATE OR REPLACE FUNCTION UpdateBalance (
-  pClient       numeric,
+  pClient       uuid,
   pAmount       numeric,
   pType         integer DEFAULT 1,
   pDateFrom     timestamptz DEFAULT Now()
-) RETURNS       numeric
+) RETURNS       uuid
 AS $$
 DECLARE
-  nId           numeric;
+  nId           uuid;
   nBalance      numeric;
 BEGIN
   IF pAmount > 0 THEN
@@ -407,7 +385,7 @@ $$ LANGUAGE plpgsql
  * @return {numeric} - Баланс (остаток на счёте)
  */
 CREATE OR REPLACE FUNCTION GetBalance (
-  pClient       numeric,
+  pClient       uuid,
   pType         integer DEFAULT 1,
   pDateFrom     timestamptz DEFAULT oper_date()
 ) RETURNS       numeric
@@ -433,10 +411,10 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Создаёт нового клиента
- * @param {numeric} pParent - Ссылка на родительский объект
- * @param {numeric} pType - Тип
+ * @param {uuid} pParent - Ссылка на родительский объект
+ * @param {uuid} pType - Тип
  * @param {text} pCode - ИНН - для юридического лица | Имя пользователя (login) | null
- * @param {numeric} pUserId - Пользователь (users): Учётная запись клиента
+ * @param {uuid} pUserId - Пользователь (users): Учётная запись клиента
  * @param {jsonb} pName - Полное наименование компании/Ф.И.О.
  * @param {jsonb} pPhone - Справочник телефонов
  * @param {jsonb} pEmail - Электронные адреса
@@ -444,30 +422,30 @@ $$ LANGUAGE plpgsql
  * @param {jsonb} pInfo - Дополнительная информация
  * @param {timestamp} pCreation - Дата открытия | Дата рождения | null
  * @param {text} pDescription - Описание
- * @return {numeric} - Id клиента
+ * @return {uuid} - Id клиента
  */
 CREATE OR REPLACE FUNCTION CreateClient (
-  pParent	    numeric,
-  pType		    numeric,
+  pParent	    uuid,
+  pType		    uuid,
   pCode		    text,
-  pUserId	    numeric,
+  pUserId	    uuid,
   pName         jsonb,
   pPhone	    jsonb default null,
   pEmail	    jsonb default null,
   pInfo         jsonb default null,
   pCreation     timestamp default null,
   pDescription	text default null
-) RETURNS 	    numeric
+) RETURNS 	    uuid
 AS $$
 DECLARE
-  nId		    numeric;
-  nClient	    numeric;
-  nDocument	    numeric;
+  nId		    uuid;
+  nClient	    uuid;
+  nDocument	    uuid;
 
   cn            record;
 
-  nClass	    numeric;
-  nMethod	    numeric;
+  nClass	    uuid;
+  nMethod	    uuid;
 BEGIN
   SELECT class INTO nClass FROM db.type WHERE id = pType;
 
@@ -489,7 +467,7 @@ BEGIN
     cn.short := coalesce(NULLIF(trim(cn.name), ''), pCode);
   END IF;
 
-  IF pUserId = 0 THEN
+  IF pUserId = null_uuid() THEN
     pUserId := CreateUser(pCode, pCode, cn.short, pPhone->>0, pEmail->>0, NULLIF(trim(cn.name), ''));
   END IF;
 
@@ -499,7 +477,7 @@ BEGIN
 
   PERFORM NewClientName(nClient, cn.name, cn.short, cn.first, cn.last, cn.middle);
 
-  nMethod := GetMethod(nClass, null, GetAction('create'));
+  nMethod := GetMethod(nClass, GetAction('create'));
   PERFORM ExecuteMethod(nClient, nMethod);
 
   RETURN nClient;
@@ -513,11 +491,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Редактирует основные параметры клиента.
- * @param {numeric} pId - Идентификатор клиента
- * @param {numeric} pParent - Ссылка на родительский объект
- * @param {numeric} pType - Тип
+ * @param {uuid} pId - Идентификатор клиента
+ * @param {uuid} pParent - Ссылка на родительский объект
+ * @param {uuid} pType - Тип
  * @param {text} pCode - ИНН - для юридического лица | Имя пользователя (login) | null
- * @param {numeric} pUserId - Пользователь (users): Учётная запись клиента
+ * @param {uuid} pUserId - Пользователь (users): Учётная запись клиента
  * @param {jsonb} pName - Полное наименование компании/Ф.И.О.
  * @param {jsonb} pPhone - Справочник телефонов
  * @param {jsonb} pEmail - Электронные адреса
@@ -527,11 +505,11 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION EditClient (
-  pId		    numeric,
-  pParent	    numeric default null,
-  pType		    numeric default null,
+  pId		    uuid,
+  pParent	    uuid default null,
+  pType		    uuid default null,
   pCode		    text default null,
-  pUserId	    numeric default null,
+  pUserId	    uuid default null,
   pName         jsonb default null,
   pPhone	    jsonb default null,
   pEmail	    jsonb default null,
@@ -541,8 +519,8 @@ CREATE OR REPLACE FUNCTION EditClient (
 ) RETURNS 	    void
 AS $$
 DECLARE
-  nId		    numeric;
-  nMethod	    numeric;
+  nId		    uuid;
+  nMethod	    uuid;
 
   r             record;
 
@@ -551,7 +529,7 @@ DECLARE
 
   -- current
   cCode		    text;
-  cUserId	    numeric;
+  cUserId	    uuid;
 BEGIN
   SELECT code, userid INTO cCode, cUserId FROM db.client WHERE id = pId;
 
@@ -585,7 +563,7 @@ BEGIN
 
   SELECT * INTO new FROM Client WHERE id = pId;
 
-  nMethod := GetMethod(GetObjectClass(pId), null, GetAction('edit'));
+  nMethod := GetMethod(GetObjectClass(pId), GetAction('edit'));
   PERFORM ExecuteMethod(pId, nMethod, jsonb_build_object('old', row_to_json(old), 'new', row_to_json(new)));
 END;
 $$ LANGUAGE plpgsql
@@ -598,10 +576,10 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION GetClient (
   pCode		text
-) RETURNS	numeric
+) RETURNS	uuid
 AS $$
 DECLARE
-  nId		numeric;
+  nId		uuid;
 BEGIN
   SELECT id INTO nId FROM db.client WHERE code = pCode;
   RETURN nId;
@@ -615,7 +593,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetClientCode (
-  pClient	numeric
+  pClient	uuid
 ) RETURNS	text
 AS $$
 DECLARE
@@ -633,11 +611,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetClientUserId (
-  pClient	numeric
-) RETURNS	numeric
+  pClient	uuid
+) RETURNS	uuid
 AS $$
 DECLARE
-  nUserId	numeric;
+  nUserId	uuid;
 BEGIN
   SELECT userid INTO nUserId FROM db.client WHERE id = pClient;
   RETURN nUserId;
@@ -651,11 +629,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetClientByUserId (
-  pUserId       numeric
-) RETURNS       numeric
+  pUserId       uuid
+) RETURNS       uuid
 AS $$
 DECLARE
-  nId           numeric;
+  nId           uuid;
 BEGIN
   SELECT id INTO nId FROM db.client WHERE userid = pUserId;
   RETURN nId;

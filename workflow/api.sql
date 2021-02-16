@@ -22,7 +22,7 @@ GRANT SELECT ON api.entity TO administrator;
  * @return {SETOF api.entity} - Запись
  */
 CREATE OR REPLACE FUNCTION api.get_entity (
-  pId         numeric
+  pId         uuid
 ) RETURNS     SETOF api.entity
 AS $$
   SELECT * FROM api.entity WHERE id = pId
@@ -72,7 +72,7 @@ GRANT SELECT ON api.type TO administrator;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.type (
-  pEntity	numeric
+  pEntity	uuid
 ) RETURNS	SETOF api.type
 AS $$
   SELECT * FROM api.type WHERE entity = pEntity;
@@ -85,18 +85,18 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 /**
  * Создаёт тип.
- * @param {numeric} pClass - Идентификатор класса
+ * @param {uuid} pClass - Идентификатор класса
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
- * @return {numeric}
+ * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION api.add_type (
-  pClass	    numeric,
+  pClass	    uuid,
   pCode		    text,
   pName		    text,
   pDescription  text DEFAULT null
-) RETURNS 	    numeric
+) RETURNS 	    uuid
 AS $$
 BEGIN
   RETURN AddType(pClass, pCode, pName, pDescription);
@@ -110,17 +110,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Обновляет тип.
- * @param {numeric} pId - Идентификатор типа
- * @param {numeric} pClass - Идентификатор класса
+ * @param {uuid} pId - Идентификатор типа
+ * @param {uuid} pClass - Идентификатор класса
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
- * @out param {numeric} id - Идентификатор типа
+ * @out param {uuid} id - Идентификатор типа
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_type (
-  pId           numeric,
-  pClass        numeric DEFAULT null,
+  pId           uuid,
+  pClass        uuid DEFAULT null,
   pCode         text DEFAULT null,
   pName         text DEFAULT null,
   pDescription	text DEFAULT null
@@ -138,8 +138,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.set_type (
-  pId           numeric,
-  pClass        numeric DEFAULT null,
+  pId           uuid,
+  pClass        uuid DEFAULT null,
   pCode         text DEFAULT null,
   pName         text DEFAULT null,
   pDescription	text DEFAULT null
@@ -163,11 +163,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Удаляет тип.
- * @param {numeric} pId - Идентификатор типа
+ * @param {uuid} pId - Идентификатор типа
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.delete_type (
-  pId         numeric
+  pId         uuid
 ) RETURNS     void
 AS $$
 BEGIN
@@ -185,7 +185,7 @@ $$ LANGUAGE plpgsql
  * @return {Type} - Тип
  */
 CREATE OR REPLACE FUNCTION api.get_type (
-  pId         numeric
+  pId         uuid
 ) RETURNS     SETOF api.type
 AS $$
   SELECT * FROM api.type WHERE id = pId
@@ -199,11 +199,11 @@ $$ LANGUAGE SQL
 /**
  * Возвращает тип объекта по коду.
  * @param {text} pCode - Код типа объекта
- * @return {numeric} - Тип объекта
+ * @return {uuid} - Тип объекта
  */
 CREATE OR REPLACE FUNCTION api.get_type (
   pCode		text
-) RETURNS	numeric
+) RETURNS	uuid
 AS $$
 BEGIN
   RETURN GetType(pCode);
@@ -254,20 +254,20 @@ GRANT SELECT ON api.class TO administrator;
 --------------------------------------------------------------------------------
 /**
  * Создаёт класс.
- * @param {numeric} pParent - Идентификатор "родителя"
- * @param {numeric} pEntity - Идентификатор сущности
+ * @param {uuid} pParent - Идентификатор "родителя"
+ * @param {uuid} pEntity - Идентификатор сущности
  * @param {text} pCode - Код
  * @param {text} pLabel - Наименование
  * @param {boolean} pAbstract - Абстрактный (Да/Нет)
- * @return {numeric}
+ * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION api.add_class (
-  pParent       numeric,
-  pEntity		numeric,
+  pParent       uuid,
+  pEntity		uuid,
   pCode         text,
   pLabel        text,
   pAbstract     boolean DEFAULT true
-) RETURNS       numeric
+) RETURNS       uuid
 AS $$
 BEGIN
   RETURN AddClass(pParent, pEntity, pCode, pLabel, pAbstract);
@@ -281,21 +281,21 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Обновляет класс.
- * @param {numeric} pId - Идентификатор класса
- * @param {numeric} pParent - Идентификатор "родителя"
- * @param {numeric} pEntity - Идентификатор сущности
+ * @param {uuid} pId - Идентификатор класса
+ * @param {uuid} pParent - Идентификатор "родителя"
+ * @param {uuid} pEntity - Идентификатор сущности
  * @param {text} pCode - Код
  * @param {text} pLabel - Наименование
  * @param {boolean} pAbstract - Абстрактный (Да/Нет)
- * @out {numeric} id - Идентификатор класса
- * @out param {numeric} result - Результат
+ * @out {uuid} id - Идентификатор класса
+ * @out param {uuid} result - Результат
  * @out param {text} message - Текст ошибки
  * @return {record}
  */
 CREATE OR REPLACE FUNCTION api.update_class (
-  pId           numeric,
-  pParent       numeric,
-  pEntity		numeric,
+  pId           uuid,
+  pParent       uuid,
+  pEntity		uuid,
   pCode         text,
   pLabel        text,
   pAbstract     boolean DEFAULT true
@@ -313,9 +313,9 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.set_class (
-  pId           numeric,
-  pParent       numeric,
-  pEntity		numeric,
+  pId           uuid,
+  pParent       uuid,
+  pEntity		uuid,
   pCode         text,
   pLabel        text,
   pAbstract     boolean DEFAULT true
@@ -339,11 +339,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Удаляет класс.
- * @param {numeric} pId - Идентификатор класса
+ * @param {uuid} pId - Идентификатор класса
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.delete_class (
-  pId         numeric
+  pId         uuid
 ) RETURNS     void
 AS $$
 BEGIN
@@ -361,7 +361,7 @@ $$ LANGUAGE plpgsql
  * @return {record} - Запись
  */
 CREATE OR REPLACE FUNCTION api.get_class (
-  pId       numeric
+  pId       uuid
 ) RETURNS   SETOF api.class
 AS $$
   SELECT * FROM api.class WHERE id = pId
@@ -404,8 +404,8 @@ $$ LANGUAGE plpgsql
  * @return {SETOF record} - Запись
  */
 CREATE OR REPLACE FUNCTION api.decode_class_access (
-  pId       numeric,
-  pUserId	numeric default current_userid(),
+  pId       uuid,
+  pUserId	uuid default current_userid(),
   OUT a		boolean,
   OUT c		boolean,
   OUT s		boolean,
@@ -436,7 +436,7 @@ GRANT SELECT ON api.class_access TO administrator;
  * @return {SETOF api.class_access} - Запись
  */
 CREATE OR REPLACE FUNCTION api.class_access (
-  pId       numeric
+  pId       uuid
 ) RETURNS 	SETOF api.class_access
 AS $$
   SELECT * FROM api.class_access WHERE class = pId;
@@ -489,8 +489,8 @@ GRANT SELECT ON api.state_type TO administrator;
  * @return {record} - Запись
  */
 CREATE OR REPLACE FUNCTION api.get_state_type (
-  pId            numeric
-) RETURNS        SETOF api.state_type
+  pId		uuid
+) RETURNS	SETOF api.state_type
 AS $$
   SELECT * FROM api.state_type WHERE id = pId;
 $$ LANGUAGE SQL
@@ -508,8 +508,8 @@ GRANT SELECT ON api.state TO administrator;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.state (
-  pClass        numeric
-) RETURNS       SETOF api.state
+  pClass	uuid
+) RETURNS	SETOF api.state
 AS $$
   SELECT * FROM api.state WHERE class = pClass
   UNION ALL
@@ -527,23 +527,23 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 /**
  * Создаёт состояние.
- * @param {numeric} pClass - Идентификатор класса
- * @param {numeric} pType - Идентификатор типа
+ * @param {uuid} pClass - Идентификатор класса
+ * @param {uuid} pType - Идентификатор типа
  * @param {text} pCode - Код
  * @param {text} pLabel - Наименование
  * @param {integer} pSequence - Очередность
- * @out param {numeric} id - Идентификатор состояния
+ * @out param {uuid} id - Идентификатор состояния
  * @out param {boolean} result - Результат
  * @out param {text} message - Текст ошибки
  * @return {record}
  */
 CREATE OR REPLACE FUNCTION api.add_state (
-  pClass      numeric,
-  pType       numeric,
+  pClass      uuid,
+  pType       uuid,
   pCode       text,
   pLabel      text,
   pSequence   integer
-) RETURNS     numeric
+) RETURNS     uuid
 AS $$
 BEGIN
   RETURN AddState(pClass, pType, pCode, pLabel, pSequence);
@@ -557,21 +557,18 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Обновляет состояние.
- * @param {numeric} pId - Идентификатор состояния
- * @param {numeric} pClass - Идентификатор класса
- * @param {numeric} pType - Идентификатор типа
+ * @param {uuid} pId - Идентификатор состояния
+ * @param {uuid} pClass - Идентификатор класса
+ * @param {uuid} pType - Идентификатор типа
  * @param {text} pCode - Код
  * @param {text} pLabel - Наименование
  * @param {integer} pSequence - Очередность
- * @out param {numeric} id - Идентификатор состояния
- * @out param {boolean} result - Результат
- * @out param {text} message - Текст ошибки
- * @return {record}
+ * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_state (
-  pId         numeric,
-  pClass      numeric DEFAULT null,
-  pType       numeric DEFAULT null,
+  pId         uuid,
+  pClass      uuid DEFAULT null,
+  pType       uuid DEFAULT null,
   pCode       text DEFAULT null,
   pLabel      text DEFAULT null,
   pSequence   integer DEFAULT null
@@ -589,9 +586,9 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.set_state (
-  pId           numeric,
-  pClass        numeric DEFAULT null,
-  pType         numeric DEFAULT null,
+  pId           uuid,
+  pClass        uuid DEFAULT null,
+  pType         uuid DEFAULT null,
   pCode         text DEFAULT null,
   pLabel        text DEFAULT null,
   pSequence     integer DEFAULT null
@@ -615,14 +612,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Удаляет состояние.
- * @param {numeric} pId - Идентификатор состояния
- * @out param {numeric} id - Идентификатор состояния
- * @out param {numeric} result - Результат
- * @out param {text} message - Текст ошибки
- * @return {record}
+ * @param {uuid} pId - Идентификатор состояния
+ * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.delete_state (
-  pId         numeric
+  pId         uuid
 ) RETURNS     void
 AS $$
 BEGIN
@@ -637,11 +631,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает состояние.
- * @param {numeric} pId - Идентификатор состояния
+ * @param {uuid} pId - Идентификатор состояния
  * @return {SETOF api.state} - Состояние
  */
 CREATE OR REPLACE FUNCTION api.get_state (
-  pId       numeric
+  pId       uuid
 ) RETURNS   SETOF api.state
 AS $$
   SELECT * FROM api.state WHERE id = pId
@@ -691,11 +685,11 @@ GRANT SELECT ON api.action TO administrator;
 --------------------------------------------------------------------------------
 /**
  * Возвращает действие.
- * @param {numeric} pId - Идентификатор действия
+ * @param {uuid} pId - Идентификатор действия
  * @return {SETOF api.action} - Запись
  */
 CREATE OR REPLACE FUNCTION api.get_action (
-  pId         numeric
+  pId         uuid
 ) RETURNS     SETOF api.action
 AS $$
   SELECT * FROM api.action WHERE id = pId
@@ -743,16 +737,16 @@ GRANT SELECT ON api.method TO administrator;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.method (
-  pClass      numeric,
-  pState      numeric
+  pClass      uuid,
+  pState      uuid DEFAULT null
 ) RETURNS     SETOF api.method
 AS $$
-  SELECT * FROM api.method WHERE class = pClass AND coalesce(state, 0) = coalesce(pState, state, 0)
+  SELECT * FROM api.method WHERE class = pClass AND state IS NOT DISTINCT FROM pState
    UNION ALL
   SELECT *
     FROM api.method
-   WHERE id = GetMethod(pClass, pState, action)
-     AND id NOT IN (SELECT id FROM api.method WHERE class = pClass AND coalesce(state, 0) = coalesce(pState, state, 0))
+   WHERE id = GetMethod(pClass, action, pState)
+     AND id NOT IN (SELECT id FROM api.method WHERE class = pClass AND state IS NOT DISTINCT FROM pState)
    ORDER BY statecode, sequence
 $$ LANGUAGE SQL
    SECURITY DEFINER
@@ -763,26 +757,26 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 /**
  * Создаёт метод (операцию).
- * @param {numeric} pParent - Идентификатор родителя (для создания вложенных методов, для построения меню)
- * @param {numeric} pClass - Идентификатор класса: api.class
- * @param {numeric} pState - Идентификатор состояния: api.state
- * @param {numeric} pAction - Идентификатор действия: api.action
+ * @param {uuid} pParent - Идентификатор родителя (для создания вложенных методов, для построения меню)
+ * @param {uuid} pClass - Идентификатор класса: api.class
+ * @param {uuid} pState - Идентификатор состояния: api.state
+ * @param {uuid} pAction - Идентификатор действия: api.action
  * @param {text} pCode - Код
  * @param {text} pLabel - Наименование
  * @param {integer} pSequence - Очередность
  * @param {boolean} pVisible - Видимый: Да/Нет
- * @return {numeric}
+ * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION api.add_method (
-  pParent       numeric,
-  pClass        numeric,
-  pState        numeric,
-  pAction       numeric,
+  pParent       uuid,
+  pClass        uuid,
+  pState        uuid,
+  pAction       uuid,
   pCode         text,
   pLabel        text,
   pSequence     integer,
   pVisible      boolean
-) RETURNS       numeric
+) RETURNS       uuid
 AS $$
 BEGIN
   RETURN AddMethod(pParent, pClass, pState, pAction, pCode, pLabel, pSequence, pVisible);
@@ -796,11 +790,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Обновляет метод (операцию).
- * @param {numeric} pId - Идентификатор метода
- * @param {numeric} pParent - Идентификатор родителя (для создания вложенных методов, для построения меню)
- * @param {numeric} pClass - Идентификатор класса: api.class
- * @param {numeric} pState - Идентификатор состояния: api.state
- * @param {numeric} pAction - Идентификатор действия: api.action
+ * @param {uuid} pId - Идентификатор метода
+ * @param {uuid} pParent - Идентификатор родителя (для создания вложенных методов, для построения меню)
+ * @param {uuid} pClass - Идентификатор класса: api.class
+ * @param {uuid} pState - Идентификатор состояния: api.state
+ * @param {uuid} pAction - Идентификатор действия: api.action
  * @param {text} pCode - Код
  * @param {text} pLabel - Наименование
  * @param {integer} pSequence - Очередность
@@ -808,11 +802,11 @@ $$ LANGUAGE plpgsql
  * @return {record}
  */
 CREATE OR REPLACE FUNCTION api.update_method (
-  pId           numeric,
-  pParent       numeric DEFAULT null,
-  pClass        numeric DEFAULT null,
-  pState        numeric DEFAULT null,
-  pAction       numeric DEFAULT null,
+  pId           uuid,
+  pParent       uuid DEFAULT null,
+  pClass        uuid DEFAULT null,
+  pState        uuid DEFAULT null,
+  pAction       uuid DEFAULT null,
   pCode         text DEFAULT null,
   pLabel        text DEFAULT null,
   pSequence     integer DEFAULT null,
@@ -831,11 +825,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.set_method (
-  pId           numeric,
-  pParent       numeric DEFAULT null,
-  pClass        numeric DEFAULT null,
-  pState        numeric DEFAULT null,
-  pAction       numeric DEFAULT null,
+  pId           uuid,
+  pParent       uuid DEFAULT null,
+  pClass        uuid DEFAULT null,
+  pState        uuid DEFAULT null,
+  pAction       uuid DEFAULT null,
   pCode         text DEFAULT null,
   pLabel        text DEFAULT null,
   pSequence     integer DEFAULT null,
@@ -860,11 +854,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Удаляет метод (операцию).
- * @param {numeric} pId - Идентификатор метода
+ * @param {uuid} pId - Идентификатор метода
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.delete_method (
-  pId       numeric
+  pId       uuid
 ) RETURNS   void
 AS $$
 BEGIN
@@ -879,11 +873,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает метод.
- * @param {numeric} pId - Идентификатор метода
+ * @param {uuid} pId - Идентификатор метода
  * @return {record} - метод
  */
 CREATE OR REPLACE FUNCTION api.get_method (
-  pId       numeric
+  pId       uuid
 ) RETURNS   SETOF api.method
 AS $$
   SELECT * FROM api.method WHERE id = pId
@@ -923,15 +917,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает методы объекта.
- * @param {numeric} pClass - Идентификатор класса
- * @param {numeric} pState - Идентификатор состояния
- * @param {numeric} pAction - Идентификатор действия
+ * @param {uuid} pClass - Идентификатор класса
+ * @param {uuid} pState - Идентификатор состояния
+ * @param {uuid} pAction - Идентификатор действия
  * @return {record}
  */
 CREATE OR REPLACE FUNCTION api.get_methods (
-  pClass        numeric,
-  pState        numeric,
-  pAction       numeric DEFAULT null
+  pClass        uuid,
+  pState        uuid,
+  pAction       uuid DEFAULT null
 ) RETURNS       SETOF api.method
 AS $$
   SELECT *
@@ -949,8 +943,8 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.get_methods_json (
-  pClass        numeric,
-  pState        numeric
+  pClass        uuid,
+  pState        uuid
 ) RETURNS       json
 AS $$
 DECLARE
@@ -973,8 +967,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.get_methods_jsonb (
-  pClass        numeric,
-  pState        numeric
+  pClass        uuid,
+  pState        uuid
 ) RETURNS       jsonb
 AS $$
 BEGIN
@@ -992,8 +986,8 @@ $$ LANGUAGE plpgsql
  * @return {SETOF record} - Запись
  */
 CREATE OR REPLACE FUNCTION api.decode_method_access (
-  pId       numeric,
-  pUserId	numeric default current_userid(),
+  pId       uuid,
+  pUserId	uuid default current_userid(),
   OUT x		boolean,
   OUT v		boolean,
   OUT e		boolean
@@ -1022,7 +1016,7 @@ GRANT SELECT ON api.method_access TO administrator;
  * @return {SETOF api.method_access} - Запись
  */
 CREATE OR REPLACE FUNCTION api.method_access (
-  pId       numeric
+  pId       uuid
 ) RETURNS 	SETOF api.method_access
 AS $$
   SELECT * FROM api.method_access WHERE method = pId;
@@ -1072,19 +1066,19 @@ GRANT SELECT ON api.transition TO administrator;
 --------------------------------------------------------------------------------
 /**
  * Создаёт переход в новое состояние.
- * @param {numeric} pState - Идентификатор состояния
- * @param {numeric} pMethod - Идентификатор метода (операции)
+ * @param {uuid} pState - Идентификатор состояния
+ * @param {uuid} pMethod - Идентификатор метода (операции)
  * @param {text} pNewState - Идентификатор нового состояния
- * @out param {numeric} id - Идентификатор перехода
+ * @out param {uuid} id - Идентификатор перехода
  * @out param {boolean} result - Результат
  * @out param {text} message - Текст ошибки
  * @return {record}
  */
 CREATE OR REPLACE FUNCTION api.add_transition (
-  pState        numeric,
-  pMethod       numeric,
-  pNewState     numeric
-) RETURNS       numeric
+  pState        uuid,
+  pMethod       uuid,
+  pNewState     uuid
+) RETURNS       uuid
 AS $$
 BEGIN
   RETURN AddTransition(pState, pMethod, pNewState);
@@ -1098,17 +1092,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Обновляет переход в новое состояние.
- * @param {numeric} pId - Идентификатор перехода
- * @param {numeric} pState - Идентификатор состояния
- * @param {numeric} pMethod - Идентификатор метода (операции)
+ * @param {uuid} pId - Идентификатор перехода
+ * @param {uuid} pState - Идентификатор состояния
+ * @param {uuid} pMethod - Идентификатор метода (операции)
  * @param {text} pNewState - Идентификатор нового состояния
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_transition (
-  pId           numeric,
-  pState        numeric DEFAULT null,
-  pMethod       numeric DEFAULT null,
-  pNewState     numeric DEFAULT null
+  pId           uuid,
+  pState        uuid DEFAULT null,
+  pMethod       uuid DEFAULT null,
+  pNewState     uuid DEFAULT null
 ) RETURNS       void
 AS $$
 BEGIN
@@ -1123,10 +1117,10 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.set_transition (
-  pId           numeric,
-  pState        numeric DEFAULT null,
-  pMethod       numeric DEFAULT null,
-  pNewState     numeric DEFAULT null
+  pId           uuid,
+  pState        uuid DEFAULT null,
+  pMethod       uuid DEFAULT null,
+  pNewState     uuid DEFAULT null
 ) RETURNS       SETOF api.transition
 AS $$
 BEGIN
@@ -1147,11 +1141,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Удаляет переход в новое состояние.
- * @param {numeric} pId - Идентификатор перехода
+ * @param {uuid} pId - Идентификатор перехода
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.delete_transition (
-  pId       numeric
+  pId       uuid
 ) RETURNS   void
 AS $$
 BEGIN
@@ -1169,7 +1163,7 @@ $$ LANGUAGE plpgsql
  * @return {SETOF api.transition} - Запись
  */
 CREATE OR REPLACE FUNCTION api.get_transition (
-  pId       numeric
+  pId       uuid
 ) RETURNS   SETOF api.transition
 AS $$
   SELECT * FROM api.transition WHERE id = pId
@@ -1222,7 +1216,7 @@ GRANT SELECT ON api.event_type TO administrator;
  * @return {record} - Запись
  */
 CREATE OR REPLACE FUNCTION api.get_event_type (
-  pId       numeric
+  pId       uuid
 ) RETURNS   SETOF api.event_type
 AS $$
   SELECT * FROM api.event_type WHERE id = pId;
@@ -1243,24 +1237,24 @@ GRANT SELECT ON api.event TO administrator;
 --------------------------------------------------------------------------------
 /**
  * Создаёт событие.
- * @param {numeric} pClass - Идентификатор класса
- * @param {numeric} pType - Идентификатор типа
- * @param {numeric} pAction - Идентификатор действия
+ * @param {uuid} pClass - Идентификатор класса
+ * @param {uuid} pType - Идентификатор типа
+ * @param {uuid} pAction - Идентификатор действия
  * @param {text} pLabel - Наименование
  * @param {text} pText - PL/pgSQL Код
  * @param {integer} pSequence - Очередность
  * @param {boolean} pEnabled - Включен: Да/Нет
- * @return {numeric}
+ * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION api.add_event (
-  pClass        numeric,
-  pType         numeric,
-  pAction       numeric,
+  pClass        uuid,
+  pType         uuid,
+  pAction       uuid,
   pLabel        text,
   pText         text,
   pSequence     integer,
   pEnabled      boolean
-) RETURNS       numeric
+) RETURNS       uuid
 AS $$
 BEGIN
   RETURN AddEvent(pClass, pType, pAction, pLabel, pText, pSequence, pEnabled);
@@ -1274,10 +1268,10 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Обновляет событие.
- * @param {numeric} pId - Идентификатор события
- * @param {numeric} pClass - Идентификатор класса
- * @param {numeric} pType - Идентификатор типа
- * @param {numeric} pAction - Идентификатор действия
+ * @param {uuid} pId - Идентификатор события
+ * @param {uuid} pClass - Идентификатор класса
+ * @param {uuid} pType - Идентификатор типа
+ * @param {uuid} pAction - Идентификатор действия
  * @param {text} pLabel - Наименование
  * @param {text} pText - PL/pgSQL Код
  * @param {integer} pSequence - Очередность
@@ -1285,10 +1279,10 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_event (
-  pId           numeric,
-  pClass        numeric default null,
-  pType         numeric default null,
-  pAction       numeric default null,
+  pId           uuid,
+  pClass        uuid default null,
+  pType         uuid default null,
+  pAction       uuid default null,
   pLabel        text default null,
   pText         text default null,
   pSequence     integer default null,
@@ -1307,10 +1301,10 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.set_event (
-  pId           numeric,
-  pClass        numeric default null,
-  pType         numeric default null,
-  pAction       numeric default null,
+  pId           uuid,
+  pClass        uuid default null,
+  pType         uuid default null,
+  pAction       uuid default null,
   pLabel        text default null,
   pText         text default null,
   pSequence     integer default null,
@@ -1335,11 +1329,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Удаляет событие.
- * @param {numeric} pId - Идентификатор события
+ * @param {uuid} pId - Идентификатор события
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.delete_event (
-  pId       numeric
+  pId       uuid
 ) RETURNS   void
 AS $$
 BEGIN
@@ -1357,7 +1351,7 @@ $$ LANGUAGE plpgsql
  * @return {record} - Запись
  */
 CREATE OR REPLACE FUNCTION api.get_event (
-  pId       numeric
+  pId       uuid
 ) RETURNS   SETOF api.event
 AS $$
   SELECT * FROM api.event WHERE id = pId

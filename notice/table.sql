@@ -7,17 +7,15 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.notice (
-    id			bigserial PRIMARY KEY,
-    userid		numeric(12) NOT NULL,
-    object		numeric(12),
+    id			uuid PRIMARY KEY DEFAULT gen_kernel_uuid('8'),
+    userid		uuid NOT NULL REFERENCES db.user(id),
+    object		uuid REFERENCES db.object(id),
     text		text NOT NULL,
     category	text NOT NULL,
     status		integer DEFAULT 0 NOT NULL,
     created		timestamp DEFAULT Now() NOT NULL,
     updated		timestamp DEFAULT Now() NOT NULL,
-    CONSTRAINT ch_notice_status CHECK (status BETWEEN 0 AND 4),
-    CONSTRAINT fk_notice_userid FOREIGN KEY (userid) REFERENCES db.user(id),
-    CONSTRAINT fk_notice_object FOREIGN KEY (object) REFERENCES db.object(id)
+    CONSTRAINT ch_notice_status CHECK (status BETWEEN 0 AND 4)
 );
 
 COMMENT ON TABLE db.notice IS 'Извещение.';

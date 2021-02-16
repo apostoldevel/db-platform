@@ -17,22 +17,22 @@ GRANT SELECT ON api.agent TO administrator;
 --------------------------------------------------------------------------------
 /**
  * Добавляет агента.
- * @param {numeric} pParent - Ссылка на родительский объект: api.document | null
+ * @param {uuid} pParent - Ссылка на родительский объект: api.document | null
  * @param {text} pType - Тип
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
- * @param {numeric} pVendor - Производитель
+ * @param {uuid} pVendor - Производитель
  * @param {text} pDescription - Описание
- * @return {numeric}
+ * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION api.add_agent (
-  pParent       numeric,
+  pParent       uuid,
   pType         text,
   pCode         text,
   pName         text,
-  pVendor       numeric,
+  pVendor       uuid,
   pDescription	text default null
-) RETURNS       numeric
+) RETURNS       uuid
 AS $$
 BEGIN
   RETURN CreateAgent(pParent, CodeToType(lower(coalesce(pType, 'system')), 'agent'), pCode, pName, pVendor, pDescription);
@@ -46,27 +46,27 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Редактирует агента.
- * @param {numeric} pParent - Ссылка на родительский объект: Object.Parent | null
+ * @param {uuid} pParent - Ссылка на родительский объект: Object.Parent | null
  * @param {text} pType - Тип
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
- * @param {numeric} pVendor - Производитель
+ * @param {uuid} pVendor - Производитель
  * @param {text} pDescription - Описание
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_agent (
-  pId		    numeric,
-  pParent       numeric default null,
+  pId		    uuid,
+  pParent       uuid default null,
   pType         text default null,
   pCode         text default null,
   pName         text default null,
-  pVendor       numeric default null,
+  pVendor       uuid default null,
   pDescription	text default null
 ) RETURNS       void
 AS $$
 DECLARE
-  nType         numeric;
-  nAgent        numeric;
+  nType         uuid;
+  nAgent        uuid;
 BEGIN
   SELECT t.id INTO nAgent FROM db.agent t WHERE t.id = pId;
 
@@ -91,12 +91,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.set_agent (
-  pId           numeric,
-  pParent       numeric default null,
+  pId           uuid,
+  pParent       uuid default null,
   pType         text default null,
   pCode         text default null,
   pName         text default null,
-  pVendor       numeric default null,
+  pVendor       uuid default null,
   pDescription	text default null
 ) RETURNS       SETOF api.agent
 AS $$
@@ -118,11 +118,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает агента
- * @param {numeric} pId - Идентификатор
+ * @param {uuid} pId - Идентификатор
  * @return {api.agent}
  */
 CREATE OR REPLACE FUNCTION api.get_agent (
-  pId		numeric
+  pId		uuid
 ) RETURNS	api.agent
 AS $$
   SELECT * FROM api.agent WHERE id = pId

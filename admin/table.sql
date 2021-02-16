@@ -1,57 +1,14 @@
 --------------------------------------------------------------------------------
--- db.interface ----------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE TABLE db.interface (
-    id              numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
-    sid             varchar(18) NOT NULL,
-    name            text NOT NULL,
-    description     text
-);
-
-COMMENT ON TABLE db.interface IS 'Интерфейсы.';
-
-COMMENT ON COLUMN db.interface.id IS 'Идентификатор';
-COMMENT ON COLUMN db.interface.sid IS 'Строковый идентификатор';
-COMMENT ON COLUMN db.interface.name IS 'Наименование';
-COMMENT ON COLUMN db.interface.description IS 'Описание';
-
-CREATE UNIQUE INDEX ON db.interface (sid);
-CREATE INDEX ON db.interface (name);
-
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION db.ft_interface_before_insert()
-RETURNS trigger AS $$
-BEGIN
-  IF NEW.SID IS NULL THEN
-    SELECT 'I:1:1:' || TRIM(TO_CHAR(NEW.ID, '999999999999')) INTO NEW.SID;
-  END IF;
-
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
-
-CREATE TRIGGER t_interface
-  BEFORE INSERT ON db.interface
-  FOR EACH ROW
-  EXECUTE PROCEDURE db.ft_interface_before_insert();
-
---------------------------------------------------------------------------------
 -- db.area_type ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.area_type (
-    id        numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
+    id        uuid PRIMARY KEY,
     code      text NOT NULL,
     name      text
 );
 
-COMMENT ON TABLE db.area_type IS 'Тип зоны.';
+COMMENT ON TABLE db.area_type IS 'Тип области видимости.';
 
 COMMENT ON COLUMN db.area_type.id IS 'Идентификатор';
 COMMENT ON COLUMN db.area_type.code IS 'Код';
@@ -59,32 +16,22 @@ COMMENT ON COLUMN db.area_type.name IS 'Наименование';
 
 CREATE UNIQUE INDEX ON db.area_type (code);
 
-INSERT INTO db.area_type (code, name) VALUES ('root', 'Корень');
-INSERT INTO db.area_type (code, name) VALUES ('system', 'Система');
-INSERT INTO db.area_type (code, name) VALUES ('guest', 'Гость');
-INSERT INTO db.area_type (code, name) VALUES ('default', 'По умолчанию');
-INSERT INTO db.area_type (code, name) VALUES ('main', 'Главный');
-INSERT INTO db.area_type (code, name) VALUES ('remote', 'Удаленный');
-INSERT INTO db.area_type (code, name) VALUES ('mobile', 'Мобильный');
-
 --------------------------------------------------------------------------------
 -- db.area ---------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.area (
-    id              numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
-    parent          numeric(12) DEFAULT NULL,
-    type            numeric(12) NOT NULL,
+    id              uuid PRIMARY KEY DEFAULT gen_kernel_uuid('8'),
+    parent          uuid DEFAULT NULL REFERENCES db.area(id),
+    type            uuid NOT NULL REFERENCES db.area_type(id),
     code            text NOT NULL,
     name            text NOT NULL,
     description     text,
     validFromDate   timestamp DEFAULT Now() NOT NULL,
-    validToDate     timestamp,
-    CONSTRAINT fk_area_parent FOREIGN KEY (parent) REFERENCES db.area(id),
-    CONSTRAINT fk_area_type FOREIGN KEY (type) REFERENCES db.area_type(id)
+    validToDate     timestamp DEFAULT TO_DATE('4433-12-31', 'YYYY-MM-DD') NOT NULL
 );
 
-COMMENT ON TABLE db.area IS 'Зона.';
+COMMENT ON TABLE db.area IS 'Область видимости.';
 
 COMMENT ON COLUMN db.area.id IS 'Идентификатор';
 COMMENT ON COLUMN db.area.parent IS 'Ссылка на родительский узел';
@@ -106,6 +53,10 @@ CREATE OR REPLACE FUNCTION db.ft_area_before_insert()
 RETURNS trigger AS $$
 DECLARE
 BEGIN
+  IF NEW.id IS NULL THEN
+	NEW.id := gen_kernel_uuid('8');
+  END IF;
+
   IF NEW.id = NEW.parent THEN
     NEW.parent := GetArea('all');
   END IF;
@@ -124,11 +75,29 @@ CREATE TRIGGER t_area_before_insert
   EXECUTE PROCEDURE db.ft_area_before_insert();
 
 --------------------------------------------------------------------------------
+-- db.interface ----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE TABLE db.interface (
+    id              uuid PRIMARY KEY DEFAULT gen_kernel_uuid('8'),
+    code            text NOT NULL,
+    name            text NOT NULL,
+    description     text
+);
+
+COMMENT ON TABLE db.interface IS 'Интерфейс.';
+
+COMMENT ON COLUMN db.interface.id IS 'Идентификатор';
+COMMENT ON COLUMN db.interface.code IS 'Код';
+COMMENT ON COLUMN db.interface.name IS 'Наименование';
+COMMENT ON COLUMN db.interface.description IS 'Описание';
+
+--------------------------------------------------------------------------------
 -- db.user ---------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.user (
-    id					numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_USER'),
+    id					uuid PRIMARY KEY,
     type				char NOT NULL,
     username			text NOT NULL,
     name				text NOT NULL,
@@ -184,6 +153,10 @@ CREATE INDEX ON db.user (email text_pattern_ops);
 CREATE OR REPLACE FUNCTION db.ft_user_before_insert()
 RETURNS trigger AS $$
 BEGIN
+  IF NEW.id IS NULL THEN
+    SELECT gen_kernel_uuid('a') INTO NEW.id;
+  END IF;
+
   IF NEW.secret IS NULL THEN
     SELECT gen_random_bytes(64) INTO NEW.secret;
   END IF;
@@ -194,7 +167,7 @@ BEGIN
     NEW.phone := TrimPhone(NEW.phone);
   END IF;
 
-  NEW.readonly := NEW.username IN ('system', 'administrator', 'guest');
+  NEW.readonly := NEW.username IN ('system', 'administrator', 'guest', 'daemon', 'apibot', 'mailbot');
   NEW.readonly := NEW.readonly OR coalesce((SELECT a.name = NEW.username FROM oauth2.audience a WHERE a.name = NEW.username), false);
 
   RETURN NEW;
@@ -294,28 +267,25 @@ CREATE TRIGGER t_user_before_delete
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.profile (
-    userId              numeric(12) PRIMARY KEY,
+    userId              uuid REFERENCES db.user(id) ON DELETE CASCADE,
     family_name         text,
     given_name          text,
     patronymic_name     text,
-    input_count         numeric DEFAULT 0 NOT NULL,
+    input_count         integer DEFAULT 0 NOT NULL,
     input_last          timestamp DEFAULT NULL,
-    input_error         numeric DEFAULT 0 NOT NULL,
+    input_error         integer DEFAULT 0 NOT NULL,
     input_error_last    timestamp DEFAULT NULL,
-    input_error_all     numeric DEFAULT 0 NOT NULL,
+    input_error_all     integer DEFAULT 0 NOT NULL,
     lc_ip               inet,
-    locale              numeric(12) NOT NULL,
-    area                numeric(12) NOT NULL,
-    interface           numeric(12) NOT NULL,
+    locale              uuid NOT NULL REFERENCES db.locale(id),
+    area                uuid NOT NULL REFERENCES db.area(id),
+    interface           uuid NOT NULL REFERENCES db.interface(id),
     state               bit(3) DEFAULT B'000' NOT NULL,
     session_limit       integer DEFAULT 0 NOT NULL,
     email_verified      bool DEFAULT false,
     phone_verified      bool DEFAULT false,
     picture             text,
-    CONSTRAINT fk_profile_userid FOREIGN KEY (userid) REFERENCES db.user(id),
-    CONSTRAINT fk_profile_locale FOREIGN KEY (locale) REFERENCES db.locale(id),
-    CONSTRAINT fk_profile_area FOREIGN KEY (area) REFERENCES db.area(id),
-    CONSTRAINT fk_profile_interface FOREIGN KEY (interface) REFERENCES db.interface(id)
+    PRIMARY KEY (userid)
 );
 
 COMMENT ON TABLE db.profile IS 'Дополнительная информация о пользователе системы.';
@@ -339,6 +309,8 @@ COMMENT ON COLUMN db.profile.email_verified IS 'Электронный адре�
 COMMENT ON COLUMN db.profile.phone_verified IS 'Телефон подтверждён.';
 COMMENT ON COLUMN db.profile.picture IS 'Логотип.';
 
+--------------------------------------------------------------------------------
+
 CREATE OR REPLACE FUNCTION db.ft_profile_before()
 RETURNS trigger AS $$
 BEGIN
@@ -351,7 +323,7 @@ BEGIN
   END IF;
 
   IF NOT IsMemberInterface(NEW.interface, NEW.userid) THEN
-    SELECT id INTO NEW.interface FROM db.interface WHERE sid = 'I:1:0:0';
+    SELECT id INTO NEW.interface FROM db.interface WHERE id = '00000000-0000-4004-a000-000000000000';
   END IF;
 
   RETURN NEW;
@@ -388,7 +360,7 @@ DECLARE
 
   bSuccess	boolean;
 
-  nUserId	numeric;
+  nUserId	uuid;
 
   vData		Variant;
 
@@ -498,23 +470,54 @@ CREATE TRIGGER t_profile_login_state
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.member_group (
-    id			numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
-    userid		numeric(12) NOT NULL,
-    member		numeric(12) NOT NULL,
-    CONSTRAINT fk_mg_userid FOREIGN KEY (userid) REFERENCES db.user(id),
-    CONSTRAINT fk_mg_member FOREIGN KEY (member) REFERENCES db.user(id)
+    userid		uuid NOT NULL REFERENCES db.user(id),
+    member		uuid NOT NULL REFERENCES db.user(id),
+    PRIMARY KEY (userid, member)
 );
 
 COMMENT ON TABLE db.member_group IS 'Членство в группах.';
 
-COMMENT ON COLUMN db.member_group.id IS 'Идентификатор';
 COMMENT ON COLUMN db.member_group.userid IS 'Группа';
 COMMENT ON COLUMN db.member_group.member IS 'Участник';
 
 CREATE INDEX ON db.member_group (userid);
 CREATE INDEX ON db.member_group (member);
 
-CREATE UNIQUE INDEX ON db.member_group (userid, member);
+--------------------------------------------------------------------------------
+-- db.member_area --------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE TABLE db.member_area (
+    area		uuid NOT NULL REFERENCES db.area(id),
+    member		uuid NOT NULL REFERENCES db.user(id),
+    PRIMARY KEY (area, member)
+);
+
+COMMENT ON TABLE db.member_area IS 'Участники зоны.';
+
+COMMENT ON COLUMN db.member_area.area IS 'Подразделение';
+COMMENT ON COLUMN db.member_area.member IS 'Участник';
+
+CREATE INDEX ON db.member_area (area);
+CREATE INDEX ON db.member_area (member);
+
+--------------------------------------------------------------------------------
+-- db.member_interface ---------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE TABLE db.member_interface (
+    interface   uuid NOT NULL REFERENCES db.interface(id),
+    member      uuid NOT NULL REFERENCES db.user(id),
+    PRIMARY KEY (interface, member)
+);
+
+COMMENT ON TABLE db.member_interface IS 'Участники интерфеса.';
+
+COMMENT ON COLUMN db.member_interface.interface IS 'Интерфейс';
+COMMENT ON COLUMN db.member_interface.member IS 'Участник';
+
+CREATE INDEX ON db.member_interface (interface);
+CREATE INDEX ON db.member_interface (member);
 
 --------------------------------------------------------------------------------
 -- RECOVERY TICKET -------------------------------------------------------------
@@ -526,9 +529,9 @@ CREATE UNIQUE INDEX ON db.member_group (userid, member);
 
 CREATE TABLE db.recovery_ticket (
     ticket			uuid PRIMARY KEY,
-    userId          numeric(12) NOT NULL,
+    userId          uuid NOT NULL,
     securityAnswer	text NOT NULL,
-    used            boolean NOT NULL DEFAULT false,
+    used            timestamptz,
     validFromDate   timestamptz NOT NULL,
     validToDate     timestamptz NOT NULL
 );
@@ -588,74 +591,23 @@ CREATE TRIGGER t_recovery_ticket_before
   FOR EACH ROW EXECUTE PROCEDURE db.ft_recovery_ticket_before();
 
 --------------------------------------------------------------------------------
--- db.member_area --------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE TABLE db.member_area (
-    id			numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
-    area		numeric(12) NOT NULL,
-    member		numeric(12) NOT NULL,
-    CONSTRAINT fk_md_area FOREIGN KEY (area) REFERENCES db.area(id),
-    CONSTRAINT fk_md_member FOREIGN KEY (member) REFERENCES db.user(id)
-);
-
-COMMENT ON TABLE db.member_area IS 'Участники зоны.';
-
-COMMENT ON COLUMN db.member_area.id IS 'Идентификатор';
-COMMENT ON COLUMN db.member_area.area IS 'Подразделение';
-COMMENT ON COLUMN db.member_area.member IS 'Участник';
-
-CREATE INDEX ON db.member_area (area);
-CREATE INDEX ON db.member_area (member);
-
-CREATE UNIQUE INDEX ON db.member_area (area, member);
-
---------------------------------------------------------------------------------
--- db.member_interface ---------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE TABLE db.member_interface (
-    id          numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
-    interface   numeric(12) NOT NULL,
-    member      numeric(12) NOT NULL,
-    CONSTRAINT fk_mi_interface FOREIGN KEY (interface) REFERENCES db.interface(id),
-    CONSTRAINT fk_mi_member FOREIGN KEY (member) REFERENCES db.user(id)
-);
-
-COMMENT ON TABLE db.member_interface IS 'Участники интерфеса.';
-
-COMMENT ON COLUMN db.member_interface.id IS 'Идентификатор';
-COMMENT ON COLUMN db.member_interface.interface IS 'Интерфейс';
-COMMENT ON COLUMN db.member_interface.member IS 'Участник';
-
-CREATE INDEX ON db.member_interface (interface);
-CREATE INDEX ON db.member_interface (member);
-
-CREATE UNIQUE INDEX ON db.member_interface (interface, member);
-
---------------------------------------------------------------------------------
 -- db.auth ---------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.auth (
-    id          numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
-    userId      numeric(12) NOT NULL,
-    audience    numeric(12) NOT NULL,
+    userId      uuid NOT NULL REFERENCES db.user(id) ON DELETE CASCADE,
+    audience    integer NOT NULL REFERENCES oauth2.audience(id),
     code        text NOT NULL,
     created     timestamp DEFAULT Now() NOT NULL,
-    CONSTRAINT fk_auth_userid FOREIGN KEY (userid) REFERENCES db.user(id),
-    CONSTRAINT fk_auth_audience FOREIGN KEY (audience) REFERENCES oauth2.audience(id)
+    PRIMARY KEY (userId, audience)
 );
 
 COMMENT ON TABLE db.auth IS 'Авторизаия пользователей из внешних систем.';
 
-COMMENT ON COLUMN db.auth.id IS 'Идентификатор';
 COMMENT ON COLUMN db.auth.userId IS 'Пользователь';
 COMMENT ON COLUMN db.auth.audience IS 'Аудитория';
 COMMENT ON COLUMN db.auth.code IS 'Идентификатор внешнего пользователя';
 COMMENT ON COLUMN db.auth.created IS 'Дата создания';
-
-CREATE UNIQUE INDEX ON db.auth (audience, code);
 
 CREATE INDEX ON db.auth (userId);
 CREATE INDEX ON db.auth (audience);
@@ -666,9 +618,9 @@ CREATE INDEX ON db.auth (code);
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.iptable (
-    id			numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
+    id			serial PRIMARY KEY,
     type		char DEFAULT 'A' NOT NULL,
-    userid		numeric(12) NOT NULL,
+    userid		uuid NOT NULL,
     addr		inet NOT NULL,
     range		int,
     CONSTRAINT ch_ip_table_type CHECK (type IN ('A', 'D')),
@@ -693,13 +645,12 @@ CREATE INDEX idx_ip_table_userid ON db.iptable (userid);
 
 CREATE TABLE db.oauth2 (
     id              bigserial PRIMARY KEY,
-    audience        numeric(12) NOT NULL,
+    audience        integer NOT NULL REFERENCES oauth2.audience(id),
     scopes          text[] NOT NULL,
     access_type     text NOT NULL DEFAULT 'online',
     redirect_uri    text,
     state           text,
-    CONSTRAINT ch_oauth2_access_type CHECK (access_type IN ('online', 'offline')),
-    CONSTRAINT fk_oauth2_audience FOREIGN KEY (audience) REFERENCES oauth2.audience(id)
+    CHECK (access_type IN ('online', 'offline'))
 );
 
 COMMENT ON TABLE db.oauth2 IS 'Параметры арторизации через OAuth 2.0.';
@@ -718,15 +669,14 @@ CREATE INDEX ON db.oauth2 (audience);
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.token_header (
-    id              numeric PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_TOKEN'),
-    oauth2          bigint NOT NULL,
+    id              bigserial PRIMARY KEY,
+    oauth2          bigint NOT NULL REFERENCES db.oauth2,
     session         varchar(40) NOT NULL,
     salt            text NOT NULL,
     agent           text NOT NULL,
     host            inet,
     created         timestamptz NOT NULL DEFAULT Now(),
-    updated         timestamptz NOT NULL DEFAULT Now(),
-    CONSTRAINT fk_token_header_oauth2 FOREIGN KEY (oauth2) REFERENCES db.oauth2(id)
+    updated         timestamptz NOT NULL DEFAULT Now()
 );
 
 COMMENT ON TABLE db.token_header IS 'Заголовок маркера.';
@@ -769,16 +719,15 @@ CREATE TRIGGER t_token_header_before_delete
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.token (
-    id              numeric PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_TOKEN'),
-    header          numeric NOT NULL,
+    id              bigserial PRIMARY KEY,
+    header          bigint NOT NULL REFERENCES db.token_header(id) ON DELETE CASCADE,
     type            char NOT NULL,
     token           text NOT NULL,
     hash            varchar(40) NOT NULL,
-    used            boolean NOT NULL DEFAULT false,
+    used            timestamptz,
     validFromDate   timestamptz DEFAULT Now() NOT NULL,
     validToDate     timestamptz DEFAULT TO_DATE('4433-12-31', 'YYYY-MM-DD') NOT NULL,
-    CONSTRAINT ch_token_type CHECK (type IN ('C', 'A', 'R', 'I')),
-    CONSTRAINT fk_token_header FOREIGN KEY (header) REFERENCES db.token_header(id)
+    CHECK (type IN ('C', 'A', 'R', 'I'))
 );
 
 COMMENT ON TABLE db.token IS 'Токены.';
@@ -866,14 +815,14 @@ CREATE TRIGGER t_token_before
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.session (
-    code        varchar(40) PRIMARY KEY NOT NULL,
-    oauth2      bigint NOT NULL,
-    token       numeric(12) NOT NULL,
-    suid        numeric(12) NOT NULL,
-    userid      numeric(12) NOT NULL,
-    locale      numeric(12) NOT NULL,
-    area        numeric(12) NOT NULL,
-    interface   numeric(12) NOT NULL,
+    code        varchar(40) PRIMARY KEY,
+    oauth2      bigint NOT NULL REFERENCES db.oauth2(id),
+    token       bigint NOT NULL REFERENCES db.token(id),
+    suid        uuid NOT NULL REFERENCES db.user(id),
+    userid      uuid NOT NULL REFERENCES db.user(id),
+    locale      uuid NOT NULL REFERENCES db.locale(id),
+    area        uuid NOT NULL REFERENCES db.area(id),
+    interface   uuid NOT NULL REFERENCES db.interface(id),
     oper_date   timestamp DEFAULT NULL,
     created     timestamp DEFAULT Now() NOT NULL,
     updated     timestamp DEFAULT Now() NOT NULL,
@@ -881,14 +830,7 @@ CREATE TABLE db.session (
     secret      text NOT NULL,
     salt        text NOT NULL,
     agent       text NOT NULL,
-    host        inet,
-    CONSTRAINT fk_session_oauth2 FOREIGN KEY (oauth2) REFERENCES db.oauth2(id),
-    CONSTRAINT fk_session_token FOREIGN KEY (token) REFERENCES db.token(id),
-    CONSTRAINT fk_session_suid FOREIGN KEY (suid) REFERENCES db.user(id),
-    CONSTRAINT fk_session_userid FOREIGN KEY (userid) REFERENCES db.user(id),
-    CONSTRAINT fk_session_locale FOREIGN KEY (locale) REFERENCES db.locale(id),
-    CONSTRAINT fk_session_area FOREIGN KEY (area) REFERENCES db.area(id),
-    CONSTRAINT fk_session_interface FOREIGN KEY (interface) REFERENCES db.interface(id)
+    host        inet
 );
 
 COMMENT ON TABLE db.session IS 'Сессии пользователей.';
@@ -1087,10 +1029,11 @@ CREATE TRIGGER t_session_after
    i - login
  */
 CREATE TABLE db.acl (
-    userId		numeric(12) PRIMARY KEY,
+    userId		uuid REFERENCES db.user ON DELETE CASCADE,
     deny		bit varying NOT NULL,
     allow		bit varying NOT NULL,
-    mask		bit varying NOT NULL
+    mask		bit varying NOT NULL,
+    PRIMARY KEY (userId)
 );
 
 COMMENT ON TABLE db.acl IS 'Список контроля доступа.';
@@ -1116,4 +1059,3 @@ CREATE TRIGGER t_acl_before
   BEFORE INSERT OR UPDATE ON db.acl
   FOR EACH ROW
   EXECUTE PROCEDURE ft_acl_before();
-

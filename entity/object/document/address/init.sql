@@ -7,15 +7,15 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddAddressEvents (
-  pClass        numeric
+  pClass        uuid
 )
 RETURNS         void
 AS $$
 DECLARE
   r             record;
 
-  nParent       numeric;
-  nEvent        numeric;
+  nParent       uuid;
+  nEvent        uuid;
 BEGIN
   nParent := GetEventType('parent');
   nEvent := GetEventType('event');
@@ -81,13 +81,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateClassAddress (
-  pParent       numeric,
-  pEntity       numeric
+  pParent       uuid,
+  pEntity       uuid
 )
-RETURNS         numeric
+RETURNS         uuid
 AS $$
 DECLARE
-  nClass        numeric;
+  nClass        uuid;
 BEGIN
   -- Класс
   nClass := AddClass(pParent, pEntity, 'address', 'Адрес', false);
@@ -114,12 +114,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateEntityAddress (
-  pParent       numeric
+  pParent       uuid
 )
-RETURNS         numeric
+RETURNS         uuid
 AS $$
 DECLARE
-  nEntity       numeric;
+  nEntity       uuid;
 BEGIN
   -- Сущность
   nEntity := AddEntity('address', 'Адрес');

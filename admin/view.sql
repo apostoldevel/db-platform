@@ -1,14 +1,4 @@
 --------------------------------------------------------------------------------
--- Interface -------------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE VIEW Interface
-as
-  SELECT * FROM db.interface;
-
-GRANT SELECT ON Interface TO administrator;
-
---------------------------------------------------------------------------------
 -- AreaType --------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -33,6 +23,16 @@ as
 GRANT SELECT ON Area TO administrator;
 
 --------------------------------------------------------------------------------
+-- Interface -------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW Interface
+as
+  SELECT * FROM db.interface;
+
+GRANT SELECT ON Interface TO administrator;
+
+--------------------------------------------------------------------------------
 -- users -----------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -40,7 +40,7 @@ CREATE OR REPLACE VIEW users
 AS
   SELECT u.id, u.username, u.name, p.given_name, p.family_name, p.patronymic_name,
          u.email, p.email_verified, u.phone, p.phone_verified, p.session_limit,
-         u.created, l.code AS locale, a.code AS area, i.sid AS interface,
+         u.created, l.code AS locale, a.code AS area, i.id AS interface,
          u.description, p.picture, u.passwordchange, u.passwordnotchange,
          r.rolname IS NOT NULL AS system,
          readonly,
@@ -91,11 +91,12 @@ GRANT SELECT ON groups TO administrator;
 -- MemberGroup -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW MemberGroup (Id, UserId, UserType, UserName, UserFullName, UserDesc,
-  MemberId, MemberType, MemberName, MemberFullName, MemberDesc
+CREATE OR REPLACE VIEW MemberGroup (
+  UserId, UserType, UserName, UserFullName, UserDescription,
+  MemberId, MemberType, MemberName, MemberFullName, MemberDescription
 )
 AS
-  SELECT mg.id, mg.userid,
+  SELECT mg.userid,
          CASE g.type
          WHEN 'G' THEN 'group'
          WHEN 'U' THEN 'user'
@@ -114,11 +115,12 @@ GRANT SELECT ON MemberGroup TO administrator;
 -- MemberArea ------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW MemberArea (Id, Area, Code, Name, Description,
+CREATE OR REPLACE VIEW MemberArea (
+  Area, Code, Name, Description,
   MemberId, MemberType, MemberName, MemberFullName, MemberDesc
 )
 AS
-  SELECT md.id, md.area, d.code, d.name, d.description,
+  SELECT md.area, d.code, d.name, d.description,
          md.member, u.type, u.username, u.name, u.description
     FROM db.member_area md INNER JOIN db.area d ON d.id = md.area
                            INNER JOIN db.user u ON u.id = md.member;
@@ -129,11 +131,12 @@ GRANT SELECT ON MemberArea TO administrator;
 -- MemberInterface -------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW MemberInterface (Id, Interface, SID, InterfaceName, InterfaceDesc,
+CREATE OR REPLACE VIEW MemberInterface (
+  Interface, InterfaceName, InterfaceDesc,
   MemberId, MemberType, MemberName, MemberFullName, MemberDesc
 )
 AS
-  SELECT mwp.id, mwp.interface, wp.sid, wp.name, wp.description,
+  SELECT mwp.interface, wp.name, wp.description,
          mwp.member, u.type, u.username, u.name, u.description
     FROM db.member_interface mwp INNER JOIN db.interface wp ON wp.id = mwp.interface
                                  INNER JOIN db.user u ON u.id = mwp.member;

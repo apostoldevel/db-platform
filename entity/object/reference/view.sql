@@ -4,7 +4,8 @@
 
 CREATE OR REPLACE VIEW Reference
 AS
-  SELECT * FROM db.reference;
+  SELECT r.*, rt.name, rt.description
+    FROM db.reference r INNER JOIN db.reference_text rt ON r.id = rt.reference AND rt.locale = current_locale();
 
 GRANT SELECT ON Reference TO administrator;
 
@@ -24,21 +25,14 @@ CREATE OR REPLACE VIEW ObjectReference (Id, Object, Parent,
 )
 AS
   SELECT r.id, r.object, o.parent,
-         r.entity, e.code, e.name,
-         r.class, ct.code, ct.label,
-         o.type, t.code, t.name, t.description,
+         o.entity, o.entitycode, o.entityname,
+         o.class, o.classcode, o.classlabel,
+         o.type, o.typecode, o.typename, o.typedescription,
          r.code, r.name, o.label, r.description,
-         o.state_type, st.code, st.name,
-         o.state, s.code, s.label, o.udate,
-         o.owner, w.username, w.name, o.pdate,
-         o.oper, u.username, u.name, o.ldate
-    FROM db.reference r INNER JOIN db.entity     e ON r.entity = e.id
-                        INNER JOIN db.class_tree ct ON r.class = ct.id
-                        INNER JOIN db.object      o ON r.object = o.id
-                        INNER JOIN db.type        t ON o.type = t.id
-                        INNER JOIN db.state_type st ON o.state_type = st.id
-                        INNER JOIN db.state       s ON o.state = s.id
-                        INNER JOIN db.user        w ON o.owner = w.id
-                        INNER JOIN db.user        u ON o.oper = u.id;
+         o.statetype, o.statetypecode, o.statetypename,
+         o.state, o.statecode, o.statelabel, o.lastupdate,
+         o.owner, o.ownercode, o.ownername, o.created,
+         o.oper, o.opercode, o.opername, o.operdate
+    FROM Reference r INNER JOIN Object o ON r.object = o.id;
 
 GRANT SELECT ON ObjectReference TO administrator;

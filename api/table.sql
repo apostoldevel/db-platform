@@ -7,9 +7,9 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.path (
-    id			numeric(10) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_API'),
-    root        numeric(10) NOT NULL,
-    parent		numeric(10),
+    id			uuid PRIMARY KEY DEFAULT gen_kernel_uuid('8'),
+    root        uuid NOT NULL,
+    parent		uuid,
     name        text NOT NULL,
     level		integer NOT NULL,
     CONSTRAINT fk_path_root FOREIGN KEY (root) REFERENCES db.path(id),
@@ -37,7 +37,7 @@ CREATE INDEX ON db.path (name);
 CREATE OR REPLACE FUNCTION ft_path_insert()
 RETURNS trigger AS $$
 BEGIN
-  IF NULLIF(NEW.root, 0) IS NULL THEN
+  IF NEW.root IS NULL THEN
     SELECT NEW.id INTO NEW.root;
   END IF;
 
@@ -57,7 +57,7 @@ CREATE TRIGGER t_path_insert
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.endpoint (
-    id			numeric(10) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_API'),
+    id			uuid PRIMARY KEY DEFAULT gen_kernel_uuid('8'),
     definition	text NOT NULL
 );
 
@@ -72,8 +72,8 @@ COMMENT ON COLUMN db.endpoint.definition IS 'PL/pgSQL код';
 
 CREATE TABLE db.route (
     method		text NOT NULL DEFAULT 'POST',
-    path       	numeric(10) NOT NULL,
-    endpoint	numeric(10) NOT NULL,
+    path       	uuid NOT NULL,
+    endpoint	uuid NOT NULL,
     CONSTRAINT pk_route PRIMARY KEY (method, path, endpoint),
     CONSTRAINT ch_route_method CHECK (method IN ('GET', 'POST', 'PUT', 'DELETE')),
     CONSTRAINT fk_route_path FOREIGN KEY (path) REFERENCES db.path(id),
@@ -89,4 +89,3 @@ COMMENT ON COLUMN db.route.endpoint IS 'Конечная точка';
 CREATE INDEX ON db.route (method);
 CREATE INDEX ON db.route (path);
 CREATE INDEX ON db.route (endpoint);
-

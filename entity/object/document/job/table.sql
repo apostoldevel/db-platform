@@ -7,15 +7,12 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.job (
-    id			    numeric(12) PRIMARY KEY,
-    document	    numeric(12) NOT NULL,
+    id			    uuid PRIMARY KEY,
+    document	    uuid NOT NULL REFERENCES db.document(id) ON DELETE CASCADE,
     code		    text NOT NULL,
-    scheduler       numeric(12) NOT NULL,
-    program         numeric(12) NOT NULL,
-    dateRun         timestamptz NOT NULL DEFAULT Now(),
-    CONSTRAINT fk_job_document FOREIGN KEY (document) REFERENCES db.document(id),
-    CONSTRAINT fk_job_scheduler FOREIGN KEY (scheduler) REFERENCES db.scheduler(id),
-    CONSTRAINT fk_job_program FOREIGN KEY (program) REFERENCES db.program(id)
+    scheduler       uuid NOT NULL REFERENCES db.scheduler(id),
+    program         uuid NOT NULL REFERENCES db.program(id),
+    dateRun         timestamptz NOT NULL DEFAULT Now()
 );
 
 --------------------------------------------------------------------------------
@@ -45,7 +42,7 @@ RETURNS trigger AS $$
 DECLARE
   iPeriod		interval;
 BEGIN
-  IF NULLIF(NEW.id, 0) IS NULL THEN
+  IF NEW.id IS NULL THEN
     SELECT NEW.document INTO NEW.id;
   END IF;
 

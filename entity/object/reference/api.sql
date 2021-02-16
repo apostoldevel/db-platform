@@ -17,20 +17,20 @@ GRANT SELECT ON api.reference TO administrator;
 --------------------------------------------------------------------------------
 /**
  * Добавляет справочник.
- * @param {numeric} pParent - Ссылка на родительский объект: api.reference | null
+ * @param {uuid} pParent - Ссылка на родительский объект: api.reference | null
  * @param {text} pType - Тип
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
- * @return {numeric}
+ * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION api.add_reference (
-  pParent       numeric,
+  pParent       uuid,
   pType         text,
   pCode			text,
   pName			text,
   pDescription  text DEFAULT null
-) RETURNS       numeric
+) RETURNS       uuid
 AS $$
 BEGIN
   RETURN CreateReference(pParent, GetType(lower(pType)), pCode, pName, pDescription);
@@ -44,7 +44,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Редактирует справочник.
- * @param {numeric} pParent - Ссылка на родительский объект: Reference.Parent | null
+ * @param {uuid} pParent - Ссылка на родительский объект: Reference.Parent | null
  * @param {text} pType - Тип
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
@@ -52,8 +52,8 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_reference (
-  pId		    numeric,
-  pParent       numeric DEFAULT null,
+  pId		    uuid,
+  pParent       uuid DEFAULT null,
   pType         text DEFAULT null,
   pCode			text DEFAULT null,
   pName			text DEFAULT null,
@@ -61,8 +61,8 @@ CREATE OR REPLACE FUNCTION api.update_reference (
 ) RETURNS       void
 AS $$
 DECLARE
-  nType         numeric;
-  nReference	numeric;
+  nType         uuid;
+  nReference	uuid;
 BEGIN
   SELECT t.id INTO nReference FROM db.reference t WHERE t.id = pId;
 
@@ -87,8 +87,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.set_reference (
-  pId		    numeric,
-  pParent       numeric DEFAULT null,
+  pId		    uuid,
+  pParent       uuid DEFAULT null,
   pType         text DEFAULT null,
   pCode			text DEFAULT null,
   pName			text DEFAULT null,
@@ -113,11 +113,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает справочник
- * @param {numeric} pId - Идентификатор
+ * @param {uuid} pId - Идентификатор
  * @return {api.reference}
  */
 CREATE OR REPLACE FUNCTION api.get_reference (
-  pId		numeric
+  pId		uuid
 ) RETURNS	api.reference
 AS $$
   SELECT * FROM api.reference WHERE id = pId

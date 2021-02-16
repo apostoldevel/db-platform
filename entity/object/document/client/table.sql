@@ -3,16 +3,14 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.client (
-    id			numeric(12) PRIMARY KEY,
-    document	numeric(12) NOT NULL,
+    id			uuid PRIMARY KEY,
+    document	uuid NOT NULL REFERENCES db.document(id) ON DELETE CASCADE,
     code		text NOT NULL,
     creation    timestamp,
-    userId		numeric(12),
+    userId		uuid REFERENCES db.user(id) ON DELETE RESTRICT,
     phone		jsonb,
     email		jsonb,
-    info		jsonb,
-    CONSTRAINT fk_client_document FOREIGN KEY (document) REFERENCES db.document(id),
-    CONSTRAINT fk_client_user FOREIGN KEY (userid) REFERENCES db.user(id)
+    info		jsonb
 );
 
 --------------------------------------------------------------------------------
@@ -44,7 +42,7 @@ CREATE INDEX ON db.client USING GIN (info jsonb_path_ops);
 CREATE OR REPLACE FUNCTION ft_client_insert()
 RETURNS trigger AS $$
 BEGIN
-  IF NULLIF(NEW.id, 0) IS NULL THEN
+  IF NEW.id IS NULL THEN
     SELECT NEW.document INTO NEW.id;
   END IF;
 
@@ -126,9 +124,9 @@ CREATE TRIGGER t_client_update
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.client_name (
-    id			    numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
-    client		    numeric(12) NOT NULL,
-    locale		    numeric(12) NOT NULL,
+    id			    uuid PRIMARY KEY DEFAULT gen_kernel_uuid('8'),
+    client		    uuid NOT NULL,
+    locale		    uuid NOT NULL,
     name		    text NOT NULL,
     short		    text,
     first		    text,
@@ -179,41 +177,41 @@ CREATE UNIQUE INDEX ON db.client_name (client, locale, validFromDate, validToDat
 CREATE OR REPLACE FUNCTION ft_client_name_insert_update()
 RETURNS trigger AS $$
 DECLARE
-  nUserId	NUMERIC;
+  nUserId	uuid;
 BEGIN
-  IF NEW.Locale IS NULL THEN
-    NEW.Locale := current_locale();
+  IF NEW.locale IS NULL THEN
+    NEW.locale := current_locale();
   END IF;
 
-  IF NEW.Name IS NULL THEN
-    IF NEW.Last IS NOT NULL THEN
-      NEW.Name := NEW.Last;
+  IF NEW.name IS NULL THEN
+    IF NEW.last IS NOT NULL THEN
+      NEW.name := NEW.last;
     END IF;
 
-    IF NEW.First IS NOT NULL THEN
-      IF NEW.Name IS NULL THEN
-        NEW.Name := NEW.First;
+    IF NEW.first IS NOT NULL THEN
+      IF NEW.name IS NULL THEN
+        NEW.name := NEW.first;
       ELSE
-        NEW.Name := NEW.Name || ' ' || NEW.First;
+        NEW.name := NEW.name || ' ' || NEW.first;
       END IF;
     END IF;
 
-    IF NEW.Middle IS NOT NULL THEN
-      IF NEW.Name IS NOT NULL THEN
-        NEW.Name := NEW.Name || ' ' || NEW.Middle;
+    IF NEW.middle IS NOT NULL THEN
+      IF NEW.name IS NOT NULL THEN
+        NEW.name := NEW.name || ' ' || NEW.middle;
       END IF;
     END IF;
   END IF;
 
-  IF NEW.Name IS NULL THEN
-    SELECT code INTO NEW.Name FROM db.client WHERE id = NEW.Client;
+  IF NEW.name IS NULL THEN
+    SELECT code INTO NEW.name FROM db.client WHERE id = NEW.client;
   END IF;
 
-  UPDATE db.object SET label = NEW.Name WHERE Id = NEW.Client;
+  UPDATE db.object_text SET label = NEW.name WHERE object = NEW.client AND locale = NEW.locale;
 
-  SELECT UserId INTO nUserId FROM db.client WHERE Id = NEW.Client;
+  SELECT UserId INTO nUserId FROM db.client WHERE id = NEW.client;
   IF nUserId IS NOT NULL THEN
-    UPDATE db.user SET name = NEW.name WHERE Id = nUserId;
+    UPDATE db.user SET name = NEW.name WHERE id = nUserId;
     UPDATE db.profile
        SET given_name = NEW.first,
            family_name = NEW.last,
@@ -239,9 +237,9 @@ CREATE TRIGGER t_client_name_insert_update
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.balance (
-    id			    numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
+    id			    uuid PRIMARY KEY DEFAULT gen_kernel_uuid('8'),
     type            integer NOT NULL DEFAULT 0,
-    client          numeric(12) NOT NULL,
+    client          uuid NOT NULL,
     amount		    numeric NOT NULL,
     validFromDate	timestamptz DEFAULT Now() NOT NULL,
     validToDate		timestamptz DEFAULT MAXDATE() NOT NULL,
@@ -272,9 +270,9 @@ CREATE UNIQUE INDEX ON db.balance (type, client, validFromDate, validToDate);
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.turn_over (
-    id			    numeric(12) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REF'),
+    id			    uuid PRIMARY KEY DEFAULT gen_kernel_uuid('8'),
     type            integer NOT NULL DEFAULT 0,
-    client          numeric(12) NOT NULL,
+    client          uuid NOT NULL,
     debit		    numeric NOT NULL,
     credit          numeric NOT NULL,
     turn_date       timestamptz NOT NULL,
@@ -297,4 +295,3 @@ CREATE INDEX ON db.turn_over (type);
 CREATE INDEX ON db.turn_over (client);
 
 CREATE INDEX ON db.turn_over (type, client, turn_date);
-

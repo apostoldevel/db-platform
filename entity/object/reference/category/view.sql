@@ -5,7 +5,7 @@
 CREATE OR REPLACE VIEW Category (Id, Reference, Code, Name, Description)
 AS
   SELECT c.id, c.reference, r.code, r.name, r.description
-    FROM db.category c INNER JOIN db.reference r ON r.id = c.reference;
+    FROM db.category c INNER JOIN Reference r ON r.id = c.reference;
 
 GRANT SELECT ON Category TO administrator;
 

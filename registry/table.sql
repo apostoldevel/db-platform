@@ -3,9 +3,9 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE registry.key (
-    id			numeric(10) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REGISTRY'),
-    root		numeric(10),
-    parent		numeric(10),
+    id			uuid PRIMARY KEY DEFAULT gen_kernel_uuid('8'),
+    root		uuid,
+    parent		uuid,
     key			text NOT NULL,
     level		integer NOT NULL,
     CONSTRAINT fk_registry_key_root FOREIGN KEY (root) REFERENCES registry.key(id),
@@ -32,8 +32,8 @@ CREATE UNIQUE INDEX ON registry.key (root, parent, key);
 --------------------------------------------------------------------------------
 
 CREATE TABLE registry.value (
-    id			numeric(10) PRIMARY KEY DEFAULT NEXTVAL('SEQUENCE_REGISTRY'),
-    key			numeric(10) NOT NULL,
+    id			uuid PRIMARY KEY DEFAULT gen_kernel_uuid('8'),
+    key			uuid NOT NULL,
     vname		text NOT NULL,
     vtype		integer NOT NULL,
     vinteger	integer,

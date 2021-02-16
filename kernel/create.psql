@@ -4,9 +4,6 @@
 \echo [M] call public.sql
 \ir public.sql
 
-\echo [M] call sequence.sql
-\ir sequence.sql
-
 \echo [M] call general.sql
 \ir general.sql
 

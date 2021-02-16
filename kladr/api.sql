@@ -17,11 +17,11 @@ GRANT SELECT ON api.address_tree TO administrator;
 --------------------------------------------------------------------------------
 /**
  * Возвращает адрес из справачника адресов КЛАДР
- * @param {numeric} pId - Идентификатор
+ * @param {integer} pId - Идентификатор
  * @return {api.address_tree}
  */
 CREATE OR REPLACE FUNCTION api.get_address_tree (
-  pId		numeric
+  pId		integer
 ) RETURNS	SETOF api.address_tree
 AS $$
   SELECT * FROM api.address_tree WHERE id = pId
@@ -61,11 +61,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает историю из справочника адресов
- * @param {numeric} pId - Идентификатор
+ * @param {integer} pId - Идентификатор
  * @return {SETOF api.address_tree}
  */
 CREATE OR REPLACE FUNCTION api.get_address_tree_history (
-  pId		numeric
+  pId		integer
 ) RETURNS	SETOF api.address_tree
 AS $$
   WITH RECURSIVE addr_tree(id, parent, code, name, short, index, level) AS (

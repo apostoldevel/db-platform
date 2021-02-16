@@ -38,7 +38,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, key numeric, subkey numeric, extended boolean)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, key uuid, subkey uuid, extended boolean)
       LOOP
         IF coalesce(r.extended, false) THEN
           FOR e IN SELECT * FROM api.registry_ex(r.id, r.key, r.subkey)
@@ -55,7 +55,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, key numeric, subkey numeric, extended boolean)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, key uuid, subkey uuid, extended boolean)
       LOOP
         IF coalesce(r.extended, false) THEN
           FOR e IN SELECT * FROM api.registry_ex(r.id, r.key, r.subkey)
@@ -83,7 +83,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, root numeric, parent numeric, key text)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, root uuid, parent uuid, key text)
       LOOP
         FOR e IN SELECT * FROM api.registry_key(r.id, r.root, r.parent, r.key)
         LOOP
@@ -93,7 +93,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, root numeric, parent numeric, key text)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, root uuid, parent uuid, key text)
       LOOP
         FOR e IN SELECT * FROM api.registry_key(r.id, r.root, r.parent, r.key)
         LOOP
@@ -114,7 +114,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, key numeric, extended boolean)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, key uuid, extended boolean)
       LOOP
         IF coalesce(r.extended, false) THEN
           FOR e IN SELECT * FROM api.registry_value_ex(r.id, r.key)
@@ -131,7 +131,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, key numeric, extended boolean)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, key uuid, extended boolean)
       LOOP
         IF coalesce(r.extended, false) THEN
           FOR e IN SELECT * FROM api.registry_value_ex(r.id, r.key)
@@ -159,7 +159,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid)
       LOOP
         FOR e IN SELECT * FROM api.registry_get_reg_key(r.id) AS key
         LOOP
@@ -169,7 +169,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid)
       LOOP
         FOR e IN SELECT * FROM api.registry_get_reg_key(r.id) AS key
         LOOP
@@ -321,7 +321,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, key text, subkey text, name text, value integer)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, key text, subkey text, name text, value integer)
       LOOP
         FOR e IN SELECT * FROM api.registry_write(r.id, r.key, r.subkey, r.name, 0, r.value) AS id
         LOOP
@@ -331,7 +331,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, key text, subkey text, name text, value integer)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, key text, subkey text, name text, value integer)
       LOOP
         FOR e IN SELECT * FROM api.registry_write(r.id, r.key, r.subkey, r.name, 0, r.value) AS id
         LOOP
@@ -352,7 +352,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, key text, subkey text, name text, value numeric)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, key text, subkey text, name text, value numeric)
       LOOP
         FOR e IN SELECT * FROM api.registry_write(r.id, r.key, r.subkey, r.name, 1, r.value) AS id
         LOOP
@@ -362,7 +362,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, key text, subkey text, name text, value numeric)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, key text, subkey text, name text, value numeric)
       LOOP
         FOR e IN SELECT * FROM api.registry_write(r.id, r.key, r.subkey, r.name, 1, r.value) AS id
         LOOP
@@ -383,7 +383,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, key text, subkey text, name text, value timestamp)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, key text, subkey text, name text, value timestamp)
       LOOP
         FOR e IN SELECT * FROM api.registry_write(r.id, r.key, r.subkey, r.name, 2, r.value) AS id
         LOOP
@@ -393,7 +393,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, key text, subkey text, name text, value timestamp)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, key text, subkey text, name text, value timestamp)
       LOOP
         FOR e IN SELECT * FROM api.registry_write(r.id, r.key, r.subkey, r.name, 2, r.value) AS id
         LOOP
@@ -414,7 +414,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, key text, subkey text, name text, value text)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, key text, subkey text, name text, value text)
       LOOP
         FOR e IN SELECT * FROM api.registry_write(r.id, r.key, r.subkey, r.name, 3, r.value) AS id
         LOOP
@@ -424,7 +424,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, key text, subkey text, name text, value text)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, key text, subkey text, name text, value text)
       LOOP
         FOR e IN SELECT * FROM api.registry_write(r.id, r.key, r.subkey, r.name, 3, r.value) AS id
         LOOP
@@ -445,7 +445,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, key text, subkey text, name text, value boolean)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, key text, subkey text, name text, value boolean)
       LOOP
         FOR e IN SELECT * FROM api.registry_write(r.id, r.key, r.subkey, r.name, 4, r.value) AS id
         LOOP
@@ -455,7 +455,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, key text, subkey text, name text, value boolean)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, key text, subkey text, name text, value boolean)
       LOOP
         FOR e IN SELECT * FROM api.registry_write(r.id, r.key, r.subkey, r.name, 4, r.value) AS id
         LOOP
@@ -476,7 +476,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, key text, subkey text, name text)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, key text, subkey text, name text)
       LOOP
         FOR e IN SELECT * FROM api.registry_read(r.key, r.subkey, r.name) AS value
         LOOP
@@ -486,7 +486,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, key text, subkey text, name text)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, key text, subkey text, name text)
       LOOP
         FOR e IN SELECT * FROM api.registry_read(r.key, r.subkey, r.name) AS value
         LOOP
@@ -507,7 +507,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, key text, subkey text, name text)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, key text, subkey text, name text)
       LOOP
         FOR e IN SELECT (data::variant).vinteger as value FROM api.registry_read(r.key, r.subkey, r.name) AS data
         LOOP
@@ -517,7 +517,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, key text, subkey text, name text)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, key text, subkey text, name text)
       LOOP
         FOR e IN SELECT (data::variant).vinteger as value FROM api.registry_read(r.key, r.subkey, r.name) AS data
         LOOP
@@ -538,7 +538,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, key text, subkey text, name text)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, key text, subkey text, name text)
       LOOP
         FOR e IN SELECT (data::variant).vnumeric as value FROM api.registry_read(r.key, r.subkey, r.name) AS data
         LOOP
@@ -548,7 +548,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, key text, subkey text, name text)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, key text, subkey text, name text)
       LOOP
         FOR e IN SELECT (data::variant).vnumeric as value FROM api.registry_read(r.key, r.subkey, r.name) AS data
         LOOP
@@ -569,7 +569,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, key text, subkey text, name text)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, key text, subkey text, name text)
       LOOP
         FOR e IN SELECT (data::variant).vdatetime as value FROM api.registry_read(r.key, r.subkey, r.name) AS data
         LOOP
@@ -579,7 +579,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, key text, subkey text, name text)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, key text, subkey text, name text)
       LOOP
         FOR e IN SELECT (data::variant).vdatetime as value FROM api.registry_read(r.key, r.subkey, r.name) AS data
         LOOP
@@ -600,7 +600,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, key text, subkey text, name text)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, key text, subkey text, name text)
       LOOP
         FOR e IN SELECT (data::variant).vstring as value FROM api.registry_read(r.key, r.subkey, r.name) AS data
         LOOP
@@ -610,7 +610,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, key text, subkey text, name text)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, key text, subkey text, name text)
       LOOP
         FOR e IN SELECT (data::variant).vstring as value FROM api.registry_read(r.key, r.subkey, r.name) AS data
         LOOP
@@ -631,7 +631,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, key text, subkey text, name text)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, key text, subkey text, name text)
       LOOP
         FOR e IN SELECT (data::variant).vboolean as value FROM api.registry_read(r.key, r.subkey, r.name) AS data
         LOOP
@@ -641,7 +641,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, key text, subkey text, name text)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, key text, subkey text, name text)
       LOOP
         FOR e IN SELECT (data::variant).vboolean as value FROM api.registry_read(r.key, r.subkey, r.name) AS data
         LOOP
@@ -693,7 +693,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id numeric, key text, subkey text, name text)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, key text, subkey text, name text)
       LOOP
         FOR e IN SELECT * FROM api.registry_delete_value(r.id, r.key, r.subkey, r.name) AS success
         LOOP
@@ -703,7 +703,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id numeric, key text, subkey text, name text)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, key text, subkey text, name text)
       LOOP
         FOR e IN SELECT * FROM api.registry_delete_value(r.id, r.key, r.subkey, r.name) AS success
         LOOP

@@ -6,7 +6,7 @@ CREATE OR REPLACE VIEW Object (Id, Parent,
   Entity, EntityCode, EntityName,
   Class, ClassCode, ClassLabel,
   Type, TypeCode, TypeName, TypeDescription,
-  Label, Data,
+  Label, Text,
   StateType, StateTypeCode, StateTypeName,
   State, StateCode, StateLabel, LastUpdate,
   Owner, OwnerCode, OwnerName, Created,
@@ -16,18 +16,19 @@ CREATE OR REPLACE VIEW Object (Id, Parent,
          o.entity, e.code, e.name,
          o.class, ct.code, ct.label,
          o.type, t.code, t.name, t.description,
-         o.label, o.data,
+         ot.label, ot.text,
          o.state_type, st.code, st.name,
          o.state, s.code, s.label, o.udate,
          o.owner, w.username, w.name, o.pdate,
          o.oper, u.username, u.name, o.ldate
-    FROM db.object o INNER JOIN db.entity     e ON o.entity = e.id
-                     INNER JOIN db.class_tree ct ON o.class = ct.id
-                     INNER JOIN db.type        t ON o.type = t.id
-                     INNER JOIN db.state_type st ON o.state_type = st.id
-                     INNER JOIN db.state       s ON o.state = s.id
-                     INNER JOIN db.user        w ON o.owner = w.id
-                     INNER JOIN db.user        u ON o.oper = u.id;
+    FROM db.object o INNER JOIN db.object_text ot ON o.id = ot.object AND ot.locale = current_locale()
+                     INNER JOIN db.entity       e ON o.entity = e.id
+                     INNER JOIN db.class_tree  ct ON o.class = ct.id
+                     INNER JOIN db.type         t ON o.type = t.id
+                     INNER JOIN db.state_type  st ON o.state_type = st.id
+                     INNER JOIN db.state        s ON o.state = s.id
+                     INNER JOIN db.user         w ON o.owner = w.id
+                     INNER JOIN db.user         u ON o.oper = u.id;
 
 GRANT SELECT ON Object TO administrator;
 
@@ -71,9 +72,9 @@ GRANT SELECT ON ObjectGroup TO administrator;
 -- ObjectGroupMember -----------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW ObjectGroupMember (Id, GId, Object, Code, Name, Description)
+CREATE OR REPLACE VIEW ObjectGroupMember (GId, Object, Code, Name, Description)
 AS
-  SELECT m.id, m.gid, m.object, g.code, g.name, g.description
+  SELECT m.gid, m.object, g.code, g.name, g.description
     FROM db.object_group_member m INNER JOIN ObjectGroup g ON g.id = m.gid;
 
 GRANT SELECT ON ObjectGroupMember TO administrator;
@@ -93,24 +94,12 @@ AS
 GRANT SELECT ON ObjectFile TO administrator;
 
 --------------------------------------------------------------------------------
--- ObjectDataType --------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE VIEW ObjectDataType (Id, Code, Name, Description)
-AS
-  SELECT id, code, name, description
-    FROM db.object_data_type;
-
-GRANT SELECT ON ObjectDataType TO administrator;
-
---------------------------------------------------------------------------------
 -- VIEW ObjectData -------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW ObjectData (Object, Type, TypeCode, TypeName, TypeDescription, Code, Data)
+CREATE OR REPLACE VIEW ObjectData
 AS
-  SELECT d.object, d.type, t.code, t.name, t.description, d.code, d.data
-    FROM db.object_data d INNER JOIN db.object_data_type t ON t.id = d.type;
+  SELECT * FROM db.object_data;
 
 GRANT SELECT ON ObjectData TO administrator;
 
@@ -129,4 +118,3 @@ AS
     FROM db.object_coordinates oc INNER JOIN Object o ON oc.object = o.id;
 
 GRANT SELECT ON ObjectCoordinates TO administrator;
-

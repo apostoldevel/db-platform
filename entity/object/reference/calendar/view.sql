@@ -6,9 +6,9 @@ CREATE OR REPLACE VIEW Calendar (Id, Reference, Code, Name, Description,
   Week, DayOff, Holiday, WorkStart, WorkCount, RestStart, RestCount
 )
 AS
-  SELECT c.id, c.reference, d.code, d.name, d.description,
+  SELECT c.id, c.reference, r.code, r.name, r.description,
          c.week, c.dayoff, c.holiday, c.work_start, c.work_count, c.rest_start, c.rest_count
-    FROM db.calendar c INNER JOIN db.reference d ON c.reference = d.id;
+    FROM db.calendar c INNER JOIN Reference r ON c.reference = r.id;
 
 GRANT SELECT ON Calendar TO administrator;
 

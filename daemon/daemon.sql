@@ -24,9 +24,9 @@ DECLARE
   iss           text;
   aud           text;
 
-  nOauth2       numeric;
-  nProvider     numeric;
-  nAudience     numeric;
+  nOauth2       bigint;
+  nProvider     integer;
+  nAudience     integer;
 
   belong        boolean;
 BEGIN
@@ -93,7 +93,7 @@ AS $$
 DECLARE
   r             record;
   profile       record;
-  nId           numeric;
+  nId           uuid;
   arResult      text[];
 
   vMessage      text;
@@ -257,10 +257,10 @@ DECLARE
   account       db.user%rowtype;
   profile       db.profile%rowtype;
 
-  nUserId       numeric;
-  nProvider     numeric;
-  nAudience     numeric;
-  nApplication  numeric;
+  nUserId       uuid;
+  nProvider     integer;
+  nAudience     integer;
+  nApplication  integer;
 
   jName         jsonb;
 
@@ -334,6 +334,8 @@ BEGIN
         END LOOP;
       END IF;
 
+      profile.interface := GetInterface('all');
+
       SELECT a.userid INTO nUserId FROM db.auth a WHERE a.audience = nAudience AND a.code = account.username;
 
       IF NOT FOUND THEN
@@ -397,7 +399,7 @@ AS $$
 DECLARE
   t             record;
 
-  nToken        numeric;
+  nToken        bigint;
 
   expires_in    double precision;
 
@@ -467,8 +469,8 @@ AS $$
 DECLARE
   result                jsonb;
 
-  nAudience             numeric;
-  nOauth2               numeric;
+  nAudience             integer;
+  nOauth2               bigint;
 
   grant_type            text;
   response_type         text;

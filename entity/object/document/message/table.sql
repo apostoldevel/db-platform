@@ -7,16 +7,14 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.message (
-    id              numeric(12) PRIMARY KEY,
-    document        numeric(12) NOT NULL,
-    agent           numeric(12) NOT NULL,
+    id              uuid PRIMARY KEY,
+    document        uuid NOT NULL REFERENCES db.document(id) ON DELETE CASCADE,
+    agent           uuid NOT NULL REFERENCES db.agent(id) ON DELETE RESTRICT,
     code            text NOT NULL,
     profile         text NOT NULL,
     address         text NOT NULL,
     subject         text,
-    content         text NOT NULL,
-    CONSTRAINT fk_message_document FOREIGN KEY (document) REFERENCES db.document(id),
-    CONSTRAINT fk_message_agent FOREIGN KEY (agent) REFERENCES db.agent(id)
+    content         text NOT NULL
 );
 
 COMMENT ON TABLE db.message IS 'Сообщение.';
@@ -45,7 +43,7 @@ CREATE INDEX ON db.message (subject text_pattern_ops);
 CREATE OR REPLACE FUNCTION ft_message_insert()
 RETURNS trigger AS $$
 BEGIN
-  IF NEW.id IS null OR NEW.id = 0 THEN
+  IF NEW.id IS NULL THEN
     SELECT NEW.document INTO NEW.id;
   END IF;
 
@@ -69,7 +67,7 @@ CREATE TRIGGER t_message_insert
 CREATE OR REPLACE FUNCTION ft_message_update()
 RETURNS trigger AS $$
 BEGIN
-  IF NEW.code <> OLD.code THEN
+  IF NEW.code IS DISTINCT FROM OLD.code THEN
     RAISE DEBUG 'Hacking alert: message code (% <> %).', OLD.code, NEW.code;
     RETURN NULL;
   END IF;
@@ -86,4 +84,3 @@ CREATE TRIGGER t_message_update
   BEFORE UPDATE ON db.message
   FOR EACH ROW
   EXECUTE PROCEDURE ft_message_update();
-

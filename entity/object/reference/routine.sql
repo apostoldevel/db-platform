@@ -3,33 +3,30 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateReference (
-  pParent       numeric,
-  pType         numeric,
+  pParent       uuid,
+  pType         uuid,
   pCode         text,
   pName         text,
-  pDescription  text DEFAULT null
-) RETURNS       numeric
+  pDescription  text DEFAULT null,
+  pLocale		uuid DEFAULT current_locale()
+) RETURNS       uuid
 AS $$
 DECLARE
-  nObject       numeric;
-  nEntity       numeric;
-  nClass        numeric;
-
---  vCode         text;
+  nObject       uuid;
+  nEntity       uuid;
+  nClass        uuid;
 BEGIN
   nObject := CreateObject(pParent, pType, pName, pDescription);
 
   nEntity := GetObjectEntity(nObject);
   nClass := GetObjectClass(nObject);
 
---  IF StrPos(pCode, '.') = 0 THEN
---    SELECT code INTO vCode FROM db.entity WHERE Id = nEntity;
---    pCode := pCode || '.' || vCode;
---  END IF;
-
-  INSERT INTO db.reference (id, object, entity, class, code, name, description)
-  VALUES (nObject, nObject, nEntity, nClass, pCode, pName, pDescription)
+  INSERT INTO db.reference (id, object, entity, class, type, code)
+  VALUES (nObject, nObject, nEntity, nClass, pType, pCode)
   RETURNING id INTO nObject;
+
+  INSERT INTO db.reference_text (reference, locale, name, description)
+  VALUES (nObject, pLocale, pName, pDescription);
 
   RETURN nObject;
 END;
@@ -42,22 +39,26 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EditReference (
-  pId           numeric,
-  pParent       numeric DEFAULT null,
-  pType         numeric DEFAULT null,
+  pId           uuid,
+  pParent       uuid DEFAULT null,
+  pType         uuid DEFAULT null,
   pCode         text DEFAULT null,
   pName         text DEFAULT null,
-  pDescription  text DEFAULT null
+  pDescription  text DEFAULT null,
+  pLocale		uuid DEFAULT current_locale()
 ) RETURNS       void
 AS $$
 BEGIN
   PERFORM EditObject(pId, pParent, pType, pName, pDescription);
 
   UPDATE db.reference
-     SET code = coalesce(pCode, code),
-         name = coalesce(pName, name),
-         description = CheckNull(coalesce(pDescription, description, '<null>'))
+     SET code = coalesce(pCode, code)
    WHERE id = pId;
+
+  UPDATE db.reference_text
+     SET name = CheckNull(coalesce(pName, name, '<null>')),
+         description = CheckNull(coalesce(pDescription, description, '<null>'))
+   WHERE reference = pId AND locale = pLocale;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -69,18 +70,12 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION GetReference (
   pCode         text,
-  pEntity       numeric
-) RETURNS       numeric
+  pEntity       uuid
+) RETURNS       uuid
 AS $$
 DECLARE
-  nId           numeric;
---  vCode         text;
+  nId           uuid;
 BEGIN
---  IF StrPos(pCode, '.') = 0 THEN
---    SELECT code INTO vCode FROM db.entity WHERE Id = pEntity;
---    pCode := pCode || '.' || vCode;
---  END IF;
-
   SELECT id INTO nId FROM db.reference WHERE entity = pEntity AND code = pCode;
   RETURN nId;
 END;
@@ -95,7 +90,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION GetReference (
   pCode         text,
   pEntity       text DEFAULT null
-) RETURNS       numeric
+) RETURNS       uuid
 AS $$
 BEGIN
   RETURN GetReference(pCode, GetEntity(coalesce(pEntity, SubStr(pCode, StrPos(pCode, '.') + 1))));
@@ -109,7 +104,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetReferenceCode (
-  pId           numeric
+  pId           uuid
 ) RETURNS       text
 AS $$
 DECLARE
@@ -127,13 +122,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetReferenceName (
-  pId           numeric
+  pId           uuid,
+  pLocale		uuid DEFAULT current_locale()
 ) RETURNS       text
 AS $$
 DECLARE
   vName         text;
 BEGIN
-  SELECT name INTO vName FROM db.reference WHERE id = pId;
+  SELECT name INTO vName FROM db.reference_text WHERE reference = pId AND locale = pLocale;
   RETURN vName;
 END;
 $$ LANGUAGE plpgsql
