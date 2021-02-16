@@ -190,7 +190,7 @@ BEGIN
          work_count = coalesce(pWorkCount, work_count),
          rest_start = coalesce(pRestStart, rest_start),
          rest_count = coalesce(pRestCount, rest_count),
-         userid = NULLIF(coalesce(pUserId, userid), 0)
+         userid = CheckNull(coalesce(pUserId, userid, null_uuid()))
    WHERE id = pId;
 END;
 $$ LANGUAGE plpgsql

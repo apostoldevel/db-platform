@@ -534,7 +534,7 @@ BEGIN
   SELECT code, userid INTO cCode, cUserId FROM db.client WHERE id = pId;
 
   pCode := coalesce(pCode, cCode);
-  pUserId := coalesce(pUserId, cUserId, 0);
+  pUserId := coalesce(pUserId, cUserId, null_uuid());
 
   IF pCode <> cCode THEN
     SELECT id INTO nId FROM db.client WHERE code = pCode;
