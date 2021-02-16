@@ -241,7 +241,7 @@ AS $$
 BEGIN
   UPDATE db.object
      SET type = coalesce(pType, type),
-         parent = CheckNull(coalesce(pParent, parent, 0))
+         parent = CheckNull(coalesce(pParent, parent, null_uuid()))
    WHERE id = pId;
 
   UPDATE db.object_text

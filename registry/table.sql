@@ -4,12 +4,10 @@
 
 CREATE TABLE registry.key (
     id			uuid PRIMARY KEY DEFAULT gen_kernel_uuid('8'),
-    root		uuid,
-    parent		uuid,
+    root		uuid REFERENCES registry.key(id),
+    parent		uuid REFERENCES registry.key(id),
     key			text NOT NULL,
-    level		integer NOT NULL,
-    CONSTRAINT fk_registry_key_root FOREIGN KEY (root) REFERENCES registry.key(id),
-    CONSTRAINT fk_registry_key_parent FOREIGN KEY (parent) REFERENCES registry.key(id)
+    level		integer NOT NULL
 );
 
 COMMENT ON TABLE registry.key IS 'Реестр (ключ).';
@@ -23,7 +21,6 @@ COMMENT ON COLUMN registry.key.level IS 'Уровень вложенности';
 CREATE INDEX ON registry.key (root);
 CREATE INDEX ON registry.key (parent);
 CREATE INDEX ON registry.key (key);
-CREATE INDEX ON registry.key (level);
 
 CREATE UNIQUE INDEX ON registry.key (root, parent, key);
 
@@ -33,7 +30,7 @@ CREATE UNIQUE INDEX ON registry.key (root, parent, key);
 
 CREATE TABLE registry.value (
     id			uuid PRIMARY KEY DEFAULT gen_kernel_uuid('8'),
-    key			uuid NOT NULL,
+    key			uuid NOT NULL REFERENCES registry.key(id) ON DELETE CASCADE,
     vname		text NOT NULL,
     vtype		integer NOT NULL,
     vinteger	integer,
@@ -41,8 +38,7 @@ CREATE TABLE registry.value (
     vdatetime	timestamp,
     vstring		text,
     vboolean	boolean,
-    CONSTRAINT ch_registry_value_type CHECK (vtype BETWEEN 0 AND 4),
-    CONSTRAINT fk_registry_value_key FOREIGN KEY (key) REFERENCES registry.key(id)
+    CHECK (vtype BETWEEN 0 AND 4)
 );
 
 COMMENT ON TABLE registry.value IS 'Реестр (значение).';
@@ -63,4 +59,3 @@ CREATE INDEX ON registry.value (key);
 CREATE INDEX ON registry.value (vname);
 
 CREATE UNIQUE INDEX ON registry.value (key, vname);
-
