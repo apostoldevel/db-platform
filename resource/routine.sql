@@ -121,7 +121,7 @@ BEGIN
   END IF;
 
   IF NULLIF(pSequence, 0) IS NULL THEN
-    SELECT max(sequence) + 1 INTO pSequence FROM db.resource WHERE coalesce(node, null_uuid()) = coalesce(pNode, null_uuid());
+    SELECT max(sequence) + 1 INTO pSequence FROM db.resource WHERE node IS NOT DISTINCT FROM pNode;
   ELSE
     PERFORM SetResourceSequence(pNode, pSequence, 1);
   END IF;
@@ -194,8 +194,8 @@ BEGIN
 
   PERFORM SetResourceData(pId, pLocale, pName, pDescription, pEncoding, pData);
 
-  IF coalesce(nNode, null_uuid()) <> coalesce(pNode, null_uuid()) THEN
-    SELECT max(sequence) + 1 INTO nSequence FROM db.resource WHERE coalesce(node, null_uuid()) = coalesce(pNode, null_uuid());
+  IF nNode IS DISTINCT FROM pNode THEN
+    SELECT max(sequence) + 1 INTO nSequence FROM db.resource WHERE node IS NOT DISTINCT FROM pNode;
     PERFORM SortResource(nNode);
   END IF;
 

@@ -172,7 +172,7 @@ DECLARE
 BEGIN
   SELECT parent, type INTO cParent, cType FROM db.object WHERE id = pId;
 
-  pParent := coalesce(pParent, cParent, 0);
+  pParent := coalesce(pParent, cParent, null_uuid());
   pType := coalesce(pType, cType);
 
   IF CheckNull(pParent) IS NOT NULL THEN
@@ -274,7 +274,7 @@ BEGIN
     END IF;
   END IF;
 
-  IF pParent <> coalesce(cParent, 0) THEN
+  IF pParent <> coalesce(cParent, null_uuid()) THEN
     UPDATE db.object SET parent = CheckNull(pParent) WHERE id = pId;
   END IF;
 

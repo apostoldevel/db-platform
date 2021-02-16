@@ -1179,7 +1179,7 @@ BEGIN
      AND validFromDate <= pDateFrom
      AND validToDate > pDateFrom;
 
-  IF coalesce(nLinked, 0) <> coalesce(pLinked, 0) THEN
+  IF nLinked IS DISTINCT FROM pLinked THEN
     -- обновим дату значения в текущем диапозоне дат
     UPDATE db.object_link SET validToDate = pDateFrom
      WHERE object = pObject
