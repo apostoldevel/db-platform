@@ -1178,7 +1178,7 @@ BEGIN
   END IF;
   RETURN null;
 END;
-$$ LANGUAGE plpgsql
+$$ LANGUAGE plpgsql STABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1203,7 +1203,7 @@ BEGIN
   END IF;
   RETURN vSecret;
 END;
-$$ LANGUAGE plpgsql
+$$ LANGUAGE plpgsql STABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1228,7 +1228,7 @@ BEGIN
   END IF;
   RETURN vArea;
 END;
-$$ LANGUAGE plpgsql
+$$ LANGUAGE plpgsql STABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1253,7 +1253,7 @@ BEGIN
   END IF;
   RETURN vAgent;
 END;
-$$ LANGUAGE plpgsql
+$$ LANGUAGE plpgsql STABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1278,7 +1278,7 @@ BEGIN
   END IF;
   RETURN host(iHost);
 END;
-$$ LANGUAGE plpgsql
+$$ LANGUAGE plpgsql STABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1303,7 +1303,7 @@ BEGIN
   END IF;
   RETURN nUserId;
 END;
-$$ LANGUAGE plpgsql
+$$ LANGUAGE plpgsql STABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1331,7 +1331,7 @@ BEGIN
   END IF;
   RETURN nUserId;
 END;
-$$ LANGUAGE plpgsql
+$$ LANGUAGE plpgsql STABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1354,7 +1354,7 @@ BEGIN
   SELECT username INTO vUserName FROM users WHERE id = session_userid(pSession);
   RETURN vUserName;
 END;
-$$ LANGUAGE plpgsql
+$$ LANGUAGE plpgsql STABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1374,7 +1374,7 @@ BEGIN
   SELECT username INTO vUserName FROM users WHERE id = current_userid();
   RETURN vUserName;
 END;
-$$ LANGUAGE plpgsql
+$$ LANGUAGE plpgsql STABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1457,7 +1457,7 @@ BEGIN
   SELECT type INTO nType FROM db.area WHERE id = GetSessionArea(pSession);
   RETURN nType;
 END;
-$$ LANGUAGE plpgsql
+$$ LANGUAGE plpgsql STABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1473,7 +1473,7 @@ AS $$
 BEGIN
   RETURN GetSessionArea(pSession);
 END;
-$$ LANGUAGE plpgsql
+$$ LANGUAGE plpgsql STABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1526,7 +1526,7 @@ AS $$
 BEGIN
   RETURN GetSessionInterface(pSession);
 END;
-$$ LANGUAGE plpgsql
+$$ LANGUAGE plpgsql STABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1619,7 +1619,7 @@ BEGIN
   END IF;
   RETURN dtOperDate;
 END;
-$$ LANGUAGE plpgsql
+$$ LANGUAGE plpgsql STABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
