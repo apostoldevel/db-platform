@@ -563,6 +563,74 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- JsonToUUIDArray -------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION JsonToUUIDArray (
+  pJson		json
+) RETURNS	uuid[]
+AS $$
+DECLARE
+  r		    record;
+  result	uuid[];
+BEGIN
+  IF json_typeof(pJson) = 'array' THEN
+
+    FOR r IN SELECT * FROM json_array_elements_text(pJson)
+    LOOP
+      result := array_append(result, r.value::uuid);
+    END LOOP;
+
+  ELSE
+
+    FOR r IN SELECT * FROM json_each_text(pJson)
+    LOOP
+      result := array_append(result, r.value::uuid);
+    END LOOP;
+
+  END IF;
+
+  RETURN result;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- JsonbToUUIDArray ------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION JsonbToUUIDArray (
+  pJson		jsonb
+) RETURNS	uuid[]
+AS $$
+DECLARE
+  r		    record;
+  result	uuid[];
+BEGIN
+  IF jsonb_typeof(pJson) = 'array' THEN
+
+    FOR r IN SELECT * FROM jsonb_array_elements_text(pJson)
+    LOOP
+      result := array_append(result, r.value::uuid);
+    END LOOP;
+
+  ELSE
+
+    FOR r IN SELECT * FROM jsonb_each_text(pJson)
+    LOOP
+      result := array_append(result, r.value::uuid);
+    END LOOP;
+
+  END IF;
+
+  RETURN result;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- JsonToBoolArray -------------------------------------------------------------
 --------------------------------------------------------------------------------
 

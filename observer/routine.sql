@@ -454,7 +454,7 @@ BEGIN
            array_position(coalesce(JsonbToStrArray(f.classes) , ARRAY[n.classcode]) , n.classcode::text ) IS NOT NULL AND
            array_position(coalesce(JsonbToStrArray(f.actions) , ARRAY[n.actioncode]), n.actioncode::text) IS NOT NULL AND
            array_position(coalesce(JsonbToStrArray(f.methods) , ARRAY[n.methodcode]), n.methodcode::text) IS NOT NULL AND
-           array_position(coalesce(JsonbToNumArray(f.objects) , ARRAY[d.object])    , d.object    ) IS NOT NULL AND
+           array_position(coalesce(JsonbToUUIDArray(f.objects) , ARRAY[d.object])    , d.object    ) IS NOT NULL AND
 	       CheckObjectAccess(d.object, B'100', nUserId);
 
   WHEN 'notice' THEN
@@ -483,7 +483,7 @@ BEGIN
 	SELECT * INTO d FROM jsonb_to_record(pData) AS x(code text, object uuid);
 
 	RETURN array_position(coalesce(JsonbToStrArray(f.codes), ARRAY[d.code]), d.code) IS NOT NULL AND
-           array_position(coalesce(JsonbToNumArray(f.objects), ARRAY[d.object]), d.object) IS NOT NULL AND
+           array_position(coalesce(JsonbToUUIDArray(f.objects), ARRAY[d.object]), d.object) IS NOT NULL AND
 	       CheckObjectAccess(d.object, B'100', nUserId);
 
   ELSE
