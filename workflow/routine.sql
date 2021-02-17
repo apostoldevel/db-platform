@@ -973,7 +973,7 @@ DECLARE
 BEGIN
   nId := GetAction(pCode);
   IF nId IS NULL THEN
-	nId := AddAction(pCode, pName, pDescription);
+	nId := AddAction(gen_kernel_uuid('b'), pCode, pName, pDescription);
   ELSE
     PERFORM EditAction(nId, pCode, pName, pDescription);
   END IF;

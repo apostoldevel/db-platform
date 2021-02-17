@@ -1673,10 +1673,10 @@ CREATE OR REPLACE FUNCTION NewObjectCoordinates (
   pDescription	text DEFAULT null,
   pData			jsonb DEFAULT null,
   pDateFrom		timestamptz DEFAULT Now()
-) RETURNS		bigint
+) RETURNS		uuid
 AS $$
 DECLARE
-  nId			bigint;
+  nId			uuid;
   dtDateFrom	timestamptz;
   dtDateTo		timestamptz;
 BEGIN

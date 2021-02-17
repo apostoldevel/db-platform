@@ -345,7 +345,7 @@ CREATE OR REPLACE FUNCTION UpdateBalance (
   pAmount       numeric,
   pType         integer DEFAULT 1,
   pDateFrom     timestamptz DEFAULT Now()
-) RETURNS       uuid
+) RETURNS       numeric
 AS $$
 DECLARE
   nId           uuid;
