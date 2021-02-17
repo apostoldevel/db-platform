@@ -14,9 +14,9 @@ AS $$
 DECLARE
   nState        uuid;
 
-  rec_type      RECORD;
-  rec_state     RECORD;
-  rec_method    RECORD;
+  rec_type      record;
+  rec_state     record;
+  rec_method    record;
 BEGIN
 
   -- Операции (без учёта состояния)

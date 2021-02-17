@@ -632,12 +632,12 @@ DECLARE
   r         record;
   arCodes   text[];
 BEGIN
-  IF length(pCode) = 12 AND SubStr(pCode, 1, 1) = '1' THEN
-    RETURN StrToInt(pCode, '999999999999');
+  IF length(pCode) = 36 AND SubStr(pCode, 1, 15) = '4' THEN
+    RETURN pCode;
   END IF;
 
   IF StrPos(pCode, '.') = 0 THEN
-    pCode := pCode || '.' || pEntity;
+    pCode := concat(pCode, '.', pEntity);
   END IF;
 
   FOR r IN SELECT code FROM Type WHERE EntityCode = pEntity
