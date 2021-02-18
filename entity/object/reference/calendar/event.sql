@@ -111,13 +111,13 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventCalendarDrop (
-  pObject        uuid default context_object()
-) RETURNS        void
+  pObject		uuid default context_object()
+) RETURNS		void
 AS $$
 DECLARE
-  r                record;
+  r				record;
 BEGIN
-  SELECT label INTO r FROM Object WHERE id = pObject;
+  SELECT label INTO r FROM db.object_text WHERE object = pObject AND locale = current_locale();
 
   DELETE FROM db.calendar WHERE id = pObject;
 

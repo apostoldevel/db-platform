@@ -115,9 +115,9 @@ CREATE OR REPLACE FUNCTION EventVendorDrop (
 ) RETURNS	void
 AS $$
 DECLARE
-  r		record;
+  r			record;
 BEGIN
-  SELECT label INTO r FROM Object WHERE id = pObject;
+  SELECT label INTO r FROM db.object_text WHERE object = pObject AND locale = current_locale();
 
   DELETE FROM db.vendor WHERE id = pObject;
 

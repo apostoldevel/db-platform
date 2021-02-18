@@ -193,7 +193,7 @@ CREATE OR REPLACE FUNCTION EventMessageDrop (
 ) RETURNS	void
 AS $$
 DECLARE
-  r		record;
+  r			record;
 BEGIN
   SELECT label INTO r FROM db.object_text WHERE object = pObject AND locale = current_locale();
 
