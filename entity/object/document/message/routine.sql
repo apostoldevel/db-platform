@@ -427,7 +427,7 @@ DECLARE
 
   message       json;
 BEGIN
-  projectId := (RegGetValue(RegOpenKey('CURRENT_CONFIG', 'CONFIG\Firebase'), 'ProjectId')).vstring;
+  projectId := RegGetValueString('CURRENT_CONFIG', 'CONFIG\Firebase', 'ProjectId');
   tokens := DoFCMTokens(pUserId);
 
   IF tokens IS NOT NULL THEN

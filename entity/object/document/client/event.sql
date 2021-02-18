@@ -209,7 +209,7 @@ DECLARE
   r		    record;
   nUserId   uuid;
 BEGIN
-  SELECT label INTO r FROM db.object WHERE id = pObject;
+  SELECT label INTO r FROM db.object_text WHERE object = pObject AND locale = current_locale();
 
   SELECT userid INTO nUserId FROM client WHERE id = pObject;
   IF nUserId IS NOT NULL THEN

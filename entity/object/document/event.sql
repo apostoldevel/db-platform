@@ -117,7 +117,7 @@ AS $$
 DECLARE
   r         record;
 BEGIN
-  SELECT label INTO r FROM db.object WHERE id = pObject;
+  SELECT label INTO r FROM db.object_text WHERE object = pObject AND locale = current_locale();
 
   DELETE FROM db.document WHERE id = pObject;
 
