@@ -85,8 +85,8 @@ BEGIN
 
   UPDATE db.job
      SET code = coalesce(pCode, code),
-         scheduler = CheckNull(coalesce(pScheduler, scheduler, 0)),
-         program = CheckNull(coalesce(pProgram, program, 0)),
+         scheduler = coalesce(pScheduler, scheduler),
+         program = coalesce(pProgram, program),
          dateRun = coalesce(pDateRun, dateRun)
    WHERE id = pId;
 

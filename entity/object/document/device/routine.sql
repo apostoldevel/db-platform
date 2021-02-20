@@ -87,7 +87,7 @@ BEGIN
 
   UPDATE db.device
      SET model = coalesce(pModel, model),
-         client = CheckNull(coalesce(pClient, client, 0)),
+         client = CheckNull(coalesce(pClient, client, null_uuid())),
          identity = coalesce(pIdentity, identity),
          version = CheckNull(coalesce(pVersion, version, '<null>')),
          serial = CheckNull(coalesce(pSerial, serial, '<null>')),
