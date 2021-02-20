@@ -8,14 +8,13 @@
 
 CREATE TABLE db.verification_code (
     id              uuid PRIMARY KEY DEFAULT gen_kernel_uuid('8'),
-    userId          uuid NOT NULL,
+    userId          uuid NOT NULL REFERENCES db.user(id) ON DELETE CASCADE,
     type            char NOT NULL,
     code            text NOT NULL,
     used            timestamptz,
     validFromDate   timestamptz NOT NULL,
     validToDate     timestamptz NOT NULL,
-    CONSTRAINT ch_verification_code_type CHECK (type IN ('M', 'P')),
-    CONSTRAINT fk_verification_code_userid FOREIGN KEY (userid) REFERENCES db.user(id)
+    CHECK (type IN ('M', 'P'))
 );
 
 COMMENT ON TABLE db.verification_code IS 'Код подтверждения.';

@@ -792,6 +792,7 @@ DECLARE
   jSaveParams	jsonb;
 
   sLabel        text;
+  sActionCode	text;
 
   nClass        uuid;
   nAction       uuid;
@@ -812,6 +813,7 @@ BEGIN
   nClass := GetObjectClass(pObject);
 
   SELECT action INTO nAction FROM db.method WHERE id = pMethod;
+  SELECT code INTO sActionCode FROM db.action WHERE id = nAction;
 
   PERFORM InitContext(pObject, nClass, pMethod, nAction);
   PERFORM InitParams(pParams);
@@ -823,7 +825,9 @@ BEGIN
   PERFORM InitParams(jSaveParams);
   PERFORM InitContext(nSaveObject, nSaveClass, nSaveMethod, nSaveAction);
 
-  PERFORM AddNotification(nClass, nAction, pMethod, pObject);
+  IF sActionCode <> 'drop' THEN
+    PERFORM AddNotification(nClass, nAction, pMethod, pObject);
+  END IF;
 
   RETURN GetMethodStack(pObject, pMethod);
 END;

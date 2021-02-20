@@ -127,6 +127,7 @@ BEGIN
   DELETE FROM db.notification WHERE object = pObject;
   DELETE FROM db.log          WHERE object = pObject;
 
+  UPDATE db.object SET parent = null WHERE parent = pObject;
   DELETE FROM db.object WHERE id = pObject;
 
   PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Объект уничтожен.');
