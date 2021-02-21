@@ -9,7 +9,8 @@
 CREATE TABLE db.model (
     id			    uuid PRIMARY KEY,
     reference		uuid NOT NULL REFERENCES db.reference(id) ON DELETE CASCADE,
-    vendor          uuid NOT NULL REFERENCES db.vendor(id) ON DELETE RESTRICT
+    vendor          uuid NOT NULL REFERENCES db.vendor(id) ON DELETE RESTRICT,
+    category		uuid REFERENCES db.category(id) ON DELETE RESTRICT
 );
 
 COMMENT ON TABLE db.model IS 'Модель.';
@@ -17,9 +18,11 @@ COMMENT ON TABLE db.model IS 'Модель.';
 COMMENT ON COLUMN db.model.id IS 'Идентификатор.';
 COMMENT ON COLUMN db.model.reference IS 'Справочник.';
 COMMENT ON COLUMN db.model.vendor IS 'Производитель (поставщик).';
+COMMENT ON COLUMN db.model.category IS 'Категория.';
 
 CREATE INDEX ON db.model (reference);
 CREATE INDEX ON db.model (vendor);
+CREATE INDEX ON db.model (category);
 
 --------------------------------------------------------------------------------
 

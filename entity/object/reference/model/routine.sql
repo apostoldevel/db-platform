@@ -5,18 +5,20 @@
  * Создаёт модель
  * @param {uuid} pParent - Идентификатор объекта родителя
  * @param {uuid} pType - Идентификатор типа
+ * @param {uuid} pVendor - Производитель
+ * @param {uuid} pCategory - Категория
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
- * @param {uuid} pVendor - Производитель
  * @param {text} pDescription - Описание
  * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION CreateModel (
   pParent       uuid,
   pType         uuid,
+  pVendor       uuid,
+  pCategory		uuid,
   pCode         text,
   pName         text,
-  pVendor       uuid,
   pDescription	text default null
 ) RETURNS       uuid
 AS $$
@@ -33,8 +35,8 @@ BEGIN
 
   nReference := CreateReference(pParent, pType, pCode, pName, pDescription);
 
-  INSERT INTO db.model (id, reference, vendor)
-  VALUES (nReference, nReference, pVendor);
+  INSERT INTO db.model (id, reference, vendor, category)
+  VALUES (nReference, nReference, pVendor, pCategory);
 
   nMethod := GetMethod(nClass, GetAction('create'));
   PERFORM ExecuteMethod(nReference, nMethod);
@@ -53,9 +55,10 @@ $$ LANGUAGE plpgsql
  * @param {uuid} pId - Идентификатор
  * @param {uuid} pParent - Идентификатор объекта родителя
  * @param {uuid} pType - Идентификатор типа
+ * @param {uuid} pVendor - Производитель
+ * @param {uuid} pCategory - Категория
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
- * @param {uuid} pVendor - Производитель
  * @param {text} pDescription - Описание
  * @return {void}
  */
@@ -63,9 +66,10 @@ CREATE OR REPLACE FUNCTION EditModel (
   pId           uuid,
   pParent       uuid default null,
   pType         uuid default null,
+  pVendor       uuid default null,
+  pCategory		uuid default null,
   pCode         text default null,
   pName         text default null,
-  pVendor       uuid default null,
   pDescription	text default null
 ) RETURNS       void
 AS $$
@@ -76,7 +80,8 @@ BEGIN
   PERFORM EditReference(pId, pParent, pType, pCode, pName, pDescription);
 
   UPDATE db.model
-     SET vendor = coalesce(pVendor, vendor)
+     SET vendor = coalesce(pVendor, vendor),
+         category = CheckNull(coalesce(pCategory, category, null_uuid()))
    WHERE id = pId;
 
   SELECT class INTO nClass FROM db.object WHERE id = pId;
@@ -89,7 +94,7 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- FUNCTION GetModel ----------------------------------------------------------
+-- FUNCTION GetModel -----------------------------------------------------------
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetModel (
@@ -112,6 +117,19 @@ CREATE OR REPLACE FUNCTION GetModelVendor (
 ) RETURNS 	uuid
 AS $$
   SELECT vendor FROM db.model WHERE id = pId;
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION GetModelCategory ---------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetModelCategory (
+  pId       uuid
+) RETURNS 	uuid
+AS $$
+  SELECT category FROM db.model WHERE id = pId;
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

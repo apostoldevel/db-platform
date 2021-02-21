@@ -34,9 +34,9 @@ SELECT CreateAgent(null, GetType('api.agent'), 'sba.agent', 'SBA',  GetVendor('s
 
 SELECT CreateVendor(null, GetType('device.vendor'), 'unknown.vendor', 'Неизвестный', 'Неизвестный производитель оборудования.');
 
-SELECT CreateModel(null, GetType('device.model'), 'unknown.model', 'Неизвестная', GetVendor('unknown.vendor'), 'Неизвестная модель устройства.');
-SELECT CreateModel(null, GetType('device.model'), 'android.model', 'Android', GetVendor('unknown.vendor'), 'Неизвестная модель устройства на ОС Android.');
-SELECT CreateModel(null, GetType('device.model'), 'ios.model', 'iOS', GetVendor('unknown.vendor'), 'Неизвестная модель устройства на ОС iOS.');
+SELECT CreateModel(null, GetType('device.model'), GetVendor('unknown.vendor'), null, 'unknown.model', 'Unknown', 'Неизвестная модель устройства.');
+SELECT CreateModel(null, GetType('device.model'), GetVendor('unknown.vendor'), null, 'android.model', 'Android', 'Неизвестная модель устройства на ОС Android.');
+SELECT CreateModel(null, GetType('device.model'), GetVendor('unknown.vendor'), null, 'ios.model', 'iOS', 'Неизвестная модель устройства на ОС iOS.');
 
 SELECT CreateScheduler(null, GetType('job.scheduler'), 'EACH_01_MINUTES', 'Каждую минуту', '1 minutes', MINDATE(), MAXDATE(), 'Каждую минуту.');
 SELECT CreateScheduler(null, GetType('job.scheduler'), 'EACH_05_MINUTES', 'Каждые 5 минут', '5 minutes', MINDATE(), MAXDATE(), 'Каждые 5 минут.');

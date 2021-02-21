@@ -17,25 +17,27 @@ GRANT SELECT ON api.model TO administrator;
 --------------------------------------------------------------------------------
 /**
  * Добавляет модель.
- * @param {uuid} pParent - Ссылка на родительский объект: api.document | null
- * @param {text} pType - Тип
+ * @param {uuid} pParent - Идентификатор объекта родителя
+ * @param {text} pType - Код или идентификатор типа
+ * @param {uuid} pVendor - Производитель
+ * @param {uuid} pCategory - Категория
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
- * @param {uuid} pVendor - Производитель
  * @param {text} pDescription - Описание
  * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION api.add_model (
   pParent       uuid,
   pType         text,
+  pVendor       uuid,
+  pCategory		uuid,
   pCode         text,
   pName         text,
-  pVendor       uuid,
   pDescription	text default null
 ) RETURNS       uuid
 AS $$
 BEGIN
-  RETURN CreateModel(pParent, CodeToType(lower(coalesce(pType, 'device')), 'model'), pCode, pName, pVendor, pDescription);
+  RETURN CreateModel(pParent, CodeToType(lower(coalesce(pType, 'device')), 'model'), pVendor, pCategory, pCode, pName, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -46,11 +48,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Редактирует модель.
- * @param {uuid} pParent - Ссылка на родительский объект: Object.Parent | null
- * @param {text} pType - Тип
+ * @param {uuid} pParent - Идентификатор объекта родителя
+ * @param {text} pType - Код или идентификатор типа
+ * @param {uuid} pVendor - Производитель
+ * @param {uuid} pCategory - Категория
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
- * @param {uuid} pVendor - Производитель
  * @param {text} pDescription - Описание
  * @return {void}
  */
@@ -58,9 +61,10 @@ CREATE OR REPLACE FUNCTION api.update_model (
   pId		    uuid,
   pParent       uuid default null,
   pType         text default null,
+  pVendor       uuid default null,
+  pCategory		uuid default null,
   pCode         text default null,
   pName         text default null,
-  pVendor       uuid default null,
   pDescription	text default null
 ) RETURNS       void
 AS $$
@@ -80,7 +84,7 @@ BEGIN
     SELECT o.type INTO nType FROM db.object o WHERE o.id = pId;
   END IF;
 
-  PERFORM EditModel(nModel, pParent, nType, pCode, pName, pVendor, pDescription);
+  PERFORM EditModel(nModel, pParent, nType, pVendor, pCategory, pCode, pName, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -94,17 +98,18 @@ CREATE OR REPLACE FUNCTION api.set_model (
   pId           uuid,
   pParent       uuid default null,
   pType         text default null,
+  pVendor       uuid default null,
+  pCategory		uuid default null,
   pCode         text default null,
   pName         text default null,
-  pVendor       uuid default null,
   pDescription	text default null
 ) RETURNS       SETOF api.model
 AS $$
 BEGIN
   IF pId IS NULL THEN
-    pId := api.add_model(pParent, pType, pCode, pName, pVendor, pDescription);
+    pId := api.add_model(pParent, pType, pVendor, pCategory, pCode, pName, pDescription);
   ELSE
-    PERFORM api.update_model(pId, pParent, pType, pCode, pName, pVendor, pDescription);
+    PERFORM api.update_model(pId, pParent, pType, pVendor, pCategory, pCode, pName, pDescription);
   END IF;
 
   RETURN QUERY SELECT * FROM api.model WHERE id = pId;
