@@ -4,17 +4,20 @@
 
 CREATE OR REPLACE VIEW Message (Id, Document,
   Source, SourceCode, SourceName, SourceDescription,
+  AgentType, AgentTypeCode, AgentTypeName, AgentTypeDescription,
   Agent, AgentCode, AgentName, AgentDescription,
   Code, Profile, Address, Subject, Content
 )
 AS
   SELECT m.id, m.document,
          o.type, t.code, t.name, t.description,
+         ra.type, at.code, at.name, at.description,
          m.agent, ra.code, ra.name, ra.description,
          m.code, m.profile, m.address, m.subject, m.content
     FROM db.message m INNER JOIN Reference ra ON m.agent = ra.id
-                      INNER JOIN db.object o ON ra.object = o.id
-                      INNER JOIN db.type t ON o.type = t.id;
+                      INNER JOIN db.type   at ON ra.type = at.id
+                      INNER JOIN db.object  o ON ra.object = o.id
+                      INNER JOIN db.type    t ON o.type = t.id;
 
 GRANT SELECT ON Message TO administrator;
 
@@ -39,6 +42,7 @@ CREATE OR REPLACE VIEW ObjectMessage (Id, Object, Parent,
   Entity, EntityCode, EntityName,
   Class, ClassCode, ClassLabel,
   Type, TypeCode, TypeName, TypeDescription,
+  AgentType, AgentTypeCode, AgentTypeName, AgentTypeDescription,
   Agent, AgentCode, AgentName, AgentDescription,
   Code, Profile, Address, Subject, Content,
   Label, Description,
@@ -53,6 +57,7 @@ AS
          o.entity, o.entitycode, o.entityname,
          o.class, o.classcode, o.classlabel,
          o.type, o.typecode, o.typename, o.typedescription,
+         m.agenttype, m.agenttypecode, m.agenttypename, m.agenttypedescription,
          m.agent, m.agentcode, m.agentname, m.agentdescription,
          m.code, m.profile, m.address, m.subject, m.content,
          o.label, d.description,

@@ -57,3 +57,7 @@ CREATE TRIGGER t_model_insert
 INSERT INTO db.model SELECT * FROM db._model;
 
 DROP TABLE db._model;
+
+--------------------------------------------------------------------------------
+
+DROP VIEW Message;
