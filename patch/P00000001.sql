@@ -60,4 +60,4 @@ DROP TABLE db._model;
 
 --------------------------------------------------------------------------------
 
-DROP VIEW Message;
+DROP VIEW Message CASCADE;
