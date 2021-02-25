@@ -14,7 +14,7 @@ CREATE TABLE db.message (
     profile         text NOT NULL,
     address         text NOT NULL,
     subject         text,
-    content         text NOT NULL
+    content         text
 );
 
 COMMENT ON TABLE db.message IS 'Сообщение.';
