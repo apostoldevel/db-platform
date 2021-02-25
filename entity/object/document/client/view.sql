@@ -28,13 +28,13 @@ GRANT SELECT ON Balance TO administrator;
 
 CREATE OR REPLACE VIEW Client (Id, Document, Code, Creation, UserId,
   FullName, ShortName, LastName, FirstName, MiddleName, Balance,
-  Phone, Email, Info, EmailVerified, PhoneVerified,
+  Phone, Email, Info, EmailVerified, PhoneVerified, Picture,
   Locale, LocaleCode, LocaleName, LocaleDescription
 )
 AS
   SELECT c.id, c.document, c.code, c.creation, c.userid,
          n.name, n.short, n.last, n.first, n.middle, b.amount AS balance,
-         c.phone, c.email, c.info, p.email_verified, p.phone_verified,
+         c.phone, c.email, c.info, p.email_verified, p.phone_verified, p.picture,
          n.locale, l.code, l.name, l.description
     FROM db.client c INNER JOIN db.locale      l ON l.id = current_locale()
                       LEFT JOIN db.client_name n ON c.id = n.client AND l.id = n.locale AND n.validFromDate <= oper_date() AND n.validToDate > oper_date()
@@ -66,7 +66,7 @@ CREATE OR REPLACE VIEW ObjectClient (Id, Object, Parent,
   Type, TypeCode, TypeName, TypeDescription,
   Code, Creation, UserId,
   FullName, ShortName, LastName, FirstName, MiddleName, Balance,
-  Phone, Email, Info, EmailVerified, PhoneVerified,
+  Phone, Email, Info, EmailVerified, PhoneVerified, Picture,
   Locale, LocaleCode, LocaleName, LocaleDescription,
   Label, Description,
   StateType, StateTypeCode, StateTypeName,
@@ -82,7 +82,7 @@ AS
          o.type, o.typecode, o.typename, o.typedescription,
          c.code, c.creation, c.userid,
          c.fullname, c.shortname, c.lastname, c.firstname, c.middlename, c.balance,
-         c.phone, c.email, c.info, emailverified, phoneverified,
+         c.phone, c.email, c.info, emailverified, phoneverified, picture,
          c.locale, c.localecode, c.localename, c.localedescription,
          o.label, d.description,
          o.statetype, o.statetypecode, o.statetypename,
