@@ -82,7 +82,7 @@ AS
          o.type, o.typecode, o.typename, o.typedescription,
          c.code, c.creation, c.userid,
          c.fullname, c.shortname, c.lastname, c.firstname, c.middlename, c.balance,
-         c.phone, c.email, c.info, emailverified, phoneverified, picture,
+         c.phone, c.email, c.info, c.emailverified, c.phoneverified, c.picture,
          c.locale, c.localecode, c.localename, c.localedescription,
          o.label, d.description,
          o.statetype, o.statetypecode, o.statetypename,
