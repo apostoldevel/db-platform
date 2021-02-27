@@ -214,10 +214,17 @@ BEGIN
         IF r.valarr IS NOT NULL THEN
           vValue := jsonb_array_to_string(r.valarr, ',');
 
+          vCompare := coalesce(nullif(upper(vCompare), 'EQL'), 'IN');
+
+          arValues := array_cat(null, ARRAY['IN', 'NOT IN']);
+          IF array_position(arValues, vCompare) IS NULL THEN
+            PERFORM IncorrectValueInArray(coalesce(r.compare, '<null>'), 'compare', arValues);
+          END IF;
+
           IF vWhere IS NULL THEN
-            vWhere := E'\n WHERE ' || vField || ' IN (' || vValue || ')';
+            vWhere := E'\n WHERE ' || vField || ' ' || vCompare || ' (' || vValue || ')';
           ELSE
-            vWhere := vWhere || E'\n  ' || vCondition || ' ' || vField || ' IN (' || vValue  || ')';
+            vWhere := vWhere || E'\n  ' || vCondition || ' ' || vField || ' ' || vCompare || ' (' || vValue  || ')';
           END IF;
 
         ELSE
