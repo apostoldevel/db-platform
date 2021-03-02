@@ -23,6 +23,7 @@
 \ir './calendar/create.psql'
 \ir './category/create.psql'
 \ir './vendor/create.psql'
+\ir './measure/create.psql'
 \ir './model/create.psql'
 \ir './program/create.psql'
 \ir './scheduler/create.psql'
