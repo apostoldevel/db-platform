@@ -52,7 +52,8 @@ BEGIN
   PERFORM EditObject(pId, pParent, pType, pName, pDescription);
 
   UPDATE db.reference
-     SET code = coalesce(pCode, code)
+     SET type = coalesce(pType, type),
+         code = coalesce(pCode, code)
    WHERE id = pId;
 
   UPDATE db.reference_text

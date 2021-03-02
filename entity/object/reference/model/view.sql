@@ -61,3 +61,61 @@ AS
                        INNER JOIN Object    o ON m.reference = o.id;
 
 GRANT SELECT ON ObjectModel TO administrator;
+
+--------------------------------------------------------------------------------
+-- ModelProperty ---------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW ModelProperty (
+  Category, CategoryCode, CategoryName, CategoryDescription,
+  Model, ModelCode, ModelName, ModelDescription,
+  Measure, MeasureCode, MeasureName, MeasureDescription,
+  Type, TypeCode, TypeName, TypeDescription,
+  Property, PropertyCode, PropertyName, PropertyDescription,
+  TypeValue, Value, Format, Sequence
+)
+AS
+  SELECT m.category, m.categorycode, m.categoryname, m.categorydescription,
+         mp.model, m.code, m.name, m.description,
+         mp.measure, s.code, s.name, s.description,
+         p.type, p.typecode, p.typename, p.typedescription,
+         mp.property, p.code, p.name, p.description,
+         (mp.value).vType,
+         CASE
+         WHEN (mp.value).vType = 0 THEN to_char((mp.value).vInteger, coalesce(mp.format, 'FM999999999990'))
+         WHEN (mp.value).vType = 1 THEN to_char((mp.value).vNumeric, coalesce(mp.format, 'FM999999999990.00'))
+         WHEN (mp.value).vType = 2 THEN to_char((mp.value).vDateTime, coalesce(mp.format, 'DD.MM.YYYY HH24:MI:SS'))
+         WHEN (mp.value).vType = 3 THEN (mp.value).vString
+         WHEN (mp.value).vType = 4 THEN (mp.value).vBoolean::text
+         END,
+         mp.format, mp.sequence
+    FROM db.model_property mp INNER JOIN Model    m ON m.id = mp.model
+                              INNER JOIN Property p ON p.id = mp.property
+                               LEFT JOIN Measure  s ON s.id = mp.measure;
+
+GRANT SELECT ON ModelProperty TO administrator;
+
+--------------------------------------------------------------------------------
+-- ModelPropertyJson -----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW ModelPropertyJson (ModelId, PropertyId, MeasureId,
+  Property, Measure, TypeValue, Value, Format, Sequence
+)
+AS
+  SELECT m.id, p.id, s.id,
+         row_to_json(p), row_to_json(s),
+         (mp.value).vType,
+         CASE
+         WHEN (mp.value).vType = 0 THEN to_char((mp.value).vInteger, coalesce(mp.format, 'FM999999999990'))
+         WHEN (mp.value).vType = 1 THEN to_char((mp.value).vNumeric, coalesce(mp.format, 'FM999999999990.00'))
+         WHEN (mp.value).vType = 2 THEN to_char((mp.value).vDateTime, coalesce(mp.format, 'DD.MM.YYYY HH24:MI:SS'))
+         WHEN (mp.value).vType = 3 THEN (mp.value).vString
+         WHEN (mp.value).vType = 4 THEN (mp.value).vBoolean::text
+         END,
+         mp.format, mp.sequence
+    FROM db.model_property mp INNER JOIN Model    m ON m.id = mp.model
+                              INNER JOIN Property p ON p.id = mp.property
+                               LEFT JOIN Measure  s ON s.id = mp.measure;
+
+GRANT SELECT ON ModelPropertyJson TO administrator;

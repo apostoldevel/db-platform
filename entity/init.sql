@@ -68,6 +68,10 @@ BEGIN
 
       PERFORM CreateEntityModel(uReference);
 
+      -- Свойство
+
+      PERFORM CreateEntityProperty(uReference);
+
       -- Программа
 
       PERFORM CreateEntityProgram(uReference);

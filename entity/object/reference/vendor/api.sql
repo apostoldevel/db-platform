@@ -76,7 +76,7 @@ BEGIN
     SELECT o.type INTO nType FROM db.object o WHERE o.id = pId;
   END IF;
 
-  PERFORM EditVendor(nVendor, pParent, nType,pCode, pName, pDescription);
+  PERFORM EditVendor(nVendor, pParent, nType, pCode, pName, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

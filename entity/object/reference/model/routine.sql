@@ -133,3 +133,97 @@ AS $$
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- SetModelProperty ------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION SetModelProperty (
+  pModel		uuid,
+  pProperty		uuid,
+  pMeasure		uuid,
+  pValue		variant,
+  pFormat		text,
+  pSequence		integer DEFAULT null
+) RETURNS		void
+AS $$
+DECLARE
+  r				record;
+BEGIN
+  IF pSequence IS NULL THEN
+  	SELECT max(sequence) + 1 INTO pSequence FROM db.model_property WHERE model = pModel;
+  END IF;
+
+  SELECT * INTO r FROM db.model_property WHERE model = pModel AND property = pProperty;
+
+  INSERT INTO db.model_property (model, property, measure, value, format, sequence)
+  VALUES (pModel, pProperty, pMeasure, pValue, pFormat, coalesce(pSequence, 1))
+    ON CONFLICT (model, property) DO UPDATE SET measure = coalesce(pMeasure, r.measure), value = coalesce(pValue, r.value), format = coalesce(pFormat, r.format), sequence = coalesce(pSequence, r.sequence, 1);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- DeleteModelProperty ---------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION DeleteModelProperty (
+  pModel		uuid,
+  pProperty		uuid DEFAULT null
+) RETURNS		boolean
+AS $$
+BEGIN
+  IF pProperty IS NOT NULL THEN
+    DELETE FROM db.model_property WHERE model = pModel AND property = pProperty;
+  ELSE
+    DELETE FROM db.model_property WHERE model = pModel;
+  END IF;
+
+  RETURN FOUND;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- GetModelPropertyJson --------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetModelPropertyJson (
+  pModel	uuid
+) RETURNS	json
+AS $$
+DECLARE
+  r			record;
+  arResult	json[];
+BEGIN
+  FOR r IN
+    SELECT *
+      FROM ModelPropertyJson
+     WHERE modelId = pModel
+     ORDER BY sequence
+  LOOP
+    arResult := array_append(arResult, row_to_json(r));
+  END LOOP;
+
+  RETURN array_to_json(arResult);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- GetModelPropertyJsonb -------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetModelPropertyJsonb (
+  pObject	uuid
+) RETURNS	jsonb
+AS $$
+BEGIN
+  RETURN GetModelPropertyJson(pObject);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
