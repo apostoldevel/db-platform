@@ -1,5 +1,9 @@
-\ir '../entity/reference/measure/create.psql'
-\ir '../entity/reference/property/create.psql'
+\ir '../entity/object/reference/measure/create.psql'
+\ir '../entity/object/reference/property/create.psql'
+
+DROP FUNCTION api.add_model(uuid,text,uuid,uuid,text,text,text);
+DROP FUNCTION api.update_model(uuid,uuid,text,uuid,uuid,text,text,text);
+DROP FUNCTION api.set_model(uuid,uuid,text,uuid,uuid,text,text,text);
 
 --------------------------------------------------------------------------------
 -- db.model_property -----------------------------------------------------------
@@ -32,6 +36,10 @@ CREATE INDEX ON db.model_property (measure);
 
 \connect :dbname admin
 
+SELECT SignIn(CreateSystemOAuth2(), 'admin', 'admin');
+
+SELECT GetErrorMessage();
+
 SELECT CreateEntityMeasure(GetClass('reference'));
 SELECT CreateEntityProperty(GetClass('reference'));
 
@@ -50,5 +58,7 @@ SELECT CreateMeasure(null, GetType('power.measure'), 'W.measure', 'Вт', 'Ва�
 SELECT CreateMeasure(null, GetType('power.measure'), 'kW.measure', 'кВт', 'Киловатт');
 SELECT CreateMeasure(null, GetType('power.measure'), 'MW.measure', 'МВт', 'Мегаватт');
 SELECT CreateMeasure(null, GetType('power.measure'), 'GW.measure', 'ГВт', 'Гигаватт');
+
+SELECT SignOut();
 
 \connect :dbname kernel
