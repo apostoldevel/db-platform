@@ -34,6 +34,22 @@ SELECT CreateAgent(null, GetType('api.agent'), 'sba.agent', 'SBA',  GetVendor('s
 
 SELECT CreateVendor(null, GetType('device.vendor'), 'unknown.vendor', 'Неизвестный', 'Неизвестный производитель оборудования.');
 
+SELECT CreateMeasure(null, GetType('quantity.measure'), 'pieces.measure', 'Шт', 'Штук');
+
+SELECT CreateMeasure(null, GetType('time.measure'), 'second.measure', 'сек', 'Секунда');
+SELECT CreateMeasure(null, GetType('time.measure'), 'minute.measure', 'мин', 'Минута');
+SELECT CreateMeasure(null, GetType('time.measure'), 'hour.measure', 'час', 'Час');
+SELECT CreateMeasure(null, GetType('time.measure'), 'day.measure', 'д', 'День');
+SELECT CreateMeasure(null, GetType('time.measure'), 'week.measure', 'нед', 'Неделя');
+SELECT CreateMeasure(null, GetType('time.measure'), 'month.measure', 'мес', 'Месяц');
+SELECT CreateMeasure(null, GetType('time.measure'), 'quarter.measure', 'кв', 'Квартал');
+SELECT CreateMeasure(null, GetType('time.measure'), 'year.measure', 'год', 'Год');
+
+SELECT CreateMeasure(null, GetType('power.measure'), 'W.measure', 'Вт', 'Ватт');
+SELECT CreateMeasure(null, GetType('power.measure'), 'kW.measure', 'кВт', 'Киловатт');
+SELECT CreateMeasure(null, GetType('power.measure'), 'MW.measure', 'МВт', 'Мегаватт');
+SELECT CreateMeasure(null, GetType('power.measure'), 'GW.measure', 'ГВт', 'Гигаватт');
+
 SELECT CreateModel(null, GetType('device.model'), GetVendor('unknown.vendor'), null, 'unknown.model', 'Unknown', 'Неизвестная модель устройства.');
 SELECT CreateModel(null, GetType('device.model'), GetVendor('unknown.vendor'), null, 'android.model', 'Android', 'Неизвестная модель устройства на ОС Android.');
 SELECT CreateModel(null, GetType('device.model'), GetVendor('unknown.vendor'), null, 'ios.model', 'iOS', 'Неизвестная модель устройства на ОС iOS.');

@@ -6,75 +6,79 @@ CREATE OR REPLACE FUNCTION InitEntity()
 RETURNS       void
 AS $$
 DECLARE
-  nObject     uuid;
-  nDocument   uuid;
-  nReference  uuid;
+  uObject     uuid;
+  uDocument   uuid;
+  uReference  uuid;
 BEGIN
   -- Объект
 
   PERFORM CreateEntityObject(null);
 
-  nObject := GetClass('object');
+  uObject := GetClass('object');
 
     -- Документ
 
-    PERFORM CreateEntityDocument(nObject);
+    PERFORM CreateEntityDocument(uObject);
 
-    nDocument := GetClass('document');
+    uDocument := GetClass('document');
 
       -- Адрес
 
-      PERFORM CreateEntityAddress(nDocument);
+      PERFORM CreateEntityAddress(uDocument);
 
       -- Клиент
 
-      PERFORM CreateEntityClient(nDocument);
+      PERFORM CreateEntityClient(uDocument);
 
       -- Устройство
 
-      PERFORM CreateEntityDevice(nDocument);
+      PERFORM CreateEntityDevice(uDocument);
 
       -- Задание
 
-      PERFORM CreateEntityJob(nDocument);
+      PERFORM CreateEntityJob(uDocument);
 
       -- Сообщение
 
-      PERFORM CreateEntityMessage(nDocument);
+      PERFORM CreateEntityMessage(uDocument);
 
     -- Справочник
 
-    PERFORM CreateEntityReference(nObject);
+    PERFORM CreateEntityReference(uObject);
 
-    nReference := GetClass('reference');
+    uReference := GetClass('reference');
 
       -- Агент
 
-      PERFORM CreateEntityAgent(nReference);
+      PERFORM CreateEntityAgent(uReference);
 
       -- Календарь
 
-      PERFORM CreateEntityCalendar(nReference);
+      PERFORM CreateEntityCalendar(uReference);
 
       -- Категория
 
-      PERFORM CreateEntityCategory(nReference);
+      PERFORM CreateEntityCategory(uReference);
+
+	  -- Мера
+  
+	  PERFORM CreateEntityMeasure(uReference);
 
       -- Модель
 
-      PERFORM CreateEntityModel(nReference);
+      PERFORM CreateEntityModel(uReference);
 
       -- Программа
 
-      PERFORM CreateEntityProgram(nReference);
+      PERFORM CreateEntityProgram(uReference);
 
       -- Планировщик
 
-      PERFORM CreateEntityScheduler(nReference);
+      PERFORM CreateEntityScheduler(uReference);
 
       -- Производитель
 
-      PERFORM CreateEntityVendor(nReference);
+      PERFORM CreateEntityVendor(uReference);
 
 END
 $$ LANGUAGE plpgsql
