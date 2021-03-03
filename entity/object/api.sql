@@ -1149,9 +1149,23 @@ CREATE OR REPLACE FUNCTION api.set_object_coordinates (
   pData			jsonb DEFAULT null
 ) RETURNS       SETOF api.object_coordinates
 AS $$
+DECLARE
+  r				record;
+  device		jsonb;
+  sSerial		text;
 BEGIN
   pCode := coalesce(pCode, 'default');
   pAccuracy := coalesce(pAccuracy, 0);
+
+  device := pData->>'device';
+  IF device IS NOT NULL THEN
+	sSerial := device->>'serial';
+	IF sSerial IS NOT NULL THEN
+      SELECT id, identity INTO r FROM db.device WHERE serial = sSerial;
+      pData := pData || jsonb_build_object('device', device || jsonb_build_object('id', r.id, 'identity', r.identity));
+	END IF;
+  END IF;
+
   PERFORM NewObjectCoordinates(pId, pCode, pLatitude, pLongitude, pAccuracy, pLabel, pDescription, pData);
   PERFORM SetObjectDataJSON(pId, 'geo', GetObjectCoordinatesJson(pId, pCode));
 
