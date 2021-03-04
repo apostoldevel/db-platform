@@ -239,16 +239,16 @@ CREATE OR REPLACE FUNCTION api.send_message (
 AS $$
 DECLARE
   nAgent		uuid;
-  nMessageId	uuid;
+  uMessageId	uuid;
 BEGIN
   nAgent := GetAgent(pAgent);
   IF nAgent IS NULL THEN
     PERFORM ObjectNotFound('агент', 'code', pAgent);
   END IF;
 
-  nMessageId := SendMessage(null, nAgent, pProfile, pAddress, pSubject, pContent, pDescription);
+  uMessageId := SendMessage(null, nAgent, pProfile, pAddress, pSubject, pContent, pDescription);
 
-  RETURN QUERY SELECT * FROM api.message WHERE id = nMessageId;
+  RETURN QUERY SELECT * FROM api.message WHERE id = uMessageId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -267,6 +267,7 @@ CREATE OR REPLACE FUNCTION api.send_mail (
 ) RETURNS	    SETOF api.message
 AS $$
 DECLARE
+  uMessageId	uuid;
   vProject		text;
   vDomain		text;
   vProfile		text;
@@ -274,8 +275,13 @@ DECLARE
   vEmail		text;
   vBody			text;
   bVerified		bool;
-  nMessageId	uuid;
+  vOAuthSecret	text;
 BEGIN
+  IF IsUserRole(GetGroup('system'), session_userid()) THEN
+	SELECT secret INTO vOAuthSecret FROM oauth2.audience WHERE code = session_username();
+	PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
+  END IF;
+
   SELECT name, email, email_verified, locale INTO vName, vEmail, bVerified
 	FROM db.user u INNER JOIN db.profile p ON u.id = p.userid
    WHERE id = pUserId;
@@ -295,9 +301,9 @@ BEGIN
 
   vBody := CreateMailBody(vProject, vProfile, vName, vEmail, pSubject, pText, pHTML);
 
-  nMessageId := SendMail(null, vProfile, vEmail, pSubject, vBody, pDescription);
+  uMessageId := SendMail(null, vProfile, vEmail, pSubject, vBody, pDescription);
 
-  RETURN QUERY SELECT * FROM api.message WHERE id = nMessageId;
+  RETURN QUERY SELECT * FROM api.message WHERE id = uMessageId;
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -314,12 +320,19 @@ CREATE OR REPLACE FUNCTION api.send_sms (
 ) RETURNS	    SETOF api.message
 AS $$
 DECLARE
+  uMessageId	uuid;
+
   vCharSet      text;
   vName			text;
   vPhone        text;
   bVerified		bool;
-  nMessageId	uuid;
+  vOAuthSecret	text;
 BEGIN
+  IF IsUserRole(GetGroup('system'), session_userid()) THEN
+	SELECT secret INTO vOAuthSecret FROM oauth2.audience WHERE code = session_username();
+	PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
+  END IF;
+
   vCharSet := coalesce(nullif(pg_client_encoding(), 'UTF8'), 'utf-8');
 
   SELECT name, phone, phone_verified, locale INTO vName, vPhone, bVerified
@@ -334,9 +347,9 @@ BEGIN
     PERFORM PhoneNumberNotVerified(vPhone);
   END IF;
 
-  nMessageId := SendSMS(null, pProfile, pMessage, pUserId);
+  uMessageId := SendSMS(null, pProfile, pMessage, pUserId);
 
-  RETURN QUERY SELECT * FROM api.message WHERE id = nMessageId;
+  RETURN QUERY SELECT * FROM api.message WHERE id = uMessageId;
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -354,11 +367,17 @@ CREATE OR REPLACE FUNCTION api.send_push (
 ) RETURNS	    SETOF api.message
 AS $$
 DECLARE
-  nMessageId	uuid;
+  uMessageId	uuid;
+  vOAuthSecret	text;
 BEGIN
-  nMessageId := SendPush(pObject, pSubject, pData, pUserId);
+  IF IsUserRole(GetGroup('system'), session_userid()) THEN
+	SELECT secret INTO vOAuthSecret FROM oauth2.audience WHERE code = session_username();
+	PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
+  END IF;
 
-  RETURN QUERY SELECT * FROM api.message WHERE id = nMessageId;
+  uMessageId := SendPush(pObject, pSubject, pData, pUserId);
+
+  RETURN QUERY SELECT * FROM api.message WHERE id = uMessageId;
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
