@@ -2740,22 +2740,15 @@ BEGIN
     END IF;
   END IF;
 
-  IF nType = GetAreaType('root') THEN
-    UPDATE db.area
-       SET name = coalesce(pName, name),
-           description = coalesce(pDescription, description)
-     WHERE id = pId;
-  ELSE
-    UPDATE db.area
-       SET parent = coalesce(pParent, parent),
-           type = coalesce(pType, type),
-           code = coalesce(pCode, code),
-           name = coalesce(pName, name),
-           description = coalesce(pDescription, description),
-           validFromDate = coalesce(pValidFromDate, validFromDate),
-           validToDate = coalesce(pValidToDate, validToDate)
-     WHERE id = pId;
-  END IF;
+  UPDATE db.area
+	 SET parent = coalesce(pParent, parent),
+		 type = coalesce(pType, type),
+		 code = coalesce(pCode, code),
+		 name = coalesce(pName, name),
+		 description = CheckNull(coalesce(pDescription, description, '<null>')),
+		 validFromDate = coalesce(pValidFromDate, validFromDate),
+		 validToDate = coalesce(pValidToDate, validToDate)
+   WHERE id = pId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

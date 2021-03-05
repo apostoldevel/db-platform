@@ -10,14 +10,14 @@ INSERT INTO db.area_type (id, code, name) VALUES ('00000000-0000-4002-a001-00000
 INSERT INTO db.area_type (id, code, name) VALUES ('00000000-0000-4002-a001-000000000002', 'remote', 'Удаленный');
 INSERT INTO db.area_type (id, code, name) VALUES ('00000000-0000-4002-a001-000000000003', 'mobile', 'Мобильный');
 
-SELECT CreateArea(null, GetAreaType('root'), 'root', 'Корень', '00000000-0000-4003-a000-000000000000');
-SELECT CreateArea(GetArea('root'), GetAreaType('system'), 'system', 'Система', '00000000-0000-4003-a000-000000000001');
-SELECT CreateArea(GetArea('root'), GetAreaType('guest'), 'guest', 'Гости', '00000000-0000-4003-a000-000000000002');
-SELECT CreateArea(GetArea('root'), GetAreaType('root'), 'all', 'Всё', '00000000-0000-4003-a001-000000000000');
-SELECT CreateArea(GetArea('all'), GetAreaType('default'), 'default', 'По умолчанию', '00000000-0000-4003-a001-000000000001');
-SELECT CreateArea(GetArea('all'), GetAreaType('main'), 'main', 'Головной офис', '00000000-0000-4003-a001-000000000002');
-SELECT CreateArea(GetArea('main'), GetAreaType('remote'), 'remote', 'Удаленное подразделение', '00000000-0000-4003-a001-000000000003');
-SELECT CreateArea(GetArea('remote'), GetAreaType('mobile'), 'mobile', 'Мобильное подразделение', '00000000-0000-4003-a001-000000000004');
+SELECT CreateArea(null, GetAreaType('root'), 'root', 'Корень', null, '00000000-0000-4003-a000-000000000000');
+SELECT CreateArea(GetArea('root'), GetAreaType('system'), 'system', 'Система', null, '00000000-0000-4003-a000-000000000001');
+SELECT CreateArea(GetArea('root'), GetAreaType('guest'), 'guest', 'Гости', null, '00000000-0000-4003-a000-000000000002');
+SELECT CreateArea(GetArea('root'), GetAreaType('root'), 'all', 'Всё', null, '00000000-0000-4003-a001-000000000000');
+SELECT CreateArea(GetArea('all'), GetAreaType('default'), 'default', 'По умолчанию', null, '00000000-0000-4003-a001-000000000001');
+SELECT CreateArea(GetArea('all'), GetAreaType('main'), 'main', 'Головной офис', null, '00000000-0000-4003-a001-000000000002');
+SELECT CreateArea(GetArea('main'), GetAreaType('remote'), 'remote', 'Удаленное подразделение', null, '00000000-0000-4003-a001-000000000003');
+SELECT CreateArea(GetArea('remote'), GetAreaType('mobile'), 'mobile', 'Мобильное подразделение', null, '00000000-0000-4003-a001-000000000004');
 
 SELECT CreateInterface('all', 'Все', 'Интерфейс для всех', '00000000-0000-4004-a000-000000000000');
 SELECT CreateInterface('administrator', 'Администраторы', 'Интерфейс для администраторов', '00000000-0000-4004-a000-000000000001');

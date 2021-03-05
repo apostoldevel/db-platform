@@ -84,8 +84,10 @@ CREATE TRIGGER t_document_before_update_type
 CREATE OR REPLACE FUNCTION db.ft_document_update_area()
 RETURNS trigger AS $$
 BEGIN
-  IF NOT IsUserRole(GetGroup('administrator')) THEN
-	PERFORM ChangeAreaError();
+  IF session_user <> 'kernel' THEN
+    IF NOT IsUserRole(GetGroup('administrator')) THEN
+      PERFORM ChangeAreaError();
+    END IF;
   END IF;
 
   RETURN NEW;
