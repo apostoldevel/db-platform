@@ -1009,7 +1009,7 @@ BEGIN
     arKeys := array_cat(arKeys, ARRAY['id', 'code']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id smallint, code text)
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, code text)
     LOOP
       FOR e IN SELECT * FROM api.area_member(coalesce(r.id, GetArea(r.code)))
       LOOP
@@ -1028,7 +1028,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id smallint, member uuid)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, member uuid)
       LOOP
         PERFORM api.area_member_add(r.id, r.member);
         RETURN NEXT json_build_object('id', r.id, 'member', r.member, 'result', true, 'message', 'Успешно.');
@@ -1036,7 +1036,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id smallint, member uuid)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, member uuid)
       LOOP
         PERFORM api.area_member_add(r.id, r.member);
         RETURN NEXT json_build_object('id', r.id, 'member', r.member, 'result', true, 'message', 'Успешно.');
@@ -1055,7 +1055,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id smallint, member uuid)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, member uuid)
       LOOP
         PERFORM api.area_member_delete(r.id, r.member);
         RETURN NEXT json_build_object('id', r.id, 'member', r.member, 'result', true, 'message', 'Успешно.');
@@ -1063,7 +1063,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id smallint, member uuid)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, member uuid)
       LOOP
         PERFORM api.area_member_delete(r.id, r.member);
         RETURN NEXT json_build_object('id', r.id, 'member', r.member, 'result', true, 'message', 'Успешно.');
@@ -1138,7 +1138,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id smallint, fields jsonb)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, fields jsonb)
       LOOP
         FOR e IN EXECUTE format('SELECT %s FROM api.get_interface($1)', JsonbToFields(r.fields, GetColumns('interface', 'api'))) USING r.id
         LOOP
@@ -1148,7 +1148,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id smallint, fields jsonb)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, fields jsonb)
       LOOP
         FOR e IN EXECUTE format('SELECT %s FROM api.get_interface($1)', JsonbToFields(r.fields, GetColumns('interface', 'api'))) USING r.id
         LOOP
@@ -1186,7 +1186,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id smallint)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid)
       LOOP
         PERFORM api.delete_interface(r.id);
         RETURN NEXT json_build_object('id', r.id, 'result', true, 'message', 'Успешно.');
@@ -1194,7 +1194,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id smallint)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid)
       LOOP
         PERFORM api.delete_interface(r.id);
         RETURN NEXT json_build_object('id', r.id, 'result', true, 'message', 'Успешно.');
@@ -1211,7 +1211,7 @@ BEGIN
     arKeys := array_cat(arKeys, ARRAY['id']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id smallint)
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid)
     LOOP
       FOR e IN SELECT * FROM api.interface_member(r.id)
       LOOP
@@ -1230,7 +1230,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id smallint, member uuid)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, member uuid)
       LOOP
         PERFORM api.interface_member_add(r.id, r.member);
         RETURN NEXT json_build_object('id', r.id, 'member', r.member, 'result', true, 'message', 'Успешно.');
@@ -1238,7 +1238,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id smallint, member uuid)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, member uuid)
       LOOP
         PERFORM api.interface_member_add(r.id, r.member);
         RETURN NEXT json_build_object('id', r.id, 'member', r.member, 'result', true, 'message', 'Успешно.');
@@ -1257,7 +1257,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id smallint, member uuid)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, member uuid)
       LOOP
         PERFORM api.interface_member_delete(r.member, r.id);
         RETURN NEXT json_build_object('id', r.id, 'member', r.member, 'result', true, 'message', 'Успешно.');
@@ -1265,7 +1265,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id smallint, member uuid)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, member uuid)
       LOOP
         PERFORM api.interface_member_delete(r.member, r.id);
         RETURN NEXT json_build_object('id', r.id, 'member', r.member, 'result', true, 'message', 'Успешно.');
@@ -1389,7 +1389,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, area smallint)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, area uuid)
       LOOP
         PERFORM api.member_area_add(r.id, r.area);
         RETURN NEXT json_build_object('id', r.id, 'area', r.area, 'result', true, 'message', 'Успешно.');
@@ -1397,7 +1397,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, area smallint)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, area uuid)
       LOOP
         PERFORM api.member_area_add(r.id, r.area);
         RETURN NEXT json_build_object('id', r.id, 'area', r.area, 'result', true, 'message', 'Успешно.');
@@ -1416,7 +1416,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, area smallint)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, area uuid)
       LOOP
         PERFORM api.member_area_delete(r.id, r.area);
         RETURN NEXT json_build_object('id', r.id, 'area', r.area, 'result', true, 'message', 'Успешно.');
@@ -1424,7 +1424,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, area smallint)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, area uuid)
       LOOP
         PERFORM api.member_area_delete(r.id, r.area);
         RETURN NEXT json_build_object('id', r.id, 'area', r.area, 'result', true, 'message', 'Успешно.');
@@ -1460,7 +1460,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, interface smallint)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, interface uuid)
       LOOP
         PERFORM api.member_interface_add(r.id, r.interface);
         RETURN NEXT json_build_object('id', r.id, 'interface', r.interface, 'result', true, 'message', 'Успешно.');
@@ -1468,7 +1468,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, interface smallint)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, interface uuid)
       LOOP
         PERFORM api.member_interface_add(r.id, r.interface);
         RETURN NEXT json_build_object('id', r.id, 'interface', r.interface, 'result', true, 'message', 'Успешно.');
@@ -1487,7 +1487,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, interface smallint)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, interface uuid)
       LOOP
         PERFORM api.member_interface_delete(r.id, r.interface);
         RETURN NEXT json_build_object('id', r.id, 'interface', r.interface, 'result', true, 'message', 'Успешно.');
@@ -1495,7 +1495,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, interface smallint)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, interface uuid)
       LOOP
         PERFORM api.member_interface_delete(r.id, r.interface);
         RETURN NEXT json_build_object('id', r.id, 'interface', r.interface, 'result', true, 'message', 'Успешно.');
