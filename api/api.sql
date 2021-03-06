@@ -224,7 +224,7 @@ BEGIN
           IF vWhere IS NULL THEN
             vWhere := E'\n WHERE ' || vField || ' ' || vCompare || ' (' || vValue || ')';
           ELSE
-            vWhere := vWhere || E'\n  ' || vCondition || ' ' || vField || ' ' || vCompare || ' (' || vValue  || ')';
+            vWhere := vWhere || E'\n   ' || vCondition || ' ' || vField || ' ' || vCompare || ' (' || vValue  || ')';
           END IF;
 
         ELSE
@@ -242,7 +242,7 @@ BEGIN
           IF vWhere IS NULL THEN
             vWhere := E'\n WHERE ' || vLStr || vField || GetCompare(vCompare) || vValue || vRStr;
           ELSE
-            vWhere := vWhere || E'\n  ' || vCondition || ' ' || vLStr || vField || GetCompare(vCompare) || vValue || vRStr;
+            vWhere := vWhere || E'\n   ' || vCondition || ' ' || vLStr || vField || GetCompare(vCompare) || vValue || vRStr;
           END IF;
         END IF;
 
@@ -262,8 +262,8 @@ BEGIN
   ELSE
     IF array_position(arColumns, 'created') IS NOT NULL THEN
       vSelect := vSelect || E'\n ORDER BY created DESC';
-    ELSIF array_position(arColumns, 'object') IS NOT NULL THEN
-      vSelect := vSelect || E'\n ORDER BY object';
+    ELSIF array_position(arColumns, 'datetime') IS NOT NULL THEN
+      vSelect := vSelect || E'\n ORDER BY datetime DESC';
     ELSIF array_position(arColumns, 'id') IS NOT NULL THEN
       vSelect := vSelect || E'\n ORDER BY id';
     END IF;

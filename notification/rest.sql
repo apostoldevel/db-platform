@@ -26,25 +26,19 @@ BEGIN
 	PERFORM LoginFailed();
   END IF;
 
-  IF session_user <> 'kernel' THEN
-	IF NOT IsUserRole(GetGroup('system')) THEN
-	  PERFORM AccessDenied();
-	END IF;
-  END IF;
-
   CASE pPath
   WHEN '/notification' THEN
 
     IF pPayload IS NOT NULL THEN
-      arKeys := array_cat(arKeys, ARRAY['start', 'fields']);
+      arKeys := array_cat(arKeys, ARRAY['point', 'fields']);
       PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
     ELSE
       pPayload := '{}';
     END IF;
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(start double precision, fields jsonb)
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(point double precision, fields jsonb)
     LOOP
-      FOR e IN EXECUTE format('SELECT %s FROM api.notification($1)', JsonbToFields(r.fields, GetColumns('notification', 'api'))) USING coalesce(to_timestamp(r.start), Now())
+      FOR e IN EXECUTE format('SELECT %s FROM api.notification($1)', JsonbToFields(r.fields, GetColumns('notification', 'api'))) USING coalesce(to_timestamp(r.point), Now())
       LOOP
         RETURN NEXT row_to_json(e);
       END LOOP;
@@ -115,18 +109,25 @@ BEGIN
   WHEN '/notification/list' THEN
 
     IF pPayload IS NOT NULL THEN
-      arKeys := array_cat(arKeys, ARRAY['fields', 'search', 'filter', 'reclimit', 'recoffset', 'orderby']);
+      arKeys := array_cat(arKeys, ARRAY['fields', 'search', 'filter', 'reclimit', 'recoffset', 'orderby', 'groupby']);
       PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
     ELSE
       pPayload := '{}';
     END IF;
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(fields jsonb, search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(fields jsonb, search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb, groupby jsonb)
     LOOP
-      FOR e IN EXECUTE format('SELECT %s FROM api.list_notification($1, $2, $3, $4, $5)', JsonbToFields(r.fields, GetColumns('notification', 'api'))) USING r.search, r.filter, r.reclimit, r.recoffset, r.orderby
-      LOOP
-        RETURN NEXT row_to_json(e);
-      END LOOP;
+      IF r.groupby IS NOT NULL THEN
+        FOR e IN EXECUTE format('SELECT %s FROM api.list_notification($1, $2, $3, $4, $5) GROUP BY %s', array_to_string(array_quote_literal_json(JsonbToStrArray(r.fields)), ','), array_to_string(array_quote_literal_json(JsonbToStrArray(r.groupby)), ',')) USING r.search, r.filter, r.reclimit, r.recoffset, r.orderby
+        LOOP
+          RETURN NEXT row_to_json(e);
+        END LOOP;
+	  ELSE
+        FOR e IN EXECUTE format('SELECT %s FROM api.list_notification($1, $2, $3, $4, $5)', JsonbToFields(r.fields, GetColumns('notification', 'api'))) USING r.search, r.filter, r.reclimit, r.recoffset, r.orderby
+        LOOP
+          RETURN NEXT row_to_json(e);
+        END LOOP;
+      END IF;
     END LOOP;
 
   ELSE
