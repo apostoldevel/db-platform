@@ -164,45 +164,6 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- CheckCodes ------------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION CheckCodes (
-  pSource		text[],
-  pCodes		text[]
-) RETURNS       text[]
-AS $$
-DECLARE
-  arValid       text[];
-  arInvalid     text[];
-BEGIN
-  IF pCodes IS NOT NULL THEN
-    FOR i IN 1..array_length(pCodes, 1)
-    LOOP
-      IF array_position(pSource, pCodes[i]) IS NULL THEN
-        arInvalid := array_append(arInvalid, pCodes[i]);
-      ELSE
-        arValid := array_append(arValid, pCodes[i]);
-      END IF;
-    END LOOP;
-
-    IF arInvalid IS NOT NULL THEN
-
-      IF arValid IS NULL THEN
-        arValid := array_append(arValid, '');
-      END IF;
-
-      PERFORM InvalidCodes(arValid, arInvalid);
-    END IF;
-  END IF;
-
-  RETURN arValid;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
 -- FUNCTION DoCheckListenerFilter ----------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -242,7 +203,7 @@ BEGIN
 
 	FOR r IN SELECT code FROM db.entity
 	LOOP
-	  arSource := array_append(arSource, r.code::text);
+	  arSource := array_append(arSource, r.code);
 	END LOOP;
 
   	PERFORM CheckCodes(arSource, JsonbToStrArray(pFilter->'entities'));
@@ -251,7 +212,7 @@ BEGIN
 
 	FOR r IN SELECT code FROM db.class_tree
 	LOOP
-	  arSource := array_append(arSource, r.code::text);
+	  arSource := array_append(arSource, r.code);
 	END LOOP;
 
   	PERFORM CheckCodes(arSource, JsonbToStrArray(pFilter->'classes'));
@@ -260,7 +221,7 @@ BEGIN
 
 	FOR r IN SELECT code FROM db.action
 	LOOP
-	  arSource := array_append(arSource, r.code::text);
+	  arSource := array_append(arSource, r.code);
 	END LOOP;
 
   	PERFORM CheckCodes(arSource, JsonbToStrArray(pFilter->'actions'));

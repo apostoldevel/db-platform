@@ -978,6 +978,21 @@ $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
 --------------------------------------------------------------------------------
 
+SELECT CreateExceptionResource(GetExceptionUUID(400, 72), 'ru', 'UserNotMemberArea', 'Пользователь "%s" не имеет доступа к области "%s"');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 72), 'en', 'UserNotMemberArea', 'User "%s" does not have access to scope "%s"');
+
+CREATE OR REPLACE FUNCTION UserNotMemberScope (
+  pUser		text,
+  pScope	text
+) RETURNS	void
+AS $$
+BEGIN
+  RAISE EXCEPTION '%', format(GetExceptionStr(400, 72), pUser, pScope);
+END;
+$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+
+--------------------------------------------------------------------------------
+
 SELECT CreateExceptionResource(GetExceptionUUID(400, 80), 'ru', 'IncorrectRegistryKey', 'Недопустимый ключ "%s". Допустимые ключи: [%s]');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 80), 'en', 'IncorrectRegistryKey', 'Invalid key "%s". Valid keys: [%s]');
 

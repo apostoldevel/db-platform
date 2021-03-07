@@ -10,6 +10,10 @@ INSERT INTO db.area_type (id, code, name) VALUES ('00000000-0000-4002-a001-00000
 INSERT INTO db.area_type (id, code, name) VALUES ('00000000-0000-4002-a001-000000000002', 'remote', 'Удаленный');
 INSERT INTO db.area_type (id, code, name) VALUES ('00000000-0000-4002-a001-000000000003', 'mobile', 'Мобильный');
 
+SELECT CreateScope(current_database(), current_database(), 'Область видимости текущей базы данных.');
+
+SELECT SetProviderScope(id, GetScope(current_database())) FROM Provider;
+
 SELECT CreateArea(null, GetAreaType('root'), 'root', 'Корень', null, '00000000-0000-4003-a000-000000000000');
 SELECT CreateArea(GetArea('root'), GetAreaType('system'), 'system', 'Система', null, '00000000-0000-4003-a000-000000000001');
 SELECT CreateArea(GetArea('root'), GetAreaType('guest'), 'guest', 'Гости', null, '00000000-0000-4003-a000-000000000002');

@@ -1066,3 +1066,42 @@ END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
 GRANT EXECUTE ON FUNCTION null_uuid() TO PUBLIC;
+
+--------------------------------------------------------------------------------
+-- CheckCodes ------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION CheckCodes (
+  pSource		text[],
+  pCodes		text[]
+) RETURNS       text[]
+AS $$
+DECLARE
+  arValid       text[];
+  arInvalid     text[];
+BEGIN
+  IF pCodes IS NOT NULL THEN
+    FOR i IN 1..array_length(pCodes, 1)
+    LOOP
+      IF array_position(pSource, pCodes[i]) IS NULL THEN
+        arInvalid := array_append(arInvalid, pCodes[i]);
+      ELSE
+        arValid := array_append(arValid, pCodes[i]);
+      END IF;
+    END LOOP;
+
+    IF arInvalid IS NOT NULL THEN
+
+      IF arValid IS NULL THEN
+        arValid := array_append(arValid, '');
+      END IF;
+
+      PERFORM InvalidCodes(arValid, arInvalid);
+    END IF;
+  END IF;
+
+  RETURN arValid;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+GRANT EXECUTE ON FUNCTION CheckCodes(text[], text[]) TO PUBLIC;

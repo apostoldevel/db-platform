@@ -11,10 +11,10 @@ CREATE OR REPLACE FUNCTION GetAreaType (
 ) RETURNS 	uuid
 AS $$
 DECLARE
-  nId		uuid;
+  uId		uuid;
 BEGIN
-  SELECT id INTO nId FROM db.area_type WHERE code = pCode;
-  RETURN nId;
+  SELECT id INTO uId FROM db.area_type WHERE code = pCode;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql STABLE STRICT
    SECURITY DEFINER
@@ -211,7 +211,31 @@ BEGIN
     END IF;
   END IF;
 
-  INSERT INTO db.auth (userId, audience, code) VALUES (pUserId, pAudience, pCode);
+  INSERT INTO db.auth (userId, audience, code) VALUES (pUserId, pAudience, pCode)
+    ON CONFLICT (userid, audience) DO NOTHING;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- SetProviderScope ------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION SetProviderScope (
+  pProvider     integer,
+  pScope		uuid
+) RETURNS 	    void
+AS $$
+BEGIN
+  IF session_user <> 'kernel' THEN
+    IF NOT IsUserRole(GetGroup('administrator')) THEN
+      PERFORM AccessDenied();
+    END IF;
+  END IF;
+
+  INSERT INTO db.psl (provider, scope) VALUES (pProvider, pScope)
+    ON CONFLICT (provider, scope) DO NOTHING;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -454,6 +478,10 @@ BEGIN
   SELECT provider, code, secret INTO nProvider, aud, vSecret FROM oauth2.audience WHERE id = pAudience;
   SELECT code INTO iss FROM oauth2.issuer WHERE provider = nProvider;
 
+  IF NOT found THEN
+	PERFORM IssuerNotFound(coalesce(iss, 'null'));
+  END IF;
+
   token := json_build_object('iss', iss, 'aud', aud, 'sub', pSubject, 'iat', trunc(extract(EPOCH FROM pDateFrom)), 'exp', trunc(extract(EPOCH FROM pDateTo)));
 
   RETURN sign(token, vSecret);
@@ -550,7 +578,7 @@ BEGIN
 
   RETURN vSession;
 END;
-$$ LANGUAGE plpgsql
+$$ LANGUAGE plpgsql STRICT IMMUTABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -566,7 +594,7 @@ AS $$
 BEGIN
   RETURN encode(hmac(pToken, pPassKey, 'sha1'), 'hex');
 END;
-$$ LANGUAGE plpgsql
+$$ LANGUAGE plpgsql STRICT IMMUTABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -621,6 +649,61 @@ AS $$
 BEGIN
   RETURN encode(hmac(pPath || trim(to_char(pNonce, '9999999999999999')) || coalesce(pJson, 'null'), pSecret, 'sha256'), 'hex');
 END;
+$$ LANGUAGE plpgsql STRICT IMMUTABLE
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- ScopeToArray ----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION ScopeToArray (
+  pScope        text
+) RETURNS       text[]
+AS $$
+DECLARE
+  r				record;
+
+  scopes        text[];
+  arValid       text[];
+  arInvalid     text[];
+  arScopes      text[];
+BEGIN
+  IF NULLIF(pScope, '') IS NOT NULL THEN
+
+    arScopes := array_cat(arScopes, ARRAY['api', 'openid', 'profile', 'email']);
+
+	FOR r IN SELECT code FROM db.scope
+	LOOP
+	  arScopes := array_append(arScopes, r.code);
+	END LOOP;
+
+    scopes := string_to_array(pScope, ' ');
+
+    FOR i IN 1..array_length(scopes, 1)
+    LOOP
+      IF array_position(arScopes, scopes[i]) IS NULL THEN
+        arInvalid := array_append(arInvalid, scopes[i]);
+      ELSE
+        arValid := array_append(arValid, scopes[i]);
+      END IF;
+    END LOOP;
+
+    IF arInvalid IS NOT NULL THEN
+
+      IF arValid IS NULL THEN
+        arValid := array_append(arValid, '');
+      END IF;
+
+      PERFORM InvalidScope(arValid, arInvalid);
+    END IF;
+
+  ELSE
+    arValid := array_append(arValid, current_database());
+  END IF;
+
+  RETURN arValid;
+END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -660,7 +743,7 @@ CREATE OR REPLACE FUNCTION CreateSystemOAuth2 (
 ) RETURNS       bigint
 AS $$
 BEGIN
-  RETURN CreateOAuth2(GetAudience(oauth2_system_client_id()), ARRAY['api']);
+  RETURN CreateOAuth2(GetAudience(oauth2_system_client_id()), ARRAY[current_database()]);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -737,53 +820,6 @@ BEGIN
   END IF;
 
   RETURN nId;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- ScopeToArray ----------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION ScopeToArray (
-  pScope        text
-) RETURNS       text[]
-AS $$
-DECLARE
-  scopes        text[];
-  arValid       text[];
-  arInvalid     text[];
-  arScopes      text[];
-BEGIN
-  IF NULLIF(pScope, '') IS NOT NULL THEN
-    arScopes := array_cat(arScopes, ARRAY['api', 'openid', 'profile', 'email']);
-
-    scopes := string_to_array(pScope, ' ');
-
-    FOR i IN 1..array_length(scopes, 1)
-    LOOP
-      IF array_position(arScopes, scopes[i]) IS NULL THEN
-        arInvalid := array_append(arInvalid, scopes[i]);
-      ELSE
-        arValid := array_append(arValid, scopes[i]);
-      END IF;
-    END LOOP;
-
-    IF arInvalid IS NOT NULL THEN
-
-      IF arValid IS NULL THEN
-        arValid := array_append(arValid, '');
-      END IF;
-
-      PERFORM InvalidScope(arValid, arInvalid);
-    END IF;
-
-  ELSE
-    arValid := array_append(arValid, 'api');
-  END IF;
-
-  RETURN arValid;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1030,7 +1066,7 @@ DECLARE
 BEGIN
   RETURN coalesce(vSecretKey, vDefaultKey);
 END;
-$$ LANGUAGE plpgsql
+$$ LANGUAGE plpgsql IMMUTABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1047,7 +1083,36 @@ AS $$
 BEGIN
   RETURN current_database();
 END;
+$$ LANGUAGE plpgsql STABLE STRICT
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION SetOAuth2ClientId --------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION SetOAuth2ClientId (
+  pClientId	text
+) RETURNS	void
+AS $$
+BEGIN
+  PERFORM SafeSetVar('client_id', pClientId);
+END;
 $$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION GetOAuth2ClientId --------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetOAuth2ClientId()
+RETURNS	text
+AS $$
+BEGIN
+  RETURN SafeGetVar('client_id');
+END;
+$$ LANGUAGE plpgsql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1062,9 +1127,9 @@ CREATE OR REPLACE FUNCTION oauth2_current_client_id()
 RETURNS		text
 AS $$
 BEGIN
-  RETURN SafeGetVar('client_id');
+  RETURN GetOAuth2ClientId();
 END;
-$$ LANGUAGE plpgsql
+$$ LANGUAGE plpgsql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1093,7 +1158,7 @@ AS $$
 BEGIN
   RETURN coalesce(SafeGetVar('debug')::boolean, false);
 END;
-$$ LANGUAGE plpgsql
+$$ LANGUAGE plpgsql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1152,6 +1217,29 @@ BEGIN
   RETURN SafeGetVar('user')::uuid;
 END;
 $$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION current_scope ------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION current_scope()
+RETURNS			uuid
+AS $$
+DECLARE
+  nProvider		integer;
+  uScope		uuid;
+BEGIN
+  SELECT a.provider INTO nProvider FROM oauth2.audience a WHERE a.code = oauth2_current_client_id();
+
+  IF FOUND THEN
+    SELECT scope INTO uScope FROM db.psl WHERE provider = nProvider;
+  END IF;
+
+  RETURN coalesce(uScope, GetScope(current_database()));
+END;
+$$ LANGUAGE plpgsql STABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1431,12 +1519,12 @@ CREATE OR REPLACE FUNCTION GetSessionArea (
 RETURNS 	uuid
 AS $$
 DECLARE
-  nArea	    uuid;
+  uArea	    uuid;
 BEGIN
   IF pSession IS NOT NULL THEN
-    SELECT area INTO nArea FROM db.session WHERE code = pSession;
+    SELECT area INTO uArea FROM db.session WHERE code = pSession;
   END IF;
-  RETURN nArea;
+  RETURN uArea;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1503,12 +1591,12 @@ CREATE OR REPLACE FUNCTION GetSessionInterface (
 RETURNS 	    uuid
 AS $$
 DECLARE
-  nInterface    uuid;
+  uInterface    uuid;
 BEGIN
   IF pSession IS NOT NULL THEN
-    SELECT interface INTO nInterface FROM db.session WHERE code = pSession;
+    SELECT interface INTO uInterface FROM db.session WHERE code = pSession;
   END IF;
-  RETURN nInterface;
+  RETURN uInterface;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1992,7 +2080,7 @@ CREATE OR REPLACE FUNCTION CreateUser (
 AS $$
 DECLARE
   uId					uuid;
-  nArea                 uuid;
+  uArea                 uuid;
   vSecret               text;
 BEGIN
   IF session_user <> 'kernel' THEN
@@ -2001,7 +2089,7 @@ BEGIN
     END IF;
   END IF;
 
-  nArea := coalesce(pArea, GetArea('guest'));
+  uArea := coalesce(pArea, GetArea('guest'));
 
   SELECT id INTO uId FROM users WHERE username = lower(pRoleName);
 
@@ -2014,9 +2102,9 @@ BEGIN
   RETURNING secret INTO vSecret;
 
   PERFORM AddMemberToInterface(pId, GetInterface('all'));
-  PERFORM AddMemberToArea(pId, nArea);
+  PERFORM AddMemberToArea(pId, uArea);
 
-  INSERT INTO db.profile (userid, area) VALUES (pId, nArea);
+  INSERT INTO db.profile (userid, area) VALUES (pId, uArea);
 
   IF NULLIF(pPassword, '') IS NULL THEN
     pPassword := encode(hmac(vSecret, GetSecretKey(), 'sha1'), 'hex');
@@ -2086,7 +2174,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pDescription - Описание
  * @param {boolean} pPasswordChange - Сменить пароль при следующем входе в систему
  * @param {boolean} pPasswordNotChange - Установить запрет на смену пароля самим пользователем
- * @return {(void|exception)}
+ * @return {void}
  */
 CREATE OR REPLACE FUNCTION UpdateUser (
   pId                   uuid,
@@ -2156,7 +2244,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pRoleName - Группа
  * @param {text} pName - Полное имя
  * @param {text} pDescription - Описание
- * @return {(void|exception)}
+ * @return {void}
  */
 CREATE OR REPLACE FUNCTION UpdateGroup (
   pId           uuid,
@@ -2201,7 +2289,7 @@ $$ LANGUAGE plpgsql
 /**
  * Удаляет учётную запись пользователя.
  * @param {id} pId - Идентификатор учётной записи пользователя
- * @return {(void|exception)}
+ * @return {void}
  */
 CREATE OR REPLACE FUNCTION DeleteUser (
   pId		uuid
@@ -2234,6 +2322,7 @@ BEGIN
     DELETE FROM db.acl WHERE userid = pId;
     DELETE FROM db.aou WHERE userid = pId;
 
+    DELETE FROM db.member_scope WHERE member = pId;
     DELETE FROM db.member_area WHERE member = pId;
     DELETE FROM db.member_interface WHERE member = pId;
     DELETE FROM db.member_group WHERE member = pId;
@@ -2254,22 +2343,22 @@ $$ LANGUAGE plpgsql
 /**
  * Удаляет учётную запись пользователя.
  * @param {text} pRoleName - Пользователь (login)
- * @return {(void|exception)}
+ * @return {void}
  */
 CREATE OR REPLACE FUNCTION DeleteUser (
   pRoleName	text
 ) RETURNS	void
 AS $$
 DECLARE
-  nId		uuid;
+  uId		uuid;
 BEGIN
-  SELECT id INTO nId FROM db.user WHERE type = 'U' AND username = lower(pRoleName);
+  SELECT id INTO uId FROM db.user WHERE type = 'U' AND username = lower(pRoleName);
 
   IF NOT FOUND THEN
     PERFORM UserNotFound(pRoleName);
   END IF;
 
-  PERFORM DeleteUser(nId);
+  PERFORM DeleteUser(uId);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -2281,7 +2370,7 @@ $$ LANGUAGE plpgsql
 /**
  * Удаляет группу.
  * @param {id} pId - Идентификатор группы
- * @return {(void|exception)}
+ * @return {void}
  */
 CREATE OR REPLACE FUNCTION DeleteGroup (
   pId		    uuid
@@ -2302,6 +2391,7 @@ BEGIN
     PERFORM SystemRoleError();
   END IF;
 
+  DELETE FROM db.member_scope WHERE member = pId;
   DELETE FROM db.member_area WHERE member = pId;
   DELETE FROM db.member_interface WHERE member = pId;
   DELETE FROM db.member_group WHERE userid = pId;
@@ -2318,7 +2408,7 @@ $$ LANGUAGE plpgsql
 /**
  * Удаляет группу.
  * @param {text} pRoleName - Группа
- * @return {(void|exception)}
+ * @return {void}
  */
 CREATE OR REPLACE FUNCTION DeleteGroup (
   pRoleName     text
@@ -2344,15 +2434,15 @@ CREATE OR REPLACE FUNCTION GetUser (
 ) RETURNS	uuid
 AS $$
 DECLARE
-  nId		uuid;
+  uId		uuid;
 BEGIN
-  SELECT id INTO nId FROM db.user WHERE type = 'U' AND username = lower(pRoleName);
+  SELECT id INTO uId FROM db.user WHERE type = 'U' AND username = lower(pRoleName);
 
   IF NOT found THEN
     PERFORM UserNotFound(pRoleName);
   END IF;
 
-  RETURN nId;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -2371,15 +2461,15 @@ CREATE OR REPLACE FUNCTION GetGroup (
 ) RETURNS	    uuid
 AS $$
 DECLARE
-  nId		    uuid;
+  uId		    uuid;
 BEGIN
-  SELECT id INTO nId FROM db.user WHERE type = 'G' AND username = lower(pRoleName);
+  SELECT id INTO uId FROM db.user WHERE type = 'G' AND username = lower(pRoleName);
 
   IF NOT found THEN
     PERFORM UnknownRoleName(pRoleName);
   END IF;
 
-  RETURN nId;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -2494,7 +2584,7 @@ CREATE OR REPLACE FUNCTION UserLock (
 ) RETURNS	void
 AS $$
 DECLARE
-  nId		uuid;
+  uId		uuid;
 BEGIN
   IF session_user <> 'kernel' THEN
     IF pId <> current_userid() THEN
@@ -2504,7 +2594,7 @@ BEGIN
     END IF;
   END IF;
 
-  SELECT id INTO nId FROM users WHERE id = pId;
+  SELECT id INTO uId FROM users WHERE id = pId;
 
   IF found THEN
     UPDATE db.user SET status = set_bit(set_bit(status, 3, 0), 1, 1), lock_date = now() WHERE id = pId;
@@ -2529,7 +2619,7 @@ CREATE OR REPLACE FUNCTION UserUnLock (
 ) RETURNS	void
 AS $$
 DECLARE
-  nId		uuid;
+  uId		uuid;
 BEGIN
   IF session_user <> 'kernel' THEN
 	IF NOT CheckAccessControlList(B'01000000000000') THEN
@@ -2537,7 +2627,7 @@ BEGIN
 	END IF;
   END IF;
 
-  SELECT id INTO nId FROM users WHERE id = pId;
+  SELECT id INTO uId FROM users WHERE id = pId;
 
   IF found THEN
     UPDATE db.user SET status = B'0001', lock_date = null, expiry_date = null WHERE id = pId;
@@ -2667,6 +2757,244 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- CreateScope -----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION CreateScope (
+  pCode		    text,
+  pName		    text,
+  pDescription	text DEFAULT null,
+  pId			uuid DEFAULT gen_kernel_uuid('8')
+) RETURNS 	    uuid
+AS $$
+DECLARE
+  uId		    uuid;
+BEGIN
+  IF session_user <> 'kernel' THEN
+    IF NOT IsUserRole(GetGroup('administrator')) THEN
+      PERFORM AccessDenied();
+    END IF;
+  END IF;
+
+  SELECT id INTO uId FROM db.scope WHERE code = pCode;
+  IF FOUND THEN
+    PERFORM RecordExists(pCode);
+  END IF;
+
+  INSERT INTO db.scope (id, code, name, description)
+  VALUES (pId, pCode, pName, pDescription) RETURNING Id INTO uId;
+
+  RETURN uId;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- EditScope -------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION EditScope (
+  pId			    uuid,
+  pCode			    text DEFAULT null,
+  pName			    text DEFAULT null,
+  pDescription		text DEFAULT null
+) RETURNS void
+AS $$
+DECLARE
+  vCode             text;
+BEGIN
+  IF session_user <> 'kernel' THEN
+    IF NOT IsUserRole(GetGroup('administrator')) THEN
+      PERFORM AccessDenied();
+    END IF;
+  END IF;
+
+  SELECT code INTO vCode FROM db.scope WHERE id = pId;
+  IF NOT FOUND THEN
+    PERFORM AreaError();
+  END IF;
+
+  pCode := coalesce(pCode, vCode);
+  IF pCode <> vCode THEN
+    SELECT code INTO vCode FROM db.scope WHERE code = pCode;
+    IF FOUND THEN
+      PERFORM RecordExists(pCode);
+    END IF;
+  END IF;
+
+  UPDATE db.scope
+	 SET code = coalesce(pCode, code),
+		 name = coalesce(pName, name),
+		 description = CheckNull(coalesce(pDescription, description, '<null>'))
+   WHERE id = pId;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- DeleteScope -----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION DeleteScope (
+  pId			uuid
+) RETURNS       void
+AS $$
+DECLARE
+  uId           uuid;
+BEGIN
+  IF session_user <> 'kernel' THEN
+    IF NOT IsUserRole(GetGroup('administrator')) THEN
+      PERFORM AccessDenied();
+    END IF;
+  END IF;
+
+  SELECT id INTO uId FROM db.scope WHERE id = pId;
+  IF NOT FOUND THEN
+    PERFORM AreaError();
+  END IF;
+
+  DELETE FROM db.scope WHERE Id = pId;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- GetScope --------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetScope (
+  pCode		text
+) RETURNS	uuid
+AS $$
+DECLARE
+  uId		uuid;
+BEGIN
+  SELECT id INTO uId FROM db.scope WHERE code = pCode;
+  RETURN uId;
+END;
+$$ LANGUAGE plpgsql STABLE STRICT
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- GetScopeName ----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetScopeName (
+  pId		uuid
+) RETURNS	text
+AS $$
+DECLARE
+  vName		text;
+BEGIN
+  SELECT name INTO vName FROM db.scope WHERE id = pId;
+  RETURN vName;
+END;
+$$ LANGUAGE plpgsql STABLE STRICT
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- AddMemberToScope ------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION AddMemberToScope (
+  pMember	uuid,
+  pScope	uuid
+) RETURNS   void
+AS $$
+BEGIN
+  IF session_user <> 'kernel' THEN
+    IF NOT IsUserRole(GetGroup('administrator')) THEN
+      PERFORM AccessDenied();
+    END IF;
+  END IF;
+
+  INSERT INTO db.member_scope (scope, member) VALUES (pScope, pMember) ON CONFLICT DO NOTHING;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- DeleteScopeForMember --------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION DeleteScopeForMember (
+  pMember	uuid,
+  pScope	uuid DEFAULT null
+) RETURNS   void
+AS $$
+BEGIN
+  IF session_user <> 'kernel' THEN
+    IF NOT IsUserRole(GetGroup('administrator')) THEN
+      PERFORM AccessDenied();
+    END IF;
+  END IF;
+
+  DELETE FROM db.member_scope WHERE scope = coalesce(pScope, scope) AND member = pMember;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- DeleteMemberFromScope -------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION DeleteMemberFromScope (
+  pScope	uuid,
+  pMember	uuid DEFAULT null
+) RETURNS   void
+AS $$
+BEGIN
+  IF session_user <> 'kernel' THEN
+    IF NOT IsUserRole(GetGroup('administrator')) THEN
+      PERFORM AccessDenied();
+    END IF;
+  END IF;
+
+  DELETE FROM db.member_scope WHERE scope = pScope AND member = coalesce(pMember, member);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- IsMemberScope ---------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION IsMemberScope (
+  pScope	uuid DEFAULT current_scope(),
+  pMember   uuid DEFAULT current_userid()
+) RETURNS	boolean
+AS $$
+DECLARE
+  nCount    bigint;
+BEGIN
+  IF pScope IS NULL OR pMember IS NULL THEN
+    RETURN false;
+  END IF;
+
+  SELECT count(member) INTO nCount
+	FROM db.member_scope
+   WHERE scope = pScope
+	 AND member IN (
+	   SELECT pMember
+		UNION ALL
+	   SELECT userid FROM db.member_group WHERE member = pMember
+	 );
+
+  RETURN coalesce(nCount, 0) <> 0;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- CreateArea ------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -2680,7 +3008,7 @@ CREATE OR REPLACE FUNCTION CreateArea (
 ) RETURNS 	    uuid
 AS $$
 DECLARE
-  nId		    uuid;
+  uId		    uuid;
 BEGIN
   IF session_user <> 'kernel' THEN
     IF NOT IsUserRole(GetGroup('administrator')) THEN
@@ -2688,15 +3016,15 @@ BEGIN
     END IF;
   END IF;
 
-  SELECT id INTO nId FROM db.area WHERE code = pCode;
+  SELECT id INTO uId FROM db.area WHERE code = pCode;
   IF FOUND THEN
     PERFORM RecordExists(pCode);
   END IF;
 
   INSERT INTO db.area (id, parent, type, code, name, description)
-  VALUES (pId, coalesce(pParent, GetArea('root')), pType, pCode, pName, pDescription) RETURNING Id INTO nId;
+  VALUES (pId, coalesce(pParent, GetArea('root')), pType, pCode, pName, pDescription) RETURNING Id INTO uId;
 
-  RETURN nId;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -2763,7 +3091,7 @@ CREATE OR REPLACE FUNCTION DeleteArea (
 ) RETURNS       void
 AS $$
 DECLARE
-  nId           uuid;
+  uId           uuid;
 BEGIN
   IF session_user <> 'kernel' THEN
     IF NOT IsUserRole(GetGroup('administrator')) THEN
@@ -2771,9 +3099,9 @@ BEGIN
     END IF;
   END IF;
 
-  SELECT id INTO nId FROM db.area WHERE id = pId;
+  SELECT id INTO uId FROM db.area WHERE id = pId;
   IF NOT FOUND THEN
-    PERFORM ObjectNotFound('подразделение', 'id', pId);
+    PERFORM AreaError();
   END IF;
 
   DELETE FROM db.area WHERE Id = pId;
@@ -2791,10 +3119,10 @@ CREATE OR REPLACE FUNCTION GetArea (
 ) RETURNS	uuid
 AS $$
 DECLARE
-  nId		uuid;
+  uId		uuid;
 BEGIN
-  SELECT id INTO nId FROM db.area WHERE code = pCode;
-  RETURN nId;
+  SELECT id INTO uId FROM db.area WHERE code = pCode;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql STABLE STRICT
    SECURITY DEFINER
@@ -2814,7 +3142,7 @@ BEGIN
   SELECT code INTO vCode FROM db.area WHERE id = pId;
   RETURN vCode;
 END;
-$$ LANGUAGE plpgsql
+$$ LANGUAGE plpgsql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -2832,7 +3160,7 @@ BEGIN
   SELECT name INTO vName FROM db.area WHERE id = pId;
   RETURN vName;
 END;
-$$ LANGUAGE plpgsql
+$$ LANGUAGE plpgsql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -2977,7 +3305,7 @@ BEGIN
       FROM db.member_area m INNER JOIN area_tree a ON m.area = a.id
        AND member IN (
          SELECT pMember
-         UNION ALL
+          UNION ALL
          SELECT userid FROM db.member_group WHERE member = pMember
        );
 
@@ -3012,10 +3340,10 @@ CREATE OR REPLACE FUNCTION GetDefaultArea (
 ) RETURNS	uuid
 AS $$
 DECLARE
-  nArea	    uuid;
+  uArea	    uuid;
 BEGIN
-  SELECT area INTO nArea FROM db.profile WHERE userid = pMember;
-  RETURN nArea;
+  SELECT area INTO uArea FROM db.profile WHERE userid = pMember;
+  RETURN uArea;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -3033,7 +3361,7 @@ CREATE OR REPLACE FUNCTION CreateInterface (
 ) RETURNS 	    uuid
 AS $$
 DECLARE
-  nId		    uuid;
+  uId		    uuid;
 BEGIN
   IF session_user <> 'kernel' THEN
     IF NOT IsUserRole(GetGroup('administrator')) THEN
@@ -3042,9 +3370,9 @@ BEGIN
   END IF;
 
   INSERT INTO db.interface (id, code, name, description)
-  VALUES (pId, pCode, pName, pDescription) RETURNING Id INTO nId;
+  VALUES (pId, pCode, pName, pDescription) RETURNING Id INTO uId;
 
-  RETURN nId;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -3174,10 +3502,10 @@ CREATE OR REPLACE FUNCTION GetInterface (
 ) RETURNS 	uuid
 AS $$
 DECLARE
-  nId		uuid;
+  uId		uuid;
 BEGIN
-  SELECT id INTO nId FROM db.interface WHERE code = pCode;
-  RETURN nId;
+  SELECT id INTO uId FROM db.interface WHERE code = pCode;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -3296,10 +3624,10 @@ CREATE OR REPLACE FUNCTION GetDefaultInterface (
 ) RETURNS	    uuid
 AS $$
 DECLARE
-  nInterface	uuid;
+  uInterface	uuid;
 BEGIN
-  SELECT interface INTO nInterface FROM db.profile WHERE userid = pMember;
-  RETURN nInterface;
+  SELECT interface INTO uInterface FROM db.profile WHERE userid = pMember;
+  RETURN uInterface;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -3465,11 +3793,15 @@ DECLARE
   up	        db.user%rowtype;
 
   nUserId       uuid DEFAULT null;
+
   nToken        bigint DEFAULT null;
+  nOAuth2		bigint DEFAULT null;
+
+  nAudience		integer DEFAULT null;
 BEGIN
   IF ValidSession(pSession) THEN
 
-	SELECT userid, area, interface INTO nUserId
+	SELECT oauth2, userid INTO nOAuth2, nUserId
 	  FROM db.session
 	 WHERE code = pSession;
 
@@ -3499,8 +3831,13 @@ BEGIN
 	  PERFORM LoginIPTableError(pHost);
 	END IF;
 
+	SELECT audience INTO nAudience FROM db.oauth2 WHERE id = nOAuth2;
+
+	PERFORM SetOAuth2ClientId(GetAudienceCode(nAudience));
 	PERFORM SetCurrentSession(pSession);
 	PERFORM SetCurrentUserId(up.id);
+
+    PERFORM IsMemberScope(current_scope(), up.id);
 
 	UPDATE db.user SET status = set_bit(set_bit(status, 3, 0), 2, 1) WHERE id = up.id;
 
@@ -3549,8 +3886,10 @@ AS $$
 DECLARE
   up            db.user%rowtype;
 
-  nArea         uuid DEFAULT null;
-  nInterface    uuid DEFAULT null;
+  uArea         uuid DEFAULT null;
+  uInterface    uuid DEFAULT null;
+
+  nAudience		integer DEFAULT null;
 
   vSession      text DEFAULT null;
 BEGIN
@@ -3588,8 +3927,8 @@ BEGIN
     PERFORM PasswordExpired();
   END IF;
 
-  nArea := GetDefaultArea(up.id);
-  nInterface := GetDefaultInterface(up.id);
+  uArea := GetDefaultArea(up.id);
+  uInterface := GetDefaultInterface(up.id);
 
   IF NOT CheckIPTable(up.id, pHost) THEN
     PERFORM LoginIPTableError(pHost);
@@ -3599,16 +3938,21 @@ BEGIN
 
     PERFORM CheckSessionLimit(up.id);
 
-    INSERT INTO db.session (userid, area, interface, agent, host, oauth2)
-    VALUES (up.id, nArea, nInterface, pAgent, pHost, pOAuth2)
+    INSERT INTO db.session (oauth2, userid, area, interface, agent, host)
+    VALUES (pOAuth2, up.id, uArea, uInterface, pAgent, pHost)
     RETURNING code INTO vSession;
 
     IF vSession IS NULL THEN
       PERFORM AccessDenied();
     END IF;
 
+    SELECT audience INTO nAudience FROM db.oauth2 WHERE id = pOAuth2;
+
     PERFORM SetCurrentSession(vSession);
     PERFORM SetCurrentUserId(up.id);
+    PERFORM SetOAuth2ClientId(GetAudienceCode(nAudience));
+
+    PERFORM IsMemberScope(current_scope(), up.id);
 
     UPDATE db.user SET status = set_bit(set_bit(status, 3, 0), 2, 1), lock_date = null WHERE id = up.id;
 
@@ -3623,6 +3967,7 @@ BEGIN
 
     PERFORM SetCurrentSession(null);
     PERFORM SetCurrentUserId(null);
+    PERFORM SetOAuth2ClientId(null);
 
     PERFORM LoginError();
 
@@ -3672,10 +4017,11 @@ BEGIN
   WHEN others THEN
     GET STACKED DIAGNOSTICS message = MESSAGE_TEXT;
 
+    PERFORM SetErrorMessage(message);
+
     PERFORM SetCurrentSession(null);
     PERFORM SetCurrentUserId(null);
-
-    PERFORM SetErrorMessage(message);
+    PERFORM SetOAuth2ClientId(null);
 
     SELECT * INTO up FROM db.user WHERE type = 'U' AND username = pRoleName;
 
@@ -3758,8 +4104,10 @@ BEGIN
     VALUES ('M', 1100, GetUserName(nUserId), pSession, 'logout', message);
 
     PERFORM SetErrorMessage(message);
+
     PERFORM SetCurrentSession(null);
     PERFORM SetCurrentUserId(null);
+    PERFORM SetOAuth2ClientId(null);
 
     RETURN true;
   END IF;
@@ -3795,6 +4143,7 @@ WHEN others THEN
 
   PERFORM SetCurrentSession(null);
   PERFORM SetCurrentUserId(null);
+  PERFORM SetOAuth2ClientId(null);
 
   PERFORM SetErrorMessage(message);
 
@@ -3886,15 +4235,17 @@ AS $$
 DECLARE
   up            db.user%rowtype;
 
-  nArea         uuid;
-  nInterface	uuid;
-  nSUID         uuid;
+  uArea         uuid;
+  uInterface	uuid;
+  uSUID         uuid;
+
+  nAudience		integer;
 
   vSession      text;
 BEGIN
   IF session_user <> 'kernel' THEN
-    nSUID := coalesce(session_userid(), GetUser(session_user));
-	IF NOT CheckAccessControlList(B'10000000000001', nSUID) THEN
+    uSUID := coalesce(session_userid(), GetUser(session_user));
+	IF NOT CheckAccessControlList(B'10000000000001', uSUID) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3928,16 +4279,21 @@ BEGIN
   SELECT code INTO vSession FROM db.session WHERE userid = up.id;
 
   IF NOT FOUND OR pNew THEN
-    nArea := GetDefaultArea(up.id);
-    nInterface := GetDefaultInterface(up.id);
+    uArea := GetDefaultArea(up.id);
+    uInterface := GetDefaultInterface(up.id);
 
     INSERT INTO db.session (oauth2, suid, userid, area, interface, agent, host)
-    VALUES (pOAuth2, nSUID, up.id, nArea, nInterface, pAgent, pHost)
+    VALUES (pOAuth2, uSUID, up.id, uArea, uInterface, pAgent, pHost)
     RETURNING code INTO vSession;
   END IF;
 
+  SELECT audience INTO nAudience FROM db.oauth2 WHERE id = pOAuth2;
+
   PERFORM SetCurrentSession(vSession);
   PERFORM SetCurrentUserId(up.id);
+  PERFORM SetOAuth2ClientId(GetAudienceCode(nAudience));
+
+  PERFORM IsMemberScope();
 
   RETURN vSession;
 END;

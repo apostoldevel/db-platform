@@ -9,9 +9,9 @@
 CREATE TABLE oauth2.provider (
     id          serial PRIMARY KEY,
     type        char NOT NULL,
-    code        text NOT NULL,
+    code		text NOT NULL,
     name        text,
-    CONSTRAINT ch_provider_type CHECK (type IN ('I', 'E'))
+    CHECK (type IN ('I', 'E'))
 );
 
 COMMENT ON TABLE oauth2.provider IS 'Поставщик.';
@@ -36,7 +36,7 @@ CREATE TABLE oauth2.application (
     type        char NOT NULL,
     code        text NOT NULL,
     name        text,
-    CONSTRAINT ch_application_type CHECK (type IN ('S', 'W', 'N'))
+    CHECK (type IN ('S', 'W', 'N'))
 );
 
 COMMENT ON TABLE oauth2.application IS 'Приложение.';

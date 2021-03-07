@@ -1,4 +1,39 @@
 --------------------------------------------------------------------------------
+-- db.scope --------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE TABLE db.scope (
+    id              uuid PRIMARY KEY DEFAULT gen_kernel_uuid('8'),
+    code            text NOT NULL,
+    name            text NOT NULL,
+    description     text
+);
+
+COMMENT ON TABLE db.scope IS 'Область видимости объектов.';
+
+COMMENT ON COLUMN db.scope.id IS 'Идентификатор';
+COMMENT ON COLUMN db.scope.code IS 'Код';
+COMMENT ON COLUMN db.scope.name IS 'Наименование';
+COMMENT ON COLUMN db.scope.description IS 'Описание';
+
+CREATE UNIQUE INDEX ON db.scope (code);
+
+--------------------------------------------------------------------------------
+-- db.psl ----------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE TABLE db.psl (
+    provider	integer REFERENCES oauth2.provider(id) ON DELETE CASCADE,
+    scope		uuid REFERENCES db.scope(id) ON DELETE CASCADE,
+    PRIMARY KEY (provider, scope)
+);
+
+COMMENT ON TABLE db.psl IS 'Список областей видимости поставщика OAuth2.';
+
+COMMENT ON COLUMN db.psl.provider IS 'Поставщик OAuth2';
+COMMENT ON COLUMN db.psl.scope IS 'Область видимости';
+
+--------------------------------------------------------------------------------
 -- db.area_type ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -31,7 +66,7 @@ CREATE TABLE db.area (
     validToDate     timestamp DEFAULT TO_DATE('4433-12-31', 'YYYY-MM-DD') NOT NULL
 );
 
-COMMENT ON TABLE db.area IS 'Область видимости.';
+COMMENT ON TABLE db.area IS 'Область видимости документов.';
 
 COMMENT ON COLUMN db.area.id IS 'Идентификатор';
 COMMENT ON COLUMN db.area.parent IS 'Ссылка на родительский узел';
@@ -484,6 +519,24 @@ CREATE INDEX ON db.member_group (userid);
 CREATE INDEX ON db.member_group (member);
 
 --------------------------------------------------------------------------------
+-- db.member_scope -------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE TABLE db.member_scope (
+    scope		uuid NOT NULL REFERENCES db.scope(id),
+    member		uuid NOT NULL REFERENCES db.user(id),
+    PRIMARY KEY (scope, member)
+);
+
+COMMENT ON TABLE db.member_scope IS 'Участники области видимости объектов.';
+
+COMMENT ON COLUMN db.member_scope.scope IS 'Область видимости объектов';
+COMMENT ON COLUMN db.member_scope.member IS 'Учётная запись пользователя';
+
+CREATE INDEX ON db.member_scope (scope);
+CREATE INDEX ON db.member_scope (member);
+
+--------------------------------------------------------------------------------
 -- db.member_area --------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -493,10 +546,10 @@ CREATE TABLE db.member_area (
     PRIMARY KEY (area, member)
 );
 
-COMMENT ON TABLE db.member_area IS 'Участники зоны.';
+COMMENT ON TABLE db.member_area IS 'Участники области видимости документов.';
 
-COMMENT ON COLUMN db.member_area.area IS 'Подразделение';
-COMMENT ON COLUMN db.member_area.member IS 'Участник';
+COMMENT ON COLUMN db.member_area.area IS 'Область видимости документов';
+COMMENT ON COLUMN db.member_area.member IS 'Учётная запись пользователя';
 
 CREATE INDEX ON db.member_area (area);
 CREATE INDEX ON db.member_area (member);
@@ -596,7 +649,7 @@ CREATE TRIGGER t_recovery_ticket_before
 
 CREATE TABLE db.auth (
     userId      uuid NOT NULL REFERENCES db.user(id) ON DELETE CASCADE,
-    audience    integer NOT NULL REFERENCES oauth2.audience(id),
+    audience    integer NOT NULL REFERENCES oauth2.audience(id) ON DELETE CASCADE,
     code        text NOT NULL,
     created     timestamp DEFAULT Now() NOT NULL,
     PRIMARY KEY (userId, audience)
@@ -620,12 +673,11 @@ CREATE INDEX ON db.auth (code);
 CREATE TABLE db.iptable (
     id			serial PRIMARY KEY,
     type		char DEFAULT 'A' NOT NULL,
-    userid		uuid NOT NULL,
+    userid		uuid NOT NULL REFERENCES db.user(id),
     addr		inet NOT NULL,
     range		int,
-    CONSTRAINT ch_ip_table_type CHECK (type IN ('A', 'D')),
-    CONSTRAINT ch_ip_table_range CHECK (range BETWEEN 1 AND 255),
-    CONSTRAINT fk_ip_table_userid FOREIGN KEY (userid) REFERENCES db.user(id)
+    CHECK (type IN ('A', 'D')),
+    CHECK (range BETWEEN 1 AND 255)
 );
 
 COMMENT ON TABLE db.iptable IS 'Таблица IP адресов.';
@@ -636,8 +688,8 @@ COMMENT ON COLUMN db.iptable.userid IS 'Пользователь';
 COMMENT ON COLUMN db.iptable.addr IS 'IP-адрес';
 COMMENT ON COLUMN db.iptable.range IS 'Диапазон. Количество адресов.';
 
-CREATE INDEX idx_ip_table_type ON db.iptable (type);
-CREATE INDEX idx_ip_table_userid ON db.iptable (userid);
+CREATE INDEX ON db.iptable (type);
+CREATE INDEX ON db.iptable (userid);
 
 --------------------------------------------------------------------------------
 -- db.oauth2 -------------------------------------------------------------------
@@ -841,7 +893,7 @@ COMMENT ON COLUMN db.session.token IS 'Идентификатор маркера
 COMMENT ON COLUMN db.session.suid IS 'Пользователь сессии';
 COMMENT ON COLUMN db.session.userid IS 'Пользователь';
 COMMENT ON COLUMN db.session.locale IS 'Язык';
-COMMENT ON COLUMN db.session.area IS 'Зона';
+COMMENT ON COLUMN db.session.area IS 'Область видимости документов';
 COMMENT ON COLUMN db.session.interface IS 'Рабочие место';
 COMMENT ON COLUMN db.session.oper_date IS 'Дата операционного дня';
 COMMENT ON COLUMN db.session.created IS 'Дата и время создания сессии';

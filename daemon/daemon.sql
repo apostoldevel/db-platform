@@ -308,7 +308,7 @@ BEGIN
       PERFORM TokenExpired();
     END IF;
 
-    vSession := SignIn(CreateOAuth2(nAudience, ARRAY['api']), claim.aud, vSecret, pAgent, pHost);
+    vSession := SignIn(CreateOAuth2(nAudience, ARRAY[current_database()]), claim.aud, vSecret, pAgent, pHost);
 
     IF vSession IS NULL THEN
       RAISE EXCEPTION '%', GetErrorMessage();
@@ -350,7 +350,7 @@ BEGIN
 
       SELECT id INTO nAudience FROM oauth2.audience WHERE provider = GetProvider('default') AND application = nApplication;
 
-      vSession := GetSession(nUserId, CreateOAuth2(nAudience, ARRAY['api']), pAgent, pHost, true);
+      vSession := GetSession(nUserId, CreateOAuth2(nAudience, ARRAY[current_database()]), pAgent, pHost, true);
 
       IF vSession IS NULL THEN
         RAISE EXCEPTION '%', GetErrorMessage();
@@ -530,7 +530,7 @@ BEGIN
     RETURN json_build_object('error', json_build_object('code', 401, 'error', 'unauthorized_client', 'message', 'The client is not authorized.'));
   END IF;
 
-  PERFORM SafeSetVar('client_id', pClientId);
+  PERFORM SetOAuth2ClientId(pClientId);
 
   access_type := coalesce(pPayload->>'access_type', 'online');
 
@@ -631,7 +631,7 @@ BEGIN
 
   ELSIF grant_type = 'client_credentials' THEN
 
-    nOAuth2 := CreateOAuth2(nAudience, ARRAY['api'], 'offline');
+    nOAuth2 := CreateOAuth2(nAudience, ARRAY[current_database()], 'offline');
 
     vSession := SignIn(nOAuth2, pClientId, pSecret, pAgent, pHost);
 

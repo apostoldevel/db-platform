@@ -35,7 +35,7 @@ BEGIN
     PERFORM AudienceNotFound();
   END IF;
 
-  session := SignIn(CreateOAuth2(nAudience, ARRAY['api']), pUserName, pPassword, pAgent, pHost);
+  session := SignIn(CreateOAuth2(nAudience, ARRAY[current_database()]), pUserName, pPassword, pAgent, pHost);
 
   IF session IS NULL THEN
     PERFORM AuthenticateError(GetErrorMessage());
