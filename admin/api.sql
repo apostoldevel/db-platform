@@ -1126,6 +1126,7 @@ GRANT SELECT ON api.area TO administrator;
  * Создаёт область видимости.
  * @param {uuid} pParent - Идентификатор "родителя"
  * @param {uuid} pType - Идентификатор типа
+ * @param {uuid} pScope - Область видимости
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
@@ -1134,13 +1135,14 @@ GRANT SELECT ON api.area TO administrator;
 CREATE OR REPLACE FUNCTION api.add_area (
   pParent       uuid,
   pType         uuid,
+  pScope		uuid,
   pCode         text,
   pName         text,
   pDescription  text DEFAULT null
 ) RETURNS       uuid
 AS $$
 BEGIN
-  RETURN CreateArea(pParent, pType, pCode, pName, pDescription);
+  RETURN CreateArea(pParent, pType, pScope, pCode, pName, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1154,6 +1156,7 @@ $$ LANGUAGE plpgsql
  * @param {uuid} pId - Идентификатор области видимости
  * @param {uuid} pParent - Идентификатор "родителя"
  * @param {uuid} pType - Идентификатор типа
+ * @param {uuid} pScope - Область видимости
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
@@ -1165,6 +1168,7 @@ CREATE OR REPLACE FUNCTION api.update_area (
   pId               uuid,
   pParent           uuid DEFAULT null,
   pType             uuid DEFAULT null,
+  pScope			uuid DEFAULT null,
   pCode             text DEFAULT null,
   pName             text DEFAULT null,
   pDescription      text DEFAULT null,
@@ -1173,7 +1177,7 @@ CREATE OR REPLACE FUNCTION api.update_area (
 ) RETURNS           void
 AS $$
 BEGIN
-  PERFORM EditArea(pId, pParent, pType, pCode, pName, pDescription, pValidFromDate, pValidToDate);
+  PERFORM EditArea(pId, pParent, pType, pScope, pCode, pName, pDescription, pValidFromDate, pValidToDate);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1187,6 +1191,7 @@ CREATE OR REPLACE FUNCTION api.set_area (
   pId               uuid,
   pParent           uuid DEFAULT null,
   pType             uuid DEFAULT null,
+  pScope			uuid DEFAULT null,
   pCode             text DEFAULT null,
   pName             text DEFAULT null,
   pDescription      text DEFAULT null,
@@ -1196,9 +1201,9 @@ CREATE OR REPLACE FUNCTION api.set_area (
 AS $$
 BEGIN
   IF pId IS NULL THEN
-    pId := api.add_area(pParent, pType, pCode, pName, pDescription);
+    pId := api.add_area(pParent, pType, pScope, pCode, pName, pDescription);
   ELSE
-    PERFORM api.update_area(pId, pParent, pType, pCode, pName, pDescription, pValidFromDate, pValidToDate);
+    PERFORM api.update_area(pId, pParent, pType, pScope, pCode, pName, pDescription, pValidFromDate, pValidToDate);
   END IF;
 
   RETURN QUERY SELECT * FROM api.area WHERE id = pId;
@@ -1451,7 +1456,7 @@ $$ LANGUAGE SQL
 -- api.member_area -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает области видимости доступные участнику.
+ * Возвращает доступные области видимости.
  * @return {record} - Данные области видимости
  */
 CREATE OR REPLACE FUNCTION api.member_area (
@@ -1470,7 +1475,7 @@ AS $$
     SELECT a.id, a.parent
       FROM db.area a, area_tree t
      WHERE t.id = a.parent
-    ) SELECT a.* FROM api.area a INNER JOIN area_tree USING (id);
+    ) SELECT a.* FROM api.area a INNER JOIN area_tree USING (id) WHERE a.scope IN (SELECT * FROM current_scopes());
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

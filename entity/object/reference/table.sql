@@ -5,6 +5,7 @@
 CREATE TABLE db.reference (
     id              uuid PRIMARY KEY,
     object          uuid NOT NULL REFERENCES db.object(id),
+    scope			uuid NOT NULL REFERENCES db.scope(id),
     entity		    uuid NOT NULL REFERENCES db.entity(id),
     class           uuid NOT NULL REFERENCES db.class_tree(id),
     type			uuid NOT NULL REFERENCES db.type(id),
@@ -15,17 +16,19 @@ COMMENT ON TABLE db.reference IS 'Справочник.';
 
 COMMENT ON COLUMN db.reference.id IS 'Идентификатор';
 COMMENT ON COLUMN db.reference.object IS 'Объект';
+COMMENT ON COLUMN db.reference.scope IS 'Область видимости';
 COMMENT ON COLUMN db.reference.entity IS 'Сущность';
 COMMENT ON COLUMN db.reference.class IS 'Класс';
 COMMENT ON COLUMN db.reference.type IS 'Тип';
 COMMENT ON COLUMN db.reference.code IS 'Код';
 
 CREATE INDEX ON db.reference (object);
+CREATE INDEX ON db.reference (scope);
 CREATE INDEX ON db.reference (entity);
 CREATE INDEX ON db.reference (class);
 CREATE INDEX ON db.reference (type);
 
-CREATE UNIQUE INDEX ON db.reference (entity, code);
+CREATE UNIQUE INDEX ON db.reference (scope, entity, code);
 
 --------------------------------------------------------------------------------
 
@@ -36,6 +39,10 @@ DECLARE
 BEGIN
   IF NEW.id IS NULL THEN
     SELECT NEW.object INTO NEW.id;
+  END IF;
+
+  IF NEW.scope IS NULL THEN
+    SELECT current_scope() INTO NEW.scope;
   END IF;
 
   IF NULLIF(NEW.code, '') IS NULL THEN

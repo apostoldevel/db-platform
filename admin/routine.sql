@@ -219,29 +219,6 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- SetProviderScope ------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION SetProviderScope (
-  pProvider     integer,
-  pScope		uuid
-) RETURNS 	    void
-AS $$
-BEGIN
-  IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(GetGroup('administrator')) THEN
-      PERFORM AccessDenied();
-    END IF;
-  END IF;
-
-  INSERT INTO db.psl (provider, scope) VALUES (pProvider, pScope)
-    ON CONFLICT (provider, scope) DO NOTHING;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
 -- GetIPTableStr ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -1221,29 +1198,6 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- FUNCTION current_scope ------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION current_scope()
-RETURNS			uuid
-AS $$
-DECLARE
-  nProvider		integer;
-  uScope		uuid;
-BEGIN
-  SELECT a.provider INTO nProvider FROM oauth2.audience a WHERE a.code = oauth2_current_client_id();
-
-  IF FOUND THEN
-    SELECT scope INTO uScope FROM db.psl WHERE provider = nProvider;
-  END IF;
-
-  RETURN coalesce(uScope, GetScope(current_database()));
-END;
-$$ LANGUAGE plpgsql STABLE
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
 -- FUNCTION current_session ----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
@@ -1291,7 +1245,66 @@ BEGIN
   END IF;
   RETURN vSecret;
 END;
-$$ LANGUAGE plpgsql STABLE
+$$ LANGUAGE plpgsql STABLE STRICT
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION current_scope ------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION current_scope (
+  pSession	varchar DEFAULT current_session()
+)
+RETURNS		uuid
+AS $$
+DECLARE
+  uArea		uuid;
+  uScope	uuid;
+BEGIN
+  SELECT area INTO uArea FROM db.session WHERE code = pSession;
+  SELECT scope INTO uScope FROM db.area WHERE id = uArea;
+
+  RETURN uScope;
+END;
+$$ LANGUAGE plpgsql STABLE STRICT
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION current_scopes -----------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION current_scopes (
+  pSession	varchar DEFAULT current_session()
+)
+RETURNS		SETOF uuid
+AS $$
+DECLARE
+  i			integer;
+  nOAuth2	bigint;
+
+  uUserId	uuid;
+  uScope	uuid;
+
+  arScopes	text[];
+BEGIN
+  SELECT oauth2, userid INTO nOAuth2, uUserId FROM db.session WHERE code = pSession;
+  SELECT scopes INTO arScopes FROM db.oauth2 WHERE id = nOAuth2;
+
+  IF arScopes IS NOT NULL THEN
+    FOR i IN 1..array_length(arScopes, 1)
+    LOOP
+      SELECT id INTO uScope FROM db.scope WHERE code = arScopes[i];
+      IF FOUND THEN
+        RETURN NEXT uScope;
+      END IF;
+    END LOOP;
+  END IF;
+
+  RETURN;
+END;
+$$ LANGUAGE plpgsql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -2322,7 +2335,6 @@ BEGIN
     DELETE FROM db.acl WHERE userid = pId;
     DELETE FROM db.aou WHERE userid = pId;
 
-    DELETE FROM db.member_scope WHERE member = pId;
     DELETE FROM db.member_area WHERE member = pId;
     DELETE FROM db.member_interface WHERE member = pId;
     DELETE FROM db.member_group WHERE member = pId;
@@ -2391,7 +2403,6 @@ BEGIN
     PERFORM SystemRoleError();
   END IF;
 
-  DELETE FROM db.member_scope WHERE member = pId;
   DELETE FROM db.member_area WHERE member = pId;
   DELETE FROM db.member_interface WHERE member = pId;
   DELETE FROM db.member_group WHERE userid = pId;
@@ -2898,109 +2909,13 @@ $$ LANGUAGE plpgsql STABLE STRICT
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- AddMemberToScope ------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION AddMemberToScope (
-  pMember	uuid,
-  pScope	uuid
-) RETURNS   void
-AS $$
-BEGIN
-  IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(GetGroup('administrator')) THEN
-      PERFORM AccessDenied();
-    END IF;
-  END IF;
-
-  INSERT INTO db.member_scope (scope, member) VALUES (pScope, pMember) ON CONFLICT DO NOTHING;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- DeleteScopeForMember --------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION DeleteScopeForMember (
-  pMember	uuid,
-  pScope	uuid DEFAULT null
-) RETURNS   void
-AS $$
-BEGIN
-  IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(GetGroup('administrator')) THEN
-      PERFORM AccessDenied();
-    END IF;
-  END IF;
-
-  DELETE FROM db.member_scope WHERE scope = coalesce(pScope, scope) AND member = pMember;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- DeleteMemberFromScope -------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION DeleteMemberFromScope (
-  pScope	uuid,
-  pMember	uuid DEFAULT null
-) RETURNS   void
-AS $$
-BEGIN
-  IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(GetGroup('administrator')) THEN
-      PERFORM AccessDenied();
-    END IF;
-  END IF;
-
-  DELETE FROM db.member_scope WHERE scope = pScope AND member = coalesce(pMember, member);
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- IsMemberScope ---------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION IsMemberScope (
-  pScope	uuid DEFAULT current_scope(),
-  pMember   uuid DEFAULT current_userid()
-) RETURNS	boolean
-AS $$
-DECLARE
-  nCount    bigint;
-BEGIN
-  IF pScope IS NULL OR pMember IS NULL THEN
-    RETURN false;
-  END IF;
-
-  SELECT count(member) INTO nCount
-	FROM db.member_scope
-   WHERE scope = pScope
-	 AND member IN (
-	   SELECT pMember
-		UNION ALL
-	   SELECT userid FROM db.member_group WHERE member = pMember
-	 );
-
-  RETURN coalesce(nCount, 0) <> 0;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
 -- CreateArea ------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateArea (
   pParent	    uuid,
   pType		    uuid,
+  pScope	    uuid,
   pCode		    text,
   pName		    text,
   pDescription	text DEFAULT null,
@@ -3021,8 +2936,8 @@ BEGIN
     PERFORM RecordExists(pCode);
   END IF;
 
-  INSERT INTO db.area (id, parent, type, code, name, description)
-  VALUES (pId, coalesce(pParent, GetArea('root')), pType, pCode, pName, pDescription) RETURNING Id INTO uId;
+  INSERT INTO db.area (id, parent, type, scope, code, name, description)
+  VALUES (pId, coalesce(pParent, GetArea('root')), pType, pScope, pCode, pName, pDescription) RETURNING Id INTO uId;
 
   RETURN uId;
 END;
@@ -3038,6 +2953,7 @@ CREATE OR REPLACE FUNCTION EditArea (
   pId			    uuid,
   pParent		    uuid DEFAULT null,
   pType			    uuid DEFAULT null,
+  pScope		    uuid DEFAULT null,
   pCode			    text DEFAULT null,
   pName			    text DEFAULT null,
   pDescription		text DEFAULT null,
@@ -3071,6 +2987,7 @@ BEGIN
   UPDATE db.area
 	 SET parent = coalesce(pParent, parent),
 		 type = coalesce(pType, type),
+	     scope = coalesce(pScope, scope),
 		 code = coalesce(pCode, code),
 		 name = coalesce(pName, name),
 		 description = CheckNull(coalesce(pDescription, description, '<null>')),
@@ -3833,11 +3750,9 @@ BEGIN
 
 	SELECT audience INTO nAudience FROM db.oauth2 WHERE id = nOAuth2;
 
-	PERFORM SetOAuth2ClientId(GetAudienceCode(nAudience));
 	PERFORM SetCurrentSession(pSession);
 	PERFORM SetCurrentUserId(up.id);
-
-    PERFORM IsMemberScope(current_scope(), up.id);
+	PERFORM SetOAuth2ClientId(GetAudienceCode(nAudience));
 
 	UPDATE db.user SET status = set_bit(set_bit(status, 3, 0), 2, 1) WHERE id = up.id;
 
@@ -3951,8 +3866,6 @@ BEGIN
     PERFORM SetCurrentSession(vSession);
     PERFORM SetCurrentUserId(up.id);
     PERFORM SetOAuth2ClientId(GetAudienceCode(nAudience));
-
-    PERFORM IsMemberScope(current_scope(), up.id);
 
     UPDATE db.user SET status = set_bit(set_bit(status, 3, 0), 2, 1), lock_date = null WHERE id = up.id;
 
@@ -4292,8 +4205,6 @@ BEGIN
   PERFORM SetCurrentSession(vSession);
   PERFORM SetCurrentUserId(up.id);
   PERFORM SetOAuth2ClientId(GetAudienceCode(nAudience));
-
-  PERFORM IsMemberScope();
 
   RETURN vSession;
 END;

@@ -22,13 +22,18 @@ GRANT SELECT ON AreaType TO administrator;
 -- Area ------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW Area (Id, Parent, Type, TypeCode, TypeName,
+CREATE OR REPLACE VIEW Area (Id, Parent,
+  Type, TypeCode, TypeName,
+  Scope, ScopeCode, ScopeName, ScopeDescription,
   Code, Name, Description, validFromDate, validToDate
 )
 as
-  SELECT d.id, d.parent, d.type, t.code, t.name, d.code, d.name,
-         d.description, d.validFromDate, d.validToDate
-    FROM db.area d INNER JOIN db.area_type t ON t.id = d.type;
+  SELECT a.id, a.parent,
+         a.type, t.code, t.name,
+         a.scope, s.code, s.name, s.description,
+         a.code, a.name, a.description, a.validFromDate, a.validToDate
+    FROM db.area a INNER JOIN db.area_type t ON t.id = a.type
+                   INNER JOIN db.scope s ON s.id = a.scope;
 
 GRANT SELECT ON Area TO administrator;
 

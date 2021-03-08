@@ -9,7 +9,7 @@ CREATE TABLE db.scope (
     description     text
 );
 
-COMMENT ON TABLE db.scope IS 'Область видимости объектов.';
+COMMENT ON TABLE db.scope IS 'Область видимости базы данных.';
 
 COMMENT ON COLUMN db.scope.id IS 'Идентификатор';
 COMMENT ON COLUMN db.scope.code IS 'Код';
@@ -17,21 +17,6 @@ COMMENT ON COLUMN db.scope.name IS 'Наименование';
 COMMENT ON COLUMN db.scope.description IS 'Описание';
 
 CREATE UNIQUE INDEX ON db.scope (code);
-
---------------------------------------------------------------------------------
--- db.psl ----------------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE TABLE db.psl (
-    provider	integer REFERENCES oauth2.provider(id) ON DELETE CASCADE,
-    scope		uuid REFERENCES db.scope(id) ON DELETE CASCADE,
-    PRIMARY KEY (provider, scope)
-);
-
-COMMENT ON TABLE db.psl IS 'Список областей видимости поставщика OAuth2.';
-
-COMMENT ON COLUMN db.psl.provider IS 'Поставщик OAuth2';
-COMMENT ON COLUMN db.psl.scope IS 'Область видимости';
 
 --------------------------------------------------------------------------------
 -- db.area_type ----------------------------------------------------------------
@@ -59,6 +44,7 @@ CREATE TABLE db.area (
     id              uuid PRIMARY KEY DEFAULT gen_kernel_uuid('8'),
     parent          uuid DEFAULT NULL REFERENCES db.area(id),
     type            uuid NOT NULL REFERENCES db.area_type(id),
+    scope           uuid NOT NULL REFERENCES db.scope(id),
     code            text NOT NULL,
     name            text NOT NULL,
     description     text,
@@ -71,6 +57,7 @@ COMMENT ON TABLE db.area IS 'Область видимости документ�
 COMMENT ON COLUMN db.area.id IS 'Идентификатор';
 COMMENT ON COLUMN db.area.parent IS 'Ссылка на родительский узел';
 COMMENT ON COLUMN db.area.type IS 'Тип';
+COMMENT ON COLUMN db.area.scope IS 'Область видимости базы данных';
 COMMENT ON COLUMN db.area.code IS 'Код';
 COMMENT ON COLUMN db.area.name IS 'Наименование';
 COMMENT ON COLUMN db.area.description IS 'Описание';
@@ -79,6 +66,7 @@ COMMENT ON COLUMN db.area.validToDate IS 'Дата окончания дейст
 
 CREATE INDEX ON db.area (parent);
 CREATE INDEX ON db.area (type);
+CREATE INDEX ON db.area (scope);
 
 CREATE UNIQUE INDEX ON db.area (code);
 
@@ -94,6 +82,10 @@ BEGIN
 
   IF NEW.id = NEW.parent THEN
     NEW.parent := GetArea('all');
+  END IF;
+
+  IF NEW.scope IS NULL THEN
+    NEW.scope := GetScope(current_database());
   END IF;
 
   RETURN NEW;
@@ -517,24 +509,6 @@ COMMENT ON COLUMN db.member_group.member IS 'Участник';
 
 CREATE INDEX ON db.member_group (userid);
 CREATE INDEX ON db.member_group (member);
-
---------------------------------------------------------------------------------
--- db.member_scope -------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE TABLE db.member_scope (
-    scope		uuid NOT NULL REFERENCES db.scope(id),
-    member		uuid NOT NULL REFERENCES db.user(id),
-    PRIMARY KEY (scope, member)
-);
-
-COMMENT ON TABLE db.member_scope IS 'Участники области видимости объектов.';
-
-COMMENT ON COLUMN db.member_scope.scope IS 'Область видимости объектов';
-COMMENT ON COLUMN db.member_scope.member IS 'Учётная запись пользователя';
-
-CREATE INDEX ON db.member_scope (scope);
-CREATE INDEX ON db.member_scope (member);
 
 --------------------------------------------------------------------------------
 -- db.member_area --------------------------------------------------------------

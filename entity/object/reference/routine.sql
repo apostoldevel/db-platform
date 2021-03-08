@@ -80,10 +80,12 @@ CREATE OR REPLACE FUNCTION GetReference (
 ) RETURNS       uuid
 AS $$
 DECLARE
-  nId           uuid;
+  uId           uuid;
+  uScope		uuid;
 BEGIN
-  SELECT id INTO nId FROM db.reference WHERE entity = pEntity AND code = pCode;
-  RETURN nId;
+  uScope := current_scope();
+  SELECT id INTO uId FROM db.reference WHERE scope = uScope AND entity = pEntity AND code = pCode;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
