@@ -979,12 +979,25 @@ BEGIN
       SELECT id INTO NEW.locale FROM db.locale WHERE code = 'ru';
     END IF;
 
-    IF NOT IsMemberArea(NEW.area, NEW.userid) THEN
+    IF NEW.area IS NULL THEN
       NEW.area := GetDefaultArea(NEW.userid);
     END IF;
 
-    IF NOT IsMemberInterface(NEW.interface, NEW.userid) THEN
+	SELECT id INTO NEW.area FROM db.area WHERE id = NEW.area AND scope IN (SELECT GetOAuth2Scopes(NEW.oauth2));
+	IF NOT FOUND THEN
+	  SELECT id INTO NEW.area FROM db.area WHERE scope IN (SELECT GetOAuth2Scopes(NEW.oauth2)) AND type = GetAreaType('main');
+	END IF;
+
+    IF NOT IsMemberArea(NEW.area, NEW.userid) THEN
+      NEW.area := GetArea('guest');
+    END IF;
+
+    IF NEW.interface IS NULL THEN
       NEW.interface := GetDefaultInterface(NEW.userid);
+    END IF;
+
+    IF NOT IsMemberInterface(NEW.interface, NEW.userid) THEN
+      NEW.interface := GetInterface('guest');
     END IF;
 
     RETURN NEW;

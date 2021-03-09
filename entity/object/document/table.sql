@@ -30,7 +30,6 @@ CREATE INDEX ON db.document (area);
 
 CREATE OR REPLACE FUNCTION db.ft_document_insert()
 RETURNS trigger AS $$
-DECLARE
 BEGIN
   IF NEW.id IS NULL THEN
     SELECT NEW.object INTO NEW.id;
@@ -38,6 +37,10 @@ BEGIN
 
   IF current_area_type() = GetAreaType('root') THEN
     PERFORM RootAreaError();
+  END IF;
+
+  IF current_area_type() = GetAreaType('guest') THEN
+    PERFORM GuestAreaError();
   END IF;
 
   RETURN NEW;

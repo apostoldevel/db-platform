@@ -978,6 +978,18 @@ $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
 --------------------------------------------------------------------------------
 
+SELECT CreateExceptionResource(GetExceptionUUID(400, 72), 'ru', 'GuestAreaError', 'Запрещены операции с документами в гостевой области.');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 72), 'en', 'GuestAreaError', 'Operations with documents in guest area are prohibited');
+
+CREATE OR REPLACE FUNCTION GuestAreaError() RETURNS void
+AS $$
+BEGIN
+  RAISE EXCEPTION '%', GetExceptionStr(400, 72);
+END;
+$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+
+--------------------------------------------------------------------------------
+
 SELECT CreateExceptionResource(GetExceptionUUID(400, 80), 'ru', 'IncorrectRegistryKey', 'Недопустимый ключ "%s". Допустимые ключи: [%s]');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 80), 'en', 'IncorrectRegistryKey', 'Invalid key "%s". Valid keys: [%s]');
 

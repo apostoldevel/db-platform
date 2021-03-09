@@ -35,7 +35,7 @@ BEGIN
     PERFORM AudienceNotFound();
   END IF;
 
-  session := SignIn(CreateOAuth2(nAudience, ARRAY[current_database()]), pUserName, pPassword, pAgent, pHost);
+  session := SignIn(CreateOAuth2(nAudience, current_database()), pUserName, pPassword, pAgent, pHost);
 
   IF session IS NULL THEN
     PERFORM AuthenticateError(GetErrorMessage());
@@ -1475,7 +1475,7 @@ AS $$
     SELECT a.id, a.parent
       FROM db.area a, area_tree t
      WHERE t.id = a.parent
-    ) SELECT a.* FROM api.area a INNER JOIN area_tree USING (id) WHERE a.scope IN (SELECT * FROM current_scopes());
+    ) SELECT a.* FROM api.area a INNER JOIN area_tree USING (id) WHERE a.scope IN (SELECT current_scopes());
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

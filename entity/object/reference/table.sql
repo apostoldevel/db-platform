@@ -41,6 +41,14 @@ BEGIN
     SELECT NEW.object INTO NEW.id;
   END IF;
 
+  IF current_area_type() = GetAreaType('root') THEN
+    PERFORM RootAreaError();
+  END IF;
+
+  IF current_area_type() = GetAreaType('guest') THEN
+    PERFORM GuestAreaError();
+  END IF;
+
   IF NEW.scope IS NULL THEN
     SELECT current_scope() INTO NEW.scope;
   END IF;

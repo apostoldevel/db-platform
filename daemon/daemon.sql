@@ -601,7 +601,7 @@ BEGIN
 
     arResponses := string_to_array(coalesce(response_type, 'token'), ' ');
 
-    nOAuth2 := CreateOAuth2(nAudience, ScopeToArray(scope), access_type, redirect_uri, state);
+    nOAuth2 := CreateOAuth2(nAudience, scope, access_type, redirect_uri, state);
 
     vSession := SignIn(nOAuth2, vUsername, vPassword, pAgent, pHost);
 

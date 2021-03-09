@@ -700,8 +700,6 @@ AS $$
 DECLARE
   nId           bigint;
 BEGIN
-  pAccessType := coalesce(pAccessType, 'online');
-
   INSERT INTO db.oauth2 (audience, scopes, access_type, redirect_uri, state)
   VALUES (pAudience, pScopes, pAccessType, pRedirectURI, pState)
   RETURNING id INTO nId;
@@ -713,14 +711,35 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- CreateOAuth2 ----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION CreateOAuth2 (
+  pAudience     integer,
+  pScope		text,
+  pAccessType   text DEFAULT null,
+  pRedirectURI  text DEFAULT null,
+  pState        text DEFAULT null
+) RETURNS       bigint
+AS $$
+BEGIN
+  pAccessType := coalesce(pAccessType, 'online');
+  RETURN CreateOAuth2(pAudience, ScopeToArray(pScope), pAccessType, pRedirectURI, pState);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- CreateSystemOAuth2 ----------------------------------------------------------
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateSystemOAuth2 (
+  pScope		text DEFAULT current_database()
 ) RETURNS       bigint
 AS $$
 BEGIN
-  RETURN CreateOAuth2(GetAudience(oauth2_system_client_id()), ARRAY[current_database()]);
+  RETURN CreateOAuth2(GetAudience(oauth2_system_client_id()), pScope);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1272,25 +1291,20 @@ $$ LANGUAGE plpgsql STABLE STRICT
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- FUNCTION current_scopes -----------------------------------------------------
+-- FUNCTION GetOAuth2Scopes ----------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION current_scopes (
-  pSession	varchar DEFAULT current_session()
+CREATE OR REPLACE FUNCTION GetOAuth2Scopes (
+  pOAuth2	bigint
 )
 RETURNS		SETOF uuid
 AS $$
 DECLARE
   i			integer;
-  nOAuth2	bigint;
-
-  uUserId	uuid;
   uScope	uuid;
-
   arScopes	text[];
 BEGIN
-  SELECT oauth2, userid INTO nOAuth2, uUserId FROM db.session WHERE code = pSession;
-  SELECT scopes INTO arScopes FROM db.oauth2 WHERE id = nOAuth2;
+  SELECT scopes INTO arScopes FROM db.oauth2 WHERE id = pOAuth2;
 
   IF arScopes IS NOT NULL THEN
     FOR i IN 1..array_length(arScopes, 1)
@@ -1303,6 +1317,25 @@ BEGIN
   END IF;
 
   RETURN;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION current_scopes -----------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION current_scopes (
+  pSession	varchar DEFAULT current_session()
+)
+RETURNS		SETOF uuid
+AS $$
+DECLARE
+  nOAuth2	bigint;
+BEGIN
+  SELECT oauth2 INTO nOAuth2 FROM db.session WHERE code = pSession;
+  RETURN QUERY SELECT * FROM GetOAuth2Scopes(nOAuth2);
 END;
 $$ LANGUAGE plpgsql STABLE STRICT
    SECURITY DEFINER
@@ -3800,12 +3833,7 @@ CREATE OR REPLACE FUNCTION Login (
 AS $$
 DECLARE
   up            db.user%rowtype;
-
-  uArea         uuid DEFAULT null;
-  uInterface    uuid DEFAULT null;
-
   nAudience		integer DEFAULT null;
-
   vSession      text DEFAULT null;
 BEGIN
   IF NULLIF(pRoleName, '') IS NULL THEN
@@ -3842,9 +3870,6 @@ BEGIN
     PERFORM PasswordExpired();
   END IF;
 
-  uArea := GetDefaultArea(up.id);
-  uInterface := GetDefaultInterface(up.id);
-
   IF NOT CheckIPTable(up.id, pHost) THEN
     PERFORM LoginIPTableError(pHost);
   END IF;
@@ -3853,8 +3878,8 @@ BEGIN
 
     PERFORM CheckSessionLimit(up.id);
 
-    INSERT INTO db.session (oauth2, userid, area, interface, agent, host)
-    VALUES (pOAuth2, up.id, uArea, uInterface, pAgent, pHost)
+    INSERT INTO db.session (oauth2, userid, agent, host)
+    VALUES (pOAuth2, up.id, pAgent, pHost)
     RETURNING code INTO vSession;
 
     IF vSession IS NULL THEN
@@ -4147,13 +4172,8 @@ CREATE OR REPLACE FUNCTION GetSession (
 AS $$
 DECLARE
   up            db.user%rowtype;
-
-  uArea         uuid;
-  uInterface	uuid;
   uSUID         uuid;
-
   nAudience		integer;
-
   vSession      text;
 BEGIN
   IF session_user <> 'kernel' THEN
@@ -4192,11 +4212,8 @@ BEGIN
   SELECT code INTO vSession FROM db.session WHERE userid = up.id;
 
   IF NOT FOUND OR pNew THEN
-    uArea := GetDefaultArea(up.id);
-    uInterface := GetDefaultInterface(up.id);
-
-    INSERT INTO db.session (oauth2, suid, userid, area, interface, agent, host)
-    VALUES (pOAuth2, uSUID, up.id, uArea, uInterface, pAgent, pHost)
+    INSERT INTO db.session (oauth2, suid, userid, agent, host)
+    VALUES (pOAuth2, uSUID, up.id, pAgent, pHost)
     RETURNING code INTO vSession;
   END IF;
 
