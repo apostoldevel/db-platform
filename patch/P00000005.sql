@@ -32,25 +32,14 @@ COMMENT ON COLUMN db.session.area IS 'Область видимости доку
 COMMENT ON COLUMN db.listener.session IS 'Сессия';
 --------------------------------------------------------------------------------
 
+INSERT INTO db.scope (code, name, description)
+VALUES (current_database(), current_database(), 'Область видимости текущей базы данных.');
+
+--------------------------------------------------------------------------------
+
+DROP FUNCTION CreateSystemOAuth2() CASCADE;
+
 \ir '../admin/routine.sql'
-
---------------------------------------------------------------------------------
-
-\connect :dbname admin
-
---------------------------------------------------------------------------------
-
-SELECT SignIn(CreateSystemOAuth2(), 'admin', 'admin');
-
-SELECT GetErrorMessage();
-
-SELECT CreateScope(current_database(), current_database(), 'Область видимости текущей базы данных.');
-
-SELECT SignOut();
-
---------------------------------------------------------------------------------
-
-\connect :dbname kernel
 
 --------------------------------------------------------------------------------
 

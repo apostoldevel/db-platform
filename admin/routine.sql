@@ -700,6 +700,8 @@ AS $$
 DECLARE
   nId           bigint;
 BEGIN
+  pAccessType := coalesce(pAccessType, 'online');
+
   INSERT INTO db.oauth2 (audience, scopes, access_type, redirect_uri, state)
   VALUES (pAudience, pScopes, pAccessType, pRedirectURI, pState)
   RETURNING id INTO nId;
