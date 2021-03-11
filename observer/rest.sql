@@ -38,9 +38,9 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(publisher text, filter jsonb, params jsonb)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(publisher text, identity text, filter jsonb, params jsonb)
       LOOP
-        FOR e IN SELECT * FROM api.subscribe_observer(r.publisher, current_session(), r.filter, r.params)
+        FOR e IN SELECT * FROM api.subscribe_observer(r.publisher, current_session(), coalesce(r.identity, 'main'), r.filter, r.params)
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -48,9 +48,9 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(publisher text, filter jsonb, params jsonb)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(publisher text, identity text, filter jsonb, params jsonb)
       LOOP
-        FOR e IN SELECT * FROM api.subscribe_observer(r.publisher, current_session(), r.filter, r.params)
+        FOR e IN SELECT * FROM api.subscribe_observer(r.publisher, current_session(), coalesce(r.identity, 'main'), r.filter, r.params)
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -69,9 +69,9 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(publisher text, filter jsonb, params jsonb)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(publisher text, identity text, filter jsonb, params jsonb)
       LOOP
-        FOR e IN SELECT * FROM api.unsubscribe_observer(r.publisher, current_session())
+        FOR e IN SELECT * FROM api.unsubscribe_observer(r.publisher, current_session(), coalesce(r.identity, 'main'))
         LOOP
           RETURN NEXT json_build_object('publisher', r.publisher, 'unsubscribe', e.unsubscribe_observer);
         END LOOP;
@@ -79,9 +79,9 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(publisher text, filter jsonb, params jsonb)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(publisher text, identity text, filter jsonb, params jsonb)
       LOOP
-        FOR e IN SELECT * FROM api.unsubscribe_observer(r.publisher, current_session())
+        FOR e IN SELECT * FROM api.unsubscribe_observer(r.publisher, current_session(), coalesce(r.identity, 'main'))
         LOOP
           RETURN NEXT json_build_object('publisher', r.publisher, 'unsubscribe', e.unsubscribe_observer);
         END LOOP;
@@ -188,15 +188,15 @@ BEGIN
   WHEN '/observer/listener' THEN
 
     IF pPayload IS NOT NULL THEN
-      arKeys := array_cat(arKeys, ARRAY['code', 'session', 'fields']);
+      arKeys := array_cat(arKeys, ARRAY['publisher', 'session', 'identity', 'fields']);
       PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
     ELSE
       pPayload := '{}';
     END IF;
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(publisher text, session text, fields jsonb)
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(publisher text, session text, identity text, fields jsonb)
     LOOP
-      FOR e IN EXECUTE format('SELECT %s FROM api.listener($1, $2)', JsonbToFields(r.fields, GetColumns('listener', 'api'))) USING r.publisher, coalesce(r.session, current_session())
+      FOR e IN EXECUTE format('SELECT %s FROM api.listener($1, $2, $3)', JsonbToFields(r.fields, GetColumns('listener', 'api'))) USING r.publisher, coalesce(r.session, current_session()), r.identity
       LOOP
         RETURN NEXT row_to_json(e);
       END LOOP;
@@ -233,14 +233,14 @@ BEGIN
       PERFORM JsonIsEmpty();
     END IF;
 
-    arKeys := array_cat(arKeys, ARRAY['publisher', 'session', 'fields']);
+    arKeys := array_cat(arKeys, ARRAY['publisher', 'session', 'identity', 'fields']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(publisher text, session text, fields jsonb)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(publisher text, session varchar, identity text, fields jsonb)
       LOOP
-        FOR e IN EXECUTE format('SELECT %s FROM api.get_listener($1)', JsonbToFields(r.fields, GetColumns('listener', 'api'))) USING r.publisher, coalesce(r.session, current_session())
+        FOR e IN EXECUTE format('SELECT %s FROM api.get_listener($1, $2, $3)', JsonbToFields(r.fields, GetColumns('listener', 'api'))) USING r.publisher, coalesce(r.session, current_session()), coalesce(r.identity, 'main')
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -248,9 +248,9 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(publisher text, session text, fields jsonb)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(publisher text, session varchar, identity text, fields jsonb)
       LOOP
-        FOR e IN EXECUTE format('SELECT %s FROM api.get_listener($1)', JsonbToFields(r.fields, GetColumns('listener', 'api'))) USING r.publisher, coalesce(r.session, current_session())
+        FOR e IN EXECUTE format('SELECT %s FROM api.get_listener($1, $2, $3)', JsonbToFields(r.fields, GetColumns('listener', 'api'))) USING r.publisher, coalesce(r.session, current_session()), coalesce(r.identity, 'main')
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;

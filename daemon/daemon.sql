@@ -824,6 +824,7 @@ BEGIN
 
   PERFORM SetCurrentSession(null);
   PERFORM SetCurrentUserId(null);
+  PERFORM SetOAuth2ClientId(null);
 
   IF pPath = '/sign/in' OR pPath = '/authenticate' THEN
     pPayload := pPayload - 'agent';

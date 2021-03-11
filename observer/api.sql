@@ -84,10 +84,11 @@ GRANT SELECT ON api.listener TO administrator;
 
 CREATE OR REPLACE FUNCTION api.listener (
   pPublisher	text,
-  pSession		varchar
+  pSession		varchar,
+  pIdentity		text
 ) RETURNS       SETOF api.listener
 AS $$
-  SELECT * FROM api.listener WHERE publisher = pPublisher AND session = pSession
+  SELECT * FROM api.listener WHERE publisher = pPublisher AND session = pSession AND identity = pIdentity
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -99,12 +100,13 @@ $$ LANGUAGE SQL
 CREATE OR REPLACE FUNCTION api.add_listener (
   pPublisher	text,
   pSession		varchar,
+  pIdentity		text,
   pFilter		jsonb,
   pParams		jsonb
 ) RETURNS		void
 AS $$
 BEGIN
-  PERFORM CreateListener(pPublisher, pSession, pFilter, pParams);
+  PERFORM CreateListener(pPublisher, pSession, pIdentity, pFilter, pParams);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -117,12 +119,13 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.update_listener (
   pPublisher	text,
   pSession		varchar,
+  pIdentity		text,
   pFilter		jsonb,
   pParams		jsonb
 ) RETURNS		boolean
 AS $$
 BEGIN
-  RETURN EditListener(pPublisher, pSession, pFilter, pParams);
+  RETURN EditListener(pPublisher, pSession, pIdentity, pFilter, pParams);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -135,16 +138,17 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.set_listener (
   pPublisher	text,
   pSession		varchar,
+  pIdentity		text,
   pFilter		jsonb,
   pParams		jsonb
 ) RETURNS       SETOF api.listener
 AS $$
 BEGIN
-  IF NOT api.update_listener(pPublisher, pSession, pFilter, pParams) THEN
-    PERFORM api.add_listener(pPublisher, pSession, pFilter, pParams);
+  IF NOT api.update_listener(pPublisher, pSession, pIdentity, pFilter, pParams) THEN
+    PERFORM api.add_listener(pPublisher, pSession, pIdentity, pFilter, pParams);
   END IF;
 
-  RETURN QUERY SELECT * FROM api.get_listener(pPublisher, pSession);
+  RETURN QUERY SELECT * FROM api.get_listener(pPublisher, pSession, pIdentity);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -159,10 +163,11 @@ $$ LANGUAGE plpgsql
  */
 CREATE OR REPLACE FUNCTION api.get_listener (
   pPublisher	text,
-  pSession		varchar
+  pSession		varchar,
+  pIdentity		text
 ) RETURNS       SETOF api.listener
 AS $$
-  SELECT * FROM api.listener(pPublisher, pSession);
+  SELECT * FROM api.listener(pPublisher, pSession, pIdentity);
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -201,12 +206,13 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.subscribe_observer (
   pPublisher	text,
   pSession		varchar,
+  pIdentity		text,
   pFilter		jsonb,
   pParams		jsonb
 ) RETURNS		SETOF api.listener
 AS $$
 BEGIN
-  RETURN QUERY SELECT * FROM api.set_listener(pPublisher, coalesce(pSession, current_session()), pFilter, pParams);
+  RETURN QUERY SELECT * FROM api.set_listener(pPublisher, coalesce(pSession, current_session()), pIdentity, pFilter, pParams);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -218,11 +224,12 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION api.unsubscribe_observer (
   pPublisher	text,
-  pSession		varchar
+  pSession		varchar,
+  pIdentity		text
 ) RETURNS		boolean
 AS $$
 BEGIN
-  RETURN DeleteListener(pPublisher, coalesce(pSession, current_session()));
+  RETURN DeleteListener(pPublisher, coalesce(pSession, current_session()), pIdentity);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

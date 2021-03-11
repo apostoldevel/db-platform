@@ -4,6 +4,12 @@ drop function editlistener(text, varchar, jsonb, jsonb);
 drop function deletelistener(text, varchar);
 drop function eventlistener(text, varchar, jsonb);
 
+DROP VIEW api.listener CASCADE;
+
+drop function api.add_listener(text, varchar, jsonb, jsonb);
+drop function api.update_listener(text, varchar, jsonb, jsonb);
+drop function api.unsubscribe_observer(text, varchar);
+
 drop function daemon.observer (text, varchar, jsonb, text, inet);
 
 --------------------------------------------------------------------------------

@@ -555,7 +555,7 @@ BEGIN
 
   RETURN vSession;
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -571,7 +571,7 @@ AS $$
 BEGIN
   RETURN encode(hmac(pToken, pPassKey, 'sha1'), 'hex');
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -626,7 +626,7 @@ AS $$
 BEGIN
   RETURN encode(hmac(pPath || trim(to_char(pNonce, '9999999999999999')) || coalesce(pJson, 'null'), pSecret, 'sha256'), 'hex');
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1064,7 +1064,7 @@ DECLARE
 BEGIN
   RETURN coalesce(vSecretKey, vDefaultKey);
 END;
-$$ LANGUAGE plpgsql IMMUTABLE
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
