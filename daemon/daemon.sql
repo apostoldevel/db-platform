@@ -142,6 +142,7 @@ $$ LANGUAGE plpgsql
  * Возвращает данные наблюдателя.
  * @param {text} pPublisher - Издатель
  * @param {varchar} pSession - Сессия
+ * @param {text} pIdentity -  Идентификатор в рамках сессии
  * @param {json} pData - Данные
  * @param {text} pAgent - Агент
  * @param {inet} pHost - IP адрес
@@ -150,6 +151,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION daemon.observer (
   pPublisher	text,
   pSession		varchar,
+  pIdentity		text,
   pData			jsonb,
   pAgent        text DEFAULT null,
   pHost         inet DEFAULT null
@@ -168,7 +170,7 @@ BEGIN
 	PERFORM AuthenticateError(GetErrorMessage());
   END IF;
 
-  FOR r IN SELECT * FROM EventListener(pPublisher, pSession, pData) AS data
+  FOR r IN SELECT * FROM EventListener(pPublisher, pSession, pIdentity, pData) AS data
   LOOP
 	RETURN NEXT r.data;
   END LOOP;

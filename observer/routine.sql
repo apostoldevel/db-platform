@@ -58,11 +58,14 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION CreateListener (
   pPublisher	text,
   pSession		varchar,
+  pIdentity		text,
   pFilter		jsonb,
   pParams		jsonb
 ) RETURNS		void
 AS $$
 BEGIN
+  pIdentity := coalesce(pIdentity, 'main');
+
   IF NOT ValidSession(pSession) THEN
 	RAISE EXCEPTION 'ERR-40000: %', GetErrorMessage();
   END IF;
@@ -79,8 +82,8 @@ BEGIN
 	pParams := '{"type": "notify"}';
   END IF;
 
-  INSERT INTO db.listener (publisher, session, filter, params)
-  VALUES (pPublisher, pSession, pFilter, pParams);
+  INSERT INTO db.listener (publisher, session, identity, filter, params)
+  VALUES (pPublisher, pSession, pIdentity, pFilter, pParams);
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -93,12 +96,14 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION EditListener (
   pPublisher	text,
   pSession		varchar,
+  pIdentity		text,
   pFilter		jsonb,
   pParams		jsonb
 ) RETURNS		boolean
 AS $$
-DECLARE
 BEGIN
+  pIdentity := coalesce(pIdentity, 'main');
+
   IF pSession IS NOT NULL AND NOT ValidSession(pSession) THEN
 	RAISE EXCEPTION 'ERR-40000: %', GetErrorMessage();
   END IF;
@@ -118,7 +123,7 @@ BEGIN
   UPDATE db.listener
      SET filter = pFilter,
          params = pParams
-   WHERE publisher = pPublisher AND session = pSession;
+   WHERE publisher = pPublisher AND session = pSession AND identity = pIdentity;
 
   RETURN FOUND;
 END
@@ -132,11 +137,13 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION DeleteListener (
   pPublisher	text,
-  pSession		varchar
+  pSession		varchar,
+  pIdentity		text DEFAULT null
 ) RETURNS 		boolean
 AS $$
 BEGIN
-  DELETE FROM db.listener WHERE publisher = pPublisher AND session = pSession;
+  pIdentity := coalesce(pIdentity, 'main');
+  DELETE FROM db.listener WHERE publisher = pPublisher AND session = pSession AND identity = pIdentity;
   RETURN FOUND;
 END;
 $$ LANGUAGE plpgsql
@@ -479,6 +486,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION EventListener (
   pPublisher	text,
   pSession		varchar,
+  pIdentity		text,
   pData			jsonb
 ) RETURNS       SETOF json
 AS $$
@@ -493,7 +501,9 @@ DECLARE
   mixed			jsonb;
   hook			jsonb;
 BEGIN
-  SELECT * INTO r FROM db.listener WHERE publisher = pPublisher AND session = pSession;
+  pIdentity := coalesce(pIdentity, 'main');
+
+  SELECT * INTO r FROM db.listener WHERE publisher = pPublisher AND session = pSession AND identity = pIdentity;
 
   IF FOUND AND FilterListener(r.publisher, r.session, r.filter, pData) THEN
 
