@@ -1,4 +1,4 @@
-\ir '../entity/object/reference/version/create.psql'
+--\ir '../entity/object/reference/version/create.psql'
 \ir '../entity/object/reference/project/create.psql'
 
 --------------------------------------------------------------------------------
