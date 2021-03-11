@@ -2480,7 +2480,7 @@ AS $$
 DECLARE
   uId		uuid;
 BEGIN
-  SELECT id INTO uId FROM db.user WHERE type = 'U' AND username = lower(pRoleName);
+  SELECT id INTO uId FROM db.user WHERE type = 'U' AND username = pRoleName;
 
   IF NOT found THEN
     PERFORM UserNotFound(pRoleName);
@@ -2507,7 +2507,7 @@ AS $$
 DECLARE
   uId		    uuid;
 BEGIN
-  SELECT id INTO uId FROM db.user WHERE type = 'G' AND username = lower(pRoleName);
+  SELECT id INTO uId FROM db.user WHERE type = 'G' AND username = pRoleName;
 
   IF NOT found THEN
     PERFORM UnknownRoleName(pRoleName);

@@ -68,13 +68,17 @@ BEGIN
 
       PERFORM CreateEntityModel(uReference);
 
-      -- Свойство
-
-      PERFORM CreateEntityProperty(uReference);
-
       -- Программа
 
       PERFORM CreateEntityProgram(uReference);
+
+      -- Проект
+
+      PERFORM CreateEntityProject(uReference);
+
+      -- Свойство
+
+      PERFORM CreateEntityProperty(uReference);
 
       -- Планировщик
 
@@ -83,6 +87,10 @@ BEGIN
       -- Производитель
 
       PERFORM CreateEntityVendor(uReference);
+
+      -- Версия
+
+      PERFORM CreateEntityVersion(uReference);
 
 END
 $$ LANGUAGE plpgsql
