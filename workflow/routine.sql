@@ -254,7 +254,7 @@ BEGIN
   SELECT code INTO vCode FROM db.entity WHERE Id = pId;
   RETURN vCode;
 END;
-$$ LANGUAGE plpgsql
+$$ LANGUAGE plpgsql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 

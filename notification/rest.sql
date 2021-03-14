@@ -8,15 +8,18 @@
  * @return {SETOF json} - Записи в JSON
  */
 CREATE OR REPLACE FUNCTION rest.notification (
-  pPath       text,
-  pPayload    jsonb default null
-) RETURNS     SETOF json
+  pPath		text,
+  pPayload	jsonb default null
+) RETURNS	SETOF json
 AS $$
 DECLARE
-  r           record;
-  e           record;
+  r			record;
+  e			record;
+  o			record;
 
-  arKeys      text[];
+  search	jsonb;
+
+  arKeys	text[];
 BEGIN
   IF pPath IS NULL THEN
     PERFORM RouteIsEmpty();
@@ -128,6 +131,36 @@ BEGIN
           RETURN NEXT row_to_json(e);
         END LOOP;
       END IF;
+    END LOOP;
+
+  WHEN '/notification/changed/objects' THEN
+
+    IF pPayload IS NOT NULL THEN
+      arKeys := array_cat(arKeys, ARRAY['objects', 'fromdate', 'todate']);
+      PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+    ELSE
+      pPayload := '{}';
+    END IF;
+
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(objects jsonb, fromdate timestamptz, todate timestamptz)
+    LOOP
+      search := jsonb_build_array(jsonb_build_object('field', 'object', 'valarr', r.objects, 'compare', 'IN'));
+
+      IF r.fromdate IS NOT NULL THEN
+	    search := search || jsonb_build_object('field', 'datetime', 'compare', 'GEQ', 'value', r.fromdate);
+	  END IF;
+
+      IF r.todate IS NOT NULL THEN
+	    search := search || jsonb_build_object('field', 'datetime', 'compare', 'LSS', 'value', r.todate);
+	  END IF;
+
+	  FOR e IN SELECT entity, object FROM api.list_notification(search, null, null, null, null) GROUP BY entity, object
+	  LOOP
+		FOR o IN EXECUTE format('SELECT * FROM api.get_%s($1)', GetEntityCode(e.entity)) USING e.object
+		LOOP
+          RETURN NEXT row_to_json(o);
+		END LOOP;
+	  END LOOP;
     END LOOP;
 
   ELSE
