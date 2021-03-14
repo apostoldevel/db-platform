@@ -3,7 +3,6 @@ CREATE TYPE TVarType AS ENUM ('kernel', 'context');
 CREATE TYPE Id AS (Id uuid);
 CREATE TYPE Cardinal AS (Cardinal NUMERIC(14));
 CREATE TYPE Amount AS (Amount NUMERIC(15,5));
-CREATE TYPE Currency AS (Currency NUMERIC(12,4));
 CREATE TYPE Const AS (Const NUMERIC(5));
 
 CREATE TYPE Symbol AS (Symbol VARCHAR(1));
@@ -29,7 +28,6 @@ CREATE TYPE Variant AS (
 CREATE TYPE TIdList AS (IdList Id[]);
 CREATE TYPE TCardinalList AS (CardinalList Cardinal[]);
 CREATE TYPE TAmountList AS (AmountList Amount[]);
-CREATE TYPE TCurrencyList AS (CurrencyList Currency[]);
 CREATE TYPE TConstList AS (ConstList Const[]);
 CREATE TYPE TSymbolList AS (SymbolList Symbol[]);
 CREATE TYPE TCodeList AS (CodeList Code[]);

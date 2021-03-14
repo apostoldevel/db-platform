@@ -4,6 +4,9 @@
 \echo [M] call view.sql
 \ir view.sql
 
+\echo [M] call exception.sql
+\ir exception.sql
+
 \echo [M] call routine.sql
 \ir routine.sql
 
@@ -18,10 +21,3 @@
 
 \echo [M] call init.sql
 \ir init.sql
-
-\ir './address/create.psql'
-\ir './client/create.psql'
-\ir './account/create.psql'
-\ir './device/create.psql'
-\ir './job/create.psql'
-\ir './message/create.psql'

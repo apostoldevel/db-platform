@@ -22,6 +22,10 @@ BEGIN
 
     uDocument := GetClass('document');
 
+      -- Счёт
+
+      PERFORM CreateEntityAccount(uDocument);
+
       -- Адрес
 
       PERFORM CreateEntityAddress(uDocument);
@@ -59,6 +63,10 @@ BEGIN
       -- Категория
 
       PERFORM CreateEntityCategory(uReference);
+
+      -- Валюта
+
+      PERFORM CreateEntityCurrency(uReference);
 
 	  -- Мера
   

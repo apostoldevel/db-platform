@@ -16,6 +16,7 @@
 \ir './agent/update.psql'
 \ir './calendar/update.psql'
 \ir './category/update.psql'
+\ir './currency/update.psql'
 \ir './measure/update.psql'
 \ir './vendor/update.psql'
 \ir './program/update.psql'

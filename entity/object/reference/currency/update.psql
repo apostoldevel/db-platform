@@ -12,10 +12,3 @@
 
 \echo [M] call event.sql
 \ir event.sql
-
-\ir './address/update.psql'
-\ir './client/update.psql'
-\ir './account/update.psql'
-\ir './device/update.psql'
-\ir './job/update.psql'
-\ir './message/update.psql'

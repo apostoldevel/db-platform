@@ -22,6 +22,7 @@
 \ir './agent/create.psql'
 \ir './calendar/create.psql'
 \ir './category/create.psql'
+\ir './currency/create.psql'
 \ir './measure/create.psql'
 \ir './vendor/create.psql'
 \ir './program/create.psql'

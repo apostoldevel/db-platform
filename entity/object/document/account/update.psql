@@ -1,6 +1,9 @@
 \echo [M] call view.sql
 \ir view.sql
 
+\echo [M] call exception.sql
+\ir exception.sql
+
 \echo [M] call routine.sql
 \ir routine.sql
 
@@ -12,10 +15,3 @@
 
 \echo [M] call event.sql
 \ir event.sql
-
-\ir './address/update.psql'
-\ir './client/update.psql'
-\ir './account/update.psql'
-\ir './device/update.psql'
-\ir './job/update.psql'
-\ir './message/update.psql'

@@ -92,7 +92,7 @@ BEGIN
 
   SELECT * INTO new FROM db.job WHERE id = pId;
 
-  SELECT class INTO nClass FROM db.type WHERE id = pType;
+  SELECT class INTO nClass FROM db.object WHERE id = pId;
 
   nMethod := GetMethod(nClass, GetAction('edit'));
   PERFORM ExecuteMethod(pId, nMethod, jsonb_build_object('old', row_to_json(old), 'new', row_to_json(new)));
