@@ -669,7 +669,7 @@ BEGIN
   SELECT id INTO nId FROM db.state_type WHERE code = pCode;
   RETURN nId;
 END;
-$$ LANGUAGE plpgsql
+$$ LANGUAGE plpgsql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 

@@ -104,6 +104,6 @@ AS $$
 BEGIN
   RETURN GetReference(pCode, 'currency');
 END;
-$$ LANGUAGE plpgsql
+$$ LANGUAGE plpgsql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
