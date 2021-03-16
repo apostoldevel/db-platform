@@ -465,6 +465,56 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- api.update_profile ----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.update_profile (
+  pUserId			uuid,
+  pFamilyName		text DEFAULT null,
+  pGivenName		text DEFAULT null,
+  pPatronymicName	text DEFAULT null,
+  pLocale			uuid DEFAULT null,
+  pArea				uuid DEFAULT null,
+  pInterface		uuid DEFAULT null,
+  pEmailVerified	bool DEFAULT null,
+  pPhoneVerified	bool DEFAULT null,
+  pPicture			text DEFAULT null
+) RETURNS			void
+AS $$
+BEGIN
+  PERFORM UpdateProfile(pUserId, pFamilyName, pGivenName, pPatronymicName, pLocale, pArea, pInterface, pEmailVerified, pPhoneVerified, pPicture);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.set_user_profile --------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.set_user_profile (
+  pUserId			uuid,
+  pFamilyName		text DEFAULT null,
+  pGivenName		text DEFAULT null,
+  pPatronymicName	text DEFAULT null,
+  pLocale			text DEFAULT null,
+  pArea				text DEFAULT null,
+  pInterface		text DEFAULT null,
+  pPicture			text DEFAULT null
+) RETURNS			SETOF api.user
+AS $$
+BEGIN
+  pUserId := coalesce(pUserId, current_userid());
+
+  PERFORM api.update_profile(pUserId, pFamilyName, pGivenName, pPatronymicName, GetLocale(pLocale), GetArea(pArea), GetInterface(pInterface), null::bool, null::bool, pPicture);
+
+  RETURN QUERY SELECT * FROM api.user WHERE id = pUserId;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- api.change_password ---------------------------------------------------------
 --------------------------------------------------------------------------------
 /**

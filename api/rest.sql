@@ -359,6 +359,37 @@ BEGIN
 
     END IF;
 
+  WHEN '/user/profile/set' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['familyname', 'givenname', 'patronymicname', 'locale', 'area', 'interface', 'picture']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+	  FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(familyname text, givenname text, patronymicname text, locale text, area text, interface text, picture text)
+	  LOOP
+		FOR e IN SELECT * FROM api.set_user_profile(current_userid(), r.familyname, r.givenname, r.patronymicname, r.locale, r.area, r.interface, r.picture)
+		LOOP
+		  RETURN NEXT row_to_json(e);
+		END LOOP;
+	  END LOOP;
+
+    ELSE
+
+	  FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(familyname text, givenname text, patronymicname text, locale text, area text, interface text, picture text)
+	  LOOP
+		FOR e IN SELECT * FROM api.set_user_profile(current_userid(), r.familyname, r.givenname, r.patronymicname, r.locale, r.area, r.interface, r.picture)
+		LOOP
+		  RETURN NEXT row_to_json(e);
+		END LOOP;
+	  END LOOP;
+
+    END IF;
+
   WHEN '/user/password' THEN
 
     IF pPayload IS NULL THEN
