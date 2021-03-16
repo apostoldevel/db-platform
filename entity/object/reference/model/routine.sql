@@ -156,9 +156,11 @@ BEGIN
 
   SELECT * INTO r FROM db.model_property WHERE model = pModel AND property = pProperty;
 
+  pMeasure := CheckNull(coalesce(pMeasure, r.measure, null_uuid()));
+
   INSERT INTO db.model_property (model, property, measure, value, format, sequence)
   VALUES (pModel, pProperty, pMeasure, pValue, pFormat, coalesce(pSequence, 1))
-    ON CONFLICT (model, property) DO UPDATE SET measure = coalesce(pMeasure, r.measure), value = coalesce(pValue, r.value), format = coalesce(pFormat, r.format), sequence = coalesce(pSequence, r.sequence, 1);
+    ON CONFLICT (model, property) DO UPDATE SET measure = pMeasure, value = coalesce(pValue, r.value), format = coalesce(pFormat, r.format), sequence = coalesce(pSequence, r.sequence, 1);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
