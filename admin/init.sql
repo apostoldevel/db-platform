@@ -16,7 +16,7 @@ SELECT CreateArea(null, GetAreaType('root'), GetScope(current_database()), 'root
 SELECT CreateArea(GetArea('root'), GetAreaType('system'), GetScope(current_database()), 'system', 'Система', null, '00000000-0000-4003-a000-000000000001');
 SELECT CreateArea(GetArea('root'), GetAreaType('guest'), GetScope(current_database()), 'guest', 'Гости', null, '00000000-0000-4003-a000-000000000002');
 SELECT CreateArea(GetArea('root'), GetAreaType('root'), GetScope(current_database()), 'all', 'Всё', null, '00000000-0000-4003-a001-000000000000');
-SELECT CreateArea(GetArea('all'), GetAreaType('default'), GetScope(current_database()), 'default', 'По умолчанию', null, '00000000-0000-4003-a001-000000000001');
+SELECT CreateArea(GetArea('all'), GetAreaType('default'), GetScope(current_database()), current_database(), 'По умолчанию', null, '00000000-0000-4003-a001-000000000001');
 SELECT CreateArea(GetArea('all'), GetAreaType('main'), GetScope(current_database()), 'main', 'Головной офис', null, '00000000-0000-4003-a001-000000000002');
 SELECT CreateArea(GetArea('main'), GetAreaType('remote'), GetScope(current_database()), 'remote', 'Удаленное подразделение', null, '00000000-0000-4003-a001-000000000003');
 SELECT CreateArea(GetArea('remote'), GetAreaType('mobile'), GetScope(current_database()), 'mobile', 'Мобильное подразделение', null, '00000000-0000-4003-a001-000000000004');

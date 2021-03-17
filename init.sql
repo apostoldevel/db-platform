@@ -2,8 +2,8 @@ SELECT SignIn(CreateSystemOAuth2(), 'admin', 'admin');
 
 SELECT GetErrorMessage();
 
-SELECT SetDefaultArea(GetArea('default'));
-SELECT SetArea(GetArea('default'));
+SELECT SetDefaultArea(GetArea(current_database()));
+SELECT SetArea(GetArea(current_database()));
 
 SELECT InitWorkFlow();
 SELECT InitEntity();
