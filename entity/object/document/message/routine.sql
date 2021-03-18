@@ -441,7 +441,7 @@ BEGIN
 	  PERFORM WriteToEventLog('M', 1001, 'push', format('Push сообщение передано на отправку: %s', nMessageId), pObject);
     END LOOP;
   ELSE
-	PERFORM WriteToEventLog('E', 3001, 'push', 'Не удалось отправить Push сообщение, тоекн не установлен.', pObject);
+	PERFORM WriteToEventLog('E', 3001, 'push', 'Не удалось отправить Push сообщение, токен не установлен.', pObject);
   END IF;
 END
 $$ LANGUAGE plpgsql
