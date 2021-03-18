@@ -676,7 +676,7 @@ BEGIN
     END IF;
 
   ELSE
-    arValid := array_append(arValid, current_database());
+    arValid := array_append(arValid, current_database()::text);
   END IF;
 
   RETURN arValid;
