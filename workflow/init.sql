@@ -264,6 +264,8 @@ BEGIN
   PERFORM AddAction('00000000-0000-4000-b003-000000000042', 'submit', 'Отправить');
   PERFORM AddAction('00000000-0000-4000-b003-000000000043', 'unavailable', 'Недоступен');
   PERFORM AddAction('00000000-0000-4000-b003-000000000044', 'update', 'Обновить');
+
+  PERFORM AddAction('00000000-0000-4000-b003-000000000045', 'reject', 'Отклонить');
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
