@@ -212,6 +212,9 @@ BEGIN
 
   FOR r IN SELECT * FROM json_to_recordset(pProperties) AS x(propertyid uuid, measureid uuid, property json, measure json, typevalue integer, value text, format text, sequence integer)
   LOOP
+    uProperty := null_uuid();
+    uMeasure := null_uuid();
+
     IF r.property IS NOT NULL THEN
       FOR e IN SELECT * FROM json_to_record(r.property) AS x(id uuid, parent uuid, type uuid, typecode text, code text, name text, description text)
       LOOP

@@ -36,7 +36,7 @@ SELECT CreateAgent(null, GetType('api.agent'), 'fcm.agent', 'FCM', GetVendor('go
 SELECT CreateAgent(null, GetType('api.agent'), 'm2m.agent', 'M2M', GetVendor('mts.vendor'), 'Агент для передачи коротких сообщений через МТС Коммуникатор.');
 SELECT CreateAgent(null, GetType('api.agent'), 'sba.agent', 'SBA',  GetVendor('sberbank.vendor'), 'Агент для передачи данных в Интернет-Эквайринг от Сбербанка.');
 
-SELECT CreateVendor(null, GetType('device.vendor'), 'unknown.vendor', 'Неизвестный', 'Неизвестный производитель оборудования.');
+SELECT CreateVendor(null, GetType('device.vendor'), 'unknown.vendor', 'Неизвестный', 'Неизвестный производитель устройств.');
 
 SELECT CreateMeasure(null, GetType('quantity.measure'), 'pieces.measure', 'Шт', 'Штук');
 
