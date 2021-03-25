@@ -107,7 +107,7 @@ DECLARE
   nUserId		uuid;
   utilized      bool;
 BEGIN
-  SELECT id, userid, used INTO nId, nUserId, utilized
+  SELECT id, userid, used IS NOT NULL INTO nId, nUserId, utilized
     FROM db.verification_code
    WHERE type = pType
      AND code = pCode
