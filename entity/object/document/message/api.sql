@@ -17,6 +17,39 @@ GRANT SELECT ON api.message TO administrator;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.message (
+  pClass	uuid
+) RETURNS	SETOF api.message
+AS $$
+  SELECT * FROM api.message WHERE class = pClass
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.inbox -------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW api.inbox
+AS
+  SELECT * FROM api.message(GetClass('inbox'));
+
+GRANT SELECT ON api.inbox TO administrator;
+
+--------------------------------------------------------------------------------
+-- api.outbox ------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW api.outbox
+AS
+  SELECT * FROM api.message(GetClass('outbox'));
+
+GRANT SELECT ON api.outbox TO administrator;
+
+--------------------------------------------------------------------------------
+-- FUNCTION api.message --------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.message (
   pType		uuid,
   pAgent    uuid,
   pState    uuid
@@ -38,33 +71,6 @@ CREATE OR REPLACE FUNCTION api.message (
 ) RETURNS	SETOF api.message
 AS $$
   SELECT * FROM api.message(CodeToType(coalesce(pType, 'message.outbox'), 'message'), GetAgent(pAgent), GetState(GetClass(SubStr(pType, StrPos(pType, '.') + 1)), pState));
-$$ LANGUAGE SQL
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- FUNCTION api.outbox ---------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION api.outbox (
-  pState    uuid,
-  pType		uuid DEFAULT GetType('message.outbox')
-) RETURNS	SETOF api.message
-AS $$
-  SELECT * FROM api.message WHERE type = pType AND state = pState;
-$$ LANGUAGE SQL
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- FUNCTION api.outbox ---------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION api.outbox (
-  pState    text
-) RETURNS	SETOF api.message
-AS $$
-  SELECT * FROM api.outbox(GetState(GetClass('outbox'), pState));
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -184,9 +190,9 @@ $$ LANGUAGE plpgsql
 -- api.get_message -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает клиента
- * @param {uuid} pId - Идентификатор адреса
- * @return {api.message} - Адрес
+ * Возвращает сообщение
+ * @param {uuid} pId - Идентификатор
+ * @return {api.message}
  */
 CREATE OR REPLACE FUNCTION api.get_message (
   pId		uuid
@@ -198,16 +204,50 @@ $$ LANGUAGE SQL
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- api.get_inbox ---------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Возвращает входящее сообщение
+ * @param {uuid} pId - Идентификатор
+ * @return {api.inbox}
+ */
+CREATE OR REPLACE FUNCTION api.get_inbox (
+  pId		uuid
+) RETURNS	SETOF api.inbox
+AS $$
+  SELECT * FROM api.inbox WHERE id = pId
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.get_outbox --------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Возвращает исходящее сообщение
+ * @param {uuid} pId - Идентификатор
+ * @return {api.outbox}
+ */
+CREATE OR REPLACE FUNCTION api.get_outbox (
+  pId		uuid
+) RETURNS	SETOF api.outbox
+AS $$
+  SELECT * FROM api.outbox WHERE id = pId
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- api.list_message ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список клиентов.
+ * Возвращает список сообщений.
  * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
  * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
  * @param {integer} pLimit - Лимит по количеству строк
  * @param {integer} pOffSet - Пропустить указанное число строк
  * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.message} - Адреса
+ * @return {SETOF api.message}
  */
 CREATE OR REPLACE FUNCTION api.list_message (
   pSearch	jsonb DEFAULT null,
@@ -219,6 +259,60 @@ CREATE OR REPLACE FUNCTION api.list_message (
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'message', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.list_inbox --------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Возвращает список входящих сообщений.
+ * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
+ * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
+ * @param {integer} pLimit - Лимит по количеству строк
+ * @param {integer} pOffSet - Пропустить указанное число строк
+ * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
+ * @return {SETOF api.inbox}
+ */
+CREATE OR REPLACE FUNCTION api.list_inbox (
+  pSearch	jsonb DEFAULT null,
+  pFilter	jsonb DEFAULT null,
+  pLimit	integer DEFAULT null,
+  pOffSet	integer DEFAULT null,
+  pOrderBy	jsonb DEFAULT null
+) RETURNS	SETOF api.inbox
+AS $$
+BEGIN
+  RETURN QUERY EXECUTE api.sql('api', 'inbox', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.list_outbox -------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Возвращает список исходящих сообщений.
+ * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
+ * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
+ * @param {integer} pLimit - Лимит по количеству строк
+ * @param {integer} pOffSet - Пропустить указанное число строк
+ * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
+ * @return {SETOF api.outbox}
+ */
+CREATE OR REPLACE FUNCTION api.list_outbox (
+  pSearch	jsonb DEFAULT null,
+  pFilter	jsonb DEFAULT null,
+  pLimit	integer DEFAULT null,
+  pOffSet	integer DEFAULT null,
+  pOrderBy	jsonb DEFAULT null
+) RETURNS	SETOF api.outbox
+AS $$
+BEGIN
+  RETURN QUERY EXECUTE api.sql('api', 'outbox', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

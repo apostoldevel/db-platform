@@ -511,7 +511,7 @@ BEGIN
 	WHEN 'notify' THEN
 	  vType := r.params->>'type';
 	  IF vType = 'object' THEN
-		FOR e IN EXECUTE format('SELECT * FROM api.get_%s($1)', GetEntityCode((pData->>'entity')::uuid)) USING (pData->>'object')::uuid
+		FOR e IN EXECUTE format('SELECT * FROM api.get_%s($1)', GetClassCode((pData->>'class')::uuid)) USING (pData->>'object')::uuid
 		LOOP
 		  RETURN NEXT row_to_json(e);
 		END LOOP;
@@ -525,7 +525,7 @@ BEGIN
 		  mixed := jsonb_build_object('notify', row_to_json(e));
 		END LOOP;
 
-		FOR e IN EXECUTE format('SELECT * FROM api.get_%s($1)', GetEntityCode((pData->>'entity')::uuid)) USING (pData->>'object')::uuid
+		FOR e IN EXECUTE format('SELECT * FROM api.get_%s($1)', GetClassCode((pData->>'class')::uuid)) USING (pData->>'object')::uuid
 		LOOP
 		  mixed := mixed || jsonb_build_object('object', row_to_json(e));
 		END LOOP;
