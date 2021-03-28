@@ -149,7 +149,7 @@ BEGIN
 
   INSERT INTO db.aou SELECT NEW.id, NEW.owner, B'000', B'111'
 	ON CONFLICT (object, userid) DO UPDATE SET deny = B'000', allow = B'111';
-
+/*
   IF NEW.parent IS NOT NULL THEN
     SELECT owner INTO nUserId FROM db.object WHERE id = NEW.parent;
     IF NEW.owner <> nUserId THEN
@@ -159,7 +159,7 @@ BEGIN
 	  END IF;
 	END IF;
   END IF;
-
+*/
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql
