@@ -442,7 +442,7 @@ BEGIN
 
 	RETURN vUserName = d.username AND
 	       array_position(coalesce(JsonbToStrArray(f.types), ARRAY[d.type]), d.type) IS NOT NULL AND
-		   array_position(coalesce(JsonbToNumArray(f.codes), ARRAY[d.code]), d.code) IS NOT NULL AND
+		   array_position(coalesce(JsonbToIntArray(f.codes), ARRAY[d.code]), d.code) IS NOT NULL AND
 		   array_position(coalesce(JsonbToStrArray(f.categories), ARRAY[d.category]), d.category) IS NOT NULL;
 
   WHEN 'geo' THEN
@@ -494,7 +494,8 @@ DECLARE
   r             record;
   e             record;
 
-  nId			uuid;
+  uId			uuid;
+  nId			bigint;
 
   vType			text;
 
@@ -516,11 +517,11 @@ BEGIN
 		  RETURN NEXT row_to_json(e);
 		END LOOP;
 	  ELSIF vType = 'mixed' THEN
-	    nId := pData->>'id';
+	    uId := pData->>'id';
 
         mixed := jsonb_build_object();
 
-		FOR e IN SELECT * FROM Notification WHERE id = nId
+		FOR e IN SELECT * FROM Notification WHERE id = uId
 		LOOP
 		  mixed := jsonb_build_object('notify', row_to_json(e));
 		END LOOP;
@@ -538,16 +539,16 @@ BEGIN
 		  RETURN NEXT e.run;
 		END LOOP;
 	  ELSE
-	    nId := pData->>'id';
-		FOR e IN SELECT * FROM Notification WHERE id = nId
+	    uId := pData->>'id';
+		FOR e IN SELECT * FROM Notification WHERE id = uId
 		LOOP
 		  RETURN NEXT row_to_json(e);
 		END LOOP;
 	  END IF;
 
     WHEN 'notice' THEN
-	  nId := pData->>'id';
-	  FOR e IN SELECT * FROM Notice WHERE id = nId
+	  uId := pData->>'id';
+	  FOR e IN SELECT * FROM Notice WHERE id = uId
 	  LOOP
 		RETURN NEXT row_to_json(e);
 	  END LOOP;
@@ -560,8 +561,8 @@ BEGIN
 	  END LOOP;
 
     WHEN 'geo' THEN
-	  nId := pData->>'id';
-	  FOR e IN SELECT * FROM ObjectCoordinates WHERE id = nId
+	  uId := pData->>'id';
+	  FOR e IN SELECT * FROM ObjectCoordinates WHERE id = uId
 	  LOOP
 		RETURN NEXT row_to_json(e);
 	  END LOOP;
