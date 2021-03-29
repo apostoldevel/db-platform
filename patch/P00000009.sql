@@ -31,9 +31,14 @@ DROP TABLE db.turn_over CASCADE;
 
 \connect :dbname admin
 
+UPDATE db.area SET code = current_database() WHERE code = 'default';
+
 SELECT SignIn(CreateSystemOAuth2(), 'admin', 'admin');
 
 SELECT GetErrorMessage();
+
+SELECT SetDefaultArea(GetArea(current_database()));
+SELECT SetArea(GetArea(current_database()));
 
 SELECT CreateEntityCurrency(GetClass('reference'));
 SELECT CreateEntityAccount(GetClass('document'));
@@ -55,7 +60,5 @@ INSERT INTO db.turnover SELECT id, type, GetAccount(encode(digest(client::text, 
 
 DROP TABLE db._balance;
 DROP TABLE db._turnover;
-
-UPDATE db.area SET code = current_database() WHERE code = 'default';
 
 SELECT SignOut();
