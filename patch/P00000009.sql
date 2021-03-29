@@ -29,9 +29,9 @@ DROP TABLE db.turn_over CASCADE;
 
 --------------------------------------------------------------------------------
 
-\connect :dbname admin
-
 UPDATE db.area SET code = current_database() WHERE code = 'default';
+
+\connect :dbname admin
 
 SELECT SignIn(CreateSystemOAuth2(), 'admin', 'admin');
 
