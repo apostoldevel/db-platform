@@ -1035,6 +1035,36 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- FUNCTION DoRestore ----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION DoRestore (
+  pObject	uuid
+) RETURNS 	jsonb
+AS $$
+BEGIN
+  RETURN ExecuteObjectAction(pObject, GetAction('restore'));
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION DoDrop -------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION DoDrop (
+  pObject	uuid
+) RETURNS 	jsonb
+AS $$
+BEGIN
+  RETURN ExecuteObjectAction(pObject, GetAction('drop'));
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- CreateObjectGroup -----------------------------------------------------------
 --------------------------------------------------------------------------------
 
