@@ -216,18 +216,18 @@ CREATE OR REPLACE FUNCTION api.init_device (
 AS $$
 DECLARE
   uId				uuid;
-  nModel			uuid;
+  uModel			uuid;
 BEGIN
   pIdentity := coalesce(pIdentity, pSerial);
-  nModel := GetModel(pModel);
+  uModel := GetModel(pModel);
 
   SELECT c.id INTO uId FROM db.device c WHERE c.identity = pIdentity;
 
   IF uId IS NULL THEN
-    uId := api.add_device(pParent, pType, nModel, pClient, pIdentity, pVersion, pSerial, pAddress, piccid, pimsi, pLabel, pDescription);
+    uId := api.add_device(pParent, pType, uModel, pClient, pIdentity, pVersion, pSerial, pAddress, piccid, pimsi, pLabel, pDescription);
   ELSE
     PERFORM api.switch_device(uId, pClient);
-    PERFORM api.update_device(uId, pParent, pType, nModel, pClient, pIdentity, pVersion, pSerial, pAddress, piccid, pimsi, pLabel, pDescription);
+    PERFORM api.update_device(uId, pParent, pType, uModel, pClient, pIdentity, pVersion, pSerial, pAddress, piccid, pimsi, pLabel, pDescription);
   END IF;
 
   RETURN QUERY SELECT * FROM api.device WHERE id = uId;

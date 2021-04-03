@@ -70,9 +70,9 @@ CREATE OR REPLACE FUNCTION api.update_model (
 AS $$
 DECLARE
   uType         uuid;
-  nModel        uuid;
+  uModel        uuid;
 BEGIN
-  SELECT t.id INTO nModel FROM db.model t WHERE t.id = pId;
+  SELECT t.id INTO uModel FROM db.model t WHERE t.id = pId;
 
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('модель', 'id', pId);
@@ -84,7 +84,7 @@ BEGIN
     SELECT o.type INTO uType FROM db.object o WHERE o.id = pId;
   END IF;
 
-  PERFORM EditModel(nModel, pParent, uType, pVendor, pCategory, pCode, pName, pDescription);
+  PERFORM EditModel(uModel, pParent, uType, pVendor, pCategory, pCode, pName, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
