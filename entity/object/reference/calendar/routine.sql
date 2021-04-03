@@ -33,25 +33,25 @@ CREATE OR REPLACE FUNCTION CreateCalendar (
 ) RETURNS       uuid
 AS $$
 DECLARE
-  nReference    uuid;
-  nClass        uuid;
-  nMethod       uuid;
+  uReference    uuid;
+  uClass        uuid;
+  uMethod       uuid;
 BEGIN
-  SELECT class INTO nClass FROM db.type WHERE id = pType;
+  SELECT class INTO uClass FROM db.type WHERE id = pType;
 
-  IF GetEntityCode(nClass) <> 'calendar' THEN
+  IF GetEntityCode(uClass) <> 'calendar' THEN
     PERFORM IncorrectClassType();
   END IF;
 
-  nReference := CreateReference(pParent, pType, pCode, pName, pDescription);
+  uReference := CreateReference(pParent, pType, pCode, pName, pDescription);
 
   INSERT INTO db.calendar (id, reference, week, dayoff, holiday, work_start, work_count, rest_start, rest_count)
-  VALUES (nReference, nReference, pWeek, pDayOff, pHoliday, pWorkStart, pWorkCount, pRestStart, pRestCount);
+  VALUES (uReference, uReference, pWeek, pDayOff, pHoliday, pWorkStart, pWorkCount, pRestStart, pRestCount);
 
-  nMethod := GetMethod(nClass, GetAction('create'));
-  PERFORM ExecuteMethod(nReference, nMethod);
+  uMethod := GetMethod(uClass, GetAction('create'));
+  PERFORM ExecuteMethod(uReference, uMethod);
 
-  RETURN nReference;
+  RETURN uReference;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -94,8 +94,8 @@ CREATE OR REPLACE FUNCTION EditCalendar (
 ) RETURNS       void
 AS $$
 DECLARE
-  nClass        uuid;
-  nMethod       uuid;
+  uClass        uuid;
+  uMethod       uuid;
 BEGIN
   PERFORM EditReference(pId, pParent, pType, pCode, pName, pDescription);
 
@@ -109,10 +109,10 @@ BEGIN
          rest_count = coalesce(pRestCount, rest_count)
    WHERE id = pId;
 
-  SELECT class INTO nClass FROM db.object WHERE id = pId;
+  SELECT class INTO uClass FROM db.object WHERE id = pId;
 
-  nMethod := GetMethod(nClass, GetAction('edit'));
-  PERFORM ExecuteMethod(pId, nMethod);
+  uMethod := GetMethod(uClass, GetAction('edit'));
+  PERFORM ExecuteMethod(pId, uMethod);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -149,7 +149,7 @@ CREATE OR REPLACE FUNCTION AddCalendarDate (
 ) RETURNS       uuid
 AS $$
 DECLARE
-  nId           uuid;
+  uId           uuid;
   r             db.calendar%rowtype;
 BEGIN
   SELECT * INTO r FROM db.calendar WHERE id = pCalendar;
@@ -157,9 +157,9 @@ BEGIN
   INSERT INTO db.cdate (calendar, date, flag, work_start, work_count, rest_start, rest_count, userid)
   VALUES (pCalendar, pDate, pFlag, coalesce(pWorkStart, r.work_start), coalesce(pWorkCount, r.work_count),
                                    coalesce(pRestStart, r.rest_start), coalesce(pRestCount, r.rest_count), pUserId)
-  RETURNING id INTO nId;
+  RETURNING id INTO uId;
 
-  RETURN nId;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -223,10 +223,10 @@ CREATE OR REPLACE FUNCTION GetCalendarDate (
 ) RETURNS     uuid
 AS $$
 DECLARE
-  nId         uuid;
+  uId         uuid;
 BEGIN
-  SELECT id INTO nId FROM db.cdate WHERE calendar = pCalendar AND date = pDate AND userid IS NOT DISTINCT FROM pUserId;
-  RETURN nId;
+  SELECT id INTO uId FROM db.cdate WHERE calendar = pCalendar AND date = pDate AND userid IS NOT DISTINCT FROM pUserId;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -278,7 +278,7 @@ CREATE OR REPLACE FUNCTION FillCalendar (
 ) RETURNS     void
 AS $$
 DECLARE
-  nId         uuid;
+  uId         uuid;
 
   i           integer;
   r           db.calendar%rowtype;
@@ -341,11 +341,11 @@ BEGIN
       END LOOP;
     END IF;
 
-    nId := GetCalendarDate(pCalendar, dtCurDate, pUserId);
-    IF nId IS NOT NULL THEN
-      PERFORM EditCalendarDate(nId, pCalendar, dtCurDate, flag, r.work_start, r.work_count, r.rest_start, r.rest_count, pUserId);
+    uId := GetCalendarDate(pCalendar, dtCurDate, pUserId);
+    IF uId IS NOT NULL THEN
+      PERFORM EditCalendarDate(uId, pCalendar, dtCurDate, flag, r.work_start, r.work_count, r.rest_start, r.rest_count, pUserId);
     ELSE
-      nId := AddCalendarDate(pCalendar, dtCurDate, flag, r.work_start, r.work_count, r.rest_start, r.rest_count, pUserId);
+      uId := AddCalendarDate(pCalendar, dtCurDate, flag, r.work_start, r.work_count, r.rest_start, r.rest_count, pUserId);
     END IF;
 
     dtCurDate := dtCurDate + 1;

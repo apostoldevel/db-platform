@@ -36,7 +36,7 @@ BEGIN
 
   SELECT i.provider INTO nProvider FROM oauth2.issuer i WHERE i.code = iss;
 
-  IF NOT found THEN
+  IF NOT FOUND THEN
 	PERFORM IssuerNotFound(coalesce(iss, 'null'));
   END IF;
 
@@ -44,7 +44,7 @@ BEGIN
 
   SELECT a.id, a.secret INTO nAudience, vSecret FROM oauth2.audience a WHERE a.provider = nProvider AND a.code = aud;
 
-  IF NOT found THEN
+  IF NOT FOUND THEN
 	PERFORM AudienceNotFound();
   END IF;
 
@@ -93,7 +93,7 @@ AS $$
 DECLARE
   r             record;
   profile       record;
-  nId           uuid;
+  uId           uuid;
   arResult      text[];
 
   vMessage      text;
@@ -111,13 +111,13 @@ BEGIN
     UNION
     SELECT id, 'phone' AS identifier FROM db.user WHERE phone = pValue AND type = 'U'
   LOOP
-    nId := r.id;
+    uId := r.id;
     arResult := array_append(arResult, r.identifier);
   END LOOP;
 
-  SELECT * INTO profile FROM users WHERE id = nId;
+  SELECT * INTO profile FROM users WHERE id = uId;
 
-  RETURN json_build_object('id', nId, 'username', profile.username, 'name', profile.name, 'email', profile.email, 'phone', profile.phone, 'status', profile.status, 'identifiers', array_to_json(arResult));
+  RETURN json_build_object('id', uId, 'username', profile.username, 'name', profile.name, 'email', profile.email, 'phone', profile.phone, 'status', profile.status, 'identifiers', array_to_json(arResult));
 EXCEPTION
 WHEN others THEN
   GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
@@ -259,7 +259,7 @@ DECLARE
   account       db.user%rowtype;
   profile       db.profile%rowtype;
 
-  nUserId       uuid;
+  uUserId       uuid;
   nProvider     integer;
   nAudience     integer;
   nApplication  integer;
@@ -288,13 +288,13 @@ BEGIN
 
   SELECT i.provider INTO nProvider FROM oauth2.issuer i WHERE i.code = iss;
 
-  IF NOT found THEN
+  IF NOT FOUND THEN
     PERFORM IssuerNotFound(iss);
   END IF;
 
   SELECT a.id, a.application, a.secret INTO nAudience, nApplication, vSecret FROM oauth2.audience a WHERE a.provider = nProvider AND a.code = aud;
 
-  IF NOT found THEN
+  IF NOT FOUND THEN
     PERFORM AudienceNotFound();
   END IF;
 
@@ -338,21 +338,21 @@ BEGIN
 
       profile.interface := GetInterface('all');
 
-      SELECT a.userid INTO nUserId FROM db.auth a WHERE a.audience = nAudience AND a.code = account.username;
+      SELECT a.userid INTO uUserId FROM db.auth a WHERE a.audience = nAudience AND a.code = account.username;
 
       IF NOT FOUND THEN
         jName := jsonb_build_object('name', account.name, 'first', profile.given_name, 'last', profile.family_name);
 
         SELECT * INTO signup FROM api.signup(null, account.username, null, jName, account.phone, account.email, row_to_json(profile)::jsonb);
 
-        nUserId := signup.userid;
+        uUserId := signup.userid;
 
-        INSERT INTO db.auth (userId, audience, code) VALUES (nUserId, nAudience, account.username);
+        INSERT INTO db.auth (userId, audience, code) VALUES (uUserId, nAudience, account.username);
       END IF;
 
       SELECT id INTO nAudience FROM oauth2.audience WHERE provider = GetProvider('default') AND application = nApplication;
 
-      vSession := GetSession(nUserId, CreateOAuth2(nAudience, ARRAY[current_database()]), pAgent, pHost, true);
+      vSession := GetSession(uUserId, CreateOAuth2(nAudience, ARRAY[current_database()]), pAgent, pHost, true);
 
       IF vSession IS NULL THEN
         RAISE EXCEPTION '%', GetErrorMessage();
@@ -520,8 +520,8 @@ BEGIN
 
   SELECT a.id INTO nAudience FROM oauth2.audience a WHERE a.code = pClientId;
 
-  IF NOT found THEN
-    RETURN json_build_object('error', json_build_object('code', 401, 'error', 'invalid_client', 'message', 'The OAuth 2.0 client was not found.'));
+  IF NOT FOUND THEN
+    RETURN json_build_object('error', json_build_object('code', 401, 'error', 'invalid_client', 'message', 'The OAuth 2.0 client was not FOUND.'));
   END IF;
 
   SELECT (hash = crypt(pSecret, hash)) INTO passed
@@ -563,7 +563,7 @@ BEGIN
     SELECT a.redirect_uri INTO vRedirectURI FROM db.oauth2 a WHERE id = nOauth2;
 
     IF NOT FOUND THEN
-      RETURN json_build_object('error', json_build_object('code', 400, 'error', 'invalid_request', 'message', 'The OAuth 2.0 params was not found.'));
+      RETURN json_build_object('error', json_build_object('code', 400, 'error', 'invalid_request', 'message', 'The OAuth 2.0 params was not FOUND.'));
     END IF;
 
     IF vRedirectURI != redirect_uri THEN

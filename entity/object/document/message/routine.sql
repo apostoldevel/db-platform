@@ -26,25 +26,25 @@ CREATE OR REPLACE FUNCTION CreateMessage (
 AS $$
 DECLARE
   nMessage      uuid;
-  nDocument     uuid;
+  uDocument     uuid;
 
-  nClass        uuid;
-  nMethod       uuid;
+  uClass        uuid;
+  uMethod       uuid;
 BEGIN
-  SELECT class INTO nClass FROM db.type WHERE id = pType;
+  SELECT class INTO uClass FROM db.type WHERE id = pType;
 
-  IF GetEntityCode(nClass) <> 'message' THEN
+  IF GetEntityCode(uClass) <> 'message' THEN
     PERFORM IncorrectClassType();
   END IF;
 
-  nDocument := CreateDocument(pParent, pType, null, pDescription);
+  uDocument := CreateDocument(pParent, pType, null, pDescription);
 
   INSERT INTO db.message (id, document, agent, profile, address, subject, content)
-  VALUES (nDocument, nDocument, pAgent, pProfile, pAddress, pSubject, pContent)
+  VALUES (uDocument, uDocument, pAgent, pProfile, pAddress, pSubject, pContent)
   RETURNING id INTO nMessage;
 
-  nMethod := GetMethod(nClass, GetAction('create'));
-  PERFORM ExecuteMethod(nMessage, nMethod);
+  uMethod := GetMethod(uClass, GetAction('create'));
+  PERFORM ExecuteMethod(nMessage, uMethod);
 
   return nMessage;
 END;
@@ -81,8 +81,8 @@ CREATE OR REPLACE FUNCTION EditMessage (
 ) RETURNS 	    void
 AS $$
 DECLARE
-  nClass        uuid;
-  nMethod       uuid;
+  uClass        uuid;
+  uMethod       uuid;
 BEGIN
   PERFORM EditDocument(pId, pParent, pType, null, pDescription);
 
@@ -94,10 +94,10 @@ BEGIN
          content = coalesce(pContent, content)
    WHERE id = pId;
 
-  SELECT class INTO nClass FROM type WHERE id = pType;
+  SELECT class INTO uClass FROM type WHERE id = pType;
 
-  nMethod := GetMethod(nClass, GetAction('edit'));
-  PERFORM ExecuteMethod(pId, nMethod);
+  uMethod := GetMethod(uClass, GetAction('edit'));
+  PERFORM ExecuteMethod(pId, uMethod);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -112,10 +112,10 @@ CREATE OR REPLACE FUNCTION GetMessageId (
 ) RETURNS	uuid
 AS $$
 DECLARE
-  nId		uuid;
+  uId		uuid;
 BEGIN
-  SELECT id INTO nId FROM db.message WHERE code = pCode;
-  RETURN nId;
+  SELECT id INTO uId FROM db.message WHERE code = pCode;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

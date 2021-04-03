@@ -650,7 +650,7 @@ CREATE OR REPLACE FUNCTION rest.method (
 ) RETURNS   	SETOF json
 AS $$
 DECLARE
-  nId       	uuid;
+  uId       	uuid;
 
   r         	record;
   e         	record;
@@ -739,8 +739,8 @@ BEGIN
 
     FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(object uuid, class uuid, classcode text, state uuid, statecode text, action uuid, actioncode text)
     LOOP
-      nId := coalesce(r.class, GetClass(r.classcode), GetObjectClass(r.object));
-      FOR e IN SELECT * FROM api.get_methods(nId, coalesce(r.state, GetState(nId, r.statecode), GetObjectState(r.object)), coalesce(r.action, GetAction(r.actioncode)))
+      uId := coalesce(r.class, GetClass(r.classcode), GetObjectClass(r.object));
+      FOR e IN SELECT * FROM api.get_methods(uId, coalesce(r.state, GetState(uId, r.statecode), GetObjectState(r.object)), coalesce(r.action, GetAction(r.actioncode)))
       LOOP
         RETURN NEXT row_to_json(e);
       END LOOP;

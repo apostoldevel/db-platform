@@ -177,7 +177,7 @@ CREATE UNIQUE INDEX ON db.client_name (client, locale, validFromDate, validToDat
 CREATE OR REPLACE FUNCTION ft_client_name_insert_update()
 RETURNS trigger AS $$
 DECLARE
-  nUserId	uuid;
+  uUserId	uuid;
 BEGIN
   IF NEW.locale IS NULL THEN
     NEW.locale := current_locale();
@@ -209,14 +209,14 @@ BEGIN
 
   UPDATE db.object_text SET label = NEW.name WHERE object = NEW.client AND locale = NEW.locale;
 
-  SELECT UserId INTO nUserId FROM db.client WHERE id = NEW.client;
-  IF nUserId IS NOT NULL THEN
-    UPDATE db.user SET name = NEW.name WHERE id = nUserId;
+  SELECT UserId INTO uUserId FROM db.client WHERE id = NEW.client;
+  IF uUserId IS NOT NULL THEN
+    UPDATE db.user SET name = NEW.name WHERE id = uUserId;
     UPDATE db.profile
        SET given_name = NEW.first,
            family_name = NEW.last,
            patronymic_name = NEW.middle
-     WHERE userId = nUserId;
+     WHERE userId = uUserId;
   END IF;
 
   RETURN NEW;

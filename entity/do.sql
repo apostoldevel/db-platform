@@ -15,11 +15,11 @@ CREATE OR REPLACE FUNCTION DoConfirmEmail (
 ) RETURNS       void
 AS $$
 DECLARE
-  nId			uuid;
+  uId			uuid;
 BEGIN
-  SELECT id INTO nId FROM db.client WHERE userid = pUserId;
-  IF found AND IsEnabled(nId) THEN
-	PERFORM ExecuteObjectAction(nId, GetAction('confirm'));
+  SELECT id INTO uId FROM db.client WHERE userid = pUserId;
+  IF FOUND AND IsEnabled(uId) THEN
+	PERFORM ExecuteObjectAction(uId, GetAction('confirm'));
   END IF;
 END;
 $$ LANGUAGE plpgsql
@@ -39,11 +39,11 @@ CREATE OR REPLACE FUNCTION DoConfirmPhone (
 ) RETURNS       void
 AS $$
 DECLARE
-  nId			uuid;
+  uId			uuid;
 BEGIN
-  SELECT id INTO nId FROM db.client WHERE userid = pUserId;
-  IF found AND IsEnabled(nId) THEN
-	PERFORM ExecuteObjectAction(nId, GetAction('confirm'));
+  SELECT id INTO uId FROM db.client WHERE userid = pUserId;
+  IF FOUND AND IsEnabled(uId) THEN
+	PERFORM ExecuteObjectAction(uId, GetAction('confirm'));
   END IF;
 END;
 $$ LANGUAGE plpgsql
@@ -65,14 +65,14 @@ AS $$
 DECLARE
   r				record;
   result		text[];
-  nClient		uuid;
+  uClient		uuid;
 BEGIN
-  SELECT c.id INTO nClient FROM db.client c WHERE c.userid = pUserId;
+  SELECT c.id INTO uClient FROM db.client c WHERE c.userid = pUserId;
 
   IF NOT FOUND THEN
     result := array_append(result, RegGetValueString('CURRENT_USER', 'CONFIG\Firebase\CloudMessaging', 'Token', pUserId));
   ELSE
-	FOR r IN SELECT address FROM db.device WHERE client = nClient
+	FOR r IN SELECT address FROM db.device WHERE client = uClient
 	LOOP
       result := array_append(result, r.address);
 	END LOOP;

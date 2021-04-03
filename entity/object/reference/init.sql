@@ -14,58 +14,58 @@ AS $$
 DECLARE
   r             record;
 
-  nParent       uuid;
-  nEvent        uuid;
+  uParent       uuid;
+  uEvent        uuid;
 BEGIN
-  nParent := GetEventType('parent');
-  nEvent := GetEventType('event');
+  uParent := GetEventType('parent');
+  uEvent := GetEventType('event');
 
   FOR r IN SELECT * FROM Action
   LOOP
 
     IF r.code = 'create' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Справочник создан', 'EventReferenceCreate();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Справочник создан', 'EventReferenceCreate();');
     END IF;
 
     IF r.code = 'open' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Справочник открыт', 'EventReferenceOpen();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Справочник открыт', 'EventReferenceOpen();');
     END IF;
 
     IF r.code = 'edit' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Справочник изменён', 'EventReferenceEdit();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Справочник изменён', 'EventReferenceEdit();');
     END IF;
 
     IF r.code = 'save' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Справочник сохранён', 'EventReferenceSave();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Справочник сохранён', 'EventReferenceSave();');
     END IF;
 
     IF r.code = 'enable' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Справочник доступен', 'EventReferenceEnable();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Справочник доступен', 'EventReferenceEnable();');
     END IF;
 
     IF r.code = 'disable' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Справочник недоступен', 'EventReferenceDisable();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Справочник недоступен', 'EventReferenceDisable();');
     END IF;
 
     IF r.code = 'delete' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Справочник будет удалён', 'EventReferenceDelete();');
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Справочник будет удалён', 'EventReferenceDelete();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
     END IF;
 
     IF r.code = 'restore' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Справочник восстановлен', 'EventReferenceRestore();');
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Справочник восстановлен', 'EventReferenceRestore();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
     END IF;
 
     IF r.code = 'drop' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Справочник будет уничтожен', 'EventReferenceDrop();');
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Справочник будет уничтожен', 'EventReferenceDrop();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
     END IF;
 
   END LOOP;
@@ -85,18 +85,18 @@ CREATE OR REPLACE FUNCTION CreateClassReference (
 RETURNS         uuid
 AS $$
 DECLARE
-  nClass        uuid;
+  uClass        uuid;
 BEGIN
   -- Класс
-  nClass := AddClass(pParent, pEntity, 'reference', 'Справочник', true);
+  uClass := AddClass(pParent, pEntity, 'reference', 'Справочник', true);
 
   -- Событие
-  PERFORM AddReferenceEvents(nClass);
+  PERFORM AddReferenceEvents(uClass);
 
   -- Метод
-  PERFORM AddDefaultMethods(nClass);
+  PERFORM AddDefaultMethods(uClass);
 
-  RETURN nClass;
+  RETURN uClass;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

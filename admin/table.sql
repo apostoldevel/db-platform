@@ -387,15 +387,15 @@ DECLARE
 
   bSuccess	boolean;
 
-  nUserId	uuid;
+  uUserId	uuid;
 
   vData		Variant;
 
   r         record;
 BEGIN
-  nUserId := current_userid();
+  uUserId := current_userid();
 
-  IF nUserId IS NULL THEN
+  IF uUserId IS NULL THEN
     RETURN NEW;
   END IF;
 
@@ -405,7 +405,7 @@ BEGIN
 
   NEW.state := B'000';
 
-  FOR r IN SELECT area, host FROM db.session WHERE userid = nUserId GROUP BY area, host
+  FOR r IN SELECT area, host FROM db.session WHERE userid = uUserId GROUP BY area, host
   LOOP
     r.host := coalesce(NEW.LC_IP, r.host);
 
@@ -413,7 +413,7 @@ BEGIN
 
       SELECT code INTO vCode FROM db.area WHERE id = r.area;
 
-      IF found THEN
+      IF FOUND THEN
 
         vData := RegGetValue(RegOpenKey('CURRENT_CONFIG', 'CONFIG\Department' || E'\u005C' || vCode || E'\u005C' || 'IPTable'), 'LocalIP');
 

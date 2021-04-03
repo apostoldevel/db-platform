@@ -14,58 +14,58 @@ AS $$
 DECLARE
   r             record;
 
-  nParent       uuid;
-  nEvent        uuid;
+  uParent       uuid;
+  uEvent        uuid;
 BEGIN
-  nParent := GetEventType('parent');
-  nEvent := GetEventType('event');
+  uParent := GetEventType('parent');
+  uEvent := GetEventType('event');
 
   FOR r IN SELECT * FROM Action
   LOOP
 
     IF r.code = 'create' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Планировщик создан', 'EventSchedulerCreate();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Планировщик создан', 'EventSchedulerCreate();');
     END IF;
 
     IF r.code = 'open' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Планировщик открыт', 'EventSchedulerOpen();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Планировщик открыт', 'EventSchedulerOpen();');
     END IF;
 
     IF r.code = 'edit' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Планировщик изменён', 'EventSchedulerEdit();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Планировщик изменён', 'EventSchedulerEdit();');
     END IF;
 
     IF r.code = 'save' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Планировщик сохранён', 'EventSchedulerSave();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Планировщик сохранён', 'EventSchedulerSave();');
     END IF;
 
     IF r.code = 'enable' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Планировщик доступен', 'EventSchedulerEnable();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Планировщик доступен', 'EventSchedulerEnable();');
     END IF;
 
     IF r.code = 'disable' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Планировщик недоступен', 'EventSchedulerDisable();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Планировщик недоступен', 'EventSchedulerDisable();');
     END IF;
 
     IF r.code = 'delete' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Планировщик будет удалён', 'EventSchedulerDelete();');
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Планировщик будет удалён', 'EventSchedulerDelete();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
     END IF;
 
     IF r.code = 'restore' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Планировщик восстановлен', 'EventSchedulerRestore();');
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Планировщик восстановлен', 'EventSchedulerRestore();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
     END IF;
 
     IF r.code = 'drop' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Планировщик будет уничтожен', 'EventSchedulerDrop();');
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Планировщик будет уничтожен', 'EventSchedulerDrop();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
     END IF;
 
   END LOOP;
@@ -85,21 +85,21 @@ CREATE OR REPLACE FUNCTION CreateClassScheduler (
 RETURNS         uuid
 AS $$
 DECLARE
-  nClass        uuid;
+  uClass        uuid;
 BEGIN
   -- Класс
-  nClass := AddClass(pParent, pEntity, 'scheduler', 'Планировщик', false);
+  uClass := AddClass(pParent, pEntity, 'scheduler', 'Планировщик', false);
 
   -- Тип
-  PERFORM AddType(nClass, 'job.scheduler', 'Планировщик', 'Планировщик задач.');
+  PERFORM AddType(uClass, 'job.scheduler', 'Планировщик', 'Планировщик задач.');
 
   -- Событие
-  PERFORM AddSchedulerEvents(nClass);
+  PERFORM AddSchedulerEvents(uClass);
 
   -- Метод
-  PERFORM AddDefaultMethods(nClass);
+  PERFORM AddDefaultMethods(uClass);
 
-  RETURN nClass;
+  RETURN uClass;
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

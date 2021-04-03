@@ -14,31 +14,31 @@ CREATE OR REPLACE FUNCTION CreateJob (
 ) RETURNS           uuid
 AS $$
 DECLARE
-  nDocument         uuid;
-  nClass            uuid;
-  nMethod           uuid;
+  uDocument         uuid;
+  uClass            uuid;
+  uMethod           uuid;
 BEGIN
-  SELECT class INTO nClass FROM db.type WHERE id = pType;
+  SELECT class INTO uClass FROM db.type WHERE id = pType;
 
-  IF GetEntityCode(nClass) <> 'job' THEN
+  IF GetEntityCode(uClass) <> 'job' THEN
     PERFORM IncorrectClassType();
   END IF;
 
-  SELECT id INTO nDocument FROM db.job WHERE code = pCode;
+  SELECT id INTO uDocument FROM db.job WHERE code = pCode;
 
-  IF found THEN
+  IF FOUND THEN
     PERFORM JobExists(pCode);
   END IF;
 
-  nDocument := CreateDocument(pParent, pType, pLabel, pDescription);
+  uDocument := CreateDocument(pParent, pType, pLabel, pDescription);
 
   INSERT INTO db.job (id, document, code, scheduler, program, daterun)
-  VALUES (nDocument, nDocument, pCode, pScheduler, pProgram, pDateRun);
+  VALUES (uDocument, uDocument, pCode, pScheduler, pProgram, pDateRun);
 
-  nMethod := GetMethod(nClass, GetAction('create'));
-  PERFORM ExecuteMethod(nDocument, nMethod);
+  uMethod := GetMethod(uClass, GetAction('create'));
+  PERFORM ExecuteMethod(uDocument, uMethod);
 
-  RETURN nDocument;
+  RETURN uDocument;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -61,20 +61,20 @@ CREATE OR REPLACE FUNCTION EditJob (
 ) RETURNS           void
 AS $$
 DECLARE
-  nDocument         uuid;
+  uDocument         uuid;
   vCode             text;
 
   old               db.job%rowtype;
   new               db.job%rowtype;
 
-  nClass            uuid;
-  nMethod           uuid;
+  uClass            uuid;
+  uMethod           uuid;
 BEGIN
   SELECT code INTO vCode FROM db.job WHERE id = pId;
 
   IF vCode <> coalesce(pCode, vCode) THEN
-    SELECT id INTO nDocument FROM db.job WHERE code = pCode;
-    IF found THEN
+    SELECT id INTO uDocument FROM db.job WHERE code = pCode;
+    IF FOUND THEN
       PERFORM JobExists(pCode);
     END IF;
   END IF;
@@ -92,10 +92,10 @@ BEGIN
 
   SELECT * INTO new FROM db.job WHERE id = pId;
 
-  SELECT class INTO nClass FROM db.object WHERE id = pId;
+  SELECT class INTO uClass FROM db.object WHERE id = pId;
 
-  nMethod := GetMethod(nClass, GetAction('edit'));
-  PERFORM ExecuteMethod(pId, nMethod, jsonb_build_object('old', row_to_json(old), 'new', row_to_json(new)));
+  uMethod := GetMethod(uClass, GetAction('edit'));
+  PERFORM ExecuteMethod(pId, uMethod, jsonb_build_object('old', row_to_json(old), 'new', row_to_json(new)));
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -110,10 +110,10 @@ CREATE OR REPLACE FUNCTION GetJob (
 ) RETURNS	uuid
 AS $$
 DECLARE
-  nId		uuid;
+  uId		uuid;
 BEGIN
-  SELECT id INTO nId FROM db.job WHERE code = pCode;
-  RETURN nId;
+  SELECT id INTO uId FROM db.job WHERE code = pCode;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

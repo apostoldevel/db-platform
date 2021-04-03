@@ -120,22 +120,22 @@ CREATE OR REPLACE FUNCTION api.update_device (
 ) RETURNS			void
 AS $$
 DECLARE
-  nId				uuid;
-  nType				uuid;
+  uId				uuid;
+  uType				uuid;
 BEGIN
-  SELECT c.id INTO nId FROM db.device c WHERE c.id = pId;
+  SELECT c.id INTO uId FROM db.device c WHERE c.id = pId;
 
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('устройство', 'id', pId);
   END IF;
 
   IF pType IS NOT NULL THEN
-    nType := CodeToType(lower(pType), 'device');
+    uType := CodeToType(lower(pType), 'device');
   ELSE
-    SELECT o.type INTO nType FROM db.object o WHERE o.id = pId;
+    SELECT o.type INTO uType FROM db.object o WHERE o.id = pId;
   END IF;
 
-  PERFORM EditDevice(nId, pParent, nType, pModel, pClient, pIdentity, pVersion, pSerial, pAddress, piccid, pimsi, pLabel, pDescription);
+  PERFORM EditDevice(uId, pParent, uType, pModel, pClient, pIdentity, pVersion, pSerial, pAddress, piccid, pimsi, pLabel, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -184,10 +184,10 @@ CREATE OR REPLACE FUNCTION api.switch_device (
 ) RETURNS			void
 AS $$
 DECLARE
-  nClient			uuid;
+  uClient			uuid;
 BEGIN
-  SELECT client INTO nClient FROM db.device WHERE id = pDevice;
-  IF FOUND AND coalesce(pClient, nClient) <> nClient THEN
+  SELECT client INTO uClient FROM db.device WHERE id = pDevice;
+  IF FOUND AND coalesce(pClient, uClient) <> uClient THEN
     PERFORM SwitchDevice(pDevice, pClient);
   END IF;
 END;
@@ -215,22 +215,22 @@ CREATE OR REPLACE FUNCTION api.init_device (
 ) RETURNS			SETOF api.device
 AS $$
 DECLARE
-  nId				uuid;
+  uId				uuid;
   nModel			uuid;
 BEGIN
   pIdentity := coalesce(pIdentity, pSerial);
   nModel := GetModel(pModel);
 
-  SELECT c.id INTO nId FROM db.device c WHERE c.identity = pIdentity;
+  SELECT c.id INTO uId FROM db.device c WHERE c.identity = pIdentity;
 
-  IF nId IS NULL THEN
-    nId := api.add_device(pParent, pType, nModel, pClient, pIdentity, pVersion, pSerial, pAddress, piccid, pimsi, pLabel, pDescription);
+  IF uId IS NULL THEN
+    uId := api.add_device(pParent, pType, nModel, pClient, pIdentity, pVersion, pSerial, pAddress, piccid, pimsi, pLabel, pDescription);
   ELSE
-    PERFORM api.switch_device(nId, pClient);
-    PERFORM api.update_device(nId, pParent, pType, nModel, pClient, pIdentity, pVersion, pSerial, pAddress, piccid, pimsi, pLabel, pDescription);
+    PERFORM api.switch_device(uId, pClient);
+    PERFORM api.update_device(uId, pParent, pType, nModel, pClient, pIdentity, pVersion, pSerial, pAddress, piccid, pimsi, pLabel, pDescription);
   END IF;
 
-  RETURN QUERY SELECT * FROM api.device WHERE id = nId;
+  RETURN QUERY SELECT * FROM api.device WHERE id = uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

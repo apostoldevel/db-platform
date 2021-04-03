@@ -61,22 +61,22 @@ CREATE OR REPLACE FUNCTION api.update_reference (
 ) RETURNS       void
 AS $$
 DECLARE
-  nType         uuid;
-  nReference	uuid;
+  uType         uuid;
+  uReference	uuid;
 BEGIN
-  SELECT t.id INTO nReference FROM db.reference t WHERE t.id = pId;
+  SELECT t.id INTO uReference FROM db.reference t WHERE t.id = pId;
 
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('справочник', 'id', pId);
   END IF;
 
   IF pType IS NOT NULL THEN
-    nType := GetType(lower(pType));
+    uType := GetType(lower(pType));
   ELSE
-    SELECT o.type INTO nType FROM db.object o WHERE o.id = pId;
+    SELECT o.type INTO uType FROM db.object o WHERE o.id = pId;
   END IF;
 
-  PERFORM EditReference(nReference, pParent, nType, pCode, pName, pDescription);
+  PERFORM EditReference(uReference, pParent, uType, pCode, pName, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

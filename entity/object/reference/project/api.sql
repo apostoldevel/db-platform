@@ -61,22 +61,22 @@ CREATE OR REPLACE FUNCTION api.update_project (
 ) RETURNS       void
 AS $$
 DECLARE
-  nType         uuid;
-  nProject       uuid;
+  uType			uuid;
+  uProject		uuid;
 BEGIN
-  SELECT t.id INTO nProject FROM db.project t WHERE t.id = pId;
+  SELECT t.id INTO uProject FROM db.project t WHERE t.id = pId;
 
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('проект', 'id', pId);
   END IF;
 
   IF pType IS NOT NULL THEN
-    nType := CodeToType(lower(pType), 'project');
+    uType := CodeToType(lower(pType), 'project');
   ELSE
-    SELECT o.type INTO nType FROM db.object o WHERE o.id = pId;
+    SELECT o.type INTO uType FROM db.object o WHERE o.id = pId;
   END IF;
 
-  PERFORM EditProject(nProject, pParent, nType, pCode, pName, pDescription);
+  PERFORM EditProject(uProject, pParent, uType, pCode, pName, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

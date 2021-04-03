@@ -25,12 +25,12 @@ CREATE OR REPLACE FUNCTION NewClientName (
 ) RETURNS 	    void
 AS $$
 DECLARE
-  nId		    uuid;
+  uId		    uuid;
 
   dtDateFrom    timestamp;
   dtDateTo 	    timestamp;
 BEGIN
-  nId := null;
+  uId := null;
 
   pName := NULLIF(trim(pName), '');
   pShort := NULLIF(trim(pShort), '');
@@ -96,7 +96,7 @@ CREATE OR REPLACE FUNCTION EditClientName (
 ) RETURNS 	    void
 AS $$
 DECLARE
-  nMethod	    uuid;
+  uMethod	    uuid;
 
   vHash		    text;
   cHash		    text;
@@ -117,8 +117,8 @@ BEGIN
   IF vHash <> cHash THEN
     PERFORM NewClientName(pClient, pName, CheckNull(pShort), CheckNull(pFirst), CheckNull(pLast), CheckNull(pMiddle), pLocale, pDateFrom);
 
-    nMethod := GetMethod(GetObjectClass(pClient), GetAction('edit'));
-    PERFORM ExecuteMethod(pClient, nMethod);
+    uMethod := GetMethod(GetObjectClass(pClient), GetAction('edit'));
+    PERFORM ExecuteMethod(pClient, uMethod);
   END IF;
 END;
 $$ LANGUAGE plpgsql
@@ -275,28 +275,28 @@ CREATE OR REPLACE FUNCTION CreateClient (
 ) RETURNS 	    uuid
 AS $$
 DECLARE
-  nId		    uuid;
-  nClient	    uuid;
-  nDocument	    uuid;
+  uId		    uuid;
+  uClient	    uuid;
+  uDocument	    uuid;
 
   cn            record;
 
-  nClass	    uuid;
-  nMethod	    uuid;
+  uClass	    uuid;
+  uMethod	    uuid;
 BEGIN
-  SELECT class INTO nClass FROM db.type WHERE id = pType;
+  SELECT class INTO uClass FROM db.type WHERE id = pType;
 
-  IF GetEntityCode(nClass) <> 'client' THEN
+  IF GetEntityCode(uClass) <> 'client' THEN
     PERFORM IncorrectClassType();
   END IF;
 
-  SELECT id INTO nId FROM db.client WHERE code = pCode;
+  SELECT id INTO uId FROM db.client WHERE code = pCode;
 
-  IF found THEN
+  IF FOUND THEN
     PERFORM ClientCodeExists(pCode);
   END IF;
 
-  nDocument := CreateDocument(pParent, pType, null, pDescription);
+  uDocument := CreateDocument(pParent, pType, null, pDescription);
 
   SELECT * INTO cn FROM jsonb_to_record(pName) AS x(name text, short text, first text, last text, middle text);
 
@@ -309,15 +309,15 @@ BEGIN
   END IF;
 
   INSERT INTO db.client (id, document, code, creation, userid, phone, email, info)
-  VALUES (nDocument, nDocument, pCode, pCreation, pUserId, pPhone, pEmail, pInfo)
-  RETURNING id INTO nClient;
+  VALUES (uDocument, uDocument, pCode, pCreation, pUserId, pPhone, pEmail, pInfo)
+  RETURNING id INTO uClient;
 
-  PERFORM NewClientName(nClient, cn.name, cn.short, cn.first, cn.last, cn.middle);
+  PERFORM NewClientName(uClient, cn.name, cn.short, cn.first, cn.last, cn.middle);
 
-  nMethod := GetMethod(nClass, GetAction('create'));
-  PERFORM ExecuteMethod(nClient, nMethod);
+  uMethod := GetMethod(uClass, GetAction('create'));
+  PERFORM ExecuteMethod(uClient, uMethod);
 
-  RETURN nClient;
+  RETURN uClient;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -356,8 +356,8 @@ CREATE OR REPLACE FUNCTION EditClient (
 ) RETURNS 	    void
 AS $$
 DECLARE
-  nId		    uuid;
-  nMethod	    uuid;
+  uId		    uuid;
+  uMethod	    uuid;
 
   r             record;
 
@@ -374,8 +374,8 @@ BEGIN
   pUserId := coalesce(pUserId, cUserId, null_uuid());
 
   IF pCode <> cCode THEN
-    SELECT id INTO nId FROM db.client WHERE code = pCode;
-    IF found THEN
+    SELECT id INTO uId FROM db.client WHERE code = pCode;
+    IF FOUND THEN
       PERFORM ClientCodeExists(pCode);
     END IF;
   END IF;
@@ -400,8 +400,8 @@ BEGIN
 
   SELECT * INTO new FROM Client WHERE id = pId;
 
-  nMethod := GetMethod(GetObjectClass(pId), GetAction('edit'));
-  PERFORM ExecuteMethod(pId, nMethod, jsonb_build_object('old', row_to_json(old), 'new', row_to_json(new)));
+  uMethod := GetMethod(GetObjectClass(pId), GetAction('edit'));
+  PERFORM ExecuteMethod(pId, uMethod, jsonb_build_object('old', row_to_json(old), 'new', row_to_json(new)));
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -416,10 +416,10 @@ CREATE OR REPLACE FUNCTION GetClient (
 ) RETURNS	uuid
 AS $$
 DECLARE
-  nId		uuid;
+  uId		uuid;
 BEGIN
-  SELECT id INTO nId FROM db.client WHERE code = pCode;
-  RETURN nId;
+  SELECT id INTO uId FROM db.client WHERE code = pCode;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -452,10 +452,10 @@ CREATE OR REPLACE FUNCTION GetClientUserId (
 ) RETURNS	uuid
 AS $$
 DECLARE
-  nUserId	uuid;
+  uUserId	uuid;
 BEGIN
-  SELECT userid INTO nUserId FROM db.client WHERE id = pClient;
-  RETURN nUserId;
+  SELECT userid INTO uUserId FROM db.client WHERE id = pClient;
+  RETURN uUserId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -470,10 +470,10 @@ CREATE OR REPLACE FUNCTION GetClientByUserId (
 ) RETURNS       uuid
 AS $$
 DECLARE
-  nId           uuid;
+  uId           uuid;
 BEGIN
-  SELECT id INTO nId FROM db.client WHERE userid = pUserId;
-  RETURN nId;
+  SELECT id INTO uId FROM db.client WHERE userid = pUserId;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

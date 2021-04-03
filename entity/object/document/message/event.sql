@@ -214,7 +214,7 @@ CREATE OR REPLACE FUNCTION EventMessageConfirmEmail (
 ) RETURNS		void
 AS $$
 DECLARE
-  nUserId       uuid;
+  uUserId       uuid;
   vCode			text;
   vName			text;
   vDomain       text;
@@ -231,24 +231,24 @@ DECLARE
   vDescription  text;
   bVerified		bool;
 BEGIN
-  SELECT userid INTO nUserId FROM db.client WHERE id = pObject;
-  IF nUserId IS NOT NULL THEN
+  SELECT userid INTO uUserId FROM db.client WHERE id = pObject;
+  IF uUserId IS NOT NULL THEN
 
     IF pParams IS NOT NULL THEN
-	  UPDATE db.client SET email = pParams WHERE id = nUserId;
+	  UPDATE db.client SET email = pParams WHERE id = uUserId;
 	END IF;
 
 	SELECT username, name, email, email_verified, locale INTO vUserName, vName, vEmail, bVerified
 	  FROM db.user u INNER JOIN db.profile p ON u.id = p.userid
-	 WHERE id = nUserId;
+	 WHERE id = uUserId;
 
 	IF vEmail IS NOT NULL AND NOT bVerified THEN
 
-	  vProject := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Name', nUserId);
-	  vHost := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Host', nUserId);
-	  vDomain := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Domain', nUserId);
+	  vProject := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Name', uUserId);
+	  vHost := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Host', uUserId);
+	  vDomain := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Domain', uUserId);
 
-	  vCode := GetVerificationCode(NewVerificationCode(nUserId));
+	  vCode := GetVerificationCode(NewVerificationCode(uUserId));
 
 	  vNoReply := format('noreply@%s', vDomain);
 	  vSupport := format('support@%s', vDomain);
@@ -282,7 +282,7 @@ CREATE OR REPLACE FUNCTION EventMessageAccountInfo (
 ) RETURNS		void
 AS $$
 DECLARE
-  nUserId       uuid;
+  uUserId       uuid;
   vSecret       text;
   vName			text;
   vDomain       text;
@@ -299,17 +299,17 @@ DECLARE
   vDescription  text;
   bVerified		bool;
 BEGIN
-  SELECT userid INTO nUserId FROM db.client WHERE id = pObject;
-  IF nUserId IS NOT NULL THEN
+  SELECT userid INTO uUserId FROM db.client WHERE id = pObject;
+  IF uUserId IS NOT NULL THEN
 
 	SELECT username, name, encode(hmac(secret::text, GetSecretKey(), 'sha512'), 'hex'), email, email_verified INTO vUserName, vName, vSecret, vEmail, bVerified
 	  FROM db.user u INNER JOIN db.profile p ON u.id = p.userid
-	 WHERE id = nUserId;
+	 WHERE id = uUserId;
 
 	IF vEmail IS NOT NULL AND bVerified THEN
-	  vProject := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Name', nUserId);
-	  vHost := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Host', nUserId);
-	  vDomain := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Domain', nUserId);
+	  vProject := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Name', uUserId);
+	  vHost := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Host', uUserId);
+	  vDomain := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Domain', uUserId);
 
 	  vNoReply := format('noreply@%s', vDomain);
 	  vSupport := format('support@%s', vDomain);

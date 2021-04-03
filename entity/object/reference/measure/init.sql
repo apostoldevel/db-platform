@@ -14,58 +14,58 @@ AS $$
 DECLARE
   r             record;
 
-  nParent       uuid;
-  nEvent        uuid;
+  uParent       uuid;
+  uEvent        uuid;
 BEGIN
-  nParent := GetEventType('parent');
-  nEvent := GetEventType('event');
+  uParent := GetEventType('parent');
+  uEvent := GetEventType('event');
 
   FOR r IN SELECT * FROM Action
   LOOP
 
     IF r.code = 'create' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Мера создана', 'EventMeasureCreate();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Мера создана', 'EventMeasureCreate();');
     END IF;
 
     IF r.code = 'open' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Мера открыта', 'EventMeasureOpen();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Мера открыта', 'EventMeasureOpen();');
     END IF;
 
     IF r.code = 'edit' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Мера изменена', 'EventMeasureEdit();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Мера изменена', 'EventMeasureEdit();');
     END IF;
 
     IF r.code = 'save' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Мера сохранена', 'EventMeasureSave();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Мера сохранена', 'EventMeasureSave();');
     END IF;
 
     IF r.code = 'enable' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Мера доступна', 'EventMeasureEnable();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Мера доступна', 'EventMeasureEnable();');
     END IF;
 
     IF r.code = 'disable' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Мера недоступна', 'EventMeasureDisable();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Мера недоступна', 'EventMeasureDisable();');
     END IF;
 
     IF r.code = 'delete' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Мера будет удалена', 'EventMeasureDelete();');
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Мера будет удалена', 'EventMeasureDelete();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
     END IF;
 
     IF r.code = 'restore' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Мера восстановлена', 'EventMeasureRestore();');
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Мера восстановлена', 'EventMeasureRestore();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
     END IF;
 
     IF r.code = 'drop' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Мера будет уничтожена', 'EventMeasureDrop();');
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Мера будет уничтожена', 'EventMeasureDrop();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
     END IF;
 
   END LOOP;
@@ -85,23 +85,27 @@ CREATE OR REPLACE FUNCTION CreateClassMeasure (
 RETURNS         uuid
 AS $$
 DECLARE
-  nClass        uuid;
+  uClass        uuid;
 BEGIN
   -- Класс
-  nClass := AddClass(pParent, pEntity, 'measure', 'Мера', false);
+  uClass := AddClass(pParent, pEntity, 'measure', 'Мера', false);
 
   -- Тип
-  PERFORM AddType(nClass, 'quantity.measure', 'Количество', 'Единица измерения количества.');
-  PERFORM AddType(nClass, 'time.measure', 'Время', 'Единица измерения времени.');
-  PERFORM AddType(nClass, 'power.measure', 'Мощность', 'Единица измерения мощность.');
+  PERFORM AddType(uClass, 'quantity.measure', 'Количество', 'Единица измерения количества вещества.');
+  PERFORM AddType(uClass, 'length.measure', 'Длина', 'Числовая характеристика протяжённости линий.');
+  PERFORM AddType(uClass, 'weight.measure', 'Масса', 'Единица измерения массы тела.');
+  PERFORM AddType(uClass, 'time.measure', 'Время', 'Единица измерения времени.');
+  PERFORM AddType(uClass, 'power.measure', 'Мощность', 'Единица измерения мощности.');
+  PERFORM AddType(uClass, 'amperage.measure', 'Сила тока', 'Единица измерения силы тока.');
+  PERFORM AddType(uClass, 'voltage.measure', 'Напряжение', 'Единица измерения напряжения.');
 
   -- Событие
-  PERFORM AddMeasureEvents(nClass);
+  PERFORM AddMeasureEvents(uClass);
 
   -- Метод
-  PERFORM AddDefaultMethods(nClass, ARRAY['Создана', 'Открыта', 'Закрыта', 'Удалена', 'Открыть', 'Закрыть', 'Удалить']);
+  PERFORM AddDefaultMethods(uClass, ARRAY['Создана', 'Открыта', 'Закрыта', 'Удалена', 'Открыть', 'Закрыть', 'Удалить']);
 
-  RETURN nClass;
+  RETURN uClass;
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

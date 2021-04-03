@@ -61,7 +61,7 @@ CREATE OR REPLACE FUNCTION api.update_vendor (
 ) RETURNS       void
 AS $$
 DECLARE
-  nType         uuid;
+  uType         uuid;
   nVendor       uuid;
 BEGIN
   SELECT t.id INTO nVendor FROM db.vendor t WHERE t.id = pId;
@@ -71,12 +71,12 @@ BEGIN
   END IF;
 
   IF pType IS NOT NULL THEN
-    nType := CodeToType(lower(pType), 'vendor');
+    uType := CodeToType(lower(pType), 'vendor');
   ELSE
-    SELECT o.type INTO nType FROM db.object o WHERE o.id = pId;
+    SELECT o.type INTO uType FROM db.object o WHERE o.id = pId;
   END IF;
 
-  PERFORM EditVendor(nVendor, pParent, nType, pCode, pName, pDescription);
+  PERFORM EditVendor(nVendor, pParent, uType, pCode, pName, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

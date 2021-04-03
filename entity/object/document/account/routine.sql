@@ -40,7 +40,7 @@ BEGIN
 
   SELECT id INTO uId FROM db.account WHERE currency = pCurrency AND code = pCode;
 
-  IF found THEN
+  IF FOUND THEN
     PERFORM AccountCodeExists(pCode);
   END IF;
 
@@ -103,7 +103,7 @@ BEGIN
 
   IF pCode <> cCode THEN
     SELECT id INTO uId FROM db.account WHERE currency = pCurrency AND code = pCode;
-    IF found THEN
+    IF FOUND THEN
       PERFORM AccountCodeExists(pCode);
     END IF;
   END IF;

@@ -142,7 +142,7 @@ CREATE TRIGGER t_object_before_insert
 CREATE OR REPLACE FUNCTION db.ft_object_after_insert()
 RETURNS trigger AS $$
 DECLARE
-  nUserId	uuid;
+--  uUserId	uuid;
 BEGIN
   INSERT INTO db.aom SELECT NEW.id;
   INSERT INTO db.aou (object, userid, deny, allow) SELECT NEW.id, userid, SubString(deny FROM 3 FOR 3), SubString(allow FROM 3 FOR 3) FROM db.acu WHERE class = NEW.class;
@@ -151,11 +151,11 @@ BEGIN
 	ON CONFLICT (object, userid) DO UPDATE SET deny = B'000', allow = B'111';
 /*
   IF NEW.parent IS NOT NULL THEN
-    SELECT owner INTO nUserId FROM db.object WHERE id = NEW.parent;
-    IF NEW.owner <> nUserId THEN
-	  UPDATE db.aou SET allow = allow | B'100' WHERE object = NEW.id AND userid = nUserId;
+    SELECT owner INTO uUserId FROM db.object WHERE id = NEW.parent;
+    IF NEW.owner <> uUserId THEN
+	  UPDATE db.aou SET allow = allow | B'100' WHERE object = NEW.id AND userid = uUserId;
 	  IF NOT FOUND THEN
-		INSERT INTO db.aou SELECT NEW.id, nUserId, B'000', B'100';
+		INSERT INTO db.aou SELECT NEW.id, uUserId, B'000', B'100';
 	  END IF;
 	END IF;
   END IF;

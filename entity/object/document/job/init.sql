@@ -249,88 +249,88 @@ AS $$
 DECLARE
   r             record;
 
-  nParent       uuid;
-  nEvent        uuid;
+  uParent       uuid;
+  uEvent        uuid;
 BEGIN
-  nParent := GetEventType('parent');
-  nEvent := GetEventType('event');
+  uParent := GetEventType('parent');
+  uEvent := GetEventType('event');
 
   FOR r IN SELECT * FROM Action
   LOOP
 
     IF r.code = 'create' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Задание создано', 'EventJobCreate();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Задание создано', 'EventJobCreate();');
     END IF;
 
     IF r.code = 'open' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Задание открыто', 'EventJobOpen();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Задание открыто', 'EventJobOpen();');
     END IF;
 
     IF r.code = 'edit' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Задание изменено', 'EventJobEdit();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Задание изменено', 'EventJobEdit();');
     END IF;
 
     IF r.code = 'save' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Задание сохранено', 'EventJobSave();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Задание сохранено', 'EventJobSave();');
     END IF;
 
     IF r.code = 'enable' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Задание включено', 'EventJobEnable();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Задание включено', 'EventJobEnable();');
     END IF;
 
     IF r.code = 'disable' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Задание отключено', 'EventJobDisable();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Задание отключено', 'EventJobDisable();');
     END IF;
 
     IF r.code = 'execute' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Смена состояния', 'ChangeObjectState();');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Задание выполняется', 'EventJobExecute();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Смена состояния', 'ChangeObjectState();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Задание выполняется', 'EventJobExecute();');
     END IF;
 
     IF r.code = 'complete' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Задание завершено', 'EventJobComplete();');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Смена состояния', 'ChangeObjectState();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Задание завершено', 'EventJobComplete();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Смена состояния', 'ChangeObjectState();');
     END IF;
 
     IF r.code = 'done' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Смена состояния', 'ChangeObjectState();');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Задание выполнено', 'EventJobDone();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Смена состояния', 'ChangeObjectState();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Задание выполнено', 'EventJobDone();');
     END IF;
 
     IF r.code = 'fail' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Смена состояния', 'ChangeObjectState();');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Сбой при выполнении задания', 'EventJobFail();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Смена состояния', 'ChangeObjectState();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Сбой при выполнении задания', 'EventJobFail();');
     END IF;
 
     IF r.code = 'abort' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Смена состояния', 'ChangeObjectState();');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Задание прервано', 'EventJobAbort();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Смена состояния', 'ChangeObjectState();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Задание прервано', 'EventJobAbort();');
     END IF;
 
     IF r.code = 'cancel' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Смена состояния', 'ChangeObjectState();');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Задание отменено', 'EventJobCancel();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Смена состояния', 'ChangeObjectState();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Задание отменено', 'EventJobCancel();');
     END IF;
 
     IF r.code = 'delete' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Задание будет удалено', 'EventJobDelete();');
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Задание будет удалено', 'EventJobDelete();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
     END IF;
 
     IF r.code = 'restore' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Задание восстановлено', 'EventJobRestore();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Задание восстановлено', 'EventJobRestore();');
     END IF;
 
     IF r.code = 'drop' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Задание будет уничтожено', 'EventJobDrop();');
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Задание будет уничтожено', 'EventJobDrop();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
     END IF;
 
   END LOOP;
@@ -350,22 +350,22 @@ CREATE OR REPLACE FUNCTION CreateClassJob (
 RETURNS         uuid
 AS $$
 DECLARE
-  nClass        uuid;
+  uClass        uuid;
 BEGIN
   -- Класс
-  nClass := AddClass(pParent, pEntity, 'job', 'Задание', false);
+  uClass := AddClass(pParent, pEntity, 'job', 'Задание', false);
 
   -- Тип
-  PERFORM AddType(nClass, 'periodic.job', 'Периодическое', 'Периодическое задание.');
-  PERFORM AddType(nClass, 'disposable.job', 'Разовое', 'Разовое задание.');
+  PERFORM AddType(uClass, 'periodic.job', 'Периодическое', 'Периодическое задание.');
+  PERFORM AddType(uClass, 'disposable.job', 'Разовое', 'Разовое задание.');
 
   -- Событие
-  PERFORM AddJobEvents(nClass);
+  PERFORM AddJobEvents(uClass);
 
   -- Метод
-  PERFORM AddJobMethods(nClass);
+  PERFORM AddJobMethods(uClass);
 
-  RETURN nClass;
+  RETURN uClass;
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

@@ -23,25 +23,25 @@ CREATE OR REPLACE FUNCTION CreateCurrency (
 ) RETURNS       uuid
 AS $$
 DECLARE
-  nReference	uuid;
-  nClass        uuid;
-  nMethod       uuid;
+  uReference	uuid;
+  uClass        uuid;
+  uMethod       uuid;
 BEGIN
-  SELECT class INTO nClass FROM db.type WHERE id = pType;
+  SELECT class INTO uClass FROM db.type WHERE id = pType;
 
-  IF GetEntityCode(nClass) <> 'currency' THEN
+  IF GetEntityCode(uClass) <> 'currency' THEN
     PERFORM IncorrectClassType();
   END IF;
 
-  nReference := CreateReference(pParent, pType, pCode, pName, pDescription);
+  uReference := CreateReference(pParent, pType, pCode, pName, pDescription);
 
   INSERT INTO db.currency (id, reference, digital, decimal)
-  VALUES (nReference, nReference, pDigital, pDecimal);
+  VALUES (uReference, uReference, pDigital, pDecimal);
 
-  nMethod := GetMethod(nClass, GetAction('create'));
-  PERFORM ExecuteMethod(nReference, nMethod);
+  uMethod := GetMethod(uClass, GetAction('create'));
+  PERFORM ExecuteMethod(uReference, uMethod);
 
-  RETURN nReference;
+  RETURN uReference;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -74,8 +74,8 @@ CREATE OR REPLACE FUNCTION EditCurrency (
 ) RETURNS       void
 AS $$
 DECLARE
-  nClass        uuid;
-  nMethod       uuid;
+  uClass        uuid;
+  uMethod       uuid;
 BEGIN
   PERFORM EditReference(pId, pParent, pType, pCode, pName, pDescription);
 
@@ -84,10 +84,10 @@ BEGIN
          decimal = coalesce(pDecimal, decimal)
    WHERE id = pId;
 
-  SELECT class INTO nClass FROM db.object WHERE id = pId;
+  SELECT class INTO uClass FROM db.object WHERE id = pId;
 
-  nMethod := GetMethod(nClass, GetAction('edit'));
-  PERFORM ExecuteMethod(pId, nMethod);
+  uMethod := GetMethod(uClass, GetAction('edit'));
+  PERFORM ExecuteMethod(pId, uMethod);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

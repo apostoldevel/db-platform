@@ -14,58 +14,58 @@ AS $$
 DECLARE
   r             record;
 
-  nParent       uuid;
-  nEvent        uuid;
+  uParent       uuid;
+  uEvent        uuid;
 BEGIN
-  nParent := GetEventType('parent');
-  nEvent := GetEventType('event');
+  uParent := GetEventType('parent');
+  uEvent := GetEventType('event');
 
   FOR r IN SELECT * FROM Action
   LOOP
 
     IF r.code = 'create' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Агент создан', 'EventAgentCreate();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Агент создан', 'EventAgentCreate();');
     END IF;
 
     IF r.code = 'open' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Агент открыт', 'EventAgentOpen();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Агент открыт', 'EventAgentOpen();');
     END IF;
 
     IF r.code = 'edit' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Агент изменён', 'EventAgentEdit();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Агент изменён', 'EventAgentEdit();');
     END IF;
 
     IF r.code = 'save' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Агент сохранён', 'EventAgentSave();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Агент сохранён', 'EventAgentSave();');
     END IF;
 
     IF r.code = 'enable' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Агент доступен', 'EventAgentEnable();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Агент доступен', 'EventAgentEnable();');
     END IF;
 
     IF r.code = 'disable' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Агент недоступен', 'EventAgentDisable();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Агент недоступен', 'EventAgentDisable();');
     END IF;
 
     IF r.code = 'delete' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Агент будет удалён', 'EventAgentDelete();');
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Агент будет удалён', 'EventAgentDelete();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
     END IF;
 
     IF r.code = 'restore' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Агент восстановлен', 'EventAgentRestore();');
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Агент восстановлен', 'EventAgentRestore();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
     END IF;
 
     IF r.code = 'drop' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Агент будет уничтожен', 'EventAgentDrop();');
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Агент будет уничтожен', 'EventAgentDrop();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
     END IF;
 
   END LOOP;
@@ -85,24 +85,24 @@ CREATE OR REPLACE FUNCTION CreateClassAgent (
 RETURNS         uuid
 AS $$
 DECLARE
-  nClass        uuid;
+  uClass        uuid;
 BEGIN
   -- Класс
-  nClass := AddClass(pParent, pEntity, 'agent', 'Агент', false);
+  uClass := AddClass(pParent, pEntity, 'agent', 'Агент', false);
 
   -- Тип
-  PERFORM AddType(nClass, 'system.agent', 'Системные сообщения', 'Агент для доставки системных сообщений.');
-  PERFORM AddType(nClass, 'api.agent', 'API', 'Агент для выполения API (REST/SOAP/RPC) запросов к внешним системам.');
-  PERFORM AddType(nClass, 'email.agent', 'Электронная почта', 'Агент для обработки электронной почты.');
-  PERFORM AddType(nClass, 'stream.agent', 'Потоковые данные', 'Агент для обработки потоковых данных.');
+  PERFORM AddType(uClass, 'system.agent', 'Системные сообщения', 'Агент для доставки системных сообщений.');
+  PERFORM AddType(uClass, 'api.agent', 'API', 'Агент для выполения API (REST/SOAP/RPC) запросов к внешним системам.');
+  PERFORM AddType(uClass, 'email.agent', 'Электронная почта', 'Агент для обработки электронной почты.');
+  PERFORM AddType(uClass, 'stream.agent', 'Потоковые данные', 'Агент для обработки потоковых данных.');
 
   -- Событие
-  PERFORM AddAgentEvents(nClass);
+  PERFORM AddAgentEvents(uClass);
 
   -- Метод
-  PERFORM AddDefaultMethods(nClass);
+  PERFORM AddDefaultMethods(uClass);
 
-  RETURN nClass;
+  RETURN uClass;
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

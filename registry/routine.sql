@@ -197,19 +197,19 @@ CREATE OR REPLACE FUNCTION RegSetValue (
 ) RETURNS	    uuid
 AS $$
 DECLARE
-  nId		    uuid;
+  uId		    uuid;
 BEGIN
-  SELECT id INTO nId FROM registry.value WHERE id = pKey;
+  SELECT id INTO uId FROM registry.value WHERE id = pKey;
 
-  IF not found THEN
+  IF not FOUND THEN
 
-    SELECT id INTO nId FROM registry.value WHERE key = pKey AND vname = coalesce(pValueName, 'default');
+    SELECT id INTO uId FROM registry.value WHERE key = pKey AND vname = coalesce(pValueName, 'default');
 
-    IF not found THEN
+    IF not FOUND THEN
 
       INSERT INTO registry.value (key, vname, vtype, vinteger, vnumeric, vdatetime, vstring, vboolean)
       VALUES (pKey, pValueName, pData.vType, pData.vInteger, pData.vNumeric, pData.vDateTime, pData.vString, pData.vBoolean)
-      RETURNING id INTO nId;
+      RETURNING id INTO uId;
 
     ELSE
 
@@ -220,7 +220,7 @@ BEGIN
              vdatetime = coalesce(pData.vDateTime, vdatetime),
              vstring = coalesce(pData.vString, vstring),
              vboolean = coalesce(pData.vBoolean, vboolean)
-       WHERE id = nId;
+       WHERE id = uId;
 
     END IF;
 
@@ -234,11 +234,11 @@ BEGIN
            vdatetime = coalesce(pData.vDateTime, vdatetime),
            vstring = coalesce(pData.vString, vstring),
            vboolean = coalesce(pData.vBoolean, vboolean)
-     WHERE id = nId;
+     WHERE id = uId;
 
   END IF;
 
-  RETURN nId;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -264,11 +264,11 @@ DECLARE
 BEGIN
   SELECT id INTO nId FROM registry.value WHERE id = pKey;
 
-  IF not found THEN
+  IF not FOUND THEN
 
     SELECT id INTO nId FROM registry.value WHERE key = pKey AND vname = coalesce(pValueName, 'default');
 
-    IF not found THEN
+    IF not FOUND THEN
 
       INSERT INTO registry.value (key, vname, vtype, vinteger, vnumeric, vdatetime, vstring, vboolean)
       VALUES (pKey, pValueName, pType, pInteger, pNumeric, pDateTime, pString, pBoolean)
@@ -460,7 +460,7 @@ AS $$
 DECLARE
   nId		uuid;
   nRoot		uuid;
-  nParent	uuid;
+  uParent	uuid;
 
   arKey		text[];
   i		    integer;
@@ -489,10 +489,10 @@ BEGIN
 
     FOR i IN 1..array_length(arKey, 1)
     LOOP
-      nParent := coalesce(nId, nRoot);
-      nId := GetRegKey(nParent, arKey[i]);
+      uParent := coalesce(nId, nRoot);
+      nId := GetRegKey(uParent, arKey[i]);
       IF nId IS NULL THEN
-        nId := AddRegKey(nRoot, nParent, arKey[i]);
+        nId := AddRegKey(nRoot, uParent, arKey[i]);
       END IF;
     END LOOP;
   END IF;

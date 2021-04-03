@@ -29,10 +29,10 @@ CREATE OR REPLACE FUNCTION api.new_verification_code (
 ) RETURNS       SETOF api.verification_code
 AS $$
 DECLARE
-  nId           uuid;
+  uId           uuid;
 BEGIN
-  nId := NewVerificationCode(pUserId, pType, pCode);
-  RETURN QUERY SELECT * FROM api.verification_code WHERE id = nId;
+  uId := NewVerificationCode(pUserId, pType, pCode);
+  RETURN QUERY SELECT * FROM api.verification_code WHERE id = uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -56,22 +56,22 @@ CREATE OR REPLACE FUNCTION api.confirm_verification_code (
 ) RETURNS       record
 AS $$
 DECLARE
-  nUserId		uuid;
+  uUserId		uuid;
   vOAuthSecret  text;
 BEGIN
-  nUserId := ConfirmVerificationCode(pType, pCode);
+  uUserId := ConfirmVerificationCode(pType, pCode);
 
-  result := nUserId IS NOT NULL;
+  result := uUserId IS NOT NULL;
   message := GetErrorMessage();
 
   IF result AND IsUserRole(GetGroup('system'), session_userid()) THEN
 	SELECT a.secret INTO vOAuthSecret FROM oauth2.audience a WHERE a.code = session_username();
-	IF found THEN
+	IF FOUND THEN
 	  PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
 	  IF pType = 'M' THEN
-		PERFORM DoConfirmEmail(nUserId);
+		PERFORM DoConfirmEmail(uUserId);
 	  ELSIF pType = 'P' THEN
-		PERFORM DoConfirmPhone(nUserId);
+		PERFORM DoConfirmPhone(uUserId);
 	  END IF;
 	  PERFORM SubstituteUser(session_userid(), vOAuthSecret);
 	END IF;

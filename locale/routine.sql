@@ -7,10 +7,10 @@ CREATE OR REPLACE FUNCTION GetLocale (
 ) RETURNS	uuid
 AS $$
 DECLARE
-  nId		uuid;
+  uId		uuid;
 BEGIN
-  SELECT id INTO nId FROM db.locale WHERE code = pCode;
-  RETURN nId;
+  SELECT id INTO uId FROM db.locale WHERE code = pCode;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql STABLE STRICT
    SECURITY DEFINER

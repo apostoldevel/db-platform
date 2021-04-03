@@ -73,7 +73,7 @@ CREATE OR REPLACE FUNCTION api.update_scheduler (
 ) RETURNS       void
 AS $$
 DECLARE
-  nType         uuid;
+  uType         uuid;
   nScheduler    uuid;
 BEGIN
   SELECT t.id INTO nScheduler FROM db.scheduler t WHERE t.id = pId;
@@ -83,12 +83,12 @@ BEGIN
   END IF;
 
   IF pType IS NOT NULL THEN
-    nType := CodeToType(lower(pType), 'scheduler');
+    uType := CodeToType(lower(pType), 'scheduler');
   ELSE
-    SELECT o.type INTO nType FROM db.object o WHERE o.id = pId;
+    SELECT o.type INTO uType FROM db.object o WHERE o.id = pId;
   END IF;
 
-  PERFORM EditScheduler(nScheduler, pParent, nType, pCode, pName, pPeriod, pDateStart, pDateStop, pDescription);
+  PERFORM EditScheduler(nScheduler, pParent, uType, pCode, pName, pPeriod, pDateStart, pDateStop, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

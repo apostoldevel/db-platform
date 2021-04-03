@@ -138,7 +138,7 @@ CREATE OR REPLACE FUNCTION api.update_message (
 AS $$
 DECLARE
   nMessage      uuid;
-  nType         uuid;
+  uType         uuid;
 BEGIN
   SELECT a.id INTO nMessage FROM db.message a WHERE a.id = pId;
   IF NOT FOUND THEN
@@ -146,12 +146,12 @@ BEGIN
   END IF;
 
   IF pType IS NOT NULL THEN
-    nType := CodeToType(lower(pType), 'message');
+    uType := CodeToType(lower(pType), 'message');
   ELSE
-    SELECT o.type INTO nType FROM db.object o WHERE o.id = pId;
+    SELECT o.type INTO uType FROM db.object o WHERE o.id = pId;
   END IF;
 
-  PERFORM EditMessage(nMessage, pParent, nType, pAgent, pProfile, pAddress, pSubject, pContent, pDescription);
+  PERFORM EditMessage(nMessage, pParent, uType, pAgent, pProfile, pAddress, pSubject, pContent, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

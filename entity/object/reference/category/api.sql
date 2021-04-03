@@ -61,7 +61,7 @@ CREATE OR REPLACE FUNCTION api.update_category (
 ) RETURNS       void
 AS $$
 DECLARE
-  nType         uuid;
+  uType         uuid;
   nCategory		uuid;
 BEGIN
   SELECT t.id INTO nCategory FROM db.category t WHERE t.id = pId;
@@ -71,12 +71,12 @@ BEGIN
   END IF;
 
   IF pType IS NOT NULL THEN
-    nType := CodeToType(lower(pType), 'category');
+    uType := CodeToType(lower(pType), 'category');
   ELSE
-    SELECT o.type INTO nType FROM db.object o WHERE o.id = pId;
+    SELECT o.type INTO uType FROM db.object o WHERE o.id = pId;
   END IF;
 
-  PERFORM EditCategory(nCategory, pParent, nType, pCode, pName, pDescription);
+  PERFORM EditCategory(nCategory, pParent, uType, pCode, pName, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

@@ -14,58 +14,58 @@ AS $$
 DECLARE
   r             record;
 
-  nParent       uuid;
-  nEvent        uuid;
+  uParent       uuid;
+  uEvent        uuid;
 BEGIN
-  nParent := GetEventType('parent');
-  nEvent := GetEventType('event');
+  uParent := GetEventType('parent');
+  uEvent := GetEventType('event');
 
   FOR r IN SELECT * FROM Action
   LOOP
 
     IF r.code = 'create' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Производитель создан', 'EventVendorCreate();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Производитель создан', 'EventVendorCreate();');
     END IF;
 
     IF r.code = 'open' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Производитель открыт', 'EventVendorOpen();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Производитель открыт', 'EventVendorOpen();');
     END IF;
 
     IF r.code = 'edit' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Производитель изменён', 'EventVendorEdit();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Производитель изменён', 'EventVendorEdit();');
     END IF;
 
     IF r.code = 'save' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Производитель сохранён', 'EventVendorSave();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Производитель сохранён', 'EventVendorSave();');
     END IF;
 
     IF r.code = 'enable' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Производитель доступен', 'EventVendorEnable();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Производитель доступен', 'EventVendorEnable();');
     END IF;
 
     IF r.code = 'disable' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Производитель недоступен', 'EventVendorDisable();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Производитель недоступен', 'EventVendorDisable();');
     END IF;
 
     IF r.code = 'delete' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Производитель будет удалён', 'EventVendorDelete();');
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Производитель будет удалён', 'EventVendorDelete();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
     END IF;
 
     IF r.code = 'restore' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Производитель восстановлен', 'EventVendorRestore();');
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Производитель восстановлен', 'EventVendorRestore();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
     END IF;
 
     IF r.code = 'drop' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Производитель будет уничтожен', 'EventVendorDrop();');
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Производитель будет уничтожен', 'EventVendorDrop();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
     END IF;
 
   END LOOP;
@@ -85,23 +85,23 @@ CREATE OR REPLACE FUNCTION CreateClassVendor (
 RETURNS         uuid
 AS $$
 DECLARE
-  nClass        uuid;
+  uClass        uuid;
 BEGIN
   -- Класс
-  nClass := AddClass(pParent, pEntity, 'vendor', 'Производитель', false);
+  uClass := AddClass(pParent, pEntity, 'vendor', 'Производитель', false);
 
   -- Тип
-  PERFORM AddType(nClass, 'service.vendor', 'Услуга', 'Поставщик услуги.');
-  PERFORM AddType(nClass, 'device.vendor', 'Оборудование', 'Производитель оборудования.');
-  PERFORM AddType(nClass, 'car.vendor', 'Автомобиль', 'Производитель автомобилей.');
+  PERFORM AddType(uClass, 'service.vendor', 'Услуга', 'Поставщик услуги.');
+  PERFORM AddType(uClass, 'device.vendor', 'Оборудование', 'Производитель оборудования.');
+  PERFORM AddType(uClass, 'car.vendor', 'Автомобиль', 'Производитель автомобилей.');
 
   -- Событие
-  PERFORM AddVendorEvents(nClass);
+  PERFORM AddVendorEvents(uClass);
 
   -- Метод
-  PERFORM AddDefaultMethods(nClass);
+  PERFORM AddDefaultMethods(uClass);
 
-  RETURN nClass;
+  RETURN uClass;
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

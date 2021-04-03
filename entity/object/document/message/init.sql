@@ -311,13 +311,13 @@ AS $$
 DECLARE
   r             record;
 
-  nParent       uuid;
+  uParent       uuid;
 BEGIN
-  nParent := GetEventType('parent');
+  uParent := GetEventType('parent');
 
   FOR r IN SELECT * FROM Action
   LOOP
-    PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
+    PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
   END LOOP;
 END
 $$ LANGUAGE plpgsql
@@ -336,58 +336,58 @@ AS $$
 DECLARE
   r             record;
 
-  nParent       uuid;
-  nEvent        uuid;
+  uParent       uuid;
+  uEvent        uuid;
 BEGIN
-  nParent := GetEventType('parent');
-  nEvent := GetEventType('event');
+  uParent := GetEventType('parent');
+  uEvent := GetEventType('event');
 
   FOR r IN SELECT * FROM Action
   LOOP
   
     IF r.code = 'create' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Сообщение создано', 'EventMessageCreate();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Сообщение создано', 'EventMessageCreate();');
     END IF;
   
     IF r.code = 'open' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Сообщение открыто', 'EventMessageOpen();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Сообщение открыто', 'EventMessageOpen();');
     END IF;
   
     IF r.code = 'edit' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Сообщение изменёно', 'EventMessageEdit();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Сообщение изменёно', 'EventMessageEdit();');
     END IF;
   
     IF r.code = 'save' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Сообщение сохранёно', 'EventMessageSave();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Сообщение сохранёно', 'EventMessageSave();');
     END IF;
   
     IF r.code = 'enable' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Сообщение не прочитано', 'EventMessageEnable();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Сообщение не прочитано', 'EventMessageEnable();');
     END IF;
   
     IF r.code = 'disable' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Сообщение прочитано', 'EventMessageDisable();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Сообщение прочитано', 'EventMessageDisable();');
     END IF;
   
     IF r.code = 'delete' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Сообщение будет удалено', 'EventMessageDelete();');
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Сообщение будет удалено', 'EventMessageDelete();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
     END IF;
   
     IF r.code = 'restore' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Сообщение восстановлено', 'EventMessageRestore();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Сообщение восстановлено', 'EventMessageRestore();');
     END IF;
   
     IF r.code = 'drop' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Сообщение будет уничтожено', 'EventMessageDrop();');
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Сообщение будет уничтожено', 'EventMessageDrop();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
     END IF;
   
   END LOOP;
@@ -408,78 +408,78 @@ AS $$
 DECLARE
   r             record;
 
-  nParent       uuid;
-  nEvent        uuid;
+  uParent       uuid;
+  uEvent        uuid;
 BEGIN
-  nParent := GetEventType('parent');
-  nEvent := GetEventType('event');
+  uParent := GetEventType('parent');
+  uEvent := GetEventType('event');
 
   FOR r IN SELECT * FROM Action
   LOOP
 
     IF r.code = 'create' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Сообщение создано', 'EventMessageCreate();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Сообщение создано', 'EventMessageCreate();');
     END IF;
 
     IF r.code = 'open' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Сообщение открыто', 'EventMessageOpen();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Сообщение открыто', 'EventMessageOpen();');
     END IF;
 
     IF r.code = 'edit' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Сообщение изменёно', 'EventMessageEdit();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Сообщение изменёно', 'EventMessageEdit();');
     END IF;
 
     IF r.code = 'save' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Сообщение сохранёно', 'EventMessageSave();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Сообщение сохранёно', 'EventMessageSave();');
     END IF;
 
     IF r.code = 'submit' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Смена состояния', 'ChangeObjectState();');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Сообщение готово к отправке', 'EventMessageSubmit();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Смена состояния', 'ChangeObjectState();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Сообщение готово к отправке', 'EventMessageSubmit();');
     END IF;
 
     IF r.code = 'send' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Смена состояния', 'ChangeObjectState();');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Сообщение отправляется', 'EventMessageSend();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Смена состояния', 'ChangeObjectState();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Сообщение отправляется', 'EventMessageSend();');
     END IF;
 
     IF r.code = 'cancel' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Смена состояния', 'ChangeObjectState();');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Отправка сообщения отменена', 'EventMessageCancel();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Смена состояния', 'ChangeObjectState();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Отправка сообщения отменена', 'EventMessageCancel();');
     END IF;
 
     IF r.code = 'done' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Смена состояния', 'ChangeObjectState();');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Сообщение отправено', 'EventMessageDone();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Смена состояния', 'ChangeObjectState();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Сообщение отправено', 'EventMessageDone();');
     END IF;
 
     IF r.code = 'fail' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Смена состояния', 'ChangeObjectState();');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Сбой при отправке сообщения', 'EventMessageFail();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Смена состояния', 'ChangeObjectState();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Сбой при отправке сообщения', 'EventMessageFail();');
     END IF;
 
     IF r.code = 'repeat' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Смена состояния', 'ChangeObjectState();');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Повторная отправка сообщения', 'EventMessageRepeat();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Смена состояния', 'ChangeObjectState();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Повторная отправка сообщения', 'EventMessageRepeat();');
     END IF;
 
     IF r.code = 'delete' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Сообщение будет удалено', 'EventMessageDelete();');
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Сообщение будет удалено', 'EventMessageDelete();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
     END IF;
 
     IF r.code = 'restore' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Сообщение восстановлено', 'EventMessageRestore();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Сообщение восстановлено', 'EventMessageRestore();');
     END IF;
 
     IF r.code = 'drop' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Сообщение будет уничтожено', 'EventMessageDrop();');
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Сообщение будет уничтожено', 'EventMessageDrop();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
     END IF;
 
   END LOOP;
@@ -499,20 +499,20 @@ CREATE OR REPLACE FUNCTION CreateClassMessage (
 RETURNS         uuid
 AS $$
 DECLARE
-  nClass        uuid;
+  uClass        uuid;
 BEGIN
   -- Класс
-  nClass := AddClass(pParent, pEntity, 'message', 'Сообщения', true);
+  uClass := AddClass(pParent, pEntity, 'message', 'Сообщения', true);
 
   -- Тип
 
   -- Событие
-  PERFORM AddMessageEvents(nClass);
+  PERFORM AddMessageEvents(uClass);
 
   -- Метод
-  PERFORM AddDefaultMethods(nClass);
+  PERFORM AddDefaultMethods(uClass);
 
-  RETURN nClass;
+  RETURN uClass;
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -529,21 +529,21 @@ CREATE OR REPLACE FUNCTION CreateClassInbox (
 RETURNS         uuid
 AS $$
 DECLARE
-  nClass        uuid;
+  uClass        uuid;
 BEGIN
   -- Класс
-  nClass := AddClass(pParent, pEntity, 'inbox', 'Входящее', false);
+  uClass := AddClass(pParent, pEntity, 'inbox', 'Входящее', false);
 
   -- Тип
-  PERFORM AddType(nClass, 'message.inbox', 'Входящие', 'Входящие сообщения.');
+  PERFORM AddType(uClass, 'message.inbox', 'Входящие', 'Входящие сообщения.');
 
   -- Событие
-  PERFORM AddInboxEvents(nClass);
+  PERFORM AddInboxEvents(uClass);
 
   -- Метод
-  PERFORM AddInboxMethods(nClass);
+  PERFORM AddInboxMethods(uClass);
 
-  RETURN nClass;
+  RETURN uClass;
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -560,21 +560,21 @@ CREATE OR REPLACE FUNCTION CreateClassOutbox (
 RETURNS         uuid
 AS $$
 DECLARE
-  nClass        uuid;
+  uClass        uuid;
 BEGIN
   -- Класс
-  nClass := AddClass(pParent, pEntity, 'outbox', 'Исходящее', false);
+  uClass := AddClass(pParent, pEntity, 'outbox', 'Исходящее', false);
 
   -- Тип
-  PERFORM AddType(nClass, 'message.outbox', 'Исходящие', 'Исходящие сообщения.');
+  PERFORM AddType(uClass, 'message.outbox', 'Исходящие', 'Исходящие сообщения.');
 
   -- Событие
-  PERFORM AddOutboxEvents(nClass);
+  PERFORM AddOutboxEvents(uClass);
 
   -- Метод
-  PERFORM AddOutboxMethods(nClass);
+  PERFORM AddOutboxMethods(uClass);
 
-  RETURN nClass;
+  RETURN uClass;
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -591,16 +591,16 @@ RETURNS         uuid
 AS $$
 DECLARE
   nEntity       uuid;
-  nClass        uuid;
+  uClass        uuid;
 BEGIN
   -- Сущность
   nEntity := AddEntity('message', 'Сообщение');
 
   -- Класс
-  nClass := CreateClassMessage(pParent, nEntity);
+  uClass := CreateClassMessage(pParent, nEntity);
 
-  PERFORM CreateClassInbox(nClass, nEntity);
-  PERFORM CreateClassOutbox(nClass, nEntity);
+  PERFORM CreateClassInbox(uClass, nEntity);
+  PERFORM CreateClassOutbox(uClass, nEntity);
 
   -- API
   PERFORM RegisterRoute('message', AddEndpoint('SELECT * FROM rest.message($1, $2);'));

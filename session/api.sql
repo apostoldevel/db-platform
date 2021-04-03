@@ -15,9 +15,9 @@ CREATE OR REPLACE FUNCTION api.set_session_area (
 ) RETURNS   void
 AS $$
 DECLARE
-  nId		uuid;
+  uId		uuid;
 BEGIN
-  SELECT id INTO nId FROM db.area WHERE id = pArea;
+  SELECT id INTO uId FROM db.area WHERE id = pArea;
 
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('область видимости', 'id', pArea);
@@ -42,15 +42,15 @@ CREATE OR REPLACE FUNCTION api.set_session_area (
 ) RETURNS   void
 AS $$
 DECLARE
-  nId		uuid;
+  uId		uuid;
 BEGIN
-  SELECT id INTO nId FROM db.area WHERE code = pArea;
+  SELECT id INTO uId FROM db.area WHERE code = pArea;
 
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('область видимости', 'code', pArea);
   END IF;
 
-  PERFORM SetArea(nId);
+  PERFORM SetArea(uId);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -69,9 +69,9 @@ CREATE OR REPLACE FUNCTION api.set_session_interface (
 ) RETURNS       void
 AS $$
 DECLARE
-  nId			uuid;
+  uId			uuid;
 BEGIN
-  SELECT id INTO nId FROM db.interface WHERE id = pInterface;
+  SELECT id INTO uId FROM db.interface WHERE id = pInterface;
 
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('интерфейс', 'id', pInterface);
@@ -161,9 +161,9 @@ CREATE OR REPLACE FUNCTION api.set_session_locale (
 ) RETURNS     void
 AS $$
 DECLARE
-  nId         uuid;
+  uId         uuid;
 BEGIN
-  SELECT id INTO nId FROM db.locale WHERE id = pLocale;
+  SELECT id INTO uId FROM db.locale WHERE id = pLocale;
 
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('язык', 'id', pLocale);

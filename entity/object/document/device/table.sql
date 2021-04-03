@@ -51,7 +51,7 @@ CREATE OR REPLACE FUNCTION ft_device_before_insert()
 RETURNS trigger AS $$
 DECLARE
   nOwner		uuid;
-  nUserId		uuid;
+  uUserId		uuid;
 BEGIN
   IF NEW.id IS NULL THEN
     SELECT NEW.document INTO NEW.id;
@@ -60,11 +60,11 @@ BEGIN
   IF NEW.client IS NOT NULL THEN
     SELECT owner INTO nOwner FROM db.object WHERE id = NEW.document;
 
-    nUserId := GetClientUserId(NEW.client);
-    IF nOwner <> nUserId THEN
-      UPDATE db.aou SET allow = allow | B'110' WHERE object = NEW.document AND userid = nUserId;
+    uUserId := GetClientUserId(NEW.client);
+    IF nOwner <> uUserId THEN
+      UPDATE db.aou SET allow = allow | B'110' WHERE object = NEW.document AND userid = uUserId;
       IF NOT FOUND THEN
-        INSERT INTO db.aou SELECT NEW.document, nUserId, B'000', B'110';
+        INSERT INTO db.aou SELECT NEW.document, uUserId, B'000', B'110';
       END IF;
     END IF;
   END IF;
@@ -88,25 +88,25 @@ CREATE OR REPLACE FUNCTION ft_device_before_update()
 RETURNS trigger AS $$
 DECLARE
   nOwner		uuid;
-  nUserId		uuid;
+  uUserId		uuid;
 BEGIN
   IF OLD.client <> NEW.client THEN
     SELECT owner INTO nOwner FROM db.object WHERE id = NEW.document;
 
     IF NEW.client IS NOT NULL THEN
-      nUserId := GetClientUserId(NEW.client);
-      IF nOwner <> nUserId THEN
-        UPDATE db.aou SET allow = allow | B'110' WHERE object = NEW.document AND userid = nUserId;
-        IF NOT found THEN
-          INSERT INTO db.aou SELECT NEW.document, nUserId, B'000', B'110';
+      uUserId := GetClientUserId(NEW.client);
+      IF nOwner <> uUserId THEN
+        UPDATE db.aou SET allow = allow | B'110' WHERE object = NEW.document AND userid = uUserId;
+        IF NOT FOUND THEN
+          INSERT INTO db.aou SELECT NEW.document, uUserId, B'000', B'110';
         END IF;
       END IF;
     END IF;
 
     IF OLD.client IS NOT NULL THEN
-      nUserId := GetClientUserId(OLD.client);
-      IF nOwner <> nUserId THEN
-        DELETE FROM db.aou WHERE object = OLD.document AND userid = nUserId;
+      uUserId := GetClientUserId(OLD.client);
+      IF nOwner <> uUserId THEN
+        DELETE FROM db.aou WHERE object = OLD.document AND userid = uUserId;
       END IF;
     END IF;
   END IF;

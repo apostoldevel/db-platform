@@ -69,7 +69,7 @@ CREATE OR REPLACE FUNCTION api.update_currency (
 ) RETURNS       void
 AS $$
 DECLARE
-  nType         uuid;
+  uType         uuid;
   nCurrency        uuid;
 BEGIN
   SELECT t.id INTO nCurrency FROM db.currency t WHERE t.id = pId;
@@ -79,12 +79,12 @@ BEGIN
   END IF;
 
   IF pType IS NOT NULL THEN
-    nType := CodeToType(lower(pType), 'currency');
+    uType := CodeToType(lower(pType), 'currency');
   ELSE
-    SELECT o.type INTO nType FROM db.object o WHERE o.id = pId;
+    SELECT o.type INTO uType FROM db.object o WHERE o.id = pId;
   END IF;
 
-  PERFORM EditCurrency(nCurrency, pParent, nType, pCode, pName, pDescription, pDigital, pDecimal);
+  PERFORM EditCurrency(nCurrency, pParent, uType, pCode, pName, pDescription, pDigital, pDecimal);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

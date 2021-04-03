@@ -18,31 +18,31 @@ CREATE OR REPLACE FUNCTION CreateDevice (
 ) RETURNS			uuid
 AS $$
 DECLARE
-  nDocument			uuid;
-  nClass			uuid;
-  nMethod			uuid;
+  uDocument			uuid;
+  uClass			uuid;
+  uMethod			uuid;
 BEGIN
-  SELECT class INTO nClass FROM db.type WHERE id = pType;
+  SELECT class INTO uClass FROM db.type WHERE id = pType;
 
-  IF GetEntityCode(nClass) <> 'device' THEN
+  IF GetEntityCode(uClass) <> 'device' THEN
     PERFORM IncorrectClassType();
   END IF;
 
-  SELECT id INTO nDocument FROM db.device WHERE identity = pIdentity;
+  SELECT id INTO uDocument FROM db.device WHERE identity = pIdentity;
 
-  IF found THEN
+  IF FOUND THEN
     PERFORM DeviceExists(pIdentity);
   END IF;
 
-  nDocument := CreateDocument(pParent, pType, coalesce(pLabel, pIdentity), pDescription);
+  uDocument := CreateDocument(pParent, pType, coalesce(pLabel, pIdentity), pDescription);
 
   INSERT INTO db.device (id, document, model, client, identity, version, serial, address, iccid, imsi)
-  VALUES (nDocument, nDocument, pModel, pClient, pIdentity, pVersion, pSerial, pAddress, piccid, pimsi);
+  VALUES (uDocument, uDocument, pModel, pClient, pIdentity, pVersion, pSerial, pAddress, piccid, pimsi);
 
-  nMethod := GetMethod(nClass, GetAction('create'));
-  PERFORM ExecuteMethod(nDocument, nMethod);
+  uMethod := GetMethod(uClass, GetAction('create'));
+  PERFORM ExecuteMethod(uDocument, uMethod);
 
-  RETURN nDocument;
+  RETURN uDocument;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -69,16 +69,16 @@ CREATE OR REPLACE FUNCTION EditDevice (
 ) RETURNS			void
 AS $$
 DECLARE
-  nDocument			uuid;
+  uDocument			uuid;
   vIdentity			text;
 
-  nClass			uuid;
-  nMethod			uuid;
+  uClass			uuid;
+  uMethod			uuid;
 BEGIN
   SELECT identity INTO vIdentity FROM db.device WHERE id = pId;
   IF vIdentity <> coalesce(pIdentity, vIdentity) THEN
-    SELECT id INTO nDocument FROM db.device WHERE identity = pIdentity;
-    IF found THEN
+    SELECT id INTO uDocument FROM db.device WHERE identity = pIdentity;
+    IF FOUND THEN
       PERFORM DeviceExists(pIdentity);
     END IF;
   END IF;
@@ -96,10 +96,10 @@ BEGIN
          imsi = CheckNull(coalesce(pimsi, imsi, '<null>'))
    WHERE id = pId;
 
-  SELECT class INTO nClass FROM db.object WHERE id = pId;
+  SELECT class INTO uClass FROM db.object WHERE id = pId;
 
-  nMethod := GetMethod(nClass, GetAction('edit'));
-  PERFORM ExecuteMethod(pId, nMethod);
+  uMethod := GetMethod(uClass, GetAction('edit'));
+  PERFORM ExecuteMethod(pId, uMethod);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -133,12 +133,12 @@ CREATE OR REPLACE FUNCTION SwitchDevice (
 ) RETURNS	void
 AS $$
 DECLARE
-  nUserId	uuid;
+  uUserId	uuid;
 BEGIN
-  nUserId := GetClientUserId(pClient);
-  IF nUserId IS NOT NULL THEN
+  uUserId := GetClientUserId(pClient);
+  IF uUserId IS NOT NULL THEN
     UPDATE db.device SET client = pClient WHERE id = pDevice;
-    PERFORM SetObjectOwner(pDevice, nUserId);
+    PERFORM SetObjectOwner(pDevice, uUserId);
   END IF;
 END;
 $$ LANGUAGE plpgsql

@@ -159,7 +159,7 @@ $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 --------------------------------------------------------------------------------
 
 SELECT CreateExceptionResource(GetExceptionUUID(403, 1), 'ru', 'TokenExpired', 'Маркер не найден или истек срок его действия');
-SELECT CreateExceptionResource(GetExceptionUUID(403, 1), 'en', 'TokenExpired', 'Token not found or has expired');
+SELECT CreateExceptionResource(GetExceptionUUID(403, 1), 'en', 'TokenExpired', 'Token not FOUND or has expired');
 
 CREATE OR REPLACE FUNCTION TokenExpired() RETURNS void
 AS $$
@@ -335,7 +335,7 @@ $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 --------------------------------------------------------------------------------
 
 SELECT CreateExceptionResource(GetExceptionUUID(400, 14), 'ru', 'IncorrectLocaleCode', 'Не найден идентификатор языка по коду: %s');
-SELECT CreateExceptionResource(GetExceptionUUID(400, 14), 'en', 'IncorrectLocaleCode', 'Locale not found by code: %s');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 14), 'en', 'IncorrectLocaleCode', 'Locale not FOUND by code: %s');
 
 CREATE OR REPLACE FUNCTION IncorrectLocaleCode (
   pCode		text
@@ -361,7 +361,7 @@ $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 --------------------------------------------------------------------------------
 
 SELECT CreateExceptionResource(GetExceptionUUID(400, 16), 'ru', 'AreaError', 'Область с указанным идентификатором не найдена');
-SELECT CreateExceptionResource(GetExceptionUUID(400, 16), 'en', 'AreaError', 'Area not found by specified identifier');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 16), 'en', 'AreaError', 'Area not FOUND by specified identifier');
 
 CREATE OR REPLACE FUNCTION AreaError() RETURNS void
 AS $$
@@ -373,7 +373,7 @@ $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 --------------------------------------------------------------------------------
 
 SELECT CreateExceptionResource(GetExceptionUUID(400, 17), 'ru', 'IncorrectAreaCode', 'Область не найдена по коду: %s');
-SELECT CreateExceptionResource(GetExceptionUUID(400, 17), 'en', 'IncorrectAreaCode', 'Area not found by code: %s');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 17), 'en', 'IncorrectAreaCode', 'Area not FOUND by code: %s');
 
 CREATE OR REPLACE FUNCTION IncorrectAreaCode (
   pCode		text
@@ -402,7 +402,7 @@ $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 --------------------------------------------------------------------------------
 
 SELECT CreateExceptionResource(GetExceptionUUID(400, 19), 'ru', 'InterfaceError', 'Не найден интерфейс с указанным идентификатором');
-SELECT CreateExceptionResource(GetExceptionUUID(400, 19), 'en', 'InterfaceError', 'Interface not found by specified identifier');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 19), 'en', 'InterfaceError', 'Interface not FOUND by specified identifier');
 
 CREATE OR REPLACE FUNCTION InterfaceError() RETURNS void
 AS $$
@@ -555,7 +555,7 @@ $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 --------------------------------------------------------------------------------
 
 SELECT CreateExceptionResource(GetExceptionUUID(400, 30), 'ru', 'ObjectNotFound', 'Не найден(а/о) %s по %s: %s');
-SELECT CreateExceptionResource(GetExceptionUUID(400, 30), 'en', 'ObjectNotFound', 'Not found %s with %s: %s');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 30), 'en', 'ObjectNotFound', 'Not FOUND %s with %s: %s');
 
 CREATE OR REPLACE FUNCTION ObjectNotFound (
   pWho		text,
@@ -571,7 +571,7 @@ $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 --------------------------------------------------------------------------------
 
 SELECT CreateExceptionResource(GetExceptionUUID(400, 31), 'ru', 'ObjectNotFound', 'Не найден(а/о) %s по %s: %s');
-SELECT CreateExceptionResource(GetExceptionUUID(400, 31), 'en', 'ObjectNotFound', 'Not found %s with %s: %s');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 31), 'en', 'ObjectNotFound', 'Not FOUND %s with %s: %s');
 
 CREATE OR REPLACE FUNCTION ObjectNotFound (
   pWho		text,
@@ -587,7 +587,7 @@ $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 --------------------------------------------------------------------------------
 
 SELECT CreateExceptionResource(GetExceptionUUID(400, 32), 'ru', 'MethodActionNotFound', 'Не найден метод объекта [%s], для действия: %s [%s]. Скорее всего, объект находится в другом состоянии');
-SELECT CreateExceptionResource(GetExceptionUUID(400, 32), 'en', 'MethodActionNotFound', 'Object [%s] method not found, for action: %s [%s]. The object is most likely in a different state');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 32), 'en', 'MethodActionNotFound', 'Object [%s] method not FOUND, for action: %s [%s]. The object is most likely in a different state');
 
 CREATE OR REPLACE FUNCTION MethodActionNotFound (
   pObject	uuid,
@@ -602,7 +602,7 @@ $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 --------------------------------------------------------------------------------
 
 SELECT CreateExceptionResource(GetExceptionUUID(400, 33), 'ru', 'MethodNotFound', 'Не найден метод "%s" объекта "%s"');
-SELECT CreateExceptionResource(GetExceptionUUID(400, 33), 'en', 'MethodNotFound', 'Method "%s" of object "%s" not found');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 33), 'en', 'MethodNotFound', 'Method "%s" of object "%s" not FOUND');
 
 CREATE OR REPLACE FUNCTION MethodNotFound (
   pObject	uuid,
@@ -617,7 +617,7 @@ $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 --------------------------------------------------------------------------------
 
 SELECT CreateExceptionResource(GetExceptionUUID(400, 34), 'ru', 'MethodByCodeNotFound', 'Не найден метод по коду "%s" для объекта "%s"');
-SELECT CreateExceptionResource(GetExceptionUUID(400, 34), 'en', 'MethodByCodeNotFound', 'No method found by code "%s" for object "%s"');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 34), 'en', 'MethodByCodeNotFound', 'No method FOUND by code "%s" for object "%s"');
 
 CREATE OR REPLACE FUNCTION MethodByCodeNotFound (
   pObject	uuid,
@@ -659,7 +659,7 @@ $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 --------------------------------------------------------------------------------
 
 SELECT CreateExceptionResource(GetExceptionUUID(400, 37), 'ru', 'StateByCodeNotFound', 'Не найдено состояние по коду "%s" для объекта "%s"');
-SELECT CreateExceptionResource(GetExceptionUUID(400, 37), 'en', 'StateByCodeNotFound', 'No state found by code "%s" for object "%s"');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 37), 'en', 'StateByCodeNotFound', 'No state FOUND by code "%s" for object "%s"');
 
 CREATE OR REPLACE FUNCTION StateByCodeNotFound (
   pObject	uuid,
@@ -779,7 +779,7 @@ $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 --------------------------------------------------------------------------------
 
 SELECT CreateExceptionResource(GetExceptionUUID(400, 46), 'ru', 'ViewNotFound', 'Представление "%s.%s" не найдено');
-SELECT CreateExceptionResource(GetExceptionUUID(400, 46), 'en', 'ViewNotFound', 'View "%s.%s" not found');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 46), 'en', 'ViewNotFound', 'View "%s.%s" not FOUND');
 
 CREATE OR REPLACE FUNCTION ViewNotFound (
   pScheme   text,
@@ -890,7 +890,7 @@ $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 --------------------------------------------------------------------------------
 
 SELECT CreateExceptionResource(GetExceptionUUID(400, 62), 'ru', 'JsonKeyNotFound', '(%s) Не найден обязательный ключ: %s');
-SELECT CreateExceptionResource(GetExceptionUUID(400, 62), 'en', 'JsonKeyNotFound', '(%s) Required key not found: %s');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 62), 'en', 'JsonKeyNotFound', '(%s) Required key not FOUND: %s');
 
 CREATE OR REPLACE FUNCTION JsonKeyNotFound (
   pRoute	text,
@@ -952,7 +952,7 @@ $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 --------------------------------------------------------------------------------
 
 SELECT CreateExceptionResource(GetExceptionUUID(400, 70), 'ru', 'IssuerNotFound', 'OAuth 2.0: Не найден эмитент: %s');
-SELECT CreateExceptionResource(GetExceptionUUID(400, 70), 'en', 'IssuerNotFound', 'OAuth 2.0: Issuer not found: %s');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 70), 'en', 'IssuerNotFound', 'OAuth 2.0: Issuer not FOUND: %s');
 
 CREATE OR REPLACE FUNCTION IssuerNotFound (
   pCode     text
@@ -966,7 +966,7 @@ $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 --------------------------------------------------------------------------------
 
 SELECT CreateExceptionResource(GetExceptionUUID(400, 71), 'ru', 'AudienceNotFound', 'OAuth 2.0: Клиент не найден');
-SELECT CreateExceptionResource(GetExceptionUUID(400, 71), 'en', 'AudienceNotFound', 'OAuth 2.0: Client not found');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 71), 'en', 'AudienceNotFound', 'OAuth 2.0: Client not FOUND');
 
 CREATE OR REPLACE FUNCTION AudienceNotFound()
 RETURNS void
@@ -1033,7 +1033,7 @@ $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 --------------------------------------------------------------------------------
 
 SELECT CreateExceptionResource(GetExceptionUUID(400, 91), 'ru', 'RouteNotFound', 'Не найден путь: %s');
-SELECT CreateExceptionResource(GetExceptionUUID(400, 91), 'en', 'RouteNotFound', 'Path not found: %s');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 91), 'en', 'RouteNotFound', 'Path not FOUND: %s');
 
 CREATE OR REPLACE FUNCTION RouteNotFound (
   pRoute	text

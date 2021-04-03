@@ -11,12 +11,12 @@ CREATE OR REPLACE FUNCTION AddVerificationCode (
 ) RETURNS       uuid
 AS $$
 DECLARE
-  nId           uuid;
+  uId           uuid;
   dtDateFrom 	timestamptz;
   dtDateTo      timestamptz;
 BEGIN
   -- получим дату значения в текущем диапозоне дат
-  SELECT id, validFromDate, validToDate INTO nId, dtDateFrom, dtDateTo
+  SELECT id, validFromDate, validToDate INTO uId, dtDateFrom, dtDateTo
     FROM db.verification_code
    WHERE type = pType
      AND userid = pUserId
@@ -40,10 +40,10 @@ BEGIN
 
     INSERT INTO db.verification_code (type, userid, code, validFromDate, validtodate)
     VALUES (pType, pUserId, pCode, pDateFrom, pDateTo)
-    RETURNING id INTO nId;
+    RETURNING id INTO uId;
   END IF;
 
-  RETURN nId;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -104,23 +104,23 @@ CREATE OR REPLACE FUNCTION CheckVerificationCode (
 AS $$
 DECLARE
   nId			uuid;
-  nUserId		uuid;
+  uUserId		uuid;
   utilized      bool;
 BEGIN
-  SELECT id, userid, used IS NOT NULL INTO nId, nUserId, utilized
+  SELECT id, userid, used IS NOT NULL INTO nId, uUserId, utilized
     FROM db.verification_code
    WHERE type = pType
      AND code = pCode
      AND validFromDate <= Now()
      AND validtoDate > Now();
 
-  IF found THEN
+  IF FOUND THEN
     IF utilized THEN
       PERFORM SetErrorMessage('Код подтверждения уже был использован.');
     ELSE
       UPDATE db.verification_code SET used = Now() WHERE id = nId;
       PERFORM SetErrorMessage('Успешно.');
-      RETURN nUserId;
+      RETURN uUserId;
     END IF;
   ELSE
     PERFORM SetErrorMessage('Код подтверждения не найден.');
@@ -142,24 +142,24 @@ CREATE OR REPLACE FUNCTION ConfirmVerificationCode (
 ) RETURNS       uuid
 AS $$
 DECLARE
-  nUserId       uuid;
+  uUserId       uuid;
 BEGIN
-  nUserId := CheckVerificationCode(pType, pCode);
+  uUserId := CheckVerificationCode(pType, pCode);
 
-  IF nUserId IS NOT NULL THEN
+  IF uUserId IS NOT NULL THEN
     CASE pType
     WHEN 'M' THEN
-      UPDATE db.profile SET email_verified = true WHERE userId = nUserId;
+      UPDATE db.profile SET email_verified = true WHERE userId = uUserId;
       PERFORM SetErrorMessage('Электронный адрес подтверждён.');
     WHEN 'P' THEN
-      UPDATE db.profile SET phone_verified = true WHERE userId = nUserId;
+      UPDATE db.profile SET phone_verified = true WHERE userId = uUserId;
       PERFORM SetErrorMessage('Номер телефона подтверждён.');
     ELSE
       PERFORM InvalidVerificationCodeType(pType);
     END CASE;
   END IF;
 
-  RETURN nUserId;
+  RETURN uUserId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

@@ -14,58 +14,58 @@ AS $$
 DECLARE
   r             record;
 
-  nParent       uuid;
-  nEvent        uuid;
+  uParent       uuid;
+  uEvent        uuid;
 BEGIN
-  nParent := GetEventType('parent');
-  nEvent := GetEventType('event');
+  uParent := GetEventType('parent');
+  uEvent := GetEventType('event');
 
   FOR r IN SELECT * FROM Action
   LOOP
 
     IF r.code = 'create' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Свойство создано', 'EventPropertyCreate();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Свойство создано', 'EventPropertyCreate();');
     END IF;
 
     IF r.code = 'open' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Свойство открыто', 'EventPropertyOpen();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Свойство открыто', 'EventPropertyOpen();');
     END IF;
 
     IF r.code = 'edit' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Свойство изменено', 'EventPropertyEdit();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Свойство изменено', 'EventPropertyEdit();');
     END IF;
 
     IF r.code = 'save' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Свойство сохранено', 'EventPropertySave();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Свойство сохранено', 'EventPropertySave();');
     END IF;
 
     IF r.code = 'enable' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Свойство доступно', 'EventPropertyEnable();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Свойство доступно', 'EventPropertyEnable();');
     END IF;
 
     IF r.code = 'disable' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Свойство недоступно', 'EventPropertyDisable();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Свойство недоступно', 'EventPropertyDisable();');
     END IF;
 
     IF r.code = 'delete' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Свойство будет удалено', 'EventPropertyDelete();');
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Свойство будет удалено', 'EventPropertyDelete();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
     END IF;
 
     IF r.code = 'restore' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Свойство восстановлено', 'EventPropertyRestore();');
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Свойство восстановлено', 'EventPropertyRestore();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
     END IF;
 
     IF r.code = 'drop' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Свойство будет уничтожено', 'EventPropertyDrop();');
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Свойство будет уничтожено', 'EventPropertyDrop();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
     END IF;
 
   END LOOP;
@@ -85,30 +85,30 @@ CREATE OR REPLACE FUNCTION CreateClassProperty (
 RETURNS         uuid
 AS $$
 DECLARE
-  nClass        uuid;
+  uClass        uuid;
 BEGIN
   -- Класс
-  nClass := AddClass(pParent, pEntity, 'property', 'Свойство', false);
+  uClass := AddClass(pParent, pEntity, 'property', 'Свойство', false);
 
   -- Тип
-  PERFORM AddType(nClass, 'string.property', 'Строка', 'Символьный тип.');
-  PERFORM AddType(nClass, 'integer.property', 'Целое число', 'Целочисленный тип.');
-  PERFORM AddType(nClass, 'numeric.property', 'Вещественное число', 'Число с произвольной точностью.');
---  PERFORM AddType(nClass, 'money.property', 'Денежная сумма', 'Денежный тип.');
-  PERFORM AddType(nClass, 'datetime.property', 'Дата и время', 'Тип даты и времени.');
-  PERFORM AddType(nClass, 'boolean.property', 'Логический', 'Логический тип.');
---  PERFORM AddType(nClass, 'enum.property', 'Перечисляемый', 'Тип перечислений.');
---  PERFORM AddType(nClass, 'uuid.property', 'UUID', 'Универсальный уникальный идентификатор.');
---  PERFORM AddType(nClass, 'json.property', 'JSON', 'Тип JSON.');
---  PERFORM AddType(nClass, 'xml.property', 'XML', 'Тип XML.');
+  PERFORM AddType(uClass, 'string.property', 'Строка', 'Символьный тип.');
+  PERFORM AddType(uClass, 'integer.property', 'Целое число', 'Целочисленный тип.');
+  PERFORM AddType(uClass, 'numeric.property', 'Вещественное число', 'Число с произвольной точностью.');
+--  PERFORM AddType(uClass, 'money.property', 'Денежная сумма', 'Денежный тип.');
+  PERFORM AddType(uClass, 'datetime.property', 'Дата и время', 'Тип даты и времени.');
+  PERFORM AddType(uClass, 'boolean.property', 'Логический', 'Логический тип.');
+--  PERFORM AddType(uClass, 'enum.property', 'Перечисляемый', 'Тип перечислений.');
+--  PERFORM AddType(uClass, 'uuid.property', 'UUID', 'Универсальный уникальный идентификатор.');
+--  PERFORM AddType(uClass, 'json.property', 'JSON', 'Тип JSON.');
+--  PERFORM AddType(uClass, 'xml.property', 'XML', 'Тип XML.');
 
   -- Событие
-  PERFORM AddPropertyEvents(nClass);
+  PERFORM AddPropertyEvents(uClass);
 
   -- Метод
-  PERFORM AddDefaultMethods(nClass, ARRAY['Создана', 'Открыта', 'Закрыта', 'Удалена', 'Открыть', 'Закрыть', 'Удалить']);
+  PERFORM AddDefaultMethods(uClass, ARRAY['Создана', 'Открыта', 'Закрыта', 'Удалена', 'Открыть', 'Закрыть', 'Удалить']);
 
-  RETURN nClass;
+  RETURN uClass;
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

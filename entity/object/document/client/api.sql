@@ -71,7 +71,7 @@ CREATE OR REPLACE FUNCTION api.add_client (
 ) RETURNS       uuid
 AS $$
 DECLARE
-  nClient       uuid;
+  uClient       uuid;
   arKeys        text[];
 BEGIN
   pType := lower(coalesce(pType, 'physical'));
@@ -79,9 +79,9 @@ BEGIN
   arKeys := array_cat(arKeys, ARRAY['name', 'short', 'first', 'last', 'middle']);
   PERFORM CheckJsonbKeys('add_client', arKeys, pName);
 
-  nClient := CreateClient(pParent, CodeToType(pType, 'client'), pCode, pUserId, pName, pPhone, pEmail, pInfo, pCreation, pDescription);
+  uClient := CreateClient(pParent, CodeToType(pType, 'client'), pCode, pUserId, pName, pPhone, pEmail, pInfo, pCreation, pDescription);
 
-  RETURN nClient;
+  RETURN uClient;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -120,26 +120,26 @@ CREATE OR REPLACE FUNCTION api.update_client (
 ) RETURNS       void
 AS $$
 DECLARE
-  nType         uuid;
-  nClient       uuid;
+  uType         uuid;
+  uClient       uuid;
   arKeys        text[];
 BEGIN
-  SELECT c.id INTO nClient FROM db.client c WHERE c.id = pId;
+  SELECT c.id INTO uClient FROM db.client c WHERE c.id = pId;
 
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('клиент', 'id', pId);
   END IF;
 
   IF pType IS NOT NULL THEN
-    nType := CodeToType(lower(pType), 'client');
+    uType := CodeToType(lower(pType), 'client');
   ELSE
-    SELECT o.type INTO nType FROM db.object o WHERE o.id = pId;
+    SELECT o.type INTO uType FROM db.object o WHERE o.id = pId;
   END IF;
 
   arKeys := array_cat(arKeys, ARRAY['name', 'short', 'first', 'last', 'middle']);
   PERFORM CheckJsonbKeys('update_client', arKeys, pName);
 
-  PERFORM EditClient(nClient, pParent, nType, pCode, pUserId, pName, pPhone, pEmail, pInfo, pCreation, pDescription);
+  PERFORM EditClient(uClient, pParent, uType, pCode, pUserId, pName, pPhone, pEmail, pInfo, pCreation, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

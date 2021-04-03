@@ -101,7 +101,7 @@ CREATE OR REPLACE FUNCTION api.update_job (
 ) RETURNS           void
 AS $$
 DECLARE
-  nType             uuid;
+  uType             uuid;
   nJob				uuid;
 BEGIN
   SELECT c.id INTO nJob FROM db.job c WHERE c.id = pId;
@@ -111,12 +111,12 @@ BEGIN
   END IF;
 
   IF pType IS NOT NULL THEN
-    nType := CodeToType(lower(pType), 'job');
+    uType := CodeToType(lower(pType), 'job');
   ELSE
-    SELECT o.type INTO nType FROM db.object o WHERE o.id = pId;
+    SELECT o.type INTO uType FROM db.object o WHERE o.id = pId;
   END IF;
 
-  PERFORM EditJob(nJob, pParent, nType, pScheduler, pProgram, pDateRun, pCode, pLabel, pDescription);
+  PERFORM EditJob(nJob, pParent, uType, pScheduler, pProgram, pDateRun, pCode, pLabel, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

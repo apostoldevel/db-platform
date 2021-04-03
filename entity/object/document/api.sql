@@ -61,22 +61,22 @@ CREATE OR REPLACE FUNCTION api.update_document (
 ) RETURNS       void
 AS $$
 DECLARE
-  nType         uuid;
-  nDocument		uuid;
+  uType         uuid;
+  uDocument		uuid;
 BEGIN
-  SELECT t.id INTO nDocument FROM db.document t WHERE t.id = pId;
+  SELECT t.id INTO uDocument FROM db.document t WHERE t.id = pId;
 
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('документ', 'id', pId);
   END IF;
 
   IF pType IS NOT NULL THEN
-    nType := GetType(lower(pType));
+    uType := GetType(lower(pType));
   ELSE
-    SELECT o.type INTO nType FROM db.object o WHERE o.id = pId;
+    SELECT o.type INTO uType FROM db.object o WHERE o.id = pId;
   END IF;
 
-  PERFORM EditDocument(nDocument, pParent, nType,pLabel, pDescription, pData);
+  PERFORM EditDocument(uDocument, pParent, uType,pLabel, pDescription, pData);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

@@ -194,77 +194,77 @@ AS $$
 DECLARE
   r             record;
 
-  nParent       uuid;
-  nEvent        uuid;
+  uParent       uuid;
+  uEvent        uuid;
 BEGIN
-  nParent := GetEventType('parent');
-  nEvent := GetEventType('event');
+  uParent := GetEventType('parent');
+  uEvent := GetEventType('event');
 
   FOR r IN SELECT * FROM Action
   LOOP
 
 	IF r.code = 'create' THEN
-	  PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-	  PERFORM AddEvent(pClass, nEvent, r.id, 'Устройство создано', 'EventDeviceCreate();');
+	  PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+	  PERFORM AddEvent(pClass, uEvent, r.id, 'Устройство создано', 'EventDeviceCreate();');
 	END IF;
 
 	IF r.code = 'open' THEN
-	  PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-	  PERFORM AddEvent(pClass, nEvent, r.id, 'Устройство открыто', 'EventDeviceOpen();');
+	  PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+	  PERFORM AddEvent(pClass, uEvent, r.id, 'Устройство открыто', 'EventDeviceOpen();');
 	END IF;
 
 	IF r.code = 'edit' THEN
-	  PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-	  PERFORM AddEvent(pClass, nEvent, r.id, 'Устройство измено', 'EventDeviceEdit();');
+	  PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+	  PERFORM AddEvent(pClass, uEvent, r.id, 'Устройство измено', 'EventDeviceEdit();');
 	END IF;
 
 	IF r.code = 'save' THEN
-	  PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-	  PERFORM AddEvent(pClass, nEvent, r.id, 'Устройство сохрано', 'EventDeviceSave();');
+	  PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+	  PERFORM AddEvent(pClass, uEvent, r.id, 'Устройство сохрано', 'EventDeviceSave();');
 	END IF;
 
 	IF r.code = 'enable' THEN
-	  PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-	  PERFORM AddEvent(pClass, nEvent, r.id, 'Устройство включено', 'EventDeviceEnable();');
+	  PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+	  PERFORM AddEvent(pClass, uEvent, r.id, 'Устройство включено', 'EventDeviceEnable();');
 	END IF;
 
 	IF r.code = 'heartbeat' THEN
-	  PERFORM AddEvent(pClass, nEvent, r.id, 'Устройство на связи', 'EventDeviceHeartbeat();');
+	  PERFORM AddEvent(pClass, uEvent, r.id, 'Устройство на связи', 'EventDeviceHeartbeat();');
 	END IF;
 
 	IF r.code = 'available' THEN
-	  PERFORM AddEvent(pClass, nEvent, r.id, 'Устройство доступно', 'EventDeviceAvailable();');
-	  PERFORM AddEvent(pClass, nEvent, r.id, 'Смена состояния', 'ChangeObjectState();');
+	  PERFORM AddEvent(pClass, uEvent, r.id, 'Устройство доступно', 'EventDeviceAvailable();');
+	  PERFORM AddEvent(pClass, uEvent, r.id, 'Смена состояния', 'ChangeObjectState();');
 	END IF;
 
 	IF r.code = 'unavailable' THEN
-	  PERFORM AddEvent(pClass, nEvent, r.id, 'Устройство недоступно', 'EventDeviceUnavailable();');
-	  PERFORM AddEvent(pClass, nEvent, r.id, 'Смена состояния', 'ChangeObjectState();');
+	  PERFORM AddEvent(pClass, uEvent, r.id, 'Устройство недоступно', 'EventDeviceUnavailable();');
+	  PERFORM AddEvent(pClass, uEvent, r.id, 'Смена состояния', 'ChangeObjectState();');
 	END IF;
 
 	IF r.code = 'faulted' THEN
-	  PERFORM AddEvent(pClass, nEvent, r.id, 'Устройство неисправно', 'EventDeviceFaulted();');
-	  PERFORM AddEvent(pClass, nEvent, r.id, 'Смена состояния', 'ChangeObjectState();');
+	  PERFORM AddEvent(pClass, uEvent, r.id, 'Устройство неисправно', 'EventDeviceFaulted();');
+	  PERFORM AddEvent(pClass, uEvent, r.id, 'Смена состояния', 'ChangeObjectState();');
 	END IF;
 
 	IF r.code = 'disable' THEN
-	  PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-	  PERFORM AddEvent(pClass, nEvent, r.id, 'Устройство отключено', 'EventDeviceDisable();');
+	  PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+	  PERFORM AddEvent(pClass, uEvent, r.id, 'Устройство отключено', 'EventDeviceDisable();');
 	END IF;
 
 	IF r.code = 'delete' THEN
-	  PERFORM AddEvent(pClass, nEvent, r.id, 'Устройство будет удалено', 'EventDeviceDelete();');
-	  PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
+	  PERFORM AddEvent(pClass, uEvent, r.id, 'Устройство будет удалено', 'EventDeviceDelete();');
+	  PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
 	END IF;
 
 	IF r.code = 'restore' THEN
-	  PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-	  PERFORM AddEvent(pClass, nEvent, r.id, 'Устройство восстановлено', 'EventDeviceRestore();');
+	  PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+	  PERFORM AddEvent(pClass, uEvent, r.id, 'Устройство восстановлено', 'EventDeviceRestore();');
 	END IF;
 
 	IF r.code = 'drop' THEN
-	  PERFORM AddEvent(pClass, nEvent, r.id, 'Устройство будет уничтожено', 'EventDeviceDrop();');
-	  PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
+	  PERFORM AddEvent(pClass, uEvent, r.id, 'Устройство будет уничтожено', 'EventDeviceDrop();');
+	  PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
 	END IF;
 
   END LOOP;
@@ -284,23 +284,23 @@ CREATE OR REPLACE FUNCTION CreateClassDevice (
 RETURNS         uuid
 AS $$
 DECLARE
-  nClass        uuid;
+  uClass        uuid;
 BEGIN
   -- Класс
-  nClass := AddClass(pParent, pEntity, 'device', 'Устройство', false);
+  uClass := AddClass(pParent, pEntity, 'device', 'Устройство', false);
 
   -- Тип
-  PERFORM AddType(nClass, 'iot.device', 'IoT', 'Интернет вещь.');
-  PERFORM AddType(nClass, 'mobile.device', 'Мобильное', 'Мобильное устройство.');
-  PERFORM AddType(nClass, 'other.device', 'Иное', 'Иное.');
+  PERFORM AddType(uClass, 'iot.device', 'IoT', 'Интернет вещь.');
+  PERFORM AddType(uClass, 'mobile.device', 'Мобильное', 'Мобильное устройство.');
+  PERFORM AddType(uClass, 'other.device', 'Иное', 'Иное.');
 
   -- Событие
-  PERFORM AddDeviceEvents(nClass);
+  PERFORM AddDeviceEvents(uClass);
 
   -- Метод
-  PERFORM AddDeviceMethods(nClass);
+  PERFORM AddDeviceMethods(uClass);
 
-  RETURN nClass;
+  RETURN uClass;
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

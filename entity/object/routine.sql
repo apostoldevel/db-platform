@@ -302,10 +302,10 @@ CREATE OR REPLACE FUNCTION GetObjectParent (
 ) RETURNS	uuid
 AS $$
 DECLARE
-  nParent	uuid;
+  uParent	uuid;
 BEGIN
-  SELECT parent INTO nParent FROM db.object WHERE id = nObject;
-  RETURN nParent;
+  SELECT parent INTO uParent FROM db.object WHERE id = nObject;
+  RETURN uParent;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -356,10 +356,10 @@ CREATE OR REPLACE FUNCTION GetObjectClass (
 ) RETURNS	uuid
 AS $$
 DECLARE
-  nClass	uuid;
+  uClass	uuid;
 BEGIN
-  SELECT class INTO nClass FROM db.object WHERE id = pId;
-  RETURN nClass;
+  SELECT class INTO uClass FROM db.object WHERE id = pId;
+  RETURN uClass;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -374,10 +374,10 @@ CREATE OR REPLACE FUNCTION GetObjectType (
 ) RETURNS	uuid
 AS $$
 DECLARE
-  nType		uuid;
+  uType		uuid;
 BEGIN
-  SELECT type INTO nType FROM db.object WHERE id = pId;
-  RETURN nType;
+  SELECT type INTO uType FROM db.object WHERE id = pId;
+  RETURN uType;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -485,13 +485,13 @@ CREATE OR REPLACE FUNCTION AddObjectState (
 ) RETURNS       uuid
 AS $$
 DECLARE
-  nId           uuid;
+  uId           uuid;
 
   dtDateFrom    timestamp;
   dtDateTo      timestamp;
 BEGIN
   -- получим дату значения в текущем диапозоне дат
-  SELECT id, validFromDate, validToDate INTO nId, dtDateFrom, dtDateTo
+  SELECT id, validFromDate, validToDate INTO uId, dtDateFrom, dtDateTo
     FROM db.object_state
    WHERE object = pObject
      AND validFromDate <= pDateFrom
@@ -512,12 +512,12 @@ BEGIN
 
     INSERT INTO db.object_state (object, state, validFromDate, validToDate)
     VALUES (pObject, pState, pDateFrom, coalesce(dtDateTo, MAXDATE()))
-    RETURNING id INTO nId;
+    RETURNING id INTO uId;
   END IF;
 
   UPDATE db.object SET state = pState WHERE id = pObject;
 
-  RETURN nId;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -679,11 +679,11 @@ CREATE OR REPLACE FUNCTION GetObjectMethod (
 ) RETURNS	uuid
 AS $$
 DECLARE
-  nClass	uuid;
+  uClass	uuid;
   nState	uuid;
 BEGIN
-  SELECT class, state INTO nClass, nState FROM db.object WHERE id = pObject;
-  RETURN GetMethod(nClass, pAction, nState);
+  SELECT class, state INTO uClass, nState FROM db.object WHERE id = pObject;
+  RETURN GetMethod(uClass, pAction, nState);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -747,7 +747,7 @@ CREATE OR REPLACE FUNCTION ExecuteAction (
 ) RETURNS	void
 AS $$
 DECLARE
-  nClass	uuid;
+  uClass	uuid;
   Rec		record;
 BEGIN
   FOR Rec IN
@@ -759,9 +759,9 @@ BEGIN
      ORDER BY e.sequence
   LOOP
     IF Rec.typecode = 'parent' THEN
-      SELECT parent INTO nClass FROM db.class_tree WHERE id = pClass;
-      IF nClass IS NOT NULL THEN
-        PERFORM ExecuteAction(nClass, pAction);
+      SELECT parent INTO uClass FROM db.class_tree WHERE id = pClass;
+      IF uClass IS NOT NULL THEN
+        PERFORM ExecuteAction(uClass, pAction);
       END IF;
     ELSIF Rec.typecode = 'event' THEN
       EXECUTE 'SELECT ' || Rec.Text;
@@ -794,7 +794,7 @@ DECLARE
   sLabel        text;
   sActionCode	text;
 
-  nClass        uuid;
+  uClass        uuid;
   nAction       uuid;
 BEGIN
   IF NOT CheckMethodAccess(pMethod, B'100') THEN
@@ -810,23 +810,23 @@ BEGIN
 
   PERFORM ClearMethodStack(pObject, pMethod);
 
-  nClass := GetObjectClass(pObject);
+  uClass := GetObjectClass(pObject);
 
   SELECT action INTO nAction FROM db.method WHERE id = pMethod;
   SELECT code INTO sActionCode FROM db.action WHERE id = nAction;
 
-  PERFORM InitContext(pObject, nClass, pMethod, nAction);
+  PERFORM InitContext(pObject, uClass, pMethod, nAction);
   PERFORM InitParams(pParams);
 
   BEGIN
-    PERFORM ExecuteAction(nClass, nAction);
+    PERFORM ExecuteAction(uClass, nAction);
   END;
 
   PERFORM InitParams(jSaveParams);
   PERFORM InitContext(nSaveObject, nSaveClass, nSaveMethod, nSaveAction);
 
   IF sActionCode <> 'drop' THEN
-    PERFORM AddNotification(nClass, nAction, pMethod, pObject);
+    PERFORM AddNotification(uClass, nAction, pMethod, pObject);
   END IF;
 
   RETURN GetMethodStack(pObject, pMethod);
@@ -849,16 +849,16 @@ CREATE OR REPLACE FUNCTION ExecuteMethodForAllChild (
 AS $$
 DECLARE
   r			record;
-  nMethod	uuid;
+  uMethod	uuid;
   result    jsonb;
 BEGIN
   result := jsonb_build_array();
 
   FOR r IN SELECT id, class, state FROM db.object WHERE parent = pObject AND class = pClass
   LOOP
-    nMethod := GetMethod(r.class, pAction, r.state);
-    IF nMethod IS NOT NULL THEN
-      result := result || ExecuteMethod(r.id, nMethod, pParams);
+    uMethod := GetMethod(r.class, pAction, r.state);
+    IF uMethod IS NOT NULL THEN
+      result := result || ExecuteMethod(r.id, uMethod, pParams);
     END IF;
   END LOOP;
 
@@ -882,15 +882,15 @@ CREATE OR REPLACE FUNCTION ExecuteObjectAction (
 ) RETURNS 	jsonb
 AS $$
 DECLARE
-  nMethod	uuid;
+  uMethod	uuid;
 BEGIN
-  nMethod := GetObjectMethod(pObject, pAction);
+  uMethod := GetObjectMethod(pObject, pAction);
 
-  IF nMethod IS NULL THEN
+  IF uMethod IS NULL THEN
   	PERFORM MethodActionNotFound(pObject, pAction);
   END IF;
 
-  RETURN ExecuteMethod(pObject, nMethod, pParams);
+  RETURN ExecuteMethod(pObject, uMethod, pParams);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

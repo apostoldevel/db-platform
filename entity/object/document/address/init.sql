@@ -14,60 +14,60 @@ AS $$
 DECLARE
   r             record;
 
-  nParent       uuid;
-  nEvent        uuid;
+  uParent       uuid;
+  uEvent        uuid;
 BEGIN
-  nParent := GetEventType('parent');
-  nEvent := GetEventType('event');
+  uParent := GetEventType('parent');
+  uEvent := GetEventType('event');
 
   FOR r IN SELECT * FROM Action
   LOOP
 
     IF r.code = 'create' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Адрес создан', 'EventAddressCreate();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Адрес создан', 'EventAddressCreate();');
     END IF;
 
     IF r.code = 'open' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Адрес открыт', 'EventAddressOpen();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Адрес открыт', 'EventAddressOpen();');
     END IF;
 
     IF r.code = 'edit' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Адрес изменён', 'EventAddressEdit();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Адрес изменён', 'EventAddressEdit();');
     END IF;
 
     IF r.code = 'save' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Адрес сохранён', 'EventAddressSave();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Адрес сохранён', 'EventAddressSave();');
     END IF;
 
     IF r.code = 'enable' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Смена состояния у всех детей', 'ExecuteMethodForAllChild();');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Адрес доступен', 'EventAddressEnable();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Смена состояния у всех детей', 'ExecuteMethodForAllChild();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Адрес доступен', 'EventAddressEnable();');
     END IF;
 
     IF r.code = 'disable' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Смена состояния у всех детей', 'ExecuteMethodForAllChild();');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Адрес недоступен', 'EventAddressDisable();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Смена состояния у всех детей', 'ExecuteMethodForAllChild();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Адрес недоступен', 'EventAddressDisable();');
     END IF;
 
     IF r.code = 'delete' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Адрес будет удалён', 'EventAddressDelete();');
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Адрес будет удалён', 'EventAddressDelete();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
     END IF;
 
     IF r.code = 'restore' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Адрес восстановлен', 'EventAddressRestore();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Адрес восстановлен', 'EventAddressRestore();');
     END IF;
 
     IF r.code = 'drop' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Адрес будет уничтожен', 'EventAddressDrop();');
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Адрес будет уничтожен', 'EventAddressDrop();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
     END IF;
 
   END LOOP;
@@ -87,23 +87,23 @@ CREATE OR REPLACE FUNCTION CreateClassAddress (
 RETURNS         uuid
 AS $$
 DECLARE
-  nClass        uuid;
+  uClass        uuid;
 BEGIN
   -- Класс
-  nClass := AddClass(pParent, pEntity, 'address', 'Адрес', false);
+  uClass := AddClass(pParent, pEntity, 'address', 'Адрес', false);
 
   -- Тип
-  PERFORM AddType(nClass, 'post.address', 'Почтовый', 'Почтовый адрес');
-  PERFORM AddType(nClass, 'actual.address', 'Фактический', 'Фактический адрес');
-  PERFORM AddType(nClass, 'legal.address', 'Юридический', 'Юридический адрес');
+  PERFORM AddType(uClass, 'post.address', 'Почтовый', 'Почтовый адрес');
+  PERFORM AddType(uClass, 'actual.address', 'Фактический', 'Фактический адрес');
+  PERFORM AddType(uClass, 'legal.address', 'Юридический', 'Юридический адрес');
 
   -- Событие
-  PERFORM AddAddressEvents(nClass);
+  PERFORM AddAddressEvents(uClass);
 
   -- Метод
-  PERFORM AddDefaultMethods(nClass);
+  PERFORM AddDefaultMethods(uClass);
 
-  RETURN nClass;
+  RETURN uClass;
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

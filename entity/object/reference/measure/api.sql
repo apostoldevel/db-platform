@@ -61,8 +61,8 @@ CREATE OR REPLACE FUNCTION api.update_measure (
 ) RETURNS       void
 AS $$
 DECLARE
-  nType         uuid;
-  nMeasure        uuid;
+  uType			uuid;
+  nMeasure		uuid;
 BEGIN
   SELECT t.id INTO nMeasure FROM db.measure t WHERE t.id = pId;
 
@@ -71,12 +71,12 @@ BEGIN
   END IF;
 
   IF pType IS NOT NULL THEN
-    nType := CodeToType(lower(pType), 'measure');
+    uType := CodeToType(lower(pType), 'measure');
   ELSE
-    SELECT o.type INTO nType FROM db.object o WHERE o.id = pId;
+    SELECT o.type INTO uType FROM db.object o WHERE o.id = pId;
   END IF;
 
-  PERFORM EditMeasure(nMeasure, pParent, nType, pCode, pName, pDescription);
+  PERFORM EditMeasure(nMeasure, pParent, uType, pCode, pName, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

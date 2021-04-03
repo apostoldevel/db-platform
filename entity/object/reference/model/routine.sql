@@ -23,25 +23,25 @@ CREATE OR REPLACE FUNCTION CreateModel (
 ) RETURNS       uuid
 AS $$
 DECLARE
-  nReference	uuid;
-  nClass        uuid;
-  nMethod       uuid;
+  uReference	uuid;
+  uClass        uuid;
+  uMethod       uuid;
 BEGIN
-  SELECT class INTO nClass FROM db.type WHERE id = pType;
+  SELECT class INTO uClass FROM db.type WHERE id = pType;
 
-  IF GetEntityCode(nClass) <> 'model' THEN
+  IF GetEntityCode(uClass) <> 'model' THEN
     PERFORM IncorrectClassType();
   END IF;
 
-  nReference := CreateReference(pParent, pType, pCode, pName, pDescription);
+  uReference := CreateReference(pParent, pType, pCode, pName, pDescription);
 
   INSERT INTO db.model (id, reference, vendor, category)
-  VALUES (nReference, nReference, pVendor, pCategory);
+  VALUES (uReference, uReference, pVendor, pCategory);
 
-  nMethod := GetMethod(nClass, GetAction('create'));
-  PERFORM ExecuteMethod(nReference, nMethod);
+  uMethod := GetMethod(uClass, GetAction('create'));
+  PERFORM ExecuteMethod(uReference, uMethod);
 
-  RETURN nReference;
+  RETURN uReference;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -74,8 +74,8 @@ CREATE OR REPLACE FUNCTION EditModel (
 ) RETURNS       void
 AS $$
 DECLARE
-  nClass        uuid;
-  nMethod       uuid;
+  uClass        uuid;
+  uMethod       uuid;
 BEGIN
   PERFORM EditReference(pId, pParent, pType, pCode, pName, pDescription);
 
@@ -84,10 +84,10 @@ BEGIN
          category = CheckNull(coalesce(pCategory, category, null_uuid()))
    WHERE id = pId;
 
-  SELECT class INTO nClass FROM db.object WHERE id = pId;
+  SELECT class INTO uClass FROM db.object WHERE id = pId;
 
-  nMethod := GetMethod(nClass, GetAction('edit'));
-  PERFORM ExecuteMethod(pId, nMethod);
+  uMethod := GetMethod(uClass, GetAction('edit'));
+  PERFORM ExecuteMethod(pId, uMethod);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -160,7 +160,7 @@ BEGIN
 
   INSERT INTO db.model_property (model, property, measure, value, format, sequence)
   VALUES (pModel, pProperty, pMeasure, pValue, pFormat, coalesce(pSequence, 1))
-    ON CONFLICT (model, property) DO UPDATE SET measure = pMeasure, value = coalesce(pValue, r.value), format = coalesce(pFormat, r.format), sequence = coalesce(pSequence, r.sequence, 1);
+    ON CONFLICT (model, property) DO UPDATE SET measure = pMeasure, value = coalesce(pValue, r.value), format = coalesce(pFormat, r.format), sequence = coalesce(pSequence, r.sequence);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

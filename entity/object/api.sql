@@ -117,7 +117,7 @@ CREATE OR REPLACE FUNCTION api.update_object (
 ) RETURNS       void
 AS $$
 DECLARE
-  nType         uuid;
+  uType         uuid;
   nObject       uuid;
 BEGIN
   SELECT t.id INTO nObject FROM db.object t WHERE t.id = pId;
@@ -127,12 +127,12 @@ BEGIN
   END IF;
 
   IF pType IS NOT NULL THEN
-    nType := GetType(lower(pType));
+    uType := GetType(lower(pType));
   ELSE
-    SELECT o.type INTO nType FROM db.object o WHERE o.id = pId;
+    SELECT o.type INTO uType FROM db.object o WHERE o.id = pId;
   END IF;
 
-  PERFORM EditObject(nObject, pParent, nType,pLabel, pData);
+  PERFORM EditObject(nObject, pParent, uType,pLabel, pData);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -216,9 +216,9 @@ CREATE OR REPLACE FUNCTION api.get_object_label (
 ) RETURNS       text
 AS $$
 DECLARE
-  nId           uuid;
+  uId           uuid;
 BEGIN
-  SELECT o.id INTO nId FROM db.object o WHERE o.id = pObject;
+  SELECT o.id INTO uId FROM db.object o WHERE o.id = pObject;
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('object', 'id', pObject);
   END IF;
@@ -242,16 +242,16 @@ CREATE OR REPLACE FUNCTION api.set_object_label (
 ) RETURNS       record
 AS $$
 DECLARE
-  nId           uuid;
+  uId           uuid;
 BEGIN
   id := null;
 
-  SELECT o.id INTO nId FROM db.object o WHERE o.id = pObject;
+  SELECT o.id INTO uId FROM db.object o WHERE o.id = pObject;
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('object', 'id', pObject);
   END IF;
 
-  id := nId;
+  id := uId;
 
   PERFORM SetObjectLabel(pObject, pLabel);
   SELECT * INTO result, message FROM result_success();
@@ -278,10 +278,10 @@ CREATE OR REPLACE FUNCTION api.object_force_delete (
 ) RETURNS	    void
 AS $$
 DECLARE
-  nId		    uuid;
+  uId		    uuid;
   nState	    uuid;
 BEGIN
-  SELECT o.id INTO nId FROM db.object o WHERE o.id = pId;
+  SELECT o.id INTO uId FROM db.object o WHERE o.id = pId;
 
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('объект', 'id', pId);
@@ -366,10 +366,10 @@ CREATE OR REPLACE FUNCTION api.execute_object_action (
 ) RETURNS		jsonb
 AS $$
 DECLARE
-  nId			uuid;
-  nMethod		uuid;
+  uId			uuid;
+  uMethod		uuid;
 BEGIN
-  SELECT o.id INTO nId FROM db.object o WHERE o.id = pObject;
+  SELECT o.id INTO uId FROM db.object o WHERE o.id = pObject;
 
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('объект', 'id', pObject);
@@ -379,9 +379,9 @@ BEGIN
     PERFORM ActionIsEmpty();
   END IF;
 
-  nMethod := GetObjectMethod(pObject, pAction);
+  uMethod := GetObjectMethod(pObject, pAction);
 
-  IF nMethod IS NULL THEN
+  IF uMethod IS NULL THEN
     PERFORM MethodActionNotFound(pObject, pAction);
   END IF;
 
@@ -450,10 +450,10 @@ CREATE OR REPLACE FUNCTION api.execute_method (
 ) RETURNS       jsonb
 AS $$
 DECLARE
-  nId           uuid;
-  nMethod       uuid;
+  uId           uuid;
+  uMethod       uuid;
 BEGIN
-  SELECT o.id INTO nId FROM db.object o WHERE o.id = pObject;
+  SELECT o.id INTO uId FROM db.object o WHERE o.id = pObject;
 
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('объект', 'id', pObject);
@@ -463,13 +463,13 @@ BEGIN
     PERFORM MethodIsEmpty();
   END IF;
 
-  SELECT m.id INTO nMethod FROM method m WHERE m.id = pMethod;
+  SELECT m.id INTO uMethod FROM method m WHERE m.id = pMethod;
 
   IF NOT FOUND THEN
     PERFORM MethodNotFound(pObject, pMethod);
   END IF;
 
-  RETURN ExecuteMethod(pObject, nMethod, pParams);
+  RETURN ExecuteMethod(pObject, uMethod, pParams);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -492,11 +492,11 @@ CREATE OR REPLACE FUNCTION api.execute_method (
 ) RETURNS       jsonb
 AS $$
 DECLARE
-  nId           uuid;
-  nClass        uuid;
-  nMethod       uuid;
+  uId           uuid;
+  uClass        uuid;
+  uMethod       uuid;
 BEGIN
-  SELECT o.id INTO nId FROM db.object o WHERE o.id = pObject;
+  SELECT o.id INTO uId FROM db.object o WHERE o.id = pObject;
 
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('объект', 'id', pObject);
@@ -506,15 +506,15 @@ BEGIN
     PERFORM MethodIsEmpty();
   END IF;
 
-  nClass := GetObjectClass(pObject);
+  uClass := GetObjectClass(pObject);
 
-  SELECT m.id INTO nMethod FROM db.method m WHERE m.class = nClass AND m.code = pCode;
+  SELECT m.id INTO uMethod FROM db.method m WHERE m.class = uClass AND m.code = pCode;
 
   IF NOT FOUND THEN
     PERFORM MethodByCodeNotFound(pObject, pCode);
   END IF;
 
-  RETURN ExecuteMethod(pObject, nMethod, pParams);
+  RETURN ExecuteMethod(pObject, uMethod, pParams);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -773,9 +773,9 @@ AS $$
 DECLARE
   r         record;
   arKeys    text[];
-  nId       uuid;
+  uId       uuid;
 BEGIN
-  SELECT o.id INTO nId FROM db.object o WHERE o.id = pId;
+  SELECT o.id INTO uId FROM db.object o WHERE o.id = pId;
 
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('объект', 'id', pId);
@@ -943,7 +943,7 @@ CREATE OR REPLACE FUNCTION api.set_object_data (
 AS $$
 DECLARE
   r             record;
-  nType         uuid;
+  uType         uuid;
   arTypes       text[];
 BEGIN
   pType := lower(pType);
@@ -959,7 +959,7 @@ BEGIN
 
   PERFORM SetObjectData(pId, pType, pCode, pData);
 
-  RETURN QUERY SELECT * FROM api.get_object_data(pId, nType, pCode);
+  RETURN QUERY SELECT * FROM api.get_object_data(pId, uType, pCode);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -975,11 +975,11 @@ CREATE OR REPLACE FUNCTION api.set_object_data_json (
 ) RETURNS       SETOF api.object_data
 AS $$
 DECLARE
-  nId           uuid;
+  uId           uuid;
   arKeys        text[];
   r             record;
 BEGIN
-  SELECT o.id INTO nId FROM db.object o WHERE o.id = pId;
+  SELECT o.id INTO uId FROM db.object o WHERE o.id = pId;
 
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('объект', 'id', pId);
@@ -1186,10 +1186,10 @@ CREATE OR REPLACE FUNCTION api.set_object_coordinates_json (
 AS $$
 DECLARE
   r             record;
-  nId           uuid;
+  uId           uuid;
   arKeys        text[];
 BEGIN
-  SELECT o.id INTO nId FROM db.object o WHERE o.id = pId;
+  SELECT o.id INTO uId FROM db.object o WHERE o.id = pId;
 
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('объект', 'id', pId);

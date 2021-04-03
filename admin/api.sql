@@ -31,7 +31,7 @@ DECLARE
 BEGIN
   SELECT a.id INTO nAudience FROM oauth2.audience a WHERE a.code = oauth2_current_client_id();
 
-  IF NOT found THEN
+  IF NOT FOUND THEN
     PERFORM AudienceNotFound();
   END IF;
 
@@ -555,36 +555,36 @@ CREATE OR REPLACE FUNCTION api.recovery_password (
 AS $$
 DECLARE
   nTicket			uuid;
-  nUserId			uuid;
+  uUserId			uuid;
   vOAuthSecret		text;
 BEGIN
-  SELECT id INTO nUserId FROM db.user WHERE phone = TrimPhone(pIdentifier) AND type = 'U';
+  SELECT id INTO uUserId FROM db.user WHERE phone = TrimPhone(pIdentifier) AND type = 'U';
 
   IF FOUND THEN
 	IF IsUserRole(GetGroup('system'), session_userid()) THEN
 	  SELECT a.secret INTO vOAuthSecret FROM oauth2.audience a WHERE a.code = session_username();
-	  IF found THEN
+	  IF FOUND THEN
 		PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
-		nTicket := RecoveryPasswordByPhone(nUserId);
+		nTicket := RecoveryPasswordByPhone(uUserId);
 		PERFORM SubstituteUser(session_userid(), vOAuthSecret);
 	  END IF;
 	ELSE
-	  nTicket := RecoveryPasswordByPhone(nUserId);
+	  nTicket := RecoveryPasswordByPhone(uUserId);
 	END IF;
   END IF;
 
-  SELECT id INTO nUserId FROM db.user WHERE email = pIdentifier AND type = 'U';
+  SELECT id INTO uUserId FROM db.user WHERE email = pIdentifier AND type = 'U';
 
   IF FOUND THEN
 	IF IsUserRole(GetGroup('system'), session_userid()) THEN
 	  SELECT a.secret INTO vOAuthSecret FROM oauth2.audience a WHERE a.code = session_username();
-	  IF found THEN
+	  IF FOUND THEN
 		PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
-		nTicket := RecoveryPasswordByEmail(nUserId);
+		nTicket := RecoveryPasswordByEmail(uUserId);
 		PERFORM SubstituteUser(session_userid(), vOAuthSecret);
 	  END IF;
 	ELSE
-	  nTicket := RecoveryPasswordByEmail(nUserId);
+	  nTicket := RecoveryPasswordByEmail(uUserId);
 	END IF;
   END IF;
 
@@ -611,11 +611,11 @@ CREATE OR REPLACE FUNCTION api.check_recovery_ticket (
 ) RETURNS       	record
 AS $$
 DECLARE
-  nUserId			uuid;
+  uUserId			uuid;
 BEGIN
-  nUserId := CheckRecoveryTicket(pTicket, vSecurityAnswer);
+  uUserId := CheckRecoveryTicket(pTicket, vSecurityAnswer);
 
-  result := nUserId IS NOT NULL;
+  result := uUserId IS NOT NULL;
   message := GetErrorMessage();
 END;
 $$ LANGUAGE plpgsql
@@ -641,23 +641,23 @@ CREATE OR REPLACE FUNCTION api.reset_password (
 ) RETURNS       	record
 AS $$
 DECLARE
-  nUserId			uuid;
+  uUserId			uuid;
   vOAuthSecret		text;
 BEGIN
-  nUserId := CheckRecoveryTicket(pTicket, vSecurityAnswer);
+  uUserId := CheckRecoveryTicket(pTicket, vSecurityAnswer);
 
-  result := nUserId IS NOT NULL;
+  result := uUserId IS NOT NULL;
   message := GetErrorMessage();
 
   IF result THEN
     SELECT a.secret INTO vOAuthSecret FROM oauth2.audience a WHERE a.code = session_username();
 
-    IF found THEN
+    IF FOUND THEN
 	  PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
-      PERFORM SetPassword(nUserId, pPassword);
+      PERFORM SetPassword(uUserId, pPassword);
       PERFORM SubstituteUser(session_userid(), vOAuthSecret);
 	ELSE
-      PERFORM SetPassword(nUserId, pPassword);
+      PERFORM SetPassword(uUserId, pPassword);
     END IF;
 
     UPDATE db.recovery_ticket SET used = Now() WHERE ticket = pTicket;

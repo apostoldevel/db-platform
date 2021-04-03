@@ -9,13 +9,13 @@ CREATE OR REPLACE FUNCTION AddEntity (
 ) RETURNS	    uuid
 AS $$
 DECLARE
-  nId		    uuid;
+  uId		    uuid;
 BEGIN
   INSERT INTO db.entity (code, name, description)
   VALUES (pCode, pName, pDescription)
-  RETURNING id INTO nId;
+  RETURNING id INTO uId;
 
-  RETURN nId;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -68,10 +68,10 @@ CREATE OR REPLACE FUNCTION GetEntity (
 ) RETURNS 	uuid
 AS $$
 DECLARE
-  nId		uuid;
+  uId		uuid;
 BEGIN
-  SELECT id INTO nId FROM db.entity WHERE code = pCode;
-  RETURN nId;
+  SELECT id INTO uId FROM db.entity WHERE code = pCode;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -108,7 +108,7 @@ CREATE OR REPLACE FUNCTION AddClass (
 ) RETURNS	uuid
 AS $$
 DECLARE
-  nId		uuid;
+  uId		uuid;
   nLevel	integer;
 BEGIN
   nLevel := 0;
@@ -119,9 +119,9 @@ BEGIN
 
   INSERT INTO db.class_tree (parent, entity, level, code, label, abstract)
   VALUES (pParent, pEntity, nLevel, pCode, pLabel, pAbstract)
-  RETURNING id INTO nId;
+  RETURNING id INTO uId;
 
-  RETURN nId;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -187,10 +187,10 @@ CREATE OR REPLACE FUNCTION GetClass (
 ) RETURNS 	uuid
 AS $$
 DECLARE
-  nId		uuid;
+  uId		uuid;
 BEGIN
-  SELECT id INTO nId FROM db.class_tree WHERE code = pCode;
-  RETURN nId;
+  SELECT id INTO uId FROM db.class_tree WHERE code = pCode;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -205,10 +205,10 @@ CREATE OR REPLACE FUNCTION GetClassEntity (
 ) RETURNS 	uuid
 AS $$
 DECLARE
-  nId		uuid;
+  uId		uuid;
 BEGIN
-  SELECT entity INTO nId FROM db.class_tree WHERE id = pClass;
-  RETURN nId;
+  SELECT entity INTO uId FROM db.class_tree WHERE id = pClass;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -247,7 +247,7 @@ BEGIN
     FROM db.class_tree c INNER JOIN db.entity t ON t.id = c.entity
    WHERE c.id = pId;
 
-  IF found THEN
+  IF FOUND THEN
     RETURN vCode;
   END IF;
 
@@ -415,7 +415,7 @@ BEGIN
 
   IF pMask IS NOT NULL THEN
     UPDATE db.acu SET deny = bDeny, allow = bAllow WHERE class = pClass AND userid = pUserId;
-    IF not found THEN
+    IF not FOUND THEN
       INSERT INTO db.acu SELECT pClass, pUserId, bDeny, bAllow;
     END IF;
   ELSE
@@ -831,10 +831,10 @@ CREATE OR REPLACE FUNCTION GetStateTypeByState (
 ) RETURNS	uuid
 AS $$
 DECLARE
-  nType		uuid;
+  uType		uuid;
 BEGIN
-  SELECT type INTO nType FROM db.state WHERE id = pState;
-  RETURN nType;
+  SELECT type INTO uType FROM db.state WHERE id = pState;
+  RETURN uType;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1130,20 +1130,20 @@ CREATE OR REPLACE FUNCTION GetMethod (
 ) RETURNS	uuid
 AS $$
 DECLARE
-  nMethod	uuid;
+  uMethod	uuid;
 BEGIN
   WITH RECURSIVE _class_tree(id, parent, level) AS (
     SELECT id, parent, level FROM db.class_tree WHERE id = pClass
     UNION
     SELECT c.id, c.parent, c.level FROM db.class_tree c INNER JOIN _class_tree ct ON ct.parent = c.id
   )
-  SELECT m.id INTO nMethod
+  SELECT m.id INTO uMethod
     FROM db.method m INNER JOIN _class_tree c ON c.id = m.class
    WHERE m.action = pAction
      AND m.state IS NOT DISTINCT FROM pState
    ORDER BY level DESC;
 
-  RETURN nMethod;
+  RETURN uMethod;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

@@ -27,14 +27,14 @@ DECLARE
   sShort        text;
   sAddress      text;
 
-  nAddress      uuid;
-  nClass        uuid;
-  nDocument     uuid;
-  nMethod       uuid;
+  uAddress      uuid;
+  uClass        uuid;
+  uDocument     uuid;
+  uMethod       uuid;
 BEGIN
-  SELECT class INTO nClass FROM db.type WHERE id = pType;
+  SELECT class INTO uClass FROM db.type WHERE id = pType;
 
-  IF GetEntityCode(nClass) <> 'address' THEN
+  IF GetEntityCode(uClass) <> 'address' THEN
     PERFORM IncorrectClassType();
   END IF;
 
@@ -118,16 +118,16 @@ BEGIN
     END IF;
   END IF;
 
-  nDocument := CreateDocument(pParent, pType, null, sAddress);
+  uDocument := CreateDocument(pParent, pType, null, sAddress);
 
   INSERT INTO db.address (id, document, code, index, country, region, district, city, settlement, street, house, building, structure, apartment, sortnum)
-  VALUES (nDocument, nDocument, pCode, pIndex, pCountry, pRegion, pDistrict, pCity, pSettlement, pStreet, pHouse, pBuilding, pStructure, pApartment, 0)
-  RETURNING id INTO nAddress;
+  VALUES (uDocument, uDocument, pCode, pIndex, pCountry, pRegion, pDistrict, pCity, pSettlement, pStreet, pHouse, pBuilding, pStructure, pApartment, 0)
+  RETURNING id INTO uAddress;
 
-  nMethod := GetMethod(nClass, GetAction('create'));
-  PERFORM ExecuteMethod(nAddress, nMethod);
+  uMethod := GetMethod(uClass, GetAction('create'));
+  PERFORM ExecuteMethod(uAddress, uMethod);
 
-  RETURN nAddress;
+  RETURN uAddress;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -163,8 +163,8 @@ DECLARE
   sShort		text;
   sAddress	    text;
 
-  nClass        uuid;
-  nMethod       uuid;
+  uClass        uuid;
+  uMethod       uuid;
 
   -- current
   cParent	    uuid;
@@ -283,7 +283,7 @@ BEGIN
   END IF;
 
   IF sAddress IS NOT NULL THEN
-    UPDATE db.document SET description = CheckNull(sAddress) WHERE id = pId;
+    UPDATE db.document_text SET description = CheckNull(sAddress) WHERE document = pId AND locale = current_locale();
   END IF;
 
   UPDATE db.address
@@ -301,9 +301,9 @@ BEGIN
          Apartment = pApartment
    WHERE id = pId;
 
-  nClass := GetObjectClass(pId);
-  nMethod := GetMethod(nClass, GetAction('edit'));
-  PERFORM ExecuteMethod(pId, nMethod);
+  uClass := GetObjectClass(pId);
+  uMethod := GetMethod(uClass, GetAction('edit'));
+  PERFORM ExecuteMethod(pId, uMethod);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -404,16 +404,16 @@ CREATE OR REPLACE FUNCTION GetObjectAddress (
 ) RETURNS	text
 AS $$
 DECLARE
-  nAddress		uuid;
+  uAddress		uuid;
 BEGIN
-  SELECT linked INTO nAddress
+  SELECT linked INTO uAddress
     FROM db.object_link
    WHERE object = pObject
      AND key = pKey
      AND validFromDate <= pDate
      AND validToDate > pDate;
 
-  RETURN GetAddressString(nAddress);
+  RETURN GetAddressString(uAddress);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

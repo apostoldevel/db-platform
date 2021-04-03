@@ -14,15 +14,15 @@ AS $$
 DECLARE
   nObject	    uuid;
   nEntity		uuid;
-  nClass        uuid;
+  uClass        uuid;
 BEGIN
   nObject := CreateObject(pParent, pType, pLabel, coalesce(pText, pDescription));
 
   nEntity := GetObjectEntity(nObject);
-  nClass := GetObjectClass(nObject);
+  uClass := GetObjectClass(nObject);
 
   INSERT INTO db.document (id, object, entity, class, type, area)
-  VALUES (nObject, nObject, nEntity, nClass, pType, current_area())
+  VALUES (nObject, nObject, nEntity, uClass, pType, current_area())
   RETURNING id INTO nObject;
 
   INSERT INTO db.document_text (document, locale, description)

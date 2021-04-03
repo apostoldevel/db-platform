@@ -137,66 +137,66 @@ AS $$
 DECLARE
   r             record;
 
-  nParent       uuid;
-  nEvent        uuid;
+  uParent       uuid;
+  uEvent        uuid;
 BEGIN
-  nParent := GetEventType('parent');
-  nEvent := GetEventType('event');
+  uParent := GetEventType('parent');
+  uEvent := GetEventType('event');
 
   FOR r IN SELECT * FROM Action
   LOOP
 
     IF r.code = 'create' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Клиент создан', 'EventClientCreate();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Клиент создан', 'EventClientCreate();');
     END IF;
 
     IF r.code = 'open' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Клиент открыт', 'EventClientOpen();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Клиент открыт', 'EventClientOpen();');
     END IF;
 
     IF r.code = 'edit' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Клиент изменён', 'EventClientEdit();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Клиент изменён', 'EventClientEdit();');
     END IF;
 
     IF r.code = 'save' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Клиент сохранён', 'EventClientSave();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Клиент сохранён', 'EventClientSave();');
     END IF;
 
     IF r.code = 'enable' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Клиент активен', 'EventClientEnable();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Клиент активен', 'EventClientEnable();');
     END IF;
 
     IF r.code = 'confirm' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Подтвердить адрес электронной почты', 'EventClientConfirm();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Подтвердить адрес электронной почты', 'EventClientConfirm();');
     END IF;
 
     IF r.code = 'reconfirm' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Переподтвердить адрес электронной почты', 'EventClientReconfirm();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Переподтвердить адрес электронной почты', 'EventClientReconfirm();');
     END IF;
 
     IF r.code = 'disable' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Клиент не активен', 'EventClientDisable();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Клиент не активен', 'EventClientDisable();');
     END IF;
 
     IF r.code = 'delete' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Клиент будет удалён', 'EventClientDelete();');
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Клиент будет удалён', 'EventClientDelete();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
     END IF;
 
     IF r.code = 'restore' THEN
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Клиент восстановлен', 'EventClientRestore();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Клиент восстановлен', 'EventClientRestore();');
     END IF;
 
     IF r.code = 'drop' THEN
-      PERFORM AddEvent(pClass, nEvent, r.id, 'Клиент будет уничтожен', 'EventClientDrop();');
-      PERFORM AddEvent(pClass, nParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Клиент будет уничтожен', 'EventClientDrop();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
     END IF;
 
   END LOOP;
@@ -216,23 +216,23 @@ CREATE OR REPLACE FUNCTION CreateClassClient (
 RETURNS         uuid
 AS $$
 DECLARE
-  nClass        uuid;
+  uClass        uuid;
 BEGIN
   -- Класс
-  nClass := AddClass(pParent, pEntity, 'client', 'Клиент', false);
+  uClass := AddClass(pParent, pEntity, 'client', 'Клиент', false);
 
   -- Тип
-  PERFORM AddType(nClass, 'entity.client', 'ЮЛ', 'Юридическое лицо');
-  PERFORM AddType(nClass, 'physical.client', 'ФЛ', 'Физическое лицо');
-  PERFORM AddType(nClass, 'individual.client', 'ИП', 'Индивидуальный предприниматель');
+  PERFORM AddType(uClass, 'entity.client', 'ЮЛ', 'Юридическое лицо');
+  PERFORM AddType(uClass, 'physical.client', 'ФЛ', 'Физическое лицо');
+  PERFORM AddType(uClass, 'individual.client', 'ИП', 'Индивидуальный предприниматель');
 
   -- Событие
-  PERFORM AddClientEvents(nClass);
+  PERFORM AddClientEvents(uClass);
 
   -- Метод
-  PERFORM AddClientMethods(nClass);
+  PERFORM AddClientMethods(uClass);
 
-  RETURN nClass;
+  RETURN uClass;
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

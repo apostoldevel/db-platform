@@ -69,7 +69,7 @@ CREATE OR REPLACE FUNCTION api.update_model (
 ) RETURNS       void
 AS $$
 DECLARE
-  nType         uuid;
+  uType         uuid;
   nModel        uuid;
 BEGIN
   SELECT t.id INTO nModel FROM db.model t WHERE t.id = pId;
@@ -79,12 +79,12 @@ BEGIN
   END IF;
 
   IF pType IS NOT NULL THEN
-    nType := CodeToType(lower(pType), 'model');
+    uType := CodeToType(lower(pType), 'model');
   ELSE
-    SELECT o.type INTO nType FROM db.object o WHERE o.id = pId;
+    SELECT o.type INTO uType FROM db.object o WHERE o.id = pId;
   END IF;
 
-  PERFORM EditModel(nModel, pParent, nType, pVendor, pCategory, pCode, pName, pDescription);
+  PERFORM EditModel(nModel, pParent, uType, pVendor, pCategory, pCode, pName, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

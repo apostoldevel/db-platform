@@ -65,7 +65,7 @@ CREATE OR REPLACE FUNCTION api.update_agent (
 ) RETURNS       void
 AS $$
 DECLARE
-  nType         uuid;
+  uType         uuid;
   nAgent        uuid;
 BEGIN
   SELECT t.id INTO nAgent FROM db.agent t WHERE t.id = pId;
@@ -75,12 +75,12 @@ BEGIN
   END IF;
 
   IF pType IS NOT NULL THEN
-    nType := CodeToType(lower(pType), 'agent');
+    uType := CodeToType(lower(pType), 'agent');
   ELSE
-    SELECT o.type INTO nType FROM db.object o WHERE o.id = pId;
+    SELECT o.type INTO uType FROM db.object o WHERE o.id = pId;
   END IF;
 
-  PERFORM EditAgent(nAgent, pParent, nType, pCode, pName, pVendor, pDescription);
+  PERFORM EditAgent(nAgent, pParent, uType, pCode, pName, pVendor, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

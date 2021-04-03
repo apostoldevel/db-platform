@@ -61,7 +61,7 @@ CREATE OR REPLACE FUNCTION api.update_property (
 ) RETURNS       void
 AS $$
 DECLARE
-  nType         uuid;
+  uType         uuid;
   nProperty		uuid;
 BEGIN
   SELECT t.id INTO nProperty FROM db.property t WHERE t.id = pId;
@@ -71,12 +71,12 @@ BEGIN
   END IF;
 
   IF pType IS NOT NULL THEN
-    nType := CodeToType(lower(pType), 'property');
+    uType := CodeToType(lower(pType), 'property');
   ELSE
-    SELECT o.type INTO nType FROM db.object o WHERE o.id = pId;
+    SELECT o.type INTO uType FROM db.object o WHERE o.id = pId;
   END IF;
 
-  PERFORM EditProperty(nProperty, pParent, nType, pCode, pName, pDescription);
+  PERFORM EditProperty(nProperty, pParent, uType, pCode, pName, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

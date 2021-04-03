@@ -9,19 +9,19 @@ CREATE OR REPLACE FUNCTION SetResourceSequence (
 ) RETURNS 	void
 AS $$
 DECLARE
-  nId		uuid;
+  uId		uuid;
   nNode     uuid;
 BEGIN
   IF pDelta <> 0 THEN
     SELECT node INTO nNode FROM db.resource WHERE id = pId;
-    SELECT id INTO nId
+    SELECT id INTO uId
       FROM db.resource
      WHERE coalesce(node, null_uuid()) = coalesce(nNode, null_uuid())
        AND sequence = pSequence
        AND id <> pId;
 
-    IF found THEN
-      PERFORM SetResourceSequence(nId, pSequence + pDelta, pDelta);
+    IF FOUND THEN
+      PERFORM SetResourceSequence(uId, pSequence + pDelta, pDelta);
     END IF;
   END IF;
 

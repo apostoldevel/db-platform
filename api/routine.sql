@@ -50,7 +50,7 @@ CREATE OR REPLACE FUNCTION AddPath (
 ) RETURNS	uuid
 AS $$
 DECLARE
-  nId		uuid;
+  uId		uuid;
   nLevel	integer;
 BEGIN
   nLevel := 0;
@@ -62,9 +62,9 @@ BEGIN
 
   INSERT INTO db.path (root, parent, name, level)
   VALUES (pRoot, pParent, pName, nLevel)
-  RETURNING id INTO nId;
+  RETURNING id INTO uId;
 
-  RETURN nId;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -80,15 +80,15 @@ CREATE OR REPLACE FUNCTION GetPath (
 ) RETURNS		uuid
 AS $$
 DECLARE
-  nId			uuid;
+  uId			uuid;
 BEGIN
   IF pParent IS NULL THEN
-    SELECT id INTO nId FROM db.path WHERE parent IS NULL AND name = pName;
+    SELECT id INTO uId FROM db.path WHERE parent IS NULL AND name = pName;
   ELSE
-    SELECT id INTO nId FROM db.path WHERE parent = pParent AND name = pName;
+    SELECT id INTO uId FROM db.path WHERE parent = pParent AND name = pName;
   END IF;
 
-  RETURN nId;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -140,13 +140,13 @@ CREATE OR REPLACE FUNCTION AddEndPoint (
 ) RETURNS		uuid
 AS $$
 DECLARE
-  nId			uuid;
+  uId			uuid;
 BEGIN
   INSERT INTO db.endpoint (definition)
   VALUES (pDefinition)
-  RETURNING id INTO nId;
+  RETURNING id INTO uId;
 
-  RETURN nId;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -226,9 +226,9 @@ CREATE OR REPLACE FUNCTION RegisterPath (
 ) RETURNS		uuid
 AS $$
 DECLARE
-  nId			uuid;
+  uId			uuid;
   nRoot			uuid;
-  nParent		uuid;
+  uParent		uuid;
 
   arPath		text[];
   i				integer;
@@ -237,19 +237,19 @@ BEGIN
     arPath := path_to_array(pPath);
     FOR i IN 1..array_length(arPath, 1)
     LOOP
-      nParent := coalesce(nId, nRoot);
-      nId := GetPath(nParent, arPath[i]);
+      uParent := coalesce(uId, nRoot);
+      uId := GetPath(uParent, arPath[i]);
 
-      IF nId IS NULL THEN
-        nId := AddPath(nRoot, nParent, arPath[i]);
+      IF uId IS NULL THEN
+        uId := AddPath(nRoot, uParent, arPath[i]);
         IF nRoot IS NULL THEN
-  		  nRoot := nId;
+  		  nRoot := uId;
         END IF;
       END IF;
     END LOOP;
   END IF;
 
-  RETURN nId;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -284,7 +284,7 @@ CREATE OR REPLACE FUNCTION FindPath (
 ) RETURNS		uuid
 AS $$
 DECLARE
-  nId			uuid;
+  uId			uuid;
   arPath		text[];
   i				integer;
 BEGIN
@@ -292,11 +292,11 @@ BEGIN
     arPath := path_to_array(pPath);
     FOR i IN 1..array_length(arPath, 1)
     LOOP
-      nId := GetPath(nId, arPath[i]);
+      uId := GetPath(uId, arPath[i]);
     END LOOP;
   END IF;
 
-  RETURN nId;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -311,8 +311,8 @@ CREATE OR REPLACE FUNCTION QueryPath (
 ) RETURNS		uuid
 AS $$
 DECLARE
-  nId			uuid;
-  nParent		uuid;
+  uId			uuid;
+  uParent		uuid;
   arPath		text[];
   Index			integer;
 BEGIN
@@ -320,17 +320,17 @@ BEGIN
     arPath := path_to_array(pPath);
     IF array_length(arPath, 1) > 0 THEN
       Index := 1;
-      nId := GetPath(nParent, arPath[Index]);
-	  WHILE nId IS NOT NULL
+      uId := GetPath(uParent, arPath[Index]);
+	  WHILE uId IS NOT NULL
 	  LOOP
-	    nParent := nId;
+	    uParent := uId;
         Index := Index + 1;
-        nId := GetPath(nParent, arPath[Index]);
+        uId := GetPath(uParent, arPath[Index]);
 	  END LOOP;
 	END IF;
   END IF;
 
-  RETURN coalesce(nId, nParent);
+  RETURN coalesce(uId, uParent);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

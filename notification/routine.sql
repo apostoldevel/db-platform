@@ -38,13 +38,13 @@ CREATE OR REPLACE FUNCTION CreateNotification (
 ) RETURNS	uuid
 AS $$
 DECLARE
-  nId		uuid;
+  uId		uuid;
 BEGIN
   INSERT INTO db.notification (entity, class, action, method, object, userid, datetime)
   VALUES (pEntity, pClass, pAction, pMethod, pObject, pUserId, pDateTime)
-  RETURNING id INTO nId;
+  RETURNING id INTO uId;
 
-  RETURN nId;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

@@ -163,23 +163,23 @@ CREATE OR REPLACE FUNCTION CheckRecoveryTicket (
 ) RETURNS			uuid
 AS $$
 DECLARE
-  nUserId			uuid;
+  uUserId			uuid;
   passed			boolean;
   utilized			boolean;
 BEGIN
-  SELECT userId, (securityAnswer = crypt(pSecurityAnswer, securityAnswer)), used IS NOT NULL INTO nUserId, passed, utilized
+  SELECT userId, (securityAnswer = crypt(pSecurityAnswer, securityAnswer)), used IS NOT NULL INTO uUserId, passed, utilized
     FROM db.recovery_ticket
    WHERE ticket = pTicket
      AND validFromDate <= Now()
      AND validtoDate > Now();
 
-  IF found THEN
+  IF FOUND THEN
     IF utilized THEN
       PERFORM SetErrorMessage('Талон восстановления пароля уже был использован.');
     ELSE
 	  IF passed THEN
 		PERFORM SetErrorMessage('Успешно.');
-		RETURN nUserId;
+		RETURN uUserId;
 	  ELSE
 		PERFORM SetErrorMessage('Секретный ответ не прошёл проверку.');
 	  END IF;
@@ -424,7 +424,7 @@ DECLARE
 BEGIN
   SELECT hash INTO vHash FROM db.user WHERE id = pUserId;
 
-  IF found THEN
+  IF FOUND THEN
     vStrPwKey := '{' || pUserId::text || '-' || vHash || '-' || pSecret || '-' || current_database() || '-' || DateToStr(pCreated, 'YYYYMMDDHH24MISS') || '}';
   END IF;
 
@@ -455,7 +455,7 @@ BEGIN
   SELECT provider, code, secret INTO nProvider, aud, vSecret FROM oauth2.audience WHERE id = pAudience;
   SELECT code INTO iss FROM oauth2.issuer WHERE provider = nProvider;
 
-  IF NOT found THEN
+  IF NOT FOUND THEN
 	PERFORM IssuerNotFound(coalesce(iss, 'null'));
   END IF;
 
@@ -529,10 +529,10 @@ CREATE OR REPLACE FUNCTION CreateIdToken (
 ) RETURNS       text
 AS $$
 DECLARE
-  nUserId       uuid;
+  uUserId       uuid;
 BEGIN
-  SELECT userId INTO nUserId FROM db.session WHERE code = pSession;
-  RETURN CreateIdToken(pAudience, nUserId, pScopes, pDateFrom, pDateTo);
+  SELECT userId INTO uUserId FROM db.session WHERE code = pSession;
+  RETURN CreateIdToken(pAudience, uUserId, pScopes, pDateFrom, pDateTo);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -882,7 +882,7 @@ BEGIN
     FROM db.oauth2 WHERE id = nOauth2;
 
   IF NOT FOUND THEN
-    RETURN json_build_object('error', json_build_object('code', 400, 'error', 'invalid_request', 'message', 'The OAuth 2.0 params was not found.'));
+    RETURN json_build_object('error', json_build_object('code', 400, 'error', 'invalid_request', 'message', 'The OAuth 2.0 params was not FOUND.'));
   END IF;
 
   expires_in := trunc(extract(EPOCH FROM pDateTo)) - trunc(extract(EPOCH FROM pDateFrom));
@@ -1235,7 +1235,7 @@ BEGIN
   vCode := GetCurrentSession();
   IF vCode IS NOT NULL THEN
     SELECT code INTO vSession FROM db.session WHERE code = vCode;
-    IF found THEN
+    IF FOUND THEN
       RETURN vSession;
     END IF;
   END IF;
@@ -1432,12 +1432,12 @@ CREATE OR REPLACE FUNCTION session_userid (
 RETURNS		uuid
 AS $$
 DECLARE
-  nUserId	uuid;
+  uUserId	uuid;
 BEGIN
   IF pSession IS NOT NULL THEN
-    SELECT suid INTO nUserId FROM db.session WHERE code = pSession;
+    SELECT suid INTO uUserId FROM db.session WHERE code = pSession;
   END IF;
-  RETURN nUserId;
+  RETURN uUserId;
 END;
 $$ LANGUAGE plpgsql STABLE
    SECURITY DEFINER
@@ -1454,18 +1454,18 @@ CREATE OR REPLACE FUNCTION current_userid()
 RETURNS		uuid
 AS $$
 DECLARE
-  nUserId	uuid;
+  uUserId	uuid;
   vSession	text;
 BEGIN
-  nUserId := GetCurrentUserId();
-  IF nUserId IS NULL THEN
+  uUserId := GetCurrentUserId();
+  IF uUserId IS NULL THEN
     vSession := current_session();
     IF vSession IS NOT NULL THEN
-      SELECT userid INTO nUserId FROM db.session WHERE code = vSession;
-      PERFORM SetCurrentUserId(nUserId);
+      SELECT userid INTO uUserId FROM db.session WHERE code = vSession;
+      PERFORM SetCurrentUserId(uUserId);
     END IF;
   END IF;
-  RETURN nUserId;
+  RETURN uUserId;
 END;
 $$ LANGUAGE plpgsql STABLE
    SECURITY DEFINER
@@ -1588,10 +1588,10 @@ CREATE OR REPLACE FUNCTION current_area_type (
 RETURNS 	uuid
 AS $$
 DECLARE
-  nType     uuid;
+  uType     uuid;
 BEGIN
-  SELECT type INTO nType FROM db.area WHERE id = GetSessionArea(pSession);
-  RETURN nType;
+  SELECT type INTO uType FROM db.area WHERE id = GetSessionArea(pSession);
+  RETURN uType;
 END;
 $$ LANGUAGE plpgsql STABLE
    SECURITY DEFINER
@@ -1798,7 +1798,7 @@ DECLARE
   nLocale	uuid;
 BEGIN
   SELECT id INTO nLocale FROM db.locale WHERE code = pCode;
-  IF found THEN
+  IF FOUND THEN
     PERFORM SetSessionLocale(nLocale, pSession);
   END IF;
 END;
@@ -2084,13 +2084,13 @@ CREATE OR REPLACE FUNCTION IsUserRole (
 ) RETURNS	boolean
 AS $$
 DECLARE
-  nUserId	uuid;
+  uUserId	uuid;
   nRoleId	uuid;
 BEGIN
-  SELECT id INTO nUserId FROM users WHERE username = lower(pUser);
+  SELECT id INTO uUserId FROM users WHERE username = lower(pUser);
   SELECT id INTO nRoleId FROM groups WHERE username = lower(pRole);
 
-  RETURN IsUserRole(nRoleId, nUserId);
+  RETURN IsUserRole(nRoleId, uUserId);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -2141,7 +2141,7 @@ BEGIN
 
   SELECT id INTO uId FROM users WHERE username = lower(pRoleName);
 
-  IF found THEN
+  IF FOUND THEN
     PERFORM RoleExists(pRoleName);
   END IF;
 
@@ -2195,7 +2195,7 @@ BEGIN
 
   SELECT id INTO uId FROM groups WHERE username = lower(pRoleName);
 
-  IF found THEN
+  IF FOUND THEN
     PERFORM RoleExists(pRoleName);
   END IF;
 
@@ -2484,7 +2484,7 @@ DECLARE
 BEGIN
   SELECT id INTO uId FROM db.user WHERE type = 'U' AND username = pRoleName;
 
-  IF NOT found THEN
+  IF NOT FOUND THEN
     PERFORM UserNotFound(pRoleName);
   END IF;
 
@@ -2511,7 +2511,7 @@ DECLARE
 BEGIN
   SELECT id INTO uId FROM db.user WHERE type = 'G' AND username = pRoleName;
 
-  IF NOT found THEN
+  IF NOT FOUND THEN
     PERFORM UnknownRoleName(pRoleName);
   END IF;
 
@@ -2536,14 +2536,14 @@ CREATE OR REPLACE FUNCTION SetPassword (
 ) RETURNS		    void
 AS $$
 DECLARE
-  nUserId		    uuid;
+  uUserId		    uuid;
   bPasswordChange	boolean;
   r			        record;
 BEGIN
-  nUserId := current_userid();
+  uUserId := current_userid();
 
   IF session_user <> 'kernel' THEN
-    IF pId <> nUserId THEN
+    IF pId <> uUserId THEN
       IF NOT CheckAccessControlList(B'00000000100000') THEN
         PERFORM AccessDenied();
       END IF;
@@ -2552,10 +2552,10 @@ BEGIN
 
   SELECT username, passwordchange, passwordnotchange INTO r FROM users WHERE id = pId;
 
-  IF found THEN
+  IF FOUND THEN
     bPasswordChange := r.PasswordChange;
 
-    IF pId = nUserId THEN
+    IF pId = uUserId THEN
       IF r.PasswordNotChange THEN
         PERFORM UserPasswordChange();
       END IF;
@@ -2598,7 +2598,7 @@ DECLARE
 BEGIN
   SELECT username, system INTO r FROM users WHERE id = pId;
 
-  IF found THEN
+  IF FOUND THEN
     IF CheckPassword(r.username, pOldPass) THEN
 
       PERFORM SetPassword(pId, pNewPass);
@@ -2642,7 +2642,7 @@ BEGIN
 
   SELECT id INTO uId FROM users WHERE id = pId;
 
-  IF found THEN
+  IF FOUND THEN
     UPDATE db.user SET status = set_bit(set_bit(status, 3, 0), 1, 1), lock_date = now() WHERE id = pId;
   ELSE
     PERFORM UserNotFound(pId);
@@ -2675,7 +2675,7 @@ BEGIN
 
   SELECT id INTO uId FROM users WHERE id = pId;
 
-  IF found THEN
+  IF FOUND THEN
     UPDATE db.user SET status = B'0001', lock_date = null, expiry_date = null WHERE id = pId;
   ELSE
     PERFORM UserNotFound(pId);
@@ -2998,7 +2998,7 @@ CREATE OR REPLACE FUNCTION EditArea (
 AS $$
 DECLARE
   vCode             text;
-  nType             uuid;
+  uType             uuid;
 BEGIN
   IF session_user <> 'kernel' THEN
     IF NOT IsUserRole(GetGroup('administrator')) THEN
@@ -3006,7 +3006,7 @@ BEGIN
     END IF;
   END IF;
 
-  SELECT type, code INTO nType, vCode FROM db.area WHERE id = pId;
+  SELECT type, code INTO uType, vCode FROM db.area WHERE id = pId;
   IF NOT FOUND THEN
     PERFORM AreaError();
   END IF;
@@ -3627,7 +3627,7 @@ BEGIN
     FROM db.user
    WHERE id = pUserId;
 
-  IF found THEN
+  IF FOUND THEN
     IF passed THEN
       PERFORM SetErrorMessage('Успешно.');
     ELSE
@@ -3674,7 +3674,7 @@ BEGIN
     FROM db.session
    WHERE code = pSession;
 
-  IF found THEN
+  IF FOUND THEN
     IF coalesce(passed, false) THEN
       PERFORM SetErrorMessage('Успешно.');
     ELSE
@@ -3706,7 +3706,7 @@ BEGIN
     FROM db.session
    WHERE code = pSession;
 
-  IF found THEN
+  IF FOUND THEN
     IF coalesce(passed, false) THEN
       PERFORM SetErrorMessage('Успешно.');
     ELSE
@@ -3744,7 +3744,7 @@ AS $$
 DECLARE
   up	        db.user%rowtype;
 
-  nUserId       uuid DEFAULT null;
+  uUserId       uuid DEFAULT null;
 
   nToken        bigint DEFAULT null;
   nOAuth2		bigint DEFAULT null;
@@ -3753,13 +3753,13 @@ DECLARE
 BEGIN
   IF ValidSession(pSession) THEN
 
-	SELECT oauth2, userid INTO nOAuth2, nUserId
+	SELECT oauth2, userid INTO nOAuth2, uUserId
 	  FROM db.session
 	 WHERE code = pSession;
 
-	SELECT * INTO up FROM db.user WHERE id = nUserId;
+	SELECT * INTO up FROM db.user WHERE id = uUserId;
 
-	IF NOT found THEN
+	IF NOT FOUND THEN
 	  PERFORM LoginError();
 	END IF;
 
@@ -3848,7 +3848,7 @@ BEGIN
 
   SELECT * INTO up FROM db.user WHERE type = 'U' AND username = pRoleName;
 
-  IF NOT found THEN
+  IF NOT FOUND THEN
     PERFORM LoginError();
   END IF;
 
@@ -3965,7 +3965,7 @@ BEGIN
 
     SELECT * INTO up FROM db.user WHERE type = 'U' AND username = pRoleName;
 
-    IF found THEN
+    IF FOUND THEN
       UPDATE db.profile
          SET input_error = input_error + 1,
              input_error_last = now(),
@@ -3974,7 +3974,7 @@ BEGIN
 
       SELECT input_error INTO nInputError FROM db.profile WHERE userid = up.id;
 
-      IF found THEN
+      IF FOUND THEN
         IF nInputError >= 5 THEN
           UPDATE db.user SET lock_date = Now() + INTERVAL '1 min' WHERE id = up.id;
         END IF;
@@ -4008,7 +4008,7 @@ CREATE OR REPLACE FUNCTION SessionOut (
 ) RETURNS 	    boolean
 AS $$
 DECLARE
-  nUserId	    uuid;
+  uUserId	    uuid;
   nCount	    integer;
 
   message	    text;
@@ -4017,31 +4017,31 @@ BEGIN
 
     message := 'Выход из системы';
 
-    SELECT userid INTO nUserId FROM db.session WHERE code = pSession;
+    SELECT userid INTO uUserId FROM db.session WHERE code = pSession;
 
-	IF NOT CheckAccessControlList(B'00000000000010', nUserId) THEN
+	IF NOT CheckAccessControlList(B'00000000000010', uUserId) THEN
 	  PERFORM AccessDenied();
 	END IF;
 
     IF pCloseAll THEN
-      DELETE FROM db.session WHERE userid = nUserId;
+      DELETE FROM db.session WHERE userid = uUserId;
       message := message || ' (с закрытием всех активных сессий)';
     ELSE
       DELETE FROM db.session WHERE code = pSession;
     END IF;
 
-    SELECT count(code) INTO nCount FROM db.session WHERE userid = nUserId;
+    SELECT count(code) INTO nCount FROM db.session WHERE userid = uUserId;
 
     IF nCount = 0 THEN
-      UPDATE db.user SET status = set_bit(set_bit(status, 3, 1), 2, 0) WHERE id = nUserId;
+      UPDATE db.user SET status = set_bit(set_bit(status, 3, 1), 2, 0) WHERE id = uUserId;
     END IF;
 
-    UPDATE db.profile SET state = B'000' WHERE userid = nUserId;
+    UPDATE db.profile SET state = B'000' WHERE userid = uUserId;
 
     message := message || coalesce('. ' || pMessage, '.');
 
     INSERT INTO db.log (type, code, username, session, event, text)
-    VALUES ('M', 1100, GetUserName(nUserId), pSession, 'logout', message);
+    VALUES ('M', 1100, GetUserName(uUserId), pSession, 'logout', message);
 
     PERFORM SetErrorMessage(message);
 
@@ -4073,7 +4073,7 @@ CREATE OR REPLACE FUNCTION SignOut (
 ) RETURNS       boolean
 AS $$
 DECLARE
-  nUserId       uuid;
+  uUserId       uuid;
   message       text;
 BEGIN
   RETURN SessionOut(pSession, pCloseAll);
@@ -4088,11 +4088,11 @@ WHEN others THEN
   PERFORM SetErrorMessage(message);
 
   IF pSession IS NOT NULL THEN
-	SELECT userid INTO nUserId FROM db.session WHERE code = pSession;
+	SELECT userid INTO uUserId FROM db.session WHERE code = pSession;
 
-	IF found THEN
+	IF FOUND THEN
 	  INSERT INTO db.log (type, code, username, session, event, text)
-	  VALUES ('E', 3100, GetUserName(nUserId), pSession, 'logout', 'Выход из системы. ' || message);
+	  VALUES ('E', 3100, GetUserName(uUserId), pSession, 'logout', 'Выход из системы. ' || message);
 	END IF;
   END IF;
 
@@ -4187,7 +4187,7 @@ BEGIN
 
   SELECT * INTO up FROM db.user WHERE id = pUserId;
 
-  IF NOT found THEN
+  IF NOT FOUND THEN
     PERFORM LoginError();
   END IF;
 

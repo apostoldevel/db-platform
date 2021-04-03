@@ -65,7 +65,7 @@ CREATE OR REPLACE FUNCTION api.update_program (
 ) RETURNS       void
 AS $$
 DECLARE
-  nType         uuid;
+  uType         uuid;
   nProgram      uuid;
 BEGIN
   SELECT t.id INTO nProgram FROM db.program t WHERE t.id = pId;
@@ -75,12 +75,12 @@ BEGIN
   END IF;
 
   IF pType IS NOT NULL THEN
-    nType := CodeToType(lower(pType), 'program');
+    uType := CodeToType(lower(pType), 'program');
   ELSE
-    SELECT o.type INTO nType FROM db.object o WHERE o.id = pId;
+    SELECT o.type INTO uType FROM db.object o WHERE o.id = pId;
   END IF;
 
-  PERFORM EditProgram(nProgram, pParent, nType, pCode, pName, pBody, pDescription);
+  PERFORM EditProgram(nProgram, pParent, uType, pCode, pName, pBody, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

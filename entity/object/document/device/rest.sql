@@ -31,7 +31,7 @@ BEGIN
 
     FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(fields jsonb)
     LOOP
-      FOR e IN EXECUTE format('SELECT %s FROM api.type($1)', JsonbToFields(r.fields, GetColumns('type', 'api'))) USING GetEssence('device')
+      FOR e IN EXECUTE format('SELECT %s FROM api.type($1)', JsonbToFields(r.fields, GetColumns('type', 'api'))) USING GetEntity('device')
       LOOP
         RETURN NEXT row_to_json(e);
       END LOOP;

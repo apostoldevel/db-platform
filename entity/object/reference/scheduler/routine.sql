@@ -25,25 +25,25 @@ CREATE OR REPLACE FUNCTION CreateScheduler (
 ) RETURNS       uuid
 AS $$
 DECLARE
-  nReference	uuid;
-  nClass        uuid;
-  nMethod       uuid;
+  uReference	uuid;
+  uClass        uuid;
+  uMethod       uuid;
 BEGIN
-  SELECT class INTO nClass FROM db.type WHERE id = pType;
+  SELECT class INTO uClass FROM db.type WHERE id = pType;
 
-  IF GetEntityCode(nClass) <> 'scheduler' THEN
+  IF GetEntityCode(uClass) <> 'scheduler' THEN
     PERFORM IncorrectClassType();
   END IF;
 
-  nReference := CreateReference(pParent, pType, pCode, pName, pDescription);
+  uReference := CreateReference(pParent, pType, pCode, pName, pDescription);
 
   INSERT INTO db.scheduler (id, reference, period, dateStart, dateStop)
-  VALUES (nReference, nReference, pPeriod, pDateStart, pDateStop);
+  VALUES (uReference, uReference, pPeriod, pDateStart, pDateStop);
 
-  nMethod := GetMethod(nClass, GetAction('create'));
-  PERFORM ExecuteMethod(nReference, nMethod);
+  uMethod := GetMethod(uClass, GetAction('create'));
+  PERFORM ExecuteMethod(uReference, uMethod);
 
-  RETURN nReference;
+  RETURN uReference;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -78,8 +78,8 @@ CREATE OR REPLACE FUNCTION EditScheduler (
 ) RETURNS       void
 AS $$
 DECLARE
-  nClass        uuid;
-  nMethod       uuid;
+  uClass        uuid;
+  uMethod       uuid;
 BEGIN
   PERFORM EditReference(pId, pParent, pType, pCode, pName, pDescription);
 
@@ -89,10 +89,10 @@ BEGIN
          dateStop = coalesce(pDateStop, dateStop)
    WHERE id = pId;
 
-  SELECT class INTO nClass FROM db.object WHERE id = pId;
+  SELECT class INTO uClass FROM db.object WHERE id = pId;
 
-  nMethod := GetMethod(nClass, GetAction('edit'));
-  PERFORM ExecuteMethod(pId, nMethod);
+  uMethod := GetMethod(uClass, GetAction('edit'));
+  PERFORM ExecuteMethod(pId, uMethod);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

@@ -46,15 +46,15 @@ CREATE OR REPLACE FUNCTION AddApiLog (
 AS $$
 DECLARE
   nId           bigint;
-  nUserId       uuid;
+  uUserId       uuid;
 
   vSession      text;
   vUserName     text;
 BEGIN
-  SELECT code, userid INTO vSession, nUserId FROM db.session WHERE code = GetCurrentSession();
+  SELECT code, userid INTO vSession, uUserId FROM db.session WHERE code = GetCurrentSession();
 
-  IF found THEN
-    SELECT username INTO vUserName FROM db.user WHERE id = nUserId;
+  IF FOUND THEN
+    SELECT username INTO vUserName FROM db.user WHERE id = uUserId;
   END IF;
 
   IF pJson ? 'password' THEN

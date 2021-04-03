@@ -61,7 +61,7 @@ CREATE OR REPLACE FUNCTION api.update_version (
 ) RETURNS       void
 AS $$
 DECLARE
-  nType         uuid;
+  uType         uuid;
   nVersion      uuid;
 BEGIN
   SELECT t.id INTO nVersion FROM db.version t WHERE t.id = pId;
@@ -71,12 +71,12 @@ BEGIN
   END IF;
 
   IF pType IS NOT NULL THEN
-    nType := CodeToType(lower(pType), 'version');
+    uType := CodeToType(lower(pType), 'version');
   ELSE
-    SELECT o.type INTO nType FROM db.object o WHERE o.id = pId;
+    SELECT o.type INTO uType FROM db.object o WHERE o.id = pId;
   END IF;
 
-  PERFORM EditVersion(nVersion, pParent, nType, pCode, pName, pDescription);
+  PERFORM EditVersion(nVersion, pParent, uType, pCode, pName, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

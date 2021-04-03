@@ -102,21 +102,21 @@ CREATE OR REPLACE FUNCTION api.update_address (
 ) RETURNS       void
 AS $$
 DECLARE
-  nAddress      uuid;
-  nType         uuid;
+  uAddress      uuid;
+  uType         uuid;
 BEGIN
-  SELECT a.id INTO nAddress FROM db.address a WHERE a.id = pId;
+  SELECT a.id INTO uAddress FROM db.address a WHERE a.id = pId;
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('адрес', 'id', pId);
   END IF;
 
   IF pType IS NOT NULL THEN
-    nType := CodeToType(lower(pType), 'address');
+    uType := CodeToType(lower(pType), 'address');
   ELSE
-    SELECT o.type INTO nType FROM db.object o WHERE o.id = pId;
+    SELECT o.type INTO uType FROM db.object o WHERE o.id = pId;
   END IF;
 
-  PERFORM EditAddress(nAddress, pParent, nType, pCode, pIndex, pCountry, pRegion, pDistrict, pCity, pSettlement, pStreet, pHouse, pBuilding, pStructure, pApartment, pAddress);
+  PERFORM EditAddress(uAddress, pParent, uType, pCode, pIndex, pCountry, pRegion, pDistrict, pCity, pSettlement, pStreet, pHouse, pBuilding, pStructure, pApartment, pAddress);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -281,10 +281,10 @@ CREATE OR REPLACE FUNCTION api.set_object_addresses_json (
 AS $$
 DECLARE
   r             record;
-  nId           uuid;
+  uId           uuid;
   arKeys        text[];
 BEGIN
-  SELECT o.id INTO nId FROM db.object o WHERE o.id = pObject;
+  SELECT o.id INTO uId FROM db.object o WHERE o.id = pObject;
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('объект', 'id', pObject);
   END IF;

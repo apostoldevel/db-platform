@@ -14,15 +14,15 @@ AS $$
 DECLARE
   nObject       uuid;
   nEntity       uuid;
-  nClass        uuid;
+  uClass        uuid;
 BEGIN
   nObject := CreateObject(pParent, pType, pName, pDescription);
 
   nEntity := GetObjectEntity(nObject);
-  nClass := GetObjectClass(nObject);
+  uClass := GetObjectClass(nObject);
 
   INSERT INTO db.reference (id, object, entity, class, type, code)
-  VALUES (nObject, nObject, nEntity, nClass, pType, pCode)
+  VALUES (nObject, nObject, nEntity, uClass, pType, pCode)
   RETURNING id INTO nObject;
 
   INSERT INTO db.reference_text (reference, locale, name, description)

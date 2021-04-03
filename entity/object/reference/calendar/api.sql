@@ -134,7 +134,7 @@ CREATE OR REPLACE FUNCTION api.update_calendar (
 AS $$
 DECLARE
   r             record;
-  nType         uuid;
+  uType         uuid;
   nCalendar     uuid;
   aHoliday      integer[][2];
 BEGIN
@@ -144,9 +144,9 @@ BEGIN
   END IF;
 
   IF pType IS NOT NULL THEN
-    nType := CodeToType(lower(pType), 'calendar');
+    uType := CodeToType(lower(pType), 'calendar');
   ELSE
-    SELECT o.type INTO nType FROM db.object o WHERE o.id = pId;
+    SELECT o.type INTO uType FROM db.object o WHERE o.id = pId;
   END IF;
 
   IF pHoliday IS NOT NULL THEN
@@ -167,7 +167,7 @@ BEGIN
     END IF;
   END IF;
 
-  PERFORM EditCalendar(nCalendar, pParent, nType, pCode, pName, pWeek, JsonbToIntArray(pDayOff), aHoliday[2:], pWorkStart, pWorkCount, pRestStart, pRestCount, pDescription);
+  PERFORM EditCalendar(nCalendar, pParent, uType, pCode, pName, pWeek, JsonbToIntArray(pDayOff), aHoliday[2:], pWorkStart, pWorkCount, pRestStart, pRestCount, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -396,26 +396,26 @@ CREATE OR REPLACE FUNCTION api.set_calendar_date (
 ) RETURNS       uuid
 AS $$
 DECLARE
-  nId           uuid;
+  uId           uuid;
   r             record;
 BEGIN
-  nId := GetCalendarDate(pCalendar, pDate, pUserId);
-  IF nId IS NOT NULL THEN
+  uId := GetCalendarDate(pCalendar, pDate, pUserId);
+  IF uId IS NOT NULL THEN
     SELECT * INTO r FROM db.cdate WHERE calendar = pCalendar AND date = pDate AND userid IS NULL;
     IF r.flag = coalesce(pFlag, r.flag) AND
        r.work_start = coalesce(pWorkStart, r.work_start) AND
        r.work_count = coalesce(pWorkCount, r.work_count) AND
        r.rest_start = coalesce(pRestStart, r.rest_start) AND
        r.rest_count = coalesce(pRestCount, r.rest_count) THEN
-      PERFORM DeleteCalendarDate(nId);
+      PERFORM DeleteCalendarDate(uId);
     ELSE
-      PERFORM EditCalendarDate(nId, pCalendar, pDate, pFlag, pWorkStart, pWorkCount, pRestStart, pRestCount, pUserId);
+      PERFORM EditCalendarDate(uId, pCalendar, pDate, pFlag, pWorkStart, pWorkCount, pRestStart, pRestCount, pUserId);
     END IF;
   ELSE
-    nId := AddCalendarDate(pCalendar, pDate, pFlag, pWorkStart, pWorkCount, pRestStart, pRestCount, pUserId);
+    uId := AddCalendarDate(pCalendar, pDate, pFlag, pWorkStart, pWorkCount, pRestStart, pRestCount, pUserId);
   END IF;
 
-  RETURN nId;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -437,11 +437,11 @@ CREATE OR REPLACE FUNCTION api.delete_calendar_date (
 ) RETURNS       void
 AS $$
 DECLARE
-  nId           uuid;
+  uId           uuid;
 BEGIN
-  nId := GetCalendarDate(pCalendar, pDate, pUserId);
-  IF nId IS NOT NULL THEN
-    PERFORM DeleteCalendarDate(nId);
+  uId := GetCalendarDate(pCalendar, pDate, pUserId);
+  IF uId IS NOT NULL THEN
+    PERFORM DeleteCalendarDate(uId);
   ELSE
     RAISE EXCEPTION 'ERR-40000: В календаре нет указанной даты для заданного пользователя.';
   END IF;

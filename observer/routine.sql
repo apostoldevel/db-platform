@@ -198,7 +198,7 @@ AS $$
 DECLARE
   r				record;
 
-  nMethod		uuid;
+  uMethod		uuid;
 
   arFilter		text[];
   arSource		text[];
@@ -236,7 +236,7 @@ BEGIN
     IF jsonb_typeof(pFilter->'methods') = 'array' THEN
 	  FOR r IN SELECT * FROM jsonb_array_elements_text(pFilter->'methods')
 	  LOOP
-		SELECT id INTO nMethod FROM db.method WHERE code = r.value;
+		SELECT id INTO uMethod FROM db.method WHERE code = r.value;
 		IF NOT FOUND THEN
 		  RAISE EXCEPTION 'ERR-40000: Не найден метод по коду "%".', r.value;
 		END IF;
@@ -406,10 +406,10 @@ DECLARE
   d				record;
   n				record;
 
-  nUserId		uuid;
+  uUserId		uuid;
   vUserName		text;
 BEGIN
-  SELECT userid INTO nUserId FROM db.session WHERE code = pSession;
+  SELECT userid INTO uUserId FROM db.session WHERE code = pSession;
 
   CASE pPublisher
   WHEN 'notify' THEN
@@ -423,19 +423,19 @@ BEGIN
            array_position(coalesce(JsonbToStrArray(f.actions) , ARRAY[n.actioncode]), n.actioncode::text) IS NOT NULL AND
            array_position(coalesce(JsonbToStrArray(f.methods) , ARRAY[n.methodcode]), n.methodcode::text) IS NOT NULL AND
            array_position(coalesce(JsonbToUUIDArray(f.objects) , ARRAY[d.object])    , d.object    ) IS NOT NULL AND
-	       CheckObjectAccess(d.object, B'100', nUserId);
+	       CheckObjectAccess(d.object, B'100', uUserId);
 
   WHEN 'notice' THEN
 
 	SELECT * INTO f FROM jsonb_to_record(pFilter) AS x(categories jsonb);
 	SELECT * INTO d FROM jsonb_to_record(pData) AS x(userid uuid, object uuid, category text);
 
-	RETURN d.userid = nUserId AND
+	RETURN d.userid = uUserId AND
 		   array_position(coalesce(JsonbToStrArray(f.categories), ARRAY[d.category]), d.category) IS NOT NULL;
 
   WHEN 'log' THEN
 
-    SELECT username INTO vUserName FROM db.user WHERE id = nUserId;
+    SELECT username INTO vUserName FROM db.user WHERE id = uUserId;
 
 	SELECT * INTO f FROM jsonb_to_record(pFilter) AS x(types jsonb, codes jsonb, categories jsonb);
 	SELECT * INTO d FROM jsonb_to_record(pData) AS x(type text, code integer, username text, category text);
@@ -452,10 +452,10 @@ BEGIN
 
 	RETURN array_position(coalesce(JsonbToStrArray(f.codes), ARRAY[d.code]), d.code) IS NOT NULL AND
            array_position(coalesce(JsonbToUUIDArray(f.objects), ARRAY[d.object]), d.object) IS NOT NULL AND
-	       CheckObjectAccess(d.object, B'100', nUserId);
+	       CheckObjectAccess(d.object, B'100', uUserId);
 
   ELSE
-  	RETURN DoFilterListener(pPublisher, nUserId, pFilter, pData);
+  	RETURN DoFilterListener(pPublisher, uUserId, pFilter, pData);
   END CASE;
 END
 $$ LANGUAGE plpgsql

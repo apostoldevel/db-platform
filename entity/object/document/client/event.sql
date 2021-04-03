@@ -77,34 +77,34 @@ DECLARE
   r             record;
 
   nArea         uuid;
-  nUserId       uuid;
+  uUserId       uuid;
   nInterface    uuid;
 BEGIN
-  SELECT userid INTO nUserId FROM db.client WHERE id = pObject;
+  SELECT userid INTO uUserId FROM db.client WHERE id = pObject;
 
-  IF nUserId IS NOT NULL THEN
-    PERFORM UserUnLock(nUserId);
+  IF uUserId IS NOT NULL THEN
+    PERFORM UserUnLock(uUserId);
 
-    PERFORM DeleteGroupForMember(nUserId, GetGroup('guest'));
+    PERFORM DeleteGroupForMember(uUserId, GetGroup('guest'));
 
-    PERFORM AddMemberToGroup(nUserId, GetGroup('user'));
+    PERFORM AddMemberToGroup(uUserId, GetGroup('user'));
 
     SELECT area INTO nArea FROM db.document WHERE id = pObject;
 
-    PERFORM AddMemberToArea(nUserId, nArea);
-    PERFORM SetDefaultArea(nArea, nUserId);
+    PERFORM AddMemberToArea(uUserId, nArea);
+    PERFORM SetDefaultArea(nArea, uUserId);
 
     nInterface := GetInterface('all');
-    PERFORM AddMemberToInterface(nUserId, nInterface);
+    PERFORM AddMemberToInterface(uUserId, nInterface);
 
     nInterface := GetInterface('user');
-    PERFORM AddMemberToInterface(nUserId, nInterface);
-    PERFORM SetDefaultInterface(nInterface, nUserId);
+    PERFORM AddMemberToInterface(uUserId, nInterface);
+    PERFORM SetDefaultInterface(nInterface, uUserId);
 
-    FOR r IN SELECT code FROM db.session WHERE userid = nUserId
+    FOR r IN SELECT code FROM db.session WHERE userid = uUserId
     LOOP
-      PERFORM SetArea(GetDefaultArea(nUserId), nUserId, r.code);
-      PERFORM SetInterface(GetDefaultInterface(nUserId), nUserId, r.code);
+      PERFORM SetArea(GetDefaultArea(uUserId), uUserId, r.code);
+      PERFORM SetInterface(GetDefaultInterface(uUserId), uUserId, r.code);
     END LOOP;
 
     PERFORM EventMessageConfirmEmail(pObject);
@@ -124,27 +124,27 @@ CREATE OR REPLACE FUNCTION EventClientDisable (
 AS $$
 DECLARE
   r         record;
-  nUserId	uuid;
+  uUserId	uuid;
 BEGIN
-  SELECT userid INTO nUserId FROM db.client WHERE id = pObject;
+  SELECT userid INTO uUserId FROM db.client WHERE id = pObject;
 
-  IF nUserId IS NOT NULL THEN
-    PERFORM UserLock(nUserId);
+  IF uUserId IS NOT NULL THEN
+    PERFORM UserLock(uUserId);
 
-    PERFORM DeleteGroupForMember(nUserId);
-    PERFORM DeleteAreaForMember(nUserId);
-    PERFORM DeleteInterfaceForMember(nUserId);
+    PERFORM DeleteGroupForMember(uUserId);
+    PERFORM DeleteAreaForMember(uUserId);
+    PERFORM DeleteInterfaceForMember(uUserId);
 
-    PERFORM AddMemberToGroup(nUserId, GetGroup('guest'));
-    PERFORM AddMemberToArea(nUserId, GetArea('guest'));
+    PERFORM AddMemberToGroup(uUserId, GetGroup('guest'));
+    PERFORM AddMemberToArea(uUserId, GetArea('guest'));
 
-    PERFORM SetDefaultArea(GetArea('guest'), nUserId);
-    PERFORM SetDefaultInterface(GetInterface('guest'), nUserId);
+    PERFORM SetDefaultArea(GetArea('guest'), uUserId);
+    PERFORM SetDefaultInterface(GetInterface('guest'), uUserId);
 
-    FOR r IN SELECT code FROM db.session WHERE userid = nUserId
+    FOR r IN SELECT code FROM db.session WHERE userid = uUserId
     LOOP
-      PERFORM SetArea(GetDefaultArea(nUserId), nUserId, r.code);
-      PERFORM SetInterface(GetDefaultInterface(nUserId), nUserId, r.code);
+      PERFORM SetArea(GetDefaultArea(uUserId), uUserId, r.code);
+      PERFORM SetInterface(GetDefaultInterface(uUserId), uUserId, r.code);
     END LOOP;
   END IF;
 
@@ -161,23 +161,23 @@ CREATE OR REPLACE FUNCTION EventClientDelete (
 ) RETURNS	void
 AS $$
 DECLARE
-  nUserId	uuid;
+  uUserId	uuid;
 BEGIN
-  SELECT userid INTO nUserId FROM db.client WHERE id = pObject;
+  SELECT userid INTO uUserId FROM db.client WHERE id = pObject;
 
-  IF nUserId IS NOT NULL THEN
+  IF uUserId IS NOT NULL THEN
   END IF;
 
-  IF nUserId IS NOT NULL THEN
-    DELETE FROM db.session WHERE userid = nUserId;
+  IF uUserId IS NOT NULL THEN
+    DELETE FROM db.session WHERE userid = uUserId;
 
-    PERFORM UserLock(nUserId);
+    PERFORM UserLock(uUserId);
 
-    PERFORM DeleteGroupForMember(nUserId);
-    PERFORM DeleteAreaForMember(nUserId);
-    PERFORM DeleteInterfaceForMember(nUserId);
+    PERFORM DeleteGroupForMember(uUserId);
+    PERFORM DeleteAreaForMember(uUserId);
+    PERFORM DeleteInterfaceForMember(uUserId);
 
-    UPDATE db.user SET pswhash = null WHERE id = nUserId;
+    UPDATE db.user SET pswhash = null WHERE id = uUserId;
   END IF;
 
   PERFORM WriteToEventLog('M', 1000, 'delete', 'Клиент удалён.', pObject);
@@ -207,15 +207,15 @@ CREATE OR REPLACE FUNCTION EventClientDrop (
 AS $$
 DECLARE
   r		    record;
-  nUserId   uuid;
+  uUserId   uuid;
 BEGIN
   SELECT label INTO r FROM db.object_text WHERE object = pObject AND locale = current_locale();
 
-  SELECT userid INTO nUserId FROM client WHERE id = pObject;
-  IF nUserId IS NOT NULL THEN
+  SELECT userid INTO uUserId FROM client WHERE id = pObject;
+  IF uUserId IS NOT NULL THEN
     UPDATE db.client SET userid = null WHERE id = pObject;
-    DELETE FROM db.session WHERE userid = nUserId;
-    PERFORM DeleteUser(nUserId);
+    DELETE FROM db.session WHERE userid = uUserId;
+    PERFORM DeleteUser(uUserId);
   END IF;
 
   DELETE FROM db.client_name WHERE client = pObject;
@@ -234,17 +234,17 @@ CREATE OR REPLACE FUNCTION EventClientConfirm (
 ) RETURNS	    void
 AS $$
 DECLARE
-  nUserId       uuid;
+  uUserId       uuid;
   vEmail        text;
   bVerified     bool;
 BEGIN
-  SELECT userid INTO nUserId FROM db.client WHERE id = pObject;
+  SELECT userid INTO uUserId FROM db.client WHERE id = pObject;
 
-  IF nUserId IS NOT NULL THEN
+  IF uUserId IS NOT NULL THEN
 
 	SELECT email, email_verified INTO vEmail, bVerified
 	  FROM db.user u INNER JOIN db.profile p ON u.id = p.userid AND u.type = 'U'
-	 WHERE id = nUserId;
+	 WHERE id = uUserId;
 
 	IF vEmail IS NULL THEN
       PERFORM EmailAddressNotSet();
@@ -268,11 +268,11 @@ CREATE OR REPLACE FUNCTION EventClientReconfirm (
 ) RETURNS	    void
 AS $$
 DECLARE
-  nUserId       uuid;
+  uUserId       uuid;
 BEGIN
-  SELECT userid INTO nUserId FROM db.client WHERE id = pObject;
-  IF nUserId IS NOT NULL THEN
-	UPDATE db.profile SET email_verified = false WHERE userid = nUserId;
+  SELECT userid INTO uUserId FROM db.client WHERE id = pObject;
+  IF uUserId IS NOT NULL THEN
+	UPDATE db.profile SET email_verified = false WHERE userid = uUserId;
     PERFORM EventMessageConfirmEmail(pObject);
   END IF;
 END;

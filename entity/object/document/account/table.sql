@@ -62,12 +62,12 @@ CREATE TRIGGER t_account_before_insert
 CREATE OR REPLACE FUNCTION db.ft_account_after_insert()
 RETURNS trigger AS $$
 DECLARE
-  nUserId	uuid;
+  uUserId	uuid;
 BEGIN
   IF NEW.client IS NOT NULL THEN
-    nUserId := GetClientUserId(NEW.client);
-    IF nUserId IS NOT NULL THEN
-      UPDATE db.object SET owner = nUserId WHERE id = NEW.document;
+    uUserId := GetClientUserId(NEW.client);
+    IF uUserId IS NOT NULL THEN
+      UPDATE db.object SET owner = uUserId WHERE id = NEW.document;
     END IF;
   END IF;
 
@@ -89,15 +89,15 @@ CREATE TRIGGER t_account_after_insert
 CREATE OR REPLACE FUNCTION ft_account_before_update()
 RETURNS trigger AS $$
 DECLARE
-  nParent	uuid;
-  nUserId	uuid;
+  uParent	uuid;
+  uUserId	uuid;
 BEGIN
   IF OLD.client IS NULL AND NEW.client IS NOT NULL THEN
-    nUserId := GetClientUserId(NEW.client);
-    PERFORM CheckObjectAccess(NEW.document, B'010', nUserId);
-    SELECT parent INTO nParent FROM db.object WHERE id = NEW.document;
-    IF nParent IS NOT NULL THEN
-      PERFORM CheckObjectAccess(nParent, B'010', nUserId);
+    uUserId := GetClientUserId(NEW.client);
+    PERFORM CheckObjectAccess(NEW.document, B'010', uUserId);
+    SELECT parent INTO uParent FROM db.object WHERE id = NEW.document;
+    IF uParent IS NOT NULL THEN
+      PERFORM CheckObjectAccess(uParent, B'010', uUserId);
     END IF;
   END IF;
 
@@ -119,19 +119,19 @@ CREATE TRIGGER t_account_before_update
 CREATE OR REPLACE FUNCTION ft_account_after_update_client()
 RETURNS trigger AS $$
 DECLARE
-  nUserId	uuid;
+  uUserId	uuid;
 BEGIN
   IF NEW.client IS NOT NULL THEN
-	nUserId := GetClientUserId(NEW.client);
-	IF nUserId IS NOT NULL THEN
-	  INSERT INTO db.aou SELECT NEW.document, nUserId, B'000', B'100';
+	uUserId := GetClientUserId(NEW.client);
+	IF uUserId IS NOT NULL THEN
+	  INSERT INTO db.aou SELECT NEW.document, uUserId, B'000', B'100';
 	END IF;
   END IF;
 
   IF OLD.client IS NOT NULL THEN
-	nUserId := GetClientUserId(OLD.client);
-	IF nUserId IS NOT NULL THEN
-	  DELETE FROM db.aou WHERE object = OLD.document AND userid = nUserId;
+	uUserId := GetClientUserId(OLD.client);
+	IF uUserId IS NOT NULL THEN
+	  DELETE FROM db.aou WHERE object = OLD.document AND userid = uUserId;
 	END IF;
   END IF;
 
