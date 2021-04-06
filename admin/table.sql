@@ -244,7 +244,7 @@ CREATE TRIGGER t_user_after_insert
 CREATE OR REPLACE FUNCTION db.ft_user_after_update()
 RETURNS trigger AS $$
 BEGIN
-  IF OLD.email <> NEW.email THEN
+  IF OLD.email IS DISTINCT FROM NEW.email THEN
 	UPDATE db.profile SET email_verified = false WHERE userid = NEW.id;
   END IF;
 
@@ -252,7 +252,7 @@ BEGIN
     NEW.phone := TrimPhone(NEW.phone);
   END IF;
 
-  IF OLD.phone <> NEW.phone THEN
+  IF OLD.phone IS DISTINCT FROM NEW.phone THEN
 	UPDATE db.profile SET phone_verified = false WHERE userid = NEW.id;
   END IF;
 

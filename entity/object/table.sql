@@ -183,7 +183,9 @@ BEGIN
   END IF;
 
   IF OLD.suid <> NEW.suid THEN
-    PERFORM AccessDenied();
+	IF current_username() <> 'admin' THEN
+	  PERFORM AccessDenied();
+	END IF;
   END IF;
 
   IF NOT CheckObjectAccess(NEW.id, B'010') THEN

@@ -2226,7 +2226,7 @@ $$ LANGUAGE plpgsql
  */
 CREATE OR REPLACE FUNCTION UpdateUser (
   pId                   uuid,
-  pRoleName             text,
+  pRoleName             text DEFAULT null,
   pPassword             text DEFAULT null,
   pName                 text DEFAULT null,
   pPhone                text DEFAULT null,
@@ -2296,9 +2296,9 @@ $$ LANGUAGE plpgsql
  */
 CREATE OR REPLACE FUNCTION UpdateGroup (
   pId           uuid,
-  pRoleName     text,
-  pName         text,
-  pDescription  text
+  pRoleName     text DEFAULT null,
+  pName         text DEFAULT null,
+  pDescription  text DEFAULT null
 ) RETURNS       void
 AS $$
 DECLARE
@@ -2366,6 +2366,7 @@ BEGIN
 
     UPDATE db.object SET oper = GetUser('admin') WHERE oper = pId;
     UPDATE db.object SET owner = GetUser('admin') WHERE owner = pId;
+    UPDATE db.object SET suid = GetUser('admin') WHERE suid = pId;
 
     DELETE FROM db.acl WHERE userid = pId;
     DELETE FROM db.aou WHERE userid = pId;

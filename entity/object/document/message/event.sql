@@ -234,10 +234,6 @@ BEGIN
   SELECT userid INTO uUserId FROM db.client WHERE id = pObject;
   IF uUserId IS NOT NULL THEN
 
-    IF pParams IS NOT NULL THEN
-	  UPDATE db.client SET email = pParams WHERE id = uUserId;
-	END IF;
-
 	SELECT username, name, email, email_verified, locale INTO vUserName, vName, vEmail, bVerified
 	  FROM db.user u INNER JOIN db.profile p ON u.id = p.userid
 	 WHERE id = uUserId;
