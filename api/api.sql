@@ -140,7 +140,7 @@ AS $$
 DECLARE
   r             record;
 
-  vTable        text;
+--  vTable        text;
 
   vWith         text;
   vSelect       text;
@@ -159,7 +159,7 @@ DECLARE
 BEGIN
   pOrderBy := NULLIF(pOrderBy, '{}');
   pOrderBy := NULLIF(pOrderBy, '[]');
-
+/*
   SELECT table_name INTO vTable
     FROM information_schema.tables
    WHERE table_catalog = current_database()
@@ -170,7 +170,7 @@ BEGIN
   IF NOT FOUND THEN
     PERFORM ViewNotFound(pScheme, pTable);
   END IF;
-
+*/
   --arColumns := GetColumns(pTable, pScheme, 't');
 
   vSelect := coalesce(vWith, '') || 'SELECT ' || coalesce(array_to_string(arColumns, ', '), 't.*') || E'\n  FROM ' || pScheme || '.' || pTable || ' t ' || coalesce(vJoin, '');
