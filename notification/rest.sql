@@ -158,7 +158,9 @@ BEGIN
 	  LOOP
 		FOR o IN EXECUTE format('SELECT * FROM api.get_%s($1)', GetEntityCode(e.entity)) USING e.object
 		LOOP
-          RETURN NEXT row_to_json(o);
+	      IF o IS NOT NULL THEN
+		    RETURN NEXT row_to_json(o);
+		  END IF;
 		END LOOP;
 	  END LOOP;
     END LOOP;
