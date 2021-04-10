@@ -78,7 +78,7 @@ CREATE OR REPLACE FUNCTION EditMessage (
   pSubject      text DEFAULT null,
   pContent      text DEFAULT null,
   pDescription  text DEFAULT null
-) RETURNS 	    void
+) RETURNS       void
 AS $$
 DECLARE
   uClass        uuid;
@@ -108,11 +108,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetMessageId (
-  pCode		text
-) RETURNS	uuid
+  pCode    text
+) RETURNS  uuid
 AS $$
 DECLARE
-  uId		uuid;
+  uId      uuid;
 BEGIN
   SELECT id INTO uId FROM db.message WHERE code = pCode;
   RETURN uId;
@@ -126,11 +126,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetMessageCode (
-  pId		uuid
-) RETURNS	text
+  pId      uuid
+) RETURNS  text
 AS $$
 DECLARE
-  vCode		text;
+  vCode    text;
 BEGIN
   SELECT code INTO vCode FROM db.message WHERE id = pId;
   RETURN vCode;
@@ -144,8 +144,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetMessageState (
-  pCode		text
-) RETURNS	uuid
+  pCode    text
+) RETURNS  uuid
 AS $$
 BEGIN
   RETURN GetState(GetEntity('message'), pCode);
@@ -161,7 +161,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION GetEncodedTextRFC1342 (
   pText     text,
   pCharSet  text
-) RETURNS	text
+) RETURNS   text
 AS $$
 BEGIN
   RETURN format('=?%s?B?%s?=', pCharSet, encode(pText::bytea, 'base64'));
@@ -177,7 +177,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION EncodingSubject (
   pSubject  text,
   pCharSet  text
-) RETURNS	text
+) RETURNS   text
 AS $$
 DECLARE
   ch        text;
@@ -219,11 +219,11 @@ CREATE OR REPLACE FUNCTION CreateMailBody (
   pFromName text,
   pFrom     text,
   pToName   text,
-  pTo		text,
+  pTo       text,
   pSubject  text,
-  pText		text,
-  pHTML		text
-) RETURNS	text
+  pText     text,
+  pHTML     text
+) RETURNS   text
 AS $$
 DECLARE
   vCharSet  text;
@@ -290,7 +290,7 @@ CREATE OR REPLACE FUNCTION SendMessage (
   pContent      text,
   pDescription  text DEFAULT null,
   pType         uuid DEFAULT GetType('message.outbox')
-) RETURNS	    uuid
+) RETURNS       uuid
 AS $$
 DECLARE
   nMessageId    uuid;
@@ -315,7 +315,7 @@ CREATE OR REPLACE FUNCTION SendMail (
   pContent      text,
   pDescription  text DEFAULT null,
   pAgent        uuid DEFAULT GetAgent('smtp.agent')
-) RETURNS	    uuid
+) RETURNS       uuid
 AS $$
 BEGIN
   RETURN SendMessage(pParent, pAgent, pProfile, pAddress, pSubject, pContent, pDescription);
@@ -336,7 +336,7 @@ CREATE OR REPLACE FUNCTION SendM2M (
   pContent      text,
   pDescription  text DEFAULT null,
   pAgent        uuid DEFAULT GetAgent('m2m.agent')
-) RETURNS	    uuid
+) RETURNS       uuid
 AS $$
 BEGIN
   RETURN SendMessage(pParent, pAgent, pProfile, pAddress, pSubject, pContent, pDescription);
@@ -357,7 +357,7 @@ CREATE OR REPLACE FUNCTION SendFCM (
   pContent      text,
   pDescription  text DEFAULT null,
   pAgent        uuid DEFAULT GetAgent('fcm.agent')
-) RETURNS	    uuid
+) RETURNS       uuid
 AS $$
 BEGIN
   RETURN SendMessage(pParent, pAgent, pProfile, pAddress, pSubject, pContent, pDescription);
@@ -375,7 +375,7 @@ CREATE OR REPLACE FUNCTION SendSMS (
   pProfile      text,
   pMessage      text,
   pUserId       uuid DEFAULT current_userid()
-) RETURNS	    uuid
+) RETURNS       uuid
 AS $$
 DECLARE
   nMessageId    uuid;
@@ -411,19 +411,19 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION SendPush (
   pObject       uuid,
-  pSubject		text,
+  pSubject      text,
   pData         json,
   pUserId       uuid DEFAULT current_userid(),
-  pPriority		text DEFAULT 'normal'
-) RETURNS	    void
+  pPriority     text DEFAULT 'normal'
+) RETURNS       void
 AS $$
 DECLARE
   nMessageId    uuid;
 
-  tokens		text[];
+  tokens        text[];
 
   projectId     text;
-  token			text;
+  token         text;
 
   message       json;
 BEGIN
@@ -435,13 +435,13 @@ BEGIN
     LOOP
       token := tokens[i];
 
-	  message := json_build_object('message', json_build_object('token', token, 'android', json_build_object('priority', pPriority), 'data', pData));
+      message := json_build_object('message', json_build_object('token', token, 'android', json_build_object('priority', pPriority), 'data', pData));
 
-	  nMessageId := SendFCM(pObject, projectId, GetUserName(pUserId), pSubject, message::text);
-	  PERFORM WriteToEventLog('M', 1001, 'push', format('Push сообщение передано на отправку: %s', nMessageId), pObject);
+      nMessageId := SendFCM(pObject, projectId, GetUserName(pUserId), pSubject, message::text);
+      PERFORM WriteToEventLog('M', 1001, 'push', format('Push сообщение передано на отправку: %s', nMessageId), pObject);
     END LOOP;
   ELSE
-	PERFORM WriteToEventLog('E', 3001, 'push', 'Не удалось отправить Push сообщение, токен не установлен.', pObject);
+    PERFORM WriteToEventLog('E', 3001, 'push', 'Не удалось отправить Push сообщение, токен не установлен.', pObject);
   END IF;
 END
 $$ LANGUAGE plpgsql
@@ -457,36 +457,36 @@ $$ LANGUAGE plpgsql
  * @return {uuid} - Талон восстановления (recovery ticket)
  */
 CREATE OR REPLACE FUNCTION RecoveryPasswordByEmail (
-  pUserId			uuid
-) RETURNS			uuid
+  pUserId         uuid
+) RETURNS         uuid
 AS $$
 DECLARE
-  nTicket			uuid;
+  nTicket         uuid;
 
-  vName				text;
-  vDomain       	text;
-  vUserName     	text;
-  vProject			text;
-  vEmail        	text;
-  vHost         	text;
-  vNoReply      	text;
-  vSupport			text;
-  vSubject      	text;
-  vText				text;
-  vHTML				text;
-  vBody				text;
-  vDescription  	text;
-  vSecurityAnswer	text;
-  bVerified     	bool;
+  vName           text;
+  vDomain         text;
+  vUserName       text;
+  vProject        text;
+  vEmail          text;
+  vHost           text;
+  vNoReply        text;
+  vSupport        text;
+  vSubject        text;
+  vText           text;
+  vHTML           text;
+  vBody           text;
+  vDescription    text;
+  vSecurityAnswer text;
+  bVerified       bool;
 
-  vMessage      	text;
-  vContext      	text;
+  vMessage        text;
+  vContext        text;
 
-  ErrorCode     	int;
-  ErrorMessage  	text;
+  ErrorCode       int;
+  ErrorMessage    text;
 BEGIN
   SELECT name, email, email_verified, locale INTO vName, vEmail, bVerified
-	FROM db.user u INNER JOIN db.profile p ON u.id = p.userid
+  FROM db.user u INNER JOIN db.profile p ON u.id = p.userid
    WHERE id = pUserId;
 
   IF vEmail IS NULL THEN
@@ -505,11 +505,11 @@ BEGIN
   vSupport := format('support@%s', vDomain);
 
   IF locale_code() = 'ru' THEN
-	vSubject := 'Сброс пароля.';
-	vDescription := 'Сброс пароля через email: ' || vEmail;
+    vSubject := 'Сброс пароля.';
+    vDescription := 'Сброс пароля через email: ' || vEmail;
   ELSE
-	vSubject := 'Password reset.';
-	vDescription := 'Reset password via email: ' || vEmail;
+    vSubject := 'Password reset.';
+    vDescription := 'Reset password via email: ' || vEmail;
   END IF;
 
   vSecurityAnswer := encode(digest(gen_random_bytes(15), 'sha1'), 'hex');
@@ -552,13 +552,13 @@ $$ LANGUAGE plpgsql
  * @return {uuid} - Талон восстановления (recovery ticket)
  */
 CREATE OR REPLACE FUNCTION RecoveryPasswordByPhone (
-  pUserId			uuid
-) RETURNS			uuid
+  pUserId         uuid
+) RETURNS         uuid
 AS $$
 DECLARE
-  nTicket			uuid;
-  nMessageId		uuid;
-  vSecurityAnswer	text;
+  nTicket         uuid;
+  nMessageId      uuid;
+  vSecurityAnswer text;
 BEGIN
   vSecurityAnswer := random_between(100000, 999999)::text;
 
