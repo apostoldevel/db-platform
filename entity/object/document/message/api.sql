@@ -46,6 +46,32 @@ AS
 GRANT SELECT ON api.outbox TO administrator;
 
 --------------------------------------------------------------------------------
+-- FUNCTION api.outbox ---------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.outbox (
+  pState    uuid
+) RETURNS	SETOF api.outbox
+AS $$
+  SELECT * FROM api.outbox WHERE state = pState;
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION api.outbox ---------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.outbox (
+  pState    text
+) RETURNS	SETOF api.outbox
+AS $$
+  SELECT * FROM api.outbox(GetState(GetClass('outbox'), pState));
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- FUNCTION api.message --------------------------------------------------------
 --------------------------------------------------------------------------------
 
