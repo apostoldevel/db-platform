@@ -91,13 +91,13 @@ BEGIN
   uClass := AddClass(pParent, pEntity, 'measure', 'Мера', false);
 
   -- Тип
-  PERFORM AddType(uClass, 'quantity.measure', 'Количество', 'Единица измерения количества вещества.');
-  PERFORM AddType(uClass, 'length.measure', 'Длина', 'Числовая характеристика протяжённости линий.');
-  PERFORM AddType(uClass, 'weight.measure', 'Масса', 'Единица измерения массы тела.');
-  PERFORM AddType(uClass, 'time.measure', 'Время', 'Единица измерения времени.');
-  PERFORM AddType(uClass, 'power.measure', 'Мощность', 'Единица измерения мощности.');
-  PERFORM AddType(uClass, 'amperage.measure', 'Сила тока', 'Единица измерения силы тока.');
-  PERFORM AddType(uClass, 'voltage.measure', 'Напряжение', 'Единица измерения напряжения.');
+  PERFORM AddType(uClass, 'time.measure', 'Время', 'Единицы времени.');
+  PERFORM AddType(uClass, 'length.measure', 'Длина', 'Единицы длины.');
+  PERFORM AddType(uClass, 'weight.measure', 'Масса', 'Единицы массы.');
+  PERFORM AddType(uClass, 'volume.measure', 'Объём', 'Единицы объёма.');
+  PERFORM AddType(uClass, 'area.measure', 'Площадь', 'Единицы площади.');
+  PERFORM AddType(uClass, 'technical.measure', 'Технические', 'Технические единицы.');
+  PERFORM AddType(uClass, 'economic.measure', 'Экономические', 'Экономические единицы.');
 
   -- Событие
   PERFORM AddMeasureEvents(uClass);

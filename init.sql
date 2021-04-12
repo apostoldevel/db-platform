@@ -49,10 +49,10 @@ SELECT CreateMeasure(null, GetType('time.measure'), 'month.measure', 'мес', '
 SELECT CreateMeasure(null, GetType('time.measure'), 'quarter.measure', 'кв', 'Квартал');
 SELECT CreateMeasure(null, GetType('time.measure'), 'year.measure', 'год', 'Год');
 
-SELECT CreateMeasure(null, GetType('power.measure'), 'W.measure', 'Вт', 'Ватт');
-SELECT CreateMeasure(null, GetType('power.measure'), 'kW.measure', 'кВт', 'Киловатт');
-SELECT CreateMeasure(null, GetType('power.measure'), 'MW.measure', 'МВт', 'Мегаватт');
-SELECT CreateMeasure(null, GetType('power.measure'), 'GW.measure', 'ГВт', 'Гигаватт');
+SELECT CreateMeasure(null, GetType('technical.measure'), 'W.measure', 'Вт', 'Ватт');
+SELECT CreateMeasure(null, GetType('technical.measure'), 'kW.measure', 'кВт', 'Киловатт');
+SELECT CreateMeasure(null, GetType('technical.measure'), 'MW.measure', 'МВт', 'Мегаватт');
+SELECT CreateMeasure(null, GetType('technical.measure'), 'GW.measure', 'ГВт', 'Гигаватт');
 
 SELECT CreateModel(null, GetType('device.model'), GetVendor('unknown.vendor'), null, 'unknown.model', 'Unknown', 'Неизвестная модель устройства.');
 SELECT CreateModel(null, GetType('device.model'), GetVendor('unknown.vendor'), null, 'android.model', 'Android', 'Неизвестная модель устройства на ОС Android.');

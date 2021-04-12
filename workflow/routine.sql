@@ -469,13 +469,13 @@ CREATE OR REPLACE FUNCTION AddType (
 ) RETURNS	    uuid
 AS $$
 DECLARE
-  nId		    uuid;
+  uId		    uuid;
 BEGIN
   INSERT INTO db.type (class, code, name, description)
   VALUES (pClass, pCode, pName, pDescription)
-  RETURNING id INTO nId;
+  RETURNING id INTO uId;
 
-  RETURN nId;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -526,15 +526,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetType (
-  pCode		text,
-  pClass    uuid
+  pClass    uuid,
+  pCode		text
 ) RETURNS	uuid
 AS $$
 DECLARE
-  nId		uuid;
+  uId		uuid;
 BEGIN
-  SELECT id INTO nId FROM db.type WHERE class = pClass AND code = pCode;
-  RETURN nId;
+  SELECT id INTO uId FROM db.type WHERE class = pClass AND code = pCode;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -550,7 +550,35 @@ CREATE OR REPLACE FUNCTION GetType (
 ) RETURNS	uuid
 AS $$
 BEGIN
-  RETURN GetType(pCode, GetClass(coalesce(pClass, SubStr(pCode, StrPos(pCode, '.') + 1))));
+  RETURN GetType(GetClass(coalesce(pClass, SubStr(pCode, StrPos(pCode, '.') + 1))), pCode);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION SetType ------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION SetType (
+  pClass	    uuid,
+  pCode		    text,
+  pName		    text,
+  pDescription	text DEFAULT null
+) RETURNS	    uuid
+AS $$
+DECLARE
+  uId		    uuid;
+BEGIN
+  uId := GetType(pClass, pCode);
+
+  IF uId IS NULL THEN
+	uId := AddType(pClass, pCode, pName, pDescription);
+  ELSE
+	PERFORM EditType(uId, pClass, pCode, pName, pDescription);
+  END IF;
+
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -664,10 +692,10 @@ CREATE OR REPLACE FUNCTION GetStateType (
 ) RETURNS	uuid
 AS $$
 DECLARE
-  nId		uuid;
+  uId		uuid;
 BEGIN
-  SELECT id INTO nId FROM db.state_type WHERE code = pCode;
-  RETURN nId;
+  SELECT id INTO uId FROM db.state_type WHERE code = pCode;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql STABLE STRICT
    SECURITY DEFINER
@@ -704,7 +732,7 @@ CREATE OR REPLACE FUNCTION AddState (
 ) RETURNS	uuid
 AS $$
 DECLARE
-  nId		uuid;
+  uId		uuid;
 BEGIN
   IF pSequence IS NULL THEN
     SELECT coalesce(max(sequence), 0) + 1 INTO pSequence
@@ -715,9 +743,9 @@ BEGIN
 
   INSERT INTO db.state (class, type, code, label, sequence)
   VALUES (pClass, pType, pCode, pLabel, pSequence)
-  RETURNING id INTO nId;
+  RETURNING id INTO uId;
 
-  RETURN nId;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -774,7 +802,7 @@ CREATE OR REPLACE FUNCTION GetState (
 ) RETURNS 	uuid
 AS $$
 DECLARE
-  nId		uuid;
+  uId		uuid;
 BEGIN
   WITH RECURSIVE classtree(id, parent, level) AS (
 	SELECT id, parent, level FROM db.class_tree WHERE id = pClass
@@ -782,12 +810,12 @@ BEGIN
 	SELECT c.id, c.parent, c.level
       FROM db.class_tree c INNER JOIN classtree ct ON ct.parent = c.id
   )
-  SELECT s.id INTO nId
+  SELECT s.id INTO uId
     FROM db.state s INNER JOIN classtree c ON s.class = c.id
    WHERE s.code = pCode
    ORDER BY c.level DESC;
 
-  RETURN nId;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -803,7 +831,7 @@ CREATE OR REPLACE FUNCTION GetState (
 ) RETURNS	uuid
 AS $$
 DECLARE
-  nId		uuid;
+  uId		uuid;
 BEGIN
   WITH RECURSIVE classtree(id, parent, level) AS (
 	SELECT id, parent, level FROM db.class_tree WHERE id = pClass
@@ -811,12 +839,12 @@ BEGIN
 	SELECT c.id, c.parent, c.level
       FROM db.class_tree c INNER JOIN classtree ct ON ct.parent = c.id
   )
-  SELECT s.id INTO nId
+  SELECT s.id INTO uId
     FROM db.state s INNER JOIN classtree c ON s.class = c.id
    WHERE s.type = pType
    ORDER BY c.level DESC;
 
-  RETURN nId;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -906,13 +934,13 @@ CREATE OR REPLACE FUNCTION AddAction (
 ) RETURNS	    uuid
 AS $$
 DECLARE
-  nId		    uuid;
+  uId		    uuid;
 BEGIN
   INSERT INTO db.action (id, code, name, description)
   VALUES (pId, pCode, pName, pDescription)
-  RETURNING id INTO nId;
+  RETURNING id INTO uId;
 
-  RETURN nId;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -969,15 +997,15 @@ CREATE OR REPLACE FUNCTION SetAction (
 ) RETURNS	    uuid
 AS $$
 DECLARE
-  nId		    uuid;
+  uId		    uuid;
 BEGIN
-  nId := GetAction(pCode);
-  IF nId IS NULL THEN
-	nId := AddAction(gen_kernel_uuid('b'), pCode, pName, pDescription);
+  uId := GetAction(pCode);
+  IF uId IS NULL THEN
+	uId := AddAction(gen_kernel_uuid('b'), pCode, pName, pDescription);
   ELSE
-    PERFORM EditAction(nId, pCode, pName, pDescription);
+    PERFORM EditAction(uId, pCode, pName, pDescription);
   END IF;
-  RETURN nId;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -992,10 +1020,10 @@ CREATE OR REPLACE FUNCTION GetAction (
 ) RETURNS 	uuid
 AS $$
 DECLARE
-  nId		uuid;
+  uId		uuid;
 BEGIN
-  SELECT id INTO nId FROM db.action WHERE code = pCode;
-  RETURN nId;
+  SELECT id INTO uId FROM db.action WHERE code = pCode;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1053,7 +1081,7 @@ CREATE OR REPLACE FUNCTION AddMethod (
 ) RETURNS	uuid
 AS $$
 DECLARE
-  nId		uuid;
+  uId		uuid;
 BEGIN
   IF pSequence IS NULL THEN
     SELECT coalesce(max(sequence), 0) + 1 INTO pSequence
@@ -1064,9 +1092,9 @@ BEGIN
 
   INSERT INTO db.method (parent, class, state, action, code, label, sequence, visible)
   VALUES (pParent, pClass, pState, pAction, pCode, pLabel, pSequence, pVisible)
-  RETURNING id INTO nId;
+  RETURNING id INTO uId;
 
-  RETURN nId;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1348,13 +1376,13 @@ CREATE OR REPLACE FUNCTION AddTransition (
 ) RETURNS	uuid
 AS $$
 DECLARE
-  nId		uuid;
+  uId		uuid;
 BEGIN
   INSERT INTO db.transition (state, method, newstate)
   VALUES (pState, pMethod, pNewState)
-  RETURNING id INTO nId;
+  RETURNING id INTO uId;
 
-  RETURN nId;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1406,11 +1434,11 @@ CREATE OR REPLACE FUNCTION GetEventType (
 ) RETURNS	uuid
 AS $$
 DECLARE
-  nId		uuid;
+  uId		uuid;
 BEGIN
-  SELECT id INTO nId FROM db.event_type WHERE code = pCode;
+  SELECT id INTO uId FROM db.event_type WHERE code = pCode;
 
-  RETURN nId;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1431,7 +1459,7 @@ CREATE OR REPLACE FUNCTION AddEvent (
 ) RETURNS	uuid
 AS $$
 DECLARE
-  nId		uuid;
+  uId		uuid;
 BEGIN
   IF pSequence IS NULL THEN
     SELECT coalesce(max(sequence), 0) + 1 INTO pSequence FROM db.event WHERE class = pClass AND action = pAction;
@@ -1439,9 +1467,9 @@ BEGIN
 
   INSERT INTO db.event (class, type, action, label, text, sequence, enabled)
   VALUES (pClass, pType, pAction, pLabel, NULLIF(pText, '<null>'), pSequence, pEnabled)
-  RETURNING id INTO nId;
+  RETURNING id INTO uId;
 
-  RETURN nId;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
