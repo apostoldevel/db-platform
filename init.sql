@@ -8,6 +8,7 @@ SELECT SetArea(GetArea(current_database()));
 SELECT InitWorkFlow();
 SELECT InitEntity();
 SELECT InitAPI();
+SELECT InitMeasure();
 
 SELECT CreatePublisher('notify', 'Уведомления', 'Уведомления о системных событиях.');
 SELECT CreatePublisher('notice', 'Извещения', 'Системные извещения.');
@@ -37,22 +38,6 @@ SELECT CreateAgent(null, GetType('api.agent'), 'm2m.agent', 'M2M', GetVendor('mt
 SELECT CreateAgent(null, GetType('api.agent'), 'sba.agent', 'SBA',  GetVendor('sberbank.vendor'), 'Агент для передачи данных в Интернет-Эквайринг от Сбербанка.');
 
 SELECT CreateVendor(null, GetType('device.vendor'), 'unknown.vendor', 'Неизвестный', 'Неизвестный производитель устройств.');
-
-SELECT CreateMeasure(null, GetType('quantity.measure'), 'pieces.measure', 'Шт', 'Штук');
-
-SELECT CreateMeasure(null, GetType('time.measure'), 'second.measure', 'сек', 'Секунда');
-SELECT CreateMeasure(null, GetType('time.measure'), 'minute.measure', 'мин', 'Минута');
-SELECT CreateMeasure(null, GetType('time.measure'), 'hour.measure', 'час', 'Час');
-SELECT CreateMeasure(null, GetType('time.measure'), 'day.measure', 'д', 'День');
-SELECT CreateMeasure(null, GetType('time.measure'), 'week.measure', 'нед', 'Неделя');
-SELECT CreateMeasure(null, GetType('time.measure'), 'month.measure', 'мес', 'Месяц');
-SELECT CreateMeasure(null, GetType('time.measure'), 'quarter.measure', 'кв', 'Квартал');
-SELECT CreateMeasure(null, GetType('time.measure'), 'year.measure', 'год', 'Год');
-
-SELECT CreateMeasure(null, GetType('technical.measure'), 'W.measure', 'Вт', 'Ватт');
-SELECT CreateMeasure(null, GetType('technical.measure'), 'kW.measure', 'кВт', 'Киловатт');
-SELECT CreateMeasure(null, GetType('technical.measure'), 'MW.measure', 'МВт', 'Мегаватт');
-SELECT CreateMeasure(null, GetType('technical.measure'), 'GW.measure', 'ГВт', 'Гигаватт');
 
 SELECT CreateModel(null, GetType('device.model'), GetVendor('unknown.vendor'), null, 'unknown.model', 'Unknown', 'Неизвестная модель устройства.');
 SELECT CreateModel(null, GetType('device.model'), GetVendor('unknown.vendor'), null, 'android.model', 'Android', 'Неизвестная модель устройства на ОС Android.');

@@ -137,3 +137,51 @@ END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- InitMeasure -----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION InitMeasure()
+RETURNS         void
+AS $$
+BEGIN
+  PERFORM CreateMeasure(null, GetType('volume.measure'), '111', 'см3', 'Кубический сантиметр');
+  PERFORM CreateMeasure(null, GetType('volume.measure'), '112', 'л', 'Литр');
+  PERFORM CreateMeasure(null, GetType('volume.measure'), '113', 'м3', 'Кубический метр');
+
+  PERFORM CreateMeasure(null, GetType('weight.measure'), '161', 'мг', 'Миллиграмм');
+  PERFORM CreateMeasure(null, GetType('weight.measure'), '163', 'г', 'Грамм');
+  PERFORM CreateMeasure(null, GetType('weight.measure'), '166', 'кг', 'Килограмм');
+  PERFORM CreateMeasure(null, GetType('weight.measure'), '168', 'т', 'Тонна');
+  PERFORM CreateMeasure(null, GetType('weight.measure'), '206', 'ц', 'Центнер');
+  PERFORM CreateMeasure(null, GetType('weight.measure'), '185', 'т грп', 'Грузоподъемность в метрических тоннах');
+
+  PERFORM CreateMeasure(null, GetType('technical.measure'), '212', 'Вт', 'Ватт');
+  PERFORM CreateMeasure(null, GetType('technical.measure'), '214', 'кВт', 'Киловатт');
+  PERFORM CreateMeasure(null, GetType('technical.measure'), '215', 'МВт', 'Мегаватт');
+
+  PERFORM CreateMeasure(null, GetType('technical.measure'), '222', 'В', 'Вольт');
+  PERFORM CreateMeasure(null, GetType('technical.measure'), '223', 'кВ', 'Киловольт');
+
+  PERFORM CreateMeasure(null, GetType('technical.measure'), '243', 'Вт.ч', 'Ватт-час');
+  PERFORM CreateMeasure(null, GetType('technical.measure'), '245', 'кВ.ч', 'Киловатт-час');
+
+  PERFORM CreateMeasure(null, GetType('time.measure'), '354', 'с', 'Секунда');
+  PERFORM CreateMeasure(null, GetType('time.measure'), '355', 'мин', 'Минута');
+  PERFORM CreateMeasure(null, GetType('time.measure'), '356', 'ч', 'Час');
+  PERFORM CreateMeasure(null, GetType('time.measure'), '359', 'дн', 'День');
+  PERFORM CreateMeasure(null, GetType('time.measure'), '360', 'нед', 'Неделя');
+  PERFORM CreateMeasure(null, GetType('time.measure'), '361', 'дек', 'Декада');
+  PERFORM CreateMeasure(null, GetType('time.measure'), '362', 'мес', 'Месяц');
+  PERFORM CreateMeasure(null, GetType('time.measure'), '364', 'кварт', 'Квартал');
+  PERFORM CreateMeasure(null, GetType('time.measure'), '365', 'полгода', 'Полугодие');
+  PERFORM CreateMeasure(null, GetType('time.measure'), '366', 'г', 'Год');
+
+  PERFORM CreateMeasure(null, GetType('economic.measure'), '616', 'боб', 'Бобина');
+  PERFORM CreateMeasure(null, GetType('economic.measure'), '625', 'л.', 'Лист');
+  PERFORM CreateMeasure(null, GetType('economic.measure'), '796', 'шт', 'Штука');
+END
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
