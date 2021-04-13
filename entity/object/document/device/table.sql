@@ -10,7 +10,7 @@ CREATE TABLE db.device (
     id                  uuid PRIMARY KEY,
     document            uuid NOT NULL REFERENCES db.document(id) ON DELETE CASCADE,
     model               uuid NOT NULL REFERENCES db.model(id) ON DELETE RESTRICT,
-    client				uuid REFERENCES db.client(id) ON DELETE CASCADE,
+    client				uuid REFERENCES db.client(id) ON DELETE RESTRICT,
     identity            text NOT NULL,
     version             text,
     serial              text,

@@ -106,7 +106,7 @@ BEGIN
   PERFORM AddPropertyEvents(uClass);
 
   -- Метод
-  PERFORM AddDefaultMethods(uClass, ARRAY['Создана', 'Открыта', 'Закрыта', 'Удалена', 'Открыть', 'Закрыть', 'Удалить']);
+  PERFORM AddDefaultMethods(uClass, ARRAY['Создано', 'Доступно', 'Недоступно', 'Удалено', 'Открыть', 'Закрыть', 'Удалить']);
 
   RETURN uClass;
 END
