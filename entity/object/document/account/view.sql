@@ -68,7 +68,8 @@ CREATE OR REPLACE VIEW ObjectAccount (Id, Object, Parent,
   State, StateCode, StateLabel, LastUpdate,
   Owner, OwnerCode, OwnerName, Created,
   Oper, OperCode, OperName, OperDate,
-  Area, AreaCode, AreaName, AreaDescription
+  Area, AreaCode, AreaName, AreaDescription,
+  Scope, ScopeCode, ScopeName, ScopeDescription
 )
 AS
   SELECT a.id, d.object, o.parent,
@@ -83,7 +84,8 @@ AS
          o.state, o.statecode, o.statelabel, o.lastupdate,
          o.owner, o.ownercode, o.ownername, o.created,
          o.oper, o.opercode, o.opername, o.operdate,
-         d.area, d.areacode, d.areaname, d.areadescription
+         d.area, d.areacode, d.areaname, d.areadescription,
+         d.scope, d.scopecode, d.scopename, d.scopedescription
     FROM AccessAccount a INNER JOIN Document d ON a.document = d.id
                          INNER JOIN Object   o ON a.document = o.id;
 

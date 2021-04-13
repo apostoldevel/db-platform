@@ -35,7 +35,8 @@ CREATE OR REPLACE VIEW ObjectAddress (Id, Object, Parent,
   State, StateCode, StateLabel, LastUpdate,
   Owner, OwnerCode, OwnerName, Created,
   Oper, OperCode, OperName, OperDate,
-  Area, AreaCode, AreaName, AreaDescription
+  Area, AreaCode, AreaName, AreaDescription,
+  Scope, ScopeCode, ScopeName, ScopeDescription
 ) AS
   SELECT a.id, d.object, o.parent,
          o.entity, o.entitycode, o.entityname,
@@ -47,7 +48,8 @@ CREATE OR REPLACE VIEW ObjectAddress (Id, Object, Parent,
          o.state, o.statecode, o.statelabel, o.lastupdate,
          o.owner, o.ownercode, o.ownername, o.created,
          o.oper, o.opercode, o.opername, o.operdate,
-         d.area, d.areacode, d.areaname, d.areadescription
+         d.area, d.areacode, d.areaname, d.areadescription,
+         d.scope, d.scopecode, d.scopename, d.scopedescription
     FROM AccessAddress a INNER JOIN Document d ON a.document = d.id
                          INNER JOIN Object   o ON a.document = o.id;
 

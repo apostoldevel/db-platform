@@ -75,19 +75,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetReference (
+  pEntity       uuid,
   pCode         text,
-  pEntity       uuid
+  pScope		uuid DEFAULT current_scope()
 ) RETURNS       uuid
 AS $$
-DECLARE
-  uId           uuid;
-  uScope		uuid;
-BEGIN
-  uScope := current_scope();
-  SELECT id INTO uId FROM db.reference WHERE scope = uScope AND entity = pEntity AND code = pCode;
-  RETURN uId;
-END;
-$$ LANGUAGE plpgsql
+  SELECT id FROM db.reference WHERE scope = pScope AND entity = pEntity AND code = pCode;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -101,7 +95,7 @@ CREATE OR REPLACE FUNCTION GetReference (
 ) RETURNS       uuid
 AS $$
 BEGIN
-  RETURN GetReference(pCode, GetEntity(coalesce(pEntity, SubStr(pCode, StrPos(pCode, '.') + 1))));
+  RETURN GetReference(GetEntity(coalesce(pEntity, SubStr(pCode, StrPos(pCode, '.') + 1))), pCode);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -115,13 +109,8 @@ CREATE OR REPLACE FUNCTION GetReferenceCode (
   pId           uuid
 ) RETURNS       text
 AS $$
-DECLARE
-  vCode         text;
-BEGIN
-  SELECT code INTO vCode FROM db.reference WHERE id = pId;
-  RETURN vCode;
-END;
-$$ LANGUAGE plpgsql
+  SELECT code FROM db.reference WHERE id = pId;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -134,12 +123,7 @@ CREATE OR REPLACE FUNCTION GetReferenceName (
   pLocale		uuid DEFAULT current_locale()
 ) RETURNS       text
 AS $$
-DECLARE
-  vName         text;
-BEGIN
-  SELECT name INTO vName FROM db.reference_text WHERE reference = pId AND locale = pLocale;
-  RETURN vName;
-END;
-$$ LANGUAGE plpgsql
+  SELECT name FROM db.reference_text WHERE reference = pId AND locale = pLocale;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

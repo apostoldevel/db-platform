@@ -34,7 +34,8 @@ CREATE OR REPLACE VIEW ObjectProgram (Id, Object, Parent,
   StateType, StateTypeCode, StateTypeName,
   State, StateCode, StateLabel, LastUpdate,
   Owner, OwnerCode, OwnerName, Created,
-  Oper, OperCode, OperName, OperDate
+  Oper, OperCode, OperName, OperDate,
+  Scope, ScopeCode, ScopeName, ScopeDescription
 )
 AS
   SELECT p.id, r.object, o.parent,
@@ -45,7 +46,8 @@ AS
          o.statetype, o.statetypecode, o.statetypename,
          o.state, o.statecode, o.statelabel, o.lastupdate,
          o.owner, o.ownercode, o.ownername, o.created,
-         o.oper, o.opercode, o.opername, o.operdate
+         o.oper, o.opercode, o.opername, o.operdate,
+         r.scope, r.scopecode, r.scopename, r.scopedescription
     FROM AccessProgram p INNER JOIN Reference r ON p.reference = r.id
                          INNER JOIN Object    o ON p.reference = o.id;
 

@@ -34,8 +34,6 @@ CREATE UNIQUE INDEX ON db.reference (scope, entity, code);
 
 CREATE OR REPLACE FUNCTION db.ft_reference_before_insert()
 RETURNS trigger AS $$
-DECLARE
-  vCode		text;
 BEGIN
   IF NEW.id IS NULL THEN
     SELECT NEW.object INTO NEW.id;
@@ -44,18 +42,17 @@ BEGIN
   IF current_area_type() = GetAreaType('root') THEN
     PERFORM RootAreaError();
   END IF;
-/*
+
   IF current_area_type() = GetAreaType('guest') THEN
     PERFORM GuestAreaError();
   END IF;
-*/
+
   IF NEW.scope IS NULL THEN
     SELECT current_scope() INTO NEW.scope;
   END IF;
 
   IF NULLIF(NEW.code, '') IS NULL THEN
-    SELECT code INTO vCode FROM db.class_tree WHERE id = NEW.class;
-    NEW.code := concat(encode(gen_random_bytes(12), 'hex'), '.', vCode);
+    NEW.code := encode(gen_random_bytes(12), 'hex');
   END IF;
 
   RETURN NEW;
