@@ -135,13 +135,8 @@ CREATE OR REPLACE FUNCTION GetAccount (
   pCurrency	uuid
 ) RETURNS	uuid
 AS $$
-DECLARE
-  uId		uuid;
-BEGIN
-  SELECT id INTO uId FROM db.account WHERE currency = pCurrency AND code = pCode;
-  RETURN uId;
-END;
-$$ LANGUAGE plpgsql
+  SELECT id FROM db.account WHERE currency = pCurrency AND code = pCode;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -153,13 +148,8 @@ CREATE OR REPLACE FUNCTION GetAccountCode (
   pAccount	uuid
 ) RETURNS	text
 AS $$
-DECLARE
-  vCode     text;
-BEGIN
-  SELECT code INTO vCode FROM db.account WHERE id = pAccount;
-  RETURN vCode;
-END;
-$$ LANGUAGE plpgsql
+  SELECT code FROM db.account WHERE id = pAccount;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -171,13 +161,8 @@ CREATE OR REPLACE FUNCTION GetAccountClient (
   pAccount	uuid
 ) RETURNS	uuid
 AS $$
-DECLARE
-  uClient	uuid;
-BEGIN
-  SELECT client INTO uClient FROM db.account WHERE id = pAccount;
-  RETURN uClient;
-END;
-$$ LANGUAGE plpgsql
+  SELECT client FROM db.account WHERE id = pAccount;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -328,18 +313,12 @@ CREATE OR REPLACE FUNCTION GetBalance (
   pDateFrom     timestamptz DEFAULT oper_date()
 ) RETURNS       numeric
 AS $$
-DECLARE
-  nBalance      numeric;
-BEGIN
-  SELECT amount INTO nBalance
+  SELECT amount
     FROM db.balance
    WHERE type = pType
      AND account = pAccount
      AND validFromDate <= pDateFrom
      AND validToDate > pDateFrom;
-
-  RETURN nBalance;
-END;
-$$ LANGUAGE plpgsql
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

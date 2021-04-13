@@ -195,3 +195,23 @@ END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.get_account_balance -----------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.get_account_balance (
+  pId       uuid,
+  pDateFrom timestamptz DEFAULT oper_date()
+) RETURNS   numeric
+AS $$
+BEGIN
+  IF NOT CheckObjectAccess(pId, B'100') THEN
+	PERFORM AccessDenied();
+  END IF;
+
+  RETURN GetBalance(pId, pDateFrom);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;

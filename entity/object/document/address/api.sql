@@ -128,20 +128,20 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION api.set_address (
   pId           uuid,
-  pParent       uuid,
-  pType         text,
-  pCode         text,
-  pIndex        text,
-  pCountry      text,
-  pRegion       text,
-  pDistrict     text,
-  pCity         text,
-  pSettlement   text,
-  pStreet       text,
-  pHouse        text,
-  pBuilding     text,
-  pStructure    text,
-  pApartment    text,
+  pParent       uuid DEFAULT null,
+  pType         text DEFAULT null,
+  pCode         text DEFAULT null,
+  pIndex        text DEFAULT null,
+  pCountry      text DEFAULT null,
+  pRegion       text DEFAULT null,
+  pDistrict     text DEFAULT null,
+  pCity         text DEFAULT null,
+  pSettlement   text DEFAULT null,
+  pStreet       text DEFAULT null,
+  pHouse        text DEFAULT null,
+  pBuilding     text DEFAULT null,
+  pStructure    text DEFAULT null,
+  pApartment    text DEFAULT null,
   pAddress      text DEFAULT null
 ) RETURNS       SETOF api.address
 AS $$
@@ -162,9 +162,9 @@ $$ LANGUAGE plpgsql
 -- api.get_address -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает клиента
- * @param {uuid} pId - Идентификатор адреса
- * @return {api.address} - Адрес
+ * Возвращает адрес
+ * @param {uuid} pId - Идентификатор
+ * @return {api.address}
  */
 CREATE OR REPLACE FUNCTION api.get_address (
   pId		uuid
@@ -179,7 +179,7 @@ $$ LANGUAGE SQL
 -- api.list_address ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список клиентов.
+ * Возвращает список адресов.
  * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
  * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
  * @param {integer} pLimit - Лимит по количеству строк

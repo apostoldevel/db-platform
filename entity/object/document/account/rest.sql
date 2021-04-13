@@ -172,6 +172,31 @@ BEGIN
       END LOOP;
     END LOOP;
 
+  WHEN '/account/balance' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['id', 'datetime']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, datetime timestamptz)
+      LOOP
+        RETURN NEXT json_build_object('balance', api.get_account_balance(r.id, coalesce(r.datetime, oper_date())));
+      END LOOP;
+
+    ELSE
+
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, datetime timestamptz)
+      LOOP
+        RETURN NEXT json_build_object('balance', api.get_account_balance(r.id, coalesce(r.datetime, oper_date())));
+      END LOOP;
+
+    END IF;
+
   ELSE
     RETURN NEXT ExecuteDynamicMethod(pPath, pPayload);
   END CASE;

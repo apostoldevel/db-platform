@@ -24,7 +24,7 @@ DECLARE
   r             db.address%rowtype;
 
   sList         text[];
-  sShort        text;
+  sShort        text DEFAULT '';
   sAddress      text;
 
   uAddress      uuid;
@@ -40,19 +40,20 @@ BEGIN
 
   IF pParent IS NOT NULL THEN
     SELECT * INTO r FROM db.address a WHERE a.id = pParent;
-
-    pCode := coalesce(pCode, r.code);
-    pIndex := CheckNull(coalesce(pIndex, r.index, '<null>'));
-    pCountry := CheckNull(coalesce(pCountry, r.country, '<null>'));
-    pRegion := CheckNull(coalesce(pRegion, r.region, '<null>'));
-    pDistrict := CheckNull(coalesce(pDistrict, r.district, '<null>'));
-    pCity := CheckNull(coalesce(pCity, r.city, '<null>'));
-    pSettlement := CheckNull(coalesce(pSettlement, r.settlement, '<null>'));
-    pStreet := CheckNull(coalesce(pStreet, r.street, '<null>'));
-    pHouse := CheckNull(coalesce(pHouse, r.house, '<null>'));
-    pBuilding := CheckNull(coalesce(pBuilding, r.building, '<null>'));
-    pStructure := CheckNull(coalesce(pStructure, r.structure, '<null>'));
-    pApartment := CheckNull(coalesce(pApartment, r.apartment, '<null>'));
+    IF FOUND THEN
+	  pCode := coalesce(pCode, r.code);
+	  pIndex := CheckNull(coalesce(pIndex, r.index, '<null>'));
+	  pCountry := CheckNull(coalesce(pCountry, r.country, '<null>'));
+	  pRegion := CheckNull(coalesce(pRegion, r.region, '<null>'));
+	  pDistrict := CheckNull(coalesce(pDistrict, r.district, '<null>'));
+	  pCity := CheckNull(coalesce(pCity, r.city, '<null>'));
+	  pSettlement := CheckNull(coalesce(pSettlement, r.settlement, '<null>'));
+	  pStreet := CheckNull(coalesce(pStreet, r.street, '<null>'));
+	  pHouse := CheckNull(coalesce(pHouse, r.house, '<null>'));
+	  pBuilding := CheckNull(coalesce(pBuilding, r.building, '<null>'));
+	  pStructure := CheckNull(coalesce(pStructure, r.structure, '<null>'));
+	  pApartment := CheckNull(coalesce(pApartment, r.apartment, '<null>'));
+    END IF;
   END IF;
 
   sAddress := pAddress;
@@ -107,6 +108,8 @@ BEGIN
       END IF;
     END LOOP;
 
+    sShort := sList[9];
+
     IF sList[8] IS NULL THEN
       sAddress := sList[9];
     ELSE
@@ -118,7 +121,7 @@ BEGIN
     END IF;
   END IF;
 
-  uDocument := CreateDocument(pParent, pType, null, sAddress);
+  uDocument := CreateDocument(pParent, pType, sShort, sAddress);
 
   INSERT INTO db.address (id, document, code, index, country, region, district, city, settlement, street, house, building, structure, apartment, sortnum)
   VALUES (uDocument, uDocument, pCode, pIndex, pCountry, pRegion, pDistrict, pCity, pSettlement, pStreet, pHouse, pBuilding, pStructure, pApartment, 0)
@@ -160,7 +163,7 @@ DECLARE
   r             db.address%rowtype;
 
   sList		    text[];
-  sShort		text;
+  sShort		text DEFAULT '';
   sAddress	    text;
 
   uClass        uuid;
@@ -168,29 +171,28 @@ DECLARE
 
   -- current
   cParent	    uuid;
-  cType		    uuid;
 BEGIN
-  SELECT parent, type INTO cParent, cType FROM db.object WHERE id = pId;
+  SELECT parent INTO cParent FROM db.object WHERE id = pId;
 
   pParent := coalesce(pParent, cParent, null_uuid());
-  pType := coalesce(pType, cType);
 
   IF CheckNull(pParent) IS NOT NULL THEN
 
     SELECT * INTO r FROM db.address a WHERE a.id = pParent;
-
-    pCode := coalesce(pCode, r.code);
-    pIndex := CheckNull(coalesce(pIndex, r.index, '<null>'));
-    pCountry := CheckNull(coalesce(pCountry, r.country, '<null>'));
-    pRegion := CheckNull(coalesce(pRegion, r.region, '<null>'));
-    pDistrict := CheckNull(coalesce(pDistrict, r.district, '<null>'));
-    pCity := CheckNull(coalesce(pCity, r.city, '<null>'));
-    pSettlement := CheckNull(coalesce(pSettlement, r.settlement, '<null>'));
-    pStreet := CheckNull(coalesce(pStreet, r.street, '<null>'));
-    pHouse := CheckNull(coalesce(pHouse, r.house, '<null>'));
-    pBuilding := CheckNull(coalesce(pBuilding, r.building, '<null>'));
-    pStructure := CheckNull(coalesce(pStructure, r.structure, '<null>'));
-    pApartment := CheckNull(coalesce(pApartment, r.apartment, '<null>'));
+    IF FOUND THEN
+	  pCode := coalesce(pCode, r.code);
+	  pIndex := CheckNull(coalesce(pIndex, r.index, '<null>'));
+	  pCountry := CheckNull(coalesce(pCountry, r.country, '<null>'));
+	  pRegion := CheckNull(coalesce(pRegion, r.region, '<null>'));
+	  pDistrict := CheckNull(coalesce(pDistrict, r.district, '<null>'));
+	  pCity := CheckNull(coalesce(pCity, r.city, '<null>'));
+	  pSettlement := CheckNull(coalesce(pSettlement, r.settlement, '<null>'));
+	  pStreet := CheckNull(coalesce(pStreet, r.street, '<null>'));
+	  pHouse := CheckNull(coalesce(pHouse, r.house, '<null>'));
+	  pBuilding := CheckNull(coalesce(pBuilding, r.building, '<null>'));
+	  pStructure := CheckNull(coalesce(pStructure, r.structure, '<null>'));
+	  pApartment := CheckNull(coalesce(pApartment, r.apartment, '<null>'));
+	END IF;
 
   ELSE
 
@@ -263,6 +265,8 @@ BEGIN
       END IF;
     END LOOP;
 
+    sShort := sList[9];
+
     IF sList[8] IS NULL THEN
       sAddress := sList[9];
     ELSE
@@ -274,17 +278,7 @@ BEGIN
     END IF;
   END IF;
 
-  IF pParent <> coalesce(cParent, null_uuid()) THEN
-    UPDATE db.object SET parent = CheckNull(pParent) WHERE id = pId;
-  END IF;
-
-  IF pType <> cType THEN
-    UPDATE db.object SET type = pType WHERE id = pId;
-  END IF;
-
-  IF sAddress IS NOT NULL THEN
-    UPDATE db.document_text SET description = CheckNull(sAddress) WHERE document = pId AND locale = current_locale();
-  END IF;
+  PERFORM EditDocument(pId, pParent, pType, sShort, sAddress);
 
   UPDATE db.address
      SET code = pCode,
@@ -293,12 +287,12 @@ BEGIN
          region = pRegion,
          district = pDistrict,
          city = pCity,
-         Settlement = pSettlement,
-         Street = pStreet,
-         House = pHouse,
-         Building = pBuilding,
-         Structure = pStructure,
-         Apartment = pApartment
+         settlement = pSettlement,
+         street = pStreet,
+         house = pHouse,
+         building = pBuilding,
+         structure = pStructure,
+         apartment = pApartment
    WHERE id = pId;
 
   uClass := GetObjectClass(pId);
