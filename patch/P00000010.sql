@@ -1,12 +1,20 @@
 DROP FUNCTION IF EXISTS api.outbox(text);
 DROP FUNCTION IF EXISTS api.outbox(uuid, uuid);
 
+--------------------------------------------------------------------------------
+
 DROP FUNCTION IF EXISTS GetType(text, uuid);
+DROP FUNCTION IF EXISTS GetReference(text, uuid);
 
 --------------------------------------------------------------------------------
 
 \ir '../workflow/routine.sql'
+\ir '../entity/object/reference/routine.sql'
 \ir '../entity/object/reference/measure/routine.sql'
+
+--------------------------------------------------------------------------------
+
+DROP VIEW ObjectDevice CASCADE;
 
 --------------------------------------------------------------------------------
 
