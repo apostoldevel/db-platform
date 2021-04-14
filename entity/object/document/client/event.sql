@@ -76,9 +76,9 @@ AS $$
 DECLARE
   r             record;
 
-  nArea         uuid;
+  uArea         uuid;
   uUserId       uuid;
-  nInterface    uuid;
+  uInterface    uuid;
 BEGIN
   SELECT userid INTO uUserId FROM db.client WHERE id = pObject;
 
@@ -89,17 +89,17 @@ BEGIN
 
     PERFORM AddMemberToGroup(uUserId, GetGroup('user'));
 
-    SELECT area INTO nArea FROM db.document WHERE id = pObject;
+    SELECT area INTO uArea FROM db.document WHERE id = pObject;
 
-    PERFORM AddMemberToArea(uUserId, nArea);
-    PERFORM SetDefaultArea(nArea, uUserId);
+    PERFORM AddMemberToArea(uUserId, uArea);
+    PERFORM SetDefaultArea(uArea, uUserId);
 
-    nInterface := GetInterface('all');
-    PERFORM AddMemberToInterface(uUserId, nInterface);
+    uInterface := GetInterface('all');
+    PERFORM AddMemberToInterface(uUserId, uInterface);
 
-    nInterface := GetInterface('user');
-    PERFORM AddMemberToInterface(uUserId, nInterface);
-    PERFORM SetDefaultInterface(nInterface, uUserId);
+    uInterface := GetInterface('user');
+    PERFORM AddMemberToInterface(uUserId, uInterface);
+    PERFORM SetDefaultInterface(uInterface, uUserId);
 
     FOR r IN SELECT code FROM db.session WHERE userid = uUserId
     LOOP

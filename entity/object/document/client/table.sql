@@ -82,6 +82,10 @@ BEGIN
     UPDATE db.object SET owner = NEW.userid WHERE id = NEW.document;
   END IF;
 
+  IF NEW.userid IS NOT NULL AND OLD.code IS DISTINCT FROM NEW.code THEN
+    UPDATE db.user SET username = NEW.code WHERE id = NEW.userid;
+  END IF;
+
   IF NEW.email IS NOT NULL THEN
     IF jsonb_typeof(NEW.email) = 'array' THEN
       vStr = NULLIF(NEW.email->>0, '');

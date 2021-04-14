@@ -3292,13 +3292,8 @@ CREATE OR REPLACE FUNCTION GetDefaultArea (
   pMember   uuid DEFAULT current_userid()
 ) RETURNS	uuid
 AS $$
-DECLARE
-  uArea	    uuid;
-BEGIN
-  SELECT area INTO uArea FROM db.profile WHERE userid = pMember;
-  RETURN uArea;
-END;
-$$ LANGUAGE plpgsql
+  SELECT area FROM db.profile WHERE userid = pMember;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -3454,13 +3449,8 @@ CREATE OR REPLACE FUNCTION GetInterface (
   pCode		text
 ) RETURNS 	uuid
 AS $$
-DECLARE
-  uId		uuid;
-BEGIN
-  SELECT id INTO uId FROM db.interface WHERE code = pCode;
-  RETURN uId;
-END;
-$$ LANGUAGE plpgsql
+  SELECT id FROM db.interface WHERE code = pCode;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -3472,13 +3462,8 @@ CREATE OR REPLACE FUNCTION GetInterfaceName (
   pId		uuid
 ) RETURNS 	text
 AS $$
-DECLARE
-  vName		text;
-BEGIN
-  SELECT name INTO vName FROM db.interface WHERE id = pId;
-  RETURN vName;
-END;
-$$ LANGUAGE plpgsql
+  SELECT name FROM db.interface WHERE id = pId;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -3576,13 +3561,8 @@ CREATE OR REPLACE FUNCTION GetDefaultInterface (
   pMember	    uuid DEFAULT current_userid()
 ) RETURNS	    uuid
 AS $$
-DECLARE
-  uInterface	uuid;
-BEGIN
-  SELECT interface INTO uInterface FROM db.profile WHERE userid = pMember;
-  RETURN uInterface;
-END;
-$$ LANGUAGE plpgsql
+  SELECT interface FROM db.profile WHERE userid = pMember;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
