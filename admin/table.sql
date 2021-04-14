@@ -191,7 +191,7 @@ BEGIN
   SELECT encode(digest(encode(hmac(NEW.secret::text, GetSecretKey(), 'sha512'), 'hex'), 'sha1'), 'hex') INTO NEW.hash;
 
   IF NEW.phone IS NOT NULL THEN
-    NEW.phone := TrimPhone(NEW.phone);
+    NEW.phone := TrimPhone(nullif(trim(NEW.phone), ''));
   END IF;
 
   NEW.readonly := NEW.username IN ('system', 'administrator', 'guest', 'daemon', 'apibot', 'mailbot');
