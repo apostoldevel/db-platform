@@ -3,21 +3,21 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE VIEW Message (Id, Document,
-  Source, SourceCode, SourceName, SourceDescription,
+  Class, ClassCode, ClassLabel,
   AgentType, AgentTypeCode, AgentTypeName, AgentTypeDescription,
   Agent, AgentCode, AgentName, AgentDescription,
   Code, Profile, Address, Subject, Content
 )
 AS
   SELECT m.id, m.document,
-         o.type, t.code, t.name, t.description,
-         ra.type, at.code, at.name, at.description,
-         m.agent, ra.code, ra.name, ra.description,
+         o.class, c.code, c.label,
+         a.type, t.code, t.name, t.description,
+         m.agent, a.code, a.name, a.description,
          m.code, m.profile, m.address, m.subject, m.content
-    FROM db.message m INNER JOIN Reference ra ON m.agent = ra.id
-                      INNER JOIN db.type   at ON ra.type = at.id
-                      INNER JOIN db.object  o ON ra.object = o.id
-                      INNER JOIN db.type    t ON o.type = t.id;
+    FROM db.message m INNER JOIN db.object     o ON o.id = m.document
+                      INNER JOIN db.class_tree c ON c.id = o.class
+                      INNER JOIN Reference     a ON m.agent = a.id
+                      INNER JOIN db.type       t ON a.type = t.id;
 
 GRANT SELECT ON Message TO administrator;
 
