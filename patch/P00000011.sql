@@ -1,7 +1,9 @@
 DROP FUNCTION IF EXISTS SetObjectParent(uuid, uuid);
 DROP FUNCTION IF EXISTS GetObjectParent(uuid);
 DROP FUNCTION IF EXISTS GetObjectEntity(uuid);
+--------------------------------------------------------------------------------
 
+DROP VIEW message CASCADE;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION db.ft_message_after_insert()
