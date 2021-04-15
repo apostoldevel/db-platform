@@ -115,18 +115,18 @@ CREATE OR REPLACE FUNCTION CreateEntityModel (
 RETURNS         uuid
 AS $$
 DECLARE
-  nEntity       uuid;
+  uEntity       uuid;
 BEGIN
   -- Сущность
-  nEntity := AddEntity('model', 'Модель');
+  uEntity := AddEntity('model', 'Модель');
 
   -- Класс
-  PERFORM CreateClassModel(pParent, nEntity);
+  PERFORM CreateClassModel(pParent, uEntity);
 
   -- API
   PERFORM RegisterRoute('model', AddEndpoint('SELECT * FROM rest.model($1, $2);'));
 
-  RETURN nEntity;
+  RETURN uEntity;
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

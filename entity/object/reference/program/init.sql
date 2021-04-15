@@ -115,18 +115,18 @@ CREATE OR REPLACE FUNCTION CreateEntityProgram (
 RETURNS         uuid
 AS $$
 DECLARE
-  nEntity       uuid;
+  uEntity       uuid;
 BEGIN
   -- Сущность
-  nEntity := AddEntity('program', 'Программа');
+  uEntity := AddEntity('program', 'Программа');
 
   -- Класс
-  PERFORM CreateClassProgram(pParent, nEntity);
+  PERFORM CreateClassProgram(pParent, uEntity);
 
   -- API
   PERFORM RegisterRoute('program', AddEndpoint('SELECT * FROM rest.program($1, $2);'));
 
-  RETURN nEntity;
+  RETURN uEntity;
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

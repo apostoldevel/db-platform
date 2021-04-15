@@ -78,7 +78,7 @@ CREATE OR REPLACE FUNCTION AddDefaultMethods (
 RETURNS             void
 AS $$
 DECLARE
-  nState            uuid;
+  uState            uuid;
 
   rec_type          record;
   rec_state         record;
@@ -100,32 +100,32 @@ BEGIN
     CASE rec_type.code
     WHEN 'created' THEN
 
-      nState := AddState(pClass, rec_type.id, rec_type.code, pNames[1]);
+      uState := AddState(pClass, rec_type.id, rec_type.code, pNames[1]);
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('enable'), null, pNames[5]);
-        PERFORM AddMethod(null, pClass, nState, GetAction('disable'), null, pNames[6]);
-        PERFORM AddMethod(null, pClass, nState, GetAction('delete'), null, pNames[7]);
+        PERFORM AddMethod(null, pClass, uState, GetAction('enable'), null, pNames[5]);
+        PERFORM AddMethod(null, pClass, uState, GetAction('disable'), null, pNames[6]);
+        PERFORM AddMethod(null, pClass, uState, GetAction('delete'), null, pNames[7]);
 
     WHEN 'enabled' THEN
 
-      nState := AddState(pClass, rec_type.id, rec_type.code, pNames[2]);
+      uState := AddState(pClass, rec_type.id, rec_type.code, pNames[2]);
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('disable'), null, pNames[6]);
-        PERFORM AddMethod(null, pClass, nState, GetAction('delete'), null, pNames[7]);
+        PERFORM AddMethod(null, pClass, uState, GetAction('disable'), null, pNames[6]);
+        PERFORM AddMethod(null, pClass, uState, GetAction('delete'), null, pNames[7]);
 
     WHEN 'disabled' THEN
 
-      nState := AddState(pClass, rec_type.id, rec_type.code, pNames[3]);
+      uState := AddState(pClass, rec_type.id, rec_type.code, pNames[3]);
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('enable'), null, pNames[5]);
-        PERFORM AddMethod(null, pClass, nState, GetAction('delete'), null, pNames[7]);
+        PERFORM AddMethod(null, pClass, uState, GetAction('enable'), null, pNames[5]);
+        PERFORM AddMethod(null, pClass, uState, GetAction('delete'), null, pNames[7]);
 
     WHEN 'deleted' THEN
 
-      nState := AddState(pClass, rec_type.id, rec_type.code, pNames[4]);
+      uState := AddState(pClass, rec_type.id, rec_type.code, pNames[4]);
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('restore'));
-        PERFORM AddMethod(null, pClass, nState, GetAction('drop'));
+        PERFORM AddMethod(null, pClass, uState, GetAction('restore'));
+        PERFORM AddMethod(null, pClass, uState, GetAction('drop'));
 
     END CASE;
 

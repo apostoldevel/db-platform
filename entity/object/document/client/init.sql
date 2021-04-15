@@ -12,7 +12,7 @@ CREATE OR REPLACE FUNCTION AddClientMethods (
 RETURNS         void
 AS $$
 DECLARE
-  nState        uuid;
+  uState        uuid;
 
   rec_type      record;
   rec_state     record;
@@ -31,34 +31,34 @@ BEGIN
     CASE rec_type.code
     WHEN 'created' THEN
 
-      nState := AddState(pClass, rec_type.id, rec_type.code, 'Создан');
+      uState := AddState(pClass, rec_type.id, rec_type.code, 'Создан');
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('enable'), null, 'Утвердить');
-        PERFORM AddMethod(null, pClass, nState, GetAction('delete'));
+        PERFORM AddMethod(null, pClass, uState, GetAction('enable'), null, 'Утвердить');
+        PERFORM AddMethod(null, pClass, uState, GetAction('delete'));
 
     WHEN 'enabled' THEN
 
-      nState := AddState(pClass, rec_type.id, rec_type.code, 'Утверждён');
+      uState := AddState(pClass, rec_type.id, rec_type.code, 'Утверждён');
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('confirm'), pVisible => false );
-        PERFORM AddMethod(null, pClass, nState, GetAction('reconfirm'));
+        PERFORM AddMethod(null, pClass, uState, GetAction('confirm'), pVisible => false );
+        PERFORM AddMethod(null, pClass, uState, GetAction('reconfirm'));
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('disable'), null, 'Закрыть');
-        PERFORM AddMethod(null, pClass, nState, GetAction('delete'));
+        PERFORM AddMethod(null, pClass, uState, GetAction('disable'), null, 'Закрыть');
+        PERFORM AddMethod(null, pClass, uState, GetAction('delete'));
 
     WHEN 'disabled' THEN
 
-      nState := AddState(pClass, rec_type.id, rec_type.code, 'Закрыт');
+      uState := AddState(pClass, rec_type.id, rec_type.code, 'Закрыт');
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('restore'));
-        PERFORM AddMethod(null, pClass, nState, GetAction('delete'));
+        PERFORM AddMethod(null, pClass, uState, GetAction('restore'));
+        PERFORM AddMethod(null, pClass, uState, GetAction('delete'));
 
     WHEN 'deleted' THEN
 
-      nState := AddState(pClass, rec_type.id, rec_type.code, 'Удалён');
+      uState := AddState(pClass, rec_type.id, rec_type.code, 'Удалён');
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('restore'));
-        PERFORM AddMethod(null, pClass, nState, GetAction('drop'));
+        PERFORM AddMethod(null, pClass, uState, GetAction('restore'));
+        PERFORM AddMethod(null, pClass, uState, GetAction('drop'));
 
     END CASE;
 
@@ -248,18 +248,18 @@ CREATE OR REPLACE FUNCTION CreateEntityClient (
 RETURNS         uuid
 AS $$
 DECLARE
-  nEntity       uuid;
+  uEntity       uuid;
 BEGIN
   -- Сущность
-  nEntity := AddEntity('client', 'Клиент');
+  uEntity := AddEntity('client', 'Клиент');
 
   -- Класс
-  PERFORM CreateClassClient(pParent, nEntity);
+  PERFORM CreateClassClient(pParent, uEntity);
 
   -- API
   PERFORM RegisterRoute('client', AddEndpoint('SELECT * FROM rest.client($1, $2);'));
 
-  RETURN nEntity;
+  RETURN uEntity;
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

@@ -109,10 +109,10 @@ CREATE OR REPLACE FUNCTION AddNotification (
 ) RETURNS		void
 AS $$
 DECLARE
-  nEntity		uuid;
+  uEntity		uuid;
 BEGIN
-  SELECT entity INTO nEntity FROM db.class_tree WHERE id = pClass;
-  PERFORM CreateNotification(nEntity, pClass, pAction, pMethod, pObject, pUserId, pDateTime);
+  SELECT entity INTO uEntity FROM db.class_tree WHERE id = pClass;
+  PERFORM CreateNotification(uEntity, pClass, pAction, pMethod, pObject, pUserId, pDateTime);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

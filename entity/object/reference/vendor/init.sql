@@ -117,18 +117,18 @@ CREATE OR REPLACE FUNCTION CreateEntityVendor (
 RETURNS         uuid
 AS $$
 DECLARE
-  nEntity       uuid;
+  uEntity       uuid;
 BEGIN
   -- Сущность
-  nEntity := AddEntity('vendor', 'Производитель');
+  uEntity := AddEntity('vendor', 'Производитель');
 
   -- Класс
-  PERFORM CreateClassVendor(pParent, nEntity);
+  PERFORM CreateClassVendor(pParent, uEntity);
 
   -- API
   PERFORM RegisterRoute('vendor', AddEndpoint('SELECT * FROM rest.vendor($1, $2);'));
 
-  RETURN nEntity;
+  RETURN uEntity;
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

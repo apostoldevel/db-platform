@@ -12,23 +12,23 @@ CREATE OR REPLACE FUNCTION CreateDocument (
 ) RETURNS 	    uuid
 AS $$
 DECLARE
-  nObject	    uuid;
-  nEntity		uuid;
+  uObject	    uuid;
+  uEntity		uuid;
   uClass        uuid;
 BEGIN
-  nObject := CreateObject(pParent, pType, pLabel, coalesce(pText, pDescription));
+  uObject := CreateObject(pParent, pType, pLabel, coalesce(pText, pDescription));
 
-  nEntity := GetObjectEntity(nObject);
-  uClass := GetObjectClass(nObject);
+  uEntity := GetObjectEntity(uObject);
+  uClass := GetObjectClass(uObject);
 
   INSERT INTO db.document (id, object, entity, class, type, area)
-  VALUES (nObject, nObject, nEntity, uClass, pType, current_area())
-  RETURNING id INTO nObject;
+  VALUES (uObject, uObject, uEntity, uClass, pType, current_area())
+  RETURNING id INTO uObject;
 
   INSERT INTO db.document_text (document, locale, description)
-  VALUES (nObject, pLocale, pDescription);
+  VALUES (uObject, pLocale, pDescription);
 
-  RETURN nObject;
+  RETURN uObject;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

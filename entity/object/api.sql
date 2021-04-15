@@ -118,9 +118,9 @@ CREATE OR REPLACE FUNCTION api.update_object (
 AS $$
 DECLARE
   uType         uuid;
-  nObject       uuid;
+  uObject       uuid;
 BEGIN
-  SELECT t.id INTO nObject FROM db.object t WHERE t.id = pId;
+  SELECT t.id INTO uObject FROM db.object t WHERE t.id = pId;
 
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('объект', 'id', pId);
@@ -132,7 +132,7 @@ BEGIN
     SELECT o.type INTO uType FROM db.object o WHERE o.id = pId;
   END IF;
 
-  PERFORM EditObject(nObject, pParent, uType,pLabel, pData);
+  PERFORM EditObject(uObject, pParent, uType, pLabel, pData);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -279,7 +279,7 @@ CREATE OR REPLACE FUNCTION api.object_force_delete (
 AS $$
 DECLARE
   uId		    uuid;
-  nState	    uuid;
+  uState	    uuid;
 BEGIN
   SELECT o.id INTO uId FROM db.object o WHERE o.id = pId;
 
@@ -287,13 +287,13 @@ BEGIN
     PERFORM ObjectNotFound('объект', 'id', pId);
   END IF;
 
-  SELECT s.id INTO nState FROM db.state s WHERE s.class = GetObjectClass(pId) AND s.code = 'deleted';
+  SELECT s.id INTO uState FROM db.state s WHERE s.class = GetObjectClass(pId) AND s.code = 'deleted';
 
   IF NOT FOUND THEN
     PERFORM StateByCodeNotFound(pId, 'deleted');
   END IF;
 
-  PERFORM AddObjectState(pId, nState);
+  PERFORM AddObjectState(pId, uState);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

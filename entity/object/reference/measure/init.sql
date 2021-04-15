@@ -121,18 +121,18 @@ CREATE OR REPLACE FUNCTION CreateEntityMeasure (
 RETURNS         uuid
 AS $$
 DECLARE
-  nEntity       uuid;
+  uEntity       uuid;
 BEGIN
   -- Сущность
-  nEntity := AddEntity('measure', 'Мера');
+  uEntity := AddEntity('measure', 'Мера');
 
   -- Класс
-  PERFORM CreateClassMeasure(pParent, nEntity);
+  PERFORM CreateClassMeasure(pParent, uEntity);
 
   -- API
   PERFORM RegisterRoute('measure', AddEndpoint('SELECT * FROM rest.measure($1, $2);'));
 
-  RETURN nEntity;
+  RETURN uEntity;
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

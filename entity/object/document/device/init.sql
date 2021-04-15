@@ -12,7 +12,7 @@ CREATE OR REPLACE FUNCTION AddDeviceMethods (
 RETURNS void
 AS $$
 DECLARE
-  nState        uuid;
+  uState        uuid;
 
   rec_type      record;
   rec_state     record;
@@ -30,56 +30,56 @@ BEGIN
     CASE rec_type.code
     WHEN 'created' THEN
 
-      nState := AddState(pClass, rec_type.id, rec_type.code, 'Создано');
+      uState := AddState(pClass, rec_type.id, rec_type.code, 'Создано');
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('enable'), null, 'Включить');
-        PERFORM AddMethod(null, pClass, nState, GetAction('delete'), null, 'Удалить');
+        PERFORM AddMethod(null, pClass, uState, GetAction('enable'), null, 'Включить');
+        PERFORM AddMethod(null, pClass, uState, GetAction('delete'), null, 'Удалить');
 
     WHEN 'enabled' THEN
 
-      nState := AddState(pClass, rec_type.id, 'available', 'Доступно');
+      uState := AddState(pClass, rec_type.id, 'available', 'Доступно');
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('heartbeat'), null, 'Heartbeat', null, false);
+        PERFORM AddMethod(null, pClass, uState, GetAction('heartbeat'), null, 'Heartbeat', null, false);
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('available'), null, 'Доступно', null, false);
-        PERFORM AddMethod(null, pClass, nState, GetAction('unavailable'), null, 'Недоступно', null, false);
-        PERFORM AddMethod(null, pClass, nState, GetAction('faulted'), null, 'Неисправно', null, false);
+        PERFORM AddMethod(null, pClass, uState, GetAction('available'), null, 'Доступно', null, false);
+        PERFORM AddMethod(null, pClass, uState, GetAction('unavailable'), null, 'Недоступно', null, false);
+        PERFORM AddMethod(null, pClass, uState, GetAction('faulted'), null, 'Неисправно', null, false);
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('disable'), null, 'Отключить');
+        PERFORM AddMethod(null, pClass, uState, GetAction('disable'), null, 'Отключить');
 
-      nState := AddState(pClass, rec_type.id, 'unavailable', 'Недоступно');
+      uState := AddState(pClass, rec_type.id, 'unavailable', 'Недоступно');
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('heartbeat'), null, 'Heartbeat', null, false);
+        PERFORM AddMethod(null, pClass, uState, GetAction('heartbeat'), null, 'Heartbeat', null, false);
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('available'), null, 'Доступно', null, false);
-        PERFORM AddMethod(null, pClass, nState, GetAction('unavailable'), null, 'Недоступно', null, false);
-        PERFORM AddMethod(null, pClass, nState, GetAction('faulted'), null, 'Неисправно', null, false);
+        PERFORM AddMethod(null, pClass, uState, GetAction('available'), null, 'Доступно', null, false);
+        PERFORM AddMethod(null, pClass, uState, GetAction('unavailable'), null, 'Недоступно', null, false);
+        PERFORM AddMethod(null, pClass, uState, GetAction('faulted'), null, 'Неисправно', null, false);
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('disable'), null, 'Отключить');
+        PERFORM AddMethod(null, pClass, uState, GetAction('disable'), null, 'Отключить');
 
-      nState := AddState(pClass, rec_type.id, 'faulted', 'Неисправно');
+      uState := AddState(pClass, rec_type.id, 'faulted', 'Неисправно');
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('heartbeat'), null, 'Heartbeat', null, false);
+        PERFORM AddMethod(null, pClass, uState, GetAction('heartbeat'), null, 'Heartbeat', null, false);
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('available'), null, 'Доступно', null, false);
-        PERFORM AddMethod(null, pClass, nState, GetAction('unavailable'), null, 'Недоступно');
-        PERFORM AddMethod(null, pClass, nState, GetAction('faulted'), null, 'Неисправно', null, false);
+        PERFORM AddMethod(null, pClass, uState, GetAction('available'), null, 'Доступно', null, false);
+        PERFORM AddMethod(null, pClass, uState, GetAction('unavailable'), null, 'Недоступно');
+        PERFORM AddMethod(null, pClass, uState, GetAction('faulted'), null, 'Неисправно', null, false);
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('disable'), null, 'Отключить');
+        PERFORM AddMethod(null, pClass, uState, GetAction('disable'), null, 'Отключить');
 
     WHEN 'disabled' THEN
 
-      nState := AddState(pClass, rec_type.id, rec_type.code, 'Отключено');
+      uState := AddState(pClass, rec_type.id, rec_type.code, 'Отключено');
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('enable'), null, 'Включить');
-        PERFORM AddMethod(null, pClass, nState, GetAction('delete'), null, 'Удалить');
+        PERFORM AddMethod(null, pClass, uState, GetAction('enable'), null, 'Включить');
+        PERFORM AddMethod(null, pClass, uState, GetAction('delete'), null, 'Удалить');
 
     WHEN 'deleted' THEN
 
-      nState := AddState(pClass, rec_type.id, rec_type.code, 'Удалено');
+      uState := AddState(pClass, rec_type.id, rec_type.code, 'Удалено');
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('restore'), null, 'Восстановить');
-        PERFORM AddMethod(null, pClass, nState, GetAction('drop'), null, 'Уничтожить');
+        PERFORM AddMethod(null, pClass, uState, GetAction('restore'), null, 'Восстановить');
+        PERFORM AddMethod(null, pClass, uState, GetAction('drop'), null, 'Уничтожить');
 
     END CASE;
 
@@ -316,7 +316,7 @@ CREATE OR REPLACE FUNCTION CreateEntityDevice (
 RETURNS         uuid
 AS $$
 DECLARE
-  nEntity       uuid;
+  uEntity       uuid;
 BEGIN
   PERFORM SetAction('heartbeat', 'Сердцебиение');
 
@@ -328,15 +328,15 @@ BEGIN
   PERFORM SetAction('faulted', 'Ошибка');
 
   -- Сущность
-  nEntity := AddEntity('device', 'Устройство');
+  uEntity := AddEntity('device', 'Устройство');
 
   -- Класс
-  PERFORM CreateClassDevice(pParent, nEntity);
+  PERFORM CreateClassDevice(pParent, uEntity);
 
   -- API
   PERFORM RegisterRoute('device', AddEndpoint('SELECT * FROM rest.device($1, $2);'));
 
-  RETURN nEntity;
+  RETURN uEntity;
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

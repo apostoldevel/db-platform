@@ -112,18 +112,18 @@ CREATE OR REPLACE FUNCTION CreateEntityReference (
 RETURNS         uuid
 AS $$
 DECLARE
-  nEntity       uuid;
+  uEntity       uuid;
 BEGIN
   -- Сущность
-  nEntity := AddEntity('reference', 'Справочник');
+  uEntity := AddEntity('reference', 'Справочник');
 
   -- Класс
-  PERFORM CreateClassReference(pParent, nEntity);
+  PERFORM CreateClassReference(pParent, uEntity);
 
   -- API
   PERFORM RegisterRoute('reference', AddEndpoint('SELECT * FROM rest.reference($1, $2);'));
 
-  RETURN nEntity;
+  RETURN uEntity;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

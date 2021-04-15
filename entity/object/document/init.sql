@@ -112,18 +112,18 @@ CREATE OR REPLACE FUNCTION CreateEntityDocument (
 RETURNS         uuid
 AS $$
 DECLARE
-  nEntity       uuid;
+  uEntity       uuid;
 BEGIN
   -- Сущность
-  nEntity := AddEntity('document', 'Документ');
+  uEntity := AddEntity('document', 'Документ');
 
   -- Класс
-  PERFORM CreateClassDocument(pParent, nEntity);
+  PERFORM CreateClassDocument(pParent, uEntity);
 
   -- API
   PERFORM RegisterRoute('document', AddEndpoint('SELECT * FROM rest.document($1, $2);'));
 
-  RETURN nEntity;
+  RETURN uEntity;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

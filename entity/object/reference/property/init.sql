@@ -124,18 +124,18 @@ CREATE OR REPLACE FUNCTION CreateEntityProperty (
 RETURNS         uuid
 AS $$
 DECLARE
-  nEntity       uuid;
+  uEntity       uuid;
 BEGIN
   -- Сущность
-  nEntity := AddEntity('property', 'Свойство');
+  uEntity := AddEntity('property', 'Свойство');
 
   -- Класс
-  PERFORM CreateClassProperty(pParent, nEntity);
+  PERFORM CreateClassProperty(pParent, uEntity);
 
   -- API
   PERFORM RegisterRoute('property', AddEndpoint('SELECT * FROM rest.property($1, $2);'));
 
-  RETURN nEntity;
+  RETURN uEntity;
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

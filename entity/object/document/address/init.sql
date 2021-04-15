@@ -119,18 +119,18 @@ CREATE OR REPLACE FUNCTION CreateEntityAddress (
 RETURNS         uuid
 AS $$
 DECLARE
-  nEntity       uuid;
+  uEntity       uuid;
 BEGIN
   -- Сущность
-  nEntity := AddEntity('address', 'Адрес');
+  uEntity := AddEntity('address', 'Адрес');
 
   -- Класс
-  PERFORM CreateClassAddress(pParent, nEntity);
+  PERFORM CreateClassAddress(pParent, uEntity);
 
   -- API
   PERFORM RegisterRoute('address', AddEndpoint('SELECT * FROM rest.address($1, $2);'));
 
-  RETURN nEntity;
+  RETURN uEntity;
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

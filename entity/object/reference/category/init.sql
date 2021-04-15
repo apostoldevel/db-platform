@@ -115,18 +115,18 @@ CREATE OR REPLACE FUNCTION CreateEntityCategory (
 RETURNS         uuid
 AS $$
 DECLARE
-  nEntity       uuid;
+  uEntity       uuid;
 BEGIN
   -- Сущность
-  nEntity := AddEntity('category', 'Категория');
+  uEntity := AddEntity('category', 'Категория');
 
   -- Класс
-  PERFORM CreateClassCategory(pParent, nEntity);
+  PERFORM CreateClassCategory(pParent, uEntity);
 
   -- API
   PERFORM RegisterRoute('category', AddEndpoint('SELECT * FROM rest.category($1, $2);'));
 
-  RETURN nEntity;
+  RETURN uEntity;
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

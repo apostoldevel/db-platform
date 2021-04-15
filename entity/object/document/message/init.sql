@@ -12,7 +12,7 @@ CREATE OR REPLACE FUNCTION AddInboxMethods (
 RETURNS             void
 AS $$
 DECLARE
-  nState            uuid;
+  uState            uuid;
 
   rec_type          record;
   rec_state         record;
@@ -30,32 +30,32 @@ BEGIN
     CASE rec_type.code
     WHEN 'created' THEN
 
-      nState := AddState(pClass, rec_type.id, rec_type.code, 'Новое');
+      uState := AddState(pClass, rec_type.id, rec_type.code, 'Новое');
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('enable'), null, 'Открыть');
-        PERFORM AddMethod(null, pClass, nState, GetAction('disable'), null, 'Прочитать');
-        PERFORM AddMethod(null, pClass, nState, GetAction('delete'), null, 'Удалить');
+        PERFORM AddMethod(null, pClass, uState, GetAction('enable'), null, 'Открыть');
+        PERFORM AddMethod(null, pClass, uState, GetAction('disable'), null, 'Прочитать');
+        PERFORM AddMethod(null, pClass, uState, GetAction('delete'), null, 'Удалить');
 
     WHEN 'enabled' THEN
 
-      nState := AddState(pClass, rec_type.id, rec_type.code, 'Открыто');
+      uState := AddState(pClass, rec_type.id, rec_type.code, 'Открыто');
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('disable'), null, 'Прочитать');
-        PERFORM AddMethod(null, pClass, nState, GetAction('delete'), null, 'Удалить');
+        PERFORM AddMethod(null, pClass, uState, GetAction('disable'), null, 'Прочитать');
+        PERFORM AddMethod(null, pClass, uState, GetAction('delete'), null, 'Удалить');
 
     WHEN 'disabled' THEN
 
-      nState := AddState(pClass, rec_type.id, rec_type.code, 'Прочитано');
+      uState := AddState(pClass, rec_type.id, rec_type.code, 'Прочитано');
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('enable'), null, 'Открыть');
-        PERFORM AddMethod(null, pClass, nState, GetAction('delete'), null, 'Удалить');
+        PERFORM AddMethod(null, pClass, uState, GetAction('enable'), null, 'Открыть');
+        PERFORM AddMethod(null, pClass, uState, GetAction('delete'), null, 'Удалить');
 
     WHEN 'deleted' THEN
 
-      nState := AddState(pClass, rec_type.id, rec_type.code, 'Удалено');
+      uState := AddState(pClass, rec_type.id, rec_type.code, 'Удалено');
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('restore'), null, 'Восстановить');
-        PERFORM AddMethod(null, pClass, nState, GetAction('drop'), null, 'Уничтожить');
+        PERFORM AddMethod(null, pClass, uState, GetAction('restore'), null, 'Восстановить');
+        PERFORM AddMethod(null, pClass, uState, GetAction('drop'), null, 'Уничтожить');
 
     END CASE;
 
@@ -137,7 +137,7 @@ CREATE OR REPLACE FUNCTION AddOutboxMethods (
 RETURNS             void
 AS $$
 DECLARE
-  nState            uuid;
+  uState            uuid;
 
   rec_type          record;
   rec_state         record;
@@ -155,46 +155,46 @@ BEGIN
     CASE rec_type.code
     WHEN 'created' THEN
 
-      nState := AddState(pClass, rec_type.id, rec_type.code, 'Создано');
+      uState := AddState(pClass, rec_type.id, rec_type.code, 'Создано');
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('submit'));
-        PERFORM AddMethod(null, pClass, nState, GetAction('delete'));
+        PERFORM AddMethod(null, pClass, uState, GetAction('submit'));
+        PERFORM AddMethod(null, pClass, uState, GetAction('delete'));
 
     WHEN 'enabled' THEN
 
-      nState := AddState(pClass, rec_type.id, 'prepared', 'Подготовлено');
+      uState := AddState(pClass, rec_type.id, 'prepared', 'Подготовлено');
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('send'), pvisible => false);
-        PERFORM AddMethod(null, pClass, nState, GetAction('done'), pvisible => false);
-        PERFORM AddMethod(null, pClass, nState, GetAction('fail'), pvisible => false);
+        PERFORM AddMethod(null, pClass, uState, GetAction('send'), pvisible => false);
+        PERFORM AddMethod(null, pClass, uState, GetAction('done'), pvisible => false);
+        PERFORM AddMethod(null, pClass, uState, GetAction('fail'), pvisible => false);
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('cancel'));
+        PERFORM AddMethod(null, pClass, uState, GetAction('cancel'));
 
-      nState := AddState(pClass, rec_type.id, 'sending', 'Отправка');
+      uState := AddState(pClass, rec_type.id, 'sending', 'Отправка');
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('done'), pvisible => false);
-        PERFORM AddMethod(null, pClass, nState, GetAction('fail'), pvisible => false);
+        PERFORM AddMethod(null, pClass, uState, GetAction('done'), pvisible => false);
+        PERFORM AddMethod(null, pClass, uState, GetAction('fail'), pvisible => false);
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('delete'));
+        PERFORM AddMethod(null, pClass, uState, GetAction('delete'));
 
     WHEN 'disabled' THEN
 
-      nState := AddState(pClass, rec_type.id, 'submitted', 'Отправлено');
+      uState := AddState(pClass, rec_type.id, 'submitted', 'Отправлено');
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('repeat'));
-        PERFORM AddMethod(null, pClass, nState, GetAction('delete'));
+        PERFORM AddMethod(null, pClass, uState, GetAction('repeat'));
+        PERFORM AddMethod(null, pClass, uState, GetAction('delete'));
 
-      nState := AddState(pClass, rec_type.id, 'failed', 'Ошибка');
+      uState := AddState(pClass, rec_type.id, 'failed', 'Ошибка');
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('repeat'));
-        PERFORM AddMethod(null, pClass, nState, GetAction('delete'));
+        PERFORM AddMethod(null, pClass, uState, GetAction('repeat'));
+        PERFORM AddMethod(null, pClass, uState, GetAction('delete'));
 
     WHEN 'deleted' THEN
 
-      nState := AddState(pClass, rec_type.id, rec_type.code, 'Удалено');
+      uState := AddState(pClass, rec_type.id, rec_type.code, 'Удалено');
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('restore'));
-        PERFORM AddMethod(null, pClass, nState, GetAction('drop'));
+        PERFORM AddMethod(null, pClass, uState, GetAction('restore'));
+        PERFORM AddMethod(null, pClass, uState, GetAction('drop'));
 
     END CASE;
 
@@ -590,22 +590,22 @@ CREATE OR REPLACE FUNCTION CreateEntityMessage (
 RETURNS         uuid
 AS $$
 DECLARE
-  nEntity       uuid;
+  uEntity       uuid;
   uClass        uuid;
 BEGIN
   -- Сущность
-  nEntity := AddEntity('message', 'Сообщение');
+  uEntity := AddEntity('message', 'Сообщение');
 
   -- Класс
-  uClass := CreateClassMessage(pParent, nEntity);
+  uClass := CreateClassMessage(pParent, uEntity);
 
-  PERFORM CreateClassInbox(uClass, nEntity);
-  PERFORM CreateClassOutbox(uClass, nEntity);
+  PERFORM CreateClassInbox(uClass, uEntity);
+  PERFORM CreateClassOutbox(uClass, uEntity);
 
   -- API
   PERFORM RegisterRoute('message', AddEndpoint('SELECT * FROM rest.message($1, $2);'));
 
-  RETURN nEntity;
+  RETURN uEntity;
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

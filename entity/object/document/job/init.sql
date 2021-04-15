@@ -12,7 +12,7 @@ CREATE OR REPLACE FUNCTION AddJobMethods (
 RETURNS             void
 AS $$
 DECLARE
-  nState            uuid;
+  uState            uuid;
 
   rec_type          record;
   rec_state         record;
@@ -30,62 +30,62 @@ BEGIN
     CASE rec_type.code
     WHEN 'created' THEN
 
-      nState := AddState(pClass, rec_type.id, rec_type.code, 'Создано');
+      uState := AddState(pClass, rec_type.id, rec_type.code, 'Создано');
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('enable'));
-        PERFORM AddMethod(null, pClass, nState, GetAction('disable'));
-        PERFORM AddMethod(null, pClass, nState, GetAction('delete'));
+        PERFORM AddMethod(null, pClass, uState, GetAction('enable'));
+        PERFORM AddMethod(null, pClass, uState, GetAction('disable'));
+        PERFORM AddMethod(null, pClass, uState, GetAction('delete'));
 
     WHEN 'enabled' THEN
 
-      nState := AddState(pClass, rec_type.id, rec_type.code, 'Включено');
+      uState := AddState(pClass, rec_type.id, rec_type.code, 'Включено');
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('execute'));
-        PERFORM AddMethod(null, pClass, nState, GetAction('disable'));
-        PERFORM AddMethod(null, pClass, nState, GetAction('delete'));
+        PERFORM AddMethod(null, pClass, uState, GetAction('execute'));
+        PERFORM AddMethod(null, pClass, uState, GetAction('disable'));
+        PERFORM AddMethod(null, pClass, uState, GetAction('delete'));
 
-      nState := AddState(pClass, rec_type.id, 'executed', 'Выполняется');
+      uState := AddState(pClass, rec_type.id, 'executed', 'Выполняется');
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('complete'), pvisible => false);
-        PERFORM AddMethod(null, pClass, nState, GetAction('done'), pvisible => false);
-        PERFORM AddMethod(null, pClass, nState, GetAction('fail'), pvisible => false);
+        PERFORM AddMethod(null, pClass, uState, GetAction('complete'), pvisible => false);
+        PERFORM AddMethod(null, pClass, uState, GetAction('done'), pvisible => false);
+        PERFORM AddMethod(null, pClass, uState, GetAction('fail'), pvisible => false);
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('cancel'));
+        PERFORM AddMethod(null, pClass, uState, GetAction('cancel'));
 
-      nState := AddState(pClass, rec_type.id, 'canceled', 'Отменяется');
+      uState := AddState(pClass, rec_type.id, 'canceled', 'Отменяется');
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('abort'), pvisible => false);
+        PERFORM AddMethod(null, pClass, uState, GetAction('abort'), pvisible => false);
 
-      nState := AddState(pClass, rec_type.id, 'aborted', 'Прервано');
+      uState := AddState(pClass, rec_type.id, 'aborted', 'Прервано');
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('execute'));
-        PERFORM AddMethod(null, pClass, nState, GetAction('disable'));
-        PERFORM AddMethod(null, pClass, nState, GetAction('delete'));
+        PERFORM AddMethod(null, pClass, uState, GetAction('execute'));
+        PERFORM AddMethod(null, pClass, uState, GetAction('disable'));
+        PERFORM AddMethod(null, pClass, uState, GetAction('delete'));
 
-      nState := AddState(pClass, rec_type.id, 'failed', 'Ошибка');
+      uState := AddState(pClass, rec_type.id, 'failed', 'Ошибка');
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('execute'));
-        PERFORM AddMethod(null, pClass, nState, GetAction('disable'));
-        PERFORM AddMethod(null, pClass, nState, GetAction('delete'));
+        PERFORM AddMethod(null, pClass, uState, GetAction('execute'));
+        PERFORM AddMethod(null, pClass, uState, GetAction('disable'));
+        PERFORM AddMethod(null, pClass, uState, GetAction('delete'));
 
     WHEN 'disabled' THEN
 
-      nState := AddState(pClass, rec_type.id, 'disabled', 'Отключено');
+      uState := AddState(pClass, rec_type.id, 'disabled', 'Отключено');
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('enable'));
-        PERFORM AddMethod(null, pClass, nState, GetAction('delete'));
+        PERFORM AddMethod(null, pClass, uState, GetAction('enable'));
+        PERFORM AddMethod(null, pClass, uState, GetAction('delete'));
 
-      nState := AddState(pClass, rec_type.id, 'completed', 'Завершено');
+      uState := AddState(pClass, rec_type.id, 'completed', 'Завершено');
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('enable'));
-        PERFORM AddMethod(null, pClass, nState, GetAction('delete'));
+        PERFORM AddMethod(null, pClass, uState, GetAction('enable'));
+        PERFORM AddMethod(null, pClass, uState, GetAction('delete'));
 
     WHEN 'deleted' THEN
 
-      nState := AddState(pClass, rec_type.id, rec_type.code, 'Удалено');
+      uState := AddState(pClass, rec_type.id, rec_type.code, 'Удалено');
 
-        PERFORM AddMethod(null, pClass, nState, GetAction('restore'));
-        PERFORM AddMethod(null, pClass, nState, GetAction('drop'));
+        PERFORM AddMethod(null, pClass, uState, GetAction('restore'));
+        PERFORM AddMethod(null, pClass, uState, GetAction('drop'));
 
     END CASE;
 
@@ -381,18 +381,18 @@ CREATE OR REPLACE FUNCTION CreateEntityJob (
 RETURNS         uuid
 AS $$
 DECLARE
-  nEntity       uuid;
+  uEntity       uuid;
 BEGIN
   -- Сущность
-  nEntity := AddEntity('job', 'Задание');
+  uEntity := AddEntity('job', 'Задание');
 
   -- Класс
-  PERFORM CreateClassJob(pParent, nEntity);
+  PERFORM CreateClassJob(pParent, uEntity);
 
   -- API
   PERFORM RegisterRoute('job', AddEndpoint('SELECT * FROM rest.job($1, $2);'));
 
-  RETURN nEntity;
+  RETURN uEntity;
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

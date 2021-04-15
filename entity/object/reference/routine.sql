@@ -12,23 +12,23 @@ CREATE OR REPLACE FUNCTION CreateReference (
 ) RETURNS       uuid
 AS $$
 DECLARE
-  nObject       uuid;
-  nEntity       uuid;
+  uObject       uuid;
+  uEntity       uuid;
   uClass        uuid;
 BEGIN
-  nObject := CreateObject(pParent, pType, pName, pDescription);
+  uObject := CreateObject(pParent, pType, pName, pDescription);
 
-  nEntity := GetObjectEntity(nObject);
-  uClass := GetObjectClass(nObject);
+  uEntity := GetObjectEntity(uObject);
+  uClass := GetObjectClass(uObject);
 
   INSERT INTO db.reference (id, object, entity, class, type, code)
-  VALUES (nObject, nObject, nEntity, uClass, pType, pCode)
-  RETURNING id INTO nObject;
+  VALUES (uObject, uObject, uEntity, uClass, pType, pCode)
+  RETURNING id INTO uObject;
 
   INSERT INTO db.reference_text (reference, locale, name, description)
-  VALUES (nObject, pLocale, pName, pDescription);
+  VALUES (uObject, pLocale, pName, pDescription);
 
-  RETURN nObject;
+  RETURN uObject;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

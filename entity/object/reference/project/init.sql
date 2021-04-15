@@ -115,18 +115,18 @@ CREATE OR REPLACE FUNCTION CreateEntityProject (
 RETURNS         uuid
 AS $$
 DECLARE
-  nEntity       uuid;
+  uEntity       uuid;
 BEGIN
   -- Сущность
-  nEntity := AddEntity('project', 'Проект');
+  uEntity := AddEntity('project', 'Проект');
 
   -- Класс
-  PERFORM CreateClassProject(pParent, nEntity);
+  PERFORM CreateClassProject(pParent, uEntity);
 
   -- API
   PERFORM RegisterRoute('project', AddEndpoint('SELECT * FROM rest.project($1, $2);'));
 
-  RETURN nEntity;
+  RETURN uEntity;
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

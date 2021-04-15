@@ -115,18 +115,18 @@ CREATE OR REPLACE FUNCTION CreateEntityCalendar (
 RETURNS         uuid
 AS $$
 DECLARE
-  nEntity       uuid;
+  uEntity       uuid;
 BEGIN
   -- Сущность
-  nEntity := AddEntity('calendar', 'Календарь');
+  uEntity := AddEntity('calendar', 'Календарь');
 
   -- Класс
-  PERFORM CreateClassCalendar(pParent, nEntity);
+  PERFORM CreateClassCalendar(pParent, uEntity);
 
   -- API
   PERFORM RegisterRoute('calendar', AddEndpoint('SELECT * FROM rest.calendar($1, $2);'));
 
-  RETURN nEntity;
+  RETURN uEntity;
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

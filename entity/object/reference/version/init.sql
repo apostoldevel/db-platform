@@ -115,18 +115,18 @@ CREATE OR REPLACE FUNCTION CreateEntityVersion (
 RETURNS         uuid
 AS $$
 DECLARE
-  nEntity       uuid;
+  uEntity       uuid;
 BEGIN
   -- Сущность
-  nEntity := AddEntity('version', 'Версия');
+  uEntity := AddEntity('version', 'Версия');
 
   -- Класс
-  PERFORM CreateClassVersion(pParent, nEntity);
+  PERFORM CreateClassVersion(pParent, uEntity);
 
   -- API
   PERFORM RegisterRoute('version', AddEndpoint('SELECT * FROM rest.version($1, $2);'));
 
-  RETURN nEntity;
+  RETURN uEntity;
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

@@ -117,18 +117,18 @@ CREATE OR REPLACE FUNCTION CreateEntityAccount (
 RETURNS         uuid
 AS $$
 DECLARE
-  nEntity       uuid;
+  uEntity       uuid;
 BEGIN
   -- Сущность
-  nEntity := AddEntity('account', 'Счёт');
+  uEntity := AddEntity('account', 'Счёт');
 
   -- Класс
-  PERFORM CreateClassAccount(pParent, nEntity);
+  PERFORM CreateClassAccount(pParent, uEntity);
 
   -- API
   PERFORM RegisterRoute('account', AddEndpoint('SELECT * FROM rest.account($1, $2);'));
 
-  RETURN nEntity;
+  RETURN uEntity;
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

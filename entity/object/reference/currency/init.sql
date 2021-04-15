@@ -116,18 +116,18 @@ CREATE OR REPLACE FUNCTION CreateEntityCurrency (
 RETURNS         uuid
 AS $$
 DECLARE
-  nEntity       uuid;
+  uEntity       uuid;
 BEGIN
   -- Сущность
-  nEntity := AddEntity('currency', 'Валюта');
+  uEntity := AddEntity('currency', 'Валюта');
 
   -- Класс
-  PERFORM CreateClassCurrency(pParent, nEntity);
+  PERFORM CreateClassCurrency(pParent, uEntity);
 
   -- API
   PERFORM RegisterRoute('currency', AddEndpoint('SELECT * FROM rest.currency($1, $2);'));
 
-  RETURN nEntity;
+  RETURN uEntity;
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

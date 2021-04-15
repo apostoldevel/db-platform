@@ -118,18 +118,18 @@ CREATE OR REPLACE FUNCTION CreateEntityAgent (
 RETURNS         uuid
 AS $$
 DECLARE
-  nEntity       uuid;
+  uEntity       uuid;
 BEGIN
   -- Сущность
-  nEntity := AddEntity('agent', 'Агент');
+  uEntity := AddEntity('agent', 'Агент');
 
   -- Класс
-  PERFORM CreateClassAgent(pParent, nEntity);
+  PERFORM CreateClassAgent(pParent, uEntity);
 
   -- API
   PERFORM RegisterRoute('agent', AddEndpoint('SELECT * FROM rest.agent($1, $2);'));
 
-  RETURN nEntity;
+  RETURN uEntity;
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

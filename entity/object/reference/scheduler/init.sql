@@ -115,18 +115,18 @@ CREATE OR REPLACE FUNCTION CreateEntityScheduler (
 RETURNS         uuid
 AS $$
 DECLARE
-  nEntity       uuid;
+  uEntity       uuid;
 BEGIN
   -- Сущность
-  nEntity := AddEntity('scheduler', 'Планировщик');
+  uEntity := AddEntity('scheduler', 'Планировщик');
 
   -- Класс
-  PERFORM CreateClassScheduler(pParent, nEntity);
+  PERFORM CreateClassScheduler(pParent, uEntity);
 
   -- API
   PERFORM RegisterRoute('scheduler', AddEndpoint('SELECT * FROM rest.scheduler($1, $2);'));
 
-  RETURN nEntity;
+  RETURN uEntity;
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

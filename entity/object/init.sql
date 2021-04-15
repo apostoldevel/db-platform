@@ -106,18 +106,18 @@ CREATE OR REPLACE FUNCTION CreateEntityObject (
 RETURNS         uuid
 AS $$
 DECLARE
-  nEntity       uuid;
+  uEntity       uuid;
 BEGIN
   -- Сущность
-  nEntity := AddEntity('object', 'Объект');
+  uEntity := AddEntity('object', 'Объект');
 
   -- Класс
-  PERFORM CreateClassObject(pParent, nEntity);
+  PERFORM CreateClassObject(pParent, uEntity);
 
   -- API
   PERFORM RegisterRoute('object', AddEndpoint('SELECT * FROM rest.object($1, $2);'));
 
-  RETURN nEntity;
+  RETURN uEntity;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

@@ -264,12 +264,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetObjectParent (
-  nObject	uuid,
+  pObject	uuid,
   pParent	uuid
 ) RETURNS	void
 AS $$
 BEGIN
-  UPDATE db.object SET parent = pParent WHERE id = nObject;
+  UPDATE db.object SET parent = pParent WHERE id = pObject;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -280,16 +280,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetObjectEntity (
-  nObject	uuid
+  pObject	uuid
 ) RETURNS	uuid
 AS $$
-DECLARE
-  nEntity	uuid;
-BEGIN
-  SELECT entity INTO nEntity FROM db.object WHERE id = nObject;
-  RETURN nEntity;
-END;
-$$ LANGUAGE plpgsql
+  SELECT entity FROM db.object WHERE id = pObject;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -298,16 +293,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetObjectParent (
-  nObject	uuid
+  pObject	uuid
 ) RETURNS	uuid
 AS $$
-DECLARE
-  uParent	uuid;
-BEGIN
-  SELECT parent INTO uParent FROM db.object WHERE id = nObject;
-  RETURN uParent;
-END;
-$$ LANGUAGE plpgsql
+  SELECT parent FROM db.object WHERE id = pObject;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -320,13 +310,8 @@ CREATE OR REPLACE FUNCTION GetObjectLabel (
   pLocale	uuid DEFAULT current_locale()
 ) RETURNS	text
 AS $$
-DECLARE
-  vLabel	text;
-BEGIN
-  SELECT label INTO vLabel FROM db.object_text WHERE object = pObject AND locale = pLocale;
-  RETURN vLabel;
-END;
-$$ LANGUAGE plpgsql
+  SELECT label FROM db.object_text WHERE object = pObject AND locale = pLocale;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -355,13 +340,8 @@ CREATE OR REPLACE FUNCTION GetObjectClass (
   pId		uuid
 ) RETURNS	uuid
 AS $$
-DECLARE
-  uClass	uuid;
-BEGIN
-  SELECT class INTO uClass FROM db.object WHERE id = pId;
-  RETURN uClass;
-END;
-$$ LANGUAGE plpgsql
+  SELECT class FROM db.object WHERE id = pId;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -373,13 +353,8 @@ CREATE OR REPLACE FUNCTION GetObjectType (
   pId		uuid
 ) RETURNS	uuid
 AS $$
-DECLARE
-  uType		uuid;
-BEGIN
-  SELECT type INTO uType FROM db.object WHERE id = pId;
-  RETURN uType;
-END;
-$$ LANGUAGE plpgsql
+  SELECT type FROM db.object WHERE id = pId;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -391,16 +366,10 @@ CREATE OR REPLACE FUNCTION GetObjectTypeCode (
   pId		uuid
 ) RETURNS	text
 AS $$
-DECLARE
-  vCode		text;
-BEGIN
-  SELECT code INTO vCode FROM db.type WHERE id = (
+  SELECT code FROM db.type WHERE id = (
     SELECT type FROM db.object WHERE id = pId
   );
-
-  RETURN vCode;
-END;
-$$ LANGUAGE plpgsql
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -412,13 +381,8 @@ CREATE OR REPLACE FUNCTION GetObjectState (
   pId		uuid
 ) RETURNS	uuid
 AS $$
-DECLARE
-  nState	uuid;
-BEGIN
-  SELECT state INTO nState FROM db.object WHERE id = pId;
-  RETURN nState;
-END;
-$$ LANGUAGE plpgsql
+  SELECT state FROM db.object WHERE id = pId;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -446,13 +410,8 @@ CREATE OR REPLACE FUNCTION GetObjectOwner (
   pId		uuid
 ) RETURNS 	uuid
 AS $$
-DECLARE
-  nOwner	uuid;
-BEGIN
-  SELECT owner INTO nOwner FROM db.object WHERE id = pId;
-  RETURN nOwner;
-END;
-$$ LANGUAGE plpgsql
+  SELECT owner FROM db.object WHERE id = pId;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -464,13 +423,8 @@ CREATE OR REPLACE FUNCTION GetObjectOper (
   pId		uuid
 ) RETURNS 	uuid
 AS $$
-DECLARE
-  nOper		uuid;
-BEGIN
-  SELECT oper INTO nOper FROM db.object WHERE id = pId;
-  RETURN nOper;
-END;
-$$ LANGUAGE plpgsql
+  SELECT oper FROM db.object WHERE id = pId;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -532,18 +486,12 @@ CREATE OR REPLACE FUNCTION GetObjectState (
   pDate		timestamp
 ) RETURNS	uuid
 AS $$
-DECLARE
-  nState	uuid;
-BEGIN
-  SELECT state INTO nState
+  SELECT state
     FROM db.object_state
    WHERE object = pObject
      AND validFromDate <= pDate
      AND validToDate > pDate;
-
-  RETURN nState;
-END;
-$$ LANGUAGE plpgsql
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -557,14 +505,14 @@ CREATE OR REPLACE FUNCTION GetObjectStateCode (
 ) RETURNS 	text
 AS $$
 DECLARE
-  nState	uuid;
+  uState	uuid;
   vCode		text;
 BEGIN
   vCode := null;
 
-  nState := GetObjectState(pObject, pDate);
-  IF nState IS NOT NULL THEN
-    SELECT code INTO vCode FROM db.state WHERE id = nState;
+  uState := GetObjectState(pObject, pDate);
+  IF uState IS NOT NULL THEN
+    SELECT code INTO vCode FROM db.state WHERE id = uState;
   END IF;
 
   RETURN vCode;
@@ -586,15 +534,15 @@ CREATE OR REPLACE FUNCTION GetObjectStateType (
 ) RETURNS	uuid
 AS $$
 DECLARE
-  nState	uuid;
+  uState	uuid;
 BEGIN
-  SELECT state INTO nState
+  SELECT state INTO uState
     FROM db.object_state
    WHERE object = pObject
      AND validFromDate <= pDate
      AND validToDate > pDate;
 
-  RETURN GetStateTypeByState(nState);
+  RETURN GetStateTypeByState(uState);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -610,15 +558,15 @@ CREATE OR REPLACE FUNCTION GetObjectStateTypeCode (
 ) RETURNS 	text
 AS $$
 DECLARE
-  nState	uuid;
+  uState	uuid;
 BEGIN
-  SELECT state INTO nState
+  SELECT state INTO uState
     FROM db.object_state
    WHERE object = pObject
      AND validFromDate <= pDate
      AND validToDate > pDate;
 
-  RETURN GetStateTypeCodeByState(nState);
+  RETURN GetStateTypeCodeByState(uState);
 EXCEPTION
   WHEN NO_DATA_FOUND THEN
     RETURN null;
@@ -636,10 +584,10 @@ CREATE OR REPLACE FUNCTION GetNewState (
 ) RETURNS 	uuid
 AS $$
 DECLARE
-  nNewState	uuid;
+  uNewState	uuid;
 BEGIN
-  SELECT newstate INTO nNewState FROM db.transition WHERE method = pMethod;
-  RETURN nNewState;
+  SELECT newstate INTO uNewState FROM db.transition WHERE method = pMethod;
+  RETURN uNewState;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -655,14 +603,14 @@ CREATE OR REPLACE FUNCTION ChangeObjectState (
 ) RETURNS 	void
 AS $$
 DECLARE
-  nNewState	uuid;
-  nAction	uuid;
+  uNewState	uuid;
+  uAction	uuid;
 BEGIN
-  nNewState := GetNewState(pMethod);
-  IF nNewState IS NOT NULL THEN
-    PERFORM AddObjectState(pObject, nNewState);
-    SELECT action INTO nAction FROM db.method WHERE id = pMethod;
-    PERFORM AddMethodStack(jsonb_build_object('object', pObject, 'method', pMethod, 'action', jsonb_build_object('id', nAction, 'code', GetActionCode(nAction)), 'newstate', jsonb_build_object('id', nNewState, 'code', GetStateCode(nNewState))));
+  uNewState := GetNewState(pMethod);
+  IF uNewState IS NOT NULL THEN
+    PERFORM AddObjectState(pObject, uNewState);
+    SELECT action INTO uAction FROM db.method WHERE id = pMethod;
+    PERFORM AddMethodStack(jsonb_build_object('object', pObject, 'method', pMethod, 'action', jsonb_build_object('id', uAction, 'code', GetActionCode(uAction)), 'newstate', jsonb_build_object('id', uNewState, 'code', GetStateCode(uNewState))));
   END IF;
 END;
 $$ LANGUAGE plpgsql
@@ -680,10 +628,10 @@ CREATE OR REPLACE FUNCTION GetObjectMethod (
 AS $$
 DECLARE
   uClass	uuid;
-  nState	uuid;
+  uState	uuid;
 BEGIN
-  SELECT class, state INTO uClass, nState FROM db.object WHERE id = pObject;
-  RETURN GetMethod(uClass, pAction, nState);
+  SELECT class, state INTO uClass, uState FROM db.object WHERE id = pObject;
+  RETURN GetMethod(uClass, pAction, uState);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -785,48 +733,50 @@ CREATE OR REPLACE FUNCTION ExecuteMethod (
 ) RETURNS       jsonb
 AS $$
 DECLARE
-  nSaveObject	uuid;
-  nSaveClass	uuid;
-  nSaveMethod	uuid;
-  nSaveAction	uuid;
+  uObject		uuid;
+  uSaveObject	uuid;
+  uSaveClass	uuid;
+  uSaveMethod	uuid;
+  uSaveAction	uuid;
   jSaveParams	jsonb;
 
   sLabel        text;
   sActionCode	text;
 
   uClass        uuid;
-  nAction       uuid;
+  uAction       uuid;
 BEGIN
   IF NOT CheckMethodAccess(pMethod, B'100') THEN
     SELECT label INTO sLabel FROM db.method WHERE id = pMethod;
     PERFORM ExecuteMethodError(sLabel);
   END IF;
 
-  nSaveObject := context_object();
-  nSaveClass  := context_class();
-  nSaveMethod := context_method();
-  nSaveAction := context_action();
+  uSaveObject := context_object();
+  uSaveClass  := context_class();
+  uSaveMethod := context_method();
+  uSaveAction := context_action();
   jSaveParams := context_params();
 
   PERFORM ClearMethodStack(pObject, pMethod);
 
   uClass := GetObjectClass(pObject);
 
-  SELECT action INTO nAction FROM db.method WHERE id = pMethod;
-  SELECT code INTO sActionCode FROM db.action WHERE id = nAction;
+  SELECT action INTO uAction FROM db.method WHERE id = pMethod;
+  SELECT code INTO sActionCode FROM db.action WHERE id = uAction;
 
-  PERFORM InitContext(pObject, uClass, pMethod, nAction);
+  PERFORM InitContext(pObject, uClass, pMethod, uAction);
   PERFORM InitParams(pParams);
 
   BEGIN
-    PERFORM ExecuteAction(uClass, nAction);
+    PERFORM ExecuteAction(uClass, uAction);
   END;
 
   PERFORM InitParams(jSaveParams);
-  PERFORM InitContext(nSaveObject, nSaveClass, nSaveMethod, nSaveAction);
+  PERFORM InitContext(uSaveObject, uSaveClass, uSaveMethod, uSaveAction);
 
-  IF sActionCode <> 'drop' THEN
-    PERFORM AddNotification(uClass, nAction, pMethod, pObject);
+  SELECT id INTO uObject FROM db.object WHERE id = pObject;
+  IF FOUND THEN
+    PERFORM AddNotification(uClass, uAction, pMethod, uObject);
   END IF;
 
   RETURN GetMethodStack(pObject, pMethod);
@@ -1075,13 +1025,13 @@ CREATE OR REPLACE FUNCTION CreateObjectGroup (
 ) RETURNS       uuid
 AS $$
 DECLARE
-  nId           uuid;
+  uId           uuid;
 BEGIN
   INSERT INTO db.object_group (code, name, description)
   VALUES (pCode, pName, pDescription)
-  RETURNING id INTO nId;
+  RETURNING id INTO uId;
 
-  RETURN nId;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1118,10 +1068,10 @@ CREATE OR REPLACE FUNCTION GetObjectGroup (
 ) RETURNS	uuid
 AS $$
 DECLARE
-  nId		uuid;
+  uId		uuid;
 BEGIN
-  SELECT id INTO nId FROM db.object_group WHERE code = pCode;
-  RETURN nId;
+  SELECT id INTO uId FROM db.object_group WHERE code = pCode;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1204,21 +1154,21 @@ CREATE OR REPLACE FUNCTION SetObjectLink (
 ) RETURNS       uuid
 AS $$
 DECLARE
-  nId           uuid;
-  nLinked       uuid;
+  uId           uuid;
+  uLinked       uuid;
 
   dtDateFrom    timestamp;
   dtDateTo      timestamp;
 BEGIN
   -- получим дату значения в текущем диапозоне дат
-  SELECT linked, validFromDate, validToDate INTO nLinked, dtDateFrom, dtDateTo
+  SELECT linked, validFromDate, validToDate INTO uLinked, dtDateFrom, dtDateTo
     FROM db.object_link
    WHERE object = pObject
      AND key = pKey
      AND validFromDate <= pDateFrom
      AND validToDate > pDateFrom;
 
-  IF nLinked IS DISTINCT FROM pLinked THEN
+  IF uLinked IS DISTINCT FROM pLinked THEN
     -- обновим дату значения в текущем диапозоне дат
     UPDATE db.object_link SET validToDate = pDateFrom
      WHERE object = pObject
@@ -1229,11 +1179,11 @@ BEGIN
     IF pLinked IS NOT NULL THEN
       INSERT INTO db.object_link (object, key, linked, validFromDate, validToDate)
       VALUES (pObject, pKey, pLinked, pDateFrom, coalesce(dtDateTo, MAXDATE()))
-      RETURNING id INTO nId;
+      RETURNING id INTO uId;
     END IF;
   END IF;
 
-  RETURN nId;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1256,16 +1206,16 @@ CREATE OR REPLACE FUNCTION GetObjectLink (
 ) RETURNS	uuid
 AS $$
 DECLARE
-  nLinked	uuid;
+  uLinked	uuid;
 BEGIN
-  SELECT linked INTO nLinked
+  SELECT linked INTO uLinked
     FROM db.object_link
    WHERE object = pObject
      AND key = pKey
      AND validFromDate <= pDate
      AND validToDate > pDate;
 
-  RETURN nLinked;
+  RETURN uLinked;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1679,14 +1629,15 @@ AS $$
 	WITH member_group AS (
 		SELECT pUserId AS userid UNION SELECT userid FROM db.member_group WHERE member = pUserId
 	)
-	SELECT a.object, bit_or(a.mask) AS mask
+	SELECT a.object
 	  FROM db.object_coordinates oc INNER JOIN db.aou       a ON oc.object = a.object
 							        INNER JOIN member_group m ON a.userid = m.userid
      WHERE oc.validfromdate <= pDateFrom
 	   AND oc.validtodate > pDateFrom
 	 GROUP BY a.object
+    HAVING bit_or(a.mask) & B'100' = B'100'
   )
-  SELECT oc.* FROM ObjectCoordinates oc INNER JOIN access a ON oc.object = a.object AND a.mask & B'100' = B'100'
+  SELECT oc.* FROM ObjectCoordinates oc INNER JOIN access a ON oc.object = a.object
    WHERE oc.validfromdate <= pDateFrom
 	 AND oc.validtodate > pDateFrom
 $$ LANGUAGE SQL
@@ -1710,12 +1661,12 @@ CREATE OR REPLACE FUNCTION NewObjectCoordinates (
 ) RETURNS		uuid
 AS $$
 DECLARE
-  nId			uuid;
+  uId			uuid;
   dtDateFrom	timestamptz;
   dtDateTo		timestamptz;
 BEGIN
   -- получим дату значения в текущем диапозоне дат
-  SELECT id, validFromDate, validToDate INTO nId, dtDateFrom, dtDateTo
+  SELECT id, validFromDate, validToDate INTO uId, dtDateFrom, dtDateTo
     FROM db.object_coordinates
    WHERE object = pObject
      AND code = pCode
@@ -1742,10 +1693,10 @@ BEGIN
 
     INSERT INTO db.object_coordinates (object, code, latitude, longitude, accuracy, label, description, data, validFromDate, validToDate)
     VALUES (pObject, pCode, pLatitude, pLongitude, pAccuracy, pLabel, pDescription, pData, pDateFrom, coalesce(dtDateTo, MAXDATE()))
-    RETURNING id INTO nId;
+    RETURNING id INTO uId;
   END IF;
 
-  RETURN nId;
+  RETURN uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

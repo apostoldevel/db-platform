@@ -382,8 +382,8 @@ AS $$
 DECLARE
   r				record;
 
-  nObject		uuid;
-  nAction		uuid;
+  uObject		uuid;
+  uAction		uuid;
 
   arKeys		text[];
 BEGIN
@@ -391,9 +391,9 @@ BEGIN
 	PERFORM LoginFailed();
   END IF;
 
-  SELECT GetAction(x[2]) INTO nAction FROM path_to_array(pPath) AS x;
+  SELECT GetAction(x[2]) INTO uAction FROM path_to_array(pPath) AS x;
 
-  IF nAction IS NULL THEN
+  IF uAction IS NULL THEN
     PERFORM RouteNotFound(pPath);
   END IF;
 
@@ -406,13 +406,13 @@ BEGIN
 	  PERFORM ObjectIsNull();
 	END IF;
 
-	SELECT id INTO nObject FROM db.object WHERE id = r.id;
+	SELECT id INTO uObject FROM db.object WHERE id = r.id;
 
 	IF NOT FOUND THEN
 	  PERFORM ObjectNotFound('object', 'id', r.id);
 	END IF;
 
-	RETURN ExecuteObjectAction(nObject, nAction, r.params);
+	RETURN ExecuteObjectAction(uObject, uAction, r.params);
   END LOOP;
 
   RETURN null;
