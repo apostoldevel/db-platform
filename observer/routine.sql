@@ -274,7 +274,7 @@ BEGIN
 
 	FOR r IN SELECT * FROM jsonb_array_elements_text(pFilter->'objects')
 	LOOP
-	  SELECT id INTO uObject FROM db.object WHERE id = r.value;
+	  SELECT id INTO uObject FROM db.object WHERE id = r.value::uuid;
 	  IF NOT FOUND THEN
 		RAISE EXCEPTION 'ERR-40000: Не найден объект "%".', r.value;
 	  END IF;
@@ -395,7 +395,7 @@ BEGIN
 
 	FOR r IN SELECT * FROM jsonb_array_elements_text(pFilter->'objects')
 	LOOP
-	  SELECT id INTO uObject FROM db.object WHERE id = r.value;
+	  SELECT id INTO uObject FROM db.object WHERE id = r.value::uuid;
 	  IF NOT FOUND THEN
 		RAISE EXCEPTION 'ERR-40000: Не найден объект "%".', r.value;
 	  END IF;

@@ -702,6 +702,10 @@ DECLARE
 BEGIN
   pAccessType := coalesce(pAccessType, 'online');
 
+  IF pScopes && ARRAY['api'] THEN
+	pScopes := ARRAY[current_database()];
+  END IF;
+
   INSERT INTO db.oauth2 (audience, scopes, access_type, redirect_uri, state)
   VALUES (pAudience, pScopes, pAccessType, pRedirectURI, pState)
   RETURNING id INTO nId;
