@@ -12,9 +12,8 @@ CREATE TABLE db.api_log (
     nonce       double precision,
     signature   text,
     json        jsonb,
-    eventid     bigint,
-    runtime     interval,
-    CONSTRAINT fk_api_log_eventid FOREIGN KEY (eventid) REFERENCES db.log(id)
+    eventId     bigint REFERENCES db.log(id),
+    runtime     interval
 );
 
 COMMENT ON TABLE db.api_log IS 'Лог API.';

@@ -278,7 +278,7 @@ BEGIN
 
 	IF jsonb_typeof(pPayload) = 'array' THEN
 
-	  FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, property uuid, fields jsonb)
+	  FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, property uuid)
 	  LOOP
 		FOR e IN SELECT r.id, r.property, api.delete_model_property(r.id, r.property) AS deleted
 		LOOP
@@ -288,7 +288,7 @@ BEGIN
 
 	ELSE
 
-	  FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, property uuid, fields jsonb)
+	  FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, property uuid)
 	  LOOP
 		FOR e IN SELECT r.id, r.property, api.delete_model_property(r.id, r.property) AS deleted
 		LOOP

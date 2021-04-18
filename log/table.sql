@@ -4,16 +4,15 @@
 
 CREATE TABLE db.log (
     id          bigserial PRIMARY KEY NOT NULL,
-    type        char DEFAULT 'M' NOT NULL,
+    type        char DEFAULT 'M' NOT NULL CHECK (type IN ('M', 'W', 'E', 'D')),
     datetime	timestamp DEFAULT Now() NOT NULL,
     username	text NOT NULL,
-    session     varchar(40),
+    session     char(40),
     code        integer NOT NULL,
     event		text NOT NULL,
     text        text NOT NULL,
     category    text,
-    object      uuid,
-    CONSTRAINT ch_log_type CHECK (type IN ('M', 'W', 'E', 'D'))
+    object      uuid
 );
 
 COMMENT ON TABLE db.log IS 'Журнал событий.';

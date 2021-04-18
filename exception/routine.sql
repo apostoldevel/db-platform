@@ -951,6 +951,20 @@ $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
 --------------------------------------------------------------------------------
 
+SELECT CreateExceptionResource(GetExceptionUUID(400, 66), 'ru', 'ValueOutOfRange', 'Значение [%s] выходит за пределы допустимого диапазона');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 66), 'en', 'ValueOutOfRange', 'Value [%s] is out of range');
+
+CREATE OR REPLACE FUNCTION ValueOutOfRange (
+  pValue	    integer
+) RETURNS	    void
+AS $$
+BEGIN
+  RAISE EXCEPTION '%', format(GetExceptionStr(400, 66), pValue);
+END;
+$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+
+--------------------------------------------------------------------------------
+
 SELECT CreateExceptionResource(GetExceptionUUID(400, 70), 'ru', 'IssuerNotFound', 'OAuth 2.0: Не найден эмитент: %s');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 70), 'en', 'IssuerNotFound', 'OAuth 2.0: Issuer not FOUND: %s');
 
