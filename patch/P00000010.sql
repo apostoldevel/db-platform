@@ -11,6 +11,7 @@ DROP FUNCTION IF EXISTS GetReference(text, uuid);
 \ir '../workflow/routine.sql'
 \ir '../entity/object/reference/routine.sql'
 \ir '../entity/object/reference/measure/routine.sql'
+\ir '../entity/object/reference/measure/init.sql'
 
 --------------------------------------------------------------------------------
 
