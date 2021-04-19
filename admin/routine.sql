@@ -1893,7 +1893,7 @@ AS $$
   WITH mg AS (
       SELECT pUserId AS userid UNION SELECT userid FROM db.member_group WHERE member = pUserId
   )
-  SELECT bit_or(a.deny), bit_or(a.allow), bit_or(a.mask)
+  SELECT bit_or(a.deny), bit_or(a.allow), bit_or(a.allow) & ~bit_or(a.deny)
     FROM db.acl a INNER JOIN mg ON a.userid = mg.userid;
 $$ LANGUAGE SQL
    SECURITY DEFINER

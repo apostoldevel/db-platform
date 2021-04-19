@@ -11,7 +11,7 @@ AS $$
 	WITH member_group AS (
 		SELECT pUserId AS userid UNION SELECT userid FROM db.member_group WHERE member = pUserId
 	)
-	SELECT a.object, bit_or(a.mask) AS mask
+	SELECT a.object, bit_or(a.allow) & ~bit_or(a.deny) AS mask
 	  FROM db.notification n INNER JOIN db.aou       a ON n.object = a.object
 							 INNER JOIN member_group m ON a.userid = m.userid
      WHERE n.datetime >= pDateFrom

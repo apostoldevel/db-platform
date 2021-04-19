@@ -13,7 +13,7 @@ AS $$
   WITH member_group AS (
       SELECT pUserId AS userid UNION SELECT userid FROM db.member_group WHERE member = pUserId
   )
-  SELECT a.object, bit_or(a.deny), bit_or(a.allow), bit_or(a.mask)
+  SELECT a.object, bit_or(a.deny), bit_or(a.allow), bit_or(a.allow) & ~bit_or(a.deny)
     FROM db.aou a INNER JOIN member_group m ON a.userid = m.userid
    GROUP BY a.object;
 $$ LANGUAGE SQL
@@ -36,7 +36,7 @@ AS $$
   WITH member_group AS (
       SELECT pUserId AS userid UNION SELECT userid FROM db.member_group WHERE member = pUserId
   )
-  SELECT a.object, bit_or(a.deny), bit_or(a.allow), bit_or(a.mask)
+  SELECT a.object, bit_or(a.deny), bit_or(a.allow), bit_or(allow) & ~bit_or(deny)
     FROM db.aou a INNER JOIN member_group m ON a.userid = m.userid
      AND a.object = pObject
    GROUP BY a.object
@@ -192,7 +192,7 @@ AS $$
   SELECT a.object
     FROM db.aou a INNER JOIN _membergroup m ON a.userid = m.userid AND a.entity = pEntity
    GROUP BY a.object
-  HAVING bit_or(a.mask) & B'100' = B'100'
+  HAVING bit_or(a.allow) & ~bit_or(a.deny) & B'100' = B'100'
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -1635,7 +1635,7 @@ AS $$
      WHERE oc.validfromdate <= pDateFrom
 	   AND oc.validtodate > pDateFrom
 	 GROUP BY a.object
-    HAVING bit_or(a.mask) & B'100' = B'100'
+    HAVING bit_or(allow) & ~bit_or(deny) & B'100' = B'100'
   )
   SELECT oc.* FROM ObjectCoordinates oc INNER JOIN access a ON oc.object = a.object
    WHERE oc.validfromdate <= pDateFrom

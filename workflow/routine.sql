@@ -270,7 +270,7 @@ CREATE OR REPLACE FUNCTION acu (
   OUT mask	bit
 ) RETURNS	SETOF record
 AS $$
-  SELECT a.class, bit_or(a.deny), bit_or(a.allow), bit_or(a.mask)
+  SELECT a.class, bit_or(a.deny), bit_or(a.allow), bit_or(a.allow) & ~bit_or(a.deny)
     FROM db.acu a
    WHERE a.userid IN (SELECT pUserId UNION SELECT userid FROM db.member_group WHERE member = pUserId)
    GROUP BY a.class
@@ -291,7 +291,7 @@ CREATE OR REPLACE FUNCTION acu (
   OUT mask	bit
 ) RETURNS	SETOF record
 AS $$
-  SELECT a.class, bit_or(a.deny), bit_or(a.allow), bit_or(a.mask)
+  SELECT a.class, bit_or(a.deny), bit_or(a.allow), bit_or(allow) & ~bit_or(deny)
     FROM db.acu a
    WHERE a.userid IN (SELECT pUserId UNION SELECT userid FROM db.member_group WHERE member = pUserId)
      AND a.class = pClass
@@ -1222,7 +1222,7 @@ CREATE OR REPLACE FUNCTION amu (
   OUT mask		bit
 ) RETURNS		SETOF record
 AS $$
-  SELECT a.method, bit_or(a.deny), bit_or(a.allow), bit_or(a.mask)
+  SELECT a.method, bit_or(a.deny), bit_or(a.allow), bit_or(allow) & ~bit_or(deny)
     FROM db.amu a
    WHERE userid IN (SELECT pUserId UNION SELECT userid FROM db.member_group WHERE member = pUserId)
    GROUP BY a.method
@@ -1243,7 +1243,7 @@ CREATE OR REPLACE FUNCTION amu (
   OUT mask		bit
 ) RETURNS		SETOF record
 AS $$
-  SELECT a.method, bit_or(a.deny), bit_or(a.allow), bit_or(a.mask)
+  SELECT a.method, bit_or(a.deny), bit_or(a.allow), bit_or(allow) & ~bit_or(deny)
     FROM db.amu a
    WHERE userid IN (SELECT pUserId UNION SELECT userid FROM db.member_group WHERE member = pUserId)
      AND a.method = pMethod
