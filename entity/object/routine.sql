@@ -192,7 +192,7 @@ AS $$
   SELECT a.object
     FROM db.aou a INNER JOIN _membergroup m ON a.userid = m.userid AND a.entity = pEntity
    GROUP BY a.object
-  HAVING bit_or(a.allow) & ~bit_or(a.deny) & B'100' = B'100'
+  HAVING (bit_or(a.allow) & ~bit_or(a.deny)) & B'100' = B'100'
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
