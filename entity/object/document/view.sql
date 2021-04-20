@@ -8,9 +8,9 @@ CREATE OR REPLACE VIEW Document (Id, Object, Entity, Class, Type, Area, Descript
 ) AS
   WITH RECURSIVE _area_tree(id, parent) AS (
     SELECT id, parent FROM db.area WHERE id = '00000000-0000-4003-a001-000000000001' AND id IS DISTINCT FROM current_area()
-     UNION ALL
+     UNION
     SELECT id, parent FROM db.area WHERE id = current_area()
-     UNION ALL
+     UNION
     SELECT a.id, a.parent
       FROM db.area a INNER JOIN _area_tree t ON a.parent = t.id
      WHERE a.id IS DISTINCT FROM '00000000-0000-4003-a001-000000000001'

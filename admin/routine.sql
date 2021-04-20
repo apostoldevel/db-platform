@@ -1059,7 +1059,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetSecretKey (
-  pName         text DEFAULT 'default'
+  pName         text DEFAULT 'key'
 ) RETURNS       text
 AS $$
 DECLARE
