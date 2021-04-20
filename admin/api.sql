@@ -1517,7 +1517,7 @@ AS $$
     SELECT id, parent FROM db.area WHERE id IN (
       SELECT area FROM db.member_area WHERE member IN (
         SELECT pUserId
-         UNION ALL
+         UNION
         SELECT userid FROM db.member_group WHERE member = pUserId
       )
     )
@@ -1525,7 +1525,7 @@ AS $$
     SELECT a.id, a.parent
       FROM db.area a, area_tree t
      WHERE t.id = a.parent
-    ) SELECT a.* FROM api.area a INNER JOIN area_tree USING (id) WHERE a.scope IN (SELECT current_scopes());
+    ) SELECT a.* FROM api.area a INNER JOIN area_tree USING (id);
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

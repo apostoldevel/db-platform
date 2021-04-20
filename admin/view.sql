@@ -33,7 +33,8 @@ as
          a.scope, s.code, s.name, s.description,
          a.code, a.name, a.description, a.validFromDate, a.validToDate
     FROM db.area a INNER JOIN db.area_type t ON t.id = a.type
-                   INNER JOIN db.scope s ON s.id = a.scope;
+                   INNER JOIN db.scope s ON s.id = a.scope
+   WHERE a.scope IN (SELECT current_scopes());
 
 GRANT SELECT ON Area TO administrator;
 
