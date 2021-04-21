@@ -24,7 +24,7 @@ SELECT SignIn(CreateSystemOAuth2(), 'admin', 'admin');
 
 SELECT GetErrorMessage();
 
-SELECT SortArea(parent) FROM Area WHERE parent IS NOT NULL GROUP BY parent, level ORDER BY level;
+SELECT SortArea(parent) FROM db.area WHERE parent IS NOT NULL GROUP BY parent, level ORDER BY level;
 
 SELECT SignOut();
 
