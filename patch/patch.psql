@@ -7,5 +7,6 @@
 --\ir P00000007.sql
 --\ir P00000008.sql
 --\ir P00000009.sql
-\ir P00000010.sql
-\ir P00000011.sql
+--\ir P00000010.sql
+--\ir P00000011.sql
+\ir P00000012.sql

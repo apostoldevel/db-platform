@@ -22,13 +22,13 @@ GRANT SELECT ON AreaType TO administrator;
 -- Area ------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW Area (Id, Parent,
+CREATE OR REPLACE VIEW Area (Id, Parent, Level, Sequence,
   Type, TypeCode, TypeName,
   Scope, ScopeCode, ScopeName, ScopeDescription,
   Code, Name, Description, validFromDate, validToDate
 )
 as
-  SELECT a.id, a.parent,
+  SELECT a.id, a.parent, a.level, a.sequence,
          a.type, t.code, t.name,
          a.scope, s.code, s.name, s.description,
          a.code, a.name, a.description, a.validFromDate, a.validToDate

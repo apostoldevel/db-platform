@@ -1180,6 +1180,7 @@ GRANT SELECT ON api.area TO administrator;
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
+ * @param {integer} pSequence - Очерёдность
  * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION api.add_area (
@@ -1188,11 +1189,12 @@ CREATE OR REPLACE FUNCTION api.add_area (
   pScope		uuid,
   pCode         text,
   pName         text,
-  pDescription  text DEFAULT null
+  pDescription  text DEFAULT null,
+  pSequence     integer DEFAULT null
 ) RETURNS       uuid
 AS $$
 BEGIN
-  RETURN CreateArea(pParent, pType, pScope, pCode, pName, pDescription);
+  RETURN CreateArea(null, pParent, pType, pScope, pCode, pName, pDescription, pSequence);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1210,6 +1212,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
+ * @param {integer} pSequence - Очерёдность
  * @param {timestamp} pValidFromDate - Дата открытия
  * @param {timestamp} pValidToDate - Дата закрытия
  * @return {void}
@@ -1222,12 +1225,13 @@ CREATE OR REPLACE FUNCTION api.update_area (
   pCode             text DEFAULT null,
   pName             text DEFAULT null,
   pDescription      text DEFAULT null,
+  pSequence         integer DEFAULT null,
   pValidFromDate    timestamp DEFAULT null,
   pValidToDate      timestamp DEFAULT null
 ) RETURNS           void
 AS $$
 BEGIN
-  PERFORM EditArea(pId, pParent, pType, pScope, pCode, pName, pDescription, pValidFromDate, pValidToDate);
+  PERFORM EditArea(pId, pParent, pType, pScope, pCode, pName, pDescription, pSequence, pValidFromDate, pValidToDate);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1245,15 +1249,16 @@ CREATE OR REPLACE FUNCTION api.set_area (
   pCode             text DEFAULT null,
   pName             text DEFAULT null,
   pDescription      text DEFAULT null,
+  pSequence         integer DEFAULT null,
   pValidFromDate    timestamp DEFAULT null,
   pValidToDate      timestamp DEFAULT null
 ) RETURNS           SETOF api.area
 AS $$
 BEGIN
   IF pId IS NULL THEN
-    pId := api.add_area(pParent, pType, pScope, pCode, pName, pDescription);
+    pId := api.add_area(pParent, pType, pScope, pCode, pName, pDescription, pSequence);
   ELSE
-    PERFORM api.update_area(pId, pParent, pType, pScope, pCode, pName, pDescription, pValidFromDate, pValidToDate);
+    PERFORM api.update_area(pId, pParent, pType, pScope, pCode, pName, pDescription, pSequence, pValidFromDate, pValidToDate);
   END IF;
 
   RETURN QUERY SELECT * FROM api.area WHERE id = pId;

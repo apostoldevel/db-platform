@@ -2779,13 +2779,8 @@ CREATE OR REPLACE FUNCTION GetUserName (
   pId		uuid
 ) RETURNS	text
 AS $$
-DECLARE
-  vUserName	text;
-BEGIN
-  SELECT username INTO vUserName FROM db.user WHERE id = pId AND type = 'U';
-  RETURN vUserName;
-END;
-$$ LANGUAGE plpgsql
+  SELECT username FROM db.user WHERE id = pId AND type = 'U';
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -2797,13 +2792,8 @@ CREATE OR REPLACE FUNCTION GetGroupName (
   pId			uuid
 ) RETURNS		text
 AS $$
-DECLARE
-  vGroupName	text;
-BEGIN
-  SELECT username INTO vGroupName FROM db.user WHERE id = pId AND type = 'G';
-  RETURN vGroupName;
-END;
-$$ LANGUAGE plpgsql
+  SELECT username FROM db.user WHERE id = pId AND type = 'G';
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -2920,13 +2910,8 @@ CREATE OR REPLACE FUNCTION GetScope (
   pCode		text
 ) RETURNS	uuid
 AS $$
-DECLARE
-  uId		uuid;
-BEGIN
-  SELECT id INTO uId FROM db.scope WHERE code = pCode;
-  RETURN uId;
-END;
-$$ LANGUAGE plpgsql STABLE STRICT
+  SELECT id FROM db.scope WHERE code = pCode;
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -2938,13 +2923,64 @@ CREATE OR REPLACE FUNCTION GetScopeName (
   pId		uuid
 ) RETURNS	text
 AS $$
+  SELECT name FROM db.scope WHERE id = pId;
+$$ LANGUAGE sql STABLE STRICT
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION SetAreaSequence ----------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION SetAreaSequence (
+  pId		uuid,
+  pSequence	integer,
+  pDelta	integer
+) RETURNS 	void
+AS $$
 DECLARE
-  vName		text;
+  uId		uuid;
+  uParent   uuid;
 BEGIN
-  SELECT name INTO vName FROM db.scope WHERE id = pId;
-  RETURN vName;
+  IF pDelta <> 0 THEN
+    SELECT parent INTO uParent FROM db.area WHERE id = pId;
+    SELECT id INTO uId
+      FROM db.area
+     WHERE parent IS NOT DISTINCT FROM uParent
+       AND sequence = pSequence
+       AND id <> pId;
+
+    IF FOUND THEN
+      PERFORM SetAreaSequence(uId, pSequence + pDelta, pDelta);
+    END IF;
+  END IF;
+
+  UPDATE db.area SET sequence = pSequence WHERE id = pId;
 END;
-$$ LANGUAGE plpgsql STABLE STRICT
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION SortArea -----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION SortArea (
+  pParent   uuid
+) RETURNS 	void
+AS $$
+DECLARE
+  r         record;
+BEGIN
+  FOR r IN
+    SELECT id, (row_number() OVER(order by sequence))::int as newsequence
+      FROM db.area
+     WHERE parent IS NOT DISTINCT FROM pParent
+  LOOP
+    PERFORM SetAreaSequence(r.id, r.newsequence, 0);
+  END LOOP;
+END;
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -2953,17 +2989,19 @@ $$ LANGUAGE plpgsql STABLE STRICT
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateArea (
+  pId			uuid,
   pParent	    uuid,
   pType		    uuid,
   pScope	    uuid,
   pCode		    text,
   pName		    text,
   pDescription	text DEFAULT null,
-  pId			uuid DEFAULT gen_kernel_uuid('8')
+  pSequence     integer DEFAULT null
 ) RETURNS 	    uuid
 AS $$
 DECLARE
   uId		    uuid;
+  nLevel		integer;
 BEGIN
   IF session_user <> 'kernel' THEN
     IF NOT IsUserRole(GetGroup('administrator')) THEN
@@ -2971,13 +3009,27 @@ BEGIN
     END IF;
   END IF;
 
+  nLevel := 0;
+  pParent := CheckNull(pParent);
+
   SELECT id INTO uId FROM db.area WHERE code = pCode;
   IF FOUND THEN
     PERFORM RecordExists(pCode);
   END IF;
 
-  INSERT INTO db.area (id, parent, type, scope, code, name, description)
-  VALUES (pId, coalesce(pParent, GetArea('root')), pType, pScope, pCode, pName, pDescription) RETURNING Id INTO uId;
+  IF pParent IS NOT NULL THEN
+    SELECT level + 1 INTO nLevel FROM db.area WHERE id = pParent;
+  END IF;
+
+  IF NULLIF(pSequence, 0) IS NULL THEN
+    SELECT max(sequence) + 1 INTO pSequence FROM db.area WHERE parent IS NOT DISTINCT FROM pParent;
+  ELSE
+    PERFORM SetAreaSequence(pParent, pSequence, 1);
+  END IF;
+
+  INSERT INTO db.area (id, parent, type, scope, code, name, description, level, sequence)
+  VALUES (coalesce(pId, gen_kernel_uuid('8')), coalesce(pParent, GetArea('root')), pType, pScope, pCode, pName, pDescription, nLevel, coalesce(pSequence, 1))
+  RETURNING Id INTO uId;
 
   RETURN uId;
 END;
@@ -2997,6 +3049,7 @@ CREATE OR REPLACE FUNCTION EditArea (
   pCode			    text DEFAULT null,
   pName			    text DEFAULT null,
   pDescription		text DEFAULT null,
+  pSequence         integer DEFAULT null,
   pValidFromDate	timestamp DEFAULT null,
   pValidToDate		timestamp DEFAULT null
 ) RETURNS void
@@ -3004,6 +3057,10 @@ AS $$
 DECLARE
   vCode             text;
   uType             uuid;
+  uParent			uuid;
+
+  nLevel	        integer;
+  nSequence         integer;
 BEGIN
   IF session_user <> 'kernel' THEN
     IF NOT IsUserRole(GetGroup('administrator')) THEN
@@ -3011,7 +3068,7 @@ BEGIN
     END IF;
   END IF;
 
-  SELECT type, code INTO uType, vCode FROM db.area WHERE id = pId;
+  SELECT parent, type, code, level, sequence INTO uParent, uType, vCode, nLevel, nSequence FROM db.area WHERE id = pId;
   IF NOT FOUND THEN
     PERFORM AreaError();
   END IF;
@@ -3024,6 +3081,9 @@ BEGIN
     END IF;
   END IF;
 
+  pParent := coalesce(CheckNull(pParent), uParent);
+  pSequence := coalesce(pSequence, nSequence);
+
   UPDATE db.area
 	 SET parent = coalesce(pParent, parent),
 		 type = coalesce(pType, type),
@@ -3031,9 +3091,24 @@ BEGIN
 		 code = coalesce(pCode, code),
 		 name = coalesce(pName, name),
 		 description = CheckNull(coalesce(pDescription, description, '<null>')),
+         level = coalesce(nLevel, level),
+         sequence = pSequence,
 		 validFromDate = coalesce(pValidFromDate, validFromDate),
 		 validToDate = coalesce(pValidToDate, validToDate)
    WHERE id = pId;
+
+  IF uParent IS DISTINCT FROM pParent THEN
+    SELECT max(sequence) + 1 INTO nSequence FROM db.area WHERE parent IS NOT DISTINCT FROM pParent;
+    PERFORM SortCatalog(uParent);
+  END IF;
+
+  IF pSequence < nSequence THEN
+    PERFORM SetCatalogSequence(pId, pSequence, 1);
+  END IF;
+
+  IF pSequence > nSequence THEN
+    PERFORM SetCatalogSequence(pId, pSequence, -1);
+  END IF;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

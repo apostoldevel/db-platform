@@ -48,6 +48,8 @@ CREATE TABLE db.area (
     code            text NOT NULL,
     name            text NOT NULL,
     description     text,
+    level           integer NOT NULL,
+    sequence		integer NOT NULL,
     validFromDate   timestamp DEFAULT Now() NOT NULL,
     validToDate     timestamp DEFAULT TO_DATE('4433-12-31', 'YYYY-MM-DD') NOT NULL
 );
@@ -61,6 +63,8 @@ COMMENT ON COLUMN db.area.scope IS 'Область видимости базы �
 COMMENT ON COLUMN db.area.code IS 'Код';
 COMMENT ON COLUMN db.area.name IS 'Наименование';
 COMMENT ON COLUMN db.area.description IS 'Описание';
+COMMENT ON COLUMN db.area.level IS 'Уровень вложенности.';
+COMMENT ON COLUMN db.area.sequence IS 'Очерёдность';
 COMMENT ON COLUMN db.area.validFromDate IS 'Дата начала действаия';
 COMMENT ON COLUMN db.area.validToDate IS 'Дата окончания действия';
 
