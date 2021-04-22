@@ -220,6 +220,7 @@ DECLARE
 BEGIN
   pIdentity := coalesce(pIdentity, pSerial);
   uModel := GetModel(pModel);
+  pClient := coalesce(pClient, GetClientByUserId(current_userid()));
 
   SELECT c.id INTO uId FROM db.device c WHERE c.identity = pIdentity;
 
