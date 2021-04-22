@@ -38,7 +38,8 @@ BEGIN
 
     FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, code text)
     LOOP
-      FOR e IN SELECT * FROM api.set_session_area(coalesce(r.id, GetArea(r.code))) AS success
+      PERFORM api.set_session_area(coalesce(r.id, GetArea(r.code)));
+      FOR e IN SELECT * FROM api.current_area()
       LOOP
         RETURN NEXT row_to_json(e);
       END LOOP;
@@ -55,7 +56,8 @@ BEGIN
 
     FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, code text)
     LOOP
-      FOR e IN SELECT * FROM api.set_session_interface(coalesce(r.id, GetInterface(r.code))) AS success
+      PERFORM api.set_session_interface(coalesce(r.id, GetInterface(r.code)));
+      FOR e IN SELECT * FROM api.current_interface()
       LOOP
         RETURN NEXT row_to_json(e);
       END LOOP;
@@ -72,7 +74,8 @@ BEGIN
 
     FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, code text)
     LOOP
-      FOR e IN SELECT * FROM api.set_session_locale(coalesce(r.id, GetLocale(r.code))) AS success
+      PERFORM api.set_session_locale(coalesce(r.id, GetLocale(r.code)));
+      FOR e IN SELECT * FROM api.current_locale()
       LOOP
         RETURN NEXT row_to_json(e);
       END LOOP;
@@ -89,7 +92,8 @@ BEGIN
 
     FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(oper_date timestamp)
     LOOP
-      FOR e IN SELECT * FROM api.set_session_oper_date(r.oper_date) AS success
+      PERFORM api.set_session_oper_date(r.oper_date);
+      FOR e IN SELECT * FROM api.oper_date()
       LOOP
         RETURN NEXT row_to_json(e);
       END LOOP;
