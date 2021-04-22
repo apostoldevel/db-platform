@@ -160,6 +160,24 @@ BEGIN
       END LOOP;
     END LOOP;
 
+  WHEN '/locale/set' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['id', 'code']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, code text)
+    LOOP
+      PERFORM api.set_session_locale(coalesce(r.id, GetLocale(r.code)));
+      FOR e IN SELECT * FROM api.current_locale()
+      LOOP
+        RETURN NEXT row_to_json(e);
+      END LOOP;
+    END LOOP;
+
   WHEN '/entity' THEN
 
     FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(fields jsonb)
