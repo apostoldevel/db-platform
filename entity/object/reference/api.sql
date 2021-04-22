@@ -8,7 +8,7 @@
 
 CREATE OR REPLACE VIEW api.reference
 AS
-  SELECT * FROM Reference;
+  SELECT * FROM ObjectReference;
 
 GRANT SELECT ON api.reference TO administrator;
 

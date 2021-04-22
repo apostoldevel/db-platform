@@ -8,7 +8,7 @@
 
 CREATE OR REPLACE VIEW api.document
 AS
-  SELECT * FROM Document;
+  SELECT * FROM ObjectDocument;
 
 GRANT SELECT ON api.document TO administrator;
 
