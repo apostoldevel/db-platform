@@ -1,3 +1,5 @@
+DROP VIEW api.document CASCADE;
+DROP VIEW api.reference CASCADE;
 DROP VIEW Area CASCADE;
 
 DROP FUNCTION api.add_area (uuid, uuid, uuid, text, text, text);
