@@ -293,11 +293,11 @@ CREATE OR REPLACE FUNCTION SendMessage (
 ) RETURNS       uuid
 AS $$
 DECLARE
-  nMessageId    uuid;
+  uMessageId    uuid;
 BEGIN
-  nMessageId := CreateMessage(pParent, pType, pAgent, pProfile, pAddress, pSubject, pContent, pDescription);
-  PERFORM ExecuteObjectAction(nMessageId, GetAction('submit'));
-  RETURN nMessageId;
+  uMessageId := CreateMessage(pParent, pType, pAgent, pProfile, pAddress, pSubject, pContent, pDescription);
+  PERFORM ExecuteObjectAction(uMessageId, GetAction('submit'));
+  RETURN uMessageId;
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -378,7 +378,7 @@ CREATE OR REPLACE FUNCTION SendSMS (
 ) RETURNS       uuid
 AS $$
 DECLARE
-  nMessageId    uuid;
+  uMessageId    uuid;
 
   vCharSet      text;
   vPhone        text;
@@ -393,13 +393,13 @@ BEGIN
   IF vPhone IS NOT NULL THEN
     message := xmlelement(name "soap12:Envelope", xmlattributes('http://www.w3.org/2001/XMLSchema-instance' AS "xmlns:xsi", 'http://www.w3.org/2001/XMLSchema' AS "xmlns:xsd", 'http://www.w3.org/2003/05/soap-envelope' AS "xmlns:soap12"), xmlelement(name "soap12:Body", xmlelement(name "SendMessage", xmlattributes('http://mcommunicator.ru/M2M' AS xmlns), xmlelement(name "msid", vPhone), xmlelement(name "message", pMessage), xmlelement(name "naming", pProfile))));
     vContent := format('<?xml version="1.0" encoding="%s"?>', vCharSet) || xmlserialize(DOCUMENT message AS text);
-    nMessageId := SendM2M(pParent, pProfile, vPhone, 'SendMessage', vContent, pMessage);
-    PERFORM WriteToEventLog('M', 1001, 'sms', format('SMS передано на отправку: %s', nMessageId), nMessageId);
+    uMessageId := SendM2M(pParent, pProfile, vPhone, 'SendMessage', vContent, pMessage);
+    PERFORM WriteToEventLog('M', 1001, 'sms', format('SMS передано на отправку: %s', uMessageId), uMessageId);
   ELSE
     PERFORM WriteToEventLog('E', 3001, 'sms', 'Не удалось отправить SMS, телефон не установлен.', pParent);
   END IF;
 
-  RETURN nMessageId;
+  RETURN uMessageId;
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -418,7 +418,7 @@ CREATE OR REPLACE FUNCTION SendPush (
 ) RETURNS       void
 AS $$
 DECLARE
-  nMessageId    uuid;
+  uMessageId    uuid;
 
   tokens        text[];
 
@@ -437,8 +437,58 @@ BEGIN
 
       message := json_build_object('message', json_build_object('token', token, 'android', json_build_object('priority', pPriority), 'data', pData));
 
-      nMessageId := SendFCM(pObject, projectId, GetUserName(pUserId), pSubject, message::text);
-      PERFORM WriteToEventLog('M', 1001, 'push', format('Push сообщение передано на отправку: %s', nMessageId), pObject);
+      uMessageId := SendFCM(pObject, projectId, GetUserName(pUserId), pSubject, message::text);
+      PERFORM WriteToEventLog('M', 1001, 'push', format('Push сообщение передано на отправку: %s', uMessageId), pObject);
+    END LOOP;
+  ELSE
+    PERFORM WriteToEventLog('E', 3001, 'push', 'Не удалось отправить Push сообщение, токен не установлен.', pObject);
+  END IF;
+END
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- SendPushData ----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION SendPushData (
+  pObject       uuid,
+  pSubject      text,
+  pData         json,
+  pUserId       uuid DEFAULT current_userid(),
+  pPriority     text DEFAULT null,
+  pCollapse     text DEFAULT null
+) RETURNS       void
+AS $$
+DECLARE
+  uMessageId    uuid;
+
+  tokens        text[];
+
+  projectId     text;
+  token         text;
+
+  android       jsonb;
+  message       json;
+BEGIN
+  projectId := RegGetValueString('CURRENT_CONFIG', 'CONFIG\Firebase', 'ProjectId');
+  tokens := DoFCMTokens(pUserId);
+
+  IF tokens IS NOT NULL THEN
+    FOR i IN 1..array_length(tokens, 1)
+    LOOP
+      token := tokens[i];
+
+      android := jsonb_build_object('priority', coalesce(pPriority, 'normal'));
+      IF pCollapse IS NOT NULL THEN
+        android := android || jsonb_build_object('collapse_key', pCollapse);
+      END IF;
+
+      message := json_build_object('message', json_build_object('token', token, 'android', android::json, 'data', pData));
+
+      uMessageId := SendFCM(pObject, projectId, GetUserName(pUserId), pSubject, message::text);
+      PERFORM WriteToEventLog('M', 1001, 'push', format('Push сообщение передано на отправку: %s', uMessageId), pObject);
     END LOOP;
   ELSE
     PERFORM WriteToEventLog('E', 3001, 'push', 'Не удалось отправить Push сообщение, токен не установлен.', pObject);
@@ -557,13 +607,13 @@ CREATE OR REPLACE FUNCTION RecoveryPasswordByPhone (
 AS $$
 DECLARE
   nTicket         uuid;
-  nMessageId      uuid;
+  uMessageId      uuid;
   vSecurityAnswer text;
 BEGIN
   vSecurityAnswer := random_between(100000, 999999)::text;
 
-  nMessageId := SendSMS(null, 'main', format('Код для восстановления пароля: %s. Никому его не сообщайте!', vSecurityAnswer), pUserId);
-  IF nMessageId IS NOT NULL THEN
+  uMessageId := SendSMS(null, 'main', format('Код для восстановления пароля: %s. Никому его не сообщайте!', vSecurityAnswer), pUserId);
+  IF uMessageId IS NOT NULL THEN
     PERFORM CreateNotice(pUserId, null, format('Код для восстановления пароля: %s.', vSecurityAnswer));
     nTicket := NewRecoveryTicket(pUserId, vSecurityAnswer, Now(), Now() + INTERVAL '5 min');
   END IF;

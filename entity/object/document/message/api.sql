@@ -502,3 +502,33 @@ END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.send_push_data ----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.send_push_data (
+  pObject       uuid,
+  pSubject		text,
+  pData         json,
+  pUserId       uuid DEFAULT current_userid(),
+  pPriority     text DEFAULT null,
+  pCollapse     text DEFAULT null
+) RETURNS	    SETOF api.message
+AS $$
+DECLARE
+  uMessageId	uuid;
+  vOAuthSecret	text;
+BEGIN
+  IF IsUserRole(GetGroup('system'), session_userid()) THEN
+	SELECT secret INTO vOAuthSecret FROM oauth2.audience WHERE code = session_username();
+	PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
+  END IF;
+
+  uMessageId := SendPushData(pObject, pSubject, pData, pUserId, pPriority, pCollapse);
+
+  RETURN QUERY SELECT * FROM api.message WHERE id = uMessageId;
+END
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
