@@ -1,4 +1,45 @@
 --------------------------------------------------------------------------------
+-- NewDocumentText -------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION NewDocumentText (
+  pDocument     uuid,
+  pDescription  text,
+  pLocale		uuid DEFAULT current_locale()
+) RETURNS       void
+AS $$
+BEGIN
+  INSERT INTO db.document_text (document, locale, description)
+  VALUES (pDocument, pLocale, pDescription);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- EditDocumentText ------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION EditDocumentText (
+  pDocument     uuid,
+  pDescription  text,
+  pLocale		uuid DEFAULT null
+) RETURNS       void
+AS $$
+BEGIN
+  UPDATE db.document_text
+     SET description = CheckNull(coalesce(pDescription, description, '<null>'))
+   WHERE document = pDocument AND locale = pLocale;
+
+  IF NOT FOUND THEN
+    PERFORM NewDocumentText(pDocument, pLocale, pDescription);
+  END IF;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- CreateDocument --------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -8,10 +49,12 @@ CREATE OR REPLACE FUNCTION CreateDocument (
   pLabel	    text DEFAULT null,
   pDescription  text DEFAULT null,
   pText			text DEFAULT null,
-  pLocale		uuid DEFAULT current_locale()
+  pLocale		uuid DEFAULT null
 ) RETURNS 	    uuid
 AS $$
 DECLARE
+  l				record;
+
   uObject	    uuid;
   uEntity		uuid;
   uClass        uuid;
@@ -25,8 +68,14 @@ BEGIN
   VALUES (uObject, uObject, uEntity, uClass, pType, current_area())
   RETURNING id INTO uObject;
 
-  INSERT INTO db.document_text (document, locale, description)
-  VALUES (uObject, pLocale, pDescription);
+  IF pLocale IS NULL THEN
+	FOR l IN SELECT id FROM db.locale
+	LOOP
+	  PERFORM NewDocumentText(uObject, l.id, pDescription);
+	END LOOP;
+  ELSE
+    PERFORM NewDocumentText(uObject, pLocale, pDescription);
+  END IF;
 
   RETURN uObject;
 END;
@@ -45,9 +94,11 @@ CREATE OR REPLACE FUNCTION EditDocument (
   pLabel        text DEFAULT null,
   pDescription  text DEFAULT null,
   pText			text DEFAULT null,
-  pLocale		uuid DEFAULT current_locale()
+  pLocale		uuid DEFAULT null
 ) RETURNS       void
 AS $$
+DECLARE
+  l				record;
 BEGIN
   PERFORM EditObject(pId, pParent, pType, pLabel, coalesce(pText, pDescription));
 
@@ -55,13 +106,13 @@ BEGIN
      SET type = coalesce(pType, type)
    WHERE id = pId;
 
-  UPDATE db.document_text
-     SET description = CheckNull(coalesce(pDescription, description, '<null>'))
-   WHERE document = pId AND locale = pLocale;
-
-  IF NOT FOUND THEN
-	INSERT INTO db.document_text (document, locale, description)
-	VALUES (pId, pLocale, pDescription);
+  IF pLocale IS NULL THEN
+	FOR l IN SELECT id FROM db.locale
+	LOOP
+	  PERFORM EditDocumentText(pId, l.id, pDescription);
+	END LOOP;
+  ELSE
+    PERFORM EditDocumentText(pId, pLocale, pDescription);
   END IF;
 END;
 $$ LANGUAGE plpgsql

@@ -114,7 +114,7 @@ BEGIN
   vHash := encode(digest(pName || pShort || pFirst || pLast || pMiddle, 'md5'), 'hex');
   cHash := encode(digest(r.name || coalesce(r.short, '<null>') || coalesce(r.first, '<null>') || coalesce(r.last, '<null>') || coalesce(r.middle, '<null>'), 'md5'), 'hex');
 
-  IF vHash <> cHash THEN
+  IF vHash IS DISTINCT FROM cHash THEN
     PERFORM NewClientName(pClient, pName, CheckNull(pShort), CheckNull(pFirst), CheckNull(pLast), CheckNull(pMiddle), pLocale, pDateFrom);
 
     uMethod := GetMethod(GetObjectClass(pClient), GetAction('edit'));
@@ -275,6 +275,8 @@ CREATE OR REPLACE FUNCTION CreateClient (
 ) RETURNS 	    uuid
 AS $$
 DECLARE
+  l             record;
+
   uId		    uuid;
   uClient	    uuid;
   uDocument	    uuid;
@@ -312,7 +314,10 @@ BEGIN
   VALUES (uDocument, uDocument, pCode, pCreation, pUserId, pPhone, pEmail, pInfo)
   RETURNING id INTO uClient;
 
-  PERFORM NewClientName(uClient, cn.name, cn.short, cn.first, cn.last, cn.middle);
+  FOR l IN SELECT id FROM db.locale
+  LOOP
+    PERFORM NewClientName(uClient, cn.name, cn.short, cn.first, cn.last, cn.middle, l.id);
+  END LOOP;
 
   uMethod := GetMethod(uClass, GetAction('create'));
   PERFORM ExecuteMethod(uClient, uMethod);

@@ -1,4 +1,48 @@
 --------------------------------------------------------------------------------
+-- NewReferenceText ------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION NewReferenceText (
+  pReference    uuid,
+  pName         text,
+  pDescription  text DEFAULT null,
+  pLocale		uuid DEFAULT current_locale()
+) RETURNS       void
+AS $$
+BEGIN
+  INSERT INTO db.reference_text (reference, locale, name, description)
+  VALUES (pReference, pLocale, pName, pDescription);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- EditReferenceText -----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION EditReferenceText (
+  pReference    uuid,
+  pName         text,
+  pDescription  text DEFAULT null,
+  pLocale		uuid DEFAULT null
+) RETURNS       void
+AS $$
+BEGIN
+  UPDATE db.reference_text
+     SET name = CheckNull(coalesce(pName, name, '<null>')),
+         description = CheckNull(coalesce(pDescription, description, '<null>'))
+   WHERE reference = pReference AND locale = pLocale;
+
+  IF NOT FOUND THEN
+    PERFORM NewReferenceText(pReference, pLocale, pName, pDescription);
+  END IF;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- CreateReference -------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -8,10 +52,12 @@ CREATE OR REPLACE FUNCTION CreateReference (
   pCode         text,
   pName         text,
   pDescription  text DEFAULT null,
-  pLocale		uuid DEFAULT current_locale()
+  pLocale		uuid DEFAULT null
 ) RETURNS       uuid
 AS $$
 DECLARE
+  l				record;
+
   uObject       uuid;
   uEntity       uuid;
   uClass        uuid;
@@ -21,12 +67,18 @@ BEGIN
   uEntity := GetObjectEntity(uObject);
   uClass := GetObjectClass(uObject);
 
-  INSERT INTO db.reference (id, object, entity, class, type, code)
-  VALUES (uObject, uObject, uEntity, uClass, pType, pCode)
+  INSERT INTO db.reference (id, object, scope, entity, class, type, code)
+  VALUES (uObject, uObject, current_scope(), uEntity, uClass, pType, pCode)
   RETURNING id INTO uObject;
 
-  INSERT INTO db.reference_text (reference, locale, name, description)
-  VALUES (uObject, pLocale, pName, pDescription);
+  IF pLocale IS NULL THEN
+	FOR l IN SELECT id FROM db.locale
+	LOOP
+	  PERFORM NewReferenceText(uObject, l.id, pName, pDescription);
+	END LOOP;
+  ELSE
+    PERFORM NewReferenceText(uObject, pLocale, pName, pDescription);
+  END IF;
 
   RETURN uObject;
 END;
@@ -45,9 +97,11 @@ CREATE OR REPLACE FUNCTION EditReference (
   pCode         text DEFAULT null,
   pName         text DEFAULT null,
   pDescription  text DEFAULT null,
-  pLocale		uuid DEFAULT current_locale()
+  pLocale		uuid DEFAULT null
 ) RETURNS       void
 AS $$
+DECLARE
+  l				record;
 BEGIN
   PERFORM EditObject(pId, pParent, pType, pName, pDescription);
 
@@ -56,14 +110,13 @@ BEGIN
          code = coalesce(pCode, code)
    WHERE id = pId;
 
-  UPDATE db.reference_text
-     SET name = CheckNull(coalesce(pName, name, '<null>')),
-         description = CheckNull(coalesce(pDescription, description, '<null>'))
-   WHERE reference = pId AND locale = pLocale;
-
-  IF NOT FOUND THEN
-	INSERT INTO db.reference_text (reference, locale, name, description)
-	VALUES (pId, pLocale, pName, pDescription);
+  IF pLocale IS NULL THEN
+	FOR l IN SELECT id FROM db.locale
+	LOOP
+	  PERFORM EditReferenceText(pId, l.id, pName, pDescription);
+	END LOOP;
+  ELSE
+    PERFORM EditReferenceText(pId, pLocale, pName, pDescription);
   END IF;
 END;
 $$ LANGUAGE plpgsql
