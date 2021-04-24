@@ -32,7 +32,7 @@ BEGIN
    WHERE document = pDocument AND locale = pLocale;
 
   IF NOT FOUND THEN
-    PERFORM NewDocumentText(pDocument, pLocale, pDescription);
+    PERFORM NewDocumentText(pDocument, pDescription, pLocale);
   END IF;
 END;
 $$ LANGUAGE plpgsql

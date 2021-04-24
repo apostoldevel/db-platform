@@ -35,7 +35,7 @@ BEGIN
    WHERE reference = pReference AND locale = pLocale;
 
   IF NOT FOUND THEN
-    PERFORM NewReferenceText(pReference, pLocale, pName, pDescription);
+    PERFORM NewReferenceText(pReference, pName, pDescription, pLocale);
   END IF;
 END;
 $$ LANGUAGE plpgsql
