@@ -76,12 +76,12 @@ CREATE OR REPLACE FUNCTION AddRecoveryTicket (
 ) RETURNS			uuid
 AS $$
 DECLARE
-  nTicket			uuid;
+  uTicket			uuid;
   dtDateFrom		timestamptz;
   dtDateTo			timestamptz;
 BEGIN
   -- получим дату значения в текущем диапозоне дат
-  SELECT ticket, validFromDate, validToDate INTO nTicket, dtDateFrom, dtDateTo
+  SELECT ticket, validFromDate, validToDate INTO uTicket, dtDateFrom, dtDateTo
     FROM db.recovery_ticket
    WHERE userid = pUserId
      AND validFromDate <= pDateFrom
@@ -102,10 +102,10 @@ BEGIN
 
     INSERT INTO db.recovery_ticket (userid, securityAnswer, validFromDate, validtodate)
     VALUES (pUserId, pSecurityAnswer, pDateFrom, pDateTo)
-    RETURNING ticket INTO nTicket;
+    RETURNING ticket INTO uTicket;
   END IF;
 
-  RETURN nTicket;
+  RETURN uTicket;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -139,15 +139,15 @@ CREATE OR REPLACE FUNCTION GetRecoveryTicket (
 ) RETURNS			uuid
 AS $$
 DECLARE
-  nTicket			uuid;
+  uTicket			uuid;
 BEGIN
-  SELECT ticket INTO nTicket
+  SELECT ticket INTO uTicket
     FROM db.recovery_ticket
    WHERE userid = pUserId
      AND validFromDate <= pDateFrom
      AND validToDate > pDateFrom;
 
-  RETURN nTicket;
+  RETURN uTicket;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

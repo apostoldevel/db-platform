@@ -554,7 +554,7 @@ CREATE OR REPLACE FUNCTION api.recovery_password (
 ) RETURNS			uuid
 AS $$
 DECLARE
-  nTicket			uuid;
+  uTicket			uuid;
   uUserId			uuid;
   vOAuthSecret		text;
 BEGIN
@@ -565,11 +565,11 @@ BEGIN
 	  SELECT a.secret INTO vOAuthSecret FROM oauth2.audience a WHERE a.code = session_username();
 	  IF FOUND THEN
 		PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
-		nTicket := RecoveryPasswordByPhone(uUserId);
+		uTicket := RecoveryPasswordByPhone(uUserId);
 		PERFORM SubstituteUser(session_userid(), vOAuthSecret);
 	  END IF;
 	ELSE
-	  nTicket := RecoveryPasswordByPhone(uUserId);
+	  uTicket := RecoveryPasswordByPhone(uUserId);
 	END IF;
   END IF;
 
@@ -580,15 +580,15 @@ BEGIN
 	  SELECT a.secret INTO vOAuthSecret FROM oauth2.audience a WHERE a.code = session_username();
 	  IF FOUND THEN
 		PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
-		nTicket := RecoveryPasswordByEmail(uUserId);
+		uTicket := RecoveryPasswordByEmail(uUserId);
 		PERFORM SubstituteUser(session_userid(), vOAuthSecret);
 	  END IF;
 	ELSE
-	  nTicket := RecoveryPasswordByEmail(uUserId);
+	  uTicket := RecoveryPasswordByEmail(uUserId);
 	END IF;
   END IF;
 
-  RETURN coalesce(nTicket, gen_random_uuid());
+  RETURN coalesce(uTicket, gen_random_uuid());
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

@@ -411,10 +411,10 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION SendPush (
   pObject       uuid,
-  pSubject      text,
-  pData         json,
+  pTitle        text,
+  pBody         text,
   pUserId       uuid DEFAULT current_userid(),
-  pPriority     text DEFAULT 'normal'
+  pPriority     text DEFAULT null
 ) RETURNS       void
 AS $$
 DECLARE
@@ -435,9 +435,9 @@ BEGIN
     LOOP
       token := tokens[i];
 
-      message := json_build_object('message', json_build_object('token', token, 'android', json_build_object('priority', pPriority), 'data', pData));
+      message := json_build_object('message', json_build_object('token', token, 'android', json_build_object('priority', coalesce(pPriority, 'normal')), 'notification', json_build_object('title', pTitle, 'body', pBody)));
 
-      uMessageId := SendFCM(pObject, projectId, GetUserName(pUserId), pSubject, message::text);
+      uMessageId := SendFCM(pObject, projectId, GetUserName(pUserId), pTitle, message::text);
       PERFORM WriteToEventLog('M', 1001, 'push', format('Push сообщение передано на отправку: %s', uMessageId), pObject);
     END LOOP;
   ELSE
@@ -511,7 +511,7 @@ CREATE OR REPLACE FUNCTION RecoveryPasswordByEmail (
 ) RETURNS         uuid
 AS $$
 DECLARE
-  nTicket         uuid;
+  uTicket         uuid;
 
   vName           text;
   vDomain         text;
@@ -563,10 +563,10 @@ BEGIN
   END IF;
 
   vSecurityAnswer := encode(digest(gen_random_bytes(15), 'sha1'), 'hex');
-  nTicket := NewRecoveryTicket(pUserId, vSecurityAnswer, Now(), Now() + INTERVAL '1 hour');
+  uTicket := NewRecoveryTicket(pUserId, vSecurityAnswer, Now(), Now() + INTERVAL '1 hour');
 
-  vText := GetRecoveryPasswordEmailText(vName, vUserName, nTicket::text, vSecurityAnswer, vProject, vHost, vSupport);
-  vHTML := GetRecoveryPasswordEmailHTML(vName, vUserName, nTicket::text, vSecurityAnswer, vProject, vHost, vSupport);
+  vText := GetRecoveryPasswordEmailText(vName, vUserName, uTicket::text, vSecurityAnswer, vProject, vHost, vSupport);
+  vHTML := GetRecoveryPasswordEmailHTML(vName, vUserName, uTicket::text, vSecurityAnswer, vProject, vHost, vSupport);
 
   vBody := CreateMailBody(vProject, vNoReply, null, vEmail, vSubject, vText, vHTML);
 
@@ -575,7 +575,7 @@ BEGIN
 
   PERFORM WriteToEventLog('M', 1001, 'email', vDescription);
 
-  RETURN nTicket;
+  RETURN uTicket;
 EXCEPTION
 WHEN others THEN
   GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
@@ -606,7 +606,7 @@ CREATE OR REPLACE FUNCTION RecoveryPasswordByPhone (
 ) RETURNS         uuid
 AS $$
 DECLARE
-  nTicket         uuid;
+  uTicket         uuid;
   uMessageId      uuid;
   vSecurityAnswer text;
 BEGIN
@@ -615,10 +615,10 @@ BEGIN
   uMessageId := SendSMS(null, 'main', format('Код для восстановления пароля: %s. Никому его не сообщайте!', vSecurityAnswer), pUserId);
   IF uMessageId IS NOT NULL THEN
     PERFORM CreateNotice(pUserId, null, format('Код для восстановления пароля: %s.', vSecurityAnswer));
-    nTicket := NewRecoveryTicket(pUserId, vSecurityAnswer, Now(), Now() + INTERVAL '5 min');
+    uTicket := NewRecoveryTicket(pUserId, vSecurityAnswer, Now(), Now() + INTERVAL '5 min');
   END IF;
 
-  RETURN nTicket;
+  RETURN uTicket;
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
