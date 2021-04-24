@@ -71,10 +71,10 @@ BEGIN
   IF pLocale IS NULL THEN
 	FOR l IN SELECT id FROM db.locale
 	LOOP
-	  PERFORM NewDocumentText(uObject, l.id, pDescription);
+	  PERFORM NewDocumentText(uObject, pDescription, l.id);
 	END LOOP;
   ELSE
-    PERFORM NewDocumentText(uObject, pLocale, pDescription);
+    PERFORM NewDocumentText(uObject, pDescription, pLocale);
   END IF;
 
   RETURN uObject;

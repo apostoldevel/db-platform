@@ -74,10 +74,10 @@ BEGIN
   IF pLocale IS NULL THEN
 	FOR l IN SELECT id FROM db.locale
 	LOOP
-	  PERFORM NewReferenceText(uObject, l.id, pName, pDescription);
+	  PERFORM NewReferenceText(uObject, pName, pDescription, l.id);
 	END LOOP;
   ELSE
-    PERFORM NewReferenceText(uObject, pLocale, pName, pDescription);
+    PERFORM NewReferenceText(uObject, pName, pDescription, pLocale);
   END IF;
 
   RETURN uObject;
