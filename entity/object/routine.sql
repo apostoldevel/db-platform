@@ -36,7 +36,7 @@ AS $$
   WITH member_group AS (
       SELECT pUserId AS userid UNION SELECT userid FROM db.member_group WHERE member = pUserId
   )
-  SELECT a.object, bit_or(a.deny), bit_or(a.allow), bit_or(allow) & ~bit_or(deny)
+  SELECT a.object, bit_or(a.deny), bit_or(a.allow), bit_or(a.allow) & ~bit_or(a.deny)
     FROM db.aou a INNER JOIN member_group m ON a.userid = m.userid
      AND a.object = pObject
    GROUP BY a.object
@@ -198,6 +198,50 @@ $$ LANGUAGE SQL
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- NewObjectText ---------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION NewObjectText (
+  pObject   uuid,
+  pLabel    text,
+  pText     text,
+  pLocale   uuid DEFAULT current_locale()
+) RETURNS   void
+AS $$
+BEGIN
+  INSERT INTO db.object_text (object, locale, label, text)
+  VALUES (pObject, pLocale, pLabel, pText);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- EditObjectText --------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION EditObjectText (
+  pObject       uuid,
+  pLabel        text,
+  pText         text,
+  pLocale		uuid DEFAULT null
+) RETURNS       void
+AS $$
+BEGIN
+  UPDATE db.object_text
+     SET label = CheckNull(coalesce(pLabel, label, '<null>')),
+         text =  CheckNull(coalesce(pText, text, '<null>'))
+   WHERE object = pObject AND locale = pLocale;
+
+  IF NOT FOUND THEN
+    PERFORM NewObjectText(pObject, pLabel, pText, pLocale);
+  END IF;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- CreateObject ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -206,18 +250,25 @@ CREATE OR REPLACE FUNCTION CreateObject (
   pType     uuid,
   pLabel	text DEFAULT null,
   pText		text DEFAULT null,
-  pLocale	uuid DEFAULT current_locale()
+  pLocale	uuid DEFAULT null
 ) RETURNS 	uuid
 AS $$
 DECLARE
+  l			record;
   uId		uuid;
 BEGIN
   INSERT INTO db.object (parent, type)
   VALUES (pParent, pType)
   RETURNING id INTO uId;
 
-  INSERT INTO db.object_text (object, locale, label, text)
-  VALUES (uId, pLocale, pLabel, pText);
+  IF pLocale IS NULL THEN
+	FOR l IN SELECT id FROM db.locale
+	LOOP
+	  PERFORM NewObjectText(uId, pLabel, pText, l.id);
+	END LOOP;
+  ELSE
+    PERFORM NewObjectText(uId, pLabel, pText, pLocale);
+  END IF;
 
   RETURN uId;
 END;
@@ -235,24 +286,24 @@ CREATE OR REPLACE FUNCTION EditObject (
   pType		uuid DEFAULT null,
   pLabel	text DEFAULT null,
   pText		text DEFAULT null,
-  pLocale	uuid DEFAULT current_locale()
+  pLocale	uuid DEFAULT null
 ) RETURNS	void
 AS $$
+DECLARE
+  l			record;
 BEGIN
   UPDATE db.object
      SET type = coalesce(pType, type),
          parent = CheckNull(coalesce(pParent, parent, null_uuid()))
    WHERE id = pId;
 
-  UPDATE db.object_text
-     SET label = CheckNull(coalesce(pLabel, label, '<null>')),
-         text = CheckNull(coalesce(pText, text, '<null>'))
-   WHERE object = pId
-     AND locale = pLocale;
-
-  IF NOT FOUND THEN
-	INSERT INTO db.object_text (object, locale, label, text)
-	VALUES (pId, pLocale, pLabel, pText);
+  IF pLocale IS NULL THEN
+	FOR l IN SELECT id FROM db.locale
+	LOOP
+	  PERFORM EditObjectText(pId, pLabel, pText, l.id);
+	END LOOP;
+  ELSE
+    PERFORM EditObjectText(pId, pLabel, pText, pLocale);
   END IF;
 END;
 $$ LANGUAGE plpgsql
