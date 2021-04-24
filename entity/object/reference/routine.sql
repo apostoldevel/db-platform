@@ -113,10 +113,10 @@ BEGIN
   IF pLocale IS NULL THEN
 	FOR l IN SELECT id FROM db.locale
 	LOOP
-	  PERFORM EditReferenceText(pId, l.id, pName, pDescription);
+	  PERFORM EditReferenceText(pId, pName, pDescription, l.id);
 	END LOOP;
   ELSE
-    PERFORM EditReferenceText(pId, pLocale, pName, pDescription);
+    PERFORM EditReferenceText(pId, pName, pDescription, pLocale);
   END IF;
 END;
 $$ LANGUAGE plpgsql

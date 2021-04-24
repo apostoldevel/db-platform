@@ -109,10 +109,10 @@ BEGIN
   IF pLocale IS NULL THEN
 	FOR l IN SELECT id FROM db.locale
 	LOOP
-	  PERFORM EditDocumentText(pId, l.id, pDescription);
+	  PERFORM EditDocumentText(pId, pDescription, l.id);
 	END LOOP;
   ELSE
-    PERFORM EditDocumentText(pId, pLocale, pDescription);
+    PERFORM EditDocumentText(pId, pDescription, pLocale);
   END IF;
 END;
 $$ LANGUAGE plpgsql
