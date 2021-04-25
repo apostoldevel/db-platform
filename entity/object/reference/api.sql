@@ -52,17 +52,17 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_reference (
-  pId		    uuid,
+  pId           uuid,
   pParent       uuid DEFAULT null,
   pType         text DEFAULT null,
-  pCode			text DEFAULT null,
-  pName			text DEFAULT null,
+  pCode         text DEFAULT null,
+  pName         text DEFAULT null,
   pDescription  text DEFAULT null
 ) RETURNS       void
 AS $$
 DECLARE
   uType         uuid;
-  uReference	uuid;
+  uReference    uuid;
 BEGIN
   SELECT t.id INTO uReference FROM db.reference t WHERE t.id = pId;
 
@@ -87,11 +87,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.set_reference (
-  pId		    uuid,
+  pId           uuid,
   pParent       uuid DEFAULT null,
   pType         text DEFAULT null,
-  pCode			text DEFAULT null,
-  pName			text DEFAULT null,
+  pCode         text DEFAULT null,
+  pName         text DEFAULT null,
   pDescription  text DEFAULT null
 ) RETURNS       SETOF api.reference
 AS $$
@@ -117,8 +117,8 @@ $$ LANGUAGE plpgsql
  * @return {api.reference}
  */
 CREATE OR REPLACE FUNCTION api.get_reference (
-  pId		uuid
-) RETURNS	api.reference
+  pId        uuid
+) RETURNS    api.reference
 AS $$
   SELECT * FROM api.reference WHERE id = pId
 $$ LANGUAGE SQL
@@ -138,12 +138,12 @@ $$ LANGUAGE SQL
  * @return {SETOF api.reference}
  */
 CREATE OR REPLACE FUNCTION api.list_reference (
-  pSearch	jsonb DEFAULT null,
-  pFilter	jsonb DEFAULT null,
-  pLimit	integer DEFAULT null,
-  pOffSet	integer DEFAULT null,
-  pOrderBy	jsonb DEFAULT null
-) RETURNS	SETOF api.reference
+  pSearch    jsonb DEFAULT null,
+  pFilter    jsonb DEFAULT null,
+  pLimit     integer DEFAULT null,
+  pOffSet    integer DEFAULT null,
+  pOrderBy   jsonb DEFAULT null
+) RETURNS    SETOF api.reference
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'reference', pSearch, pFilter, pLimit, pOffSet, pOrderBy);

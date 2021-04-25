@@ -13,16 +13,8 @@
 \echo [M] call event.sql
 \ir event.sql
 
-\ir './agent/update.psql'
-\ir './calendar/update.psql'
-\ir './category/update.psql'
-\ir './currency/update.psql'
-\ir './measure/update.psql'
 \ir './vendor/update.psql'
+\ir './agent/update.psql'
 \ir './program/update.psql'
-\ir './project/update.psql'
-\ir './property/update.psql'
 \ir './scheduler/update.psql'
 \ir './version/update.psql'
-
-\ir './model/update.psql'

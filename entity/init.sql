@@ -22,22 +22,6 @@ BEGIN
 
     uDocument := GetClass('document');
 
-      -- Счёт
-
-      PERFORM CreateEntityAccount(uDocument);
-
-      -- Адрес
-
-      PERFORM CreateEntityAddress(uDocument);
-
-      -- Клиент
-
-      PERFORM CreateEntityClient(uDocument);
-
-      -- Устройство
-
-      PERFORM CreateEntityDevice(uDocument);
-
       -- Задание
 
       PERFORM CreateEntityJob(uDocument);
@@ -56,45 +40,17 @@ BEGIN
 
       PERFORM CreateEntityAgent(uReference);
 
-      -- Календарь
-
-      PERFORM CreateEntityCalendar(uReference);
-
-      -- Категория
-
-      PERFORM CreateEntityCategory(uReference);
-
-      -- Валюта
-
-      PERFORM CreateEntityCurrency(uReference);
-
-	  -- Мера
-  
-	  PERFORM CreateEntityMeasure(uReference);
-
-      -- Модель
-
-      PERFORM CreateEntityModel(uReference);
-
       -- Программа
 
       PERFORM CreateEntityProgram(uReference);
-
-      -- Проект
-
-      PERFORM CreateEntityProject(uReference);
-
-      -- Свойство
-
-      PERFORM CreateEntityProperty(uReference);
 
       -- Планировщик
 
       PERFORM CreateEntityScheduler(uReference);
 
-      -- Производитель
+	  -- Производитель
 
-      PERFORM CreateEntityVendor(uReference);
+	  PERFORM CreateEntityVendor(uReference);
 
       -- Версия
 
