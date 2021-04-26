@@ -592,13 +592,8 @@ CREATE OR REPLACE FUNCTION GetTypeCode (
   pId		uuid
 ) RETURNS	text
 AS $$
-DECLARE
-  vCode		text;
-BEGIN
-  SELECT code INTO vCode FROM db.type WHERE id = pId;
-  return vCode;
-END;
-$$ LANGUAGE plpgsql
+  SELECT code FROM db.type WHERE id = pId;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -610,13 +605,8 @@ CREATE OR REPLACE FUNCTION GetTypeName (
   pId		uuid
 ) RETURNS	text
 AS $$
-DECLARE
-  vName		text;
-BEGIN
-  SELECT name INTO vName FROM db.type WHERE id = pId;
-  return vName;
-END;
-$$ LANGUAGE plpgsql
+  SELECT name FROM db.type WHERE id = pId;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
