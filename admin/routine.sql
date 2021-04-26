@@ -3301,6 +3301,7 @@ BEGIN
   END IF;
 
   UPDATE db.session SET area = pArea WHERE code = pSession;
+  UPDATE db.profile SET area = pArea WHERE userid = pMember;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
