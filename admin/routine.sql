@@ -1764,6 +1764,35 @@ $$ LANGUAGE plpgsql STABLE
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- SetDefaultLocale ------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION SetDefaultLocale (
+  pLocale   uuid DEFAULT current_locale(),
+  pUserId	uuid DEFAULT current_userid()
+) RETURNS	void
+AS $$
+BEGIN
+  UPDATE db.profile SET locale = pLocale WHERE userid = pUserId;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- GetDefaultLocale ------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetDefaultLocale (
+  pUserId   uuid DEFAULT current_userid()
+) RETURNS	uuid
+AS $$
+  SELECT locale FROM db.profile WHERE userid = pUserId;
+$$ LANGUAGE sql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- FUNCTION SetSessionLocale ---------------------------------------------------
 --------------------------------------------------------------------------------
 /**
@@ -1777,8 +1806,12 @@ CREATE OR REPLACE FUNCTION SetSessionLocale (
   pSession	varchar DEFAULT current_session()
 ) RETURNS	void
 AS $$
+DECLARE
+  uUserId	uuid;
 BEGIN
   UPDATE db.session SET locale = pLocale WHERE code = pSession;
+  SELECT userid INTO uUserId FROM db.session WHERE code = pSession;
+  PERFORM SetDefaultLocale(pLocale, uUserId);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -3099,15 +3132,15 @@ BEGIN
 
   IF uParent IS DISTINCT FROM pParent THEN
     SELECT max(sequence) + 1 INTO nSequence FROM db.area WHERE parent IS NOT DISTINCT FROM pParent;
-    PERFORM SortCatalog(uParent);
+    PERFORM SortArea(uParent);
   END IF;
 
   IF pSequence < nSequence THEN
-    PERFORM SetCatalogSequence(pId, pSequence, 1);
+    PERFORM SetAreaSequence(pId, pSequence, 1);
   END IF;
 
   IF pSequence > nSequence THEN
-    PERFORM SetCatalogSequence(pId, pSequence, -1);
+    PERFORM SetAreaSequence(pId, pSequence, -1);
   END IF;
 END;
 $$ LANGUAGE plpgsql
@@ -3875,6 +3908,21 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- FUNCTION DoLogin ------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION DoLogin (
+  pUserId		uuid
+) RETURNS		void
+AS $$
+BEGIN
+  RETURN;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- Login -----------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
@@ -3964,6 +4012,7 @@ BEGIN
            lc_ip = pHost
      WHERE userid = up.id;
 
+    PERFORM DoLogin(up.id);
   ELSE
 
     PERFORM SetCurrentSession(null);
@@ -4008,7 +4057,8 @@ DECLARE
 
   nInputError   integer;
 
-  message       text;
+  vMessage      text;
+  vContext      text;
 BEGIN
   PERFORM SetErrorMessage('Успешно.');
 
@@ -4016,9 +4066,9 @@ BEGIN
     RETURN Login(pOAuth2, pRoleName, pPassword, pAgent, pHost);
   EXCEPTION
   WHEN others THEN
-    GET STACKED DIAGNOSTICS message = MESSAGE_TEXT;
+    GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
 
-    PERFORM SetErrorMessage(message);
+    PERFORM SetErrorMessage(vMessage);
 
     PERFORM SetCurrentSession(null);
     PERFORM SetCurrentUserId(null);
@@ -4042,7 +4092,10 @@ BEGIN
       END IF;
 
       INSERT INTO db.log (type, code, username, event, text)
-      VALUES ('E', 3100, pRoleName, 'login', message);
+      VALUES ('E', 3100, pRoleName, 'login', vMessage);
+
+      INSERT INTO db.log (type, code, username, event, text)
+      VALUES ('E', 9100, pRoleName, 'login', vContext);
     END IF;
 
     RETURN null;
@@ -4135,25 +4188,30 @@ CREATE OR REPLACE FUNCTION SignOut (
 AS $$
 DECLARE
   uUserId       uuid;
-  message       text;
+
+  vMessage      text;
+  vContext      text;
 BEGIN
   RETURN SessionOut(pSession, pCloseAll);
 EXCEPTION
 WHEN others THEN
-  GET STACKED DIAGNOSTICS message = MESSAGE_TEXT;
+  GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
+
+  PERFORM SetErrorMessage(vMessage);
 
   PERFORM SetCurrentSession(null);
   PERFORM SetCurrentUserId(null);
   PERFORM SetOAuth2ClientId(null);
-
-  PERFORM SetErrorMessage(message);
 
   IF pSession IS NOT NULL THEN
 	SELECT userid INTO uUserId FROM db.session WHERE code = pSession;
 
 	IF FOUND THEN
 	  INSERT INTO db.log (type, code, username, session, event, text)
-	  VALUES ('E', 3100, GetUserName(uUserId), pSession, 'logout', 'Выход из системы. ' || message);
+	  VALUES ('E', 3100, GetUserName(uUserId), pSession, 'logout', 'Выход из системы. ' || vMessage);
+
+	  INSERT INTO db.log (type, code, username, session, event, text)
+	  VALUES ('D', 9100, GetUserName(uUserId), pSession, 'logout', vContext);
 	END IF;
   END IF;
 
