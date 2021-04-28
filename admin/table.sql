@@ -980,7 +980,7 @@ BEGIN
     END IF;
 
     IF NEW.locale IS NULL THEN
-      SELECT id INTO NEW.locale FROM db.locale WHERE code = 'ru';
+      SELECT id INTO NEW.locale FROM db.locale WHERE id = GetDefaultLocale(NEW.userid);
     END IF;
 
     IF NEW.area IS NULL THEN
