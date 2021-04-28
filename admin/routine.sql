@@ -1764,35 +1764,6 @@ $$ LANGUAGE plpgsql STABLE
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- SetDefaultLocale ------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION SetDefaultLocale (
-  pLocale   uuid DEFAULT current_locale(),
-  pUserId	uuid DEFAULT current_userid()
-) RETURNS	void
-AS $$
-BEGIN
-  UPDATE db.profile SET locale = pLocale WHERE userid = pUserId;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- GetDefaultLocale ------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION GetDefaultLocale (
-  pUserId   uuid DEFAULT current_userid()
-) RETURNS	uuid
-AS $$
-  SELECT locale FROM db.profile WHERE userid = pUserId;
-$$ LANGUAGE sql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
 -- FUNCTION SetSessionLocale ---------------------------------------------------
 --------------------------------------------------------------------------------
 /**
@@ -1909,6 +1880,35 @@ BEGIN
   RETURN coalesce(GetSessionLocale(pSession), GetLocale(locale_code(pSession)));
 END;
 $$ LANGUAGE plpgsql STABLE
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- SetDefaultLocale ------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION SetDefaultLocale (
+  pLocale   uuid DEFAULT current_locale(),
+  pUserId	uuid DEFAULT current_userid()
+) RETURNS	void
+AS $$
+BEGIN
+  UPDATE db.profile SET locale = pLocale WHERE userid = pUserId;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- GetDefaultLocale ------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetDefaultLocale (
+  pUserId   uuid DEFAULT current_userid()
+) RETURNS	uuid
+AS $$
+  SELECT locale FROM db.profile WHERE userid = pUserId;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 

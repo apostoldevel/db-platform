@@ -479,16 +479,17 @@ BEGIN
     FOR i IN 1..array_length(tokens, 1)
     LOOP
       token := tokens[i];
+      IF token IS NOT NULL THEN
+		android := jsonb_build_object('priority', coalesce(pPriority, 'normal'));
+		IF pCollapse IS NOT NULL THEN
+		  android := android || jsonb_build_object('collapse_key', pCollapse);
+		END IF;
 
-      android := jsonb_build_object('priority', coalesce(pPriority, 'normal'));
-      IF pCollapse IS NOT NULL THEN
-        android := android || jsonb_build_object('collapse_key', pCollapse);
+		message := json_build_object('message', json_build_object('token', token, 'android', android::json, 'data', pData));
+
+		uMessageId := SendFCM(pObject, projectId, GetUserName(pUserId), pSubject, message::text);
+		PERFORM WriteToEventLog('M', 1001, 'push', format('Push сообщение передано на отправку: %s', uMessageId), pObject);
       END IF;
-
-      message := json_build_object('message', json_build_object('token', token, 'android', android::json, 'data', pData));
-
-      uMessageId := SendFCM(pObject, projectId, GetUserName(pUserId), pSubject, message::text);
-      PERFORM WriteToEventLog('M', 1001, 'push', format('Push сообщение передано на отправку: %s', uMessageId), pObject);
     END LOOP;
   ELSE
     PERFORM WriteToEventLog('E', 3001, 'push', 'Не удалось отправить Push сообщение, токен не установлен.', pObject);

@@ -72,7 +72,7 @@ BEGIN
   IF NOT FOUND THEN
     result := array_append(result, RegGetValueString('CURRENT_USER', 'CONFIG\Firebase\CloudMessaging', 'Token', pUserId));
   ELSE
-	FOR r IN SELECT address FROM db.device WHERE client = uClient
+	FOR r IN SELECT address FROM db.device WHERE client = uClient AND IsEnabled(id)
 	LOOP
       result := array_append(result, r.address);
 	END LOOP;
