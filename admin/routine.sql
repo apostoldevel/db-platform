@@ -955,10 +955,10 @@ BEGIN
       vType := 'id token.';
     END CASE;
 
-    RETURN json_build_object('error', json_build_object('code', 400, 'error', 'invalid_grant', 'message', 'Malformed ' || vType));
+    RETURN json_build_object('error', json_build_object('code', 400, 'error', 'invalid_grant', 'message', format('Malformed %s', vType)));
   END IF;
 
-  IF pType = 'C' THEN
+  IF pType IN ('C', 'R') THEN
     UPDATE db.token SET used = Now() WHERE id = nToken;
   END IF;
 

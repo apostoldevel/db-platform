@@ -414,7 +414,9 @@ CREATE OR REPLACE FUNCTION SendPush (
   pTitle        text,
   pBody         text,
   pUserId       uuid DEFAULT current_userid(),
-  pPriority     text DEFAULT null
+  pData         jsonb DEFAULT null,
+  pAndroid      jsonb DEFAULT null,
+  pApns         jsonb DEFAULT null
 ) RETURNS       void
 AS $$
 DECLARE
@@ -425,6 +427,64 @@ DECLARE
   projectId     text;
   token         text;
 
+  message       jsonb;
+BEGIN
+  projectId := RegGetValueString('CURRENT_CONFIG', 'CONFIG\Firebase', 'ProjectId');
+  tokens := DoFCMTokens(pUserId);
+
+  IF tokens IS NOT NULL THEN
+    FOR i IN 1..array_length(tokens, 1)
+    LOOP
+      token := tokens[i];
+      IF token IS NOT NULL THEN
+		message := jsonb_build_object('message', jsonb_build_object('token', token, 'notification', jsonb_build_object('title', pTitle, 'body', pBody)));
+
+		IF pAndroid IS NOT NULL THEN
+		  message := message || jsonb_build_object('android', pAndroid);
+		END IF;
+
+		IF pApns IS NOT NULL THEN
+		  message := message || jsonb_build_object('apns', pApns);
+		END IF;
+
+		IF pData IS NOT NULL THEN
+		  message := message || jsonb_build_object('data', pData);
+		END IF;
+
+		uMessageId := SendFCM(pObject, projectId, GetUserName(pUserId), pTitle, message::text);
+		PERFORM WriteToEventLog('M', 1001, 'push', format('Push сообщение передано на отправку: %s', uMessageId), pObject);
+	  END IF;
+    END LOOP;
+  ELSE
+    PERFORM WriteToEventLog('E', 3001, 'push', 'Не удалось отправить Push сообщение, токен не установлен.', pObject);
+  END IF;
+END
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- SendPushData ----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION SendPushData (
+  pObject       uuid,
+  pSubject      text,
+  pData         json,
+  pUserId       uuid DEFAULT current_userid(),
+  pPriority     text DEFAULT null,
+  pCollapse     text DEFAULT null
+) RETURNS       void
+AS $$
+DECLARE
+  uMessageId    uuid;
+
+  tokens        text[];
+
+  projectId     text;
+  token         text;
+
+  android       jsonb;
   message       json;
 BEGIN
   projectId := RegGetValueString('CURRENT_CONFIG', 'CONFIG\Firebase', 'ProjectId');
@@ -434,11 +494,17 @@ BEGIN
     FOR i IN 1..array_length(tokens, 1)
     LOOP
       token := tokens[i];
+      IF token IS NOT NULL THEN
+		android := jsonb_build_object('priority', coalesce(pPriority, 'normal'));
+		IF pCollapse IS NOT NULL THEN
+		  android := android || jsonb_build_object('collapse_key', pCollapse);
+		END IF;
 
-      message := json_build_object('message', json_build_object('token', token, 'android', json_build_object('priority', coalesce(pPriority, 'normal')), 'notification', json_build_object('title', pTitle, 'body', pBody)));
+		message := json_build_object('message', json_build_object('token', token, 'android', android::json, 'data', pData));
 
-      uMessageId := SendFCM(pObject, projectId, GetUserName(pUserId), pTitle, message::text);
-      PERFORM WriteToEventLog('M', 1001, 'push', format('Push сообщение передано на отправку: %s', uMessageId), pObject);
+		uMessageId := SendFCM(pObject, projectId, GetUserName(pUserId), pSubject, message::text);
+		PERFORM WriteToEventLog('M', 1001, 'push', format('Push сообщение передано на отправку: %s', uMessageId), pObject);
+      END IF;
     END LOOP;
   ELSE
     PERFORM WriteToEventLog('E', 3001, 'push', 'Не удалось отправить Push сообщение, токен не установлен.', pObject);
