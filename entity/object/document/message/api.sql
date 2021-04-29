@@ -481,9 +481,12 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION api.send_push (
   pObject       uuid,
-  pSubject		text,
-  pData         json,
-  pUserId       uuid DEFAULT current_userid()
+  pTitle        text,
+  pBody         text,
+  pUserId       uuid DEFAULT current_userid(),
+  pData         jsonb DEFAULT null,
+  pAndroid      jsonb DEFAULT null,
+  pApns         jsonb DEFAULT null
 ) RETURNS	    SETOF api.message
 AS $$
 DECLARE
@@ -495,7 +498,7 @@ BEGIN
 	PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
   END IF;
 
-  uMessageId := SendPush(pObject, pSubject, pData, pUserId);
+  uMessageId := SendPush(pObject, pTitle, pBody, pUserId, pData, pAndroid, pApns);
 
   RETURN QUERY SELECT * FROM api.message WHERE id = uMessageId;
 END
@@ -509,7 +512,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION api.send_push_data (
   pObject       uuid,
-  pSubject		text,
+  pSubject      text,
   pData         json,
   pUserId       uuid DEFAULT current_userid(),
   pPriority     text DEFAULT null,
