@@ -4090,13 +4090,13 @@ BEGIN
           UPDATE db.user SET lock_date = Now() + INTERVAL '1 min' WHERE id = up.id;
         END IF;
       END IF;
-
-      INSERT INTO db.log (type, code, username, event, text)
-      VALUES ('E', 3100, pRoleName, 'login', vMessage);
-
-      INSERT INTO db.log (type, code, username, event, text)
-      VALUES ('E', 9100, pRoleName, 'login', vContext);
     END IF;
+
+	INSERT INTO db.log (type, code, username, event, text)
+	VALUES ('E', 3100, coalesce(pRoleName, session_user), 'login', vMessage);
+
+	INSERT INTO db.log (type, code, username, event, text)
+	VALUES ('D', 9100, coalesce(pRoleName, session_user), 'login', vContext);
 
     RETURN null;
   END;
@@ -4205,15 +4205,13 @@ WHEN others THEN
 
   IF pSession IS NOT NULL THEN
 	SELECT userid INTO uUserId FROM db.session WHERE code = pSession;
-
-	IF FOUND THEN
-	  INSERT INTO db.log (type, code, username, session, event, text)
-	  VALUES ('E', 3100, GetUserName(uUserId), pSession, 'logout', 'Выход из системы. ' || vMessage);
-
-	  INSERT INTO db.log (type, code, username, session, event, text)
-	  VALUES ('D', 9100, GetUserName(uUserId), pSession, 'logout', vContext);
-	END IF;
   END IF;
+
+  INSERT INTO db.log (type, code, username, session, event, text)
+  VALUES ('E', 3100, coalesce(GetUserName(uUserId), session_user), pSession, 'logout', 'Выход из системы. ' || vMessage);
+
+  INSERT INTO db.log (type, code, username, session, event, text)
+  VALUES ('D', 9100, coalesce(GetUserName(uUserId), session_user), pSession, 'logout', vContext);
 
   RETURN false;
 END;
