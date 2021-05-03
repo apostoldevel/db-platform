@@ -27,16 +27,32 @@ CREATE OR REPLACE VIEW Area (Id, Parent, Level, Sequence,
   Scope, ScopeCode, ScopeName, ScopeDescription,
   Code, Name, Description, validFromDate, validToDate
 )
-as
+AS
   SELECT a.id, a.parent, a.level, a.sequence,
          a.type, t.code, t.name,
          a.scope, s.code, s.name, s.description,
          a.code, a.name, a.description, a.validFromDate, a.validToDate
     FROM db.area a INNER JOIN db.area_type t ON t.id = a.type
-                   INNER JOIN db.scope s ON s.id = a.scope
-   WHERE a.scope IN (SELECT current_scopes());
+                   INNER JOIN db.scope s ON s.id = a.scope;
 
 GRANT SELECT ON Area TO administrator;
+
+--------------------------------------------------------------------------------
+-- AreaTree --------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW AreaTree
+AS
+  WITH RECURSIVE tree AS (
+    SELECT *, ARRAY[row_number() OVER (ORDER BY level, sequence)] AS sortlist FROM Area WHERE parent IS NULL
+    UNION ALL
+      SELECT a.*, array_append(t.sortlist, row_number() OVER (ORDER BY a.level, a.sequence))
+        FROM Area a INNER JOIN tree t ON a.parent = t.id
+    )
+    SELECT * FROM tree
+     ORDER BY sortlist;
+
+GRANT SELECT ON AreaTree TO administrator;
 
 --------------------------------------------------------------------------------
 -- Interface -------------------------------------------------------------------

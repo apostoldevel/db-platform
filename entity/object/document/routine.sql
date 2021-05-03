@@ -48,9 +48,9 @@ CREATE OR REPLACE FUNCTION CreateDocument (
   pType		    uuid,
   pLabel	    text DEFAULT null,
   pDescription  text DEFAULT null,
-  pText			text DEFAULT null,
-  pLocale		uuid DEFAULT null
-) RETURNS 	    uuid
+  pText         text DEFAULT null,
+  pLocale       uuid DEFAULT null
+) RETURNS       uuid
 AS $$
 DECLARE
   l				record;

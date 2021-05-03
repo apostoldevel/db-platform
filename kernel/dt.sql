@@ -1,4 +1,4 @@
-CREATE TYPE TVarType AS ENUM ('kernel', 'context');
+CREATE TYPE TVarType AS ENUM ('kernel', 'context', 'object');
 
 CREATE TYPE Id AS (Id uuid);
 CREATE TYPE Cardinal AS (Cardinal NUMERIC(14));

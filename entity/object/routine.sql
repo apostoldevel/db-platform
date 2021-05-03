@@ -248,17 +248,17 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION CreateObject (
   pParent	uuid,
   pType     uuid,
-  pLabel	text DEFAULT null,
-  pText		text DEFAULT null,
-  pLocale	uuid DEFAULT null
-) RETURNS 	uuid
+  pLabel    text DEFAULT null,
+  pText     text DEFAULT null,
+  pLocale   uuid DEFAULT null
+) RETURNS   uuid
 AS $$
 DECLARE
-  l			record;
-  uId		uuid;
+  l         record;
+  uId       uuid;
 BEGIN
-  INSERT INTO db.object (parent, type)
-  VALUES (pParent, pType)
+  INSERT INTO db.object (id, parent, type)
+  VALUES (GetVar('object', 'id')::uuid, pParent, pType)
   RETURNING id INTO uId;
 
   IF pLocale IS NULL THEN

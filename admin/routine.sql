@@ -3064,6 +3064,8 @@ BEGIN
   VALUES (coalesce(pId, gen_kernel_uuid('8')), coalesce(pParent, GetArea('root')), pType, pScope, pCode, pName, pDescription, nLevel, coalesce(pSequence, 1))
   RETURNING Id INTO uId;
 
+  PERFORM DoCreateArea(uId);
+
   RETURN uId;
 END;
 $$ LANGUAGE plpgsql
@@ -3142,6 +3144,8 @@ BEGIN
   IF pSequence > nSequence THEN
     PERFORM SetAreaSequence(pId, pSequence, -1);
   END IF;
+
+  PERFORM DoUpdateArea(pId);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -3226,6 +3230,28 @@ BEGIN
   RETURN vName;
 END;
 $$ LANGUAGE plpgsql STABLE STRICT
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- AreaTree --------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION AreaTree (
+  pArea     uuid
+) RETURNS   SETOF AreaTree
+AS $$
+  WITH RECURSIVE tree AS (
+    SELECT *, ARRAY[row_number() OVER (ORDER BY level, sequence)] AS sortlist FROM Area WHERE id IS NOT DISTINCT FROM pArea
+    UNION ALL
+      SELECT a.*, array_append(t.sortlist, row_number() OVER (ORDER BY a.level, a.sequence))
+        FROM Area a INNER JOIN tree t ON a.parent = t.id
+    )
+    SELECT *
+      FROM tree
+     WHERE scope IN (SELECT current_scopes())
+     ORDER BY sortlist;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -3908,21 +3934,6 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- FUNCTION DoLogin ------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION DoLogin (
-  pUserId		uuid
-) RETURNS		void
-AS $$
-BEGIN
-  RETURN;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
 -- Login -----------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
@@ -4158,6 +4169,8 @@ BEGIN
     VALUES ('M', 1100, GetUserName(uUserId), pSession, 'logout', message);
 
     PERFORM SetErrorMessage(message);
+
+    PERFORM DoLogout(uUserId);
 
     PERFORM SetCurrentSession(null);
     PERFORM SetCurrentUserId(null);

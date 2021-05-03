@@ -27,9 +27,9 @@ GRANT SELECT ON Class TO administrator;
 CREATE OR REPLACE VIEW ClassTree
 AS
   WITH RECURSIVE tree AS (
-    SELECT *, ARRAY[row_number() OVER (ORDER BY id)] AS sortlist FROM Class WHERE parent IS NULL
+    SELECT *, ARRAY[row_number() OVER (ORDER BY level, code)] AS sortlist FROM Class WHERE parent IS NULL
     UNION ALL
-      SELECT c.*, array_append(t.sortlist, row_number() OVER (ORDER BY c.id))
+      SELECT c.*, array_append(t.sortlist, row_number() OVER (ORDER BY c.level, c.code))
         FROM Class c INNER JOIN tree t ON c.parent = t.id
     )
     SELECT * FROM tree
