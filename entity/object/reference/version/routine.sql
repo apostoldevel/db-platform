@@ -69,7 +69,7 @@ DECLARE
   uClass        uuid;
   uMethod       uuid;
 BEGIN
-  PERFORM EditReference(pId, pParent, pType, pCode, pName, pDescription);
+  PERFORM EditReference(pId, pParent, pType, pCode, pName, pDescription, current_locale());
 
   SELECT class INTO uClass FROM db.object WHERE id = pId;
 

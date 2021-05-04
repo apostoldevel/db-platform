@@ -79,7 +79,7 @@ BEGIN
     END IF;
   END IF;
 
-  PERFORM EditDocument(pId, pParent, pType, pLabel, pDescription);
+  PERFORM EditDocument(pId, pParent, pType, pLabel, pDescription, pDescription, current_locale());
 
   SELECT * INTO old FROM db.job WHERE id = pId;
 

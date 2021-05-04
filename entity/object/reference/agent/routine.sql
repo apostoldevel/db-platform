@@ -73,7 +73,7 @@ DECLARE
   uClass        uuid;
   uMethod       uuid;
 BEGIN
-  PERFORM EditReference(pId, pParent, pType, pCode, pName, pDescription);
+  PERFORM EditReference(pId, pParent, pType, pCode, pName, pDescription, current_locale());
 
   UPDATE db.agent
      SET vendor = coalesce(pVendor, vendor)

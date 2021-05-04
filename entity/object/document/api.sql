@@ -76,7 +76,7 @@ BEGIN
     SELECT o.type INTO uType FROM db.object o WHERE o.id = pId;
   END IF;
 
-  PERFORM EditDocument(uDocument, pParent, uType,pLabel, pDescription, pData);
+  PERFORM EditDocument(uDocument, pParent, uType,pLabel, pDescription, pData, current_locale());
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

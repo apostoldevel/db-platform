@@ -84,7 +84,7 @@ DECLARE
   uClass        uuid;
   uMethod       uuid;
 BEGIN
-  PERFORM EditDocument(pId, pParent, pType, null, pDescription);
+  PERFORM EditDocument(pId, pParent, pType, null, pDescription, pDescription, current_locale());
 
   UPDATE db.message
      SET agent = coalesce(pAgent, agent),

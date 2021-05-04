@@ -76,7 +76,7 @@ BEGIN
     SELECT o.type INTO uType FROM db.object o WHERE o.id = pId;
   END IF;
 
-  PERFORM EditReference(uReference, pParent, uType, pCode, pName, pDescription);
+  PERFORM EditReference(uReference, pParent, uType, pCode, pName, pDescription, current_locale());
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
