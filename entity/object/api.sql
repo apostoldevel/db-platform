@@ -132,7 +132,7 @@ BEGIN
     SELECT o.type INTO uType FROM db.object o WHERE o.id = pId;
   END IF;
 
-  PERFORM EditObject(uObject, pParent, uType, pLabel, pData);
+  PERFORM EditObject(uObject, pParent, uType, pLabel, pData, current_locale());
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

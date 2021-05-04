@@ -103,7 +103,7 @@ AS $$
 DECLARE
   l				record;
 BEGIN
-  PERFORM EditObject(pId, pParent, pType, pName, pDescription);
+  PERFORM EditObject(pId, pParent, pType, pName, pDescription, pLocale);
 
   UPDATE db.reference
      SET type = coalesce(pType, type),

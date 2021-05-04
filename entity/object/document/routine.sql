@@ -100,7 +100,7 @@ AS $$
 DECLARE
   l				record;
 BEGIN
-  PERFORM EditObject(pId, pParent, pType, pLabel, coalesce(pText, pDescription));
+  PERFORM EditObject(pId, pParent, pType, pLabel, coalesce(pText, pDescription), pLocale);
 
   UPDATE db.document
      SET type = coalesce(pType, type)
