@@ -245,50 +245,50 @@ CREATE INDEX ON db.event_text (locale);
 
 --------------------------------------------------------------------------------
 
-INSERT INTO db.state_type_text (type, name, locale) VALUES ('00000000-0000-4000-b001-000000000001', 'Created', current_locale());
+INSERT INTO db.state_type_text (type, name, locale) VALUES ('00000000-0000-4000-b001-000000000001', 'Created', GetLocale('en'));
 INSERT INTO db.state_type_text (type, name, locale) VALUES ('00000000-0000-4000-b001-000000000001', 'Создан', GetLocale('ru'));
 
-INSERT INTO db.state_type_text (type, name, locale) VALUES ('00000000-0000-4000-b001-000000000002', 'Enabled', current_locale());
+INSERT INTO db.state_type_text (type, name, locale) VALUES ('00000000-0000-4000-b001-000000000002', 'Enabled', GetLocale('en'));
 INSERT INTO db.state_type_text (type, name, locale) VALUES ('00000000-0000-4000-b001-000000000002', 'Включен', GetLocale('ru'));
 
-INSERT INTO db.state_type_text (type, name, locale) VALUES ('00000000-0000-4000-b001-000000000003', 'Disabled', current_locale());
+INSERT INTO db.state_type_text (type, name, locale) VALUES ('00000000-0000-4000-b001-000000000003', 'Disabled', GetLocale('en'));
 INSERT INTO db.state_type_text (type, name, locale) VALUES ('00000000-0000-4000-b001-000000000003', 'Отключен', GetLocale('ru'));
 
-INSERT INTO db.state_type_text (type, name, locale) VALUES ('00000000-0000-4000-b001-000000000004', 'Deleted', current_locale());
+INSERT INTO db.state_type_text (type, name, locale) VALUES ('00000000-0000-4000-b001-000000000004', 'Deleted', GetLocale('en'));
 INSERT INTO db.state_type_text (type, name, locale) VALUES ('00000000-0000-4000-b001-000000000004', 'Удалён', GetLocale('ru'));
 
 --------------------------------------------------------------------------------
 
-INSERT INTO db.event_type_text (type, name, locale) VALUES ('00000000-0000-4000-b002-000000000001', 'Parent class events', current_locale());
+INSERT INTO db.event_type_text (type, name, locale) VALUES ('00000000-0000-4000-b002-000000000001', 'Parent class events', GetLocale('en'));
 INSERT INTO db.event_type_text (type, name, locale) VALUES ('00000000-0000-4000-b002-000000000001', 'События класса родителя', GetLocale('ru'));
 
-INSERT INTO db.event_type_text (type, name, locale) VALUES ('00000000-0000-4000-b002-000000000002', 'Event', current_locale());
+INSERT INTO db.event_type_text (type, name, locale) VALUES ('00000000-0000-4000-b002-000000000002', 'Event', GetLocale('en'));
 INSERT INTO db.event_type_text (type, name, locale) VALUES ('00000000-0000-4000-b002-000000000002', 'Событие', GetLocale('ru'));
 
-INSERT INTO db.event_type_text (type, name, locale) VALUES ('00000000-0000-4000-b002-000000000003', 'PL/pgSQL code', current_locale());
+INSERT INTO db.event_type_text (type, name, locale) VALUES ('00000000-0000-4000-b002-000000000003', 'PL/pgSQL code', GetLocale('en'));
 INSERT INTO db.event_type_text (type, name, locale) VALUES ('00000000-0000-4000-b002-000000000003', 'PL/pgSQL код', GetLocale('ru'));
 
 --------------------------------------------------------------------------------
 
-SELECT NewEntityText(id, name, description, current_locale()) FROM db.entity;
+SELECT NewEntityText(id, name, description, GetLocale('en')) FROM db.entity;
 SELECT NewEntityText(id, name, description, GetLocale('ru')) FROM db.entity;
 
-SELECT NewClassText(id, label, current_locale()) FROM db.class_tree;
+SELECT NewClassText(id, label, GetLocale('en')) FROM db.class_tree;
 SELECT NewClassText(id, label, GetLocale('ru')) FROM db.class_tree;
 
-SELECT NewTypeText(id, name, description, current_locale()) FROM db.type;
+SELECT NewTypeText(id, name, description, GetLocale('en')) FROM db.type;
 SELECT NewTypeText(id, name, description, GetLocale('ru')) FROM db.type;
 
-SELECT NewStateText(id, label, current_locale()) FROM db.state;
+SELECT NewStateText(id, label, GetLocale('en')) FROM db.state;
 SELECT NewStateText(id, label, GetLocale('ru')) FROM db.state;
 
-SELECT NewActionText(id, name, description, current_locale()) FROM db.action;
+SELECT NewActionText(id, name, description, GetLocale('en')) FROM db.action;
 SELECT NewActionText(id, name, description, GetLocale('ru')) FROM db.action;
 
-SELECT NewMethodText(id, label, current_locale()) FROM db.method;
+SELECT NewMethodText(id, label, GetLocale('en')) FROM db.method;
 SELECT NewMethodText(id, label, GetLocale('ru')) FROM db.method;
 
-SELECT NewEventText(id, label, current_locale()) FROM db.event;
+SELECT NewEventText(id, label, GetLocale('en')) FROM db.event;
 SELECT NewEventText(id, label, GetLocale('ru')) FROM db.event;
 
 --------------------------------------------------------------------------------
