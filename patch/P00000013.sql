@@ -414,6 +414,12 @@ SELECT EditEntityText(GetEntity('address'), 'Address', null, current_locale());
 SELECT EditEntityText(GetEntity('account'), 'Account', null, current_locale());
 SELECT EditEntityText(GetEntity('device'), 'Device', null, current_locale());
 
+--------------------------------------------------------------------------------
+
+\ir '../workflow/view.sql'
+
+--------------------------------------------------------------------------------
+
 SELECT EditMethodText(id, actionname, current_locale()) FROM Method;
 
 --------------------------------------------------------------------------------
