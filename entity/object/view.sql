@@ -14,18 +14,18 @@ CREATE OR REPLACE VIEW Object (Id, Parent,
 ) AS
   SELECT o.id, o.parent,
          o.entity, e.code, e.name,
-         o.class, ct.code, ct.label,
+         o.class, c.code, c.label,
          o.type, t.code, t.name, t.description,
          ot.label, ot.text,
          o.state_type, st.code, st.name,
          o.state, s.code, s.label, o.udate,
          o.owner, w.username, w.name, o.pdate,
          o.oper, u.username, u.name, o.ldate
-    FROM db.object o INNER JOIN db.entity       e ON o.entity = e.id
-                     INNER JOIN db.class_tree  ct ON o.class = ct.id
-                     INNER JOIN db.type         t ON o.type = t.id
-                     INNER JOIN db.state_type  st ON o.state_type = st.id
-                     INNER JOIN db.state        s ON o.state = s.id
+    FROM db.object o INNER JOIN Entity          e ON o.entity = e.id
+                     INNER JOIN Class           c ON o.class = c.id
+                     INNER JOIN Type            t ON o.type = t.id
+                     INNER JOIN StateType      st ON o.state_type = st.id
+                     INNER JOIN State           s ON o.state = s.id
                      INNER JOIN db.user         w ON o.owner = w.id
                      INNER JOIN db.user         u ON o.oper = u.id
                       LEFT JOIN db.object_text ot ON ot.object = o.id AND ot.locale = current_locale();

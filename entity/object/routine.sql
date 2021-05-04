@@ -798,7 +798,7 @@ DECLARE
   uAction       uuid;
 BEGIN
   IF NOT CheckMethodAccess(pMethod, B'100') THEN
-    SELECT label INTO sLabel FROM db.method WHERE id = pMethod;
+    SELECT label INTO sLabel FROM db.method_text WHERE method = pMethod AND locale = current_locale();
     PERFORM ExecuteMethodError(sLabel);
   END IF;
 

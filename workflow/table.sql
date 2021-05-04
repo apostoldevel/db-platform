@@ -4,18 +4,40 @@
 
 CREATE TABLE db.entity (
     id			uuid PRIMARY KEY DEFAULT gen_kernel_uuid('b'),
-    code		text NOT NULL,
-    name		text,
-    description text
+    code		text NOT NULL
 );
 
 COMMENT ON TABLE db.entity IS 'Сущность.';
 COMMENT ON COLUMN db.entity.id IS 'Идентификатор';
 COMMENT ON COLUMN db.entity.code IS 'Код';
-COMMENT ON COLUMN db.entity.name IS 'Наименование';
-COMMENT ON COLUMN db.entity.description IS 'Описание';
 
 CREATE UNIQUE INDEX ON db.entity (code);
+
+--------------------------------------------------------------------------------
+-- db.entity_text --------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE TABLE db.entity_text (
+    entity      uuid NOT NULL REFERENCES db.entity(id) ON DELETE CASCADE,
+    locale      uuid NOT NULL REFERENCES db.locale(id) ON DELETE RESTRICT,
+    name        text NOT NULL,
+    description text,
+    PRIMARY KEY (entity, locale)
+);
+
+--------------------------------------------------------------------------------
+
+COMMENT ON TABLE db.entity_text IS 'Текст сущности.';
+
+COMMENT ON COLUMN db.entity_text.entity IS 'Идентификатор сущности';
+COMMENT ON COLUMN db.entity_text.locale IS 'Идентификатор локали';
+COMMENT ON COLUMN db.entity_text.name IS 'Наименование';
+COMMENT ON COLUMN db.entity_text.description IS 'Описание';
+
+--------------------------------------------------------------------------------
+
+CREATE INDEX ON db.entity_text (entity);
+CREATE INDEX ON db.entity_text (locale);
 
 --------------------------------------------------------------------------------
 -- CLASS -----------------------------------------------------------------------
@@ -27,7 +49,6 @@ CREATE TABLE db.class_tree (
     entity		uuid NOT NULL REFERENCES db.entity(id),
     level		integer NOT NULL,
     code		text NOT NULL,
-    label		text NOT NULL,
     abstract    boolean DEFAULT TRUE NOT NULL
 );
 
@@ -38,7 +59,6 @@ COMMENT ON COLUMN db.class_tree.parent IS 'Ссылка на родительс�
 COMMENT ON COLUMN db.class_tree.entity IS 'Сущность';
 COMMENT ON COLUMN db.class_tree.level IS 'Уровень вложенности';
 COMMENT ON COLUMN db.class_tree.code IS 'Код';
-COMMENT ON COLUMN db.class_tree.label IS 'Метка';
 COMMENT ON COLUMN db.class_tree.abstract IS 'Абстрактный: Да/Нет';
 
 --------------------------------------------------------------------------------
@@ -47,6 +67,30 @@ CREATE INDEX ON db.class_tree (parent);
 CREATE INDEX ON db.class_tree (entity);
 
 CREATE UNIQUE INDEX ON db.class_tree (code);
+
+--------------------------------------------------------------------------------
+-- db.class_text ---------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE TABLE db.class_text (
+    class       uuid NOT NULL REFERENCES db.class_tree(id) ON DELETE CASCADE,
+    locale      uuid NOT NULL REFERENCES db.locale(id) ON DELETE RESTRICT,
+    label       text NOT NULL,
+    PRIMARY KEY (class, locale)
+);
+
+--------------------------------------------------------------------------------
+
+COMMENT ON TABLE db.class_text IS 'Текст класса.';
+
+COMMENT ON COLUMN db.class_text.class IS 'Идентификатор класса';
+COMMENT ON COLUMN db.class_text.locale IS 'Идентификатор локали';
+COMMENT ON COLUMN db.class_text.label IS 'Метка';
+
+--------------------------------------------------------------------------------
+
+CREATE INDEX ON db.class_text (class);
+CREATE INDEX ON db.class_text (locale);
 
 --------------------------------------------------------------------------------
 
@@ -154,22 +198,44 @@ CREATE TRIGGER t_acu_before
 CREATE TABLE db.type (
     id			uuid PRIMARY KEY DEFAULT gen_kernel_uuid('b'),
     class		uuid NOT NULL REFERENCES db.class_tree(id),
-    code        text NOT NULL,
-    name 		text NOT NULL,
-    description text
+    code        text NOT NULL
 );
 
-COMMENT ON TABLE db.type IS 'Тип.';
+COMMENT ON TABLE db.type IS 'Тип объекта.';
 
 COMMENT ON COLUMN db.type.id IS 'Идентификатор';
 COMMENT ON COLUMN db.type.class IS 'Класс';
 COMMENT ON COLUMN db.type.code IS 'Код';
-COMMENT ON COLUMN db.type.name IS 'Наименование';
-COMMENT ON COLUMN db.type.description IS 'Описание';
 
 CREATE INDEX ON db.type (class);
 
 CREATE UNIQUE INDEX ON db.type (class, code);
+
+--------------------------------------------------------------------------------
+-- db.type_text ----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE TABLE db.type_text (
+    type        uuid NOT NULL REFERENCES db.type(id) ON DELETE CASCADE,
+    locale      uuid NOT NULL REFERENCES db.locale(id) ON DELETE RESTRICT,
+    name        text NOT NULL,
+    description text,
+    PRIMARY KEY (type, locale)
+);
+
+--------------------------------------------------------------------------------
+
+COMMENT ON TABLE db.type_text IS 'Текст типа объекта.';
+
+COMMENT ON COLUMN db.type_text.type IS 'Идентификатор типа';
+COMMENT ON COLUMN db.type_text.locale IS 'Идентификатор локали';
+COMMENT ON COLUMN db.type_text.name IS 'Наименование';
+COMMENT ON COLUMN db.type_text.description IS 'Описание';
+
+--------------------------------------------------------------------------------
+
+CREATE INDEX ON db.type_text (type);
+CREATE INDEX ON db.type_text (locale);
 
 --------------------------------------------------------------------------------
 -- STATE -----------------------------------------------------------------------
@@ -177,17 +243,41 @@ CREATE UNIQUE INDEX ON db.type (class, code);
 
 CREATE TABLE db.state_type (
     id			uuid PRIMARY KEY,
-    code		text NOT NULL,
-    name		text NOT NULL
+    code		text NOT NULL
 );
 
 COMMENT ON TABLE db.state_type IS 'Тип состояния объекта.';
 
 COMMENT ON COLUMN db.state_type.id IS 'Идентификатор';
 COMMENT ON COLUMN db.state_type.code IS 'Код типа состояния объекта';
-COMMENT ON COLUMN db.state_type.name IS 'Наименование типа состояния объекта';
 
 CREATE UNIQUE INDEX ON db.state_type (code);
+
+--------------------------------------------------------------------------------
+-- db.state_type_text ----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE TABLE db.state_type_text (
+    type        uuid NOT NULL REFERENCES db.state_type(id) ON DELETE CASCADE,
+    locale      uuid NOT NULL REFERENCES db.locale(id) ON DELETE RESTRICT,
+    name        text NOT NULL,
+    description text,
+    PRIMARY KEY (type, locale)
+);
+
+--------------------------------------------------------------------------------
+
+COMMENT ON TABLE db.state_type_text IS 'Текст типа состояния объекта.';
+
+COMMENT ON COLUMN db.state_type_text.type IS 'Идентификатор типа состояния объекта';
+COMMENT ON COLUMN db.state_type_text.locale IS 'Идентификатор локали';
+COMMENT ON COLUMN db.state_type_text.name IS 'Наименование';
+COMMENT ON COLUMN db.state_type_text.description IS 'Описание';
+
+--------------------------------------------------------------------------------
+
+CREATE INDEX ON db.state_type_text (type);
+CREATE INDEX ON db.state_type_text (locale);
 
 --------------------------------------------------------------------------------
 -- db.state --------------------------------------------------------------------
@@ -198,17 +288,15 @@ CREATE TABLE db.state (
     class		uuid NOT NULL REFERENCES db.class_tree(id),
     type		uuid NOT NULL REFERENCES db.state_type(id),
     code		text NOT NULL,
-    label		text NOT NULL,
     sequence	integer NOT NULL
 );
 
-COMMENT ON TABLE db.state IS 'Список состояний объекта.';
+COMMENT ON TABLE db.state IS 'Состояние объекта.';
 
 COMMENT ON COLUMN db.state.id IS 'Идентификатор';
 COMMENT ON COLUMN db.state.class IS 'Класс объекта';
 COMMENT ON COLUMN db.state.type IS 'Тип состояния';
 COMMENT ON COLUMN db.state.code IS 'Код состояния';
-COMMENT ON COLUMN db.state.label IS 'Состояние';
 COMMENT ON COLUMN db.state.sequence IS 'Очерёдность';
 
 CREATE INDEX ON db.state (class);
@@ -218,24 +306,70 @@ CREATE INDEX ON db.state (code);
 CREATE UNIQUE INDEX ON db.state (class, code);
 
 --------------------------------------------------------------------------------
+-- db.state_text ---------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE TABLE db.state_text (
+    state       uuid NOT NULL REFERENCES db.state(id) ON DELETE CASCADE,
+    locale      uuid NOT NULL REFERENCES db.locale(id) ON DELETE RESTRICT,
+    label       text NOT NULL,
+    PRIMARY KEY (state, locale)
+);
+
+--------------------------------------------------------------------------------
+
+COMMENT ON TABLE db.state_text IS 'Текст состояние объекта.';
+
+COMMENT ON COLUMN db.state_text.state IS 'Идентификатор сущности';
+COMMENT ON COLUMN db.state_text.locale IS 'Идентификатор локали';
+COMMENT ON COLUMN db.state_text.label IS 'Метка';
+
+--------------------------------------------------------------------------------
+
+CREATE INDEX ON db.state_text (state);
+CREATE INDEX ON db.state_text (locale);
+
+--------------------------------------------------------------------------------
 -- ACTION ----------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.action (
     id			uuid PRIMARY KEY DEFAULT gen_kernel_uuid('b'),
-    code		text NOT NULL,
-    name		text NOT NULL,
-    description	text
+    code		text NOT NULL
 );
 
-COMMENT ON TABLE db.action IS 'Список действий.';
+COMMENT ON TABLE db.action IS 'Действие.';
 
 COMMENT ON COLUMN db.action.id IS 'Идентификатор';
 COMMENT ON COLUMN db.action.code IS 'Код действия';
-COMMENT ON COLUMN db.action.name IS 'Наименование действия';
-COMMENT ON COLUMN db.action.description IS 'Описание';
 
 CREATE UNIQUE INDEX ON db.action (code);
+
+--------------------------------------------------------------------------------
+-- db.action_text --------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE TABLE db.action_text (
+    action      uuid NOT NULL REFERENCES db.action(id) ON DELETE CASCADE,
+    locale      uuid NOT NULL REFERENCES db.locale(id) ON DELETE RESTRICT,
+    name        text NOT NULL,
+    description text,
+    PRIMARY KEY (action, locale)
+);
+
+--------------------------------------------------------------------------------
+
+COMMENT ON TABLE db.action_text IS 'Текст действия.';
+
+COMMENT ON COLUMN db.action_text.action IS 'Идентификатор действия';
+COMMENT ON COLUMN db.action_text.locale IS 'Идентификатор локали';
+COMMENT ON COLUMN db.action_text.name IS 'Наименование';
+COMMENT ON COLUMN db.action_text.description IS 'Описание';
+
+--------------------------------------------------------------------------------
+
+CREATE INDEX ON db.action_text (action);
+CREATE INDEX ON db.action_text (locale);
 
 --------------------------------------------------------------------------------
 -- METHOD ----------------------------------------------------------------------
@@ -248,7 +382,6 @@ CREATE TABLE db.method (
     state		uuid REFERENCES db.state(id),
     action		uuid NOT NULL REFERENCES db.action(id),
     code		text NOT NULL,
-    label		text NOT NULL,
     sequence    integer NOT NULL,
     visible		boolean DEFAULT true
 );
@@ -261,7 +394,6 @@ COMMENT ON COLUMN db.method.class IS 'Класс';
 COMMENT ON COLUMN db.method.state IS 'Состояние';
 COMMENT ON COLUMN db.method.action IS 'Действие';
 COMMENT ON COLUMN db.method.code IS 'Код метода класса';
-COMMENT ON COLUMN db.method.label IS 'Метка';
 COMMENT ON COLUMN db.method.sequence IS 'Очерёдность';
 COMMENT ON COLUMN db.method.visible IS 'Видимое: Да/Нет';
 
@@ -276,16 +408,36 @@ CREATE UNIQUE INDEX ON db.method (class, state, action);
 CREATE UNIQUE INDEX ON db.method (class, code);
 
 --------------------------------------------------------------------------------
+-- db.method_text --------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE TABLE db.method_text (
+    method      uuid NOT NULL REFERENCES db.method(id) ON DELETE CASCADE,
+    locale      uuid NOT NULL REFERENCES db.locale(id) ON DELETE RESTRICT,
+    label       text NOT NULL,
+    PRIMARY KEY (method, locale)
+);
+
+--------------------------------------------------------------------------------
+
+COMMENT ON TABLE db.method_text IS 'Текст состояние объекта.';
+
+COMMENT ON COLUMN db.method_text.method IS 'Идентификатор сущности';
+COMMENT ON COLUMN db.method_text.locale IS 'Идентификатор локали';
+COMMENT ON COLUMN db.method_text.label IS 'Метка';
+
+--------------------------------------------------------------------------------
+
+CREATE INDEX ON db.method_text (method);
+CREATE INDEX ON db.method_text (locale);
+
+--------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION db.ft_method_before_insert()
 RETURNS trigger AS $$
 BEGIN
   IF NEW.code IS NULL THEN
     NEW.code := coalesce(GetStateCode(NEW.state), 'null') || ':' || GetActionCode(NEW.action);
-  END IF;
-
-  IF NEW.label IS NULL THEN
-    NEW.label := GetActionName(NEW.action);
   END IF;
 
   RETURN NEW;
@@ -315,6 +467,7 @@ BEGIN
   END IF;
 
   INSERT INTO db.amu SELECT NEW.id, userid, B'000', bAllow FROM db.acu WHERE class = NEW.class;
+
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql
@@ -418,17 +571,41 @@ CREATE INDEX ON db.transition (method);
 
 CREATE TABLE db.event_type (
     id			uuid PRIMARY KEY,
-    code		text NOT NULL,
-    name		text NOT NULL
+    code		text NOT NULL
 );
 
 COMMENT ON TABLE db.event_type IS 'Тип события.';
 
 COMMENT ON COLUMN db.event_type.id IS 'Идентификатор';
 COMMENT ON COLUMN db.event_type.code IS 'Код типа события';
-COMMENT ON COLUMN db.event_type.name IS 'Наименование типа события';
 
 CREATE UNIQUE INDEX ON db.event_type (code);
+
+--------------------------------------------------------------------------------
+-- db.event_type_text ----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE TABLE db.event_type_text (
+    type        uuid NOT NULL REFERENCES db.event_type(id) ON DELETE CASCADE,
+    locale      uuid NOT NULL REFERENCES db.locale(id) ON DELETE RESTRICT,
+    name        text NOT NULL,
+    description text,
+    PRIMARY KEY (type, locale)
+);
+
+--------------------------------------------------------------------------------
+
+COMMENT ON TABLE db.event_type_text IS 'Текст типа события.';
+
+COMMENT ON COLUMN db.event_type_text.type IS 'Идентификатор типа события';
+COMMENT ON COLUMN db.event_type_text.locale IS 'Идентификатор локали';
+COMMENT ON COLUMN db.event_type_text.name IS 'Наименование';
+COMMENT ON COLUMN db.event_type_text.description IS 'Описание';
+
+--------------------------------------------------------------------------------
+
+CREATE INDEX ON db.event_type_text (type);
+CREATE INDEX ON db.event_type_text (locale);
 
 --------------------------------------------------------------------------------
 -- db.event --------------------------------------------------------------------
@@ -439,19 +616,17 @@ CREATE TABLE db.event (
     class		uuid NOT NULL REFERENCES db.class_tree(id),
     type		uuid NOT NULL REFERENCES db.event_type(id),
     action		uuid NOT NULL REFERENCES db.action(id),
-    label		text NOT NULL,
     text		text,
     sequence	integer NOT NULL,
     enabled		boolean DEFAULT TRUE NOT NULL
 );
 
-COMMENT ON TABLE db.event IS 'События.';
+COMMENT ON TABLE db.event IS 'Событие.';
 
 COMMENT ON COLUMN db.event.id IS 'Идентификатор';
 COMMENT ON COLUMN db.event.class IS 'Класс объекта';
 COMMENT ON COLUMN db.event.type IS 'Тип события';
 COMMENT ON COLUMN db.event.action IS 'Действие';
-COMMENT ON COLUMN db.event.label IS 'Событие';
 COMMENT ON COLUMN db.event.text IS 'Текст';
 COMMENT ON COLUMN db.event.sequence IS 'Очерёдность';
 COMMENT ON COLUMN db.event.enabled IS 'Включено: Да/Нет';
@@ -459,3 +634,27 @@ COMMENT ON COLUMN db.event.enabled IS 'Включено: Да/Нет';
 CREATE INDEX ON db.event (class);
 CREATE INDEX ON db.event (type);
 CREATE INDEX ON db.event (action);
+
+--------------------------------------------------------------------------------
+-- db.event_text ---------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE TABLE db.event_text (
+    event       uuid NOT NULL REFERENCES db.event(id) ON DELETE CASCADE,
+    locale      uuid NOT NULL REFERENCES db.locale(id) ON DELETE RESTRICT,
+    label       text NOT NULL,
+    PRIMARY KEY (event, locale)
+);
+
+--------------------------------------------------------------------------------
+
+COMMENT ON TABLE db.event_text IS 'Текст события.';
+
+COMMENT ON COLUMN db.event_text.event IS 'Идентификатор сущности';
+COMMENT ON COLUMN db.event_text.locale IS 'Идентификатор локали';
+COMMENT ON COLUMN db.event_text.label IS 'Метка';
+
+--------------------------------------------------------------------------------
+
+CREATE INDEX ON db.event_text (event);
+CREATE INDEX ON db.event_text (locale);

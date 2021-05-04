@@ -14,10 +14,10 @@ AS
          a.type, t.code, t.name, t.description,
          m.agent, a.code, a.name, a.description,
          m.code, m.profile, m.address, m.subject, m.content
-    FROM db.message m INNER JOIN db.object     o ON o.id = m.document
-                      INNER JOIN db.class_tree c ON c.id = o.class
-                      INNER JOIN Reference     a ON m.agent = a.id
-                      INNER JOIN db.type       t ON a.type = t.id;
+    FROM db.message m INNER JOIN db.object o ON o.id = m.document
+                      INNER JOIN Class     c ON c.id = o.class
+                      INNER JOIN Reference a ON m.agent = a.id
+                      INNER JOIN Type      t ON a.type = t.id;
 
 GRANT SELECT ON Message TO administrator;
 

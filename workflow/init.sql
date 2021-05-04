@@ -204,17 +204,35 @@ CREATE OR REPLACE FUNCTION InitWorkFlow()
 RETURNS     void
 AS $$
 BEGIN
+  INSERT INTO db.state_type (id, code) VALUES ('00000000-0000-4000-b001-000000000001', 'created');
+  INSERT INTO db.state_type_text (type, name, locale) VALUES ('00000000-0000-4000-b001-000000000001', 'Created', GetLocale('en'));
+  INSERT INTO db.state_type_text (type, name, locale) VALUES ('00000000-0000-4000-b001-000000000001', 'Создан', GetLocale('ru'));
 
-  INSERT INTO db.state_type (id, code, name) VALUES ('00000000-0000-4000-b001-000000000001', 'created', 'Создан');
-  INSERT INTO db.state_type (id, code, name) VALUES ('00000000-0000-4000-b001-000000000002', 'enabled', 'Включен');
-  INSERT INTO db.state_type (id, code, name) VALUES ('00000000-0000-4000-b001-000000000003', 'disabled', 'Отключен');
-  INSERT INTO db.state_type (id, code, name) VALUES ('00000000-0000-4000-b001-000000000004', 'deleted', 'Удалён');
+  INSERT INTO db.state_type (id, code) VALUES ('00000000-0000-4000-b001-000000000002', 'enabled');
+  INSERT INTO db.state_type_text (type, name, locale) VALUES ('00000000-0000-4000-b001-000000000002', 'Enabled', GetLocale('en'));
+  INSERT INTO db.state_type_text (type, name, locale) VALUES ('00000000-0000-4000-b001-000000000002', 'Включен', GetLocale('ru'));
+
+  INSERT INTO db.state_type (id, code) VALUES ('00000000-0000-4000-b001-000000000003', 'disabled');
+  INSERT INTO db.state_type_text (type, name, locale) VALUES ('00000000-0000-4000-b001-000000000003', 'Disabled', GetLocale('en'));
+  INSERT INTO db.state_type_text (type, name, locale) VALUES ('00000000-0000-4000-b001-000000000003', 'Отключен', GetLocale('ru'));
+
+  INSERT INTO db.state_type (id, code) VALUES ('00000000-0000-4000-b001-000000000004', 'deleted');
+  INSERT INTO db.state_type_text (type, name, locale) VALUES ('00000000-0000-4000-b001-000000000004', 'Deleted', GetLocale('en'));
+  INSERT INTO db.state_type_text (type, name, locale) VALUES ('00000000-0000-4000-b001-000000000004', 'Удалён', GetLocale('ru'));
 
   --------------------------------------------------------------------------------
 
-  INSERT INTO db.event_type (id, code, name) VALUES ('00000000-0000-4000-b002-000000000001', 'parent', 'События класса родителя');
-  INSERT INTO db.event_type (id, code, name) VALUES ('00000000-0000-4000-b002-000000000002', 'event', 'Событие');
-  INSERT INTO db.event_type (id, code, name) VALUES ('00000000-0000-4000-b002-000000000003', 'plpgsql', 'PL/pgSQL код');
+  INSERT INTO db.event_type (id, code) VALUES ('00000000-0000-4000-b002-000000000001', 'parent');
+  INSERT INTO db.event_type_text (type, name, locale) VALUES ('00000000-0000-4000-b002-000000000001', 'Parent class events', GetLocale('en'));
+  INSERT INTO db.event_type_text (type, name, locale) VALUES ('00000000-0000-4000-b002-000000000001', 'События класса родителя', GetLocale('ru'));
+
+  INSERT INTO db.event_type (id, code) VALUES ('00000000-0000-4000-b002-000000000002', 'event');
+  INSERT INTO db.event_type_text (type, name, locale) VALUES ('00000000-0000-4000-b002-000000000002', 'Event', GetLocale('en'));
+  INSERT INTO db.event_type_text (type, name, locale) VALUES ('00000000-0000-4000-b002-000000000002', 'Событие', GetLocale('ru'));
+
+  INSERT INTO db.event_type (id, code) VALUES ('00000000-0000-4000-b002-000000000003', 'plpgsql');
+  INSERT INTO db.event_type_text (type, name, locale) VALUES ('00000000-0000-4000-b002-000000000003', 'PL/pgSQL code', GetLocale('en'));
+  INSERT INTO db.event_type_text (type, name, locale) VALUES ('00000000-0000-4000-b002-000000000003', 'PL/pgSQL код', GetLocale('ru'));
 
   --------------------------------------------------------------------------------
 

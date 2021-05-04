@@ -1,4 +1,48 @@
 --------------------------------------------------------------------------------
+-- NewEntityText ---------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION NewEntityText (
+  pEntity       uuid,
+  pName         text,
+  pDescription  text DEFAULT null,
+  pLocale       uuid DEFAULT current_locale()
+) RETURNS       void
+AS $$
+BEGIN
+  INSERT INTO db.entity_text (entity, locale, name, description)
+  VALUES (pEntity, pLocale, pName, pDescription);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- EditEntityText --------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION EditEntityText (
+  pEntity       uuid,
+  pName         text,
+  pDescription  text DEFAULT null,
+  pLocale		uuid DEFAULT null
+) RETURNS       void
+AS $$
+BEGIN
+  UPDATE db.entity_text
+     SET name = coalesce(pName, name),
+         description = CheckNull(coalesce(pDescription, description, '<null>'))
+   WHERE entity = pEntity AND locale = pLocale;
+
+  IF NOT FOUND THEN
+    PERFORM NewEntityText(pEntity, pName, pDescription, pLocale);
+  END IF;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- FUNCTION AddEntity ----------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -9,11 +53,17 @@ CREATE OR REPLACE FUNCTION AddEntity (
 ) RETURNS	    uuid
 AS $$
 DECLARE
+  l             record;
   uId		    uuid;
 BEGIN
-  INSERT INTO db.entity (code, name, description)
-  VALUES (pCode, pName, pDescription)
+  INSERT INTO db.entity (code)
+  VALUES (pCode)
   RETURNING id INTO uId;
+
+  FOR l IN SELECT id FROM db.locale
+  LOOP
+	PERFORM NewEntityText(uId, pName, pDescription, l.id);
+  END LOOP;
 
   RETURN uId;
 END;
@@ -32,13 +82,12 @@ CREATE OR REPLACE FUNCTION EditEntity (
   pDescription	text DEFAULT null
 ) RETURNS	    void
 AS $$
-DECLARE
 BEGIN
   UPDATE db.entity
-     SET code = coalesce(pCode, code),
-         name = coalesce(pName, name),
-         description = NULLIF(coalesce(pDescription, description), '<null>')
+     SET code = coalesce(pCode, code)
    WHERE id = pId;
+
+  PERFORM EditEntityText(pId, pName, pDescription, current_locale());
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -67,29 +116,47 @@ CREATE OR REPLACE FUNCTION GetEntity (
   pCode		text
 ) RETURNS 	uuid
 AS $$
-DECLARE
-  uId		uuid;
+  SELECT id FROM db.entity WHERE code = pCode;
+$$ LANGUAGE sql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- NewClassText ----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION NewClassText (
+  pClass    uuid,
+  pLabel    text,
+  pLocale   uuid DEFAULT current_locale()
+) RETURNS   void
+AS $$
 BEGIN
-  SELECT id INTO uId FROM db.entity WHERE code = pCode;
-  RETURN uId;
+  INSERT INTO db.class_text (class, locale, label)
+  VALUES (pClass, pLocale, pLabel);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- FUNCTION GetClassLabel ------------------------------------------------------
+-- EditClassText ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION GetClassLabel (
-  pClass	uuid
-) RETURNS	text
+CREATE OR REPLACE FUNCTION EditClassText (
+  pClass        uuid,
+  pLabel        text,
+  pLocale		uuid DEFAULT null
+) RETURNS       void
 AS $$
-DECLARE
-  vLabel	text;
 BEGIN
-  SELECT label INTO vLabel FROM db.class_tree WHERE id = pClass;
-  RETURN vLabel;
+  UPDATE db.class_text
+     SET label = coalesce(pLabel, label)
+   WHERE class = pClass AND locale = pLocale;
+
+  IF NOT FOUND THEN
+    PERFORM NewClassText(pClass, pLabel, pLocale);
+  END IF;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -108,6 +175,7 @@ CREATE OR REPLACE FUNCTION AddClass (
 ) RETURNS	uuid
 AS $$
 DECLARE
+  l         record;
   uId		uuid;
   nLevel	integer;
 BEGIN
@@ -117,9 +185,14 @@ BEGIN
     SELECT level + 1 INTO nLevel FROM db.class_tree WHERE id = pParent;
   END IF;
 
-  INSERT INTO db.class_tree (parent, entity, level, code, label, abstract)
-  VALUES (pParent, pEntity, nLevel, pCode, pLabel, pAbstract)
+  INSERT INTO db.class_tree (parent, entity, level, code, abstract)
+  VALUES (pParent, pEntity, nLevel, pCode, pAbstract)
   RETURNING id INTO uId;
+
+  FOR l IN SELECT id FROM db.locale
+  LOOP
+	PERFORM NewClassText(uId, pLabel, l.id);
+  END LOOP;
 
   RETURN uId;
 END;
@@ -154,9 +227,10 @@ BEGIN
          entity = coalesce(pEntity, entity),
          level = nLevel,
          code = coalesce(pCode, code),
-         label = coalesce(pLabel, label),
          abstract = coalesce(pAbstract, abstract)
    WHERE id = pId;
+
+  PERFORM EditClassText(pId, pLabel, current_locale());
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -186,13 +260,8 @@ CREATE OR REPLACE FUNCTION GetClass (
   pCode		text
 ) RETURNS 	uuid
 AS $$
-DECLARE
-  uId		uuid;
-BEGIN
-  SELECT id INTO uId FROM db.class_tree WHERE code = pCode;
-  RETURN uId;
-END;
-$$ LANGUAGE plpgsql
+  SELECT id FROM db.class_tree WHERE code = pCode;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -204,13 +273,8 @@ CREATE OR REPLACE FUNCTION GetClassEntity (
   pClass	uuid
 ) RETURNS 	uuid
 AS $$
-DECLARE
-  uId		uuid;
-BEGIN
-  SELECT entity INTO uId FROM db.class_tree WHERE id = pClass;
-  RETURN uId;
-END;
-$$ LANGUAGE plpgsql
+  SELECT entity FROM db.class_tree WHERE id = pClass;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -222,13 +286,21 @@ CREATE OR REPLACE FUNCTION GetClassCode (
   pId		uuid
 ) RETURNS 	text
 AS $$
-DECLARE
-  vCode		text;
-BEGIN
-  SELECT code INTO vCode FROM db.class_tree WHERE id = pId;
-  RETURN vCode;
-END;
-$$ LANGUAGE plpgsql
+  SELECT code FROM db.class_tree WHERE id = pId;
+$$ LANGUAGE sql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION GetClassLabel ------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetClassLabel (
+  pClass	uuid
+) RETURNS	text
+AS $$
+  SELECT label FROM db.class_text WHERE class = pClass AND locale = current_locale();
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -291,7 +363,7 @@ CREATE OR REPLACE FUNCTION acu (
   OUT mask	bit
 ) RETURNS	SETOF record
 AS $$
-  SELECT a.class, bit_or(a.deny), bit_or(a.allow), bit_or(allow) & ~bit_or(deny)
+  SELECT a.class, bit_or(a.deny), bit_or(a.allow), bit_or(a.allow) & ~bit_or(a.deny)
     FROM db.acu a
    WHERE a.userid IN (SELECT pUserId UNION SELECT userid FROM db.member_group WHERE member = pUserId)
      AND a.class = pClass
@@ -458,6 +530,50 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- NewTypeText -----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION NewTypeText (
+  pType         uuid,
+  pName         text,
+  pDescription  text DEFAULT null,
+  pLocale       uuid DEFAULT current_locale()
+) RETURNS       void
+AS $$
+BEGIN
+  INSERT INTO db.type_text (type, locale, name, description)
+  VALUES (pType, pLocale, pName, pDescription);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- EditTypeText ----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION EditTypeText (
+  pType         uuid,
+  pName         text,
+  pDescription  text DEFAULT null,
+  pLocale		uuid DEFAULT null
+) RETURNS       void
+AS $$
+BEGIN
+  UPDATE db.type_text
+     SET name = coalesce(pName, name),
+         description = CheckNull(coalesce(pDescription, description, '<null>'))
+   WHERE type = pType AND locale = pLocale;
+
+  IF NOT FOUND THEN
+    PERFORM NewTypeText(pType, pName, pDescription, pLocale);
+  END IF;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- FUNCTION AddType ------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -469,11 +585,17 @@ CREATE OR REPLACE FUNCTION AddType (
 ) RETURNS	    uuid
 AS $$
 DECLARE
+  l             record;
   uId		    uuid;
 BEGIN
-  INSERT INTO db.type (class, code, name, description)
-  VALUES (pClass, pCode, pName, pDescription)
+  INSERT INTO db.type (class, code)
+  VALUES (pClass, pCode)
   RETURNING id INTO uId;
+
+  FOR l IN SELECT id FROM db.locale
+  LOOP
+	PERFORM NewTypeText(uId, pName, pDescription, l.id);
+  END LOOP;
 
   RETURN uId;
 END;
@@ -497,10 +619,10 @@ DECLARE
 BEGIN
   UPDATE db.type
      SET class = coalesce(pClass, class),
-         code = coalesce(pCode, code),
-         name = coalesce(pName, name),
-         description = NULLIF(coalesce(pDescription, description), '<null>')
+         code = coalesce(pCode, code)
    WHERE id = pId;
+
+  PERFORM EditTypeText(pId, pName, pDescription, current_locale());
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -605,7 +727,7 @@ CREATE OR REPLACE FUNCTION GetTypeName (
   pId		uuid
 ) RETURNS	text
 AS $$
-  SELECT name FROM db.type WHERE id = pId;
+  SELECT name FROM db.type_text WHERE type = pId;
 $$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -710,6 +832,47 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- NewStateText ----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION NewStateText (
+  pState    uuid,
+  pLabel    text,
+  pLocale   uuid DEFAULT current_locale()
+) RETURNS   void
+AS $$
+BEGIN
+  INSERT INTO db.state_text (state, locale, label)
+  VALUES (pState, pLocale, pLabel);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- EditStateText ---------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION EditStateText (
+  pState        uuid,
+  pLabel        text,
+  pLocale		uuid DEFAULT null
+) RETURNS       void
+AS $$
+BEGIN
+  UPDATE db.state_text
+     SET label = coalesce(pLabel, label)
+   WHERE state = pState AND locale = pLocale;
+
+  IF NOT FOUND THEN
+    PERFORM NewStateText(pState, pLabel, pLocale);
+  END IF;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- FUNCTION AddState -----------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -722,6 +885,7 @@ CREATE OR REPLACE FUNCTION AddState (
 ) RETURNS	uuid
 AS $$
 DECLARE
+  l         record;
   uId		uuid;
 BEGIN
   IF pSequence IS NULL THEN
@@ -731,9 +895,14 @@ BEGIN
        AND type = pType;
   END IF;
 
-  INSERT INTO db.state (class, type, code, label, sequence)
-  VALUES (pClass, pType, pCode, pLabel, pSequence)
+  INSERT INTO db.state (class, type, code, sequence)
+  VALUES (pClass, pType, pCode, pSequence)
   RETURNING id INTO uId;
+
+  FOR l IN SELECT id FROM db.locale
+  LOOP
+	PERFORM NewStateText(uId, pLabel, l.id);
+  END LOOP;
 
   RETURN uId;
 END;
@@ -759,9 +928,10 @@ BEGIN
      SET class = coalesce(pClass, class),
          type = coalesce(pType, type),
          code = coalesce(pCode, code),
-         label = coalesce(pLabel, label),
          sequence = coalesce(pSequence, sequence)
    WHERE id = pId;
+
+  PERFORM EditStateText(pId, pLabel, current_locale());
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -848,13 +1018,8 @@ CREATE OR REPLACE FUNCTION GetStateTypeByState (
   pState	uuid
 ) RETURNS	uuid
 AS $$
-DECLARE
-  uType		uuid;
-BEGIN
-  SELECT type INTO uType FROM db.state WHERE id = pState;
-  RETURN uType;
-END;
-$$ LANGUAGE plpgsql
+  SELECT type FROM db.state WHERE id = pState;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -866,13 +1031,8 @@ CREATE OR REPLACE FUNCTION GetStateTypeCodeByState (
   pState	uuid
 ) RETURNS	text
 AS $$
-DECLARE
-  vCode     text;
-BEGIN
-  SELECT code INTO vCode FROM db.state_type WHERE id = (SELECT type FROM db.state WHERE id = pState);
-  RETURN vCode;
-END;
-$$ LANGUAGE plpgsql
+  SELECT code FROM db.state_type WHERE id = (SELECT type FROM db.state WHERE id = pState);
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -884,13 +1044,8 @@ CREATE OR REPLACE FUNCTION GetStateCode (
   pState	uuid
 ) RETURNS 	text
 AS $$
-DECLARE
-  vCode		text;
-BEGIN
-  SELECT code INTO vCode FROM db.state WHERE id = pState;
-  RETURN vCode;
-END;
-$$ LANGUAGE plpgsql
+  SELECT code FROM db.state WHERE id = pState;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -902,11 +1057,50 @@ CREATE OR REPLACE FUNCTION GetStateLabel (
   pState	uuid
 ) RETURNS	text
 AS $$
-DECLARE
-  vLabel	text;
+  SELECT label FROM db.state_text WHERE state = pState AND locale = current_locale();
+$$ LANGUAGE sql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- NewActionText ---------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION NewActionText (
+  pAction       uuid,
+  pName         text,
+  pDescription  text DEFAULT null,
+  pLocale       uuid DEFAULT current_locale()
+) RETURNS       void
+AS $$
 BEGIN
-  SELECT label INTO vLabel FROM db.state WHERE id = pState;
-  RETURN vLabel;
+  INSERT INTO db.action_text (action, locale, name, description)
+  VALUES (pAction, pLocale, pName, pDescription);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- EditActionText --------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION EditActionText (
+  pAction       uuid,
+  pName         text,
+  pDescription  text DEFAULT null,
+  pLocale		uuid DEFAULT null
+) RETURNS       void
+AS $$
+BEGIN
+  UPDATE db.action_text
+     SET name = coalesce(pName, name),
+         description = CheckNull(coalesce(pDescription, description, '<null>'))
+   WHERE action = pAction AND locale = pLocale;
+
+  IF NOT FOUND THEN
+    PERFORM NewActionText(pAction, pName, pDescription, pLocale);
+  END IF;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -924,11 +1118,17 @@ CREATE OR REPLACE FUNCTION AddAction (
 ) RETURNS	    uuid
 AS $$
 DECLARE
+  l             record;
   uId		    uuid;
 BEGIN
-  INSERT INTO db.action (id, code, name, description)
-  VALUES (pId, pCode, pName, pDescription)
+  INSERT INTO db.action (id, code)
+  VALUES (pId, pCode)
   RETURNING id INTO uId;
+
+  FOR l IN SELECT id FROM db.locale
+  LOOP
+	PERFORM NewActionText(uId, pName, pDescription, l.id);
+  END LOOP;
 
   RETURN uId;
 END;
@@ -949,12 +1149,15 @@ CREATE OR REPLACE FUNCTION EditAction (
 AS $$
 BEGIN
   UPDATE db.action
-     SET code = coalesce(pCode, code),
-         name = coalesce(pName, name),
-         description = NULLIF(coalesce(pDescription, description), '<null>')
+     SET code = coalesce(pCode, code)
    WHERE id = pId;
 
-  RETURN FOUND;
+  IF FOUND THEN
+    PERFORM EditActionText(pId, pName, pDescription, current_locale());
+    RETURN true;
+  END IF;
+
+  RETURN false;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -990,11 +1193,13 @@ DECLARE
   uId		    uuid;
 BEGIN
   uId := GetAction(pCode);
+
   IF uId IS NULL THEN
 	uId := AddAction(gen_kernel_uuid('b'), pCode, pName, pDescription);
   ELSE
     PERFORM EditAction(uId, pCode, pName, pDescription);
   END IF;
+
   RETURN uId;
 END;
 $$ LANGUAGE plpgsql
@@ -1009,13 +1214,8 @@ CREATE OR REPLACE FUNCTION GetAction (
   pCode		text
 ) RETURNS 	uuid
 AS $$
-DECLARE
-  uId		uuid;
-BEGIN
-  SELECT id INTO uId FROM db.action WHERE code = pCode;
-  RETURN uId;
-END;
-$$ LANGUAGE plpgsql
+  SELECT id FROM db.action WHERE code = pCode;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1027,13 +1227,8 @@ CREATE OR REPLACE FUNCTION GetActionCode (
   pId		uuid
 ) RETURNS 	text
 AS $$
-DECLARE
-  vCode		text;
-BEGIN
-  SELECT code INTO vCode FROM db.action WHERE id = pId;
-  RETURN vCode;
-END;
-$$ LANGUAGE plpgsql
+  SELECT code FROM db.action WHERE id = pId;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1045,11 +1240,47 @@ CREATE OR REPLACE FUNCTION GetActionName (
   pId		uuid
 ) RETURNS   text
 AS $$
-DECLARE
-  vName     text;
+  SELECT name FROM db.action_text WHERE action = pId AND locale = current_locale();
+$$ LANGUAGE sql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- NewMethodText ---------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION NewMethodText (
+  pMethod   uuid,
+  pLabel    text,
+  pLocale   uuid DEFAULT current_locale()
+) RETURNS   void
+AS $$
 BEGIN
-  SELECT name INTO vName FROM db.action WHERE id = pId;
-  RETURN vName;
+  INSERT INTO db.method_text (method, locale, label)
+  VALUES (pMethod, pLocale, pLabel);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- EditMethodText --------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION EditMethodText (
+  pMethod       uuid,
+  pLabel        text,
+  pLocale		uuid DEFAULT null
+) RETURNS       void
+AS $$
+BEGIN
+  UPDATE db.method_text
+     SET label = coalesce(pLabel, label)
+   WHERE method = pMethod AND locale = pLocale;
+
+  IF NOT FOUND THEN
+    PERFORM NewMethodText(pMethod, pLabel, pLocale);
+  END IF;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1071,6 +1302,7 @@ CREATE OR REPLACE FUNCTION AddMethod (
 ) RETURNS	uuid
 AS $$
 DECLARE
+  l         record;
   uId		uuid;
 BEGIN
   IF pSequence IS NULL THEN
@@ -1080,9 +1312,16 @@ BEGIN
        AND state IS NOT DISTINCT FROM pState;
   END IF;
 
-  INSERT INTO db.method (parent, class, state, action, code, label, sequence, visible)
-  VALUES (pParent, pClass, pState, pAction, pCode, pLabel, pSequence, pVisible)
+  INSERT INTO db.method (parent, class, state, action, code, sequence, visible)
+  VALUES (pParent, pClass, pState, pAction, pCode, pSequence, pVisible)
   RETURNING id INTO uId;
+
+  pLabel := coalesce(pLabel, GetActionName(pAction));
+
+  FOR l IN SELECT id FROM db.locale
+  LOOP
+	PERFORM NewMethodText(uId, pLabel, l.id);
+  END LOOP;
 
   RETURN uId;
 END;
@@ -1113,10 +1352,11 @@ BEGIN
          state = coalesce(pState, state),
          action = coalesce(pAction, action),
          code = coalesce(pCode, code),
-         label = coalesce(pLabel, label),
          sequence = coalesce(pSequence, sequence),
          visible = coalesce(pVisible, visible)
    WHERE id = pId;
+
+  PERFORM EditMethodText(pId, pLabel, current_locale());
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1175,13 +1415,8 @@ CREATE OR REPLACE FUNCTION IsVisibleMethod (
   pId		uuid
 ) RETURNS 	bool
 AS $$
-DECLARE
-  bVisible  bool;
-BEGIN
-  SELECT visible INTO bVisible FROM db.method WHERE id = pId;
-  RETURN bVisible;
-END;
-$$ LANGUAGE plpgsql
+  SELECT visible FROM db.method WHERE id = pId;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1212,7 +1447,7 @@ CREATE OR REPLACE FUNCTION amu (
   OUT mask		bit
 ) RETURNS		SETOF record
 AS $$
-  SELECT a.method, bit_or(a.deny), bit_or(a.allow), bit_or(allow) & ~bit_or(deny)
+  SELECT a.method, bit_or(a.deny), bit_or(a.allow), bit_or(a.allow) & ~bit_or(a.deny)
     FROM db.amu a
    WHERE userid IN (SELECT pUserId UNION SELECT userid FROM db.member_group WHERE member = pUserId)
    GROUP BY a.method
@@ -1233,7 +1468,7 @@ CREATE OR REPLACE FUNCTION amu (
   OUT mask		bit
 ) RETURNS		SETOF record
 AS $$
-  SELECT a.method, bit_or(a.deny), bit_or(a.allow), bit_or(allow) & ~bit_or(deny)
+  SELECT a.method, bit_or(a.deny), bit_or(a.allow), bit_or(a.allow) & ~bit_or(a.deny)
     FROM db.amu a
    WHERE userid IN (SELECT pUserId UNION SELECT userid FROM db.member_group WHERE member = pUserId)
      AND a.method = pMethod
@@ -1435,6 +1670,47 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- NewEventText ----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION NewEventText (
+  pEvent    uuid,
+  pLabel    text,
+  pLocale   uuid DEFAULT current_locale()
+) RETURNS   void
+AS $$
+BEGIN
+  INSERT INTO db.event_text (event, locale, label)
+  VALUES (pEvent, pLocale, pLabel);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- EditEventText ---------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION EditEventText (
+  pEvent    uuid,
+  pLabel    text,
+  pLocale   uuid DEFAULT null
+) RETURNS   void
+AS $$
+BEGIN
+  UPDATE db.event_text
+     SET label = coalesce(pLabel, label)
+   WHERE event = pEvent AND locale = pLocale;
+
+  IF NOT FOUND THEN
+    PERFORM NewEventText(pEvent, pLabel, pLocale);
+  END IF;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- FUNCTION AddEvent -----------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -1449,15 +1725,21 @@ CREATE OR REPLACE FUNCTION AddEvent (
 ) RETURNS	uuid
 AS $$
 DECLARE
+  l         record;
   uId		uuid;
 BEGIN
   IF pSequence IS NULL THEN
     SELECT coalesce(max(sequence), 0) + 1 INTO pSequence FROM db.event WHERE class = pClass AND action = pAction;
   END IF;
 
-  INSERT INTO db.event (class, type, action, label, text, sequence, enabled)
-  VALUES (pClass, pType, pAction, pLabel, NULLIF(pText, '<null>'), pSequence, pEnabled)
+  INSERT INTO db.event (class, type, action, text, sequence, enabled)
+  VALUES (pClass, pType, pAction, NULLIF(pText, '<null>'), pSequence, pEnabled)
   RETURNING id INTO uId;
+
+  FOR l IN SELECT id FROM db.locale
+  LOOP
+	PERFORM NewEventText(uId, pLabel, l.id);
+  END LOOP;
 
   RETURN uId;
 END;
@@ -1485,11 +1767,12 @@ BEGIN
      SET class = coalesce(pClass, class),
          type = coalesce(pType, type),
          action = coalesce(pAction, action),
-         label = coalesce(pLabel, label),
          text = NULLIF(coalesce(pText, text), '<null>'),
          sequence = coalesce(pSequence, sequence),
          enabled = coalesce(pEnabled, enabled)
    WHERE id = pId;
+
+  PERFORM EditEventText(pId, pLabel, current_locale());
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

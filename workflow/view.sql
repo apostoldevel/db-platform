@@ -4,7 +4,8 @@
 
 CREATE OR REPLACE VIEW Entity
 AS
-  SELECT * FROM db.entity;
+  SELECT e.id, e.code, t.name, t.description
+    FROM db.entity e LEFT JOIN db.entity_text t ON t.entity = e.id AND t.locale = current_locale();
 
 GRANT SELECT ON Entity TO administrator;
 
@@ -12,11 +13,12 @@ GRANT SELECT ON Entity TO administrator;
 -- VIEW Class ------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW Class (Id, Parent, Entity, EntityCode, EntityName, Level, Code,
-  Label, Abstract)
-AS
-  SELECT c.id, c.parent, c.entity, t.code, t.name, c.level, c.code, c.label, c.abstract
-    FROM db.class_tree c INNER JOIN db.entity t ON t.id = c.entity;
+CREATE OR REPLACE VIEW Class (Id, Parent, Entity, EntityCode, EntityName,
+  Level, Code, Label, Abstract
+) AS
+  SELECT c.id, c.parent, c.entity, e.code, e.name, c.level, c.code, t.label, c.abstract
+    FROM db.class_tree c INNER JOIN Entity        e ON e.id = c.entity
+                          LEFT JOIN db.class_text t ON t.class = c.id AND t.locale = current_locale();
 
 GRANT SELECT ON Class TO administrator;
 
@@ -57,9 +59,10 @@ CREATE OR REPLACE VIEW Type (Id, Entity, EntityCode, EntityName,
 )
 AS
   SELECT o.id, c.entity, e.code, e.name,
-         o.class, c.code, c.label, o.code, o.name, o.description
-    FROM db.type o INNER JOIN db.class_tree c ON c.id = o.class
-                   INNER JOIN db.entity e ON e.id = c.entity;
+         o.class, c.code, c.label, o.code, t.name, t.description
+    FROM db.type o INNER JOIN Class        c ON c.id = o.class
+                   INNER JOIN Entity       e ON e.id = c.entity
+                    LEFT JOIN db.type_text t ON t.type = o.id AND t.locale = current_locale();
 
 GRANT SELECT ON Type TO administrator;
 
@@ -69,7 +72,8 @@ GRANT SELECT ON Type TO administrator;
 
 CREATE OR REPLACE VIEW StateType
 AS
-  SELECT * FROM db.state_type;
+  SELECT s.id, s.code, t.name, t.description
+    FROM db.state_type s LEFT JOIN db.state_type_text t ON t.type = s.id AND t.locale = current_locale();
 
 GRANT SELECT ON StateType TO administrator;
 
@@ -78,13 +82,14 @@ GRANT SELECT ON StateType TO administrator;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE VIEW State (Id, Class, ClassCode, ClassLabel,
-    Type, TypeCode, TypeName, Code, Label, Sequence
+  Type, TypeCode, TypeName, Code, Label, Sequence
 )
 AS
   SELECT s.id, s.class, c.code, c.label, s.type,
-         t.code, t.name, s.code, s.label, s.sequence
-    FROM db.state s INNER JOIN db.state_type t ON t.id = s.type
-                    INNER JOIN db.class_tree c on c.id = s.class;
+         st.code, st.name, s.code, t.label, s.sequence
+    FROM db.state s INNER JOIN StateType    st ON st.id = s.type
+                    INNER JOIN Class         c ON c.id = s.class
+                     LEFT JOIN db.state_text t ON t.state = s.id AND t.locale = current_locale();
 
 GRANT SELECT ON State TO administrator;
 
@@ -94,7 +99,8 @@ GRANT SELECT ON State TO administrator;
 
 CREATE OR REPLACE VIEW Action
 AS
-  SELECT * FROM db.action;
+  SELECT a.id, a.code, t.name, t.description
+    FROM db.action a LEFT JOIN db.action_text t ON t.action = a.id AND t.locale = current_locale();
 
 GRANT SELECT ON Action TO administrator;
 
@@ -113,10 +119,11 @@ AS
          m.class, c.code, c.label,
          m.state, s.code, s.label,
          m.action, a.code, a.name,
-         m.code, m.label, m.sequence, m.visible
-    FROM db.method m INNER JOIN db.class_tree c ON c.id = m.class
-                     INNER JOIN db.action a ON a.id = m.action
-                      LEFT JOIN db.state s ON s.id = m.state;
+         m.code, t.label, m.sequence, m.visible
+    FROM db.method m INNER JOIN Class          c ON c.id = m.class
+                     INNER JOIN Action         a ON a.id = m.action
+                      LEFT JOIN State          s ON s.id = m.state
+                      LEFT JOIN db.method_text t ON t.method = m.id AND t.locale = current_locale();
 
 GRANT SELECT ON Method TO administrator;
 
@@ -157,7 +164,8 @@ GRANT SELECT ON Transition TO administrator;
 
 CREATE OR REPLACE VIEW EventType
 AS
-  SELECT * FROM db.event_type;
+  SELECT e.id, e.code, t.name, t.description
+    FROM db.event_type e LEFT JOIN db.event_type_text t ON t.type = e.id AND t.locale = current_locale();
 
 GRANT SELECT ON EventType TO administrator;
 
@@ -169,10 +177,10 @@ CREATE OR REPLACE VIEW Event (Id, Class, Type, TypeCode, TypeName,
   Action, ActionCode, ActionName, Label, Text, Sequence, Enabled
 )
 AS
-  SELECT el.id, el.class, el.type, et.code, et.name, el.action, al.code, al.name,
-         el.label, el.text, el.sequence, el.enabled
-    FROM db.event el INNER JOIN db.event_type et ON et.id = el.type
-                     INNER JOIN db.action al ON al.id = el.action;
+  SELECT e.id, e.class, e.type, et.code, et.name, e.action, a.code, a.name,
+         t.label, e.text, e.sequence, e.enabled
+    FROM db.event e INNER JOIN EventType     et ON et.id = e.type
+                    INNER JOIN Action        a ON a.id = e.action
+                     LEFT JOIN db.event_text t ON t.event = e.id AND t.locale = current_locale();
 
 GRANT SELECT ON Event TO administrator;
-
