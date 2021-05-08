@@ -36,7 +36,18 @@ CREATE OR REPLACE FUNCTION EventDocumentEdit (
   pObject	uuid DEFAULT context_object()
 ) RETURNS	void
 AS $$
+DECLARE
+  uArea     uuid;
+  uAreaType uuid;
 BEGIN
+  SELECT area INTO uArea FROM db.document WHERE id = pObject;
+  SELECT type INTO uAreaType FROM db.area WHERE id = uArea;
+  IF uAreaType IS NOT DISTINCT FROM '00000000-0000-4002-a001-000000000000' THEN -- equally default area type
+    IF uAreaType IS DISTINCT FROM current_area_type() THEN
+      PERFORM DefaultAreaDocumentError();
+	END IF;
+  END IF;
+
   PERFORM WriteToEventLog('M', 1000, 'edit', 'Документ изменён.', pObject);
 END;
 $$ LANGUAGE plpgsql;

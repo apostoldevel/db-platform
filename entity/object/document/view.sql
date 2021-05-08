@@ -7,21 +7,21 @@ CREATE OR REPLACE VIEW Document (Id, Object, Entity, Class, Type, Area, Descript
   Scope, ScopeCode, ScopeName, ScopeDescription
 ) AS
   WITH RECURSIVE _area_tree(id, parent) AS (
-    SELECT id, parent FROM db.area WHERE id = '00000000-0000-4003-a001-000000000001' AND id IS DISTINCT FROM current_area()
+    SELECT id, parent FROM db.area WHERE type = '00000000-0000-4002-a001-000000000000' AND scope IS NOT DISTINCT FROM current_scope() AND id IS DISTINCT FROM current_area()
      UNION
-    SELECT id, parent FROM db.area WHERE id = current_area()
+    SELECT id, parent FROM db.area WHERE id IS NOT DISTINCT FROM current_area()
      UNION
     SELECT a.id, a.parent
       FROM db.area a INNER JOIN _area_tree t ON a.parent = t.id
-     WHERE a.id IS DISTINCT FROM '00000000-0000-4003-a001-000000000001'
+     WHERE a.type IS DISTINCT FROM '00000000-0000-4002-a001-000000000000'
   )
   SELECT d.id, d.object, d.entity, d.class, d.type, d.area, dt.description,
          a.code, a.name, a.description,
          a.scope, s.code, s.name, s.description
-    FROM db.document d  LEFT JOIN db.document_text dt ON d.id = dt.document AND dt.locale = current_locale()
-                       INNER JOIN _area_tree        t ON d.area = t.id
+    FROM db.document d INNER JOIN _area_tree        t ON d.area = t.id
                        INNER JOIN db.area           a ON d.area = a.id
-                       INNER JOIN db.scope          s ON s.id = a.scope;
+                       INNER JOIN db.scope          s ON s.id = a.scope
+                        LEFT JOIN db.document_text dt ON d.id = dt.document AND dt.locale = current_locale();
 
 GRANT SELECT ON Document TO administrator;
 

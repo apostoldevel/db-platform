@@ -1016,6 +1016,18 @@ $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
 --------------------------------------------------------------------------------
 
+SELECT CreateExceptionResource(GetExceptionUUID(400, 74), 'ru', 'DefaultAreaDocumentError', 'Документ можно изменить только в области «По умолчанию»');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 74), 'en', 'DefaultAreaDocumentError', 'The document can only be changed in the "Default" area');
+
+CREATE OR REPLACE FUNCTION DefaultAreaDocumentError() RETURNS void
+AS $$
+BEGIN
+  RAISE EXCEPTION '%', GetExceptionStr(400, 74);
+END;
+$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+
+--------------------------------------------------------------------------------
+
 SELECT CreateExceptionResource(GetExceptionUUID(400, 80), 'ru', 'IncorrectRegistryKey', 'Недопустимый ключ "%s". Допустимые ключи: [%s]');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 80), 'en', 'IncorrectRegistryKey', 'Invalid key "%s". Valid keys: [%s]');
 
