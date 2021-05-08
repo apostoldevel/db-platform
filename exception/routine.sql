@@ -1004,6 +1004,18 @@ $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
 --------------------------------------------------------------------------------
 
+SELECT CreateExceptionResource(GetExceptionUUID(400, 73), 'ru', 'NotFound', 'Не найдено.');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 73), 'en', 'NotFound', 'Not found');
+
+CREATE OR REPLACE FUNCTION NotFound() RETURNS void
+AS $$
+BEGIN
+  RAISE EXCEPTION '%', GetExceptionStr(400, 73);
+END;
+$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+
+--------------------------------------------------------------------------------
+
 SELECT CreateExceptionResource(GetExceptionUUID(400, 80), 'ru', 'IncorrectRegistryKey', 'Недопустимый ключ "%s". Допустимые ключи: [%s]');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 80), 'en', 'IncorrectRegistryKey', 'Invalid key "%s". Valid keys: [%s]');
 
@@ -1046,8 +1058,8 @@ $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
 --------------------------------------------------------------------------------
 
-SELECT CreateExceptionResource(GetExceptionUUID(400, 91), 'ru', 'RouteNotFound', 'Не найден путь: %s');
-SELECT CreateExceptionResource(GetExceptionUUID(400, 91), 'en', 'RouteNotFound', 'Path not FOUND: %s');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 91), 'ru', 'RouteNotFound', 'Не найден маршрут: %s');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 91), 'en', 'RouteNotFound', 'Route not found: %s');
 
 CREATE OR REPLACE FUNCTION RouteNotFound (
   pRoute	text

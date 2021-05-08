@@ -157,7 +157,7 @@ BEGIN
 
     FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(type char, code integer, text text)
     LOOP
-      FOR e IN SELECT * FROM api.write_to_log(coalesce(r.type, 'M'), coalesce(r.code, 9999), r.text) AS success
+      FOR e IN SELECT * FROM api.write_to_log(coalesce(r.type, 'M'), coalesce(r.code, 9999), r.text)
       LOOP
         RETURN NEXT row_to_json(e);
       END LOOP;
@@ -499,7 +499,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, username text, oldpass text, newpass text)
       LOOP
-        FOR e IN SELECT true AS success FROM api.change_password(coalesce(r.id, GetUser(r.username)), r.oldpass, r.newpass) AS success
+        FOR e IN SELECT true AS success FROM api.change_password(coalesce(r.id, GetUser(r.username)), r.oldpass, r.newpass)
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -520,7 +520,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, username text)
       LOOP
-        FOR e IN SELECT * FROM api.user_lock(coalesce(r.id, GetUser(r.username))) AS success
+        FOR e IN SELECT true AS success FROM api.user_lock(coalesce(r.id, GetUser(r.username)))
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -530,7 +530,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, username text)
       LOOP
-        FOR e IN SELECT * FROM api.user_lock(coalesce(r.id, GetUser(r.username))) AS success
+        FOR e IN SELECT true AS success FROM api.user_lock(coalesce(r.id, GetUser(r.username)))
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -551,7 +551,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, username text)
       LOOP
-        FOR e IN SELECT * FROM api.user_unlock(coalesce(r.id, GetUser(r.username))) AS success
+        FOR e IN SELECT true AS success FROM api.user_unlock(coalesce(r.id, GetUser(r.username)))
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -561,7 +561,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, username text)
       LOOP
-        FOR e IN SELECT * FROM api.user_unlock(coalesce(r.id, GetUser(r.username))) AS success
+        FOR e IN SELECT true AS success FROM api.user_unlock(coalesce(r.id, GetUser(r.username)))
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -607,7 +607,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, username text, type char, iptable text)
       LOOP
-        FOR e IN SELECT * FROM api.set_user_iptable(coalesce(r.id, GetUser(r.username)), r.type, r.iptable) AS success
+        FOR e IN SELECT true AS success FROM api.set_user_iptable(coalesce(r.id, GetUser(r.username)), r.type, r.iptable)
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -617,7 +617,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, username text, type char, iptable text)
       LOOP
-        FOR e IN SELECT * FROM api.set_user_iptable(coalesce(r.id, GetUser(r.username)), r.type, r.iptable) AS success
+        FOR e IN SELECT true AS success FROM api.set_user_iptable(coalesce(r.id, GetUser(r.username)), r.type, r.iptable)
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;

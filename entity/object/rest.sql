@@ -332,7 +332,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid)
       LOOP
-        FOR e IN SELECT * FROM api.object_force_delete(r.id) AS success
+        FOR e IN SELECT api.object_force_delete(r.id) AS success
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -342,7 +342,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid)
       LOOP
-        FOR e IN SELECT * FROM api.object_force_delete(r.id) AS success
+        FOR e IN SELECT api.object_force_delete(r.id) AS success
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;

@@ -55,7 +55,7 @@ BEGIN
 
     FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(type char, code integer, text text)
     LOOP
-      FOR e IN SELECT * FROM api.write_to_log(coalesce(r.type, 'M'), coalesce(r.code, 9999), r.text) AS success
+      FOR e IN SELECT * FROM api.write_to_log(coalesce(r.type, 'M'), coalesce(r.code, 9999), r.text)
       LOOP
         RETURN NEXT row_to_json(e);
       END LOOP;

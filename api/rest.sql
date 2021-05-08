@@ -77,7 +77,7 @@ BEGIN
 
     FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(username text, password text)
     LOOP
-      FOR e IN SELECT * FROM api.su(r.username, r.password) AS success
+      FOR e IN SELECT true AS success FROM api.su(r.username, r.password)
       LOOP
         RETURN NEXT row_to_json(e);
       END LOOP;

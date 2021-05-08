@@ -664,7 +664,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(key text, subkey text)
       LOOP
-        FOR e IN SELECT * FROM api.registry_delete_key(r.key, r.subkey) AS success
+        FOR e IN SELECT r.key, r.subkey, api.registry_delete_key(r.key, r.subkey) AS success
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -674,7 +674,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(key text, subkey text)
       LOOP
-        FOR e IN SELECT * FROM api.registry_delete_key(r.key, r.subkey) AS success
+        FOR e IN SELECT r.key, r.subkey, api.registry_delete_key(r.key, r.subkey) AS success
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -695,7 +695,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, key text, subkey text, name text)
       LOOP
-        FOR e IN SELECT * FROM api.registry_delete_value(r.id, r.key, r.subkey, r.name) AS success
+        FOR e IN SELECT r.id, r.key, r.subkey, r.name, api.registry_delete_value(r.id, r.key, r.subkey, r.name) AS success
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -705,7 +705,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, key text, subkey text, name text)
       LOOP
-        FOR e IN SELECT * FROM api.registry_delete_value(r.id, r.key, r.subkey, r.name) AS success
+        FOR e IN SELECT r.id, r.key, r.subkey, r.name, api.registry_delete_value(r.id, r.key, r.subkey, r.name) AS success
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -726,7 +726,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(key text, subkey text)
       LOOP
-        FOR e IN SELECT * FROM api.registry_delete_tree(r.key, r.subkey) AS success
+        FOR e IN SELECT r.key, r.subkey, api.registry_delete_tree(r.key, r.subkey) AS success
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -736,7 +736,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(key text, subkey text)
       LOOP
-        FOR e IN SELECT * FROM api.registry_delete_tree(r.key, r.subkey) AS success
+        FOR e IN SELECT r.key, r.subkey, api.registry_delete_tree(r.key, r.subkey) AS success
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
