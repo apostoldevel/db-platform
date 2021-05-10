@@ -6,6 +6,7 @@
  * @param {uuid} pParent - Родительский объект
  * @param {uuid} pType - Тип
  * @param {uuid} pAgent - Агент
+ * @param {text} pCode - Код (MsgId)
  * @param {text} pProfile - Профиль отправителя
  * @param {text} pAddress - Адрес получателя
  * @param {text} pSubject - Тема
@@ -17,6 +18,7 @@ CREATE OR REPLACE FUNCTION CreateMessage (
   pParent       uuid,
   pType         uuid,
   pAgent        uuid,
+  pCode         text,
   pProfile      text,
   pAddress      text,
   pSubject      text,
@@ -25,7 +27,7 @@ CREATE OR REPLACE FUNCTION CreateMessage (
 ) RETURNS       uuid
 AS $$
 DECLARE
-  nMessage      uuid;
+  uMessage      uuid;
   uDocument     uuid;
 
   uClass        uuid;
@@ -37,16 +39,16 @@ BEGIN
     PERFORM IncorrectClassType();
   END IF;
 
-  uDocument := CreateDocument(pParent, pType, null, pDescription);
+  uDocument := CreateDocument(pParent, pType, pCode, pDescription);
 
-  INSERT INTO db.message (id, document, agent, profile, address, subject, content)
-  VALUES (uDocument, uDocument, pAgent, pProfile, pAddress, pSubject, pContent)
-  RETURNING id INTO nMessage;
+  INSERT INTO db.message (id, document, agent, code, profile, address, subject, content)
+  VALUES (uDocument, uDocument, pAgent, pCode, pProfile, pAddress, pSubject, pContent)
+  RETURNING id INTO uMessage;
 
   uMethod := GetMethod(uClass, GetAction('create'));
-  PERFORM ExecuteMethod(nMessage, uMethod);
+  PERFORM ExecuteMethod(uMessage, uMethod);
 
-  return nMessage;
+  return uMessage;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -61,6 +63,7 @@ $$ LANGUAGE plpgsql
  * @param {uuid} pParent - Родительский объект
  * @param {uuid} pType - Тип
  * @param {uuid} pAgent - Агент
+ * @param {text} pCode - Код (MsgId)
  * @param {text} pProfile - Профиль отправителя
  * @param {text} pAddress - Адрес получателя
  * @param {text} pSubject - Тема
@@ -73,6 +76,7 @@ CREATE OR REPLACE FUNCTION EditMessage (
   pParent       uuid DEFAULT null,
   pType         uuid DEFAULT null,
   pAgent        uuid DEFAULT null,
+  pCode         text DEFAULT null,
   pProfile      text DEFAULT null,
   pAddress      text DEFAULT null,
   pSubject      text DEFAULT null,
@@ -84,18 +88,18 @@ DECLARE
   uClass        uuid;
   uMethod       uuid;
 BEGIN
-  PERFORM EditDocument(pId, pParent, pType, null, pDescription, pDescription, current_locale());
+  PERFORM EditDocument(pId, pParent, pType, pCode, pDescription, pDescription, current_locale());
 
   UPDATE db.message
      SET agent = coalesce(pAgent, agent),
+         code = coalesce(pCode, code),
          profile = coalesce(pProfile, profile),
          address = coalesce(pAddress, address),
          subject = coalesce(pSubject, subject),
          content = coalesce(pContent, content)
    WHERE id = pId;
 
-  SELECT class INTO uClass FROM type WHERE id = pType;
-
+  uClass := GetObjectClass(pId);
   uMethod := GetMethod(uClass, GetAction('edit'));
   PERFORM ExecuteMethod(pId, uMethod);
 END;
@@ -295,7 +299,7 @@ AS $$
 DECLARE
   uMessageId    uuid;
 BEGIN
-  uMessageId := CreateMessage(pParent, pType, pAgent, pProfile, pAddress, pSubject, pContent, pDescription);
+  uMessageId := CreateMessage(pParent, pType, pAgent, gen_random_uuid()::text, pProfile, pAddress, pSubject, pContent, pDescription);
   PERFORM ExecuteObjectAction(uMessageId, GetAction('submit'));
   RETURN uMessageId;
 END

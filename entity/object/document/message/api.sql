@@ -36,6 +36,32 @@ AS
 GRANT SELECT ON api.inbox TO administrator;
 
 --------------------------------------------------------------------------------
+-- FUNCTION api.inbox ----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.inbox (
+  pState    uuid
+) RETURNS	SETOF api.inbox
+AS $$
+  SELECT * FROM api.inbox WHERE state = pState;
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION api.inbox ----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.inbox (
+  pState    text
+) RETURNS	SETOF api.inbox
+AS $$
+  SELECT * FROM api.inbox(GetState(GetClass('inbox'), pState));
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- api.outbox ------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -107,8 +133,9 @@ $$ LANGUAGE SQL
 /**
  * Добавляет сообщение.
  * @param {uuid} pParent - Родительский объект
- * @param {text} pType - Код типа
+ * @param {uuid} pType - Идентификатор типа
  * @param {uuid} pAgent - Агент
+ * @param {text} pCode - Код (MsgId)
  * @param {text} pProfile - Профиль отправителя
  * @param {text} pAddress - Адрес получателя
  * @param {text} pSubject - Тема
@@ -118,8 +145,9 @@ $$ LANGUAGE SQL
  */
 CREATE OR REPLACE FUNCTION api.add_message (
   pParent       uuid,
-  pType         text,
+  pType         uuid,
   pAgent        uuid,
+  pCode         text,
   pProfile      text,
   pAddress      text,
   pSubject      text,
@@ -128,7 +156,7 @@ CREATE OR REPLACE FUNCTION api.add_message (
 ) RETURNS       uuid
 AS $$
 BEGIN
-  RETURN CreateMessage(pParent, CodeToType(coalesce(lower(pType), 'message.outbox'), 'message'), pAgent, pProfile, pAddress, pSubject, pContent, pDescription);
+  RETURN CreateMessage(pParent, pType, pAgent, pCode, pProfile, pAddress, pSubject, pContent, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -141,8 +169,9 @@ $$ LANGUAGE plpgsql
  * Обновляет сообщение.
  * @param {uuid} pId - Идентификатор
  * @param {uuid} pParent - Родительский объект
- * @param {text} pType - Код типа
+ * @param {uuid} pType - Идентификатор типа
  * @param {uuid} pAgent - Агент
+ * @param {text} pCode - Код (MsgId)
  * @param {text} pProfile - Профиль отправителя
  * @param {text} pAddress - Адрес получателя
  * @param {text} pSubject - Тема
@@ -153,8 +182,9 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.update_message (
   pId           uuid,
   pParent       uuid default null,
-  pType         text default null,
+  pType         uuid default null,
   pAgent        uuid default null,
+  pCode         text default null,
   pProfile      text default null,
   pAddress      text default null,
   pSubject      text default null,
@@ -163,21 +193,14 @@ CREATE OR REPLACE FUNCTION api.update_message (
 ) RETURNS       void
 AS $$
 DECLARE
-  nMessage      uuid;
-  uType         uuid;
+  uMessage      uuid;
 BEGIN
-  SELECT a.id INTO nMessage FROM db.message a WHERE a.id = pId;
+  SELECT a.id INTO uMessage FROM db.message a WHERE a.id = pId;
   IF NOT FOUND THEN
-    PERFORM ObjectNotFound('адрес', 'id', pId);
+    PERFORM ObjectNotFound('message', 'id', pId);
   END IF;
 
-  IF pType IS NOT NULL THEN
-    uType := CodeToType(lower(pType), 'message');
-  ELSE
-    SELECT o.type INTO uType FROM db.object o WHERE o.id = pId;
-  END IF;
-
-  PERFORM EditMessage(nMessage, pParent, uType, pAgent, pProfile, pAddress, pSubject, pContent, pDescription);
+  PERFORM EditMessage(uMessage, pParent, pType, pAgent, pCode, pProfile, pAddress, pSubject, pContent, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -190,8 +213,9 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.set_message (
   pId           uuid,
   pParent       uuid default null,
-  pType         text default null,
+  pType         uuid default null,
   pAgent        uuid default null,
+  pCode         text default null,
   pProfile      text default null,
   pAddress      text default null,
   pSubject      text default null,
@@ -201,9 +225,9 @@ CREATE OR REPLACE FUNCTION api.set_message (
 AS $$
 BEGIN
   IF pId IS NULL THEN
-    pId := api.add_message(pParent, pType, pAgent, pProfile, pAddress, pSubject, pContent, pDescription);
+    pId := api.add_message(pParent, pType, pAgent, pCode, pProfile, pAddress, pSubject, pContent, pDescription);
   ELSE
-    PERFORM api.update_message(pId, pParent, pType, pAgent, pProfile, pAddress, pSubject, pContent, pDescription);
+    PERFORM api.update_message(pId, pParent, pType, pAgent, pCode, pProfile, pAddress, pSubject, pContent, pDescription);
   END IF;
 
   RETURN QUERY SELECT * FROM api.message WHERE id = pId;
