@@ -128,6 +128,120 @@ $$ LANGUAGE SQL
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- api.new_inbox_message -------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Новое входящее сообщение.
+ * @param {uuid} pParent - Родительский объект
+ * @param {text} pAgent - Код агента
+ * @param {text} pCode - Код сообщения (MsgId)
+ * @param {text} pProfile - Профиль отправителя (от кого)
+ * @param {text} pAddress - Адрес получателя (кому)
+ * @param {text} pSubject - Тема
+ * @param {text} pContent - Содержимое
+ * @param {text} pDescription - Описание
+ * @return {uuid}
+ */
+CREATE OR REPLACE FUNCTION api.new_inbox_message (
+  pParent       uuid,
+  pAgent        text,
+  pCode         text,
+  pProfile      text,
+  pAddress      text,
+  pSubject      text,
+  pContent		text,
+  pDescription  text default null
+) RETURNS       uuid
+AS $$
+DECLARE
+  r             record;
+
+  uAgent        uuid;
+  uMessage      uuid;
+
+  arCodes       text[];
+BEGIN
+  FOR r IN SELECT code FROM Agent
+  LOOP
+    arCodes := array_append(arCodes, r.code::text);
+  END LOOP;
+
+  IF array_position(arCodes, pAgent) IS NULL THEN
+    PERFORM IncorrectCode(pAgent, arCodes);
+  END IF;
+
+  uAgent := GetAgent(pAgent);
+
+  SELECT id INTO uMessage FROM db.message WHERE agent = uAgent AND code = pCode;
+
+  IF NOT FOUND THEN
+    uMessage := CreateMessage(pParent, GetType('message.inbox'), GetAgent(pAgent), pCode, pProfile, pAddress, pSubject, pContent, pDescription);
+  END IF;
+
+  RETURN uMessage;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.new_outbox_message ------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Новое исходящее сообщение.
+ * @param {uuid} pParent - Родительский объект
+ * @param {text} pAgent - Код агента
+ * @param {text} pCode - Код сообщения (MsgId)
+ * @param {text} pProfile - Профиль отправителя (от кого)
+ * @param {text} pAddress - Адрес получателя (кому)
+ * @param {text} pSubject - Тема
+ * @param {text} pContent - Содержимое
+ * @param {text} pDescription - Описание
+ * @return {uuid}
+ */
+CREATE OR REPLACE FUNCTION api.new_outbox_message (
+  pParent       uuid,
+  pAgent        text,
+  pCode         text,
+  pProfile      text,
+  pAddress      text,
+  pSubject      text,
+  pContent		text,
+  pDescription  text default null
+) RETURNS       uuid
+AS $$
+DECLARE
+  r             record;
+
+  uAgent        uuid;
+  uMessage      uuid;
+
+  arCodes       text[];
+BEGIN
+  FOR r IN SELECT code FROM Agent
+  LOOP
+    arCodes := array_append(arCodes, r.code::text);
+  END LOOP;
+
+  IF array_position(arCodes, pAgent) IS NULL THEN
+    PERFORM IncorrectCode(pAgent, arCodes);
+  END IF;
+
+  uAgent := GetAgent(pAgent);
+
+  SELECT id INTO uMessage FROM db.message WHERE agent = uAgent AND code = pCode;
+
+  IF NOT FOUND THEN
+    uMessage := CreateMessage(pParent, GetType('message.outbox'), GetAgent(pAgent), pCode, pProfile, pAddress, pSubject, pContent, pDescription);
+  END IF;
+
+  RETURN uMessage;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- api.add_message -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
