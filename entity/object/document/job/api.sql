@@ -46,7 +46,7 @@ $$ LANGUAGE SQL
 /**
  * Добавляет задание.
  * @param {uuid} pParent - Ссылка на родительский объект: api.document | null
- * @param {text} pType - Tип
+ * @param {uuid} pType - Tип
  * @param {uuid} pScheduler - Планировщик
  * @param {uuid} pProgram - Программа
  * @param {timestamptz} pDateRun - Дата запуска
@@ -57,7 +57,7 @@ $$ LANGUAGE SQL
  */
 CREATE OR REPLACE FUNCTION api.add_job (
   pParent           uuid,
-  pType             text,
+  pType             uuid,
   pScheduler        uuid,
   pProgram          uuid,
   pDateRun          timestamptz default null,
@@ -67,7 +67,7 @@ CREATE OR REPLACE FUNCTION api.add_job (
 ) RETURNS           uuid
 AS $$
 BEGIN
-  RETURN CreateJob(pParent, CodeToType(lower(coalesce(pType, 'periodic.job')), 'job'), pScheduler, pProgram, pDateRun, pCode, pLabel, pDescription);
+  RETURN CreateJob(pParent, coalesce(pType, GetType('periodic.job.job')), pScheduler, pProgram, pDateRun, pCode, pLabel, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -79,7 +79,7 @@ $$ LANGUAGE plpgsql
 /**
  * Редактирует задание.
  * @param {uuid} pParent - Ссылка на родительский объект: Object.Parent | null
- * @param {text} pType - Tип
+ * @param {uuid} pType - Tип
  * @param {uuid} pScheduler - Планировщик
  * @param {uuid} pProgram - Программа
  * @param {timestamptz} pDateRun - Дата запуска
@@ -91,7 +91,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.update_job (
   pId               uuid,
   pParent           uuid default null,
-  pType             text default null,
+  pType             uuid default null,
   pScheduler        uuid default null,
   pProgram          uuid default null,
   pDateRun          timestamptz default null,
@@ -101,22 +101,15 @@ CREATE OR REPLACE FUNCTION api.update_job (
 ) RETURNS           void
 AS $$
 DECLARE
-  uType             uuid;
-  nJob				uuid;
+  uJob				uuid;
 BEGIN
-  SELECT c.id INTO nJob FROM db.job c WHERE c.id = pId;
+  SELECT c.id INTO uJob FROM db.job c WHERE c.id = pId;
 
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('задание', 'id', pId);
   END IF;
 
-  IF pType IS NOT NULL THEN
-    uType := CodeToType(lower(pType), 'job');
-  ELSE
-    SELECT o.type INTO uType FROM db.object o WHERE o.id = pId;
-  END IF;
-
-  PERFORM EditJob(nJob, pParent, uType, pScheduler, pProgram, pDateRun, pCode, pLabel, pDescription);
+  PERFORM EditJob(uJob, pParent, pType, pScheduler, pProgram, pDateRun, pCode, pLabel, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -129,7 +122,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.set_job (
   pId               uuid,
   pParent           uuid default null,
-  pType             text default null,
+  pType             uuid default null,
   pScheduler        uuid default null,
   pProgram          uuid default null,
   pDateRun          timestamptz default null,
@@ -190,6 +183,25 @@ CREATE OR REPLACE FUNCTION api.list_job (
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'job', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.get_job_id --------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Возвращает uuid по коду.
+ * @param {text} pCode - Код задания
+ * @return {uuid}
+ */
+CREATE OR REPLACE FUNCTION api.get_job_id (
+  pCode		text
+) RETURNS	uuid
+AS $$
+BEGIN
+  RETURN GetJob(pCode);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

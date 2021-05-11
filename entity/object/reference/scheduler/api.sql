@@ -18,7 +18,7 @@ GRANT SELECT ON api.scheduler TO administrator;
 /**
  * Добавляет планировщик.
  * @param {uuid} pParent - Ссылка на родительский объект: api.document | null
- * @param {text} pType - Код типа
+ * @param {uuid} pType - Код типа
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
  * @param {interval} pPeriod - Период выполнения
@@ -29,7 +29,7 @@ GRANT SELECT ON api.scheduler TO administrator;
  */
 CREATE OR REPLACE FUNCTION api.add_scheduler (
   pParent       uuid,
-  pType         text,
+  pType         uuid,
   pCode         text,
   pName         text,
   pPeriod       interval default null,
@@ -39,7 +39,7 @@ CREATE OR REPLACE FUNCTION api.add_scheduler (
 ) RETURNS       uuid
 AS $$
 BEGIN
-  RETURN CreateScheduler(pParent, CodeToType(lower(coalesce(pType, 'job')), 'scheduler'), pCode, pName, pPeriod, pDateStart, pDateStop, pDescription);
+  RETURN CreateScheduler(pParent, coalesce(pType, GetType('job.scheduler')), pCode, pName, pPeriod, pDateStart, pDateStop, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -63,7 +63,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.update_scheduler (
   pId		    uuid,
   pParent       uuid default null,
-  pType         text default null,
+  pType         uuid default null,
   pCode         text default null,
   pName         text default null,
   pPeriod       interval default null,
@@ -73,22 +73,15 @@ CREATE OR REPLACE FUNCTION api.update_scheduler (
 ) RETURNS       void
 AS $$
 DECLARE
-  uType         uuid;
-  nScheduler    uuid;
+  uScheduler    uuid;
 BEGIN
-  SELECT t.id INTO nScheduler FROM db.scheduler t WHERE t.id = pId;
+  SELECT t.id INTO uScheduler FROM db.scheduler t WHERE t.id = pId;
 
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('планировщик', 'id', pId);
   END IF;
 
-  IF pType IS NOT NULL THEN
-    uType := CodeToType(lower(pType), 'scheduler');
-  ELSE
-    SELECT o.type INTO uType FROM db.object o WHERE o.id = pId;
-  END IF;
-
-  PERFORM EditScheduler(nScheduler, pParent, uType, pCode, pName, pPeriod, pDateStart, pDateStop, pDescription);
+  PERFORM EditScheduler(uScheduler, pParent, pType, pCode, pName, pPeriod, pDateStart, pDateStop, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -101,7 +94,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.set_scheduler (
   pId           uuid,
   pParent       uuid default null,
-  pType         text default null,
+  pType         uuid default null,
   pCode         text default null,
   pName         text default null,
   pPeriod       interval default null,
@@ -162,6 +155,25 @@ CREATE OR REPLACE FUNCTION api.list_scheduler (
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'scheduler', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.get_scheduler_id --------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Возвращает uuid по коду.
+ * @param {text} pCode - Код планировщика
+ * @return {uuid}
+ */
+CREATE OR REPLACE FUNCTION api.get_scheduler_id (
+  pCode		text
+) RETURNS	uuid
+AS $$
+BEGIN
+  RETURN GetScheduler(pCode);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

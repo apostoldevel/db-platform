@@ -122,60 +122,46 @@ CREATE OR REPLACE FUNCTION api.message (
   pState    text
 ) RETURNS	SETOF api.message
 AS $$
-  SELECT * FROM api.message(CodeToType(coalesce(pType, 'message.outbox'), 'message'), GetAgent(pAgent), GetState(GetClass(SubStr(pType, StrPos(pType, '.') + 1)), pState));
+  SELECT * FROM api.message(CodeToType(pType, 'message'), GetAgent(pAgent), GetState(GetClass(SubStr(pType, StrPos(pType, '.') + 1)), pState));
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- api.new_inbox_message -------------------------------------------------------
+-- api.add_inbox ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Новое входящее сообщение.
+ * Добавляет входящее сообщение.
  * @param {uuid} pParent - Родительский объект
- * @param {text} pAgent - Код агента
- * @param {text} pCode - Код сообщения (MsgId)
- * @param {text} pProfile - Профиль отправителя (от кого)
- * @param {text} pAddress - Адрес получателя (кому)
+ * @param {uuid} pAgent - Агент
+ * @param {text} pCode - Код (MsgId)
+ * @param {text} pProfile - Профиль отправителя
+ * @param {text} pAddress - Адрес получателя
  * @param {text} pSubject - Тема
  * @param {text} pContent - Содержимое
+ * @param {text} pLabel - Метка
  * @param {text} pDescription - Описание
  * @return {uuid}
  */
-CREATE OR REPLACE FUNCTION api.new_inbox_message (
+CREATE OR REPLACE FUNCTION api.add_inbox (
   pParent       uuid,
-  pAgent        text,
+  pAgent        uuid,
   pCode         text,
   pProfile      text,
   pAddress      text,
   pSubject      text,
   pContent		text,
+  pLabel        text default null,
   pDescription  text default null
 ) RETURNS       uuid
 AS $$
 DECLARE
-  r             record;
-
-  uAgent        uuid;
   uMessage      uuid;
-
-  arCodes       text[];
 BEGIN
-  FOR r IN SELECT code FROM Agent
-  LOOP
-    arCodes := array_append(arCodes, r.code::text);
-  END LOOP;
-
-  IF array_position(arCodes, pAgent) IS NULL THEN
-    PERFORM IncorrectCode(pAgent, arCodes);
-  END IF;
-
-  uAgent := GetAgent(pAgent);
-
-  SELECT id INTO uMessage FROM db.message WHERE agent = uAgent AND code = pCode;
+  SELECT id INTO uMessage FROM db.message WHERE agent = pAgent AND code = pCode;
 
   IF NOT FOUND THEN
-    uMessage := CreateMessage(pParent, GetType('message.inbox'), GetAgent(pAgent), pCode, pProfile, pAddress, pSubject, pContent, pDescription);
+    uMessage := CreateMessage(pParent, GetType('message.inbox'), GetAgent(pAgent), pCode, pProfile, pAddress, pSubject, pContent, pLabel, pDescription);
   END IF;
 
   RETURN uMessage;
@@ -185,54 +171,40 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- api.new_outbox_message ------------------------------------------------------
+-- api.add_outbox --------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Новое исходящее сообщение.
+ * Добавляет исходящее сообщение.
  * @param {uuid} pParent - Родительский объект
- * @param {text} pAgent - Код агента
- * @param {text} pCode - Код сообщения (MsgId)
- * @param {text} pProfile - Профиль отправителя (от кого)
- * @param {text} pAddress - Адрес получателя (кому)
+ * @param {uuid} pAgent - Агент
+ * @param {text} pCode - Код (MsgId)
+ * @param {text} pProfile - Профиль отправителя
+ * @param {text} pAddress - Адрес получателя
  * @param {text} pSubject - Тема
  * @param {text} pContent - Содержимое
+ * @param {text} pLabel - Метка
  * @param {text} pDescription - Описание
  * @return {uuid}
  */
-CREATE OR REPLACE FUNCTION api.new_outbox_message (
+CREATE OR REPLACE FUNCTION api.add_outbox (
   pParent       uuid,
-  pAgent        text,
+  pAgent        uuid,
   pCode         text,
   pProfile      text,
   pAddress      text,
   pSubject      text,
   pContent		text,
+  pLabel        text default null,
   pDescription  text default null
 ) RETURNS       uuid
 AS $$
 DECLARE
-  r             record;
-
-  uAgent        uuid;
   uMessage      uuid;
-
-  arCodes       text[];
 BEGIN
-  FOR r IN SELECT code FROM Agent
-  LOOP
-    arCodes := array_append(arCodes, r.code::text);
-  END LOOP;
-
-  IF array_position(arCodes, pAgent) IS NULL THEN
-    PERFORM IncorrectCode(pAgent, arCodes);
-  END IF;
-
-  uAgent := GetAgent(pAgent);
-
-  SELECT id INTO uMessage FROM db.message WHERE agent = uAgent AND code = pCode;
+  SELECT id INTO uMessage FROM db.message WHERE agent = pAgent AND code = pCode;
 
   IF NOT FOUND THEN
-    uMessage := CreateMessage(pParent, GetType('message.outbox'), GetAgent(pAgent), pCode, pProfile, pAddress, pSubject, pContent, pDescription);
+    uMessage := CreateMessage(pParent, GetType('message.outbox'), GetAgent(pAgent), pCode, pProfile, pAddress, pSubject, pContent, pLabel, pDescription);
   END IF;
 
   RETURN uMessage;
@@ -254,6 +226,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pAddress - Адрес получателя
  * @param {text} pSubject - Тема
  * @param {text} pContent - Содержимое
+ * @param {text} pLabel - Метка
  * @param {text} pDescription - Описание
  * @return {uuid}
  */
@@ -266,11 +239,12 @@ CREATE OR REPLACE FUNCTION api.add_message (
   pAddress      text,
   pSubject      text,
   pContent		text,
+  pLabel        text default null,
   pDescription  text default null
 ) RETURNS       uuid
 AS $$
 BEGIN
-  RETURN CreateMessage(pParent, pType, pAgent, pCode, pProfile, pAddress, pSubject, pContent, pDescription);
+  RETURN CreateMessage(pParent, pType, pAgent, pCode, pProfile, pAddress, pSubject, pContent, pLabel, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -290,6 +264,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pAddress - Адрес получателя
  * @param {text} pSubject - Тема
  * @param {text} pContent - Содержимое
+ * @param {text} pLabel - Метка
  * @param {text} pDescription - Описание
  * @return {void}
  */
@@ -303,6 +278,7 @@ CREATE OR REPLACE FUNCTION api.update_message (
   pAddress      text default null,
   pSubject      text default null,
   pContent		text default null,
+  pLabel        text default null,
   pDescription  text default null
 ) RETURNS       void
 AS $$
@@ -314,7 +290,7 @@ BEGIN
     PERFORM ObjectNotFound('message', 'id', pId);
   END IF;
 
-  PERFORM EditMessage(uMessage, pParent, pType, pAgent, pCode, pProfile, pAddress, pSubject, pContent, pDescription);
+  PERFORM EditMessage(uMessage, pParent, pType, pAgent, pCode, pProfile, pAddress, pSubject, pContent, pLabel, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -334,14 +310,15 @@ CREATE OR REPLACE FUNCTION api.set_message (
   pAddress      text default null,
   pSubject      text default null,
   pContent      text default null,
+  pLabel        text default null,
   pDescription  text default null
 ) RETURNS       SETOF api.message
 AS $$
 BEGIN
   IF pId IS NULL THEN
-    pId := api.add_message(pParent, pType, pAgent, pCode, pProfile, pAddress, pSubject, pContent, pDescription);
+    pId := api.add_message(pParent, pType, pAgent, pCode, pProfile, pAddress, pSubject, pContent, pLabel, pDescription);
   ELSE
-    PERFORM api.update_message(pId, pParent, pType, pAgent, pCode, pProfile, pAddress, pSubject, pContent, pDescription);
+    PERFORM api.update_message(pId, pParent, pType, pAgent, pCode, pProfile, pAddress, pSubject, pContent, pLabel, pDescription);
   END IF;
 
   RETURN QUERY SELECT * FROM api.message WHERE id = pId;
@@ -477,6 +454,26 @@ CREATE OR REPLACE FUNCTION api.list_outbox (
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'outbox', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.get_message_id ----------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Возвращает uuid по коду.
+ * @param {text} pCode - Код сообщения
+ * @return {uuid}
+ */
+CREATE OR REPLACE FUNCTION api.get_message_id (
+  pAgent    text,
+  pCode     text
+) RETURNS   uuid
+AS $$
+BEGIN
+  RETURN GetMessage(GetAgent(pAgent), pCode);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

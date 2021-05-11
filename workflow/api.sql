@@ -194,14 +194,14 @@ $$ LANGUAGE SQL
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- api.get_type ----------------------------------------------------------------
+-- api.get_type_id -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
  * Возвращает тип объекта по коду.
  * @param {text} pCode - Код типа объекта
  * @return {uuid} - Тип объекта
  */
-CREATE OR REPLACE FUNCTION api.get_type (
+CREATE OR REPLACE FUNCTION api.get_type_id (
   pCode		text
 ) RETURNS	uuid
 AS $$

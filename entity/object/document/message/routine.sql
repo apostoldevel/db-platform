@@ -11,6 +11,7 @@
  * @param {text} pAddress - Адрес получателя
  * @param {text} pSubject - Тема
  * @param {text} pContent - Содержимое
+ * @param {text} pLabel - Метка
  * @param {text} pDescription - Описание
  * @return {(id|exception)} - Id сообщения или ошибку
  */
@@ -23,6 +24,7 @@ CREATE OR REPLACE FUNCTION CreateMessage (
   pAddress      text,
   pSubject      text,
   pContent      text,
+  pLabel        text DEFAULT null,
   pDescription  text DEFAULT null
 ) RETURNS       uuid
 AS $$
@@ -39,7 +41,7 @@ BEGIN
     PERFORM IncorrectClassType();
   END IF;
 
-  uDocument := CreateDocument(pParent, pType, pCode, pDescription);
+  uDocument := CreateDocument(pParent, pType, pLabel, pDescription);
 
   INSERT INTO db.message (id, document, agent, code, profile, address, subject, content)
   VALUES (uDocument, uDocument, pAgent, pCode, pProfile, pAddress, pSubject, pContent)
@@ -68,6 +70,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pAddress - Адрес получателя
  * @param {text} pSubject - Тема
  * @param {text} pContent - Содержимое
+ * @param {text} pLabel - Метка
  * @param {text} pDescription - Описание
  * @return {void}
  */
@@ -81,6 +84,7 @@ CREATE OR REPLACE FUNCTION EditMessage (
   pAddress      text DEFAULT null,
   pSubject      text DEFAULT null,
   pContent      text DEFAULT null,
+  pLabel        text DEFAULT null,
   pDescription  text DEFAULT null
 ) RETURNS       void
 AS $$
@@ -88,7 +92,7 @@ DECLARE
   uClass        uuid;
   uMethod       uuid;
 BEGIN
-  PERFORM EditDocument(pId, pParent, pType, pCode, pDescription, pDescription, current_locale());
+  PERFORM EditDocument(pId, pParent, pType, pLabel, pDescription, coalesce(pLabel, pDescription), current_locale());
 
   UPDATE db.message
      SET agent = coalesce(pAgent, agent),
@@ -108,20 +112,16 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- GetMessageId ----------------------------------------------------------------
+-- GetMessage ------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION GetMessageId (
+CREATE OR REPLACE FUNCTION GetMessage (
+  pAgent   uuid,
   pCode    text
 ) RETURNS  uuid
 AS $$
-DECLARE
-  uId      uuid;
-BEGIN
-  SELECT id INTO uId FROM db.message WHERE code = pCode;
-  RETURN uId;
-END;
-$$ LANGUAGE plpgsql
+  SELECT id FROM db.message WHERE agent = pAgent AND code = pCode;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -133,13 +133,8 @@ CREATE OR REPLACE FUNCTION GetMessageCode (
   pId      uuid
 ) RETURNS  text
 AS $$
-DECLARE
-  vCode    text;
-BEGIN
-  SELECT code INTO vCode FROM db.message WHERE id = pId;
-  RETURN vCode;
-END;
-$$ LANGUAGE plpgsql
+  SELECT code FROM db.message WHERE id = pId;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 

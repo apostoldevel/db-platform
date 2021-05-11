@@ -18,7 +18,7 @@ GRANT SELECT ON api.program TO administrator;
 /**
  * Добавляет программу.
  * @param {uuid} pParent - Ссылка на родительский объект: api.document | null
- * @param {text} pType - Тип
+ * @param {uuid} pType - Тип
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
  * @param {text} pBody - Тело
@@ -27,7 +27,7 @@ GRANT SELECT ON api.program TO administrator;
  */
 CREATE OR REPLACE FUNCTION api.add_program (
   pParent       uuid,
-  pType         text,
+  pType         uuid,
   pCode         text,
   pName         text,
   pBody         text,
@@ -35,7 +35,7 @@ CREATE OR REPLACE FUNCTION api.add_program (
 ) RETURNS       uuid
 AS $$
 BEGIN
-  RETURN CreateProgram(pParent, CodeToType(lower(coalesce(pType, 'plpgsql')), 'program'), pCode, pName, pBody, pDescription);
+  RETURN CreateProgram(pParent, coalesce(pType, GetType('plpgsql.program')), pCode, pName, pBody, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -47,7 +47,7 @@ $$ LANGUAGE plpgsql
 /**
  * Редактирует программу.
  * @param {uuid} pParent - Ссылка на родительский объект: Object.Parent | null
- * @param {text} pType - Тип
+ * @param {uuid} pType - Тип
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
  * @param {text} pBody - Тело
@@ -57,7 +57,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.update_program (
   pId		    uuid,
   pParent       uuid default null,
-  pType         text default null,
+  pType         uuid default null,
   pCode         text default null,
   pName         text default null,
   pBody         text default null,
@@ -65,22 +65,15 @@ CREATE OR REPLACE FUNCTION api.update_program (
 ) RETURNS       void
 AS $$
 DECLARE
-  uType         uuid;
-  nProgram      uuid;
+  uProgram      uuid;
 BEGIN
-  SELECT t.id INTO nProgram FROM db.program t WHERE t.id = pId;
+  SELECT t.id INTO uProgram FROM db.program t WHERE t.id = pId;
 
   IF NOT FOUND THEN
-    PERFORM ObjectNotFound('программа', 'id', pId);
+    PERFORM ObjectNotFound('program', 'id', pId);
   END IF;
 
-  IF pType IS NOT NULL THEN
-    uType := CodeToType(lower(pType), 'program');
-  ELSE
-    SELECT o.type INTO uType FROM db.object o WHERE o.id = pId;
-  END IF;
-
-  PERFORM EditProgram(nProgram, pParent, uType, pCode, pName, pBody, pDescription);
+  PERFORM EditProgram(uProgram, pParent, pType, pCode, pName, pBody, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -93,7 +86,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.set_program (
   pId           uuid,
   pParent       uuid default null,
-  pType         text default null,
+  pType         uuid default null,
   pCode         text default null,
   pName         text default null,
   pBody         text default null,
@@ -152,6 +145,25 @@ CREATE OR REPLACE FUNCTION api.list_program (
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'program', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.get_program_id ----------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Возвращает uuid по коду.
+ * @param {text} pCode - Код программы
+ * @return {uuid}
+ */
+CREATE OR REPLACE FUNCTION api.get_program_id (
+  pCode		text
+) RETURNS	uuid
+AS $$
+BEGIN
+  RETURN GetProgram(pCode);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

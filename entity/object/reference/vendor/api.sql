@@ -18,7 +18,7 @@ GRANT SELECT ON api.vendor TO administrator;
 /**
  * Добавляет производителя.
  * @param {uuid} pParent - Ссылка на родительский объект: api.document | null
- * @param {text} pType - Тип
+ * @param {uuid} pType - Тип
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
@@ -26,14 +26,14 @@ GRANT SELECT ON api.vendor TO administrator;
  */
 CREATE OR REPLACE FUNCTION api.add_vendor (
   pParent       uuid,
-  pType         text,
+  pType         uuid,
   pCode         text,
   pName         text,
   pDescription	text default null
 ) RETURNS       uuid
 AS $$
 BEGIN
-  RETURN CreateVendor(pParent, CodeToType(lower(coalesce(pType, 'device')), 'vendor'), pCode, pName, pDescription);
+  RETURN CreateVendor(pParent, coalesce(pType, GetType('device.vendor')), pCode, pName, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -45,7 +45,7 @@ $$ LANGUAGE plpgsql
 /**
  * Редактирует производителя.
  * @param {uuid} pParent - Ссылка на родительский объект: Object.Parent | null
- * @param {text} pType - Тип
+ * @param {uuid} pType - Тип
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
@@ -54,29 +54,22 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.update_vendor (
   pId		    uuid,
   pParent       uuid default null,
-  pType         text default null,
+  pType         uuid default null,
   pCode         text default null,
   pName         text default null,
   pDescription	text default null
 ) RETURNS       void
 AS $$
 DECLARE
-  uType         uuid;
-  nVendor       uuid;
+  uVendor       uuid;
 BEGIN
-  SELECT t.id INTO nVendor FROM db.vendor t WHERE t.id = pId;
+  SELECT t.id INTO uVendor FROM db.vendor t WHERE t.id = pId;
 
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('производитель', 'id', pId);
   END IF;
 
-  IF pType IS NOT NULL THEN
-    uType := CodeToType(lower(pType), 'vendor');
-  ELSE
-    SELECT o.type INTO uType FROM db.object o WHERE o.id = pId;
-  END IF;
-
-  PERFORM EditVendor(nVendor, pParent, uType, pCode, pName, pDescription);
+  PERFORM EditVendor(uVendor, pParent, pType, pCode, pName, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -89,7 +82,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.set_vendor (
   pId           uuid,
   pParent       uuid default null,
-  pType         text default null,
+  pType         uuid default null,
   pCode         text default null,
   pName         text default null,
   pDescription	text default null
@@ -147,6 +140,25 @@ CREATE OR REPLACE FUNCTION api.list_vendor (
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'vendor', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.get_vendor_id -----------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Возвращает uuid по коду.
+ * @param {text} pCode - Код производителя
+ * @return {uuid}
+ */
+CREATE OR REPLACE FUNCTION api.get_vendor_id (
+  pCode		text
+) RETURNS	uuid
+AS $$
+BEGIN
+  RETURN GetVendor(pCode);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

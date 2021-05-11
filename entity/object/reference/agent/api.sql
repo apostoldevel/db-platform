@@ -18,7 +18,7 @@ GRANT SELECT ON api.agent TO administrator;
 /**
  * Добавляет агента.
  * @param {uuid} pParent - Ссылка на родительский объект: api.document | null
- * @param {text} pType - Тип
+ * @param {uuid} pType - Тип
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
  * @param {uuid} pVendor - Производитель
@@ -27,7 +27,7 @@ GRANT SELECT ON api.agent TO administrator;
  */
 CREATE OR REPLACE FUNCTION api.add_agent (
   pParent       uuid,
-  pType         text,
+  pType         uuid,
   pCode         text,
   pName         text,
   pVendor       uuid,
@@ -35,7 +35,7 @@ CREATE OR REPLACE FUNCTION api.add_agent (
 ) RETURNS       uuid
 AS $$
 BEGIN
-  RETURN CreateAgent(pParent, CodeToType(lower(coalesce(pType, 'system')), 'agent'), pCode, pName, pVendor, pDescription);
+  RETURN CreateAgent(pParent, coalesce(pType, GetType('system.agent')), pCode, pName, pVendor, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -47,7 +47,7 @@ $$ LANGUAGE plpgsql
 /**
  * Редактирует агента.
  * @param {uuid} pParent - Ссылка на родительский объект: Object.Parent | null
- * @param {text} pType - Тип
+ * @param {uuid} pType - Тип
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
  * @param {uuid} pVendor - Производитель
@@ -57,7 +57,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.update_agent (
   pId		    uuid,
   pParent       uuid default null,
-  pType         text default null,
+  pType         uuid default null,
   pCode         text default null,
   pName         text default null,
   pVendor       uuid default null,
@@ -65,22 +65,15 @@ CREATE OR REPLACE FUNCTION api.update_agent (
 ) RETURNS       void
 AS $$
 DECLARE
-  uType         uuid;
-  nAgent        uuid;
+  uAgent        uuid;
 BEGIN
-  SELECT t.id INTO nAgent FROM db.agent t WHERE t.id = pId;
+  SELECT t.id INTO uAgent FROM db.agent t WHERE t.id = pId;
 
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('агент', 'id', pId);
   END IF;
 
-  IF pType IS NOT NULL THEN
-    uType := CodeToType(lower(pType), 'agent');
-  ELSE
-    SELECT o.type INTO uType FROM db.object o WHERE o.id = pId;
-  END IF;
-
-  PERFORM EditAgent(nAgent, pParent, uType, pCode, pName, pVendor, pDescription);
+  PERFORM EditAgent(uAgent, pParent, pType, pCode, pName, pVendor, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -93,7 +86,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.set_agent (
   pId           uuid,
   pParent       uuid default null,
-  pType         text default null,
+  pType         uuid default null,
   pCode         text default null,
   pName         text default null,
   pVendor       uuid default null,
@@ -152,6 +145,25 @@ CREATE OR REPLACE FUNCTION api.list_agent (
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'agent', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.get_agent_id ------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Возвращает uuid по коду.
+ * @param {text} pCode - Код агента
+ * @return {uuid}
+ */
+CREATE OR REPLACE FUNCTION api.get_agent_id (
+  pCode		text
+) RETURNS	uuid
+AS $$
+BEGIN
+  RETURN GetAgent(pCode);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
