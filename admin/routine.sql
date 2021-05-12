@@ -3187,13 +3187,8 @@ CREATE OR REPLACE FUNCTION GetArea (
   pCode		text
 ) RETURNS	uuid
 AS $$
-DECLARE
-  uId		uuid;
-BEGIN
-  SELECT id INTO uId FROM db.area WHERE code = pCode;
-  RETURN uId;
-END;
-$$ LANGUAGE plpgsql STABLE STRICT
+  SELECT id FROM db.area WHERE code = pCode;
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -3205,13 +3200,8 @@ CREATE OR REPLACE FUNCTION GetAreaCode (
   pId		uuid
 ) RETURNS	text
 AS $$
-DECLARE
-  vCode		text;
-BEGIN
-  SELECT code INTO vCode FROM db.area WHERE id = pId;
-  RETURN vCode;
-END;
-$$ LANGUAGE plpgsql STABLE STRICT
+  SELECT code FROM db.area WHERE id = pId;
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -3223,13 +3213,8 @@ CREATE OR REPLACE FUNCTION GetAreaName (
   pId		uuid
 ) RETURNS	text
 AS $$
-DECLARE
-  vName		text;
-BEGIN
-  SELECT name INTO vName FROM db.area WHERE id = pId;
-  RETURN vName;
-END;
-$$ LANGUAGE plpgsql STABLE STRICT
+  SELECT name FROM db.area WHERE id = pId;
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 

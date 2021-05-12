@@ -161,7 +161,7 @@ BEGIN
   SELECT id INTO uMessage FROM db.message WHERE agent = pAgent AND code = pCode;
 
   IF NOT FOUND THEN
-    uMessage := CreateMessage(pParent, GetType('message.inbox'), GetAgent(pAgent), pCode, pProfile, pAddress, pSubject, pContent, pLabel, pDescription);
+    uMessage := CreateMessage(pParent, GetType('message.inbox'), pAgent, pCode, pProfile, pAddress, pSubject, pContent, pLabel, pDescription);
   END IF;
 
   RETURN uMessage;
@@ -204,7 +204,7 @@ BEGIN
   SELECT id INTO uMessage FROM db.message WHERE agent = pAgent AND code = pCode;
 
   IF NOT FOUND THEN
-    uMessage := CreateMessage(pParent, GetType('message.outbox'), GetAgent(pAgent), pCode, pProfile, pAddress, pSubject, pContent, pLabel, pDescription);
+    uMessage := CreateMessage(pParent, GetType('message.outbox'), pAgent, pCode, pProfile, pAddress, pSubject, pContent, pLabel, pDescription);
   END IF;
 
   RETURN uMessage;

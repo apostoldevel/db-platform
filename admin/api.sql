@@ -199,6 +199,29 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- api.get_session -------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Везврящает сесиию пользователя.
+ * @param {text} pUserName - Имя пользователь
+ * @param {text} pAgent - Агент
+ * @param {inet} pHost - IP адрес
+ * @return {text} - Сессия
+ */
+CREATE OR REPLACE FUNCTION api.get_session (
+  pUserName     text,
+  pAgent        text DEFAULT null,
+  pHost         inet DEFAULT null
+) RETURNS       text
+AS $$
+BEGIN
+  RETURN GetSession(GetUser(pUserName), CreateSystemOAuth2(), pAgent, pHost);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- LOCALE ----------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -1351,6 +1374,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает данные области видимости.
+ * @param {uuid} pId - Идентификатор
  * @return {SETOF api.area}
  */
 CREATE OR REPLACE FUNCTION api.get_area (
@@ -1358,6 +1382,24 @@ CREATE OR REPLACE FUNCTION api.get_area (
 ) RETURNS     SETOF api.area
 AS $$
   SELECT * FROM api.area WHERE id = pId;
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.get_area_id -------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Возвращает идентификатор по коду.
+ * @param {text} pCode - Код
+ * @return {uuid}
+ */
+CREATE OR REPLACE FUNCTION api.get_area_id (
+  pCode     text,
+  pScope    uuid default current_scope()
+) RETURNS   uuid
+AS $$
+  SELECT id FROM api.area WHERE scope = pScope AND code = pCode;
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

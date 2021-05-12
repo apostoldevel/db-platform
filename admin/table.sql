@@ -72,7 +72,7 @@ CREATE INDEX ON db.area (parent);
 CREATE INDEX ON db.area (type);
 CREATE INDEX ON db.area (scope);
 
-CREATE UNIQUE INDEX ON db.area (code);
+CREATE UNIQUE INDEX ON db.area (scope, code);
 
 --------------------------------------------------------------------------------
 
