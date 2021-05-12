@@ -1686,7 +1686,7 @@ AS $$
      WHERE oc.validfromdate <= pDateFrom
 	   AND oc.validtodate > pDateFrom
 	 GROUP BY a.object
-    HAVING bit_or(allow) & ~bit_or(deny) & B'100' = B'100'
+    HAVING bit_or(a.allow) & ~bit_or(a.deny) & B'100' = B'100'
   )
   SELECT oc.* FROM ObjectCoordinates oc INNER JOIN access a ON oc.object = a.object
    WHERE oc.validfromdate <= pDateFrom
