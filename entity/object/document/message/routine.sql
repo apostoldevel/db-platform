@@ -416,7 +416,7 @@ CREATE OR REPLACE FUNCTION SendPush (
   pData         jsonb DEFAULT null,
   pAndroid      jsonb DEFAULT null,
   pApns         jsonb DEFAULT null
-) RETURNS       void
+) RETURNS       uuid
 AS $$
 DECLARE
   uMessageId    uuid;
@@ -457,6 +457,8 @@ BEGIN
   ELSE
     PERFORM WriteToEventLog('E', 3001, 'push', 'Не удалось отправить Push сообщение, токен не установлен.', pObject);
   END IF;
+
+  RETURN uMessageId;
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -473,7 +475,7 @@ CREATE OR REPLACE FUNCTION SendPushData (
   pUserId       uuid DEFAULT current_userid(),
   pPriority     text DEFAULT null,
   pCollapse     text DEFAULT null
-) RETURNS       void
+) RETURNS       uuid
 AS $$
 DECLARE
   uMessageId    uuid;
@@ -508,6 +510,8 @@ BEGIN
   ELSE
     PERFORM WriteToEventLog('E', 3001, 'push', 'Не удалось отправить Push сообщение, токен не установлен.', pObject);
   END IF;
+
+  RETURN uMessageId;
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
