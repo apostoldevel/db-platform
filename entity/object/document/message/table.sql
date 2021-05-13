@@ -28,10 +28,9 @@ COMMENT ON COLUMN db.message.address IS 'Адрес получателя';
 COMMENT ON COLUMN db.message.subject IS 'Тема';
 COMMENT ON COLUMN db.message.content IS 'Содержимое';
 
-CREATE UNIQUE INDEX ON db.message (agent, code);
-
 CREATE INDEX ON db.message (document);
 CREATE INDEX ON db.message (agent);
+CREATE INDEX ON db.message (code);
 CREATE INDEX ON db.message (profile);
 CREATE INDEX ON db.message (address);
 
@@ -48,7 +47,7 @@ BEGIN
   END IF;
 
   IF NULLIF(NEW.code, '') IS null THEN
-    NEW.code := encode(gen_random_bytes(12), 'hex');
+    NEW.code := encode(gen_random_bytes(32), 'hex');
   END IF;
 
   RETURN NEW;
@@ -61,37 +60,6 @@ CREATE TRIGGER t_message_before_insert
   BEFORE INSERT ON db.message
   FOR EACH ROW
   EXECUTE PROCEDURE ft_message_before_insert();
-
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION db.ft_message_after_insert()
-RETURNS trigger AS $$
-DECLARE
-  vClass    text;
-  vType     text;
-  vAgent    text;
-BEGIN
-  SELECT c.code INTO vClass
-    FROM db.object o INNER JOIN db.class_tree c ON c.id = o.class
-   WHERE o.id = NEW.id;
-
-  SELECT t.code, a.code INTO vType, vAgent
-    FROM db.reference a INNER JOIN db.type t ON t.id = a.type
-   WHERE a.id = NEW.agent;
-
-  PERFORM pg_notify('message', json_build_object('id', NEW.id, 'class', vClass, 'type', vType, 'agent', vAgent, 'code', NEW.code, 'profile', NEW.profile, 'address', NEW.address, 'subject', NEW.subject)::text);
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
-
-CREATE TRIGGER t_message_after_insert
-  AFTER INSERT ON db.message
-  FOR EACH ROW
-  EXECUTE PROCEDURE db.ft_message_after_insert();
 
 --------------------------------------------------------------------------------
 

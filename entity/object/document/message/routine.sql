@@ -287,6 +287,7 @@ CREATE OR REPLACE FUNCTION SendMessage (
   pAddress      text,
   pSubject      text,
   pContent      text,
+  pLabel        text DEFAULT null,
   pDescription  text DEFAULT null,
   pType         uuid DEFAULT GetType('message.outbox')
 ) RETURNS       uuid
@@ -294,7 +295,7 @@ AS $$
 DECLARE
   uMessageId    uuid;
 BEGIN
-  uMessageId := CreateMessage(pParent, pType, pAgent, gen_random_uuid()::text, pProfile, pAddress, pSubject, pContent, pDescription);
+  uMessageId := CreateMessage(pParent, pType, pAgent, encode(gen_random_bytes(32), 'hex'), pProfile, pAddress, pSubject, pContent, pLabel, pDescription);
   PERFORM ExecuteObjectAction(uMessageId, GetAction('submit'));
   RETURN uMessageId;
 END
@@ -312,12 +313,13 @@ CREATE OR REPLACE FUNCTION SendMail (
   pAddress      text,
   pSubject      text,
   pContent      text,
+  pLabel        text DEFAULT null,
   pDescription  text DEFAULT null,
   pAgent        uuid DEFAULT GetAgent('smtp.agent')
 ) RETURNS       uuid
 AS $$
 BEGIN
-  RETURN SendMessage(pParent, pAgent, pProfile, pAddress, pSubject, pContent, pDescription);
+  RETURN SendMessage(pParent, pAgent, pProfile, pAddress, pSubject, pContent, pLabel, pDescription);
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -333,12 +335,13 @@ CREATE OR REPLACE FUNCTION SendM2M (
   pAddress      text,
   pSubject      text,
   pContent      text,
+  pLabel        text DEFAULT null,
   pDescription  text DEFAULT null,
   pAgent        uuid DEFAULT GetAgent('m2m.agent')
 ) RETURNS       uuid
 AS $$
 BEGIN
-  RETURN SendMessage(pParent, pAgent, pProfile, pAddress, pSubject, pContent, pDescription);
+  RETURN SendMessage(pParent, pAgent, pProfile, pAddress, pSubject, pContent, pLabel, pDescription);
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -354,12 +357,13 @@ CREATE OR REPLACE FUNCTION SendFCM (
   pAddress      text,
   pSubject      text,
   pContent      text,
+  pLabel        text DEFAULT null,
   pDescription  text DEFAULT null,
   pAgent        uuid DEFAULT GetAgent('fcm.agent')
 ) RETURNS       uuid
 AS $$
 BEGIN
-  RETURN SendMessage(pParent, pAgent, pProfile, pAddress, pSubject, pContent, pDescription);
+  RETURN SendMessage(pParent, pAgent, pProfile, pAddress, pSubject, pContent, pLabel, pDescription);
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

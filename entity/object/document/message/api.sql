@@ -11,6 +11,7 @@ AS
   SELECT * FROM ObjectMessage;
 
 GRANT SELECT ON api.message TO administrator;
+GRANT SELECT ON api.message TO apibot;
 
 --------------------------------------------------------------------------------
 -- FUNCTION api.message --------------------------------------------------------
@@ -155,16 +156,8 @@ CREATE OR REPLACE FUNCTION api.add_inbox (
   pDescription  text default null
 ) RETURNS       uuid
 AS $$
-DECLARE
-  uMessage      uuid;
 BEGIN
-  SELECT id INTO uMessage FROM db.message WHERE agent = pAgent AND code = pCode;
-
-  IF NOT FOUND THEN
-    uMessage := CreateMessage(pParent, GetType('message.inbox'), pAgent, pCode, pProfile, pAddress, pSubject, pContent, pLabel, pDescription);
-  END IF;
-
-  RETURN uMessage;
+  RETURN CreateMessage(pParent, GetType('message.inbox'), pAgent, pCode, pProfile, pAddress, pSubject, pContent, pLabel, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -198,16 +191,8 @@ CREATE OR REPLACE FUNCTION api.add_outbox (
   pDescription  text default null
 ) RETURNS       uuid
 AS $$
-DECLARE
-  uMessage      uuid;
 BEGIN
-  SELECT id INTO uMessage FROM db.message WHERE agent = pAgent AND code = pCode;
-
-  IF NOT FOUND THEN
-    uMessage := CreateMessage(pParent, GetType('message.outbox'), pAgent, pCode, pProfile, pAddress, pSubject, pContent, pLabel, pDescription);
-  END IF;
-
-  RETURN uMessage;
+  RETURN CreateMessage(pParent, GetType('message.outbox'), pAgent, pCode, pProfile, pAddress, pSubject, pContent, pLabel, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -484,25 +469,20 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.send_message (
-  pAgent        text,
+  pParent       uuid,
+  pAgent        uuid,
   pProfile      text,
   pAddress      text,
   pSubject      text,
   pContent      text,
+  pLabel        text default null,
   pDescription  text default null
 ) RETURNS       SETOF api.message
 AS $$
 DECLARE
-  nAgent		uuid;
   uMessageId	uuid;
 BEGIN
-  nAgent := GetAgent(pAgent);
-  IF nAgent IS NULL THEN
-    PERFORM ObjectNotFound('агент', 'code', pAgent);
-  END IF;
-
-  uMessageId := SendMessage(null, nAgent, pProfile, pAddress, pSubject, pContent, pDescription);
-
+  uMessageId := SendMessage(pParent, pAgent, pProfile, pAddress, pSubject, pContent, pLabel, pDescription);
   RETURN QUERY SELECT * FROM api.message WHERE id = uMessageId;
 END;
 $$ LANGUAGE plpgsql
