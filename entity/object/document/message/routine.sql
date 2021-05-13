@@ -436,7 +436,7 @@ BEGIN
     LOOP
       token := tokens[i];
       IF token IS NOT NULL THEN
-		message := jsonb_build_object('message', jsonb_build_object('token', token, 'notification', jsonb_build_object('title', pTitle, 'body', pBody)));
+		message := jsonb_build_object('token', token, 'notification', jsonb_build_object('title', pTitle, 'body', pBody));
 
 		IF pAndroid IS NOT NULL THEN
 		  message := message || jsonb_build_object('android', pAndroid);
@@ -450,7 +450,7 @@ BEGIN
 		  message := message || jsonb_build_object('data', pData);
 		END IF;
 
-		uMessageId := SendFCM(pObject, projectId, GetUserName(pUserId), pTitle, message::text);
+		uMessageId := SendFCM(pObject, projectId, GetUserName(pUserId), pTitle, jsonb_build_object('message', message)::text);
 		PERFORM WriteToEventLog('M', 1001, 'push', format('Push сообщение передано на отправку: %s', uMessageId), pObject);
 	  END IF;
     END LOOP;
@@ -484,7 +484,7 @@ DECLARE
   token         text;
 
   android       jsonb;
-  message       json;
+  message       jsonb;
 BEGIN
   projectId := RegGetValueString('CURRENT_CONFIG', 'CONFIG\Firebase', 'ProjectId');
   tokens := DoFCMTokens(pUserId);
@@ -499,9 +499,9 @@ BEGIN
 		  android := android || jsonb_build_object('collapse_key', pCollapse);
 		END IF;
 
-		message := json_build_object('message', json_build_object('token', token, 'android', android::json, 'data', pData));
+		message := jsonb_build_object('token', token, 'android', android, 'data', pData);
 
-		uMessageId := SendFCM(pObject, projectId, GetUserName(pUserId), pSubject, message::text);
+		uMessageId := SendFCM(pObject, projectId, GetUserName(pUserId), pSubject, jsonb_build_object('message', message)::text);
 		PERFORM WriteToEventLog('M', 1001, 'push', format('Push сообщение передано на отправку: %s', uMessageId), pObject);
       END IF;
     END LOOP;
