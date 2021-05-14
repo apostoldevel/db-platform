@@ -1,9 +1,9 @@
 DROP INDEX IF EXISTS db.message_agent_code_idx;
 CREATE INDEX ON db.message (code);
-
+--
 DROP INDEX IF EXISTS db.area_code_idx;
 CREATE UNIQUE INDEX ON db.area (scope, code);
-
+--
 DROP FUNCTION IF EXISTS GetArea(text);
 DROP FUNCTION IF EXISTS GetMessage(uuid, text);
 DROP FUNCTION IF EXISTS SendFCM(uuid, text, text, text, text, text, uuid);
@@ -12,6 +12,8 @@ DROP FUNCTION IF EXISTS SendMail(uuid, text, text, text, text, text, uuid);
 DROP FUNCTION IF EXISTS SendMessage(uuid, uuid, text, text, text, text, text, uuid);
 DROP FUNCTION IF EXISTS SendPush(uuid, text, text, uuid, jsonb, jsonb, jsonb);
 DROP FUNCTION IF EXISTS SendPushData(uuid, text, json, uuid, text, text);
+--
+DROP VIEW Account CASCADE;
 --
 DROP FUNCTION IF EXISTS api.send_message(text, text, text, text, text, text);
 --
