@@ -1395,12 +1395,17 @@ $$ LANGUAGE SQL
  * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION api.get_area_id (
-  pCode     text,
-  pScope    uuid default current_scope()
-) RETURNS   uuid
+  pCode		text
+) RETURNS	uuid
 AS $$
-  SELECT id FROM api.area WHERE scope = pScope AND code = pCode;
-$$ LANGUAGE SQL
+BEGIN
+  IF length(pCode) = 36 AND SubStr(pCode, 15, 1) = '4' THEN
+    RETURN pCode;
+  END IF;
+
+  RETURN GetArea(pCode);
+END;
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 

@@ -3184,10 +3184,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetArea (
-  pCode		text
+  pCode		text,
+  pScope    uuid default current_scope()
 ) RETURNS	uuid
 AS $$
-  SELECT id FROM db.area WHERE code = pCode;
+  SELECT id FROM db.area WHERE scope = pScope AND code = pCode;
 $$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

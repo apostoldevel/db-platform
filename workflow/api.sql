@@ -206,6 +206,10 @@ CREATE OR REPLACE FUNCTION api.get_type_id (
 ) RETURNS	uuid
 AS $$
 BEGIN
+  IF length(pCode) = 36 AND SubStr(pCode, 15, 1) = '4' THEN
+    RETURN pCode;
+  END IF;
+
   RETURN GetType(pCode);
 END;
 $$ LANGUAGE plpgsql
