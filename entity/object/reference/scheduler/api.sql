@@ -173,6 +173,10 @@ CREATE OR REPLACE FUNCTION api.get_scheduler_id (
 ) RETURNS	uuid
 AS $$
 BEGIN
+  IF length(pCode) = 36 AND SubStr(pCode, 1, 15) = '4' THEN
+    RETURN pCode;
+  END IF;
+
   RETURN GetScheduler(pCode);
 END;
 $$ LANGUAGE plpgsql

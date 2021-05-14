@@ -112,20 +112,6 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- GetMessage ------------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION GetMessage (
-  pAgent   uuid,
-  pCode    text
-) RETURNS  uuid
-AS $$
-  SELECT id FROM db.message WHERE agent = pAgent AND code = pCode;
-$$ LANGUAGE sql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
 -- GetMessageCode --------------------------------------------------------------
 --------------------------------------------------------------------------------
 

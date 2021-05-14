@@ -163,6 +163,10 @@ CREATE OR REPLACE FUNCTION api.get_program_id (
 ) RETURNS	uuid
 AS $$
 BEGIN
+  IF length(pCode) = 36 AND SubStr(pCode, 1, 15) = '4' THEN
+    RETURN pCode;
+  END IF;
+
   RETURN GetProgram(pCode);
 END;
 $$ LANGUAGE plpgsql

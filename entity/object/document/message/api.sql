@@ -445,26 +445,6 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- api.get_message_id ----------------------------------------------------------
---------------------------------------------------------------------------------
-/**
- * Возвращает uuid по коду.
- * @param {text} pCode - Код сообщения
- * @return {uuid}
- */
-CREATE OR REPLACE FUNCTION api.get_message_id (
-  pAgent    text,
-  pCode     text
-) RETURNS   uuid
-AS $$
-BEGIN
-  RETURN GetMessage(GetAgent(pAgent), pCode);
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
 -- api.send_message ------------------------------------------------------------
 --------------------------------------------------------------------------------
 

@@ -158,6 +158,10 @@ CREATE OR REPLACE FUNCTION api.get_version_id (
 ) RETURNS	uuid
 AS $$
 BEGIN
+  IF length(pCode) = 36 AND SubStr(pCode, 1, 15) = '4' THEN
+    RETURN pCode;
+  END IF;
+
   RETURN GetVersion(pCode);
 END;
 $$ LANGUAGE plpgsql
