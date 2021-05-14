@@ -17,8 +17,7 @@ DROP VIEW Account CASCADE;
 --
 DROP FUNCTION IF EXISTS api.send_message(text, text, text, text, text, text);
 --
-DROP TRIGGER IF EXISTS t_message_after_insert ON db.message;
---
+
 CREATE OR REPLACE FUNCTION ft_message_before_insert()
 RETURNS trigger AS $$
 BEGIN
@@ -36,6 +35,7 @@ $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 --
+
 CREATE OR REPLACE FUNCTION db.ft_notification_after_insert()
 RETURNS     trigger
 AS $$
@@ -46,9 +46,7 @@ BEGIN
 
   IF GetEntityCode(NEW.entity) = 'message' THEN
     vAction := GetActionCode(NEW.action);
-    IF vAction = 'create' THEN
-      PERFORM pg_notify('message', NEW.object::text);
-    ELSIF vAction = 'submit' THEN
+    IF vAction = 'submit' THEN
       PERFORM pg_notify('outbox', NEW.object::text);
     END IF;
   END IF;

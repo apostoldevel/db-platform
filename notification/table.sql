@@ -48,9 +48,7 @@ BEGIN
 
   IF GetEntityCode(NEW.entity) = 'message' THEN
     vAction := GetActionCode(NEW.action);
-    IF vAction = 'create' THEN
-      PERFORM pg_notify('message', NEW.object::text);
-    ELSIF vAction = 'submit' THEN
+    IF vAction = 'submit' THEN
       PERFORM pg_notify('outbox', NEW.object::text);
     END IF;
   END IF;
