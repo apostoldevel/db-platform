@@ -18,7 +18,7 @@ GRANT SELECT ON api.agent TO administrator;
 /**
  * Добавляет агента.
  * @param {uuid} pParent - Ссылка на родительский объект: api.document | null
- * @param {uuid} pType - Тип
+ * @param {uuid} pType - Идентификатор типа
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
  * @param {uuid} pVendor - Производитель
@@ -47,7 +47,7 @@ $$ LANGUAGE plpgsql
 /**
  * Редактирует агента.
  * @param {uuid} pParent - Ссылка на родительский объект: Object.Parent | null
- * @param {uuid} pType - Тип
+ * @param {uuid} pType - Идентификатор типа
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
  * @param {uuid} pVendor - Производитель

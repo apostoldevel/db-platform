@@ -18,7 +18,7 @@ GRANT SELECT ON api.reference TO administrator;
 /**
  * Добавляет справочник.
  * @param {uuid} pParent - Ссылка на родительский объект: api.reference | null
- * @param {text} pType - Тип
+ * @param {uuid} pType - Идентификатор типа
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
@@ -26,14 +26,14 @@ GRANT SELECT ON api.reference TO administrator;
  */
 CREATE OR REPLACE FUNCTION api.add_reference (
   pParent       uuid,
-  pType         text,
+  pType         uuid,
   pCode			text,
   pName			text,
   pDescription  text DEFAULT null
 ) RETURNS       uuid
 AS $$
 BEGIN
-  RETURN CreateReference(pParent, GetType(lower(pType)), pCode, pName, pDescription);
+  RETURN CreateReference(pParent, pType, pCode, pName, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -45,7 +45,7 @@ $$ LANGUAGE plpgsql
 /**
  * Редактирует справочник.
  * @param {uuid} pParent - Ссылка на родительский объект: Reference.Parent | null
- * @param {text} pType - Тип
+ * @param {uuid} pType - Идентификатор типа
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
@@ -54,14 +54,13 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.update_reference (
   pId           uuid,
   pParent       uuid DEFAULT null,
-  pType         text DEFAULT null,
+  pType         uuid DEFAULT null,
   pCode         text DEFAULT null,
   pName         text DEFAULT null,
   pDescription  text DEFAULT null
 ) RETURNS       void
 AS $$
 DECLARE
-  uType         uuid;
   uReference    uuid;
 BEGIN
   SELECT t.id INTO uReference FROM db.reference t WHERE t.id = pId;
@@ -70,13 +69,7 @@ BEGIN
     PERFORM ObjectNotFound('справочник', 'id', pId);
   END IF;
 
-  IF pType IS NOT NULL THEN
-    uType := GetType(lower(pType));
-  ELSE
-    SELECT o.type INTO uType FROM db.object o WHERE o.id = pId;
-  END IF;
-
-  PERFORM EditReference(uReference, pParent, uType, pCode, pName, pDescription, current_locale());
+  PERFORM EditReference(uReference, pParent, pType, pCode, pName, pDescription, current_locale());
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

@@ -4,7 +4,7 @@
 /**
  * Создаёт новое сообщение
  * @param {uuid} pParent - Родительский объект
- * @param {uuid} pType - Тип
+ * @param {uuid} pType - Идентификатор типа
  * @param {uuid} pAgent - Агент
  * @param {text} pCode - Код (MsgId)
  * @param {text} pProfile - Профиль отправителя
@@ -63,7 +63,7 @@ $$ LANGUAGE plpgsql
  * Редактирует сообщение.
  * @param {uuid} pId - Идентификатор
  * @param {uuid} pParent - Родительский объект
- * @param {uuid} pType - Тип
+ * @param {uuid} pType - Идентификатор типа
  * @param {uuid} pAgent - Агент
  * @param {text} pCode - Код (MsgId)
  * @param {text} pProfile - Профиль отправителя

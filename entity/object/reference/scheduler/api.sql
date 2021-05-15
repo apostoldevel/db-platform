@@ -18,7 +18,7 @@ GRANT SELECT ON api.scheduler TO administrator;
 /**
  * Добавляет планировщик.
  * @param {uuid} pParent - Ссылка на родительский объект: api.document | null
- * @param {uuid} pType - Код типа
+ * @param {uuid} pType - Идентификатор типа
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
  * @param {interval} pPeriod - Период выполнения
@@ -51,7 +51,7 @@ $$ LANGUAGE plpgsql
 /**
  * Редактирует планировщик.
  * @param {uuid} pParent - Ссылка на родительский объект: Object.Parent | null
- * @param {text} pType - Код типа
+ * @param {uuid} pType - Идентификатор типа
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
  * @param {interval} pPeriod - Период выполнения

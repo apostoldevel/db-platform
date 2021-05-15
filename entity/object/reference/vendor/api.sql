@@ -18,7 +18,7 @@ GRANT SELECT ON api.vendor TO administrator;
 /**
  * Добавляет производителя.
  * @param {uuid} pParent - Ссылка на родительский объект: api.document | null
- * @param {uuid} pType - Тип
+ * @param {uuid} pType - Идентификатор типа
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
@@ -45,7 +45,7 @@ $$ LANGUAGE plpgsql
 /**
  * Редактирует производителя.
  * @param {uuid} pParent - Ссылка на родительский объект: Object.Parent | null
- * @param {uuid} pType - Тип
+ * @param {uuid} pType - Идентификатор типа
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
  * @param {text} pDescription - Описание

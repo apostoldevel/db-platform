@@ -78,20 +78,20 @@ $$ LANGUAGE plpgsql
 /**
  * Добавляет объект.
  * @param {uuid} pParent - Ссылка на родительский объект: api.object | null
- * @param {text} pType - Тип
+ * @param {uuid} pType - Идентификатор типа
  * @param {text} pLabel - Метка
  * @param {text} pData - Данные
  * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION api.add_object (
   pParent       uuid,
-  pType         text,
+  pType         uuid,
   pLabel        text default null,
   pData			text default null
 ) RETURNS       uuid
 AS $$
 BEGIN
-  RETURN CreateObject(pParent, GetType(lower(pType)), pLabel, pData);
+  RETURN CreateObject(pParent, pType, pLabel, pData);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -103,7 +103,7 @@ $$ LANGUAGE plpgsql
 /**
  * Редактирует объект.
  * @param {uuid} pParent - Ссылка на родительский объект: Object.Parent | null
- * @param {text} pType - Тип
+ * @param {uuid} pType - Идентификатор типа
  * @param {text} pLabel - Метка
  * @param {text} pData - Данные
  * @return {void}
@@ -111,13 +111,12 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.update_object (
   pId		    uuid,
   pParent       uuid default null,
-  pType         text default null,
+  pType         uuid default null,
   pLabel        text default null,
   pData			text default null
 ) RETURNS       void
 AS $$
 DECLARE
-  uType         uuid;
   uObject       uuid;
 BEGIN
   SELECT t.id INTO uObject FROM db.object t WHERE t.id = pId;
@@ -126,13 +125,7 @@ BEGIN
     PERFORM ObjectNotFound('объект', 'id', pId);
   END IF;
 
-  IF pType IS NOT NULL THEN
-    uType := GetType(lower(pType));
-  ELSE
-    SELECT o.type INTO uType FROM db.object o WHERE o.id = pId;
-  END IF;
-
-  PERFORM EditObject(uObject, pParent, uType, pLabel, pData, current_locale());
+  PERFORM EditObject(uObject, pParent, pType, pLabel, pData, current_locale());
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -929,14 +922,14 @@ GRANT SELECT ON api.object_data TO administrator;
 /**
  * Устанавливает данные объекта
  * @param {uuid} pId - Идентификатор объекта
- * @param {text} pType - Код типа данных
+ * @param {uuid} pType - Идентификатор типа
  * @param {text} pCode - Код
  * @param {text} pData - Данные
  * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION api.set_object_data (
   pId           uuid,
-  pType         text,
+  pType         uuid,
   pCode         text,
   pData         text
 ) RETURNS       SETOF api.object_data

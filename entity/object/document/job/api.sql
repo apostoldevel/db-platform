@@ -46,7 +46,7 @@ $$ LANGUAGE SQL
 /**
  * Добавляет задание.
  * @param {uuid} pParent - Ссылка на родительский объект: api.document | null
- * @param {uuid} pType - Tип
+ * @param {uuid} pType - Идентификатор типа
  * @param {uuid} pScheduler - Планировщик
  * @param {uuid} pProgram - Программа
  * @param {timestamptz} pDateRun - Дата запуска
@@ -79,7 +79,7 @@ $$ LANGUAGE plpgsql
 /**
  * Редактирует задание.
  * @param {uuid} pParent - Ссылка на родительский объект: Object.Parent | null
- * @param {uuid} pType - Tип
+ * @param {uuid} pType - Идентификатор типа
  * @param {uuid} pScheduler - Планировщик
  * @param {uuid} pProgram - Программа
  * @param {timestamptz} pDateRun - Дата запуска

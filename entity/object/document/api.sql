@@ -18,7 +18,7 @@ GRANT SELECT ON api.document TO administrator;
 /**
  * Добавляет документ.
  * @param {uuid} pParent - Ссылка на родительский объект: api.document | null
- * @param {text} pType - Тип
+ * @param {uuid} pType - Идентификатор типа
  * @param {text} pLabel - Метка
  * @param {text} pDescription - Описание
  * @param {text} pData - Данные
@@ -26,14 +26,14 @@ GRANT SELECT ON api.document TO administrator;
  */
 CREATE OR REPLACE FUNCTION api.add_document (
   pParent       uuid,
-  pType         text,
+  pType         uuid,
   pLabel        text default null,
   pDescription  text DEFAULT null,
   pData			text DEFAULT null
 ) RETURNS       uuid
 AS $$
 BEGIN
-  RETURN CreateDocument(pParent, GetType(lower(pType)), pLabel, pDescription, pData);
+  RETURN CreateDocument(pParent, pType, pLabel, pDescription, pData);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -45,7 +45,7 @@ $$ LANGUAGE plpgsql
 /**
  * Редактирует документ.
  * @param {uuid} pParent - Ссылка на родительский объект: Document.Parent | null
- * @param {text} pType - Тип
+ * @param {uuid} pType - Идентификатор типа
  * @param {text} pLabel - Метка
  * @param {text} pDescription - Описание
  * @param {text} pData - Данные
@@ -54,14 +54,13 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.update_document (
   pId		    uuid,
   pParent       uuid default null,
-  pType         text default null,
+  pType         uuid default null,
   pLabel        text default null,
   pDescription  text DEFAULT null,
   pData			text DEFAULT null
 ) RETURNS       void
 AS $$
 DECLARE
-  uType         uuid;
   uDocument		uuid;
 BEGIN
   SELECT t.id INTO uDocument FROM db.document t WHERE t.id = pId;
@@ -70,13 +69,7 @@ BEGIN
     PERFORM ObjectNotFound('документ', 'id', pId);
   END IF;
 
-  IF pType IS NOT NULL THEN
-    uType := GetType(lower(pType));
-  ELSE
-    SELECT o.type INTO uType FROM db.object o WHERE o.id = pId;
-  END IF;
-
-  PERFORM EditDocument(uDocument, pParent, uType,pLabel, pDescription, pData, current_locale());
+  PERFORM EditDocument(uDocument, pParent, pType,pLabel, pDescription, pData, current_locale());
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
