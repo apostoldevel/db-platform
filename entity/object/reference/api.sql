@@ -82,7 +82,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.set_reference (
   pId           uuid,
   pParent       uuid DEFAULT null,
-  pType         text DEFAULT null,
+  pType         uuid DEFAULT null,
   pCode         text DEFAULT null,
   pName         text DEFAULT null,
   pDescription  text DEFAULT null

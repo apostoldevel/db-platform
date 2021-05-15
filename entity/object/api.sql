@@ -138,7 +138,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.set_object (
   pId		    uuid,
   pParent       uuid default null,
-  pType         text default null,
+  pType         uuid default null,
   pLabel        text default null,
   pData			text default null
 ) RETURNS       SETOF api.object

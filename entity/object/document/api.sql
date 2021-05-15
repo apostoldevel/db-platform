@@ -82,7 +82,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.set_document (
   pId		    uuid,
   pParent       uuid default null,
-  pType         text default null,
+  pType         uuid default null,
   pLabel        text default null,
   pDescription  text DEFAULT null,
   pData			text DEFAULT null
