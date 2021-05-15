@@ -42,14 +42,22 @@ CREATE OR REPLACE FUNCTION db.ft_notification_after_insert()
 RETURNS     trigger
 AS $$
 DECLARE
+  vClass    text;
   vAction   text;
 BEGIN
   PERFORM pg_notify('notify', row_to_json(NEW)::text);
 
   IF GetEntityCode(NEW.entity) = 'message' THEN
+    vClass := GetClassCode(NEW.class);
     vAction := GetActionCode(NEW.action);
-    IF vAction = 'submit' THEN
-      PERFORM pg_notify('outbox', NEW.object::text);
+    IF vClass = 'inbox' THEN
+	  IF vAction = 'create' THEN
+        PERFORM pg_notify('inbox', NEW.object::text);
+      END IF;
+    ELSIF vClass = 'outbox' THEN
+	  IF vAction = 'submit' THEN
+        PERFORM pg_notify('outbox', NEW.object::text);
+      END IF;
     END IF;
   END IF;
 
