@@ -1287,12 +1287,16 @@ DECLARE
   uArea		uuid;
   uScope	uuid;
 BEGIN
-  SELECT area INTO uArea FROM db.session WHERE code = pSession;
-  SELECT scope INTO uScope FROM db.area WHERE id = uArea;
+  IF pSession IS NOT NULL THEN
+    SELECT area INTO uArea FROM db.session WHERE code = pSession;
+    SELECT scope INTO uScope FROM db.area WHERE id = uArea;
+  ELSE
+    SELECT id INTO uScope FROM db.scope WHERE code = current_database();
+  END IF;
 
   RETURN uScope;
 END;
-$$ LANGUAGE plpgsql STABLE STRICT
+$$ LANGUAGE plpgsql STABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 

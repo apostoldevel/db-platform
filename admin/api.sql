@@ -1217,7 +1217,7 @@ CREATE OR REPLACE FUNCTION api.add_area (
 ) RETURNS       uuid
 AS $$
 BEGIN
-  RETURN CreateArea(null, pParent, pType, pScope, pCode, pName, pDescription, pSequence);
+  RETURN CreateArea(null, pParent, coalesce(pType, GetAreaType('default')), pScope, pCode, pName, pDescription, pSequence);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

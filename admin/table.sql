@@ -936,17 +936,17 @@ BEGIN
       NEW.salt := gen_salt('md5');
     END IF;
 
-    IF NEW.salt <> OLD.salt THEN
+    IF NEW.salt IS DISTINCT FROM OLD.salt THEN
       NEW.token := NewTokenCode(NEW.oauth2, NEW.code, NEW.salt, NEW.agent, NEW.host, NEW.updated);
     END IF;
 
-    IF NEW.area <> OLD.area THEN
+    IF NEW.area IS DISTINCT FROM OLD.area THEN
       IF NOT IsMemberArea(NEW.area, NEW.userid) THEN
         NEW.area := OLD.area;
       END IF;
     END IF;
 
-    IF OLD.interface <> NEW.interface THEN
+    IF OLD.interface IS DISTINCT FROM NEW.interface THEN
       IF NOT IsMemberInterface(NEW.interface, NEW.userid) THEN
         NEW.interface := OLD.interface;
       END IF;
