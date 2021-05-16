@@ -989,11 +989,11 @@ BEGIN
 
 	SELECT id INTO NEW.area FROM db.area WHERE id = NEW.area AND scope IN (SELECT GetOAuth2Scopes(NEW.oauth2));
 	IF NOT FOUND THEN
-	  SELECT id INTO NEW.area FROM db.area WHERE scope IN (SELECT GetOAuth2Scopes(NEW.oauth2)) AND type = GetAreaType('main');
+	  SELECT id INTO NEW.area FROM db.area WHERE scope IN (SELECT GetOAuth2Scopes(NEW.oauth2)) AND type = '00000000-0000-4002-a001-000000000001'; -- main
 	END IF;
 
     IF NOT IsMemberArea(NEW.area, NEW.userid) THEN
-      NEW.area := GetArea('guest');
+      SELECT '00000000-0000-4003-a000-000000000002' INTO NEW.area; -- guest
     END IF;
 
     IF NEW.interface IS NULL THEN
@@ -1001,7 +1001,7 @@ BEGIN
     END IF;
 
     IF NOT IsMemberInterface(NEW.interface, NEW.userid) THEN
-      NEW.interface := GetInterface('guest');
+      SELECT '00000000-0000-4004-a000-000000000003' INTO NEW.interface; -- guest
     END IF;
 
     RETURN NEW;

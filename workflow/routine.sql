@@ -1371,6 +1371,7 @@ CREATE OR REPLACE FUNCTION DeleteMethod (
 ) RETURNS 	void
 AS $$
 BEGIN
+  DELETE FROM db.method_stack WHERE method = pId;
   DELETE FROM db.method WHERE id = pId;
 END;
 $$ LANGUAGE plpgsql

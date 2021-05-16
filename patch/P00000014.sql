@@ -2,6 +2,7 @@ DROP INDEX IF EXISTS db.message_agent_code_idx;
 CREATE INDEX ON db.message (code);
 --
 DROP INDEX IF EXISTS db.area_code_idx;
+DROP INDEX IF EXISTS db.area_scope_code_idx;
 CREATE UNIQUE INDEX ON db.area (scope, code);
 --
 DROP FUNCTION IF EXISTS GetArea(text);
