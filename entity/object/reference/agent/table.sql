@@ -22,7 +22,7 @@ CREATE INDEX ON db.agent (reference);
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION ft_agent_insert()
+CREATE OR REPLACE FUNCTION ft_agent_before_insert()
 RETURNS trigger AS $$
 DECLARE
 BEGIN
@@ -38,7 +38,29 @@ $$ LANGUAGE plpgsql
 
 --------------------------------------------------------------------------------
 
-CREATE TRIGGER t_agent_insert
+CREATE TRIGGER t_agent_before_insert
   BEFORE INSERT ON db.agent
+  FOR EACH ROW
+  EXECUTE PROCEDURE ft_agent_before_insert();
+
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION ft_agent_after_insert()
+RETURNS trigger AS $$
+BEGIN
+  UPDATE db.aou SET deny = B'000', allow = B'100' WHERE object = NEW.id AND userid = '00000000-0000-4000-a002-000000000002'; -- mailbot
+  IF not FOUND THEN
+    INSERT INTO db.aou SELECT NEW.id, '00000000-0000-4000-a002-000000000002', B'000', B'100'; -- mailbot
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+
+CREATE TRIGGER t_agent_after_insert
+  AFTER INSERT ON db.agent
   FOR EACH ROW
   EXECUTE PROCEDURE ft_agent_insert();

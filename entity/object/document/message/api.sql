@@ -8,7 +8,7 @@
 
 CREATE OR REPLACE VIEW api.message
 AS
-  SELECT * FROM ObjectMessage;
+  SELECT * FROM MessageAll();
 
 GRANT SELECT ON api.message TO administrator;
 GRANT SELECT ON api.message TO apibot;
@@ -35,6 +35,7 @@ AS
   SELECT * FROM api.message(GetClass('inbox'));
 
 GRANT SELECT ON api.inbox TO administrator;
+GRANT SELECT ON api.inbox TO apibot;
 
 --------------------------------------------------------------------------------
 -- FUNCTION api.inbox ----------------------------------------------------------
@@ -71,6 +72,7 @@ AS
   SELECT * FROM api.message(GetClass('outbox'));
 
 GRANT SELECT ON api.outbox TO administrator;
+GRANT SELECT ON api.outbox TO apibot;
 
 --------------------------------------------------------------------------------
 -- FUNCTION api.outbox ---------------------------------------------------------
@@ -516,7 +518,7 @@ BEGIN
 
   vBody := CreateMailBody(vProject, vProfile, vName, vEmail, pSubject, pText, pHTML);
 
-  uMessageId := SendMail(null, vProfile, vEmail, pSubject, vBody, pDescription);
+  uMessageId := SendMail(null, vProfile, vEmail, pSubject, vBody, null, pDescription);
 
   RETURN QUERY SELECT * FROM api.message WHERE id = uMessageId;
 END

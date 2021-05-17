@@ -262,7 +262,7 @@ BEGIN
 
 	  vBody := CreateMailBody(vProject, vNoReply, null, vEmail, vSubject, vText, vHTML);
 
-      PERFORM SendMail(pObject, vNoReply, vEmail, vSubject, vBody, vDescription);
+      PERFORM SendMail(pObject, vNoReply, vEmail, vSubject, vBody, null, vDescription);
       PERFORM WriteToEventLog('M', 1001, 'email', vDescription, pObject);
     END IF;
   END IF;
@@ -323,7 +323,7 @@ BEGIN
 
 	  vBody := CreateMailBody(vProject, vNoReply, null, vEmail, vSubject, vText, vHTML);
 
-      PERFORM SendMail(pObject, vNoReply, vEmail, vSubject, vBody, vDescription);
+      PERFORM SendMail(pObject, vNoReply, vEmail, vSubject, vBody, null, vDescription);
       PERFORM WriteToEventLog('M', 1001, 'email', vDescription, pObject);
     END IF;
   END IF;

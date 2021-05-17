@@ -16,9 +16,14 @@ CREATE OR REPLACE FUNCTION DoConfirmEmail (
 AS $$
 DECLARE
   uId			uuid;
+  uArea			uuid;
 BEGIN
-  SELECT id INTO uId FROM db.client WHERE userid = pUserId;
+  SELECT c.id, d.area INTO uId, uArea
+    FROM db.client c INNER JOIN db.document d ON c.document = d.id
+   WHERE userid = pUserId;
+
   IF FOUND AND IsEnabled(uId) THEN
+    PERFORM SetSessionArea(uArea);
 	PERFORM ExecuteObjectAction(uId, GetAction('confirm'));
   END IF;
 END;

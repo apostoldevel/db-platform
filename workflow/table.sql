@@ -98,17 +98,19 @@ CREATE OR REPLACE FUNCTION ft_class_tree_after_insert()
 RETURNS trigger AS $$
 BEGIN
   IF NEW.parent IS NULL THEN
-    INSERT INTO db.acu SELECT NEW.id, GetGroup('administrator'), B'00000', B'11111';
-    INSERT INTO db.acu SELECT NEW.id, GetUser('apibot'), B'00000', B'01110';
+    INSERT INTO db.acu SELECT NEW.id, '00000000-0000-4000-a000-000000000001', B'00000', B'11111'; -- administrator group
+    INSERT INTO db.acu SELECT NEW.id, '00000000-0000-4000-a002-000000000001', B'00000', B'01110'; -- apibot
   ELSE
     INSERT INTO db.acu SELECT NEW.id, userid, deny, allow FROM db.acu WHERE class = NEW.parent;
 
     IF NEW.code = 'document' THEN
-      INSERT INTO db.acu SELECT NEW.id, GetGroup('user'), B'00000', B'11000';
+      INSERT INTO db.acu SELECT NEW.id, '00000000-0000-4000-a000-000000000002', B'00000', B'11000'; -- user group
     ELSIF NEW.code = 'reference' THEN
-      INSERT INTO db.acu SELECT NEW.id, GetGroup('user'), B'00000', B'10100';
+      INSERT INTO db.acu SELECT NEW.id, '00000000-0000-4000-a000-000000000002', B'00000', B'10100'; -- user group
     ELSIF NEW.code = 'message' THEN
-      INSERT INTO db.acu SELECT NEW.id, GetUser('mailbot'), B'00000', B'01110';
+      INSERT INTO db.acu SELECT NEW.id, '00000000-0000-4000-a002-000000000002', B'00000', B'01110'; -- mailbot
+    ELSIF NEW.code = 'agent' THEN
+      INSERT INTO db.acu SELECT NEW.id, '00000000-0000-4000-a002-000000000002', B'00000', B'01100'; -- mailbot
     END IF;
   END IF;
 

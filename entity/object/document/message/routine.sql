@@ -1,4 +1,35 @@
 --------------------------------------------------------------------------------
+-- FUNCTION MessageAll ---------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION MessageAll (
+) RETURNS	SETOF ObjectMessage
+AS $$
+DECLARE
+  r         record;
+  m         record;
+BEGIN
+  FOR r IN
+    WITH RECURSIVE tree (id, parent, type) AS (
+      SELECT id, parent, type FROM db.area WHERE id = '00000000-0000-4003-a000-000000000000'
+       UNION DISTINCT
+      SELECT a.id, a.parent, a.type FROM db.area a INNER JOIN tree t ON a.parent = t.id
+    ) SELECT id FROM tree WHERE type != '00000000-0000-4002-a000-000000000000'
+  LOOP
+    PERFORM SetSessionArea(r.id);
+    FOR m IN SELECT * FROM ObjectMessage WHERE area = r.id
+    LOOP
+      RETURN NEXT m;
+    END LOOP;
+  END LOOP;
+
+  RETURN;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- CreateMessage ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
@@ -579,7 +610,7 @@ BEGIN
 
   vBody := CreateMailBody(vProject, vNoReply, null, vEmail, vSubject, vText, vHTML);
 
-  PERFORM SendMail(null, vNoReply, vEmail, vSubject, vBody, vDescription);
+  PERFORM SendMail(null, vNoReply, vEmail, vSubject, vBody, null, vDescription);
   PERFORM CreateNotice(pUserId, null, vDescription);
 
   PERFORM WriteToEventLog('M', 1001, 'email', vDescription);
