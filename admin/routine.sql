@@ -2178,7 +2178,7 @@ BEGIN
     END IF;
   END IF;
 
-  uArea := coalesce(pArea, GetArea('guest'));
+  uArea := coalesce(pArea, '00000000-0000-4003-a000-000000000002'); -- guest
 
   SELECT id INTO uId FROM users WHERE username = lower(pRoleName);
 

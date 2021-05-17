@@ -350,11 +350,11 @@ BEGIN
   END IF;
 
   IF NOT IsMemberArea(NEW.area, NEW.userid) THEN
-    SELECT id INTO NEW.area FROM db.area WHERE code = 'guest';
+    SELECT '00000000-0000-4003-a000-000000000002' INTO NEW.area; -- guest
   END IF;
 
   IF NOT IsMemberInterface(NEW.interface, NEW.userid) THEN
-    SELECT id INTO NEW.interface FROM db.interface WHERE id = '00000000-0000-4004-a000-000000000000';
+    SELECT '00000000-0000-4004-a000-000000000003' INTO NEW.interface; -- guest
   END IF;
 
   RETURN NEW;
