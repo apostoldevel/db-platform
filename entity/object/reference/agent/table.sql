@@ -63,4 +63,4 @@ $$ LANGUAGE plpgsql
 CREATE TRIGGER t_agent_after_insert
   AFTER INSERT ON db.agent
   FOR EACH ROW
-  EXECUTE PROCEDURE ft_agent_insert();
+  EXECUTE PROCEDURE ft_agent_after_insert();
