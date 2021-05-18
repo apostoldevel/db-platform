@@ -184,3 +184,19 @@ AS
                      LEFT JOIN db.event_text t ON t.event = e.id AND t.locale = current_locale();
 
 GRANT SELECT ON Event TO administrator;
+
+--------------------------------------------------------------------------------
+-- VIEW AMU --------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW AMU
+AS
+  SELECT m.class, m.classcode, m.classlabel,
+         m.action, m.actioncode, m.actionname,
+         a.method, m.code, m.label,
+         a.userid, u.type, u.username, u.name, u.description,
+         a.deny, a.allow, a.mask
+    FROM db.amu a INNER JOIN Method  m ON a.method = m.id
+                  INNER JOIN db.user u ON a.userid = u.id;
+
+GRANT SELECT ON AMU TO administrator;
