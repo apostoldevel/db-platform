@@ -892,11 +892,29 @@ RETURNS 	record
 AS $$
 BEGIN
   result := true;
-  message := 'Успешно.';
+  message := 'Success';
 END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
 GRANT EXECUTE ON FUNCTION result_success() TO PUBLIC;
+
+--------------------------------------------------------------------------------
+-- FUNCTION error_success ------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION error_success (
+  result	out int,
+  message	out text
+)
+RETURNS 	record
+AS $$
+BEGIN
+  result := 0;
+  message := 'Success';
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+GRANT EXECUTE ON FUNCTION error_success() TO PUBLIC;
 
 --------------------------------------------------------------------------------
 -- FUNCTION random_between -----------------------------------------------------
