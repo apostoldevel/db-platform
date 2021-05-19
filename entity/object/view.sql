@@ -118,3 +118,25 @@ AS
     FROM db.object_coordinates oc INNER JOIN Object o ON oc.object = o.id;
 
 GRANT SELECT ON ObjectCoordinates TO administrator;
+
+--------------------------------------------------------------------------------
+-- VIEW AOU --------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW AOU
+AS
+  SELECT a.object,
+         o.entity, o.entitycode, o.entityname,
+         o.class, o.classcode, o.classlabel,
+         o.type, o.typecode, o.typename, o.typedescription,
+         o.label, o.text,
+         o.statetype, o.statetypecode, o.statetypename,
+         o.state, o.statecode, o.statelabel, o.lastupdate,
+         o.owner, o.ownercode, o.ownername, o.created,
+         o.oper, o.opercode, o.opername, o.operdate,
+         a.userid, u.type AS role, u.username, u.name, u.description,
+         a.deny, a.allow, a.mask
+    FROM db.aou a INNER JOIN Object  o ON a.object = o.id
+                  INNER JOIN db.user u ON a.userid = u.id;
+
+GRANT SELECT ON AOU TO administrator;

@@ -118,3 +118,19 @@ END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- ChangeDocumentArea ----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION ChangeDocumentArea (
+  pId           uuid,
+  pArea         uuid
+) RETURNS       void
+AS $$
+BEGIN
+  UPDATE db.document SET area = pArea WHERE id = pId;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;

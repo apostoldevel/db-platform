@@ -144,3 +144,19 @@ END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.change_document_area ----------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.change_document_area (
+  pId		    uuid,
+  pArea         uuid
+) RETURNS       SETOF api.document
+AS $$
+BEGIN
+  PERFORM ChangeDocumentArea(pId, pArea);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;

@@ -193,6 +193,27 @@ BEGIN
       END LOOP;
     END LOOP;
 
+  WHEN '/document/change/area' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, GetRoutines('change_document_area', 'api', false));
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      EXECUTE format('SELECT api.change_document_area(%s) FROM jsonb_to_recordset($1) AS x(%s)', array_to_string(GetRoutines('change_document_area', 'api', false, 'x'), ', '), array_to_string(GetRoutines('change_document_area', 'api', true), ', ')) USING pPayload;
+      RETURN NEXT json_build_object('success', true);
+
+    ELSE
+
+      EXECUTE format('SELECT api.change_document_area(%s) FROM jsonb_to_record($1) AS x(%s)', array_to_string(GetRoutines('change_document_area', 'api', false, 'x'), ', '), array_to_string(GetRoutines('change_document_area', 'api', true), ', ')) USING pPayload;
+      RETURN NEXT json_build_object('success', true);
+
+    END IF;
+
   ELSE
     PERFORM RouteNotFound(pPath);
   END CASE;
