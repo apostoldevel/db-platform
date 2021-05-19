@@ -39,10 +39,6 @@ BEGIN
     PERFORM RootAreaError();
   END IF;
 
-  IF current_area_type() = GetAreaType('guest') THEN
-    PERFORM GuestAreaError();
-  END IF;
-
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql

@@ -588,8 +588,12 @@ BEGIN
   END IF;
 
   vProject := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Name', pUserId);
-  vHost := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Host', pUserId);
   vDomain := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Domain', pUserId);
+
+  vHost := current_scope_code();
+  IF vHost = current_database()::text THEN
+	vHost := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Host', pUserId);
+  END IF;
 
   vNoReply := format('noreply@%s', vDomain);
   vSupport := format('support@%s', vDomain);

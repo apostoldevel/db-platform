@@ -310,7 +310,7 @@ BEGIN
       PERFORM TokenExpired();
     END IF;
 
-    vSession := SignIn(CreateOAuth2(nAudience, ARRAY[current_database()]), claim.aud, vSecret, pAgent, pHost);
+    vSession := SignIn(CreateOAuth2(nAudience, current_scope_code()), claim.aud, vSecret, pAgent, pHost);
 
     IF vSession IS NULL THEN
       RAISE EXCEPTION '%', GetErrorMessage();
@@ -352,7 +352,7 @@ BEGIN
 
       SELECT id INTO nAudience FROM oauth2.audience WHERE provider = GetProvider('default') AND application = nApplication;
 
-      vSession := GetSession(uUserId, CreateOAuth2(nAudience, ARRAY[current_database()]), pAgent, pHost, true);
+      vSession := GetSession(uUserId, CreateOAuth2(nAudience, current_scope_code()), pAgent, pHost, true);
 
       IF vSession IS NULL THEN
         RAISE EXCEPTION '%', GetErrorMessage();
@@ -633,7 +633,9 @@ BEGIN
 
   ELSIF grant_type = 'client_credentials' THEN
 
-    nOAuth2 := CreateOAuth2(nAudience, ARRAY[current_database()], 'offline');
+    scope := pPayload->>'scope';
+
+    nOAuth2 := CreateOAuth2(nAudience, scope, 'offline');
 
     vSession := SignIn(nOAuth2, pClientId, pSecret, pAgent, pHost);
 

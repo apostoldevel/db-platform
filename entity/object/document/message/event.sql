@@ -241,8 +241,12 @@ BEGIN
 	IF vEmail IS NOT NULL AND NOT bVerified THEN
 
 	  vProject := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Name', uUserId);
-	  vHost := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Host', uUserId);
 	  vDomain := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Domain', uUserId);
+
+	  vHost := current_scope_code();
+	  IF vHost = current_database()::text THEN
+        vHost := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Host', uUserId);
+	  END IF;
 
 	  vCode := GetVerificationCode(NewVerificationCode(uUserId));
 
@@ -304,8 +308,12 @@ BEGIN
 
 	IF vEmail IS NOT NULL AND bVerified THEN
 	  vProject := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Name', uUserId);
-	  vHost := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Host', uUserId);
 	  vDomain := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Domain', uUserId);
+
+	  vHost := current_scope_code();
+	  IF vHost = current_database()::text THEN
+        vHost := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Host', uUserId);
+	  END IF;
 
 	  vNoReply := format('noreply@%s', vDomain);
 	  vSupport := format('support@%s', vDomain);

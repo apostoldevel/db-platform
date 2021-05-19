@@ -10,13 +10,34 @@ CREATE OR REPLACE FUNCTION GetAreaType (
   pCode		text
 ) RETURNS 	uuid
 AS $$
-DECLARE
-  uId		uuid;
-BEGIN
-  SELECT id INTO uId FROM db.area_type WHERE code = pCode;
-  RETURN uId;
-END;
-$$ LANGUAGE plpgsql STABLE STRICT
+  SELECT id FROM db.area_type WHERE code = pCode;
+$$ LANGUAGE sql STABLE STRICT
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- GetAreaTypeCode -------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetAreaTypeCode (
+  pId       uuid
+) RETURNS   text
+AS $$
+  SELECT code FROM db.area_type WHERE id = pId;
+$$ LANGUAGE sql STABLE STRICT
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- GetAreaTypeName -------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetAreaTypeName (
+  pId       uuid
+) RETURNS   text
+AS $$
+  SELECT name FROM db.area_type WHERE id = pId;
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -648,7 +669,7 @@ DECLARE
 BEGIN
   IF NULLIF(pScope, '') IS NOT NULL THEN
 
-    arScopes := array_cat(arScopes, ARRAY['api', 'openid', 'profile', 'email']);
+    arScopes := array_cat(arScopes, ARRAY['api']);
 
 	FOR r IN SELECT code FROM db.scope
 	LOOP
@@ -1287,14 +1308,38 @@ DECLARE
   uArea		uuid;
   uScope	uuid;
 BEGIN
-  IF pSession IS NOT NULL THEN
-    SELECT area INTO uArea FROM db.session WHERE code = pSession;
+  SELECT area INTO uArea FROM db.session WHERE code = pSession;
+  IF FOUND THEN
     SELECT scope INTO uScope FROM db.area WHERE id = uArea;
-  ELSE
-    SELECT id INTO uScope FROM db.scope WHERE code = current_database();
   END IF;
 
   RETURN uScope;
+END;
+$$ LANGUAGE plpgsql STABLE
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION current_scope_code -------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION current_scope_code (
+  pSession	varchar DEFAULT current_session()
+)
+RETURNS		text
+AS $$
+DECLARE
+  uArea		uuid;
+  uScope	uuid;
+  vCode     text;
+BEGIN
+  SELECT area INTO uArea FROM db.session WHERE code = pSession;
+  IF FOUND THEN
+    SELECT scope INTO uScope FROM db.area WHERE id = uArea;
+    SELECT code INTO vCode FROM db.scope WHERE id = uScope;
+  END IF;
+
+  RETURN vCode;
 END;
 $$ LANGUAGE plpgsql STABLE
    SECURITY DEFINER
@@ -2201,6 +2246,8 @@ BEGIN
 
   PERFORM SetPassword(pId, pPassword);
 
+  PERFORM DoCreateRole(pId);
+
   RETURN pId;
 END;
 $$ LANGUAGE plpgsql
@@ -2242,6 +2289,8 @@ BEGIN
 
   INSERT INTO db.user (id, type, username, name, description)
   VALUES (pId, 'G', pRoleName, pName, pDescription);
+
+  PERFORM DoCreateRole(pId);
 
   RETURN pId;
 END;
@@ -2319,6 +2368,8 @@ BEGIN
   IF NULLIF(pPassword, '') IS NOT NULL THEN
     PERFORM SetPassword(pId, pPassword);
   END IF;
+
+  PERFORM DoUpdateRole(pId);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -2367,6 +2418,8 @@ BEGIN
          name = coalesce(pName, name),
          description = coalesce(pDescription, description)
    WHERE id = pId;
+
+  PERFORM DoUpdateRole(pId);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -2405,9 +2458,11 @@ BEGIN
 
   IF FOUND THEN
 
-    UPDATE db.object SET oper = GetUser('admin') WHERE oper = pId;
-    UPDATE db.object SET owner = GetUser('admin') WHERE owner = pId;
-    UPDATE db.object SET suid = GetUser('admin') WHERE suid = pId;
+    PERFORM DoDeleteRole(pId);
+
+    UPDATE db.object SET oper = '00000000-0000-4000-a000-000000000001' WHERE oper = pId;
+    UPDATE db.object SET owner = '00000000-0000-4000-a000-000000000001' WHERE owner = pId;
+    UPDATE db.object SET suid = '00000000-0000-4000-a000-000000000001' WHERE suid = pId;
 
     DELETE FROM db.acl WHERE userid = pId;
     DELETE FROM db.aou WHERE userid = pId;
@@ -3049,7 +3104,7 @@ BEGIN
   nLevel := 0;
   pParent := CheckNull(pParent);
 
-  SELECT id INTO uId FROM db.area WHERE code = pCode;
+  SELECT id INTO uId FROM db.area WHERE scope = current_scope() AND code = pCode;
   IF FOUND THEN
     PERFORM RecordExists(pCode);
   END IF;
@@ -3114,7 +3169,7 @@ BEGIN
 
   pCode := coalesce(pCode, vCode);
   IF pCode <> vCode THEN
-    SELECT code INTO vCode FROM db.area WHERE code = pCode;
+    SELECT code INTO vCode FROM db.area WHERE scope = current_scope() AND code = pCode;
     IF FOUND THEN
       PERFORM RecordExists(pCode);
     END IF;
@@ -3193,6 +3248,58 @@ CREATE OR REPLACE FUNCTION GetArea (
 ) RETURNS	uuid
 AS $$
   SELECT id FROM db.area WHERE scope = pScope AND code = pCode;
+$$ LANGUAGE sql STABLE STRICT
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- GetAreaRoot -----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetAreaRoot (
+  pScope    uuid default current_scope()
+) RETURNS	uuid
+AS $$
+  SELECT id FROM db.area WHERE scope = pScope AND type = '00000000-0000-4002-a000-000000000000';
+$$ LANGUAGE sql STABLE STRICT
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- GetAreaSystem ---------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetAreaSystem (
+  pScope    uuid default current_scope()
+) RETURNS	uuid
+AS $$
+  SELECT id FROM db.area WHERE scope = pScope AND type = '00000000-0000-4002-a000-000000000001';
+$$ LANGUAGE sql STABLE STRICT
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- GetAreaGuest ----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetAreaGuest (
+  pScope    uuid default current_scope()
+) RETURNS	uuid
+AS $$
+  SELECT id FROM db.area WHERE scope = pScope AND type = '00000000-0000-4002-a000-000000000002';
+$$ LANGUAGE sql STABLE STRICT
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- GetAreaDefault --------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetAreaDefault (
+  pScope    uuid default current_scope()
+) RETURNS	uuid
+AS $$
+  SELECT id FROM db.area WHERE scope = pScope AND type = '00000000-0000-4002-a001-000000000000';
 $$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
