@@ -1308,9 +1308,11 @@ DECLARE
   uArea		uuid;
   uScope	uuid;
 BEGIN
-  SELECT area INTO uArea FROM db.session WHERE code = pSession;
-  IF FOUND THEN
+  IF pSession IS NOT NULL THEN
+    SELECT area INTO uArea FROM db.session WHERE code = pSession;
     SELECT scope INTO uScope FROM db.area WHERE id = uArea;
+  ELSE
+    SELECT id INTO uScope FROM db.scope WHERE code = current_database();
   END IF;
 
   RETURN uScope;
@@ -1852,11 +1854,11 @@ CREATE OR REPLACE FUNCTION SetSessionLocale (
 ) RETURNS	void
 AS $$
 DECLARE
-  nLocale	uuid;
+  uLocale	uuid;
 BEGIN
-  SELECT id INTO nLocale FROM db.locale WHERE code = pCode;
+  SELECT id INTO uLocale FROM db.locale WHERE code = pCode;
   IF FOUND THEN
-    PERFORM SetSessionLocale(nLocale, pSession);
+    PERFORM SetSessionLocale(uLocale, pSession);
   END IF;
 END;
 $$ LANGUAGE plpgsql
@@ -1875,13 +1877,8 @@ CREATE OR REPLACE FUNCTION GetSessionLocale (
   pSession	varchar DEFAULT current_session()
 ) RETURNS	uuid
 AS $$
-DECLARE
-  nLocale	uuid;
-BEGIN
-  SELECT locale INTO nLocale FROM db.session WHERE code = pSession;
-  RETURN nLocale;
-END;
-$$ LANGUAGE plpgsql STABLE STRICT
+  SELECT locale FROM db.session WHERE code = pSession;
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -3120,7 +3117,7 @@ BEGIN
   END IF;
 
   INSERT INTO db.area (id, parent, type, scope, code, name, description, level, sequence)
-  VALUES (coalesce(pId, gen_kernel_uuid('8')), coalesce(pParent, GetArea('root')), pType, pScope, pCode, pName, pDescription, nLevel, coalesce(pSequence, 1))
+  VALUES (coalesce(pId, gen_kernel_uuid('8')), coalesce(pParent, GetAreaRoot()), pType, pScope, pCode, pName, pDescription, nLevel, coalesce(pSequence, 1))
   RETURNING Id INTO uId;
 
   PERFORM DoCreateArea(uId);

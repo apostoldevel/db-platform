@@ -247,9 +247,7 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 CREATE OR REPLACE FUNCTION db.ft_area_before_insert()
-RETURNS trigger AS $$
-DECLARE
-  uId   uuid;
+RETURNS	trigger AS $$
 BEGIN
   IF NEW.id IS NULL THEN
 	NEW.id := gen_kernel_uuid('8');
@@ -261,13 +259,6 @@ BEGIN
 
   IF NEW.id = NEW.parent THEN
     NEW.parent := GetAreaRoot(NEW.scope);
-  END IF;
-
-  IF SubStr(NEW.type::text, 23, 1) = '0' THEN
-    SELECT a.id INTO uId FROM db.area a WHERE a.scope = NEW.scope AND a.type = NEW.type;
-    IF FOUND THEN
-      RETURN AreaWithTypeAlreadyExists(GetAreaTypeCode(NEW.type));
-	END IF;
   END IF;
 
   RETURN NEW;
@@ -283,7 +274,7 @@ BEGIN
     SELECT NEW.object INTO NEW.id;
   END IF;
 
-  IF current_area_type() = GetAreaType('root') THEN
+  IF current_area_type() = '00000000-0000-4002-a000-000000000000' THEN
     PERFORM RootAreaError();
   END IF;
 

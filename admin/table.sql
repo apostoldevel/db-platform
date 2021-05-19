@@ -77,9 +77,7 @@ CREATE UNIQUE INDEX ON db.area (scope, code);
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION db.ft_area_before_insert()
-RETURNS trigger AS $$
-DECLARE
-  uId   uuid;
+RETURNS	trigger AS $$
 BEGIN
   IF NEW.id IS NULL THEN
 	NEW.id := gen_kernel_uuid('8');
@@ -91,13 +89,6 @@ BEGIN
 
   IF NEW.id = NEW.parent THEN
     NEW.parent := GetAreaRoot(NEW.scope);
-  END IF;
-
-  IF SubStr(NEW.type::text, 23, 1) = '0' THEN
-    SELECT a.id INTO uId FROM db.area a WHERE a.scope = NEW.scope AND a.type = NEW.type;
-    IF FOUND THEN
-      RETURN AreaWithTypeAlreadyExists(GetAreaTypeCode(NEW.type));
-	END IF;
   END IF;
 
   RETURN NEW;

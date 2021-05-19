@@ -35,7 +35,7 @@ BEGIN
     SELECT NEW.object INTO NEW.id;
   END IF;
 
-  IF current_area_type() = GetAreaType('root') THEN
+  IF current_area_type() = '00000000-0000-4002-a000-000000000000' THEN
     PERFORM RootAreaError();
   END IF;
 

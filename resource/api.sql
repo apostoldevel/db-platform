@@ -53,15 +53,15 @@ CREATE OR REPLACE FUNCTION api.create_resource (
 ) RETURNS       uuid
 AS $$
 DECLARE
-  nLocale		uuid;
+  uLocale		uuid;
 BEGIN
-  SELECT id INTO nLocale FROM db.locale WHERE code = pLocaleCode;
+  SELECT id INTO uLocale FROM db.locale WHERE code = pLocaleCode;
 
   IF NOT FOUND THEN
     PERFORM IncorrectLocaleCode(pLocaleCode);
   END IF;
 
-  RETURN CreateResource(pId, pRoot, pNode, pType, pName, pDescription, pEncoding, pData, pSequence, nLocale);
+  RETURN CreateResource(pId, pRoot, pNode, pType, pName, pDescription, pEncoding, pData, pSequence, uLocale);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -98,15 +98,15 @@ CREATE OR REPLACE FUNCTION api.update_resource (
 ) RETURNS       void
 AS $$
 DECLARE
-  nLocale		uuid;
+  uLocale		uuid;
 BEGIN
-  SELECT id INTO nLocale FROM db.locale WHERE code = pLocaleCode;
+  SELECT id INTO uLocale FROM db.locale WHERE code = pLocaleCode;
 
   IF NOT FOUND THEN
     PERFORM IncorrectLocaleCode(pLocaleCode);
   END IF;
 
-  PERFORM UpdateResource(pId, pRoot, pNode, pType, pName, pDescription, pEncoding, pData, pSequence, nLocale);
+  PERFORM UpdateResource(pId, pRoot, pNode, pType, pName, pDescription, pEncoding, pData, pSequence, uLocale);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -130,16 +130,16 @@ CREATE OR REPLACE FUNCTION api.set_resource (
 ) RETURNS       SETOF api.resource
 AS $$
 DECLARE
-  nLocale		uuid;
+  uLocale		uuid;
   uResource		uuid;
 BEGIN
-  SELECT id INTO nLocale FROM db.locale WHERE code = pLocaleCode;
+  SELECT id INTO uLocale FROM db.locale WHERE code = pLocaleCode;
 
   IF NOT FOUND THEN
     PERFORM IncorrectLocaleCode(pLocaleCode);
   END IF;
 
-  uResource := SetResource(pId, pRoot, pNode, pType, pName, pDescription, pEncoding, pData, pSequence, nLocale);
+  uResource := SetResource(pId, pRoot, pNode, pType, pName, pDescription, pEncoding, pData, pSequence, uLocale);
 
   RETURN QUERY SELECT * FROM api.resource WHERE id = uResource;
 END;

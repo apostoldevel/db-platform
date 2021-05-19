@@ -1028,20 +1028,6 @@ $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
 --------------------------------------------------------------------------------
 
-SELECT CreateExceptionResource(GetExceptionUUID(400, 75), 'ru', 'AreaWithTypeAlreadyExists', 'Область с типом "%s" уже существует');
-SELECT CreateExceptionResource(GetExceptionUUID(400, 75), 'en', 'AreaWithTypeAlreadyExists', 'Area with type "%s" already exists');
-
-CREATE OR REPLACE FUNCTION AreaWithTypeAlreadyExists (
-  pCode		text
-) RETURNS	void
-AS $$
-BEGIN
-  RAISE EXCEPTION '%', format(GetExceptionStr(400, 75), pCode);
-END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
-
---------------------------------------------------------------------------------
-
 SELECT CreateExceptionResource(GetExceptionUUID(400, 80), 'ru', 'IncorrectRegistryKey', 'Недопустимый ключ "%s". Допустимые ключи: [%s]');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 80), 'en', 'IncorrectRegistryKey', 'Invalid key "%s". Valid keys: [%s]');
 
