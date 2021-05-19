@@ -442,14 +442,14 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetObjectStateCode (
-  pObject	uuid
-) RETURNS 	text
+  pId       uuid
+) RETURNS   text
 AS $$
 DECLARE
-  uState	uuid;
-  vCode		text;
+  uState    uuid;
+  vCode     text;
 BEGIN
-  SELECT state INTO uState FROM db.object WHERE id = pObject;
+  SELECT state INTO uState FROM db.object WHERE id = pId;
   IF FOUND THEN
     SELECT code INTO vCode FROM db.state WHERE id = uState;
   END IF;
@@ -465,13 +465,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetObjectStateType (
-  pObject	uuid
-) RETURNS	uuid
+  pId       uuid
+) RETURNS   uuid
 AS $$
 DECLARE
-  uState	uuid;
+  uState    uuid;
 BEGIN
-  SELECT state INTO uState FROM db.object WHERE id = pObject;
+  SELECT state INTO uState FROM db.object WHERE id = pId;
   RETURN GetStateTypeByState(uState);
 END;
 $$ LANGUAGE plpgsql
@@ -483,17 +483,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetObjectStateTypeCode (
-  pObject	uuid
-) RETURNS 	text
+  pId       uuid
+) RETURNS   text
 AS $$
 DECLARE
-  uState	uuid;
+  uState    uuid;
 BEGIN
-  SELECT state INTO uState FROM db.object WHERE id = pObject;
+  SELECT state INTO uState FROM db.object WHERE id = pId;
   RETURN GetStateTypeCodeByState(uState);
-EXCEPTION
-  WHEN NO_DATA_FOUND THEN
-    RETURN null;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
