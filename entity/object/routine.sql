@@ -438,6 +438,68 @@ $$ LANGUAGE sql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- FUNCTION GetObjectStateCode -------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetObjectStateCode (
+  pObject	uuid
+) RETURNS 	text
+AS $$
+DECLARE
+  uState	uuid;
+  vCode		text;
+BEGIN
+  SELECT state INTO uState FROM db.object WHERE id = pObject;
+  IF FOUND THEN
+    SELECT code INTO vCode FROM db.state WHERE id = uState;
+  END IF;
+
+  RETURN vCode;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION GetObjectStateType -------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetObjectStateType (
+  pObject	uuid
+) RETURNS	uuid
+AS $$
+DECLARE
+  uState	uuid;
+BEGIN
+  SELECT state INTO uState FROM db.object WHERE id = pObject;
+  RETURN GetStateTypeByState(uState);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION GetObjectStateTypeCode ---------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetObjectStateTypeCode (
+  pObject	uuid
+) RETURNS 	text
+AS $$
+DECLARE
+  uState	uuid;
+BEGIN
+  SELECT state INTO uState FROM db.object WHERE id = pObject;
+  RETURN GetStateTypeCodeByState(uState);
+EXCEPTION
+  WHEN NO_DATA_FOUND THEN
+    RETURN null;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- FUNCTION SetObjectOwner -----------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -543,86 +605,6 @@ AS $$
      AND validFromDate <= pDate
      AND validToDate > pDate;
 $$ LANGUAGE sql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- FUNCTION GetObjectStateCode -------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION GetObjectStateCode (
-  pObject	uuid,
-  pDate		timestamp DEFAULT oper_date()
-) RETURNS 	text
-AS $$
-DECLARE
-  uState	uuid;
-  vCode		text;
-BEGIN
-  vCode := null;
-
-  uState := GetObjectState(pObject, pDate);
-  IF uState IS NOT NULL THEN
-    SELECT code INTO vCode FROM db.state WHERE id = uState;
-  END IF;
-
-  RETURN vCode;
-EXCEPTION
-  WHEN NO_DATA_FOUND THEN
-    RETURN null;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- FUNCTION GetObjectStateType -------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION GetObjectStateType (
-  pObject	uuid,
-  pDate		timestamp DEFAULT oper_date()
-) RETURNS	uuid
-AS $$
-DECLARE
-  uState	uuid;
-BEGIN
-  SELECT state INTO uState
-    FROM db.object_state
-   WHERE object = pObject
-     AND validFromDate <= pDate
-     AND validToDate > pDate;
-
-  RETURN GetStateTypeByState(uState);
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- FUNCTION GetObjectStateTypeCode ---------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION GetObjectStateTypeCode (
-  pObject	uuid,
-  pDate		timestamp DEFAULT oper_date()
-) RETURNS 	text
-AS $$
-DECLARE
-  uState	uuid;
-BEGIN
-  SELECT state INTO uState
-    FROM db.object_state
-   WHERE object = pObject
-     AND validFromDate <= pDate
-     AND validToDate > pDate;
-
-  RETURN GetStateTypeCodeByState(uState);
-EXCEPTION
-  WHEN NO_DATA_FOUND THEN
-    RETURN null;
-END;
-$$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
