@@ -8,7 +8,10 @@ AS $$
 DECLARE
   r         record;
   m         record;
+  uArea     uuid;
 BEGIN
+  uArea := current_area();
+
   FOR r IN
     WITH RECURSIVE tree (id, parent, type) AS (
       SELECT id, parent, type FROM db.area WHERE id = '00000000-0000-4003-a000-000000000000'
@@ -22,6 +25,8 @@ BEGIN
       RETURN NEXT m;
     END LOOP;
   END LOOP;
+
+  PERFORM SetSessionArea(uArea);
 
   RETURN;
 END;
