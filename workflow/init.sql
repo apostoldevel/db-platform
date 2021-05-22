@@ -7,20 +7,42 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DefaultMethods (
-  pClass            uuid
+  pClass    uuid
 )
-RETURNS             void
+RETURNS     void
 AS $$
+DECLARE
+  uMethod   uuid;
+  uLocale   uuid;
 BEGIN
-  PERFORM AddMethod(null, pClass, null, GetAction('create'), null, 'Создать');
-  PERFORM AddMethod(null, pClass, null, GetAction('open'), null, 'Открыть');
-  PERFORM AddMethod(null, pClass, null, GetAction('edit'), null, 'Изменить');
-  PERFORM AddMethod(null, pClass, null, GetAction('save'), null, 'Сохранить');
-  PERFORM AddMethod(null, pClass, null, GetAction('enable'), null, 'Включить');
-  PERFORM AddMethod(null, pClass, null, GetAction('disable'), null, 'Выключить');
-  PERFORM AddMethod(null, pClass, null, GetAction('delete'), null, 'Удалить');
-  PERFORM AddMethod(null, pClass, null, GetAction('restore'), null, 'Восстановить');
-  PERFORM AddMethod(null, pClass, null, GetAction('drop'), null, 'Уничтожить');
+  uLocale := GetLocale('en');
+
+  uMethod := AddMethod(null, pClass, null, GetAction('create'), null, 'Создать');
+  PERFORM EditMethodText(uMethod, 'Create', uLocale);
+
+  uMethod := AddMethod(null, pClass, null, GetAction('open'), null, 'Открыть');
+  PERFORM EditMethodText(uMethod, 'Open', uLocale);
+
+  uMethod := AddMethod(null, pClass, null, GetAction('edit'), null, 'Изменить');
+  PERFORM EditMethodText(uMethod, 'Edit', uLocale);
+
+  uMethod := AddMethod(null, pClass, null, GetAction('save'), null, 'Сохранить');
+  PERFORM EditMethodText(uMethod, 'Save', uLocale);
+
+  uMethod := AddMethod(null, pClass, null, GetAction('enable'), null, 'Включить');
+  PERFORM EditMethodText(uMethod, 'Enable', uLocale);
+
+  uMethod := AddMethod(null, pClass, null, GetAction('disable'), null, 'Выключить');
+  PERFORM EditMethodText(uMethod, 'Disable', uLocale);
+
+  uMethod := AddMethod(null, pClass, null, GetAction('delete'), null, 'Удалить');
+  PERFORM EditMethodText(uMethod, 'Delete', uLocale);
+
+  uMethod := AddMethod(null, pClass, null, GetAction('restore'), null, 'Восстановить');
+  PERFORM EditMethodText(uMethod, 'Restore', uLocale);
+
+  uMethod := AddMethod(null, pClass, null, GetAction('drop'), null, 'Уничтожить');
+  PERFORM EditMethodText(uMethod, 'Drop', uLocale);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -72,20 +94,29 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddDefaultMethods (
-  pClass            uuid,
-  pNames            text[] DEFAULT null
+  pClass        uuid,
+  pNamesRU      text[] DEFAULT null,
+  pNamesEN      text[] DEFAULT null
 )
-RETURNS             void
+RETURNS         void
 AS $$
 DECLARE
-  uState            uuid;
+  uState        uuid;
+  uMethod       uuid;
+  uLocale       uuid;
 
-  rec_type          record;
-  rec_state         record;
-  rec_method        record;
+  rec_type      record;
+  rec_state     record;
+  rec_method    record;
 BEGIN
-  IF pNames IS NULL THEN
-    pNames := array_cat(pNames, ARRAY['Создан', 'Открыт', 'Закрыт', 'Удалён', 'Открыть', 'Закрыть', 'Удалить']);
+  uLocale := GetLocale('en');
+
+  IF pNamesRU IS NULL THEN
+    pNamesRU := array_cat(pNamesRU, ARRAY['Создан', 'Открыт', 'Закрыт', 'Удалён', 'Открыть', 'Закрыть', 'Удалить']);
+  END IF;
+
+  IF pNamesEN IS NULL THEN
+    pNamesEN := array_cat(pNamesEN, ARRAY['Created', 'Opened', 'Closed', 'Deleted', 'Open', 'Close', 'Delete']);
   END IF;
 
   -- Операции (без учёта состояния)
@@ -100,32 +131,50 @@ BEGIN
     CASE rec_type.code
     WHEN 'created' THEN
 
-      uState := AddState(pClass, rec_type.id, rec_type.code, pNames[1]);
+      uState := AddState(pClass, rec_type.id, rec_type.code, pNamesRU[1]);
+      PERFORM EditStateText(uState, pNamesEN[1], uLocale);
 
-        PERFORM AddMethod(null, pClass, uState, GetAction('enable'), null, pNames[5]);
-        PERFORM AddMethod(null, pClass, uState, GetAction('disable'), null, pNames[6]);
-        PERFORM AddMethod(null, pClass, uState, GetAction('delete'), null, pNames[7]);
+        uMethod := AddMethod(null, pClass, uState, GetAction('enable'), null, pNamesRU[5]);
+        PERFORM EditMethodText(uMethod, pNamesEN[5], uLocale);
+
+        uMethod := AddMethod(null, pClass, uState, GetAction('disable'), null, pNamesRU[6]);
+        PERFORM EditMethodText(uMethod, pNamesEN[6], uLocale);
+
+        uMethod := AddMethod(null, pClass, uState, GetAction('delete'), null, pNamesRU[7]);
+        PERFORM EditMethodText(uMethod, pNamesEN[7], uLocale);
 
     WHEN 'enabled' THEN
 
-      uState := AddState(pClass, rec_type.id, rec_type.code, pNames[2]);
+      uState := AddState(pClass, rec_type.id, rec_type.code, pNamesRU[2]);
+      PERFORM EditStateText(uState, pNamesEN[2], uLocale);
 
-        PERFORM AddMethod(null, pClass, uState, GetAction('disable'), null, pNames[6]);
-        PERFORM AddMethod(null, pClass, uState, GetAction('delete'), null, pNames[7]);
+        uMethod := AddMethod(null, pClass, uState, GetAction('disable'), null, pNamesRU[6]);
+        PERFORM EditMethodText(uMethod, pNamesEN[6], uLocale);
+
+        uMethod := AddMethod(null, pClass, uState, GetAction('delete'), null, pNamesRU[7]);
+        PERFORM EditMethodText(uMethod, pNamesEN[7], uLocale);
 
     WHEN 'disabled' THEN
 
-      uState := AddState(pClass, rec_type.id, rec_type.code, pNames[3]);
+      uState := AddState(pClass, rec_type.id, rec_type.code, pNamesRU[3]);
+      PERFORM EditStateText(uState, pNamesEN[3], uLocale);
 
-        PERFORM AddMethod(null, pClass, uState, GetAction('enable'), null, pNames[5]);
-        PERFORM AddMethod(null, pClass, uState, GetAction('delete'), null, pNames[7]);
+        uMethod := AddMethod(null, pClass, uState, GetAction('enable'), null, pNamesRU[5]);
+        PERFORM EditMethodText(uMethod, pNamesEN[5], uLocale);
+
+        uMethod := AddMethod(null, pClass, uState, GetAction('delete'), null, pNamesRU[7]);
+        PERFORM EditMethodText(uMethod, pNamesEN[7], uLocale);
 
     WHEN 'deleted' THEN
 
-      uState := AddState(pClass, rec_type.id, rec_type.code, pNames[4]);
+      uState := AddState(pClass, rec_type.id, rec_type.code, pNamesRU[4]);
+      PERFORM EditStateText(uState, pNamesEN[4], uLocale);
 
-        PERFORM AddMethod(null, pClass, uState, GetAction('restore'));
-        PERFORM AddMethod(null, pClass, uState, GetAction('drop'));
+        uMethod := AddMethod(null, pClass, uState, GetAction('restore'));
+        PERFORM EditMethodText(uMethod, 'Restore', uLocale);
+
+        uMethod := AddMethod(null, pClass, uState, GetAction('drop'));
+        PERFORM EditMethodText(uMethod, 'Drop', uLocale);
 
     END CASE;
 
@@ -203,6 +252,9 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION InitWorkFlow()
 RETURNS     void
 AS $$
+DECLARE
+  uAction   uuid;
+  uLocale   uuid;
 BEGIN
   INSERT INTO db.state_type (id, code) VALUES ('00000000-0000-4000-b001-000000000001', 'created');
   INSERT INTO db.state_type_text (type, name, locale) VALUES ('00000000-0000-4000-b001-000000000001', 'Created', GetLocale('en'));
@@ -236,54 +288,151 @@ BEGIN
 
   --------------------------------------------------------------------------------
 
-  PERFORM AddAction('00000000-0000-4000-b003-000000000000', 'anything', 'Ничто');
+  uLocale := GetLocale('en');
 
-  PERFORM AddAction('00000000-0000-4000-b003-000000000001', 'abort', 'Прервать');
-  PERFORM AddAction('00000000-0000-4000-b003-000000000002', 'accept', 'Принять');
-  PERFORM AddAction('00000000-0000-4000-b003-000000000003', 'add', 'Добавить');
-  PERFORM AddAction('00000000-0000-4000-b003-000000000004', 'alarm', 'Тревога');
-  PERFORM AddAction('00000000-0000-4000-b003-000000000005', 'approve', 'Утвердить');
-  PERFORM AddAction('00000000-0000-4000-b003-000000000006', 'available', 'Доступен');
-  PERFORM AddAction('00000000-0000-4000-b003-000000000007', 'cancel', 'Отменить');
-  PERFORM AddAction('00000000-0000-4000-b003-000000000008', 'check', 'Проверить');
-  PERFORM AddAction('00000000-0000-4000-b003-000000000009', 'complete', 'Завершить');
-  PERFORM AddAction('00000000-0000-4000-b003-000000000010', 'confirm', 'Подтвердить');
-  PERFORM AddAction('00000000-0000-4000-b003-000000000011', 'create', 'Создать');
-  PERFORM AddAction('00000000-0000-4000-b003-000000000012', 'delete', 'Удалить');
-  PERFORM AddAction('00000000-0000-4000-b003-000000000013', 'disable', 'Отключить');
-  PERFORM AddAction('00000000-0000-4000-b003-000000000014', 'done', 'Сделано');
-  PERFORM AddAction('00000000-0000-4000-b003-000000000015', 'drop', 'Уничтожить');
-  PERFORM AddAction('00000000-0000-4000-b003-000000000016', 'edit', 'Изменить');
-  PERFORM AddAction('00000000-0000-4000-b003-000000000017', 'enable', 'Включить');
-  PERFORM AddAction('00000000-0000-4000-b003-000000000018', 'execute', 'Выполнить');
-  PERFORM AddAction('00000000-0000-4000-b003-000000000019', 'expire', 'Истекло');
-  PERFORM AddAction('00000000-0000-4000-b003-000000000020', 'fail', 'Неудача');
-  PERFORM AddAction('00000000-0000-4000-b003-000000000021', 'faulted', 'Ошибка');
-  PERFORM AddAction('00000000-0000-4000-b003-000000000022', 'finishing', 'Завершение');
-  PERFORM AddAction('00000000-0000-4000-b003-000000000023', 'heartbeat', 'Сердцебиение');
-  PERFORM AddAction('00000000-0000-4000-b003-000000000024', 'invite', 'Пригласить');
-  PERFORM AddAction('00000000-0000-4000-b003-000000000025', 'open', 'Открыть');
-  PERFORM AddAction('00000000-0000-4000-b003-000000000026', 'plan', 'Планировать');
-  PERFORM AddAction('00000000-0000-4000-b003-000000000027', 'post', 'Публиковать');
-  PERFORM AddAction('00000000-0000-4000-b003-000000000028', 'postpone', 'Отложить');
-  PERFORM AddAction('00000000-0000-4000-b003-000000000029', 'preparing', 'Подготовка');
-  PERFORM AddAction('00000000-0000-4000-b003-000000000030', 'reconfirm', 'Переподтвердить');
-  PERFORM AddAction('00000000-0000-4000-b003-000000000031', 'remove', 'Удалить');
-  PERFORM AddAction('00000000-0000-4000-b003-000000000032', 'repeat', 'Повторить');
-  PERFORM AddAction('00000000-0000-4000-b003-000000000033', 'reserve', 'Резервировать');
-  PERFORM AddAction('00000000-0000-4000-b003-000000000034', 'reserved', 'Зарезервирован');
-  PERFORM AddAction('00000000-0000-4000-b003-000000000035', 'restore', 'Восстановить');
-  PERFORM AddAction('00000000-0000-4000-b003-000000000036', 'return', 'Вернуть');
-  PERFORM AddAction('00000000-0000-4000-b003-000000000037', 'save', 'Сохранить');
-  PERFORM AddAction('00000000-0000-4000-b003-000000000038', 'send', 'Отправить');
-  PERFORM AddAction('00000000-0000-4000-b003-000000000039', 'sign', 'Подписать');
-  PERFORM AddAction('00000000-0000-4000-b003-000000000040', 'start', 'Запустить');
-  PERFORM AddAction('00000000-0000-4000-b003-000000000041', 'stop', 'Остановить');
-  PERFORM AddAction('00000000-0000-4000-b003-000000000042', 'submit', 'Отправить');
-  PERFORM AddAction('00000000-0000-4000-b003-000000000043', 'unavailable', 'Недоступен');
-  PERFORM AddAction('00000000-0000-4000-b003-000000000044', 'update', 'Обновить');
+  uAction := AddAction('00000000-0000-4000-b003-000000000000', 'anything', 'Ничто');
+  PERFORM EditActionText(uAction, 'Anything', null, uLocale);
 
-  PERFORM AddAction('00000000-0000-4000-b003-000000000045', 'reject', 'Отклонить');
+  uAction := AddAction('00000000-0000-4000-b003-000000000001', 'abort', 'Прервать');
+  PERFORM EditActionText(uAction, 'Abort', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000002', 'accept', 'Принять');
+  PERFORM EditActionText(uAction, 'Accept', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000003', 'add', 'Добавить');
+  PERFORM EditActionText(uAction, 'Add', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000004', 'alarm', 'Тревога');
+  PERFORM EditActionText(uAction, 'Alarm', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000005', 'approve', 'Утвердить');
+  PERFORM EditActionText(uAction, 'Approve', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000006', 'available', 'Доступен');
+  PERFORM EditActionText(uAction, 'Available', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000007', 'cancel', 'Отменить');
+  PERFORM EditActionText(uAction, 'Cancel', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000008', 'check', 'Проверить');
+  PERFORM EditActionText(uAction, 'Check', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000009', 'complete', 'Завершить');
+  PERFORM EditActionText(uAction, 'Complete', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000010', 'confirm', 'Подтвердить');
+  PERFORM EditActionText(uAction, 'Confirm', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000011', 'create', 'Создать');
+  PERFORM EditActionText(uAction, 'Create', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000012', 'delete', 'Удалить');
+  PERFORM EditActionText(uAction, 'Delete', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000013', 'disable', 'Отключить');
+  PERFORM EditActionText(uAction, 'Disable', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000014', 'done', 'Сделано');
+  PERFORM EditActionText(uAction, 'Done', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000015', 'drop', 'Уничтожить');
+  PERFORM EditActionText(uAction, 'Drop', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000016', 'edit', 'Изменить');
+  PERFORM EditActionText(uAction, 'Edit', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000017', 'enable', 'Включить');
+  PERFORM EditActionText(uAction, 'Enable', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000018', 'execute', 'Выполнить');
+  PERFORM EditActionText(uAction, 'Execute', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000019', 'expire', 'Истекло');
+  PERFORM EditActionText(uAction, 'Expire', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000020', 'fail', 'Неудача');
+  PERFORM EditActionText(uAction, 'Fail', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000021', 'faulted', 'Ошибка');
+  PERFORM EditActionText(uAction, 'Faulted', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000022', 'finishing', 'Завершение');
+  PERFORM EditActionText(uAction, 'Finishing', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000023', 'heartbeat', 'Сердцебиение');
+  PERFORM EditActionText(uAction, 'Heartbeat', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000024', 'invite', 'Пригласить');
+  PERFORM EditActionText(uAction, 'Invite', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000025', 'open', 'Открыть');
+  PERFORM EditActionText(uAction, 'Open', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000026', 'plan', 'Планировать');
+  PERFORM EditActionText(uAction, 'Plan', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000027', 'post', 'Публиковать');
+  PERFORM EditActionText(uAction, 'Post', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000028', 'postpone', 'Отложить');
+  PERFORM EditActionText(uAction, 'Postpone', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000029', 'preparing', 'Подготовка');
+  PERFORM EditActionText(uAction, 'Preparing', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000030', 'reconfirm', 'Переподтвердить');
+  PERFORM EditActionText(uAction, 'Reconfirm', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000031', 'remove', 'Удалить');
+  PERFORM EditActionText(uAction, 'Remove', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000032', 'repeat', 'Повторить');
+  PERFORM EditActionText(uAction, 'Repeat', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000033', 'reserve', 'Резервировать');
+  PERFORM EditActionText(uAction, 'Reserve', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000034', 'reserved', 'Зарезервирован');
+  PERFORM EditActionText(uAction, 'Reserved', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000035', 'restore', 'Восстановить');
+  PERFORM EditActionText(uAction, 'Restore', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000036', 'return', 'Вернуть');
+  PERFORM EditActionText(uAction, 'Return', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000037', 'save', 'Сохранить');
+  PERFORM EditActionText(uAction, 'Save', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000038', 'send', 'Отправить');
+  PERFORM EditActionText(uAction, 'Send', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000039', 'sign', 'Подписать');
+  PERFORM EditActionText(uAction, 'Sign', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000040', 'start', 'Запустить');
+  PERFORM EditActionText(uAction, 'Start', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000041', 'stop', 'Остановить');
+  PERFORM EditActionText(uAction, 'Stop', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000042', 'submit', 'Отправить');
+  PERFORM EditActionText(uAction, 'Submit', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000043', 'unavailable', 'Недоступен');
+  PERFORM EditActionText(uAction, 'Unavailable', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000044', 'update', 'Обновить');
+  PERFORM EditActionText(uAction, 'Update', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000045', 'reject', 'Отклонить');
+  PERFORM EditActionText(uAction, 'Reject', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000046', 'pay', 'Оплатить');
+  PERFORM EditActionText(uAction, 'Pay', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000047', 'continue', 'Продолжить');
+  PERFORM EditActionText(uAction, 'Continue', null, uLocale);
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
