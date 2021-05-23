@@ -157,7 +157,7 @@ $$ LANGUAGE plpgsql
  */
 CREATE OR REPLACE FUNCTION api.get_resource (
   pId		uuid
-) RETURNS	api.resource
+) RETURNS	SETOF api.resource
 AS $$
   SELECT * FROM api.resource WHERE id = pId
 $$ LANGUAGE SQL

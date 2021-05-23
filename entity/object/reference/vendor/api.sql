@@ -111,7 +111,7 @@ $$ LANGUAGE plpgsql
  */
 CREATE OR REPLACE FUNCTION api.get_vendor (
   pId		uuid
-) RETURNS	api.vendor
+) RETURNS	SETOF api.vendor
 AS $$
   SELECT * FROM api.vendor WHERE id = pId
 $$ LANGUAGE SQL

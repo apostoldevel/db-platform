@@ -116,7 +116,7 @@ $$ LANGUAGE plpgsql
  */
 CREATE OR REPLACE FUNCTION api.get_agent (
   pId		uuid
-) RETURNS	api.agent
+) RETURNS	SETOF api.agent
 AS $$
   SELECT * FROM api.agent WHERE id = pId
 $$ LANGUAGE SQL

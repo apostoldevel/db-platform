@@ -116,7 +116,7 @@ $$ LANGUAGE plpgsql
  */
 CREATE OR REPLACE FUNCTION api.get_program (
   pId		uuid
-) RETURNS	api.program
+) RETURNS	SETOF api.program
 AS $$
   SELECT * FROM api.program WHERE id = pId
 $$ LANGUAGE SQL
