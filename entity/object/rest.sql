@@ -1066,14 +1066,15 @@ BEGIN
       PERFORM JsonIsEmpty();
     END IF;
 
-    arKeys := array_cat(arKeys, ARRAY['id', 'code', 'fields']);
+    arKeys := array_cat(arKeys, GetRoutines('get_object_coordinates', 'api', false));
+    arKeys := array_cat(arKeys, ARRAY['datefrom_ut', 'fields']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, code text, fields jsonb)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, code text, datefrom timestamptz, datefrom_ut double precision, fields jsonb)
       LOOP
-        FOR e IN EXECUTE format('SELECT %s FROM api.get_object_coordinates($1, $2)', JsonbToFields(r.fields, GetColumns('object_coordinates', 'api'))) USING r.id, coalesce(r.code, 'default')
+        FOR e IN EXECUTE format('SELECT %s FROM api.get_object_coordinates($1, $2, $3)', JsonbToFields(r.fields, GetColumns('object_coordinates', 'api'))) USING r.id, coalesce(r.code, 'default'), coalesce(r.datefrom, to_timestamp(r.datefrom_ut), oper_date())
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -1081,9 +1082,9 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, code text, fields jsonb)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, code text, datefrom timestamptz, datefrom_ut double precision, fields jsonb)
       LOOP
-        FOR e IN EXECUTE format('SELECT %s FROM api.get_object_coordinates($1, $2)', JsonbToFields(r.fields, GetColumns('object_coordinates', 'api'))) USING r.id, coalesce(r.code, 'default')
+        FOR e IN EXECUTE format('SELECT %s FROM api.get_object_coordinates($1, $2, $3)', JsonbToFields(r.fields, GetColumns('object_coordinates', 'api'))) USING r.id, coalesce(r.code, 'default'), coalesce(r.datefrom, to_timestamp(r.datefrom_ut), oper_date())
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
