@@ -10,13 +10,13 @@ CREATE OR REPLACE FUNCTION SetResourceSequence (
 AS $$
 DECLARE
   uId		uuid;
-  nNode     uuid;
+  uNode     uuid;
 BEGIN
   IF pDelta <> 0 THEN
-    SELECT node INTO nNode FROM db.resource WHERE id = pId;
+    SELECT node INTO uNode FROM db.resource WHERE id = pId;
     SELECT id INTO uId
       FROM db.resource
-     WHERE coalesce(node, null_uuid()) = coalesce(nNode, null_uuid())
+     WHERE node IS NOT DISTINCT FROM uNode
        AND sequence = pSequence
        AND id <> pId;
 
@@ -45,7 +45,7 @@ BEGIN
   FOR r IN
     SELECT id, (row_number() OVER(order by sequence))::int as newsequence
       FROM db.resource
-     WHERE coalesce(node, null_uuid()) = coalesce(pNode, null_uuid())
+     WHERE node IS NOT DISTINCT FROM pNode
   LOOP
     PERFORM SetResourceSequence(r.id, r.newsequence, 0);
   END LOOP;
@@ -170,7 +170,7 @@ CREATE OR REPLACE FUNCTION UpdateResource (
 ) RETURNS       void
 AS $$
 DECLARE
-  nNode         uuid;
+  uNode         uuid;
 
   nSequence     integer;
   nLevel	    integer;
@@ -179,9 +179,9 @@ BEGIN
     SELECT level + 1 INTO nLevel FROM db.resource WHERE id = pNode;
   END IF;
 
-  SELECT node, sequence INTO nNode, nSequence FROM db.resource WHERE id = pId;
+  SELECT node, sequence INTO uNode, nSequence FROM db.resource WHERE id = pId;
 
-  pNode := coalesce(pNode, nNode, null_uuid());
+  pNode := coalesce(pNode, uNode, null_uuid());
   pSequence := coalesce(pSequence, nSequence);
 
   UPDATE db.resource
@@ -194,9 +194,9 @@ BEGIN
 
   PERFORM SetResourceData(pId, pLocale, pName, pDescription, pEncoding, pData);
 
-  IF nNode IS DISTINCT FROM pNode THEN
+  IF uNode IS DISTINCT FROM pNode THEN
     SELECT max(sequence) + 1 INTO nSequence FROM db.resource WHERE node IS NOT DISTINCT FROM pNode;
-    PERFORM SortResource(nNode);
+    PERFORM SortResource(uNode);
   END IF;
 
   IF pSequence < nSequence THEN
@@ -270,11 +270,25 @@ CREATE OR REPLACE FUNCTION GetResource (
   pLocale		uuid DEFAULT current_locale()
 ) RETURNS		text
 AS $$
-DECLARE
-  vData			text;
+  SELECT data FROM db.resource_data WHERE resource = pResource AND locale = pLocale;
+$$ LANGUAGE sql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- DeleteResource --------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION DeleteResource (
+  pId       uuid
+) RETURNS   void
+AS $$
 BEGIN
-  SELECT data INTO vData FROM db.resource_data WHERE resource = pResource AND locale = pLocale;
-  RETURN vData;
+  DELETE FROM db.resource WHERE id = pId;
+
+  IF NOT FOUND THEN
+    PERFORM NotFound();
+  END IF;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

@@ -1,4 +1,4 @@
---------------------------------------------------------------------------------
+
 -- REST RESOURCE ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
@@ -106,6 +106,31 @@ BEGIN
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
+      END LOOP;
+
+    END IF;
+
+  WHEN '/resource/delete' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, GetRoutines('delete_resource', 'api', false));
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN EXECUTE format('SELECT api.delete_resource(%s) FROM jsonb_to_recordset($1) AS x(%s)', array_to_string(GetRoutines('delete_resource', 'api', false, 'x'), ', '), array_to_string(GetRoutines('delete_resource', 'api', true), ', ')) USING pPayload
+      LOOP
+        RETURN NEXT json_build_object('success', true);
+      END LOOP;
+
+    ELSE
+
+      FOR r IN EXECUTE format('SELECT api.delete_resource(%s) FROM jsonb_to_record($1) AS x(%s)', array_to_string(GetRoutines('delete_resource', 'api', false, 'x'), ', '), array_to_string(GetRoutines('delete_resource', 'api', true), ', ')) USING pPayload
+      LOOP
+        RETURN NEXT json_build_object('success', true);
       END LOOP;
 
     END IF;

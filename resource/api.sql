@@ -165,6 +165,25 @@ $$ LANGUAGE SQL
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- api.delete_resource ---------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Удаляет ресурс.
+ * @param {uuid} pId - Идентификатор
+ * @return {boolean}
+ */
+CREATE OR REPLACE FUNCTION api.delete_resource (
+  pId       uuid
+) RETURNS   boolean
+AS $$
+BEGIN
+  PERFORM DeleteResource(pId);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- api.list_resource -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
