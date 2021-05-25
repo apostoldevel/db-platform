@@ -170,11 +170,11 @@ $$ LANGUAGE SQL
 /**
  * Удаляет ресурс.
  * @param {uuid} pId - Идентификатор
- * @return {boolean}
+ * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.delete_resource (
   pId       uuid
-) RETURNS   boolean
+) RETURNS   void
 AS $$
 BEGIN
   PERFORM DeleteResource(pId);

@@ -72,7 +72,7 @@ CREATE TRIGGER t_resource_before
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.resource_data (
-    resource		uuid NOT NULL REFERENCES db.resource(id),
+    resource		uuid NOT NULL REFERENCES db.resource(id) ON DELETE CASCADE,
     locale		    uuid NOT NULL REFERENCES db.locale(id),
     name			text,
     description		text,
