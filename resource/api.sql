@@ -120,7 +120,7 @@ CREATE OR REPLACE FUNCTION api.set_resource (
   pId           uuid,
   pRoot         uuid DEFAULT null,
   pNode         uuid DEFAULT null,
-  pType			uuid DEFAULT null,
+  pType			text DEFAULT null,
   pName         text DEFAULT null,
   pDescription	text DEFAULT null,
   pEncoding		text DEFAULT null,
