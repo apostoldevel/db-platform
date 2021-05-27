@@ -19,13 +19,13 @@ CREATE OR REPLACE FUNCTION CreateNotice (
 ) RETURNS		uuid
 AS $$
 DECLARE
-  nNotice		uuid;
+  uNotice		uuid;
 BEGIN
   INSERT INTO db.notice (userid, object, text, category, status)
   VALUES (pUserId, pObject, pText, coalesce(pCategory, 'notice'), coalesce(pStatus, 0))
-  RETURNING id INTO nNotice;
+  RETURNING id INTO uNotice;
 
-  RETURN nNotice;
+  RETURN uNotice;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
