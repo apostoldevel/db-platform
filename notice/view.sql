@@ -17,7 +17,7 @@ AS
          WHEN n.status = 4 THEN 'refused'
          ELSE 'undefined'
          END AS StatusCode,
-         n.created, n.updated
+         n.created, n.updated, n.data
     FROM db.notice n LEFT JOIN Object o ON n.object = o.id;
 
 GRANT SELECT ON Notice TO administrator;

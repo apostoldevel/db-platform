@@ -12,10 +12,10 @@ CREATE TABLE db.notice (
     object		uuid REFERENCES db.object(id),
     text		text NOT NULL,
     category	text NOT NULL,
-    status		integer DEFAULT 0 NOT NULL,
+    status		integer DEFAULT 0 NOT NULL CHECK (status BETWEEN 0 AND 4),
     created		timestamp DEFAULT Now() NOT NULL,
     updated		timestamp DEFAULT Now() NOT NULL,
-    CONSTRAINT ch_notice_status CHECK (status BETWEEN 0 AND 4)
+    data        json
 );
 
 COMMENT ON TABLE db.notice IS 'Извещение.';
@@ -28,6 +28,7 @@ COMMENT ON COLUMN db.notice.category IS 'Категория извещения';
 COMMENT ON COLUMN db.notice.status IS 'Статус: 0 - создано; 1 - доставлено; 2 - прочитано; 3 - принято; 4 - отказано.';
 COMMENT ON COLUMN db.notice.created IS 'Дата создания';
 COMMENT ON COLUMN db.notice.updated IS 'Дата обновления';
+COMMENT ON COLUMN db.notice.data IS 'Данные в произвольном формате.';
 
 CREATE INDEX ON db.notice (userid);
 CREATE INDEX ON db.notice (object);
