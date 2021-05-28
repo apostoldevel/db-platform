@@ -8,6 +8,7 @@
  * @param {text} pText - Текст извещения
  * @param {text} pCategory - Категория извещения
  * @param {integer} pStatus - Статус: 0 - создано; 1 - доставлено; 2 - прочитано; 3 - принято; 4 - отказано
+ * @param {json} pData - Данные в произвольном формате
  * @return {uuid} - Идентификатор извещения
  */
 CREATE OR REPLACE FUNCTION CreateNotice (
@@ -15,14 +16,15 @@ CREATE OR REPLACE FUNCTION CreateNotice (
   pObject		uuid,
   pText			text,
   pCategory		text default null,
-  pStatus		integer default null
+  pStatus		integer default null,
+  pData         json default null
 ) RETURNS		uuid
 AS $$
 DECLARE
   uNotice		uuid;
 BEGIN
-  INSERT INTO db.notice (userid, object, text, category, status)
-  VALUES (pUserId, pObject, pText, coalesce(pCategory, 'notice'), coalesce(pStatus, 0))
+  INSERT INTO db.notice (userid, object, text, category, status, data)
+  VALUES (pUserId, pObject, pText, coalesce(pCategory, 'notice'), coalesce(pStatus, 0), pData)
   RETURNING id INTO uNotice;
 
   RETURN uNotice;
@@ -42,6 +44,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pText - Текст извещения
  * @param {text} pCategory - Категория извещения
  * @param {integer} pStatus - Статус: 0 - создано; 1 - доставлено; 2 - прочитано; 3 - принято; 4 - отказано
+ * @param {json} pData - Данные в произвольном формате
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION EditNotice (
@@ -50,7 +53,8 @@ CREATE OR REPLACE FUNCTION EditNotice (
   pObject		uuid default null,
   pText			text default null,
   pCategory		text default null,
-  pStatus		integer default null
+  pStatus		integer default null,
+  pData         json default null
 ) RETURNS		void
 AS $$
 BEGIN
@@ -60,7 +64,8 @@ BEGIN
          text = coalesce(pText, text),
          category = coalesce(pCategory, category),
          status = coalesce(pStatus, status),
-         updated = Now()
+         updated = Now(),
+         data = CheckNull(coalesce(pData, data, '{}'))
    WHERE id = pId;
 END;
 $$ LANGUAGE plpgsql
@@ -77,14 +82,15 @@ CREATE OR REPLACE FUNCTION SetNotice (
   pObject		uuid default null,
   pText			text default null,
   pCategory		text default null,
-  pStatus		integer default null
+  pStatus		integer default null,
+  pData         json default null
 ) RETURNS		uuid
 AS $$
 BEGIN
   IF pId IS NULL THEN
-    pId := CreateNotice(pUserId, pObject, pText, pCategory, pStatus);
+    pId := CreateNotice(pUserId, pObject, pText, pCategory, pStatus, pData);
   ELSE
-    PERFORM EditNotice(pId, pUserId, pObject, pText, pCategory, pStatus);
+    PERFORM EditNotice(pId, pUserId, pObject, pText, pCategory, pStatus, pData);
   END IF;
 
   RETURN pId;

@@ -50,6 +50,7 @@ $$ LANGUAGE SQL
  * @param {text} pText - Текст извещения
  * @param {text} pCategory - Категория извещения
  * @param {integer} pStatus - Статус: 0 - создано; 1 - доставлено; 2 - прочитано; 3 - принято; 4 - отказано
+ * @param {json} pData - Данные в произвольном формате
  * @return {uuid} - Идентификатор извещения
  */
 CREATE OR REPLACE FUNCTION api.add_notice (
@@ -78,6 +79,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pText - Текст извещения
  * @param {text} pCategory - Категория извещения
  * @param {integer} pStatus - Статус: 0 - создано; 1 - доставлено; 2 - прочитано; 3 - принято; 4 - отказано
+ * @param {json} pData - Данные в произвольном формате
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_notice (
@@ -106,16 +108,12 @@ CREATE OR REPLACE FUNCTION api.set_notice (
   pObject		uuid default null,
   pText			text default null,
   pCategory		text default null,
-  pStatus		integer default null
+  pStatus		integer default null,
+  pData         json default null
 ) RETURNS		SETOF api.notice
 AS $$
 BEGIN
-  IF pId IS NULL THEN
-    pId := api.add_notice(pUserId, pObject, pText, pCategory, pStatus);
-  ELSE
-    PERFORM api.update_notice(pId, pUserId, pObject, pText, pCategory, pStatus);
-  END IF;
-
+  pId := SetNotice(pUserId, pObject, pText, pCategory, pStatus, pData);
   RETURN QUERY SELECT * FROM api.notice WHERE id = pId;
 END;
 $$ LANGUAGE plpgsql
