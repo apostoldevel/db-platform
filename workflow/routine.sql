@@ -201,6 +201,107 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- FUNCTION CopyClass ----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION CopyClass (
+  pSource       uuid,
+  pDestination  uuid
+) RETURNS       void
+AS $$
+DECLARE
+  r             record;
+  l             record;
+  e             record;
+  t             record;
+
+  uEvent        uuid;
+  uState        uuid;
+  uMethod       uuid;
+BEGIN
+  FOR r IN SELECT * FROM db.event WHERE class = pSource
+  LOOP
+    INSERT INTO db.event (class, type, action, text, sequence, enabled)
+    VALUES (pDestination, r.type, r.action, r.text, r.sequence, r.enabled)
+    RETURNING id INTO uEvent;
+
+    FOR l IN SELECT * FROM db.event_text WHERE event = r.id
+    LOOP
+      INSERT INTO db.event_text (event, locale, label)
+	  VALUES (uEvent, l.locale, l.label);
+	END LOOP;
+  END LOOP;
+
+  PERFORM DefaultTransition(pDestination);
+
+  FOR r IN SELECT * FROM db.state WHERE class = pSource
+  LOOP
+    INSERT INTO db.state (class, type, code, sequence)
+    VALUES (pDestination, r.type, r.code, r.sequence)
+    RETURNING id INTO uState;
+
+    FOR l IN SELECT * FROM db.state_text WHERE state = r.id
+    LOOP
+      INSERT INTO db.state_text (state, locale, label)
+	  VALUES (uState, l.locale, l.label);
+	END LOOP;
+
+    FOR e IN SELECT * FROM db.method WHERE class = r.class AND state = r.id
+    LOOP
+      INSERT INTO db.method (parent, class, state, action, code, sequence, visible)
+      VALUES (null, pDestination, uState, e.action, e.code, e.sequence, e.visible)
+      RETURNING id INTO uMethod;
+
+      FOR l IN SELECT * FROM db.method_text WHERE method = e.id
+      LOOP
+        INSERT INTO db.method_text (method, locale, label)
+ 	    VALUES (uMethod, l.locale, l.label);
+      END LOOP;
+
+	  FOR t IN SELECT * FROM db.transition WHERE method = e.id
+	  LOOP
+		INSERT INTO db.transition (state, method, newstate)
+		VALUES (uState, uMethod, t.newstate);
+	  END LOOP;
+    END LOOP;
+  END LOOP;
+
+  FOR r IN SELECT * FROM db.method WHERE class = pDestination
+  LOOP
+    FOR e IN SELECT * FROM db.transition WHERE method = r.id
+    LOOP
+	  UPDATE db.transition SET newstate = GetState(r.class, GetStateCode(newstate)) WHERE id = e.id;
+    END LOOP;
+  END LOOP;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION CloneClass ---------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION CloneClass (
+  pParent	uuid,
+  pEntity   uuid,
+  pCode		text,
+  pLabel	text,
+  pAbstract	boolean
+) RETURNS	uuid
+AS $$
+DECLARE
+  uId		uuid;
+BEGIN
+  uId := AddClass(pParent, pEntity, pCode, pLabel, pAbstract);
+  PERFORM CopyClass(pParent, uId);
+  RETURN uId;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- FUNCTION EditClass ----------------------------------------------------------
 --------------------------------------------------------------------------------
 

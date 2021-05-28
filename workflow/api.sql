@@ -339,6 +339,44 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- api.copy_class --------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.copy_class (
+  pSource       uuid,
+  pDestination  uuid
+) RETURNS       void
+AS $$
+BEGIN
+  PERFORM CopyClass(pSource, pDestination);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.clone_class -------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.clone_class (
+  pParent	uuid,
+  pEntity   uuid,
+  pCode		text,
+  pLabel	text,
+  pAbstract boolean DEFAULT false
+) RETURNS   SETOF api.class
+AS $$
+DECLARE
+  uId       uuid;
+BEGIN
+  uId := CloneClass(pParent, pEntity, pCode, pLabel, pAbstract);
+  RETURN QUERY SELECT * FROM api.class WHERE id = uId;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- api.delete_class ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**

@@ -230,7 +230,7 @@ BEGIN
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid)
       LOOP
         PERFORM api.delete_type(r.id);
-        RETURN NEXT json_build_object('id', r.id, 'result', true, 'message', 'Успешно.');
+        RETURN NEXT json_build_object('id', r.id, 'result', true, 'message', 'Success');
       END LOOP;
 
     ELSE
@@ -238,7 +238,7 @@ BEGIN
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid)
       LOOP
         PERFORM api.delete_type(r.id);
-        RETURN NEXT json_build_object('id', r.id, 'result', true, 'message', 'Успешно.');
+        RETURN NEXT json_build_object('id', r.id, 'result', true, 'message', 'Success');
       END LOOP;
 
     END IF;
@@ -293,6 +293,58 @@ BEGIN
     ELSE
 
       FOR r IN EXECUTE format('SELECT row_to_json(api.set_class(%s)) FROM jsonb_to_record($1) AS x(%s)', array_to_string(GetRoutines('set_class', 'api', false, 'x'), ', '), array_to_string(GetRoutines('set_class', 'api', true), ', ')) USING pPayload
+      LOOP
+        RETURN NEXT r;
+      END LOOP;
+
+    END IF;
+
+  WHEN '/workflow/class/copy' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['source', 'destination']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(source uuid, destination uuid)
+      LOOP
+        PERFORM api.copy_class(r.source, r.destination);
+        RETURN NEXT json_build_object('source', r.source, 'destination', r.destination, 'result', true, 'message', 'Success');
+      END LOOP;
+
+    ELSE
+
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(source uuid, destination uuid)
+      LOOP
+        PERFORM api.copy_class(r.source, r.destination);
+        RETURN NEXT json_build_object('source', r.source, 'destination', r.destination, 'result', true, 'message', 'Success');
+      END LOOP;
+
+    END IF;
+
+  WHEN '/workflow/class/clone' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, GetRoutines('clone_class', 'api', false));
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN EXECUTE format('SELECT row_to_json(api.clone_class(%s)) FROM jsonb_to_recordset($1) AS x(%s)', array_to_string(GetRoutines('clone_class', 'api', false, 'x'), ', '), array_to_string(GetRoutines('clone_class', 'api', true), ', ')) USING pPayload
+      LOOP
+        RETURN NEXT r;
+      END LOOP;
+
+    ELSE
+
+      FOR r IN EXECUTE format('SELECT row_to_json(api.clone_class(%s)) FROM jsonb_to_record($1) AS x(%s)', array_to_string(GetRoutines('clone_class', 'api', false, 'x'), ', '), array_to_string(GetRoutines('clone_class', 'api', true), ', ')) USING pPayload
       LOOP
         RETURN NEXT r;
       END LOOP;
@@ -361,7 +413,7 @@ BEGIN
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid)
       LOOP
         PERFORM api.delete_class(r.id);
-        RETURN NEXT json_build_object('id', r.id, 'result', true, 'message', 'Успешно.');
+        RETURN NEXT json_build_object('id', r.id, 'result', true, 'message', 'Success');
       END LOOP;
 
     ELSE
@@ -369,7 +421,7 @@ BEGIN
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid)
       LOOP
         PERFORM api.delete_class(r.id);
-        RETURN NEXT json_build_object('id', r.id, 'result', true, 'message', 'Успешно.');
+        RETURN NEXT json_build_object('id', r.id, 'result', true, 'message', 'Success');
       END LOOP;
 
     END IF;
@@ -594,7 +646,7 @@ BEGIN
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid)
       LOOP
         PERFORM api.delete_state(r.id);
-        RETURN NEXT json_build_object('id', r.id, 'result', true, 'message', 'Успешно.');
+        RETURN NEXT json_build_object('id', r.id, 'result', true, 'message', 'Success');
       END LOOP;
 
     ELSE
@@ -602,7 +654,7 @@ BEGIN
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid)
       LOOP
         PERFORM api.delete_state(r.id);
-        RETURN NEXT json_build_object('id', r.id, 'result', true, 'message', 'Успешно.');
+        RETURN NEXT json_build_object('id', r.id, 'result', true, 'message', 'Success');
       END LOOP;
 
     END IF;
@@ -804,7 +856,7 @@ BEGIN
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid)
       LOOP
         PERFORM api.delete_method(r.id);
-        RETURN NEXT json_build_object('id', r.id, 'result', true, 'message', 'Успешно.');
+        RETURN NEXT json_build_object('id', r.id, 'result', true, 'message', 'Success');
       END LOOP;
 
     ELSE
@@ -812,7 +864,7 @@ BEGIN
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid)
       LOOP
         PERFORM api.delete_method(r.id);
-        RETURN NEXT json_build_object('id', r.id, 'result', true, 'message', 'Успешно.');
+        RETURN NEXT json_build_object('id', r.id, 'result', true, 'message', 'Success');
       END LOOP;
 
     END IF;
@@ -1021,7 +1073,7 @@ BEGIN
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid)
       LOOP
         PERFORM api.delete_transition(r.id);
-        RETURN NEXT json_build_object('id', r.id, 'result', true, 'message', 'Успешно.');
+        RETURN NEXT json_build_object('id', r.id, 'result', true, 'message', 'Success');
       END LOOP;
 
     ELSE
@@ -1029,7 +1081,7 @@ BEGIN
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid)
       LOOP
         PERFORM api.delete_transition(r.id);
-        RETURN NEXT json_build_object('id', r.id, 'result', true, 'message', 'Успешно.');
+        RETURN NEXT json_build_object('id', r.id, 'result', true, 'message', 'Success');
       END LOOP;
 
     END IF;
@@ -1162,7 +1214,7 @@ BEGIN
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid)
       LOOP
         PERFORM api.delete_event(r.id);
-        RETURN NEXT json_build_object('id', r.id, 'result', true, 'message', 'Успешно.');
+        RETURN NEXT json_build_object('id', r.id, 'result', true, 'message', 'Success');
       END LOOP;
 
     ELSE
@@ -1170,7 +1222,7 @@ BEGIN
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid)
       LOOP
         PERFORM api.delete_event(r.id);
-        RETURN NEXT json_build_object('id', r.id, 'result', true, 'message', 'Успешно.');
+        RETURN NEXT json_build_object('id', r.id, 'result', true, 'message', 'Success');
       END LOOP;
 
     END IF;
