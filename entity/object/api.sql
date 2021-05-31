@@ -1139,7 +1139,8 @@ CREATE OR REPLACE FUNCTION api.set_object_coordinates (
   pAccuracy     numeric DEFAULT 0,
   pLabel        text DEFAULT null,
   pDescription  text DEFAULT null,
-  pData			jsonb DEFAULT null
+  pData			jsonb DEFAULT null,
+  pDateFrom		timestamptz DEFAULT Now()
 ) RETURNS       SETOF api.object_coordinates
 AS $$
 DECLARE
@@ -1159,7 +1160,7 @@ BEGIN
 	END IF;
   END IF;
 
-  PERFORM NewObjectCoordinates(pId, pCode, pLatitude, pLongitude, pAccuracy, pLabel, pDescription, pData);
+  PERFORM NewObjectCoordinates(pId, pCode, pLatitude, pLongitude, pAccuracy, pLabel, pDescription, pData, pDateFrom);
   PERFORM SetObjectDataJSON(pId, 'geo', GetObjectCoordinatesJson(pId, pCode));
 
   RETURN QUERY SELECT * FROM api.get_object_coordinates(pId, pCode);
@@ -1189,12 +1190,12 @@ BEGIN
   END IF;
 
   IF pCoordinates IS NOT NULL THEN
-    arKeys := array_cat(arKeys, ARRAY['code', 'latitude', 'longitude', 'accuracy', 'label', 'description', 'data']);
+    arKeys := array_cat(arKeys, GetRoutines('set_object_coordinates', 'api', false));
     PERFORM CheckJsonKeys('/object/coordinates', arKeys, pCoordinates);
 
-    FOR r IN SELECT * FROM json_to_recordset(pCoordinates) AS x(code text, latitude numeric, longitude numeric, accuracy numeric, label text, description text, data jsonb)
+    FOR r IN SELECT * FROM json_to_recordset(pCoordinates) AS x(code text, latitude numeric, longitude numeric, accuracy numeric, label text, description text, data jsonb, datefrom timestamptz)
     LOOP
-      RETURN NEXT api.set_object_coordinates(pId, r.code, r.latitude, r.longitude, r.accuracy, r.label, r.description, r.data);
+      RETURN NEXT api.set_object_coordinates(pId, r.code, r.latitude, r.longitude, r.accuracy, r.label, r.description, r.data, r.datefrom);
     END LOOP;
   ELSE
     PERFORM JsonIsEmpty();
