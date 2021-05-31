@@ -5,7 +5,7 @@
 CREATE TABLE db.log (
     id          bigserial PRIMARY KEY NOT NULL,
     type        char DEFAULT 'M' NOT NULL CHECK (type IN ('M', 'W', 'E', 'D')),
-    datetime	timestamp DEFAULT Now() NOT NULL,
+    datetime	timestamptz DEFAULT Now() NOT NULL,
     username	text NOT NULL,
     session     char(40),
     code        integer NOT NULL,
