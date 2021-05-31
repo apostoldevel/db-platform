@@ -2467,6 +2467,7 @@ BEGIN
     DELETE FROM db.member_area WHERE member = pId;
     DELETE FROM db.member_interface WHERE member = pId;
     DELETE FROM db.member_group WHERE member = pId;
+    DELETE FROM db.notice WHERE userid = pId;
     DELETE FROM db.session WHERE userid = pId;
     DELETE FROM db.profile WHERE userid = pId;
     DELETE FROM db.user WHERE id = pId;
