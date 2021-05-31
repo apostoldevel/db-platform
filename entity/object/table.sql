@@ -194,7 +194,6 @@ BEGIN
   END IF;
 
   IF NOT CheckObjectAccess(NEW.id, B'010') THEN
-    PERFORM WriteToEventLog('D', 9999, 'ft_object_before_update', row_to_json(NEW)::text, NEW.id);
     PERFORM AccessDenied();
   END IF;
 

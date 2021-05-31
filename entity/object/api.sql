@@ -1160,7 +1160,7 @@ BEGIN
 	END IF;
   END IF;
 
-  PERFORM NewObjectCoordinates(pId, pCode, pLatitude, pLongitude, pAccuracy, pLabel, pDescription, pData, pDateFrom);
+  PERFORM NewObjectCoordinates(pId, pCode, pLatitude, pLongitude, pAccuracy, pLabel, pDescription, pData, coalesce(pDateFrom, Now()));
   PERFORM SetObjectDataJSON(pId, 'geo', GetObjectCoordinatesJson(pId, pCode));
 
   RETURN QUERY SELECT * FROM api.get_object_coordinates(pId, pCode);
