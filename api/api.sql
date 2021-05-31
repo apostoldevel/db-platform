@@ -270,7 +270,9 @@ BEGIN
   END IF;
 
   IF pLimit IS NOT NULL THEN
-    vSelect := vSelect || E'\n LIMIT ' || pLimit;
+    IF pLimit > 0 THEN
+      vSelect := vSelect || E'\n LIMIT ' || pLimit;
+    END IF;
   ELSE
     vSelect := vSelect || E'\n LIMIT 500';
   END IF;
@@ -347,6 +349,10 @@ BEGIN
     LOOP
 	  pPath := coalesce(nullif(pPath, '/'), '') || '/' || arPath[i];
     END LOOP;
+  END IF;
+
+  IF arPath[nLength] = 'count' THEN
+    pPayload := pPayload || jsonb_build_object('reclimit', 0);
   END IF;
 
   nApiId := AddApiLog(pPath, pPayload);
