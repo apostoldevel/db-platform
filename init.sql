@@ -45,4 +45,7 @@ SELECT CreateScheduler(null, GetType('job.scheduler'), 'EACH_30_MINUTES', 'Ка�
 SELECT CreateScheduler(null, GetType('job.scheduler'), 'EACH_01_HOUR', 'Каждый час', '1 hour', MINDATE(), MAXDATE(), 'Каждый час.');
 SELECT CreateScheduler(null, GetType('job.scheduler'), 'EACH_01_DAY', 'Каждый день', '1 day', MINDATE(), MAXDATE(), 'Каждый день.');
 
+SELECT CreateProgram(null, GetType('plpgsql.program'), 'CHECK_OFFLINE', 'Проверяет статус активных пользователей', 'SELECT api.check_offline();', 'Проверяет статус активных пользователей.');
+SELECT CreateJob(null, GetType('periodic.job'), GetScheduler('EACH_01_MINUTES'), GetProgram('CHECK_OFFLINE'), Now(), 'CHECK_OFFLINE_EACH_01_MINUTES', 'Проверяет статус активных пользователей', 'Проверяет статус активных пользователей каждую минуту.');
+
 SELECT SignOut();

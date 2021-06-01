@@ -3808,15 +3808,19 @@ CREATE OR REPLACE FUNCTION CheckOffline (
   pOffTime	INTERVAL DEFAULT '5 minute'
 ) RETURNS	void
 AS $$
+DECLARE
+  r         record;
 BEGIN
-  UPDATE db.profile
-     SET state = B'000'
-   WHERE state <> B'000'
-     AND userid IN (
-       SELECT userid FROM db.session
-        WHERE userid <> (SELECT id FROM db.user WHERE username = session_user)
-          AND updated < now() - pOffTime
-     );
+  FOR r IN
+    SELECT userid
+      FROM db.session s INNER JOIN db.user u ON s.userid = u.id
+     WHERE userid <> (SELECT current_userid())
+       AND updated < now() - pOffTime
+       AND status & B'0010' = B'0010'
+     GROUP BY userid
+  LOOP
+    UPDATE db.user SET status = set_bit(set_bit(status, 3, 1), 2, 0) WHERE id = r.userid;
+  END LOOP;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
