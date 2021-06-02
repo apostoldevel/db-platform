@@ -113,7 +113,7 @@ CREATE OR REPLACE FUNCTION api.set_notice (
 ) RETURNS		SETOF api.notice
 AS $$
 BEGIN
-  pId := SetNotice(pUserId, pObject, pText, pCategory, pStatus, pData);
+  pId := SetNotice(pId, pUserId, pObject, pText, pCategory, pStatus, pData);
   RETURN QUERY SELECT * FROM api.notice WHERE id = pId;
 END;
 $$ LANGUAGE plpgsql
