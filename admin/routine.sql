@@ -3814,7 +3814,7 @@ BEGIN
   FOR r IN
     SELECT userid
       FROM db.session s INNER JOIN db.user u ON s.userid = u.id
-     WHERE userid <> (SELECT current_userid())
+     WHERE userid <> current_userid()
        AND updated < now() - pOffTime
        AND status & B'0010' = B'0010'
      GROUP BY userid
