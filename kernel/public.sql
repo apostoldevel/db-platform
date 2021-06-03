@@ -455,7 +455,7 @@ CREATE OR REPLACE FUNCTION CheckNull (
 ) RETURNS	json
 AS $$
 BEGIN
-  RETURN NULLIF(pValue, '{}'::json);
+  RETURN NULLIF(pValue::jsonb, '{}'::jsonb);
 END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 

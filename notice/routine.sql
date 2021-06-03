@@ -65,7 +65,7 @@ BEGIN
          category = coalesce(pCategory, category),
          status = coalesce(pStatus, status),
          updated = Now(),
-         data = CheckNull(coalesce(pData, data, '{}'))
+         data = CheckNull(coalesce(pData, data, '{}'::json))
    WHERE id = pId;
 END;
 $$ LANGUAGE plpgsql
