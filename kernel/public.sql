@@ -537,6 +537,21 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 GRANT EXECUTE ON FUNCTION CheckNull(timestamptz) TO PUBLIC;
 
 --------------------------------------------------------------------------------
+-- FUNCTION CheckNull ----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION CheckNull (
+  pValue	interval
+) RETURNS	interval
+AS $$
+BEGIN
+  RETURN NULLIF(pValue, interval '0');
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+GRANT EXECUTE ON FUNCTION CheckNull(interval) TO PUBLIC;
+
+--------------------------------------------------------------------------------
 -- FUNCTION GetCompare ---------------------------------------------------------
 --------------------------------------------------------------------------------
 
