@@ -81,11 +81,15 @@ GRANT SELECT ON StateType TO administrator;
 -- VIEW State ------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW State (Id, Class, ClassCode, ClassLabel,
+CREATE OR REPLACE VIEW State (Id,
+  Entity, EntityCode, EntityName,
+  Class, ClassCode, ClassLabel,
   Type, TypeCode, TypeName, Code, Label, Sequence
 )
 AS
-  SELECT s.id, s.class, c.code, c.label, s.type,
+  SELECT s.id,
+         c.entity, c.entitycode, c.entityname,
+         s.class, c.code, c.label, s.type,
          st.code, st.name, s.code, t.label, s.sequence
     FROM db.state s INNER JOIN StateType    st ON st.id = s.type
                     INNER JOIN Class         c ON c.id = s.class
