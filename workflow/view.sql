@@ -113,6 +113,7 @@ GRANT SELECT ON Action TO administrator;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE VIEW Method (Id, Parent,
+  Entity, EntityCode, EntityName,
   Class, ClassCode, ClassLabel,
   State, StateCode, StateLabel,
   Action, ActionCode, ActionName,
@@ -120,6 +121,7 @@ CREATE OR REPLACE VIEW Method (Id, Parent,
 )
 AS
   SELECT m.id, m.parent,
+         c.entity, c.entitycode, c.entityname,
          m.class, c.code, c.label,
          m.state, s.code, s.label,
          m.action, a.code, a.name,
