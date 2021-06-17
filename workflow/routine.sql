@@ -232,6 +232,7 @@ BEGIN
 	END LOOP;
   END LOOP;
 
+  PERFORM DefaultMethods(pDestination);
   PERFORM DefaultTransition(pDestination);
 
   FOR r IN SELECT * FROM db.state WHERE class = pSource
