@@ -632,3 +632,53 @@ END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.send_push_to_role -------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.send_push_to_role (
+  pRoleName     text,
+  pTitle        text,
+  pBody         text,
+  pData         jsonb DEFAULT null,
+  pAndroid      jsonb DEFAULT null,
+  pApns         jsonb DEFAULT null
+) RETURNS		integer
+AS $$
+DECLARE
+  r             record;
+  nCount        integer;
+  uUserId		uuid;
+  vType         char;
+BEGIN
+  IF session_user <> 'kernel' THEN
+    IF NOT IsUserRole(GetGroup('message')) THEN
+      PERFORM AccessDenied();
+    END IF;
+  END IF;
+
+  nCount := 0;
+
+  SELECT id, type INTO uUserId, vType FROM db.user WHERE status & B'0100' != B'0100' AND username = pRoleName;
+
+  IF NOT FOUND THEN
+	RETURN 0;
+  END IF;
+
+  IF vType = 'G' THEN
+    FOR r IN SELECT member FROM db.member_group WHERE userid = uUserId
+    LOOP
+      PERFORM SendPush(null, pTitle, pBody, r.member, pData, pAndroid, pApns);
+      nCount := nCount + 1;
+	END LOOP;
+  ELSE
+    PERFORM SendPush(null, pTitle, pBody, uUserId, pData, pAndroid, pApns);
+    nCount := 1;
+  END IF;
+
+  RETURN nCount;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;

@@ -37,3 +37,6 @@ SELECT CreateUser('daemon', 'daemon', 'Демон', null, null, 'Пользов�
 
 SELECT AddMemberToGroup(CreateUser('apibot', 'apibot', 'API клиент', null, null, 'Системная служба API', false, true, GetArea('root'), '00000000-0000-4000-a002-000000000001'), GetGroup('system'));
 SELECT CreateUser('mailbot', 'mailbot', 'Mail клиент', null, null, 'Почтовый клиент', false, true, GetArea('root'), '00000000-0000-4000-a002-000000000002');
+
+SELECT CreateGroup('message', 'Сообщения', 'Группа для пользователей, которым разрешена рассылка массовых сообщений.');
+SELECT AddMemberToGroup(GetUser('admin'), GetGroup('message'));
