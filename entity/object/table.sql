@@ -182,6 +182,8 @@ CREATE TRIGGER t_object_after_insert
 
 CREATE OR REPLACE FUNCTION db.ft_object_before_update()
 RETURNS trigger AS $$
+DECLARE
+  bSystem   boolean;
 BEGIN
   IF lower(session_user) = 'kernel' THEN
     SELECT AccessDeniedForUser(session_user);
@@ -223,7 +225,10 @@ BEGIN
   END IF;
 
   IF OLD.owner <> NEW.owner THEN
-    DELETE FROM db.aou WHERE object = NEW.id AND userid = OLD.owner AND mask = B'111';
+    SELECT system INTO bSystem FROM users WHERE id = OLD.owner;
+    IF NOT bSystem THEN
+      DELETE FROM db.aou WHERE object = NEW.id AND userid = OLD.owner AND mask = B'111';
+    END IF;
 	INSERT INTO db.aou SELECT NEW.id, NEW.owner, B'000', B'111'
 	  ON CONFLICT (object, userid) DO UPDATE SET deny = B'000', allow = B'111';
   END IF;
