@@ -150,7 +150,7 @@ $$ LANGUAGE plpgsql
 /**
  * Возвращает задание
  * @param {uuid} pId - Идентификатор
- * @return {api.job} - Счёт
+ * @return {api.job}
  */
 CREATE OR REPLACE FUNCTION api.get_job (
   pId		uuid

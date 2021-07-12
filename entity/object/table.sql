@@ -211,7 +211,7 @@ BEGIN
   IF OLD.class <> NEW.class THEN
     NEW.state := GetState(NEW.class, OLD.state_type);
 
-    IF coalesce(OLD.state <> NEW.state, false) THEN
+    IF OLD.state IS DISTINCT FROM NEW.state THEN
       UPDATE db.object_state SET state = NEW.state
        WHERE object = OLD.id
          AND state = OLD.state;
