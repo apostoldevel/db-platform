@@ -55,7 +55,7 @@ BEGIN
         PERFORM pg_notify('inbox', NEW.object::text);
       END IF;
     ELSIF vClass = 'outbox' THEN
-	  IF vAction = 'submit' THEN
+	  IF vAction = 'submit' OR vAction = 'repeat' THEN
         PERFORM pg_notify('outbox', NEW.object::text);
       END IF;
     END IF;

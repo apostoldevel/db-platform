@@ -376,8 +376,17 @@ CREATE OR REPLACE FUNCTION SetObjectLabel (
   pLocale	uuid DEFAULT current_locale()
 ) RETURNS	void
 AS $$
+DECLARE
+  l         record;
 BEGIN
-  UPDATE db.object_text SET label = pLabel WHERE object = pObject AND locale = pLocale;
+  IF pLocale IS NULL THEN
+	FOR l IN SELECT id FROM db.locale
+	LOOP
+      UPDATE db.object_text SET label = pLabel WHERE object = pObject AND locale = l.id;
+	END LOOP;
+  ELSE
+    UPDATE db.object_text SET label = pLabel WHERE object = pObject AND locale = pLocale;
+  END IF;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
