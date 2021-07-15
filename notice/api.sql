@@ -126,7 +126,7 @@ $$ LANGUAGE plpgsql
 /**
  * Возвращает извещение
  * @param {uuid} pId - Идентификатор
- * @return {api.notice} - Счёт
+ * @return {api.notice}
  */
 CREATE OR REPLACE FUNCTION api.get_notice (
   pId		uuid
