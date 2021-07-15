@@ -264,11 +264,11 @@ CREATE OR REPLACE FUNCTION UnregisterPath (
 ) RETURNS		void
 AS $$
 DECLARE
-  nPath			uuid;
+  uPath			uuid;
 BEGIN
-  nPath := FindPath(pPath);
-  IF nPath IS NOT NULL THEN
-    PERFORM DeletePath(nPath);
+  uPath := FindPath(pPath);
+  IF uPath IS NOT NULL THEN
+    PERFORM DeletePath(uPath);
   END IF;
 END;
 $$ LANGUAGE plpgsql
@@ -434,20 +434,20 @@ CREATE OR REPLACE FUNCTION RegisterRoute (
 ) RETURNS	    void
 AS $$
 DECLARE
-  nPath			uuid;
+  uPath			uuid;
 BEGIN
   pPath := '/' || pNamespace || '/' || pVersion || coalesce('/' || pPath, '');
 
-  nPath := FindPath(pPath);
+  uPath := FindPath(pPath);
 
-  IF nPath IS NULL THEN
-	nPath := RegisterPath(pPath);
+  IF uPath IS NULL THEN
+	uPath := RegisterPath(pPath);
   END IF;
 
   FOR i IN 1..array_length(pMethod, 1)
   LOOP
     INSERT INTO db.route (method, path, endpoint)
-    VALUES (pMethod[i], nPath, pEndpoint);
+    VALUES (pMethod[i], uPath, pEndpoint);
   END LOOP;
 END;
 $$ LANGUAGE plpgsql
@@ -466,13 +466,13 @@ CREATE OR REPLACE FUNCTION UnregisterRoute (
 ) RETURNS	    void
 AS $$
 DECLARE
-  nPath			uuid;
+  uPath			uuid;
 BEGIN
   pPath := '/' || pNamespace || '/' || pVersion || coalesce('/' || pPath, '');
 
-  nPath := FindPath(pPath);
-  IF nPath IS NULL THEN
-    DELETE FROM db.route WHERE method = pMethod AND path = nPath;
+  uPath := FindPath(pPath);
+  IF uPath IS NULL THEN
+    DELETE FROM db.route WHERE method = pMethod AND path = uPath;
   END IF;
 END;
 $$ LANGUAGE plpgsql

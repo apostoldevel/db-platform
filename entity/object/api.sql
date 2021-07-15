@@ -246,7 +246,7 @@ BEGIN
 
   id := uId;
 
-  PERFORM SetObjectLabel(pObject, pLabel);
+  PERFORM SetObjectLabel(pObject, pLabel, null);
   SELECT * INTO result, message FROM result_success();
 EXCEPTION
 WHEN others THEN
