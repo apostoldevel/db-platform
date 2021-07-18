@@ -1,0 +1,2 @@
+CREATE SCHEMA IF NOT EXISTS registry AUTHORIZATION kernel;
+GRANT USAGE ON SCHEMA registry TO administrator;

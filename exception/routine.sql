@@ -1004,7 +1004,7 @@ $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
 --------------------------------------------------------------------------------
 
-SELECT CreateExceptionResource(GetExceptionUUID(400, 73), 'ru', 'NotFound', 'Не найдено.');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 73), 'ru', 'NotFound', 'Не найдено');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 73), 'en', 'NotFound', 'Not found');
 
 CREATE OR REPLACE FUNCTION NotFound() RETURNS void

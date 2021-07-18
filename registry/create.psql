@@ -1,3 +1,6 @@
+\echo [M] call schema.sql
+\ir schema.sql
+
 \echo [M] call table.sql
 \ir table.sql
 
