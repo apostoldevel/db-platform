@@ -121,7 +121,7 @@ DECLARE
   iPeriod		interval;
   nProgram		uuid;
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'execute', 'Задание выполняется.', pObject);
+--  PERFORM WriteToEventLog('M', 1000, 'execute', 'Задание выполняется.', pObject);
 
   SELECT scheduler, program INTO nScheduler, nProgram FROM db.job WHERE id = pObject;
 
@@ -163,7 +163,7 @@ CREATE OR REPLACE FUNCTION EventJobDone (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'done', 'Задание выполнено.', pObject);
+--  PERFORM WriteToEventLog('M', 1000, 'done', 'Задание выполнено.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
