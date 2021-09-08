@@ -1048,6 +1048,9 @@ CREATE OR REPLACE FUNCTION DeleteState (
 ) RETURNS 	void
 AS $$
 BEGIN
+  DELETE FROM db.transition WHERE newstate = pId;
+  DELETE FROM db.transition WHERE state = pId;
+  DELETE FROM db.method WHERE state = pId;
   DELETE FROM db.state WHERE id = pId;
 END;
 $$ LANGUAGE plpgsql
