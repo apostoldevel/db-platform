@@ -126,7 +126,7 @@ BEGIN
   SELECT scheduler, program INTO nScheduler, nProgram FROM db.job WHERE id = pObject;
 
   SELECT period INTO iPeriod FROM db.scheduler WHERE id = nScheduler;
-  UPDATE db.job SET daterun = Now() + coalesce(iPeriod, '0 seconds'::interval) WHERE id = pObject;
+  UPDATE db.job SET daterun = daterun + coalesce(iPeriod, '0 seconds'::interval) WHERE id = pObject;
 
   FOR r IN SELECT * FROM db.program WHERE id = nProgram
   LOOP

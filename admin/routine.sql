@@ -3827,6 +3827,26 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- CheckSession ----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION CheckSession (
+  pOffTime	INTERVAL DEFAULT '3 month'
+) RETURNS	void
+AS $$
+DECLARE
+  r         record;
+BEGIN
+  FOR r IN SELECT code FROM Session WHERE input_last < Now() - pOffTime
+  LOOP
+    PERFORM SignOut(r.code);
+  END LOOP;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- AUTHENTICATE ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 
