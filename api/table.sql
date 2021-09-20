@@ -8,12 +8,10 @@
 
 CREATE TABLE db.path (
     id			uuid PRIMARY KEY DEFAULT gen_kernel_uuid('8'),
-    root        uuid NOT NULL,
-    parent		uuid,
+    root        uuid NOT NULL REFERENCES db.path(id),
+    parent		uuid REFERENCES db.path(id),
     name        text NOT NULL,
-    level		integer NOT NULL,
-    CONSTRAINT fk_path_root FOREIGN KEY (root) REFERENCES db.path(id),
-    CONSTRAINT fk_path_parent FOREIGN KEY (parent) REFERENCES db.path(id)
+    level		integer NOT NULL
 );
 
 COMMENT ON TABLE db.path IS 'API: Путь.';
@@ -71,13 +69,10 @@ COMMENT ON COLUMN db.endpoint.definition IS 'PL/pgSQL код';
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.route (
-    method		text NOT NULL DEFAULT 'POST',
-    path       	uuid NOT NULL,
-    endpoint	uuid NOT NULL,
-    CONSTRAINT pk_route PRIMARY KEY (method, path, endpoint),
-    CONSTRAINT ch_route_method CHECK (method IN ('GET', 'POST', 'PUT', 'DELETE')),
-    CONSTRAINT fk_route_path FOREIGN KEY (path) REFERENCES db.path(id),
-    CONSTRAINT fk_route_endpoint FOREIGN KEY (endpoint) REFERENCES db.endpoint(id)
+    method		text NOT NULL DEFAULT 'POST' CHECK (method IN ('GET', 'POST', 'PUT', 'DELETE')),
+    path       	uuid NOT NULL REFERENCES db.path(id),
+    endpoint	uuid NOT NULL REFERENCES db.endpoint(id),
+    PRIMARY KEY (method, path, endpoint)
 );
 
 COMMENT ON TABLE db.route IS 'API: Маршрут.';

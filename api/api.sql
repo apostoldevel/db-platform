@@ -310,8 +310,8 @@ DECLARE
 
   arPath		text[];
 
-  nPath			uuid;
-  nEndpoint		uuid;
+  uPath			uuid;
+  uEndpoint		uuid;
 
   nLength		integer;
 
@@ -330,13 +330,13 @@ BEGIN
 
   dtBegin := clock_timestamp();
 
-  nPath := QueryPath(pPath);
-  IF nPath IS NULL THEN
+  uPath := QueryPath(pPath);
+  IF uPath IS NULL THEN
 	PERFORM RouteNotFound(pPath);
   END IF;
 
-  nEndpoint := GetEndpoint(nPath, pMethod);
-  IF nEndpoint IS NULL THEN
+  uEndpoint := GetEndpoint(uPath, pMethod);
+  IF uEndpoint IS NULL THEN
 	PERFORM EndPointNotSet(pPath);
   END IF;
 
@@ -357,7 +357,7 @@ BEGIN
 
   nApiId := AddApiLog(pPath, pPayload);
 
-  FOR r IN EXECUTE GetEndpointDefinition(nEndpoint) USING pPath, pPayload
+  FOR r IN EXECUTE GetEndpointDefinition(uEndpoint) USING pPath, pPayload
   LOOP
 	RETURN NEXT r;
   END LOOP;

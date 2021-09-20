@@ -117,18 +117,18 @@ CREATE OR REPLACE FUNCTION EventJobExecute (
 AS $$
 DECLARE
   r				record;
-  nScheduler	uuid;
+  uScheduler	uuid;
   iPeriod		interval;
-  nProgram		uuid;
+  uProgram		uuid;
 BEGIN
 --  PERFORM WriteToEventLog('M', 1000, 'execute', 'Задание выполняется.', pObject);
 
-  SELECT scheduler, program INTO nScheduler, nProgram FROM db.job WHERE id = pObject;
+  SELECT scheduler, program INTO uScheduler, uProgram FROM db.job WHERE id = pObject;
 
-  SELECT period INTO iPeriod FROM db.scheduler WHERE id = nScheduler;
+  SELECT period INTO iPeriod FROM db.scheduler WHERE id = uScheduler;
   UPDATE db.job SET daterun = daterun + coalesce(iPeriod, '0 seconds'::interval) WHERE id = pObject;
 
-  FOR r IN SELECT * FROM db.program WHERE id = nProgram
+  FOR r IN SELECT body FROM db.program WHERE id = uProgram
   LOOP
 	EXECUTE r.body;
   END LOOP;
