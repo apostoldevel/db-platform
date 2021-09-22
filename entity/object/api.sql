@@ -1272,7 +1272,8 @@ AS $$
    WHERE object = pId
      AND code = pCode
      AND validFromDate <= pDateFrom
-     AND validToDate > pDateFrom;
+     AND validToDate > pDateFrom
+     AND CheckObjectAccess(pId, B'100');
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

@@ -1785,6 +1785,10 @@ DECLARE
   arResult		json[];
   r             record;
 BEGIN
+  IF NOT CheckObjectAccess(pObject, B'100') THEN
+	PERFORM AccessDenied();
+  END IF;
+
   FOR r IN
     SELECT *
       FROM ObjectCoordinates
