@@ -1267,14 +1267,27 @@ CREATE OR REPLACE FUNCTION api.get_object_coordinates (
   pDateFrom     timestamptz DEFAULT oper_date()
 ) RETURNS       SETOF api.object_coordinates
 AS $$
-  SELECT *
-    FROM api.object_coordinates
-   WHERE object = pId
-     AND code = pCode
-     AND validFromDate <= pDateFrom
-     AND validToDate > pDateFrom
-     AND CheckObjectAccess(pId, B'100');
-$$ LANGUAGE SQL
+DECLARE
+  r             record;
+BEGIN
+  IF NOT CheckObjectAccess(pId, B'100') THEN
+	PERFORM AccessDenied();
+  END IF;
+
+  FOR r IN
+	SELECT *
+	  FROM api.object_coordinates
+	 WHERE object = pId
+	   AND code = pCode
+	   AND validFromDate <= pDateFrom
+	   AND validToDate > pDateFrom
+  LOOP
+	RETURN NEXT r;
+  END LOOP;
+
+  RETURN;
+END;
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
