@@ -540,7 +540,7 @@ CREATE TABLE db.object_file (
     file_text	text,
     file_type	text,
     load_date	timestamp DEFAULT Now() NOT NULL,
-    CONSTRAINT pk_object_file PRIMARY KEY(object, file_name, file_path)
+    PRIMARY KEY(object, file_name, file_path)
 );
 
 COMMENT ON TABLE db.object_file IS 'Файлы объекта.';
