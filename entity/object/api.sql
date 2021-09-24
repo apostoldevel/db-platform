@@ -844,14 +844,17 @@ $$ LANGUAGE plpgsql
 /**
  * Возвращает файлы объекта
  * @param {uuid} pId - Идентификатор объекта
+ * @param {text} pName - Наименование файла
+ * @param {text} pPath - Путь к файлу
  * @return {api.object_file}
  */
 CREATE OR REPLACE FUNCTION api.get_object_file (
   pId       uuid,
-  pName     text
+  pName     text,
+  pPath     text default '~/'
 ) RETURNS	SETOF api.object_file
 AS $$
-  SELECT * FROM api.object_file WHERE object = pId AND name = pName;
+  SELECT * FROM api.object_file WHERE object = pId AND path IS NOT DISTINCT FROM pPath AND name = pName;
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
