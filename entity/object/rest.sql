@@ -685,14 +685,14 @@ BEGIN
       PERFORM JsonIsEmpty();
     END IF;
 
-    arKeys := array_cat(arKeys, ARRAY['id', 'name', 'fields']);
+    arKeys := array_cat(arKeys, ARRAY['id', 'path', 'name', 'fields']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, name text, fields jsonb)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, path text, name text, fields jsonb)
       LOOP
-        FOR e IN EXECUTE format('SELECT %s FROM api.get_object_file($1, $2)', JsonbToFields(r.fields, GetColumns('object_file', 'api'))) USING r.id, r.name
+        FOR e IN EXECUTE format('SELECT %s FROM api.get_object_file($1, $2, $3)', JsonbToFields(r.fields, GetColumns('object_file', 'api'))) USING r.id, r.name, r.path
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -700,9 +700,9 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, name text, fields jsonb)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, path text, name text, fields jsonb)
       LOOP
-        FOR e IN EXECUTE format('SELECT %s FROM api.get_object_file($1, $2)', JsonbToFields(r.fields, GetColumns('object_file', 'api'))) USING r.id, r.name
+        FOR e IN EXECUTE format('SELECT %s FROM api.get_object_file($1, $2, $3)', JsonbToFields(r.fields, GetColumns('object_file', 'api'))) USING r.id, r.name, r.path
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;

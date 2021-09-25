@@ -119,6 +119,7 @@ DECLARE
 BEGIN
   SELECT label INTO r FROM db.object_text WHERE object = pObject AND locale = current_locale();
 
+  DELETE FROM db.notice       WHERE object = pObject;
   DELETE FROM db.object_link  WHERE object = pObject;
   DELETE FROM db.object_file  WHERE object = pObject;
   DELETE FROM db.object_data  WHERE object = pObject;
