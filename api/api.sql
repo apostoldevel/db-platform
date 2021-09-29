@@ -260,10 +260,18 @@ BEGIN
     --PERFORM CheckJsonbValues('orderby', array_cat(arColumns, array_add_text(arColumns, ' desc')), pOrderBy);
     vSelect := vSelect || E'\n ORDER BY ' || array_to_string(array_quote_literal_json(JsonbToStrArray(pOrderBy)), ',');
   ELSE
-    IF array_position(arColumns, 'created') IS NOT NULL THEN
+    IF array_position(arColumns, 'sequence') IS NOT NULL THEN
+      vSelect := vSelect || E'\n ORDER BY sequence';
+    ELSIF array_position(arColumns, 'created') IS NOT NULL THEN
       vSelect := vSelect || E'\n ORDER BY created DESC';
     ELSIF array_position(arColumns, 'datetime') IS NOT NULL THEN
       vSelect := vSelect || E'\n ORDER BY datetime DESC';
+    ELSIF array_position(arColumns, 'name') IS NOT NULL THEN
+      vSelect := vSelect || E'\n ORDER BY name';
+    ELSIF array_position(arColumns, 'label') IS NOT NULL THEN
+      vSelect := vSelect || E'\n ORDER BY label';
+    ELSIF array_position(arColumns, 'code') IS NOT NULL THEN
+      vSelect := vSelect || E'\n ORDER BY code';
     ELSIF array_position(arColumns, 'id') IS NOT NULL THEN
       vSelect := vSelect || E'\n ORDER BY id';
     END IF;
