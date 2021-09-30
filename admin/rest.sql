@@ -904,7 +904,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id smallint, fields jsonb)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, fields jsonb)
       LOOP
         FOR e IN EXECUTE format('SELECT %s FROM api.get_area($1)', JsonbToFields(r.fields, GetColumns('area', 'api'))) USING r.id
         LOOP
@@ -914,7 +914,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id smallint, fields jsonb)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, fields jsonb)
       LOOP
         FOR e IN EXECUTE format('SELECT %s FROM api.get_area($1)', JsonbToFields(r.fields, GetColumns('area', 'api'))) USING r.id
         LOOP
@@ -952,7 +952,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id smallint)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid)
       LOOP
         PERFORM api.delete_area(r.id);
         RETURN NEXT json_build_object('id', r.id, 'result', true, 'message', 'Успешно.');
@@ -960,7 +960,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id smallint)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid)
       LOOP
         PERFORM api.delete_area(r.id);
         RETURN NEXT json_build_object('id', r.id, 'result', true, 'message', 'Успешно.');
@@ -979,14 +979,14 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id smallint)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid)
       LOOP
         RETURN NEXT json_build_object('id', r.id, 'result', api.safely_delete_area(r.id), 'message', GetErrorMessage());
       END LOOP;
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id smallint)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid)
       LOOP
         RETURN NEXT json_build_object('id', r.id, 'result', api.safely_delete_area(r.id), 'message', GetErrorMessage());
       END LOOP;
