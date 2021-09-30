@@ -41,3 +41,24 @@ AS
     FROM Reference r INNER JOIN Object o ON r.object = o.id;
 
 GRANT SELECT ON ObjectReference TO administrator;
+
+--------------------------------------------------------------------------------
+-- SafeReference ---------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW SafeReference
+AS
+  WITH Access AS (
+	WITH _membergroup AS (
+	  SELECT current_userid() AS userid UNION SELECT userid FROM db.member_group WHERE member = current_userid()
+	)
+	SELECT a.object
+      FROM db.reference r INNER JOIN db.aou       a ON r.object = a.object
+                          INNER JOIN _membergroup m ON a.userid = m.userid
+     GROUP BY a.object
+	HAVING (bit_or(a.allow) & ~bit_or(a.deny)) & B'100' = B'100'
+  )
+  SELECT r.* FROM ObjectReference r INNER JOIN Access a ON r.object = a.object;
+
+GRANT SELECT ON SafeReference TO administrator;
+

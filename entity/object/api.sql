@@ -8,7 +8,7 @@
 
 CREATE OR REPLACE VIEW api.object
 AS
-  SELECT * FROM Object;
+  SELECT * FROM SafeObject;
 
 GRANT SELECT ON api.object TO administrator;
 

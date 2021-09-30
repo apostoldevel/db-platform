@@ -8,20 +8,30 @@
 
 CREATE OR REPLACE VIEW api.message
 AS
-  SELECT * FROM MessageAll();
+  SELECT * FROM SafeMessage;
 
 GRANT SELECT ON api.message TO administrator;
-GRANT SELECT ON api.message TO apibot;
 
 --------------------------------------------------------------------------------
--- FUNCTION api.message --------------------------------------------------------
+-- api.service_message ---------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION api.message (
+CREATE OR REPLACE VIEW api.service_message
+AS
+  SELECT * FROM ServiceMessage;
+
+GRANT SELECT ON api.service_message TO administrator;
+GRANT SELECT ON api.service_message TO apibot;
+
+--------------------------------------------------------------------------------
+-- FUNCTION api.service_message ------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.service_message (
   pClass	uuid
-) RETURNS	SETOF api.message
+) RETURNS	SETOF api.service_message
 AS $$
-  SELECT * FROM api.message WHERE class = pClass
+  SELECT * FROM api.service_message WHERE class = pClass
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -32,7 +42,7 @@ $$ LANGUAGE SQL
 
 CREATE OR REPLACE VIEW api.inbox
 AS
-  SELECT * FROM api.message(GetClass('inbox'));
+  SELECT * FROM api.service_message(GetClass('inbox'));
 
 GRANT SELECT ON api.inbox TO administrator;
 GRANT SELECT ON api.inbox TO apibot;
@@ -69,7 +79,7 @@ $$ LANGUAGE SQL
 
 CREATE OR REPLACE VIEW api.outbox
 AS
-  SELECT * FROM api.message(GetClass('outbox'));
+  SELECT * FROM api.service_message(GetClass('outbox'));
 
 GRANT SELECT ON api.outbox TO administrator;
 GRANT SELECT ON api.outbox TO apibot;

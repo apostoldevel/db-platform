@@ -33,6 +33,26 @@ CREATE OR REPLACE VIEW Object (Id, Parent,
 GRANT SELECT ON Object TO administrator;
 
 --------------------------------------------------------------------------------
+-- VIEW SafeObject -------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW SafeObject
+AS
+  WITH Access AS (
+	WITH _membergroup AS (
+	  SELECT current_userid() AS userid UNION SELECT userid FROM db.member_group WHERE member = current_userid()
+	)
+	SELECT a.object
+      FROM db.object o INNER JOIN db.aou       a ON o.id = a.object
+                       INNER JOIN _membergroup m ON a.userid = m.userid
+     GROUP BY a.object
+	HAVING (bit_or(a.allow) & ~bit_or(a.deny)) & B'100' = B'100'
+  )
+  SELECT o.* FROM Object o INNER JOIN Access a ON o.id = a.object;
+
+GRANT SELECT ON SafeObject TO administrator;
+
+--------------------------------------------------------------------------------
 -- VIEW ObjectMembers ----------------------------------------------------------
 --------------------------------------------------------------------------------
 
