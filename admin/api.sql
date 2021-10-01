@@ -111,7 +111,7 @@ $$ LANGUAGE plpgsql
 -- api.authorize ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Авторизовать.
+ * @brief Авторизация.
  * @param {varchar} pSession - Сессия
  * @param {text} pAgent - Агент
  * @param {inet} pHost - IP адрес
@@ -210,12 +210,14 @@ $$ LANGUAGE plpgsql
  */
 CREATE OR REPLACE FUNCTION api.get_session (
   pUserName     text,
-  pAgent        text DEFAULT null,
-  pHost         inet DEFAULT null
+  pAgent        text,
+  pHost         inet,
+  pNew          bool default true,
+  pLogin        bool default false
 ) RETURNS       text
 AS $$
 BEGIN
-  RETURN GetSession(GetUser(pUserName), CreateSystemOAuth2(), pAgent, pHost);
+  RETURN GetSession(GetUser(pUserName), CreateSystemOAuth2(), pAgent, pHost, pNew, pLogin);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

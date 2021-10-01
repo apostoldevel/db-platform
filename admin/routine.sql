@@ -2014,20 +2014,20 @@ $$ LANGUAGE plpgsql
  * Устанавливает битовую маску доступа для пользователя.
  * @param {bit varying} pMask - Маска доступа. (d:{sLlEIDUCpducoi}a:{sLlEIDUCpducoi})
  Где: d - запрещающие биты; a - разрешающие биты:
-   s - substitute user;
-   L - unlock user;
-   l - lock user;
-   E - exclude user from group;
-   I - include user to group;
-   D - delete group;
-   U - update group;
-   C - create group;
-   p - set user password;
-   d - delete user;
-   u - update user;
-   c - create user;
-   o - logout;
-   i - login
+  13:   s - substitute user;
+  12:   L - unlock user;
+  11:   l - lock user;
+  10:   E - exclude user from group;
+  08:   I - include user to group;
+  08:   D - delete group;
+  07:   U - update group;
+  06:   C - create group;
+  05:   p - set user password;
+  04:   d - delete user;
+  03:   u - update user;
+  02:   c - create user;
+  01:   o - logout;
+  00:   i - login
  * @param {uuid} pUserId - Идентификатор пользователя/группы
  * @return {void}
 */
@@ -4415,10 +4415,11 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION GetSession (
   pUserId       uuid,
-  pOAuth2       bigint DEFAULT CreateSystemOAuth2(),
+  pOAuth2       bigint DEFAULT null,
   pAgent        text DEFAULT null,
   pHost         inet DEFAULT null,
-  pNew          bool DEFAULT false
+  pNew          bool DEFAULT false,
+  pLogin        bool DEFAULT true
 ) RETURNS       text
 AS $$
 DECLARE
@@ -4427,9 +4428,11 @@ DECLARE
   nAudience		integer;
   vSession      text;
 BEGIN
+  pOAuth2 := coalesce(pOAuth2, CreateSystemOAuth2());
+
   IF session_user <> 'kernel' THEN
     uSUID := coalesce(session_userid(), GetUser(session_user));
-	IF NOT CheckAccessControlList(B'10000000000001', uSUID) THEN
+	IF NOT CheckAccessControlList(B'10000000000000', uSUID) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -4468,11 +4471,13 @@ BEGIN
     RETURNING code INTO vSession;
   END IF;
 
-  SELECT audience INTO nAudience FROM db.oauth2 WHERE id = pOAuth2;
+  IF pLogin THEN
+	SELECT audience INTO nAudience FROM db.oauth2 WHERE id = pOAuth2;
 
-  PERFORM SetCurrentSession(vSession);
-  PERFORM SetCurrentUserId(up.id);
-  PERFORM SetOAuth2ClientId(GetAudienceCode(nAudience));
+	PERFORM SetCurrentSession(vSession);
+	PERFORM SetCurrentUserId(up.id);
+	PERFORM SetOAuth2ClientId(GetAudienceCode(nAudience));
+  END IF;
 
   RETURN vSession;
 END;
