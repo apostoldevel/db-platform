@@ -4418,8 +4418,8 @@ CREATE OR REPLACE FUNCTION GetSession (
   pOAuth2       bigint DEFAULT null,
   pAgent        text DEFAULT null,
   pHost         inet DEFAULT null,
-  pNew          bool DEFAULT false,
-  pLogin        bool DEFAULT true
+  pNew          bool DEFAULT null,
+  pLogin        bool DEFAULT null
 ) RETURNS       text
 AS $$
 DECLARE
@@ -4429,6 +4429,8 @@ DECLARE
   vSession      text;
 BEGIN
   pOAuth2 := coalesce(pOAuth2, CreateSystemOAuth2());
+  pNew := coalesce(pNew, false);
+  pLogin := coalesce(pLogin, true);
 
   IF session_user <> 'kernel' THEN
     uSUID := coalesce(session_userid(), GetUser(session_user));
