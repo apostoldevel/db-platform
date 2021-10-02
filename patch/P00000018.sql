@@ -1,6 +1,9 @@
 DROP FUNCTION IF EXISTS api.get_object_file(uuid, text);
 DROP FUNCTION IF EXISTS api.get_session(text, text, inet);
 
+DROP FUNCTION IF EXISTS api.job(uuid, timestamp with time zone);
+DROP FUNCTION IF EXISTS api.job(text, double precision);
+
 DROP FUNCTION IF EXISTS GetSession(uuid, bigint, text, inet, bool);
 
 --

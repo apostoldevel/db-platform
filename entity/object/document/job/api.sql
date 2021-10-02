@@ -8,9 +8,20 @@
 
 CREATE OR REPLACE VIEW api.job
 AS
-  SELECT * FROM ObjectJob;
+  SELECT * FROM SafeJob;
 
 GRANT SELECT ON api.job TO administrator;
+
+--------------------------------------------------------------------------------
+-- api.service_job -------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW api.service_job
+AS
+  SELECT * FROM ServiceJob;
+
+GRANT SELECT ON api.service_job TO administrator;
+GRANT SELECT ON api.service_job TO apibot;
 
 --------------------------------------------------------------------------------
 -- FUNCTION api.job ------------------------------------------------------------
@@ -19,9 +30,9 @@ GRANT SELECT ON api.job TO administrator;
 CREATE OR REPLACE FUNCTION api.job (
   pStateType	uuid,
   pDateRun		timestamptz DEFAULT Now()
-) RETURNS		SETOF api.job
+) RETURNS		SETOF api.service_job
 AS $$
-  SELECT * FROM api.job WHERE statetype = pStateType AND dateRun <= pDateRun;
+  SELECT * FROM api.service_job WHERE statetype = pStateType AND dateRun <= pDateRun;
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -33,7 +44,7 @@ $$ LANGUAGE SQL
 CREATE OR REPLACE FUNCTION api.job (
   pStateType	text DEFAULT 'enabled',
   pDateFrom		double precision DEFAULT null
-) RETURNS		SETOF api.job
+) RETURNS		SETOF api.service_job
 AS $$
   SELECT * FROM api.job(GetStateType(pStateType), coalesce(to_timestamp(pDateFrom), Now()));
 $$ LANGUAGE SQL

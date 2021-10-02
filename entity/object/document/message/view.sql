@@ -108,7 +108,7 @@ AS
          d.area, d.areacode, d.areaname, d.areadescription,
          d.scope, d.scopecode, d.scopename, d.scopedescription
     FROM Message m INNER JOIN Documents d ON m.document = d.id
-                   INNER JOIN Object   o ON m.document = o.id;
+                   INNER JOIN Object    o ON m.document = o.id;
 
 GRANT SELECT ON ServiceMessage TO administrator;
 
