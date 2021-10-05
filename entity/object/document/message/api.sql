@@ -506,7 +506,7 @@ DECLARE
 BEGIN
   IF IsUserRole(GetGroup('system'), session_userid()) THEN
 	SELECT secret INTO vOAuthSecret FROM oauth2.audience WHERE code = session_username();
-	PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
+	PERFORM SubstituteUser(GetUser('apibot'), vOAuthSecret);
   END IF;
 
   SELECT name, email, email_verified, locale INTO vName, vEmail, bVerified
@@ -529,6 +529,10 @@ BEGIN
   vBody := CreateMailBody(vProject, vProfile, vName, vEmail, pSubject, pText, pHTML);
 
   uMessageId := SendMail(null, vProfile, vEmail, pSubject, vBody, null, pDescription);
+
+  IF vOAuthSecret IS NOT NULL THEN
+    PERFORM SubstituteUser(session_userid(), vOAuthSecret);
+  END IF;
 
   RETURN QUERY SELECT * FROM api.message WHERE id = uMessageId;
 END

@@ -67,7 +67,7 @@ BEGIN
   IF result AND IsUserRole(GetGroup('system'), session_userid()) THEN
 	SELECT a.secret INTO vOAuthSecret FROM oauth2.audience a WHERE a.code = session_username();
 	IF FOUND THEN
-	  PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
+	  PERFORM SubstituteUser(GetUser('apibot'), vOAuthSecret);
 	  IF pType = 'M' THEN
 		PERFORM DoConfirmEmail(uUserId);
 	  ELSIF pType = 'P' THEN
