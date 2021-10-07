@@ -747,7 +747,12 @@ CREATE OR REPLACE FUNCTION api.set_object_file (
 ) RETURNS   SETOF api.object_file
 AS $$
 BEGIN
+  IF NOT CheckObjectAccess(pId, B'010') THEN
+	PERFORM AccessDenied();
+  END IF;
+
   PERFORM SetObjectFile(pId, pName, pPath, pSize, pDate, pData, pHash, pText, pType);
+
   RETURN QUERY SELECT * FROM api.get_object_file(pId, pName);
 END;
 $$ LANGUAGE plpgsql
@@ -817,6 +822,10 @@ CREATE OR REPLACE FUNCTION api.get_object_files_json (
 ) RETURNS	json
 AS $$
 BEGIN
+  IF NOT CheckObjectAccess(pId, B'100') THEN
+	PERFORM AccessDenied();
+  END IF;
+
   RETURN GetObjectFilesJson(pId);
 END;
 $$ LANGUAGE plpgsql
@@ -832,6 +841,10 @@ CREATE OR REPLACE FUNCTION api.get_object_files_jsonb (
 ) RETURNS	jsonb
 AS $$
 BEGIN
+  IF NOT CheckObjectAccess(pId, B'100') THEN
+	PERFORM AccessDenied();
+  END IF;
+
   RETURN GetObjectFilesJsonb(pId);
 END;
 $$ LANGUAGE plpgsql
@@ -854,8 +867,14 @@ CREATE OR REPLACE FUNCTION api.get_object_file (
   pPath     text default '~/'
 ) RETURNS	SETOF api.object_file
 AS $$
-  SELECT * FROM api.object_file WHERE object = pId AND path IS NOT DISTINCT FROM pPath AND name = pName;
-$$ LANGUAGE SQL
+BEGIN
+  IF NOT CheckObjectAccess(pId, B'100') THEN
+	PERFORM AccessDenied();
+  END IF;
+
+  RETURN QUERY SELECT * FROM api.object_file WHERE object = pId AND path IS NOT DISTINCT FROM pPath AND name = pName;
+END
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -899,6 +918,10 @@ CREATE OR REPLACE FUNCTION api.clear_object_files (
 ) RETURNS	void
 AS $$
 BEGIN
+  IF NOT CheckObjectAccess(pId, B'001') THEN
+	PERFORM AccessDenied();
+  END IF;
+
   DELETE FROM api.object_file WHERE object = pId;
 END;
 $$ LANGUAGE plpgsql
@@ -915,7 +938,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE VIEW api.object_data
 AS
-  SELECT * FROM ObjectData;
+  SELECT d.* FROM ObjectData d INNER JOIN SafeObject o ON d.object = o.id;
 
 GRANT SELECT ON api.object_data TO administrator;
 
@@ -942,6 +965,10 @@ DECLARE
   uType         uuid;
   arTypes       text[];
 BEGIN
+  IF NOT CheckObjectAccess(pId, B'010') THEN
+	PERFORM AccessDenied();
+  END IF;
+
   pType := lower(pType);
 
   FOR r IN SELECT type FROM db.object_data
@@ -1024,6 +1051,10 @@ CREATE OR REPLACE FUNCTION api.get_object_data_json (
 ) RETURNS	json
 AS $$
 BEGIN
+  IF NOT CheckObjectAccess(pId, B'100') THEN
+	PERFORM AccessDenied();
+  END IF;
+
   RETURN GetObjectDataJson(pId);
 END;
 $$ LANGUAGE plpgsql
@@ -1039,6 +1070,10 @@ CREATE OR REPLACE FUNCTION api.get_object_data_jsonb (
 ) RETURNS	jsonb
 AS $$
 BEGIN
+  IF NOT CheckObjectAccess(pId, B'100') THEN
+	PERFORM AccessDenied();
+  END IF;
+
   RETURN GetObjectDataJsonb(pId);
 END;
 $$ LANGUAGE plpgsql
@@ -1059,8 +1094,14 @@ CREATE OR REPLACE FUNCTION api.get_object_data (
   pCode		text
 ) RETURNS	SETOF api.object_data
 AS $$
-  SELECT * FROM api.object_data WHERE object = pId AND type = pType AND code = pCode
-$$ LANGUAGE SQL
+BEGIN
+  IF NOT CheckObjectAccess(pId, B'100') THEN
+	PERFORM AccessDenied();
+  END IF;
+
+  RETURN QUERY SELECT * FROM api.object_data WHERE object = pId AND type = pType AND code = pCode;
+END
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1101,7 +1142,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE VIEW api.object_coordinates
 AS
-  SELECT * FROM ObjectCoordinates;
+  SELECT c.* FROM ObjectCoordinates c INNER JOIN SafeObject o ON c.object = o.id;
 
 GRANT SELECT ON api.object_coordinates TO administrator;
 
@@ -1150,6 +1191,10 @@ DECLARE
   device		jsonb;
   sSerial		text;
 BEGIN
+  IF NOT CheckObjectAccess(pId, B'010') THEN
+	PERFORM AccessDenied();
+  END IF;
+
   pCode := coalesce(pCode, 'default');
   pAccuracy := coalesce(pAccuracy, 0);
 
@@ -1234,6 +1279,10 @@ CREATE OR REPLACE FUNCTION api.get_object_coordinates_json (
 ) RETURNS	json
 AS $$
 BEGIN
+  IF NOT CheckObjectAccess(pId, B'100') THEN
+	PERFORM AccessDenied();
+  END IF;
+
   RETURN GetObjectCoordinatesJson(pId);
 END;
 $$ LANGUAGE plpgsql
@@ -1249,6 +1298,10 @@ CREATE OR REPLACE FUNCTION api.get_object_coordinates_jsonb (
 ) RETURNS	jsonb
 AS $$
 BEGIN
+  IF NOT CheckObjectAccess(pId, B'100') THEN
+	PERFORM AccessDenied();
+  END IF;
+
   RETURN GetObjectCoordinatesJsonb(pId);
 END;
 $$ LANGUAGE plpgsql
