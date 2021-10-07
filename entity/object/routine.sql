@@ -1277,6 +1277,10 @@ CREATE OR REPLACE FUNCTION NewObjectFile (
 ) RETURNS	void
 AS $$
 BEGIN
+  IF NOT CheckObjectAccess(pObject, B'010') THEN
+	PERFORM AccessDenied();
+  END IF;
+
   INSERT INTO db.object_file (object, file_name, file_path, file_size, file_date, file_data, file_hash, file_text, file_type)
   VALUES (pObject, pName, pPath, pSize, pDate, pData, pHash, pText, pType);
 END;
@@ -1302,6 +1306,10 @@ CREATE OR REPLACE FUNCTION EditObjectFile (
 ) RETURNS	void
 AS $$
 BEGIN
+  IF NOT CheckObjectAccess(pObject, B'010') THEN
+	PERFORM AccessDenied();
+  END IF;
+
   UPDATE db.object_file
     SET file_path = coalesce(pPath, file_path),
         file_size = coalesce(pSize, file_size),
@@ -1330,6 +1338,10 @@ CREATE OR REPLACE FUNCTION DeleteObjectFile (
 ) RETURNS	void
 AS $$
 BEGIN
+  IF NOT CheckObjectAccess(pObject, B'001') THEN
+	PERFORM AccessDenied();
+  END IF;
+
   DELETE FROM db.object_file WHERE object = pObject AND file_name = pName AND file_path = coalesce(pPath, '~/');
 END;
 $$ LANGUAGE plpgsql
@@ -1384,6 +1396,10 @@ DECLARE
   i		    integer DEFAULT 1;
   r		    ObjectFile%rowtype;
 BEGIN
+  IF NOT CheckObjectAccess(pObject, B'100') THEN
+	PERFORM AccessDenied();
+  END IF;
+
   FOR r IN
     SELECT *
       FROM ObjectFile
@@ -1411,6 +1427,10 @@ DECLARE
   arResult	json[];
   r		    record;
 BEGIN
+  IF NOT CheckObjectAccess(pObject, B'100') THEN
+	PERFORM AccessDenied();
+  END IF;
+
   FOR r IN
     SELECT Object, Name, Path, Size, Date, Hash, Text, Type, Loaded
       FROM ObjectFile
@@ -1452,6 +1472,10 @@ CREATE OR REPLACE FUNCTION NewObjectData (
 ) RETURNS	void
 AS $$
 BEGIN
+  IF NOT CheckObjectAccess(pObject, B'010') THEN
+	PERFORM AccessDenied();
+  END IF;
+
   INSERT INTO db.object_data (object, type, code, data)
   VALUES (pObject, pType, pCode, pData);
 END;
@@ -1471,6 +1495,10 @@ CREATE OR REPLACE FUNCTION EditObjectData (
 ) RETURNS	void
 AS $$
 BEGIN
+  IF NOT CheckObjectAccess(pObject, B'010') THEN
+	PERFORM AccessDenied();
+  END IF;
+
   UPDATE db.object_data
      SET data = coalesce(pData, data)
    WHERE object = pObject
@@ -1492,6 +1520,10 @@ CREATE OR REPLACE FUNCTION DeleteObjectData (
 ) RETURNS	void
 AS $$
 BEGIN
+  IF NOT CheckObjectAccess(pObject, B'001') THEN
+	PERFORM AccessDenied();
+  END IF;
+
   DELETE FROM db.object_data WHERE object = pObject AND type = pType AND code = pCode;
 END;
 $$ LANGUAGE plpgsql
@@ -1575,7 +1607,12 @@ AS $$
 DECLARE
   vData		text;
 BEGIN
+  IF NOT CheckObjectAccess(pObject, B'100') THEN
+	PERFORM AccessDenied();
+  END IF;
+
   SELECT data INTO vData FROM db.object_data WHERE object = pObject AND type = pType AND code = pCode;
+
   RETURN vData;
 END;
 $$ LANGUAGE plpgsql
@@ -1626,6 +1663,10 @@ DECLARE
   r			record;
   arResult	json[];
 BEGIN
+  IF NOT CheckObjectAccess(pObject, B'100') THEN
+	PERFORM AccessDenied();
+  END IF;
+
   FOR r IN
     SELECT object, type, Code, Data
       FROM ObjectData
@@ -1660,25 +1701,10 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION ObjectCoordinates (
-  pDateFrom     timestamptz,
-  pUserId		uuid DEFAULT current_userid()
+  pDateFrom     timestamptz
 ) RETURNS       SETOF ObjectCoordinates
 AS $$
-  WITH access AS (
-	WITH member_group AS (
-		SELECT pUserId AS userid UNION SELECT userid FROM db.member_group WHERE member = pUserId
-	)
-	SELECT a.object
-	  FROM db.object_coordinates oc INNER JOIN db.aou       a ON oc.object = a.object
-							        INNER JOIN member_group m ON a.userid = m.userid
-     WHERE oc.validfromdate <= pDateFrom
-	   AND oc.validtodate > pDateFrom
-	 GROUP BY a.object
-    HAVING bit_or(a.allow) & ~bit_or(a.deny) & B'100' = B'100'
-  )
-  SELECT oc.* FROM ObjectCoordinates oc INNER JOIN access a ON oc.object = a.object
-   WHERE oc.validfromdate <= pDateFrom
-	 AND oc.validtodate > pDateFrom
+  SELECT * FROM ObjectCoordinates WHERE validfromdate <= pDateFrom AND validtodate > pDateFrom
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -1751,6 +1777,10 @@ CREATE OR REPLACE FUNCTION DeleteObjectCoordinates (
 ) RETURNS	void
 AS $$
 BEGIN
+  IF NOT CheckObjectAccess(pObject, B'001') THEN
+	PERFORM AccessDenied();
+  END IF;
+
   DELETE FROM db.object_coordinates WHERE object = pObject AND code = pCode;
 END;
 $$ LANGUAGE plpgsql

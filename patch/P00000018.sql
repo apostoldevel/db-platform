@@ -1,3 +1,6 @@
+DROP FUNCTION IF EXISTS ObjectCoordinates(timestamptz, uuid);
+DROP FUNCTION IF EXISTS api.object_coordinates(timestamptz, uuid);
+
 DROP FUNCTION IF EXISTS api.get_object_file(uuid, text);
 DROP FUNCTION IF EXISTS api.get_session(text, text, inet);
 

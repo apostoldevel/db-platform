@@ -722,7 +722,7 @@ $$ LANGUAGE SQL
 
 CREATE OR REPLACE VIEW api.object_file
 AS
-  SELECT * FROM ObjectFile;
+  SELECT f.* FROM ObjectFile f INNER JOIN SafeObject o ON f.object = o.id;
 
 GRANT SELECT ON api.object_file TO administrator;
 
@@ -1110,11 +1110,10 @@ GRANT SELECT ON api.object_coordinates TO administrator;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.object_coordinates (
-  pDateFrom     timestamptz,
-  pUserId		uuid DEFAULT current_userid()
+  pDateFrom     timestamptz
 ) RETURNS       SETOF api.object_coordinates
 AS $$
-  SELECT * FROM ObjectCoordinates(pDateFrom, pUserId);
+  SELECT * FROM ObjectCoordinates(pDateFrom);
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
