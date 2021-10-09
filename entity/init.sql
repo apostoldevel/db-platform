@@ -30,6 +30,10 @@ BEGIN
 
       PERFORM CreateEntityMessage(uDocument);
 
+      -- Готовый отчёт
+
+      PERFORM CreateEntityReportReady(uDocument);
+
     -- Справочник
 
     PERFORM CreateEntityReference(uObject);
@@ -55,6 +59,22 @@ BEGIN
       -- Версия
 
       PERFORM CreateEntityVersion(uReference);
+
+	  -- Дерево отчётов
+
+	  PERFORM CreateEntityReportTree(uReference);
+
+	  -- Форма отчёта
+
+	  PERFORM CreateEntityReportForm(uReference);
+
+	  -- Функция отчёта
+
+	  PERFORM CreateEntityReportRoutine(uReference);
+
+	  -- Отчёт
+
+	  PERFORM CreateEntityReport(uReference);
 
 END
 $$ LANGUAGE plpgsql

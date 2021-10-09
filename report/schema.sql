@@ -1,0 +1,2 @@
+CREATE SCHEMA IF NOT EXISTS report AUTHORIZATION kernel;
+GRANT USAGE ON SCHEMA report TO administrator;

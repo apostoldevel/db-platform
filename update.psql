@@ -17,3 +17,5 @@
 \ir './notification/update.psql'
 \ir './verification/update.psql'
 \ir './observer/update.psql'
+\ir './report/update.psql'
+\ir './reports/update.psql'

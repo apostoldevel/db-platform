@@ -17,3 +17,5 @@
 \ir './notification/create.psql'
 \ir './verification/create.psql'
 \ir './observer/create.psql'
+\ir './report/create.psql'
+\ir './reports/create.psql'
