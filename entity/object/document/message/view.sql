@@ -38,21 +38,7 @@ GRANT SELECT ON AccessMessage TO administrator;
 -- ObjectMessage ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW ObjectMessage (Id, Object, Parent,
-  Entity, EntityCode, EntityName,
-  Class, ClassCode, ClassLabel,
-  Type, TypeCode, TypeName, TypeDescription,
-  AgentType, AgentTypeCode, AgentTypeName, AgentTypeDescription,
-  Agent, AgentCode, AgentName, AgentDescription,
-  Code, Profile, Address, Subject, Content,
-  Label, Description,
-  StateType, StateTypeCode, StateTypeName,
-  State, StateCode, StateLabel, LastUpdate,
-  Owner, OwnerCode, OwnerName, Created,
-  Oper, OperCode, OperName, OperDate,
-  Area, AreaCode, AreaName, AreaDescription,
-  Scope, ScopeCode, ScopeName, ScopeDescription
-)
+CREATE OR REPLACE VIEW ObjectMessage
 AS
   SELECT m.id, d.object, o.parent,
          o.entity, o.entitycode, o.entityname,
@@ -68,8 +54,8 @@ AS
          o.oper, o.opercode, o.opername, o.operdate,
          d.area, d.areacode, d.areaname, d.areadescription,
          d.scope, d.scopecode, d.scopename, d.scopedescription
-    FROM Message m INNER JOIN Document d ON m.document = d.id
-                   INNER JOIN Object   o ON m.document = o.id;
+    FROM AccessMessage m INNER JOIN Document d ON m.document = d.id
+                         INNER JOIN Object   o ON m.document = o.id;
 
 GRANT SELECT ON ObjectMessage TO administrator;
 
@@ -77,21 +63,7 @@ GRANT SELECT ON ObjectMessage TO administrator;
 -- ServiceMessage --------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW ServiceMessage (Id, Object, Parent,
-  Entity, EntityCode, EntityName,
-  Class, ClassCode, ClassLabel,
-  Type, TypeCode, TypeName, TypeDescription,
-  AgentType, AgentTypeCode, AgentTypeName, AgentTypeDescription,
-  Agent, AgentCode, AgentName, AgentDescription,
-  Code, Profile, Address, Subject, Content,
-  Label, Description,
-  StateType, StateTypeCode, StateTypeName,
-  State, StateCode, StateLabel, LastUpdate,
-  Owner, OwnerCode, OwnerName, Created,
-  Oper, OperCode, OperName, OperDate,
-  Area, AreaCode, AreaName, AreaDescription,
-  Scope, ScopeCode, ScopeName, ScopeDescription
-)
+CREATE OR REPLACE VIEW ServiceMessage
 AS
   SELECT m.id, d.object, o.parent,
          o.entity, o.entitycode, o.entityname,
@@ -111,23 +83,3 @@ AS
                    INNER JOIN Object    o ON m.document = o.id;
 
 GRANT SELECT ON ServiceMessage TO administrator;
-
---------------------------------------------------------------------------------
--- VIEW SafeMessage ------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE VIEW SafeMessage
-AS
-  WITH Access AS (
-	WITH _membergroup AS (
-	  SELECT current_userid() AS userid UNION SELECT userid FROM db.member_group WHERE member = current_userid()
-	)
-	SELECT a.object
-      FROM db.message m INNER JOIN db.aou       a ON m.document = a.object
-                        INNER JOIN _membergroup g ON a.userid = g.userid
-     GROUP BY a.object
-	HAVING (bit_or(a.allow) & ~bit_or(a.deny)) & B'100' = B'100'
-  )
-  SELECT m.* FROM ObjectMessage m INNER JOIN Access a ON m.object = a.object;
-
-GRANT SELECT ON SafeMessage TO administrator;

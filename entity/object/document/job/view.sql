@@ -34,21 +34,7 @@ GRANT SELECT ON AccessJob TO administrator;
 -- ObjectJob -------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW ObjectJob (Id, Object, Parent,
-  Entity, EntityCode, EntityName,
-  Class, ClassCode, ClassLabel,
-  Type, TypeCode, TypeName, TypeDescription,
-  Scheduler, SchedulerCode, SchedulerName,
-  DateStart, DateStop, Period, DateRun,
-  Program, ProgramCode, ProgramName,
-  Code, Label, Description,
-  StateType, StateTypeCode, StateTypeName,
-  State, StateCode, StateLabel, LastUpdate,
-  Owner, OwnerCode, OwnerName, Created,
-  Oper, OperCode, OperName, OperDate,
-  Area, AreaCode, AreaName, AreaDescription,
-  Scope, ScopeCode, ScopeName, ScopeDescription
-)
+CREATE OR REPLACE VIEW ObjectJob
 AS
   SELECT j.id, d.object, o.parent,
          o.entity, o.entitycode, o.entityname,
@@ -64,8 +50,8 @@ AS
          o.oper, o.opercode, o.opername, o.operdate,
          d.area, d.areacode, d.areaname, d.areadescription,
          d.scope, d.scopecode, d.scopename, d.scopedescription
-    FROM Job j INNER JOIN Document d ON j.document = d.id
-               INNER JOIN Object   o ON j.document = o.id;
+    FROM AccessJob j INNER JOIN Document d ON j.document = d.id
+                     INNER JOIN Object   o ON j.document = o.id;
 
 GRANT SELECT ON ObjectJob TO administrator;
 
@@ -73,21 +59,7 @@ GRANT SELECT ON ObjectJob TO administrator;
 -- ServiceJob ------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW ServiceJob (Id, Object, Parent,
-  Entity, EntityCode, EntityName,
-  Class, ClassCode, ClassLabel,
-  Type, TypeCode, TypeName, TypeDescription,
-  Scheduler, SchedulerCode, SchedulerName,
-  DateStart, DateStop, Period, DateRun,
-  Program, ProgramCode, ProgramName,
-  Code, Label, Description,
-  StateType, StateTypeCode, StateTypeName,
-  State, StateCode, StateLabel, LastUpdate,
-  Owner, OwnerCode, OwnerName, Created,
-  Oper, OperCode, OperName, OperDate,
-  Area, AreaCode, AreaName, AreaDescription,
-  Scope, ScopeCode, ScopeName, ScopeDescription
-)
+CREATE OR REPLACE VIEW ServiceJob
 AS
   SELECT j.id, d.object, o.parent,
          o.entity, o.entitycode, o.entityname,
@@ -106,23 +78,4 @@ AS
     FROM Job j INNER JOIN Documents d ON j.document = d.id
                INNER JOIN Object    o ON j.document = o.id;
 
-GRANT SELECT ON ObjectJob TO administrator;
---------------------------------------------------------------------------------
--- VIEW SafeJob ----------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE VIEW SafeJob
-AS
-  WITH Access AS (
-	WITH _membergroup AS (
-	  SELECT current_userid() AS userid UNION SELECT userid FROM db.member_group WHERE member = current_userid()
-	)
-	SELECT a.object
-      FROM db.job j INNER JOIN db.aou       a ON j.document = a.object
-                    INNER JOIN _membergroup g ON a.userid = g.userid
-     GROUP BY a.object
-	HAVING (bit_or(a.allow) & ~bit_or(a.deny)) & B'100' = B'100'
-  )
-  SELECT j.* FROM ObjectJob j INNER JOIN Access a ON j.object = a.object;
-
-GRANT SELECT ON SafeJob TO administrator;
+GRANT SELECT ON ServiceJob TO administrator;

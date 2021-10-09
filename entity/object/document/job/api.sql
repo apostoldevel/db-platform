@@ -8,7 +8,7 @@
 
 CREATE OR REPLACE VIEW api.job
 AS
-  SELECT * FROM SafeJob;
+  SELECT * FROM ObjectJob;
 
 GRANT SELECT ON api.job TO administrator;
 

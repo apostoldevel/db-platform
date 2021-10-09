@@ -8,7 +8,7 @@
 
 CREATE OR REPLACE VIEW api.message
 AS
-  SELECT * FROM SafeMessage;
+  SELECT * FROM ObjectMessage;
 
 GRANT SELECT ON api.message TO administrator;
 
