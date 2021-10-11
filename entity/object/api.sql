@@ -932,7 +932,7 @@ BEGIN
 	PERFORM AccessDenied();
   END IF;
 
-  DELETE FROM db.object_file WHERE object = pId;
+  PERFORM ClearObjectFiles(pId);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

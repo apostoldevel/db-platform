@@ -1337,6 +1337,21 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- ClearObjectFiles ------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION ClearObjectFiles (
+  pObject   uuid
+) RETURNS	void
+AS $$
+BEGIN
+  DELETE FROM db.object_file WHERE object = pObject;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- SetObjectFile ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 
