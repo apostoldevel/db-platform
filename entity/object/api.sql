@@ -872,13 +872,15 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.get_object_file (
   pId       uuid,
   pName     text,
-  pPath     text default '~/'
+  pPath     text default null
 ) RETURNS	SETOF api.object_file
 AS $$
 BEGIN
   IF NOT CheckObjectAccess(pId, B'100') THEN
 	PERFORM AccessDenied();
   END IF;
+
+  pPath := coalesce(pPath, '~/');
 
   RETURN QUERY SELECT * FROM api.object_file WHERE object = pId AND path IS NOT DISTINCT FROM pPath AND name = pName;
 END
@@ -930,7 +932,7 @@ BEGIN
 	PERFORM AccessDenied();
   END IF;
 
-  DELETE FROM api.object_file WHERE object = pId;
+  DELETE FROM db.object_file WHERE object = pId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
