@@ -160,14 +160,20 @@ AS $$
 DECLARE
   r             record;
 
+  uUserId       uuid;
+
   vMessage      text;
   vContext      text;
 
   ErrorCode     int;
   ErrorMessage  text;
 BEGIN
-  IF SessionIn(pSession, pAgent, pHost) IS NULL THEN
-	PERFORM AuthenticateError(GetErrorMessage());
+  SELECT userId INTo uUserId FROM db.session WHERE code = pSession;
+
+  IF NOT FOUND OR current_userid() IS DISTINCT FROM uUserId THEN -- Обход блокировки
+	IF SessionIn(pSession, pAgent, pHost) IS NULL THEN
+	  PERFORM AuthenticateError(GetErrorMessage());
+	END IF;
   END IF;
 
   FOR r IN SELECT * FROM EventListener(pPublisher, pSession, pIdentity, pData) AS data
