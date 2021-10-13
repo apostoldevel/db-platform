@@ -683,23 +683,24 @@ CREATE OR REPLACE FUNCTION AddType (
   pClass	    uuid,
   pCode		    text,
   pName		    text,
-  pDescription	text DEFAULT null
+  pDescription	text DEFAULT null,
+  pId           uuid DEFAULT null
 ) RETURNS	    uuid
 AS $$
 DECLARE
   l             record;
-  uId		    uuid;
 BEGIN
-  INSERT INTO db.type (class, code)
-  VALUES (pClass, pCode)
-  RETURNING id INTO uId;
+  pId := coalesce(pId, gen_kernel_uuid('b'::bpchar));
+
+  INSERT INTO db.type (id, class, code)
+  VALUES (pId, pClass, pCode);
 
   FOR l IN SELECT id FROM db.locale
   LOOP
-	PERFORM NewTypeText(uId, pName, pDescription, l.id);
+	PERFORM NewTypeText(pId, pName, pDescription, l.id);
   END LOOP;
 
-  RETURN uId;
+  RETURN pId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
