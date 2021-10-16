@@ -10,7 +10,7 @@ INSERT INTO db.area_type (id, code, name) VALUES ('00000000-0000-4002-a001-00000
 INSERT INTO db.area_type (id, code, name) VALUES ('00000000-0000-4002-a001-000000000002', 'remote', 'Удаленный');
 INSERT INTO db.area_type (id, code, name) VALUES ('00000000-0000-4002-a001-000000000003', 'mobile', 'Мобильный');
 
-SELECT CreateScope(current_database(), current_database(), 'Область видимости текущей базы данных.');
+SELECT CreateScope(current_database(), current_database(), 'Область видимости текущей базы данных.', '00000000-0000-4006-a000-000000000000');
 
 SELECT CreateArea('00000000-0000-4003-a000-000000000000', null, GetAreaType('root'), GetScope(current_database()), 'root', 'Корень');
 SELECT CreateArea('00000000-0000-4003-a000-000000000001', GetArea('root'), GetAreaType('system'), GetScope(current_database()), 'system', 'Система');
@@ -32,11 +32,11 @@ SELECT AddMemberToInterface(CreateGroup('administrator', 'Администрат
 SELECT AddMemberToInterface(CreateGroup('user', 'Пользователи', 'Группа для пользователей системы', '00000000-0000-4000-a000-000000000002'), '00000000-0000-4004-a000-000000000002');
 SELECT AddMemberToInterface(CreateGroup('guest', 'Гости', 'Группа для гостей системы', '00000000-0000-4000-a000-000000000003'), '00000000-0000-4004-a000-000000000003');
 
-SELECT AddMemberToGroup(CreateUser('admin', 'admin', 'Администратор', null,null, 'Администратор системы', true, false, GetArea('root'), '00000000-0000-4000-a001-000000000001'), GetGroup('administrator'));
-SELECT CreateUser('daemon', 'daemon', 'Демон', null, null, 'Пользователь для вызова методов API', false, true, GetArea('system'), '00000000-0000-4000-a001-000000000002');
+SELECT AddMemberToGroup(CreateUser('admin', 'admin', 'Администратор', null,null, 'Администратор системы', true, false, '00000000-0000-4000-a001-000000000001'), GetGroup('administrator'));
+SELECT CreateUser('daemon', 'daemon', 'Демон', null, null, 'Пользователь для вызова методов API', false, true, '00000000-0000-4000-a001-000000000002');
 
-SELECT AddMemberToGroup(CreateUser('apibot', 'apibot', 'API клиент', null, null, 'Системная служба API', false, true, GetArea('root'), '00000000-0000-4000-a002-000000000001'), GetGroup('system'));
-SELECT CreateUser('mailbot', 'mailbot', 'Mail клиент', null, null, 'Почтовый клиент', false, true, GetArea('root'), '00000000-0000-4000-a002-000000000002');
+SELECT AddMemberToGroup(CreateUser('apibot', 'apibot', 'API клиент', null, null, 'Системная служба API', false, true, '00000000-0000-4000-a002-000000000001'), GetGroup('system'));
+SELECT CreateUser('mailbot', 'mailbot', 'Mail клиент', null, null, 'Почтовый клиент', false, true, '00000000-0000-4000-a002-000000000002');
 
-SELECT CreateGroup('message', 'Сообщения', 'Группа для пользователей, которым разрешена рассылка массовых сообщений.');
+SELECT CreateGroup('message', 'Сообщения', 'Группа для пользователей, которым разрешена рассылка массовых сообщений.', '00000000-0000-4000-a000-000000000004');
 SELECT AddMemberToGroup(GetUser('admin'), GetGroup('message'));

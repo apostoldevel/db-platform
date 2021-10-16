@@ -27,7 +27,7 @@ $$ LANGUAGE SQL
 CREATE OR REPLACE FUNCTION api.current_user (
 ) RETURNS   SETOF users
 AS $$
-  SELECT * FROM users WHERE id = current_userid()
+  SELECT * FROM users WHERE id = current_userid() AND scope = current_scope()
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

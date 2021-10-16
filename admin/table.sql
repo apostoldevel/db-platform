@@ -300,6 +300,7 @@ CREATE TRIGGER t_user_before_delete
 
 CREATE TABLE db.profile (
     userId              uuid REFERENCES db.user(id) ON DELETE CASCADE,
+    scope               uuid REFERENCES db.scope(id) ON DELETE RESTRICT,
     family_name         text,
     given_name          text,
     patronymic_name     text,
@@ -317,12 +318,13 @@ CREATE TABLE db.profile (
     email_verified      bool DEFAULT false,
     phone_verified      bool DEFAULT false,
     picture             text,
-    PRIMARY KEY (userid)
+    PRIMARY KEY (userid, scope)
 );
 
 COMMENT ON TABLE db.profile IS 'Дополнительная информация о пользователе системы.';
 
 COMMENT ON COLUMN db.profile.userid IS 'Пользователь';
+COMMENT ON COLUMN db.profile.scope IS 'Область видимости базы данных';
 COMMENT ON COLUMN db.profile.family_name IS 'Фамилия';
 COMMENT ON COLUMN db.profile.given_name IS 'Имя';
 COMMENT ON COLUMN db.profile.patronymic_name IS 'Отчество';
@@ -348,6 +350,10 @@ RETURNS trigger AS $$
 BEGIN
   IF NEW.locale IS NULL THEN
     SELECT id INTO NEW.locale FROM db.locale WHERE code = 'ru';
+  END IF;
+
+  IF NEW.scope IS NULL THEN
+    NEW.scope := current_scope();
   END IF;
 
   IF NOT IsMemberArea(NEW.area, NEW.userid) THEN
@@ -981,20 +987,15 @@ BEGIN
     END IF;
 
     IF NEW.locale IS NULL THEN
-      SELECT id INTO NEW.locale FROM db.locale WHERE id = GetDefaultLocale(NEW.userid);
+      NEW.locale := GetDefaultLocale(NEW.userid);
     END IF;
 
     IF NEW.area IS NULL THEN
       NEW.area := GetDefaultArea(NEW.userid);
     END IF;
 
-	SELECT id INTO NEW.area FROM db.area WHERE id = NEW.area AND scope IN (SELECT GetOAuth2Scopes(NEW.oauth2));
-	IF NOT FOUND THEN
-	  SELECT id INTO NEW.area FROM db.area WHERE scope IN (SELECT GetOAuth2Scopes(NEW.oauth2)) AND type = '00000000-0000-4002-a001-000000000001'; -- main
-	END IF;
-
     IF NOT IsMemberArea(NEW.area, NEW.userid) THEN
-      SELECT '00000000-0000-4003-a000-000000000002' INTO NEW.area; -- guest
+      PERFORM AccessDenied();
     END IF;
 
     IF NEW.interface IS NULL THEN
@@ -1002,7 +1003,7 @@ BEGIN
     END IF;
 
     IF NOT IsMemberInterface(NEW.interface, NEW.userid) THEN
-      SELECT '00000000-0000-4004-a000-000000000003' INTO NEW.interface; -- guest
+      PERFORM AccessDenied();
     END IF;
 
     RETURN NEW;

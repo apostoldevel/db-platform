@@ -225,7 +225,7 @@ BEGIN
   END IF;
 
   IF OLD.owner <> NEW.owner THEN
-    SELECT system INTO bSystem FROM users WHERE id = OLD.owner;
+    SELECT system INTO bSystem FROM users WHERE id = OLD.owner AND scope = current_scope();
     IF NOT bSystem THEN
       DELETE FROM db.aou WHERE object = NEW.id AND userid = OLD.owner AND mask = B'111';
     END IF;

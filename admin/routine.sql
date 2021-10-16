@@ -77,7 +77,7 @@ BEGIN
 		 email_verified = coalesce(pEmailVerified, email_verified),
 		 phone_verified = coalesce(pPhoneVerified, phone_verified),
 		 picture = coalesce(pPicture, picture)
-   WHERE userid = pUserId;
+   WHERE userid = pUserId AND scope = current_scope();
 
   RETURN FOUND;
 END;
@@ -408,7 +408,7 @@ DECLARE
 
   r             record;
 BEGIN
-  SELECT session_limit INTO nLimit FROM db.profile WHERE userid = pUserId;
+  SELECT session_limit INTO nLimit FROM db.profile WHERE userid = pUserId AND scope = current_scope();
 
   IF coalesce(nLimit, 0) > 0 THEN
 
@@ -519,7 +519,7 @@ BEGIN
          email, email_verified, phone, phone_verified, session_limit,
          created, locale, area, interface, description, picture
     INTO p
-    FROM users WHERE id = pUserId;
+    FROM users WHERE id = pUserId AND array_position(pScopes, scope_code) IS NOT NULL;
 
   IF NOT FOUND THEN
     PERFORM UserNotFound(pUserId);
@@ -1308,11 +1308,12 @@ DECLARE
   uArea		uuid;
   uScope	uuid;
 BEGIN
-  IF pSession IS NOT NULL THEN
-    SELECT area INTO uArea FROM db.session WHERE code = pSession;
+  SELECT area INTO uArea FROM db.session WHERE code = pSession;
+
+  IF FOUND THEN
     SELECT scope INTO uScope FROM db.area WHERE id = uArea;
   ELSE
-    SELECT id INTO uScope FROM db.scope WHERE code = current_database();
+    uScope := '00000000-0000-4006-a000-000000000000';
   END IF;
 
   RETURN uScope;
@@ -1330,20 +1331,8 @@ CREATE OR REPLACE FUNCTION current_scope_code (
 )
 RETURNS		text
 AS $$
-DECLARE
-  uArea		uuid;
-  uScope	uuid;
-  vCode     text;
-BEGIN
-  SELECT area INTO uArea FROM db.session WHERE code = pSession;
-  IF FOUND THEN
-    SELECT scope INTO uScope FROM db.area WHERE id = uArea;
-    SELECT code INTO vCode FROM db.scope WHERE id = uScope;
-  END IF;
-
-  RETURN vCode;
-END;
-$$ LANGUAGE plpgsql STABLE
+  SELECT code FROM db.scope WHERE id = current_scope(pSession);
+$$ LANGUAGE sql STABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1539,13 +1528,8 @@ CREATE OR REPLACE FUNCTION session_username (
 )
 RETURNS		text
 AS $$
-DECLARE
-  vUserName	text;
-BEGIN
-  SELECT username INTO vUserName FROM users WHERE id = session_userid(pSession);
-  RETURN vUserName;
-END;
-$$ LANGUAGE plpgsql STABLE
+  SELECT username FROM db.user WHERE id = session_userid(pSession) AND type = 'U';
+$$ LANGUAGE sql STABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1556,16 +1540,11 @@ $$ LANGUAGE plpgsql STABLE
  * Возвращает имя текущего пользователя.
  * @return {text} - Имя (username) пользователя: users.username
  */
-CREATE OR REPLACE FUNCTION current_username()
+CREATE OR REPLACE FUNCTION current_username ()
 RETURNS		text
 AS $$
-DECLARE
-  vUserName	text;
-BEGIN
-  SELECT username INTO vUserName FROM users WHERE id = current_userid();
-  RETURN vUserName;
-END;
-$$ LANGUAGE plpgsql STABLE
+  SELECT username FROM db.user WHERE id = current_userid();
+$$ LANGUAGE sql STABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1592,7 +1571,7 @@ BEGIN
 
   RETURN vCode;
 END;
-$$ LANGUAGE plpgsql
+$$ LANGUAGE plpgsql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1621,15 +1600,8 @@ CREATE OR REPLACE FUNCTION GetSessionArea (
 )
 RETURNS 	uuid
 AS $$
-DECLARE
-  uArea	    uuid;
-BEGIN
-  IF pSession IS NOT NULL THEN
-    SELECT area INTO uArea FROM db.session WHERE code = pSession;
-  END IF;
-  RETURN uArea;
-END;
-$$ LANGUAGE plpgsql
+  SELECT area FROM db.session WHERE code = pSession;
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1642,13 +1614,8 @@ CREATE OR REPLACE FUNCTION current_area_type (
 )
 RETURNS 	uuid
 AS $$
-DECLARE
-  uType     uuid;
-BEGIN
-  SELECT type INTO uType FROM db.area WHERE id = GetSessionArea(pSession);
-  RETURN uType;
-END;
-$$ LANGUAGE plpgsql STABLE
+  SELECT type FROM db.area WHERE id = GetSessionArea(pSession);
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1662,7 +1629,7 @@ CREATE OR REPLACE FUNCTION current_area (
 RETURNS 	uuid
 AS $$
 BEGIN
-  RETURN GetSessionArea(pSession);
+  RETURN coalesce(GetSessionArea(pSession), '00000000-0000-4003-a000-000000000002');
 END;
 $$ LANGUAGE plpgsql STABLE
    SECURITY DEFINER
@@ -1923,7 +1890,7 @@ CREATE OR REPLACE FUNCTION current_locale (
 RETURNS		uuid
 AS $$
 BEGIN
-  RETURN coalesce(GetSessionLocale(pSession), GetLocale(locale_code(pSession)));
+  RETURN coalesce(GetSessionLocale(pSession), '00000000-0000-4001-a000-000000000001');
 END;
 $$ LANGUAGE plpgsql STABLE
    SECURITY DEFINER
@@ -1939,7 +1906,7 @@ CREATE OR REPLACE FUNCTION SetDefaultLocale (
 ) RETURNS	void
 AS $$
 BEGIN
-  UPDATE db.profile SET locale = pLocale WHERE userid = pUserId;
+  UPDATE db.profile SET locale = pLocale WHERE userid = pUserId AND scope = current_scope();
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1953,8 +1920,36 @@ CREATE OR REPLACE FUNCTION GetDefaultLocale (
   pUserId   uuid DEFAULT current_userid()
 ) RETURNS	uuid
 AS $$
-  SELECT locale FROM db.profile WHERE userid = pUserId;
-$$ LANGUAGE sql
+DECLARE
+  uLocale   uuid;
+BEGIN
+  SELECT locale INTO uLocale FROM db.profile WHERE userid = pUserId AND scope = current_scope();
+
+  IF NOT FOUND THEN
+    uLocale := current_locale();
+  END IF;
+
+  RETURN uLocale;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- SetLocale -------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION SetLocale (
+  pLocale       uuid,
+  pUserId	    uuid DEFAULT current_userid(),
+  pSession	    varchar DEFAULT current_session()
+) RETURNS	    void
+AS $$
+BEGIN
+  UPDATE db.session SET locale = pLocale WHERE code = pSession;
+  UPDATE db.profile SET locale = pLocale WHERE userid = pUserId AND scope = current_scope();
+END;
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -2170,8 +2165,8 @@ DECLARE
   uUserId	uuid;
   nRoleId	uuid;
 BEGIN
-  SELECT id INTO uUserId FROM users WHERE username = lower(pUser);
-  SELECT id INTO nRoleId FROM groups WHERE username = lower(pRole);
+  SELECT id INTO uUserId FROM db.user WHERE username = pUser AND type = 'U';
+  SELECT id INTO nRoleId FROM db.user WHERE username = pRole AND type = 'G';
 
   RETURN IsUserRole(nRoleId, uUserId);
 END;
@@ -2205,13 +2200,12 @@ CREATE OR REPLACE FUNCTION CreateUser (
   pDescription          text DEFAULT null,
   pPasswordChange       boolean DEFAULT true,
   pPasswordNotChange    boolean DEFAULT false,
-  pArea                 uuid DEFAULT current_area(),
   pId					uuid DEFAULT gen_kernel_uuid('a')
 ) RETURNS               uuid
 AS $$
 DECLARE
   uId					uuid;
-  uArea                 uuid;
+  uScope                uuid;
   vSecret               text;
 BEGIN
   IF session_user <> 'kernel' THEN
@@ -2220,9 +2214,7 @@ BEGIN
     END IF;
   END IF;
 
-  uArea := coalesce(pArea, '00000000-0000-4003-a000-000000000002'); -- guest
-
-  SELECT id INTO uId FROM users WHERE username = lower(pRoleName);
+  SELECT id INTO uId FROM db.user WHERE username = lower(pRoleName) AND type = 'U';
 
   IF FOUND THEN
     PERFORM RoleExists(pRoleName);
@@ -2232,10 +2224,15 @@ BEGIN
   VALUES (pId, 'U', pRoleName, pName, pPhone, pEmail, pDescription, pPasswordChange, pPasswordNotChange)
   RETURNING secret INTO vSecret;
 
-  PERFORM AddMemberToInterface(pId, GetInterface('all'));
-  PERFORM AddMemberToArea(pId, uArea);
+  PERFORM AddMemberToInterface(pId, '00000000-0000-4004-a000-000000000000'); -- all
+  PERFORM AddMemberToInterface(pId, '00000000-0000-4004-a000-000000000003'); -- guest
 
-  INSERT INTO db.profile (userid, area) VALUES (pId, uArea);
+  PERFORM AddMemberToArea(pId, '00000000-0000-4003-a000-000000000002'); -- guest
+
+  SELECT scope INTO uScope FROM db.area WHERE id = current_area();
+
+  INSERT INTO db.profile (userid, scope, locale, area, interface)
+  VALUES (pId, uScope, current_locale(), current_area(), '00000000-0000-4004-a000-000000000003');
 
   IF NULLIF(pPassword, '') IS NULL THEN
     pPassword := encode(hmac(vSecret, GetSecretKey(), 'sha1'), 'hex');
@@ -2645,7 +2642,7 @@ BEGIN
     END IF;
   END IF;
 
-  SELECT username, passwordchange, passwordnotchange INTO r FROM users WHERE id = pId;
+  SELECT username, passwordchange, passwordnotchange INTO r FROM db.user WHERE id = pId AND type = 'U';
 
   IF FOUND THEN
     bPasswordChange := r.PasswordChange;
@@ -2691,7 +2688,7 @@ AS $$
 DECLARE
   r		record;
 BEGIN
-  SELECT username, system INTO r FROM users WHERE id = pId;
+  SELECT username, system INTO r FROM users WHERE id = pId AND scope = current_scope();
 
   IF FOUND THEN
     IF CheckPassword(r.username, pOldPass) THEN
@@ -2735,7 +2732,7 @@ BEGIN
     END IF;
   END IF;
 
-  SELECT id INTO uId FROM users WHERE id = pId;
+  SELECT id INTO uId FROM db.user WHERE id = pId AND type = 'U';
 
   IF FOUND THEN
     UPDATE db.user SET status = set_bit(set_bit(status, 3, 0), 1, 1), lock_date = now() WHERE id = pId;
@@ -2768,7 +2765,7 @@ BEGIN
 	END IF;
   END IF;
 
-  SELECT id INTO uId FROM users WHERE id = pId;
+  SELECT id INTO uId FROM db.user WHERE id = pId AND type = 'U';
 
   IF FOUND THEN
     UPDATE db.user SET status = B'0001', lock_date = null, expiry_date = null WHERE id = pId;
@@ -3237,6 +3234,19 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- GetAreaScope ----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetAreaScope (
+  pArea     uuid
+) RETURNS	uuid
+AS $$
+  SELECT scope FROM db.area WHERE id = pArea;
+$$ LANGUAGE sql STABLE STRICT
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- GetArea ---------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -3455,7 +3465,7 @@ BEGIN
   END IF;
 
   UPDATE db.session SET area = pArea WHERE code = pSession;
-  UPDATE db.profile SET area = pArea WHERE userid = pMember;
+  UPDATE db.profile SET area = pArea WHERE userid = pMember AND scope = current_scope();
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -3512,7 +3522,7 @@ CREATE OR REPLACE FUNCTION SetDefaultArea (
 ) RETURNS	void
 AS $$
 BEGIN
-  UPDATE db.profile SET area = pArea WHERE userid = pMember;
+  UPDATE db.profile SET area = pArea WHERE userid = pMember AND scope = current_scope();
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -3526,8 +3536,18 @@ CREATE OR REPLACE FUNCTION GetDefaultArea (
   pMember   uuid DEFAULT current_userid()
 ) RETURNS	uuid
 AS $$
-  SELECT area FROM db.profile WHERE userid = pMember;
-$$ LANGUAGE sql
+DECLARE
+  uArea     uuid;
+BEGIN
+  SELECT area INTO uArea FROM db.profile WHERE userid = pMember AND scope = current_scope();
+
+  IF NOT FOUND THEN
+	uArea := '00000000-0000-4003-a000-000000000002'; -- guest
+  END IF;
+
+  RETURN uArea;
+END;
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -3781,7 +3801,7 @@ CREATE OR REPLACE FUNCTION SetDefaultInterface (
 ) RETURNS	    void
 AS $$
 BEGIN
-  UPDATE db.profile SET interface = pInterface WHERE userid = pMember;
+  UPDATE db.profile SET interface = pInterface WHERE userid = pMember AND scope = current_scope();
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -3795,8 +3815,18 @@ CREATE OR REPLACE FUNCTION GetDefaultInterface (
   pMember	    uuid DEFAULT current_userid()
 ) RETURNS	    uuid
 AS $$
-  SELECT interface FROM db.profile WHERE userid = pMember;
-$$ LANGUAGE sql
+DECLARE
+  uInterface    uuid;
+BEGIN
+  SELECT interface INTO uInterface FROM db.profile WHERE userid = pMember AND scope = current_scope();
+
+  IF NOT FOUND THEN
+	uInterface := '00000000-0000-4004-a000-000000000003'::uuid;
+  END IF;
+
+  RETURN uInterface;
+END;
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -3984,6 +4014,8 @@ DECLARE
   up	        db.user%rowtype;
 
   uUserId       uuid DEFAULT null;
+  uArea         uuid DEFAULT null;
+  uScope        uuid DEFAULT null;
 
   nToken        bigint DEFAULT null;
   nOAuth2		bigint DEFAULT null;
@@ -3992,9 +4024,11 @@ DECLARE
 BEGIN
   IF ValidSession(pSession) THEN
 
-	SELECT oauth2, userid INTO nOAuth2, uUserId
+	SELECT oauth2, userid, area INTO nOAuth2, uUserId, uArea
 	  FROM db.session
 	 WHERE code = pSession;
+
+	SELECT scope INTO uScope FROM db.area WHERE id = uArea;
 
 	SELECT * INTO up FROM db.user WHERE id = uUserId;
 
@@ -4033,7 +4067,7 @@ BEGIN
 	UPDATE db.profile
 	   SET input_last = now(),
 		   lc_ip = coalesce(pHost, lc_ip)
-	 WHERE userid = up.id;
+	 WHERE userid = up.id AND scope = uScope;
 
 	UPDATE db.session
 	   SET updated = localtimestamp,
@@ -4073,7 +4107,16 @@ CREATE OR REPLACE FUNCTION Login (
 ) RETURNS       text
 AS $$
 DECLARE
+  r             record;
+  e             record;
+
   up            db.user%rowtype;
+
+  uArea         uuid;
+  uScope        uuid;
+  uLocale       uuid;
+  uInterface    uuid;
+
   nAudience		integer DEFAULT null;
   vSession      text DEFAULT null;
 BEGIN
@@ -4119,9 +4162,31 @@ BEGIN
 
     PERFORM CheckSessionLimit(up.id);
 
-    INSERT INTO db.session (oauth2, userid, agent, host)
-    VALUES (pOAuth2, up.id, pAgent, pHost)
-    RETURNING code INTO vSession;
+	FOR r IN SELECT GetOAuth2Scopes(pOAuth2) AS id
+	LOOP
+      SELECT scope, locale, area, interface INTO uScope, uLocale, uArea, uInterface FROM db.profile WHERE userid = up.id AND scope = r.id;
+
+	  IF NOT FOUND THEN
+		FOR e IN SELECT unnest(ARRAY['00000000-0000-4002-a001-000000000001'::uuid, '00000000-0000-4002-a001-000000000000'::uuid, '00000000-0000-4002-a000-000000000002'::uuid]) AS type
+		LOOP
+		  SELECT id INTO uArea FROM db.area WHERE type = e.type AND scope = r.id;
+		  EXIT WHEN uArea IS NOT NULL;
+		END LOOP;
+
+		uLocale := GetLocale(locale_code());
+		uInterface := '00000000-0000-4004-a000-000000000003'::uuid; -- guest
+
+        INSERT INTO db.member_area (area, member) VALUES (uArea, up.id) ON CONFLICT DO NOTHING;
+        INSERT INTO db.member_interface (interface, member) VALUES (uInterface, up.id) ON CONFLICT DO NOTHING;
+        INSERT INTO db.profile (userid, scope, locale, area, interface) VALUES (up.id, r.id, uLocale, uArea, uInterface);
+	  END IF;
+
+      EXIT WHEN uScope IS NOT NULL;
+	END LOOP;
+
+    INSERT INTO db.session (oauth2, userid, locale, area, interface, agent, host)
+    VALUES (pOAuth2, up.id, uLocale, uArea, uInterface, pAgent, pHost)
+    RETURNING code, area INTO vSession, uArea;
 
     IF vSession IS NULL THEN
       PERFORM AccessDenied();
@@ -4135,14 +4200,17 @@ BEGIN
 
     UPDATE db.user SET status = set_bit(set_bit(status, 3, 0), 2, 1), lock_date = null WHERE id = up.id;
 
+	SELECT scope INTO uScope FROM db.area WHERE id = uArea;
+
     UPDATE db.profile
        SET input_error = 0,
            input_count = input_count + 1,
            input_last = now(),
            lc_ip = pHost
-     WHERE userid = up.id;
+     WHERE userid = up.id AND scope = uScope;
 
     PERFORM DoLogin(up.id);
+
   ELSE
 
     PERFORM SetCurrentSession(null);
@@ -4213,7 +4281,7 @@ BEGIN
              input_error_all = input_error_all + 1
        WHERE userid = up.id;
 
-      SELECT input_error INTO nInputError FROM db.profile WHERE userid = up.id;
+      SELECT max(input_error) INTO nInputError FROM db.profile WHERE userid = up.id GROUP BY userid;
 
       IF FOUND THEN
         IF nInputError >= 5 THEN
@@ -4280,7 +4348,7 @@ BEGIN
       UPDATE db.user SET status = set_bit(set_bit(status, 3, 1), 2, 0) WHERE id = uUserId;
     END IF;
 
-    UPDATE db.profile SET state = B'000' WHERE userid = uUserId;
+    UPDATE db.profile SET state = B'000' WHERE userid = uUserId AND scope = current_scope();
 
     message := message || coalesce('. ' || pMessage, '.');
 

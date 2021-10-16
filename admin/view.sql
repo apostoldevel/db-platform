@@ -72,7 +72,10 @@ CREATE OR REPLACE VIEW users
 AS
   SELECT u.id, u.username, u.name, p.given_name, p.family_name, p.patronymic_name,
          u.email, p.email_verified, u.phone, p.phone_verified, p.session_limit,
-         u.created, l.code AS locale, a.code AS area, i.id AS interface,
+         u.created,
+         l.id AS locale, l.code AS locale_code,
+         a.id AS area, a.code AS area_code,
+         i.id AS interface, i.code AS interface_code,
          u.description, p.picture, u.passwordchange, u.passwordnotchange,
          r.rolname IS NOT NULL AS system,
          readonly,
@@ -97,12 +100,14 @@ AS
          ELSE 'offline'
          END AS statetext,
          u.lock_date, u.expiry_date, p.lc_ip,
-         p.input_count, p.input_last, p.input_error, p.input_error_last, p.input_error_all
-    FROM db.user u INNER JOIN db.profile p      ON p.userid = u.id
-                    LEFT JOIN db.locale l       ON l.id = p.locale
-                    LEFT JOIN db.area a         ON a.id = p.area
-                    LEFT JOIN db.interface i    ON i.id = p.interface
-                    LEFT JOIN pg_roles r        ON r.rolname = lower(u.username)
+         p.input_count, p.input_last, p.input_error, p.input_error_last, p.input_error_all,
+         p.scope, s.code AS scope_code, s.name AS scope_name, s.description AS scope_description
+    FROM db.user u INNER JOIN db.profile   p ON p.userid = u.id
+                   INNER JOIN db.scope     s ON s.id = p.scope
+                   INNER JOIN db.locale    l ON l.id = p.locale
+                   INNER JOIN db.area      a ON a.id = p.area
+                   INNER JOIN db.interface i ON i.id = p.interface
+                    LEFT JOIN pg_roles     r ON r.rolname = u.username
    WHERE u.type = 'U';
 
 GRANT SELECT ON users TO administrator;
@@ -220,9 +225,10 @@ GRANT SELECT ON Tokens TO administrator;
 CREATE OR REPLACE VIEW Session
 AS
   SELECT s.code, s.token, s.userid, s.suid, u.username, u.name,
-         s.agent, s.host, s.area, s.interface, s.created, s.updated,
+         s.agent, s.host, s.locale, s.area, s.interface, s.created, s.updated,
          u.input_last, u.lc_ip, u.status, u.state
-    FROM db.session s INNER JOIN users u ON s.userid = u.id;
+    FROM db.session s INNER JOIN db.area a ON s.area = a.id
+                      INNER JOIN users   u ON s.userid = u.id AND u.scope = a.scope;
 
 GRANT SELECT ON Session TO administrator;
 

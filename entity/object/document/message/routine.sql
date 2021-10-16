@@ -545,7 +545,7 @@ DECLARE
   ErrorMessage    text;
 BEGIN
   SELECT name, email, email_verified, locale INTO vName, vEmail, bVerified
-  FROM db.user u INNER JOIN db.profile p ON u.id = p.userid
+  FROM db.user u INNER JOIN db.profile p ON u.id = p.userid AND p.scope = current_scope()
    WHERE id = pUserId;
 
   IF vEmail IS NULL THEN

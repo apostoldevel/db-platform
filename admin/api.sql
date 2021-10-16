@@ -245,10 +245,12 @@ GRANT SELECT ON api.locale TO administrator;
 
 CREATE OR REPLACE VIEW api.session
 AS
-  SELECT s.code, s.userid, s.suid, u.username, u.name, s.created, s.updated,
-         u.input_last, s.host, u.lc_ip, u.status, u.statustext, u.state, u.statetext,
-         u.session_limit
-    FROM session s INNER JOIN users u ON s.userid = u.id;
+  SELECT s.code, s.userid, s.suid, u.username, u.name,
+         s.locale, s.area, s.interface,
+         s.created, s.updated, u.input_last, s.host, u.lc_ip,
+         u.status, u.statustext, u.state, u.statetext, u.session_limit
+    FROM db.session s INNER JOIN db.area a ON s.area = a.id
+                      INNER JOIN users   u ON s.userid = u.id AND u.scope = a.scope;
 
 GRANT SELECT ON api.session TO administrator;
 
@@ -325,6 +327,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE VIEW api.user
+AS
+  SELECT * FROM users WHERE scope = current_scope();
+
+GRANT SELECT ON api.user TO administrator;
+
+--------------------------------------------------------------------------------
+-- USERS -----------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW api.users
 AS
   SELECT * FROM users;
 
@@ -1062,12 +1074,11 @@ CREATE OR REPLACE FUNCTION api.group_member (
   name        text,
   email       text,
   phone       text,
-  statustext  text,
   description text
 )
 AS $$
-  SELECT u.id, u.username, u.name, u.email, u.phone, u.statustext, u.description
-    FROM db.member_group m INNER JOIN users u ON u.id = m.member
+  SELECT u.id, u.username, u.name, u.email, u.phone, u.description
+    FROM db.member_group m INNER JOIN db.user u ON u.id = m.member
    WHERE m.userid = pGroupId;
 $$ LANGUAGE SQL
    SECURITY DEFINER

@@ -115,9 +115,18 @@ BEGIN
     arResult := array_append(arResult, r.identifier);
   END LOOP;
 
-  SELECT * INTO profile FROM users WHERE id = uId;
+  SELECT username, name, email, phone, status,
+         CASE
+         WHEN status & B'1100' = B'1100' THEN 'expired & locked'
+         WHEN status & B'1000' = B'1000' THEN 'expired'
+         WHEN status & B'0100' = B'0100' THEN 'locked'
+         WHEN status & B'0010' = B'0010' THEN 'active'
+         WHEN status & B'0001' = B'0001' THEN 'open'
+         ELSE 'undefined'
+         END AS status_text
+  INTO profile FROM db.user WHERE id = uId AND type = 'U';
 
-  RETURN json_build_object('id', uId, 'username', profile.username, 'name', profile.name, 'email', profile.email, 'phone', profile.phone, 'status', profile.status, 'identifiers', array_to_json(arResult));
+  RETURN json_build_object('id', uId, 'username', profile.username, 'name', profile.name, 'email', profile.email, 'phone', profile.phone, 'status', profile.status::int, 'status_text', profile.status_text, 'identifiers', array_to_json(arResult));
 EXCEPTION
 WHEN others THEN
   GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
