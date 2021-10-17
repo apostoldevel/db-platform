@@ -275,6 +275,11 @@ DECLARE
   profile       db.profile%rowtype;
 
   uUserId       uuid;
+  uScope        uuid;
+
+  nOAuth2       bigint;
+  asScopes      text[];
+
   nProvider     integer;
   nAudience     integer;
   nApplication  integer;
@@ -319,13 +324,18 @@ BEGIN
     PERFORM TokenError();
   END IF;
 
+  SELECT oauth2 INTO nOAuth2 FROM db.session WHERE code = current_session();
+  SELECT scopes INTO asScopes FROM db.oauth2 WHERE id = nOAuth2;
+
+  SELECT id INTO uScope FROM current_scopes() AS id LIMIT 1;
+
   FOR claim IN SELECT * FROM json_to_record(token.payload) AS x(iss text, aud text, sub text, exp double precision, nbf double precision, iat double precision, jti text)
   LOOP
     IF claim.exp <= trunc(extract(EPOCH FROM Now())) THEN
       PERFORM TokenExpired();
     END IF;
 
-    vSession := SignIn(CreateOAuth2(nAudience, current_scope_code()), claim.aud, vSecret, pAgent, pHost);
+    vSession := SignIn(CreateOAuth2(nAudience, asScopes), claim.aud, vSecret, pAgent, pHost);
 
     IF vSession IS NULL THEN
       RAISE EXCEPTION '%', GetErrorMessage();
@@ -343,15 +353,18 @@ BEGIN
           account.name := google.name;
           account.email := google.email;
 
+          profile.scope := uScope;
           profile.locale := GetLocale(google.locale);
+
+          SELECT id INTO profile.area FROM db.area WHERE scope = uScope AND type = '00000000-0000-4002-a000-000000000002';
+
+          profile.interface := '00000000-0000-4004-a000-000000000003'::uuid;
           profile.given_name := google.given_name;
           profile.family_name := google.family_name;
           profile.email_verified := google.email_verified;
           profile.picture := google.picture;
         END LOOP;
       END IF;
-
-      profile.interface := GetInterface('all');
 
       SELECT a.userid INTO uUserId FROM db.auth a WHERE a.audience = nAudience AND a.code = account.username;
 
@@ -365,9 +378,11 @@ BEGIN
         INSERT INTO db.auth (userId, audience, code) VALUES (uUserId, nAudience, account.username);
       END IF;
 
+      PERFORM SignOut(vSession);
+
       SELECT id INTO nAudience FROM oauth2.audience WHERE provider = GetProvider('default') AND application = nApplication;
 
-      vSession := GetSession(uUserId, CreateOAuth2(nAudience, current_scope_code()), pAgent, pHost, true, false);
+      vSession := GetSession(uUserId, CreateOAuth2(nAudience, asScopes), pAgent, pHost, true, false);
 
       IF vSession IS NULL THEN
         RAISE EXCEPTION '%', GetErrorMessage();

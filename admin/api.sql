@@ -519,7 +519,7 @@ CREATE OR REPLACE FUNCTION api.update_profile (
 ) RETURNS			void
 AS $$
 BEGIN
-  PERFORM UpdateProfile(pUserId, pFamilyName, pGivenName, pPatronymicName, pLocale, pArea, pInterface, pEmailVerified, pPhoneVerified, pPicture);
+  PERFORM UpdateProfile(pUserId, current_scope(), pFamilyName, pGivenName, pPatronymicName, pLocale, pArea, pInterface, pEmailVerified, pPhoneVerified, pPicture);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

@@ -73,6 +73,8 @@ DROP FUNCTION IF EXISTS api.group_member(uuid);
 
 -- ADMIN
 
+DROP FUNCTION IF EXISTS CreateUser(text, text, text, text, text, text, boolean, boolean, uuid, uuid);
+
 DROP VIEW api.session CASCADE;
 DROP VIEW Session CASCADE;
 DROP VIEW users CASCADE;

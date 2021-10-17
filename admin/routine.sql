@@ -42,11 +42,46 @@ $$ LANGUAGE sql STABLE STRICT
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- CreateProfile ---------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION CreateProfile (
+  pUserId       	uuid,
+  pScope            uuid,
+  pFamilyName		text,
+  pGivenName		text,
+  pPatronymicName	text,
+  pLocale			uuid,
+  pArea				uuid,
+  pInterface		uuid,
+  pEmailVerified	bool,
+  pPhoneVerified	bool,
+  pPicture			text
+) RETURNS 	    	void
+AS $$
+BEGIN
+  IF session_user <> 'kernel' THEN
+    IF pUserId <> current_userid() THEN
+	  IF NOT CheckAccessControlList(B'00000000000100') THEN
+		PERFORM AccessDenied();
+	  END IF;
+    END IF;
+  END IF;
+
+  INSERT INTO db.profile (userid, scope, family_name, given_name, patronymic_name, locale, area, interface, email_verified, phone_verified, picture)
+  VALUES (pUserId, pScope, pFamilyName, pGivenName, pPatronymicName, pLocale, pArea, pInterface, pEmailVerified, pPhoneVerified, pPicture);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- UpdateProfile ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION UpdateProfile (
   pUserId       	uuid,
+  pScope            uuid,
   pFamilyName		text,
   pGivenName		text,
   pPatronymicName	text,
@@ -77,9 +112,69 @@ BEGIN
 		 email_verified = coalesce(pEmailVerified, email_verified),
 		 phone_verified = coalesce(pPhoneVerified, phone_verified),
 		 picture = coalesce(pPicture, picture)
-   WHERE userid = pUserId AND scope = current_scope();
+   WHERE userid = pUserId AND scope = pScope;
 
   RETURN FOUND;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- CheckUserProfile ------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION CheckUserProfile (
+  pOAuth2	bigint,
+  pUserId	uuid
+) RETURNS 	uuid
+AS $$
+DECLARE
+  r             record;
+  e             record;
+
+  uArea         uuid;
+  uScope        uuid;
+  uLocale       uuid;
+  uInterface    uuid;
+
+  arTypes       uuid[];
+BEGIN
+  FOR r IN SELECT GetOAuth2Scopes(pOAuth2) AS id
+  LOOP
+	SELECT scope INTO uScope FROM db.profile WHERE userid = pUserId AND scope = r.id;
+
+	IF NOT FOUND THEN
+	  uScope := r.id;
+	  uLocale := GetLocale(locale_code());
+
+	  IF IsUserRole('00000000-0000-4000-a000-000000000001'::uuid, pUserId) THEN -- administrator
+		arTypes := ARRAY['00000000-0000-4002-a001-000000000001'::uuid, '00000000-0000-4002-a001-000000000000'::uuid, '00000000-0000-4002-a000-000000000002'::uuid];
+		uInterface := '00000000-0000-4004-a000-000000000001'::uuid; -- administrator
+	  ELSE
+		arTypes := ARRAY['00000000-0000-4002-a000-000000000002'::uuid]; -- guest
+		uInterface := '00000000-0000-4004-a000-000000000003'::uuid; -- guest
+	  END IF;
+
+	  FOR e IN SELECT unnest(arTypes) AS type
+	  LOOP
+		SELECT id INTO uArea FROM db.area WHERE type = e.type AND scope = r.id;
+		EXIT WHEN uArea IS NOT NULL;
+	  END LOOP;
+
+	  IF uArea IS NULL THEN
+		PERFORM AccessDenied();
+	  END IF;
+
+	  INSERT INTO db.member_area (area, member) VALUES (uArea, pUserId) ON CONFLICT DO NOTHING;
+	  INSERT INTO db.member_interface (interface, member) VALUES (uInterface, pUserId) ON CONFLICT DO NOTHING;
+	  INSERT INTO db.profile (userid, scope, locale, area, interface) VALUES (pUserId, uScope, uLocale, uArea, uInterface);
+	END IF;
+
+	EXIT WHEN uScope IS NOT NULL;
+  END LOOP;
+
+  RETURN uScope;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -4107,9 +4202,6 @@ CREATE OR REPLACE FUNCTION Login (
 ) RETURNS       text
 AS $$
 DECLARE
-  r             record;
-  e             record;
-
   up            db.user%rowtype;
 
   uArea         uuid;
@@ -4162,31 +4254,17 @@ BEGIN
 
     PERFORM CheckSessionLimit(up.id);
 
-	FOR r IN SELECT GetOAuth2Scopes(pOAuth2) AS id
-	LOOP
-      SELECT scope, locale, area, interface INTO uScope, uLocale, uArea, uInterface FROM db.profile WHERE userid = up.id AND scope = r.id;
+    uScope := CheckUserProfile(pOAuth2, up.id);
 
-	  IF NOT FOUND THEN
-		FOR e IN SELECT unnest(ARRAY['00000000-0000-4002-a001-000000000001'::uuid, '00000000-0000-4002-a001-000000000000'::uuid, '00000000-0000-4002-a000-000000000002'::uuid]) AS type
-		LOOP
-		  SELECT id INTO uArea FROM db.area WHERE type = e.type AND scope = r.id;
-		  EXIT WHEN uArea IS NOT NULL;
-		END LOOP;
+	SELECT locale, area, interface INTO uLocale, uArea, uInterface FROM db.profile WHERE userid = up.id AND scope = uScope;
 
-		uLocale := GetLocale(locale_code());
-		uInterface := '00000000-0000-4004-a000-000000000003'::uuid; -- guest
-
-        INSERT INTO db.member_area (area, member) VALUES (uArea, up.id) ON CONFLICT DO NOTHING;
-        INSERT INTO db.member_interface (interface, member) VALUES (uInterface, up.id) ON CONFLICT DO NOTHING;
-        INSERT INTO db.profile (userid, scope, locale, area, interface) VALUES (up.id, r.id, uLocale, uArea, uInterface);
-	  END IF;
-
-      EXIT WHEN uScope IS NOT NULL;
-	END LOOP;
+    IF NOT FOUND THEN
+      PERFORM AccessDenied();
+	END IF;
 
     INSERT INTO db.session (oauth2, userid, locale, area, interface, agent, host)
     VALUES (pOAuth2, up.id, uLocale, uArea, uInterface, pAgent, pHost)
-    RETURNING code, area INTO vSession, uArea;
+    RETURNING code INTO vSession;
 
     IF vSession IS NULL THEN
       PERFORM AccessDenied();
@@ -4199,8 +4277,6 @@ BEGIN
     PERFORM SetOAuth2ClientId(GetAudienceCode(nAudience));
 
     UPDATE db.user SET status = set_bit(set_bit(status, 3, 0), 2, 1), lock_date = null WHERE id = up.id;
-
-	SELECT scope INTO uScope FROM db.area WHERE id = uArea;
 
     UPDATE db.profile
        SET input_error = 0,
@@ -4492,8 +4568,15 @@ CREATE OR REPLACE FUNCTION GetSession (
 AS $$
 DECLARE
   up            db.user%rowtype;
+
   uSUID         uuid;
+  uArea         uuid;
+  uScope        uuid;
+  uLocale       uuid;
+  uInterface    uuid;
+
   nAudience		integer;
+
   vSession      text;
 BEGIN
   pOAuth2 := coalesce(pOAuth2, CreateSystemOAuth2());
@@ -4536,8 +4619,24 @@ BEGIN
   SELECT code INTO vSession FROM db.session WHERE userid = up.id;
 
   IF NOT FOUND OR pNew THEN
-    INSERT INTO db.session (oauth2, suid, userid, agent, host)
-    VALUES (pOAuth2, uSUID, up.id, pAgent, pHost)
+    uScope := CheckUserProfile(pOAuth2, up.id);
+
+	SELECT locale, area, interface INTO uLocale, uArea, uInterface FROM db.profile WHERE userid = up.id AND scope = uScope;
+
+    IF NOT FOUND THEN
+      PERFORM AccessDenied();
+	END IF;
+
+    uScope := CheckUserProfile(pOAuth2, up.id);
+
+	SELECT locale, area, interface INTO uLocale, uArea, uInterface FROM db.profile WHERE userid = up.id AND scope = uScope;
+
+    IF NOT FOUND THEN
+      PERFORM AccessDenied();
+	END IF;
+
+    INSERT INTO db.session (oauth2, userid, locale, area, interface, agent, host)
+    VALUES (pOAuth2, up.id, uLocale, uArea, uInterface, pAgent, pHost)
     RETURNING code INTO vSession;
   END IF;
 
