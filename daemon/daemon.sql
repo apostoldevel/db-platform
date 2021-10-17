@@ -294,6 +294,7 @@ DECLARE
 
   vSecret       text;
   vSession      text;
+  vOAuthSession text;
 
   vMessage      text;
   vContext      text;
@@ -335,9 +336,9 @@ BEGIN
       PERFORM TokenExpired();
     END IF;
 
-    vSession := SignIn(CreateOAuth2(nAudience, asScopes), claim.aud, vSecret, pAgent, pHost);
+    vOAuthSession := SignIn(CreateOAuth2(nAudience, asScopes), claim.aud, vSecret, pAgent, pHost);
 
-    IF vSession IS NULL THEN
+    IF vOAuthSession IS NULL THEN
       RAISE EXCEPTION '%', GetErrorMessage();
     END IF;
 
@@ -378,11 +379,11 @@ BEGIN
         INSERT INTO db.auth (userId, audience, code) VALUES (uUserId, nAudience, account.username);
       END IF;
 
-      PERFORM SignOut(vSession);
-
       SELECT id INTO nAudience FROM oauth2.audience WHERE provider = GetProvider('default') AND application = nApplication;
 
       vSession := GetSession(uUserId, CreateOAuth2(nAudience, asScopes), pAgent, pHost, true, false);
+
+      PERFORM SignOut(vOAuthSession);
 
       IF vSession IS NULL THEN
         RAISE EXCEPTION '%', GetErrorMessage();
