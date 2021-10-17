@@ -60,14 +60,6 @@ CREATE OR REPLACE FUNCTION CreateProfile (
 ) RETURNS 	    	void
 AS $$
 BEGIN
-  IF session_user <> 'kernel' THEN
-    IF pUserId <> current_userid() THEN
-	  IF NOT CheckAccessControlList(B'00000000000100') THEN
-		PERFORM AccessDenied();
-	  END IF;
-    END IF;
-  END IF;
-
   INSERT INTO db.profile (userid, scope, family_name, given_name, patronymic_name, locale, area, interface, email_verified, phone_verified, picture)
   VALUES (pUserId, pScope, pFamilyName, pGivenName, pPatronymicName, pLocale, pArea, pInterface, pEmailVerified, pPhoneVerified, pPicture);
 END;
@@ -94,14 +86,6 @@ CREATE OR REPLACE FUNCTION UpdateProfile (
 ) RETURNS 	    	boolean
 AS $$
 BEGIN
-  IF session_user <> 'kernel' THEN
-    IF pUserId <> current_userid() THEN
-	  IF NOT CheckAccessControlList(B'00000000001000') THEN
-		PERFORM AccessDenied();
-	  END IF;
-    END IF;
-  END IF;
-
   UPDATE db.profile
 	 SET family_name = coalesce(pFamilyName, family_name),
 	     given_name = coalesce(pGivenName, given_name),
@@ -133,6 +117,7 @@ DECLARE
   r             record;
   e             record;
 
+  uRoot         uuid;
   uArea         uuid;
   uScope        uuid;
   uLocale       uuid;
@@ -158,12 +143,20 @@ BEGIN
 
 	  FOR e IN SELECT unnest(arTypes) AS type
 	  LOOP
-		SELECT id INTO uArea FROM db.area WHERE type = e.type AND scope = r.id;
+		SELECT id INTO uArea FROM db.area WHERE type = e.type AND scope = uScope;
 		EXIT WHEN uArea IS NOT NULL;
 	  END LOOP;
 
 	  IF uArea IS NULL THEN
-		PERFORM AccessDenied();
+	    uRoot := GetAreaRoot(uScope);
+
+	    IF uRoot IS NULL THEN
+          INSERT INTO db.area (id, parent, type, code, name, description, validfromdate, validtodate, scope, level, sequence)
+          VALUES (gen_kernel_uuid('8'), null, '00000000-0000-4002-a000-000000000000', 'R-' || uScope, 'Root', null, Now(), MAXDATE(), uScope, 0, 1);
+		END IF;
+
+        INSERT INTO db.area (id, parent, type, code, name, description, validfromdate, validtodate, scope, level, sequence)
+        VALUES (gen_kernel_uuid('8'), uRoot, '00000000-0000-4002-a000-000000000002', 'G-' || uScope, 'Guest', null, Now(), MAXDATE(), uScope, 1, 1);
 	  END IF;
 
 	  INSERT INTO db.member_area (area, member) VALUES (uArea, pUserId) ON CONFLICT DO NOTHING;

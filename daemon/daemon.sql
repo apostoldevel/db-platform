@@ -274,6 +274,7 @@ DECLARE
   account       db.user%rowtype;
   profile       db.profile%rowtype;
 
+  uId           uuid;
   uUserId       uuid;
   uScope        uuid;
 
@@ -328,7 +329,7 @@ BEGIN
   SELECT oauth2 INTO nOAuth2 FROM db.session WHERE code = current_session();
   SELECT scopes INTO asScopes FROM db.oauth2 WHERE id = nOAuth2;
 
-  SELECT id INTO uScope FROM current_scopes() AS id LIMIT 1;
+  SELECT id INTO uScope FROM GetOAuth2Scopes(nOAuth2) AS id LIMIT 1;
 
   FOR claim IN SELECT * FROM json_to_record(token.payload) AS x(iss text, aud text, sub text, exp double precision, nbf double precision, iat double precision, jti text)
   LOOP
@@ -356,9 +357,7 @@ BEGIN
 
           profile.scope := uScope;
           profile.locale := GetLocale(google.locale);
-
-          SELECT id INTO profile.area FROM db.area WHERE scope = uScope AND type = '00000000-0000-4002-a000-000000000002';
-
+          profile.area := GetAreaGuest(uScope);
           profile.interface := '00000000-0000-4004-a000-000000000003'::uuid;
           profile.given_name := google.given_name;
           profile.family_name := google.family_name;
@@ -378,6 +377,12 @@ BEGIN
 
         INSERT INTO db.auth (userId, audience, code) VALUES (uUserId, nAudience, account.username);
       END IF;
+
+      SELECT userId INTO uId FROM db.profile WHERE userid = uUserId AND scope = uScope;
+
+      IF NOT FOUND THEN
+		PERFORM CreateProfile(uUserId, uScope, profile.family_name, profile.given_name, null, profile.locale, profile.area, profile.interface, profile.email_verified, profile.phone_verified, profile.picture);
+	  END IF;
 
       SELECT id INTO nAudience FROM oauth2.audience WHERE provider = GetProvider('default') AND application = nApplication;
 
