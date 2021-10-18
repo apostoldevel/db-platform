@@ -349,7 +349,7 @@ CREATE OR REPLACE FUNCTION db.ft_profile_before()
 RETURNS trigger AS $$
 BEGIN
   IF NEW.locale IS NULL THEN
-    SELECT id INTO NEW.locale FROM db.locale WHERE code = 'ru';
+    SELECT id INTO NEW.locale FROM db.locale WHERE code = locale_code();
   END IF;
 
   IF NEW.scope IS NULL THEN
