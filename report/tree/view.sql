@@ -3,11 +3,14 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE VIEW ReportTree (Id, Reference, Entity, Class, Type,
-  Root, Node, Level, Sequence, Code, Name, Description
+  Root, Node, Level, Sequence,
+  Code, Name, Description,
+  Scope, ScopeCode, ScopeName, ScopeDescription
 )
 AS
   SELECT t.id, t.reference, r.entity, r.class, r.type,
-         t.root, t.node, t.level, t.sequence, r.code, r.name, r.description
+         t.root, t.node, t.level, t.sequence, r.code, r.name, r.description,
+         r.scope, r.scopecode, r.scopename, r.scopedescription
     FROM db.report_tree t INNER JOIN Reference r ON t.reference = r.id;
 
 GRANT SELECT ON ReportTree TO administrator;
@@ -31,16 +34,15 @@ GRANT SELECT ON AccessReportTree TO administrator;
 
 CREATE OR REPLACE VIEW ObjectReportTree
 AS
-  SELECT t.id, r.object, o.parent,
-         o.entity, o.entitycode, o.entityname,
-         o.class, o.classcode, o.classlabel,
-         o.type, o.typecode, o.typename, o.typedescription,
+  SELECT t.id, r.object, r.parent,
+         r.entity, r.entitycode, r.entityname,
+         r.class, r.classcode, r.classlabel,
+         r.type, r.typecode, r.typename, r.typedescription,
          t.root, t.node, t.level, t.sequence,
-         r.code, r.name, o.label, r.description,
-         o.statetype, o.statetypecode, o.statetypename,
-         o.state, o.statecode, o.statelabel, o.lastupdate,
-         o.owner, o.ownercode, o.ownername, o.created,
-         o.oper, o.opercode, o.opername, o.operdate,
+         r.code, r.name, r.label, r.description,
+         r.statetype, r.statetypecode, r.statetypename,
+         r.state, r.statecode, r.statelabel, r.lastupdate,
+         r.owner, r.ownercode, r.ownername, r.created,
+         r.oper, r.opercode, r.opername, r.operdate,
          r.scope, r.scopecode, r.scopename, r.scopedescription
-    FROM AccessReportTree t INNER JOIN Reference r ON t.reference = r.id
-                            INNER JOIN Object    o ON t.reference = o.id;
+    FROM AccessReportTree t INNER JOIN ObjectReference r ON t.reference = r.id;

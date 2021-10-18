@@ -36,22 +36,21 @@ GRANT SELECT ON AccessJob TO administrator;
 
 CREATE OR REPLACE VIEW ObjectJob
 AS
-  SELECT j.id, d.object, o.parent,
-         o.entity, o.entitycode, o.entityname,
-         o.class, o.classcode, o.classlabel,
-         o.type, o.typecode, o.typename, o.typedescription,
-         j.scheduler, j.schedulercode, j.schedulername,
-         j.datestart, j.datestop, j.period, j.daterun,
-         j.program, j.programcode, j.programname,
-         j.code, o.label, d.description,
-         o.statetype, o.statetypecode, o.statetypename,
-         o.state, o.statecode, o.statelabel, o.lastupdate,
-         o.owner, o.ownercode, o.ownername, o.created,
-         o.oper, o.opercode, o.opername, o.operdate,
+  SELECT t.id, d.object, d.parent,
+         d.entity, d.entitycode, d.entityname,
+         d.class, d.classcode, d.classlabel,
+         d.type, d.typecode, d.typename, d.typedescription,
+         t.scheduler, t.schedulercode, t.schedulername,
+         t.datestart, t.datestop, t.period, t.daterun,
+         t.program, t.programcode, t.programname,
+         t.code, d.label, d.description,
+         d.statetype, d.statetypecode, d.statetypename,
+         d.state, d.statecode, d.statelabel, d.lastupdate,
+         d.owner, d.ownercode, d.ownername, d.created,
+         d.oper, d.opercode, d.opername, d.operdate,
          d.area, d.areacode, d.areaname, d.areadescription,
          d.scope, d.scopecode, d.scopename, d.scopedescription
-    FROM AccessJob j INNER JOIN Document d ON j.document = d.id
-                     INNER JOIN Object   o ON j.document = o.id;
+    FROM AccessJob t INNER JOIN ObjectDocument d ON t.document = d.id;
 
 GRANT SELECT ON ObjectJob TO administrator;
 
@@ -61,21 +60,21 @@ GRANT SELECT ON ObjectJob TO administrator;
 
 CREATE OR REPLACE VIEW ServiceJob
 AS
-  SELECT j.id, d.object, o.parent,
+  SELECT t.id, d.object, o.parent,
          o.entity, o.entitycode, o.entityname,
          o.class, o.classcode, o.classlabel,
          o.type, o.typecode, o.typename, o.typedescription,
-         j.scheduler, j.schedulercode, j.schedulername,
-         j.datestart, j.datestop, j.period, j.daterun,
-         j.program, j.programcode, j.programname,
-         j.code, o.label, d.description,
+         t.scheduler, t.schedulercode, t.schedulername,
+         t.datestart, t.datestop, t.period, t.daterun,
+         t.program, t.programcode, t.programname,
+         t.code, o.label, d.description,
          o.statetype, o.statetypecode, o.statetypename,
          o.state, o.statecode, o.statelabel, o.lastupdate,
          o.owner, o.ownercode, o.ownername, o.created,
          o.oper, o.opercode, o.opername, o.operdate,
          d.area, d.areacode, d.areaname, d.areadescription,
          d.scope, d.scopecode, d.scopename, d.scopedescription
-    FROM Job j INNER JOIN Documents d ON j.document = d.id
-               INNER JOIN Object    o ON j.document = o.id;
+    FROM Job t INNER JOIN Document d ON t.document = d.id
+               INNER JOIN Object   o ON t.document = o.id;
 
 GRANT SELECT ON ServiceJob TO administrator;

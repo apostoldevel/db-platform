@@ -6,6 +6,23 @@ CREATE OR REPLACE VIEW Document (Id, Object, Entity, Class, Type, Area, Descript
   AreaCode, AreaName, AreaDescription,
   Scope, ScopeCode, ScopeName, ScopeDescription
 ) AS
+  SELECT d.id, d.object, d.entity, d.class, d.type, d.area, dt.description,
+         a.code, a.name, a.description,
+         a.scope, s.code, s.name, s.description
+    FROM db.document d INNER JOIN db.area           a ON d.area = a.id
+                       INNER JOIN db.scope          s ON s.id = a.scope
+                        LEFT JOIN db.document_text dt ON d.id = dt.document AND dt.locale = current_locale();
+
+GRANT SELECT ON Document TO administrator;
+
+--------------------------------------------------------------------------------
+-- CurrentDocument -------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW CurrentDocument (Id, Object, Entity, Class, Type, Area, Description,
+  AreaCode, AreaName, AreaDescription,
+  Scope, ScopeCode, ScopeName, ScopeDescription
+) AS
   WITH RECURSIVE _area_tree(id, parent) AS (
     SELECT id, parent FROM db.area WHERE type = '00000000-0000-4002-a001-000000000000' AND scope IS NOT DISTINCT FROM current_scope() AND id IS DISTINCT FROM current_area()
      UNION
@@ -13,7 +30,7 @@ CREATE OR REPLACE VIEW Document (Id, Object, Entity, Class, Type, Area, Descript
      UNION
     SELECT a.id, a.parent
       FROM db.area a INNER JOIN _area_tree t ON a.parent = t.id
-     WHERE a.type IS DISTINCT FROM '00000000-0000-4002-a001-000000000000'
+     WHERE a.type IS DISTINCT FROM '00000000-0000-4002-a001-000000000000' AND scope IS NOT DISTINCT FROM current_scope()
   )
   SELECT d.id, d.object, d.entity, d.class, d.type, d.area, dt.description,
          a.code, a.name, a.description,
@@ -23,24 +40,7 @@ CREATE OR REPLACE VIEW Document (Id, Object, Entity, Class, Type, Area, Descript
                        INNER JOIN db.scope          s ON s.id = a.scope
                         LEFT JOIN db.document_text dt ON d.id = dt.document AND dt.locale = current_locale();
 
-GRANT SELECT ON Document TO administrator;
-
---------------------------------------------------------------------------------
--- Documents -------------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE VIEW Documents (Id, Object, Entity, Class, Type, Area, Description,
-  AreaCode, AreaName, AreaDescription,
-  Scope, ScopeCode, ScopeName, ScopeDescription
-) AS
-  SELECT d.id, d.object, d.entity, d.class, d.type, d.area, dt.description,
-         a.code, a.name, a.description,
-         a.scope, s.code, s.name, s.description
-    FROM db.document d INNER JOIN db.area           a ON d.area = a.id
-                       INNER JOIN db.scope          s ON s.id = a.scope
-                        LEFT JOIN db.document_text dt ON d.id = dt.document AND dt.locale = current_locale();
-
-GRANT SELECT ON Documents TO administrator;
+GRANT SELECT ON CurrentDocument TO administrator;
 
 --------------------------------------------------------------------------------
 -- ObjectDocument --------------------------------------------------------------
@@ -70,7 +70,7 @@ AS
          o.oper, o.opercode, o.opername, o.operdate,
          d.area, d.areacode, d.areaname, d.areadescription,
          d.scope, d.scopecode, d.scopename, d.scopedescription
-    FROM Document d INNER JOIN Object o ON o.id = d.object;
+    FROM CurrentDocument d INNER JOIN Object o ON o.id = d.object;
 
 GRANT SELECT ON ObjectDocument TO administrator;
 

@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- Reference -------------------------------------------------------------------
+-- REFERENCE -------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE VIEW Reference
@@ -7,10 +7,19 @@ AS
   SELECT r.id, r.object, r.entity, r.class, r.type, r.code, rt.name, rt.description,
          r.scope, s.code AS scopecode, s.name AS scopename, s.description AS scopedescription
     FROM db.reference r INNER JOIN db.scope s ON s.id = r.scope
-                         LEFT JOIN db.reference_text rt ON r.id = rt.reference AND rt.locale = current_locale()
-   WHERE r.scope = current_scope();
+                         LEFT JOIN db.reference_text rt ON r.id = rt.reference AND rt.locale = current_locale();
 
 GRANT SELECT ON Reference TO administrator;
+
+--------------------------------------------------------------------------------
+-- CurrentReference ------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW CurrentReference
+AS
+  SELECT * FROM Reference WHERE scope = current_scope();
+
+GRANT SELECT ON CurrentReference TO administrator;
 
 --------------------------------------------------------------------------------
 -- ObjectReference -------------------------------------------------------------
@@ -38,7 +47,7 @@ AS
          o.owner, o.ownercode, o.ownername, o.created,
          o.oper, o.opercode, o.opername, o.operdate,
          r.scope, r.scopecode, r.scopename, r.scopedescription
-    FROM Reference r INNER JOIN Object o ON r.object = o.id;
+    FROM CurrentReference r INNER JOIN Object o ON r.object = o.id;
 
 GRANT SELECT ON ObjectReference TO administrator;
 

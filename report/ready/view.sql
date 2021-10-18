@@ -31,18 +31,17 @@ GRANT SELECT ON AccessReportReady TO administrator;
 
 CREATE OR REPLACE VIEW ObjectReportReady
 AS
-  SELECT o.id, d.object, o.parent,
-         o.entity, o.entitycode, o.entityname,
-         o.class, o.classcode, o.classlabel,
-         o.type, o.typecode, o.typename, o.typedescription,
-         r.report, r.reportcode, r.reportname, r.reportdescription,
-         r.form, o.label, d.description,
-         o.statetype, o.statetypecode, o.statetypename,
-         o.state, o.statecode, o.statelabel, o.lastupdate,
-         o.owner, o.ownercode, o.ownername, o.created,
-         o.oper, o.opercode, o.opername, o.operdate,
+  SELECT t.id, d.object, d.parent,
+         d.entity, d.entitycode, d.entityname,
+         d.class, d.classcode, d.classlabel,
+         d.type, d.typecode, d.typename, d.typedescription,
+         t.report, t.reportcode, t.reportname, t.reportdescription,
+         t.form, d.label, d.description,
+         d.statetype, d.statetypecode, d.statetypename,
+         d.state, d.statecode, d.statelabel, d.lastupdate,
+         d.owner, d.ownercode, d.ownername, d.created,
+         d.oper, d.opercode, d.opername, d.operdate,
          d.area, d.areacode, d.areaname, d.areadescription
-    FROM AccessReportReady r INNER JOIN Document d ON r.document = d.id
-                             INNER JOIN Object   o ON r.document = o.id;
+    FROM AccessReportReady t INNER JOIN ObjectDocument d ON t.document = d.id;
 
 GRANT SELECT ON ObjectReportReady TO administrator;

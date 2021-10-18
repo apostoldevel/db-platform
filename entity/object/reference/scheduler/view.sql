@@ -3,12 +3,14 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE VIEW Scheduler (Id, Reference, Code, Name, Description,
-  Period, DateStart, DateStop
+  Period, DateStart, DateStop,
+  Scope, ScopeCode, ScopeName, ScopeDescription
 )
 AS
-  SELECT s.id, s.reference, d.code, d.name, d.description,
-         s.period, s.dateStart, s.dateStop
-    FROM db.scheduler s INNER JOIN Reference d ON s.reference = d.id;
+  SELECT s.id, s.reference, r.code, r.name, r.description,
+         s.period, s.dateStart, s.dateStop,
+         r.scope, r.scopecode, r.scopename, r.scopedescription
+    FROM db.scheduler s INNER JOIN Reference r ON s.reference = r.id;
 
 GRANT SELECT ON Scheduler TO administrator;
 
@@ -42,18 +44,17 @@ CREATE OR REPLACE VIEW ObjectScheduler (Id, Object, Parent,
   Scope, ScopeCode, ScopeName, ScopeDescription
 )
 AS
-  SELECT s.id, r.object, o.parent,
-         o.entity, o.entitycode, o.entityname,
-         o.class, o.classcode, o.classlabel,
-         o.type, o.typecode, o.typename, o.typedescription,
-         r.code, r.name, o.label, r.description,
-         s.period, s.datestart, s.datestop,
-         o.statetype, o.statetypecode, o.statetypename,
-         o.state, o.statecode, o.statelabel, o.lastupdate,
-         o.owner, o.ownercode, o.ownername, o.created,
-         o.oper, o.opercode, o.opername, o.operdate,
+  SELECT t.id, r.object, r.parent,
+         r.entity, r.entitycode, r.entityname,
+         r.class, r.classcode, r.classlabel,
+         r.type, r.typecode, r.typename, r.typedescription,
+         r.code, r.name, r.label, r.description,
+         t.period, t.datestart, t.datestop,
+         r.statetype, r.statetypecode, r.statetypename,
+         r.state, r.statecode, r.statelabel, r.lastupdate,
+         r.owner, r.ownercode, r.ownername, r.created,
+         r.oper, r.opercode, r.opername, r.operdate,
          r.scope, r.scopecode, r.scopename, r.scopedescription
-    FROM AccessScheduler s INNER JOIN Reference r ON s.reference = r.id
-                           INNER JOIN Object    o ON s.reference = o.id;
+    FROM AccessScheduler t INNER JOIN ObjectReference r ON t.reference = r.id;
 
 GRANT SELECT ON ObjectScheduler TO administrator;

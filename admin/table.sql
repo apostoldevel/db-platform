@@ -353,11 +353,17 @@ BEGIN
   END IF;
 
   IF NEW.scope IS NULL THEN
-    NEW.scope := current_scope();
+    SELECT current_scope() INTO NEW.scope;
   END IF;
 
+  SELECT id INTO NEW.area FROM db.area WHERE id = NEW.area AND scope = NEW.scope;
+
   IF NOT IsMemberArea(NEW.area, NEW.userid) THEN
-    SELECT '00000000-0000-4003-a000-000000000002' INTO NEW.area; -- guest
+    SELECT GetAreaGuest(NEW.scope) INTO NEW.area; -- guest
+  END IF;
+
+  IF NEW.area IS NULL THEN
+    SELECT OLD.area INTO NEW.area;
   END IF;
 
   IF NOT IsMemberInterface(NEW.interface, NEW.userid) THEN
@@ -418,7 +424,7 @@ BEGIN
 
   FOR r IN SELECT area, host FROM db.session WHERE userid = uUserId GROUP BY area, host
   LOOP
-    r.host := coalesce(NEW.LC_IP, r.host);
+    r.host := coalesce(NEW.lc_ip, r.host);
 
     IF r.host IS NOT NULL THEN
 
@@ -501,6 +507,7 @@ $$ LANGUAGE plpgsql
 CREATE TRIGGER t_profile_login_state
   BEFORE UPDATE ON db.profile
   FOR EACH ROW
+  WHEN (OLD.lc_ip IS DISTINCT FROM NEW.lc_ip)
   EXECUTE PROCEDURE ft_profile_login_state();
 
 --------------------------------------------------------------------------------

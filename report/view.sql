@@ -5,13 +5,15 @@
 CREATE OR REPLACE VIEW Report (Id, Reference, Entity, Class, Type,
   Tree, TreeCode, TreeName, TreeDescription,
   Form, FormCode, FormName, FormDescription,
-  Code, Name, Description, Info
+  Code, Name, Description, Info,
+  Scope, ScopeCode, ScopeName, ScopeDescription
 )
 AS
   SELECT p.id, p.reference, r.entity, r.class, r.type,
          p.tree, t.code, t.name, t.description,
          p.form, f.code, f.name, f.description,
-         r.code, r.name, r.description, p.info
+         r.code, r.name, r.description, p.info,
+         r.scope, r.scopecode, r.scopename, r.scopedescription
     FROM db.report p INNER JOIN Reference  r ON p.reference = r.id
                      INNER JOIN ReportTree t ON p.tree = t.id
                       LEFT JOIN ReportForm f ON p.form = f.id;
@@ -37,19 +39,18 @@ GRANT SELECT ON AccessReport TO administrator;
 
 CREATE OR REPLACE VIEW ObjectReport
 AS
-  SELECT p.id, r.object, o.parent,
-         o.entity, o.entitycode, o.entityname,
-         o.class, o.classcode, o.classlabel,
-         o.type, o.typecode, o.typename, o.typedescription,
-         p.tree, p.treecode, p.treename, p.treedescription,
-         p.form, p.formcode, p.formname, p.formdescription,
-         r.code, r.name, o.label, r.description, p.info,
-         o.statetype, o.statetypecode, o.statetypename,
-         o.state, o.statecode, o.statelabel, o.lastupdate,
-         o.owner, o.ownercode, o.ownername, o.created,
-         o.oper, o.opercode, o.opername, o.operdate,
+  SELECT t.id, r.object, r.parent,
+         r.entity, r.entitycode, r.entityname,
+         r.class, r.classcode, r.classlabel,
+         r.type, r.typecode, r.typename, r.typedescription,
+         t.tree, t.treecode, t.treename, t.treedescription,
+         t.form, t.formcode, t.formname, t.formdescription,
+         r.code, r.name, r.label, r.description, t.info,
+         r.statetype, r.statetypecode, r.statetypename,
+         r.state, r.statecode, r.statelabel, r.lastupdate,
+         r.owner, r.ownercode, r.ownername, r.created,
+         r.oper, r.opercode, r.opername, r.operdate,
          r.scope, r.scopecode, r.scopename, r.scopedescription
-    FROM AccessReport p INNER JOIN Reference r ON p.reference = r.id
-                        INNER JOIN Object    o ON p.reference = o.id;
+    FROM AccessReport t INNER JOIN ObjectReference r ON t.reference = r.id;
 
 GRANT SELECT ON ObjectReport TO administrator;

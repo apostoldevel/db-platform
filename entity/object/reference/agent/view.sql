@@ -3,13 +3,15 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE VIEW Agent (Id, Reference, Code, Name, Description,
-    Vendor, VendorCode, VendorName, VendorDescription
+  Vendor, VendorCode, VendorName, VendorDescription,
+  Scope, ScopeCode, ScopeName, ScopeDescription
 )
 AS
-  SELECT a.id, a.reference, mr.code, mr.name, mr.description, a.vendor,
-         vr.code, vr.name, vr.description
-    FROM db.agent a INNER JOIN Reference mr ON a.reference = mr.id
-                    INNER JOIN Reference vr ON a.vendor = vr.id;
+  SELECT a.id, a.reference, r.code, r.name, r.description, a.vendor,
+         v.code, v.name, v.description,
+         r.scope, r.scopecode, r.scopename, r.scopedescription
+    FROM db.agent a INNER JOIN Reference  r ON a.reference = r.id
+                    INNER JOIN Reference  v ON a.vendor = v.id;
 
 GRANT SELECT ON Agent TO administrator;
 
@@ -43,18 +45,17 @@ CREATE OR REPLACE VIEW ObjectAgent (Id, Object, Parent,
   Scope, ScopeCode, ScopeName, ScopeDescription
 )
 AS
-  SELECT a.id, o.id, o.parent,
-         o.entity, o.entitycode, o.entityname,
-         o.class, o.classcode, o.classlabel,
-         o.type, o.typecode, o.typename, o.typedescription,
-         r.code, r.name, o.label, r.description,
-         a.vendor, a.vendorcode, a.vendorname, a.vendordescription,
-         o.statetype, o.statetypecode, o.statetypename,
-         o.state, o.statecode, o.statelabel, o.lastupdate,
-         o.owner, o.ownercode, o.ownername, o.created,
-         o.oper, o.opercode, o.opername, o.operdate,
+  SELECT t.id, r.id, r.parent,
+         r.entity, r.entitycode, r.entityname,
+         r.class, r.classcode, r.classlabel,
+         r.type, r.typecode, r.typename, r.typedescription,
+         r.code, r.name, r.label, r.description,
+         t.vendor, t.vendorcode, t.vendorname, t.vendordescription,
+         r.statetype, r.statetypecode, r.statetypename,
+         r.state, r.statecode, r.statelabel, r.lastupdate,
+         r.owner, r.ownercode, r.ownername, r.created,
+         r.oper, r.opercode, r.opername, r.operdate,
          r.scope, r.scopecode, r.scopename, r.scopedescription
-    FROM AccessAgent a INNER JOIN Reference r ON a.reference = r.id
-                       INNER JOIN Object    o ON a.reference = o.id;
+    FROM AccessAgent t INNER JOIN ObjectReference r ON t.reference = r.id;
 
 GRANT SELECT ON ObjectAgent TO administrator;
