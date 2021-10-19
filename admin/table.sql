@@ -299,8 +299,8 @@ CREATE TRIGGER t_user_before_delete
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.profile (
-    userId              uuid REFERENCES db.user(id) ON DELETE CASCADE,
-    scope               uuid REFERENCES db.scope(id) ON DELETE RESTRICT,
+    userId              uuid NOT NULL REFERENCES db.user(id) ON DELETE CASCADE,
+    scope               uuid NOT NULL REFERENCES db.scope(id) ON DELETE RESTRICT,
     family_name         text,
     given_name          text,
     patronymic_name     text,
@@ -360,6 +360,7 @@ BEGIN
 
   IF NOT IsMemberArea(NEW.area, NEW.userid) THEN
     SELECT GetAreaGuest(NEW.scope) INTO NEW.area; -- guest
+    INSERT INTO db.member_area (area, member) VALUES (NEW.area, NEW.userid) ON CONFLICT DO NOTHING;
   END IF;
 
   IF NEW.area IS NULL THEN

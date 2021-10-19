@@ -255,12 +255,14 @@ $$ LANGUAGE plpgsql
  * @param {text} pToken - JWT
  * @param {text} pAgent - Агент
  * @param {inet} pHost - IP адрес
+ * @param {text} pScope - Область видимости
  * @return {SETOF json} - Записи в JSON
  */
 CREATE OR REPLACE FUNCTION daemon.login (
   pToken        text,
   pAgent        text DEFAULT null,
-  pHost         inet DEFAULT null
+  pHost         inet DEFAULT null,
+  pScope        text DEFAULT null
 ) RETURNS       SETOF json
 AS $$
 DECLARE
@@ -277,9 +279,6 @@ DECLARE
   uId           uuid;
   uUserId       uuid;
   uScope        uuid;
-
-  nOAuth2       bigint;
-  asScopes      text[];
 
   nProvider     integer;
   nAudience     integer;
@@ -326,22 +325,19 @@ BEGIN
     PERFORM TokenError();
   END IF;
 
-  SELECT oauth2 INTO nOAuth2 FROM db.session WHERE code = current_session();
-  SELECT scopes INTO asScopes FROM db.oauth2 WHERE id = nOAuth2;
-
-  SELECT id INTO uScope FROM GetOAuth2Scopes(nOAuth2) AS id LIMIT 1;
-
   FOR claim IN SELECT * FROM json_to_record(token.payload) AS x(iss text, aud text, sub text, exp double precision, nbf double precision, iat double precision, jti text)
   LOOP
     IF claim.exp <= trunc(extract(EPOCH FROM Now())) THEN
       PERFORM TokenExpired();
     END IF;
 
-    vOAuthSession := SignIn(CreateOAuth2(nAudience, asScopes), claim.aud, vSecret, pAgent, pHost);
+    vOAuthSession := SignIn(CreateOAuth2(nAudience, pScope), claim.aud, vSecret, pAgent, pHost);
 
     IF vOAuthSession IS NULL THEN
       RAISE EXCEPTION '%', GetErrorMessage();
     END IF;
+
+    uScope := current_scope();
 
     SELECT p.type, p.code INTO vProviderType, vProviderCode FROM oauth2.provider p WHERE p.id = nProvider;
 
@@ -386,7 +382,7 @@ BEGIN
 
       SELECT id INTO nAudience FROM oauth2.audience WHERE provider = GetProvider('default') AND application = nApplication;
 
-      vSession := GetSession(uUserId, CreateOAuth2(nAudience, asScopes), pAgent, pHost, true, false);
+      vSession := GetSession(uUserId, CreateOAuth2(nAudience, pScope), pAgent, pHost, true, false);
 
       PERFORM SignOut(vOAuthSession);
 

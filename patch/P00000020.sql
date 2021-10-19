@@ -6,6 +6,10 @@ DROP VIEW IF EXISTS CatalogTree CASCADE;
 DROP VIEW IF EXISTS LibraryTree CASCADE;
 DROP VIEW IF EXISTS SpecificationTree CASCADE;
 
+-- DAEMON
+
+DROP FUNCTION IF EXISTS daemon.login(text, text, inet);
+
 --
 
 CREATE OR REPLACE FUNCTION db.ft_profile_before()

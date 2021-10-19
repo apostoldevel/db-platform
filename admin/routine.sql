@@ -757,7 +757,7 @@ DECLARE
 BEGIN
   IF NULLIF(pScope, '') IS NOT NULL THEN
 
-    arScopes := array_cat(arScopes, ARRAY['api']);
+    arScopes := array_cat(arScopes, ARRAY[current_database()::text]);
 
 	FOR r IN SELECT code FROM db.scope
 	LOOP
@@ -811,10 +811,6 @@ DECLARE
 BEGIN
   pAccessType := coalesce(pAccessType, 'online');
 
-  IF pScopes && ARRAY['api'] THEN
-	pScopes := ARRAY[current_database()];
-  END IF;
-
   INSERT INTO db.oauth2 (audience, scopes, access_type, redirect_uri, state)
   VALUES (pAudience, pScopes, pAccessType, pRedirectURI, pState)
   RETURNING id INTO nId;
@@ -838,6 +834,7 @@ CREATE OR REPLACE FUNCTION CreateOAuth2 (
 ) RETURNS       bigint
 AS $$
 BEGIN
+  pScope := coalesce(NULLIF(pScope, 'http://localhost:8080'), current_database()::text);
   pAccessType := coalesce(pAccessType, 'online');
   RETURN CreateOAuth2(pAudience, ScopeToArray(pScope), pAccessType, pRedirectURI, pState);
 END;

@@ -50,7 +50,7 @@ DECLARE
   vSession      text;
   vUserName     text;
 BEGIN
-  SELECT code, userid INTO vSession, uUserId FROM db.session WHERE code = GetCurrentSession();
+  SELECT code, userid INTO vSession, uUserId FROM db.session WHERE code = current_session();
 
   IF FOUND THEN
     SELECT username INTO vUserName FROM db.user WHERE id = uUserId;

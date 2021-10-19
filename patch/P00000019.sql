@@ -90,4 +90,7 @@ ALTER TABLE db.profile DROP CONSTRAINT profile_pkey;
 
 ALTER TABLE db.profile ADD CONSTRAINT profile_pkey PRIMARY KEY (userid, scope);
 
+ALTER TABLE db.profile
+	ALTER COLUMN scope SET NOT NULL;
+
 COMMENT ON COLUMN db.profile.scope IS 'Область видимости базы данных';
