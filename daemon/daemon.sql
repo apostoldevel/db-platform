@@ -337,11 +337,11 @@ BEGIN
       RAISE EXCEPTION '%', GetErrorMessage();
     END IF;
 
-    uScope := current_scope();
-
     SELECT p.type, p.code INTO vProviderType, vProviderCode FROM oauth2.provider p WHERE p.id = nProvider;
 
     IF vProviderType = 'E' THEN
+
+      uScope := current_scope();
 
       account.username := claim.sub;
 
@@ -384,14 +384,16 @@ BEGIN
 
       vSession := GetSession(uUserId, CreateOAuth2(nAudience, pScope), pAgent, pHost, true, false);
 
-      PERFORM SignOut(vOAuthSession);
-
       IF vSession IS NULL THEN
         RAISE EXCEPTION '%', GetErrorMessage();
       END IF;
-    END IF;
 
-    RETURN NEXT CreateToken(nAudience, oauth2_current_code(vSession));
+      PERFORM SignOut(vOAuthSession);
+
+      RETURN NEXT CreateToken(nAudience, oauth2_current_code(vSession));
+    ELSE
+      RETURN NEXT CreateToken(nAudience, oauth2_current_code(vOAuthSession));
+    END IF;
   END LOOP;
 
   RETURN;
@@ -547,7 +549,7 @@ BEGIN
 
   IF grant_type = 'urn:ietf:params:oauth:grant-type:jwt-bearer' THEN
     assertion := pPayload->>'assertion';
-    RETURN daemon.login(assertion, pAgent, pHost);
+    RETURN daemon.login(assertion, pAgent, pHost, current_database());
   END IF;
 
   SELECT a.id INTO nAudience FROM oauth2.audience a WHERE a.code = pClientId;
