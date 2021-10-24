@@ -13,9 +13,9 @@ CREATE TABLE db.object (
     suid		uuid NOT NULL REFERENCES db.user(id),
     owner		uuid NOT NULL REFERENCES db.user(id),
     oper		uuid NOT NULL REFERENCES db.user(id),
-    pdate		timestamp NOT NULL DEFAULT Now(),
-    ldate		timestamp NOT NULL DEFAULT Now(),
-    udate		timestamp NOT NULL DEFAULT Now()
+    pdate		timestamptz NOT NULL DEFAULT Now(),
+    ldate		timestamptz NOT NULL DEFAULT Now(),
+    udate		timestamptz NOT NULL DEFAULT Now()
 );
 
 COMMENT ON TABLE db.object IS 'Список объектов.';
@@ -351,8 +351,8 @@ CREATE TABLE db.object_state (
     id			    uuid PRIMARY KEY DEFAULT gen_kernel_uuid('8'),
     object		    uuid NOT NULL REFERENCES db.object(id),
     state		    uuid NOT NULL REFERENCES db.state(id),
-    validFromDate	timestamp DEFAULT Now() NOT NULL,
-    validToDate		timestamp DEFAULT TO_DATE('4433-12-31', 'YYYY-MM-DD') NOT NULL
+    validFromDate	timestamptz DEFAULT Now() NOT NULL,
+    validToDate		timestamptz DEFAULT TO_DATE('4433-12-31', 'YYYY-MM-DD') NOT NULL
 );
 
 COMMENT ON TABLE db.object_state IS 'Состояние объекта.';
@@ -506,8 +506,8 @@ CREATE TABLE db.object_link (
     object          uuid NOT NULL REFERENCES db.object(id) ON DELETE CASCADE,
     linked          uuid NOT NULL REFERENCES db.object(id) ON DELETE CASCADE,
     key             text NOT NULL,
-    validFromDate	timestamp DEFAULT Now() NOT NULL,
-    validToDate		timestamp DEFAULT TO_DATE('4433-12-31', 'YYYY-MM-DD') NOT NULL
+    validFromDate	timestamptz DEFAULT Now() NOT NULL,
+    validToDate		timestamptz DEFAULT TO_DATE('4433-12-31', 'YYYY-MM-DD') NOT NULL
 );
 
 --------------------------------------------------------------------------------
@@ -534,12 +534,12 @@ CREATE TABLE db.object_file (
     file_name	text NOT NULL,
     file_path	text NOT NULL,
     file_size	integer DEFAULT 0,
-    file_date	timestamp DEFAULT NULL,
+    file_date	timestamptz DEFAULT NULL,
     file_data	bytea DEFAULT NULL,
     file_hash	text DEFAULT NULL,
     file_text	text,
     file_type	text,
-    load_date	timestamp DEFAULT Now() NOT NULL,
+    load_date	timestamptz DEFAULT Now() NOT NULL,
     PRIMARY KEY(object, file_name, file_path)
 );
 

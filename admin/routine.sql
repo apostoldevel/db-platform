@@ -1851,10 +1851,10 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION oper_date (
   pSession		varchar DEFAULT current_session()
 )
-RETURNS 		timestamp
+RETURNS 		timestamptz
 AS $$
 DECLARE
-  dtOperDate	timestamp;
+  dtOperDate	timestamptz;
 BEGIN
   dtOperDate := GetOperDate(pSession);
   IF dtOperDate IS NULL THEN

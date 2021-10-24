@@ -554,14 +554,14 @@ $$ LANGUAGE sql
 CREATE OR REPLACE FUNCTION AddObjectState (
   pObject       uuid,
   pState        uuid,
-  pDateFrom     timestamp DEFAULT oper_date()
+  pDateFrom     timestamptz DEFAULT oper_date()
 ) RETURNS       uuid
 AS $$
 DECLARE
   uId           uuid;
 
-  dtDateFrom    timestamp;
-  dtDateTo      timestamp;
+  dtDateFrom    timestamptz;
+  dtDateTo      timestamptz;
 BEGIN
   -- получим дату значения в текущем диапозоне дат
   SELECT id, validFromDate, validToDate INTO uId, dtDateFrom, dtDateTo
@@ -602,7 +602,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION GetObjectState (
   pObject	uuid,
-  pDate		timestamp
+  pDate		timestamptz
 ) RETURNS	uuid
 AS $$
   SELECT state
@@ -1184,22 +1184,22 @@ $$ LANGUAGE plpgsql
  * @param {uuid} pObject - Идентификатор объекта
  * @param {uuid} pLinked - Идентификатор связанного объекта
  * @param {text} pKey - Ключ
- * @param {timestamp} pDateFrom - Дата начала периода
+ * @param {timestamptz} pDateFrom - Дата начала периода
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION SetObjectLink (
   pObject       uuid,
   pLinked       uuid,
   pKey          text,
-  pDateFrom     timestamp DEFAULT oper_date()
+  pDateFrom     timestamptz DEFAULT oper_date()
 ) RETURNS       uuid
 AS $$
 DECLARE
   uId           uuid;
   uLinked       uuid;
 
-  dtDateFrom    timestamp;
-  dtDateTo      timestamp;
+  dtDateFrom    timestamptz;
+  dtDateTo      timestamptz;
 BEGIN
   -- получим дату значения в текущем диапозоне дат
   SELECT linked, validFromDate, validToDate INTO uLinked, dtDateFrom, dtDateTo
@@ -1237,13 +1237,13 @@ $$ LANGUAGE plpgsql
  * Возвращает связанный с объектом объект.
  * @param {uuid} pObject - Идентификатор объекта
  * @param {text} pKey - Ключ
- * @param {timestamp} pDate - Дата
+ * @param {timestamptz} pDate - Дата
  * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION GetObjectLink (
   pObject	uuid,
   pKey	    text,
-  pDate		timestamp DEFAULT oper_date()
+  pDate		timestamptz DEFAULT oper_date()
 ) RETURNS	uuid
 AS $$
 DECLARE
@@ -1271,7 +1271,7 @@ CREATE OR REPLACE FUNCTION NewObjectFile (
   pName		text,
   pPath		text,
   pSize		integer,
-  pDate		timestamp,
+  pDate		timestamptz,
   pData		bytea DEFAULT null,
   pHash		text DEFAULT null,
   pText		text DEFAULT null,
@@ -1295,12 +1295,12 @@ CREATE OR REPLACE FUNCTION EditObjectFile (
   pName		text,
   pPath		text DEFAULT null,
   pSize		integer DEFAULT null,
-  pDate		timestamp DEFAULT null,
+  pDate		timestamptz DEFAULT null,
   pData		bytea DEFAULT null,
   pHash		text DEFAULT null,
   pText		text DEFAULT null,
   pType		text DEFAULT null,
-  pLoad		timestamp DEFAULT null
+  pLoad		timestamptz DEFAULT null
 ) RETURNS	void
 AS $$
 BEGIN
@@ -1362,7 +1362,7 @@ CREATE OR REPLACE FUNCTION SetObjectFile (
   pName		text,
   pPath		text,
   pSize		integer,
-  pDate		timestamp,
+  pDate		timestamptz,
   pData		bytea DEFAULT null,
   pHash		text DEFAULT null,
   pText		text DEFAULT null,
