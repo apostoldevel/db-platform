@@ -18,7 +18,7 @@ COMMENT ON COLUMN db.document.object IS 'Объект';
 COMMENT ON COLUMN db.document.entity IS 'Сущность';
 COMMENT ON COLUMN db.document.class IS 'Класс';
 COMMENT ON COLUMN db.document.type IS 'Тип';
-COMMENT ON COLUMN db.document.area IS 'Зона';
+COMMENT ON COLUMN db.document.area IS 'Область видимости документа';
 
 CREATE INDEX ON db.document (object);
 CREATE INDEX ON db.document (entity);
@@ -83,11 +83,11 @@ CREATE TRIGGER t_document_before_update_type
 CREATE OR REPLACE FUNCTION db.ft_document_update_area()
 RETURNS trigger AS $$
 BEGIN
-  IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(GetGroup('administrator')) THEN
-      PERFORM ChangeAreaError();
-    END IF;
-  END IF;
+--   IF session_user <> 'kernel' THEN
+--     IF NOT IsUserRole(GetGroup('administrator')) THEN
+--       PERFORM ChangeAreaError();
+--     END IF;
+--   END IF;
 
   RETURN NEW;
 END;
