@@ -445,9 +445,9 @@ COMMENT ON COLUMN db.object_group.code IS 'Код';
 COMMENT ON COLUMN db.object_group.name IS 'Наименование';
 COMMENT ON COLUMN db.object_group.description IS 'Описание';
 
-CREATE INDEX ON db.object_group (owner);
+CREATE UNIQUE INDEX ON db.object_group (owner, code);
 
-CREATE UNIQUE INDEX ON db.object_group (code);
+CREATE INDEX ON db.object_group (owner);
 
 --------------------------------------------------------------------------------
 

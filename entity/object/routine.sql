@@ -1070,6 +1070,7 @@ DECLARE
 BEGIN
   INSERT INTO db.object_group (code, name, description)
   VALUES (pCode, pName, pDescription)
+  ON CONFLICT DO NOTHING
   RETURNING id INTO uId;
 
   RETURN uId;
@@ -1105,16 +1106,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetObjectGroup (
-  pCode		text
+  pCode		text,
+  pOwner    uuid DEFAULT current_userid()
 ) RETURNS	uuid
 AS $$
-DECLARE
-  uId		uuid;
-BEGIN
-  SELECT id INTO uId FROM db.object_group WHERE code = pCode;
-  RETURN uId;
-END;
-$$ LANGUAGE plpgsql
+  SELECT id FROM db.object_group WHERE owner = pOwner AND code = pCode;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 

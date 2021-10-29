@@ -128,8 +128,19 @@ CREATE OR REPLACE FUNCTION ChangeDocumentArea (
   pArea         uuid
 ) RETURNS       void
 AS $$
+DECLARE
+  uArea         uuid;
+  uClass        uuid;
+  uMethod       uuid;
 BEGIN
+  SELECT area INTO uArea FROM db.document WHERE id = pId;
+
   UPDATE db.document SET area = pArea WHERE id = pId;
+
+  SELECT class INTO uClass FROM db.object WHERE id = pId;
+
+  uMethod := GetMethod(uClass, GetAction('save'));
+  PERFORM ExecuteMethod(pId, uMethod, jsonb_build_object('old', jsonb_build_object('area', uArea), 'new', jsonb_build_object('area', pArea)));
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

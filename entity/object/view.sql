@@ -84,7 +84,9 @@ GRANT SELECT ON ObjectState TO administrator;
 
 CREATE OR REPLACE VIEW ObjectGroup
 AS
-  SELECT * FROM db.object_group;
+  SELECT *
+    FROM db.object_group g INNER JOIN db.profile p ON g.owner = p.userid AND p.scope = current_scope()
+   WHERE g.owner = current_userid();
 
 GRANT SELECT ON ObjectGroup TO administrator;
 
