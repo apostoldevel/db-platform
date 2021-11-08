@@ -46,3 +46,5 @@ AS
          r.oper, r.opercode, r.opername, r.operdate,
          r.scope, r.scopecode, r.scopename, r.scopedescription
     FROM AccessReportTree t INNER JOIN ObjectReference r ON t.reference = r.id;
+
+GRANT SELECT ON ObjectReportTree TO administrator;

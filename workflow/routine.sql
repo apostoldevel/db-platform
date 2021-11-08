@@ -827,10 +827,11 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetTypeName (
-  pId		uuid
+  pId		uuid,
+  pLocale   uuid DEFAULT current_locale()
 ) RETURNS	text
 AS $$
-  SELECT name FROM db.type_text WHERE type = pId;
+  SELECT name FROM db.type_text WHERE type = pId AND locale = pLocale;
 $$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

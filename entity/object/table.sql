@@ -385,7 +385,7 @@ BEGIN
     END IF;
 
     IF NEW.validfromdate > NEW.validtodate THEN
-      RAISE EXCEPTION 'ERR-80000: Дата начала периода действия не должна превышать дату окончания периода действия.';
+      PERFORM DateValidityPeriod();
     END IF;
 
     RETURN NEW;

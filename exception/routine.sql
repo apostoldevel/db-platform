@@ -965,6 +965,18 @@ $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
 --------------------------------------------------------------------------------
 
+SELECT CreateExceptionResource(GetExceptionUUID(400, 67), 'ru', 'DateValidityPeriod', 'Дата начала не должна превышать дату окончания');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 67), 'en', 'DateValidityPeriod', 'The start date must not exceed the end date');
+
+CREATE OR REPLACE FUNCTION DateValidityPeriod() RETURNS void
+AS $$
+BEGIN
+  RAISE EXCEPTION '%', GetExceptionStr(400, 67);
+END;
+$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+
+--------------------------------------------------------------------------------
+
 SELECT CreateExceptionResource(GetExceptionUUID(400, 70), 'ru', 'IssuerNotFound', 'OAuth 2.0: Не найден эмитент: %s');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 70), 'en', 'IssuerNotFound', 'OAuth 2.0: Issuer not FOUND: %s');
 
