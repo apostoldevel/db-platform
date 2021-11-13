@@ -3,6 +3,33 @@
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
+-- EventReportMethodForAllChild ------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION EventReportMethodForAllChild (
+  pNode     uuid default context_object(),
+  pAction   uuid default context_action()
+) RETURNS	void
+AS $$
+DECLARE
+  r         record;
+
+  uClass    uuid;
+  uState    uuid;
+  uMethod   uuid;
+BEGIN
+  FOR r IN SELECT id FROM db.emergency_folder WHERE node = pNode
+  LOOP
+	SELECT class, state INTO uClass, uState FROM db.object WHERE id = r.id;
+    uMethod := GetMethod(uClass, pAction, uState);
+    IF uMethod IS NOT NULL THEN
+      PERFORM ExecuteMethod(r.id, uMethod);
+    END IF;
+  END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
+--------------------------------------------------------------------------------
 -- EventReportTreeCreate -------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -64,6 +91,7 @@ CREATE OR REPLACE FUNCTION EventReportTreeEnable (
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'enable', 'Дерево отчётов активно.', pObject);
+  PERFORM EventReportMethodForAllChild(pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -77,6 +105,7 @@ CREATE OR REPLACE FUNCTION EventReportTreeDisable (
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'disable', 'Дерево отчётов неактивно.', pObject);
+  PERFORM EventReportMethodForAllChild(pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -90,6 +119,7 @@ CREATE OR REPLACE FUNCTION EventReportTreeDelete (
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'delete', 'Дерево отчётов удалено.', pObject);
+  PERFORM EventReportMethodForAllChild(pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -103,6 +133,7 @@ CREATE OR REPLACE FUNCTION EventReportTreeRestore (
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'restore', 'Дерево отчётов восстановлено.', pObject);
+  PERFORM EventReportMethodForAllChild(pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -117,6 +148,8 @@ AS $$
 DECLARE
   r			record;
 BEGIN
+  PERFORM EventReportMethodForAllChild(pObject);
+
   SELECT label INTO r FROM db.object_text WHERE object = pObject AND locale = current_locale();
 
   DELETE FROM db.report_tree WHERE id = pObject;

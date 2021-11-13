@@ -206,6 +206,7 @@ DECLARE
 BEGIN
   SELECT label INTO r FROM db.object_text WHERE object = pObject AND locale = current_locale();
 
+  DELETE FROM db.object_file WHERE object = pObject;
   DELETE FROM db.report_ready WHERE id = pObject;
 
   PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Готовый отчёт уничтожен.');

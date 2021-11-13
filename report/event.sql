@@ -117,9 +117,37 @@ AS $$
 DECLARE
   r			record;
 BEGIN
-  SELECT label INTO r FROM db.object_text WHERE object = pObject AND locale = current_locale();
+  FOR r IN SELECT id FROM db.report_ready WHERE report = pObject
+  LOOP
+    IF GetObjectStateCode(r.id) = 'created' THEN
+      PERFORM DoDelete(r.id);
+    END IF;
+    IF GetObjectStateCode(r.id) = 'progress' THEN
+      PERFORM ExecuteObjectAction(r.id, GetAction('cancel'));
+    END IF;
+    IF GetObjectStateCode(r.id) = 'canceled' THEN
+      PERFORM ExecuteObjectAction(r.id, GetAction('abort'));
+    END IF;
+    IF IsDisabled(r.id) THEN
+      PERFORM DoDelete(r.id);
+    END IF;
+    PERFORM DoDrop(r.id);
+  END LOOP;
+
+  FOR r IN SELECT id FROM db.report_routine WHERE report = pObject
+  LOOP
+    IF IsActive(r.id) THEN
+      PERFORM DoDelete(r.id);
+    END IF;
+    IF IsDisabled(r.id) THEN
+      PERFORM DoDelete(r.id);
+    END IF;
+    PERFORM DoDrop(r.id);
+  END LOOP;
 
   DELETE FROM db.report WHERE id = pObject;
+
+  SELECT label INTO r FROM db.object_text WHERE object = pObject AND locale = current_locale();
 
   PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Отчёт уничтожен.');
 END;
