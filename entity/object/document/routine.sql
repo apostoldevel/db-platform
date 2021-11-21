@@ -120,6 +120,20 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- GetDocumentDescription ------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetDocumentDescription (
+  pDocument     uuid,
+  pLocale       uuid DEFAULT current_locale()
+) RETURNS       text
+AS $$
+  SELECT description FROM db.document_text WHERE document = pDocument AND locale = pLocale
+$$ LANGUAGE sql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- ChangeDocumentArea ----------------------------------------------------------
 --------------------------------------------------------------------------------
 
