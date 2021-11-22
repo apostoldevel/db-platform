@@ -1026,6 +1026,21 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- FUNCTION DoCancel -----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION DoCancel (
+  pObject	uuid
+) RETURNS 	jsonb
+AS $$
+BEGIN
+  RETURN ExecuteObjectAction(pObject, GetAction('cancel'));
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- FUNCTION DoRestore ----------------------------------------------------------
 --------------------------------------------------------------------------------
 
