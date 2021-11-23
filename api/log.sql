@@ -60,6 +60,10 @@ BEGIN
     pJson := pJson - 'password';
   END IF;
 
+  IF pJson ? 'hidden' THEN
+    pJson := pJson - 'hidden';
+  END IF;
+
   INSERT INTO db.api_log (session, username, path, json, nonce, signature)
   VALUES (vSession, vUserName, pPath, pJson, pNonce, pSignature)
   RETURNING id INTO nId;

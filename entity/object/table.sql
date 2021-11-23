@@ -157,9 +157,9 @@ BEGIN
 	IF NEW.parent IS NOT NULL THEN
 	  SELECT owner INTO uUserId FROM db.object WHERE id = NEW.parent;
 	  IF NEW.owner <> uUserId THEN
-		UPDATE db.aou SET allow = allow | B'100' WHERE object = NEW.id AND userid = NEW.owner;
+		UPDATE db.aou SET allow = allow | B'100' WHERE object = NEW.id AND userid = uUserId;
 		IF NOT FOUND THEN
-		  INSERT INTO db.aou SELECT NEW.id, NEW.owner, B'000', B'100';
+		  INSERT INTO db.aou SELECT NEW.id, uUserId, B'000', B'100';
 		END IF;
 	  END IF;
 	END IF;
