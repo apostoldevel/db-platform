@@ -8,7 +8,7 @@
 
 CREATE OR REPLACE VIEW api.object
 AS
-  SELECT * FROM SafeObject;
+  SELECT * FROM AccessObject;
 
 GRANT SELECT ON api.object TO administrator;
 
@@ -730,7 +730,7 @@ $$ LANGUAGE SQL
 
 CREATE OR REPLACE VIEW api.object_file
 AS
-  SELECT f.* FROM ObjectFile f INNER JOIN SafeObject o ON f.object = o.id;
+  SELECT f.* FROM ObjectFile f INNER JOIN AccessObject o ON f.object = o.id;
 
 GRANT SELECT ON api.object_file TO administrator;
 
@@ -948,7 +948,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE VIEW api.object_data
 AS
-  SELECT d.* FROM ObjectData d INNER JOIN SafeObject o ON d.object = o.id;
+  SELECT d.* FROM ObjectData d INNER JOIN AccessObject o ON d.object = o.id;
 
 GRANT SELECT ON api.object_data TO administrator;
 
@@ -1152,7 +1152,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE VIEW api.object_coordinates
 AS
-  SELECT c.* FROM ObjectCoordinates c INNER JOIN SafeObject o ON c.object = o.id;
+  SELECT c.* FROM ObjectCoordinates c INNER JOIN AccessObject o ON c.object = o.id;
 
 GRANT SELECT ON api.object_coordinates TO administrator;
 

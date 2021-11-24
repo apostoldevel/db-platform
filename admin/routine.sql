@@ -134,7 +134,7 @@ BEGIN
 	  uLocale := GetLocale(locale_code());
 
 	  IF IsUserRole('00000000-0000-4000-a000-000000000001'::uuid, pUserId) THEN -- administrator
-		arTypes := ARRAY['00000000-0000-4002-a001-000000000001'::uuid, '00000000-0000-4002-a001-000000000000'::uuid, '00000000-0000-4002-a000-000000000002'::uuid];
+		arTypes := ARRAY['00000000-0000-4002-a001-000000000001'::uuid, '00000000-0000-4002-a001-000000000002'::uuid, '00000000-0000-4002-a001-000000000003'::uuid, '00000000-0000-4002-a001-000000000000'::uuid, '00000000-0000-4002-a000-000000000002'::uuid];
 		uInterface := '00000000-0000-4004-a000-000000000001'::uuid; -- administrator
 	  ELSE
 		arTypes := ARRAY['00000000-0000-4002-a000-000000000002'::uuid]; -- guest
@@ -4609,14 +4609,6 @@ BEGIN
   SELECT code INTO vSession FROM db.session WHERE userid = up.id;
 
   IF NOT FOUND OR pNew THEN
-    uScope := CheckUserProfile(pOAuth2, up.id);
-
-	SELECT locale, area, interface INTO uLocale, uArea, uInterface FROM db.profile WHERE userid = up.id AND scope = uScope;
-
-    IF NOT FOUND THEN
-      PERFORM AccessDenied();
-	END IF;
-
     uScope := CheckUserProfile(pOAuth2, up.id);
 
 	SELECT locale, area, interface INTO uLocale, uArea, uInterface FROM db.profile WHERE userid = up.id AND scope = uScope;

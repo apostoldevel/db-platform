@@ -52,6 +52,42 @@ CREATE OR REPLACE VIEW CurrentDocument (Id, Object, Entity, Class, Type, Area, D
 GRANT SELECT ON CurrentDocument TO administrator;
 
 --------------------------------------------------------------------------------
+-- AccessDocumentUser ----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION AccessDocumentUser (
+  pUserId	uuid DEFAULT current_userid()
+) RETURNS TABLE (
+    object  uuid
+)
+AS $$
+  WITH _membergroup AS (
+      SELECT pUserId AS userid UNION SELECT userid FROM db.member_group WHERE member = pUserId
+  )
+  SELECT a.object
+    FROM db.aou a INNER JOIN db.document  d ON a.object = d.id
+                  INNER JOIN _membergroup m ON a.userid = m.userid
+   WHERE d.scope = current_scope()
+   GROUP BY a.object
+  HAVING (bit_or(a.allow) & ~bit_or(a.deny)) & B'100' = B'100'
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- AccessDocument --------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW AccessDocument
+AS
+  WITH access AS (
+    SELECT * FROM AccessDocumentUser(current_userid())
+  )
+  SELECT d.* FROM CurrentDocument d INNER JOIN access ac ON d.id = ac.object;
+
+GRANT SELECT ON AccessDocument TO administrator;
+
+--------------------------------------------------------------------------------
 -- ObjectDocument --------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -79,26 +115,6 @@ AS
          o.oper, o.opercode, o.opername, o.operdate,
          d.area, d.areacode, d.areaname, d.areadescription,
          d.scope, d.scopecode, d.scopename, d.scopedescription
-    FROM CurrentDocument d INNER JOIN Object o ON o.id = d.object;
+    FROM AccessDocument d INNER JOIN Object o ON o.id = d.object;
 
 GRANT SELECT ON ObjectDocument TO administrator;
-
---------------------------------------------------------------------------------
--- VIEW SafeDocument -----------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE VIEW SafeDocument
-AS
-  WITH Access AS (
-	WITH _membergroup AS (
-	  SELECT current_userid() AS userid UNION SELECT userid FROM db.member_group WHERE member = current_userid()
-	)
-	SELECT a.object
-      FROM db.document d INNER JOIN db.aou       a ON d.object = a.object
-                         INNER JOIN _membergroup m ON a.userid = m.userid
-     GROUP BY a.object
-	HAVING (bit_or(a.allow) & ~bit_or(a.deny)) & B'100' = B'100'
-  )
-  SELECT d.* FROM ObjectDocument d INNER JOIN Access a ON d.object = a.object;
-
-GRANT SELECT ON SafeDocument TO administrator;

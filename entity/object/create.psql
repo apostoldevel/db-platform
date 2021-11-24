@@ -1,6 +1,9 @@
 \echo [M] call table.sql
 \ir table.sql
 
+\echo [M] call security.sql
+\ir security.sql
+
 \echo [M] call view.sql
 \ir view.sql
 

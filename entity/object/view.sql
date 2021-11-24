@@ -10,7 +10,8 @@ CREATE OR REPLACE VIEW Object (Id, Parent,
   StateType, StateTypeCode, StateTypeName,
   State, StateCode, StateLabel, LastUpdate,
   Owner, OwnerCode, OwnerName, Created,
-  Oper, OperCode, OperName, OperDate
+  Oper, OperCode, OperName, OperDate,
+  Scope, ScopeCode, ScopeName, ScopeDescription
 ) AS
   SELECT o.id, o.parent,
          o.entity, e.code, e.name,
@@ -20,37 +21,33 @@ CREATE OR REPLACE VIEW Object (Id, Parent,
          o.state_type, st.code, st.name,
          o.state, s.code, s.label, o.udate,
          o.owner, w.username, w.name, o.pdate,
-         o.oper, u.username, u.name, o.ldate
+         o.oper, u.username, u.name, o.ldate,
+         o.scope, p.code, p.name, p.description
     FROM db.object o INNER JOIN Entity          e ON o.entity = e.id
                      INNER JOIN Class           c ON o.class = c.id
                      INNER JOIN Type            t ON o.type = t.id
                      INNER JOIN StateType      st ON o.state_type = st.id
                      INNER JOIN State           s ON o.state = s.id
+                     INNER JOIN db.scope        p ON o.scope = p.id
                      INNER JOIN db.user         w ON o.owner = w.id
                      INNER JOIN db.user         u ON o.oper = u.id
-                      LEFT JOIN db.object_text ot ON ot.object = o.id AND ot.locale = current_locale();
+                      LEFT JOIN db.object_text ot ON ot.object = o.id AND ot.locale = current_locale()
+   WHERE o.scope = current_scope();
 
 GRANT SELECT ON Object TO administrator;
 
 --------------------------------------------------------------------------------
--- VIEW SafeObject -------------------------------------------------------------
+-- AccessObject ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW SafeObject
+CREATE OR REPLACE VIEW AccessObject
 AS
-  WITH Access AS (
-	WITH _membergroup AS (
-	  SELECT current_userid() AS userid UNION SELECT userid FROM db.member_group WHERE member = current_userid()
-	)
-	SELECT a.object
-      FROM db.object o INNER JOIN db.aou       a ON o.id = a.object
-                       INNER JOIN _membergroup m ON a.userid = m.userid
-     GROUP BY a.object
-	HAVING (bit_or(a.allow) & ~bit_or(a.deny)) & B'100' = B'100'
+  WITH access AS (
+    SELECT * FROM aou(current_userid())
   )
-  SELECT o.* FROM Object o INNER JOIN Access a ON o.id = a.object;
+  SELECT o.* FROM Object o INNER JOIN access ac ON o.id = ac.object;
 
-GRANT SELECT ON SafeObject TO administrator;
+GRANT SELECT ON AccessObject TO administrator;
 
 --------------------------------------------------------------------------------
 -- VIEW ObjectMembers ----------------------------------------------------------

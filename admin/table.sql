@@ -1003,7 +1003,7 @@ BEGIN
     END IF;
 
     IF NOT IsMemberArea(NEW.area, NEW.userid) THEN
-      PERFORM AccessDenied();
+      PERFORM UserNotMemberArea(GetUserName(NEW.userid), GetAreaName(NEW.area));
     END IF;
 
     IF NEW.interface IS NULL THEN
@@ -1011,7 +1011,7 @@ BEGIN
     END IF;
 
     IF NOT IsMemberInterface(NEW.interface, NEW.userid) THEN
-      PERFORM AccessDenied();
+      PERFORM UserNotMemberInterface(GetUserName(NEW.userid), GetInterfaceName(NEW.interface));
     END IF;
 
     RETURN NEW;

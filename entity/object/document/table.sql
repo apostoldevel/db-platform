@@ -5,6 +5,7 @@
 CREATE TABLE db.document (
     id			    uuid PRIMARY KEY,
     object		    uuid NOT NULL REFERENCES db.object(id),
+    scope			uuid NOT NULL REFERENCES db.scope(id),
     entity		    uuid NOT NULL REFERENCES db.entity(id),
     class           uuid NOT NULL REFERENCES db.class_tree(id),
     type			uuid NOT NULL REFERENCES db.type(id),
@@ -15,12 +16,14 @@ COMMENT ON TABLE db.document IS 'Документ.';
 
 COMMENT ON COLUMN db.document.id IS 'Идентификатор';
 COMMENT ON COLUMN db.document.object IS 'Объект';
+COMMENT ON COLUMN db.document.scope IS 'Область видимости базы данных';
 COMMENT ON COLUMN db.document.entity IS 'Сущность';
 COMMENT ON COLUMN db.document.class IS 'Класс';
 COMMENT ON COLUMN db.document.type IS 'Тип';
 COMMENT ON COLUMN db.document.area IS 'Область видимости документа';
 
 CREATE INDEX ON db.document (object);
+CREATE INDEX ON db.document (scope);
 CREATE INDEX ON db.document (entity);
 CREATE INDEX ON db.document (class);
 CREATE INDEX ON db.document (type);
@@ -38,6 +41,12 @@ BEGIN
   IF current_area_type() = '00000000-0000-4002-a000-000000000000' THEN
     PERFORM RootAreaError();
   END IF;
+
+  IF NEW.area IS NULL THEN
+    SELECT current_area() INTO NEW.area;
+  END IF;
+
+  SELECT scope INTO NEW.scope FROM db.area WHERE id = NEW.area;
 
   RETURN NEW;
 END;

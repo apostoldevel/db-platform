@@ -5,6 +5,7 @@
 CREATE TABLE db.object (
     id			uuid PRIMARY KEY,
     parent		uuid REFERENCES db.object(id),
+    scope		uuid NOT NULL REFERENCES db.scope(id),
     entity		uuid NOT NULL REFERENCES db.entity(id),
     class		uuid NOT NULL REFERENCES db.class_tree(id),
     type		uuid NOT NULL REFERENCES db.type(id),
@@ -22,6 +23,7 @@ COMMENT ON TABLE db.object IS 'Список объектов.';
 
 COMMENT ON COLUMN db.object.id IS 'Идентификатор';
 COMMENT ON COLUMN db.object.parent IS 'Родитель';
+COMMENT ON COLUMN db.object.scope IS 'Область видимости базы данных';
 COMMENT ON COLUMN db.object.entity IS 'Сущность';
 COMMENT ON COLUMN db.object.class IS 'Класс';
 COMMENT ON COLUMN db.object.type IS 'Тип';
@@ -35,6 +37,7 @@ COMMENT ON COLUMN db.object.ldate IS 'Логическая дата';
 COMMENT ON COLUMN db.object.udate IS 'Дата последнего изменения';
 
 CREATE INDEX ON db.object (parent);
+CREATE INDEX ON db.object (scope);
 CREATE INDEX ON db.object (entity);
 CREATE INDEX ON db.object (class);
 CREATE INDEX ON db.object (type);
@@ -113,6 +116,8 @@ BEGIN
   IF bAbstract THEN
     PERFORM AbstractError();
   END IF;
+
+  SELECT current_scope() INTO NEW.scope;
 
   SELECT type INTO NEW.state_type FROM db.state WHERE id = NEW.state;
 
