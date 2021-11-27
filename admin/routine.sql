@@ -3952,7 +3952,12 @@ AS $$
 DECLARE
   r         record;
 BEGIN
-  FOR r IN SELECT code FROM Session WHERE input_last < Now() - pOffTime
+  FOR r IN
+    SELECT code
+      FROM Session
+     WHERE username <> session_user
+       AND code <> current_session()
+       AND input_last < Now() - pOffTime
   LOOP
     PERFORM SignOut(r.code);
   END LOOP;
