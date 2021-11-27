@@ -1042,6 +1042,36 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- FUNCTION SetState -----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION SetState (
+  pId		    uuid,
+  pClass	    uuid DEFAULT null,
+  pType		    uuid DEFAULT null,
+  pCode		    text DEFAULT null,
+  pLabel	    text DEFAULT null,
+  pSequence		integer DEFAULT null
+) RETURNS	    uuid
+AS $$
+BEGIN
+  IF pId IS NULL THEN
+    SELECT id INTO pId FROM db.state WHERE class = pClass AND code = pCode;
+  END IF;
+
+  IF pId IS NULL THEN
+    pId := AddState(pClass, pType, pCode, pLabel, pSequence);
+  ELSE
+    PERFORM EditState(pId, pClass, pType, pCode, pLabel, pSequence);
+  END IF;
+
+  RETURN pId;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- FUNCTION DeleteState --------------------------------------------------------
 --------------------------------------------------------------------------------
 
