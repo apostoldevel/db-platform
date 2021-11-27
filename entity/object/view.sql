@@ -31,8 +31,7 @@ CREATE OR REPLACE VIEW Object (Id, Parent,
                      INNER JOIN db.scope        p ON o.scope = p.id
                      INNER JOIN db.user         w ON o.owner = w.id
                      INNER JOIN db.user         u ON o.oper = u.id
-                      LEFT JOIN db.object_text ot ON ot.object = o.id AND ot.locale = current_locale()
-   WHERE o.scope = current_scope();
+                      LEFT JOIN db.object_text ot ON ot.object = o.id AND ot.locale = current_locale();
 
 GRANT SELECT ON Object TO administrator;
 
@@ -45,7 +44,7 @@ AS
   WITH access AS (
     SELECT * FROM aou(current_userid())
   )
-  SELECT o.* FROM Object o INNER JOIN access ac ON o.id = ac.object;
+  SELECT o.* FROM Object o INNER JOIN access ac ON o.id = ac.object WHERE o.scope = current_scope();
 
 GRANT SELECT ON AccessObject TO administrator;
 
