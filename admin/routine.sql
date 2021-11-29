@@ -1955,7 +1955,7 @@ BEGIN
     vCode := RegGetValueString('CURRENT_CONFIG', 'CONFIG\System', 'LocaleCode');
   END IF;
 
-  RETURN coalesce(vCode, 'en');
+  RETURN coalesce(vCode, 'ru');
 END;
 $$ LANGUAGE plpgsql STABLE
    SECURITY DEFINER
@@ -1975,7 +1975,7 @@ CREATE OR REPLACE FUNCTION current_locale (
 RETURNS		uuid
 AS $$
 BEGIN
-  RETURN coalesce(GetSessionLocale(pSession), '00000000-0000-4001-a000-000000000001');
+  RETURN coalesce(GetSessionLocale(pSession), '00000000-0000-4001-a000-000000000002');
 END;
 $$ LANGUAGE plpgsql STABLE
    SECURITY DEFINER
