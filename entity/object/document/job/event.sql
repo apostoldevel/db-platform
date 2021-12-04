@@ -132,6 +132,10 @@ BEGIN
 
   iPeriod := coalesce(iPeriod, '0 seconds'::interval);
 
+  IF dtDateRun > Now() THEN
+	dtDateRun := Now();
+  END IF;
+
   dtDateRun := dtDateRun + iPeriod;
   IF dtDateRun < Now() THEN
     dtDateRun := Now() + iPeriod;

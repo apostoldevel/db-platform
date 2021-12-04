@@ -109,9 +109,9 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CheckUserProfile (
-  pOAuth2	bigint,
-  pUserId	uuid
-) RETURNS 	uuid
+  pOAuth2       bigint,
+  pUserId       uuid
+) RETURNS       uuid
 AS $$
 DECLARE
   r             record;
@@ -847,11 +847,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateSystemOAuth2 (
-  pScope		text DEFAULT current_database()
+  pScope		text DEFAULT null
 ) RETURNS       bigint
 AS $$
 BEGIN
-  RETURN CreateOAuth2(GetAudience(oauth2_system_client_id()), pScope);
+  RETURN CreateOAuth2(GetAudience(oauth2_system_client_id()), coalesce(pScope, current_database()));
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1714,7 +1714,7 @@ CREATE OR REPLACE FUNCTION current_area (
 RETURNS 	uuid
 AS $$
 BEGIN
-  RETURN coalesce(GetSessionArea(pSession), '00000000-0000-4003-a000-000000000002');
+  RETURN GetSessionArea(pSession);
 END;
 $$ LANGUAGE plpgsql STABLE
    SECURITY DEFINER
@@ -2311,8 +2311,6 @@ BEGIN
 
   PERFORM AddMemberToInterface(pId, '00000000-0000-4004-a000-000000000000'); -- all
   PERFORM AddMemberToInterface(pId, '00000000-0000-4004-a000-000000000003'); -- guest
-
-  PERFORM AddMemberToArea(pId, '00000000-0000-4003-a000-000000000002'); -- guest
 
   SELECT scope INTO uScope FROM db.area WHERE id = current_area();
 
@@ -3627,7 +3625,7 @@ BEGIN
   SELECT area INTO uArea FROM db.profile WHERE userid = pMember AND scope = current_scope();
 
   IF NOT FOUND THEN
-	uArea := '00000000-0000-4003-a000-000000000002'; -- guest
+    SELECT area INTO uArea FROM db.area WHERE scope = current_scope() AND type = '00000000-0000-4002-a000-000000000002'; -- guest
   END IF;
 
   RETURN uArea;
@@ -4257,8 +4255,8 @@ BEGIN
       PERFORM AccessDenied();
 	END IF;
 
-    INSERT INTO db.session (oauth2, userid, locale, area, interface, agent, host)
-    VALUES (pOAuth2, up.id, uLocale, uArea, uInterface, pAgent, pHost)
+    INSERT INTO db.session (oauth2, userid, locale, area, interface, scope, agent, host)
+    VALUES (pOAuth2, up.id, uLocale, uArea, uInterface, uScope, pAgent, pHost)
     RETURNING code INTO vSession;
 
     IF vSession IS NULL THEN
@@ -4576,7 +4574,7 @@ DECLARE
 BEGIN
   pOAuth2 := coalesce(pOAuth2, CreateSystemOAuth2());
   pNew := coalesce(pNew, false);
-  pLogin := coalesce(pLogin, true);
+  pLogin := coalesce(pLogin, false);
 
   IF session_user <> 'kernel' THEN
     uSUID := coalesce(session_userid(), GetUser(session_user));
@@ -4611,19 +4609,34 @@ BEGIN
     PERFORM LoginIPTableError(pHost);
   END IF;
 
-  SELECT code INTO vSession FROM db.session WHERE userid = up.id;
+  IF pAgent IS NULL THEN
+	SELECT coalesce(application_name, current_database()) INTO pAgent FROM pg_stat_activity WHERE pid = pg_backend_pid();
+  END IF;
 
-  IF NOT FOUND OR pNew THEN
-    uScope := CheckUserProfile(pOAuth2, up.id);
+  uScope := CheckUserProfile(pOAuth2, up.id);
 
+  IF NOT pNew THEN
+	SELECT code INTO vSession
+	  FROM db.session
+	 WHERE suid = up.id
+	   AND suid = userid
+	   AND scope = uScope
+	   AND agent IS NOT DISTINCT FROM pAgent
+	 ORDER BY created DESC
+	 LIMIT 1;
+
+	pNew := NOT FOUND;
+  END IF;
+
+  IF pNew THEN
 	SELECT locale, area, interface INTO uLocale, uArea, uInterface FROM db.profile WHERE userid = up.id AND scope = uScope;
 
     IF NOT FOUND THEN
       PERFORM AccessDenied();
 	END IF;
 
-    INSERT INTO db.session (oauth2, userid, locale, area, interface, agent, host)
-    VALUES (pOAuth2, up.id, uLocale, uArea, uInterface, pAgent, pHost)
+    INSERT INTO db.session (oauth2, userid, locale, area, interface, scope, agent, host)
+    VALUES (pOAuth2, up.id, uLocale, uArea, uInterface, uScope, pAgent, pHost)
     RETURNING code INTO vSession;
   END IF;
 

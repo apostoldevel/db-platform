@@ -15,3 +15,6 @@
 
 \echo [M] call event.sql
 \ir event.sql
+
+\ir './inbox/update.psql'
+\ir './outbox/update.psql'

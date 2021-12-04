@@ -21,3 +21,6 @@
 
 \echo [M] call init.sql
 \ir init.sql
+
+\ir './inbox/create.psql'
+\ir './outbox/create.psql'

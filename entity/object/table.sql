@@ -117,9 +117,16 @@ BEGIN
     PERFORM AbstractError();
   END IF;
 
-  SELECT current_scope() INTO NEW.scope;
-
   SELECT type INTO NEW.state_type FROM db.state WHERE id = NEW.state;
+
+  IF NEW.scope IS NULL THEN
+    SELECT scope INTO NEW.scope FROM db.area WHERE id = GetSessionArea(current_session());
+  ELSE
+    PERFORM FROM db.area WHERE id = GetSessionArea(current_session()) AND scope = NEW.scope;
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'Area "%" not present in scope "%".', GetSessionArea(current_session()), GetScopeName(NEW.scope);
+    END IF;
+  END IF;
 
   NEW.suid := session_userid();
   NEW.owner := current_userid();
@@ -194,8 +201,8 @@ BEGIN
     SELECT AccessDeniedForUser(session_user);
   END IF;
 
-  IF OLD.suid <> NEW.suid THEN
-	IF current_username() <> 'admin' THEN
+  IF OLD.suid IS DISTINCT FROM NEW.suid THEN
+	IF current_username() IS DISTINCT FROM 'admin' THEN
 	  PERFORM AccessDenied();
 	END IF;
   END IF;
@@ -204,16 +211,16 @@ BEGIN
     PERFORM AccessDenied();
   END IF;
 
-  IF OLD.type <> NEW.type THEN
+  IF OLD.type IS DISTINCT FROM NEW.type THEN
     SELECT class INTO NEW.class FROM db.type WHERE id = NEW.type;
     SELECT entity INTO NEW.entity FROM db.class_tree WHERE id = NEW.class;
 
-    IF OLD.entity <> NEW.entity THEN
+    IF OLD.entity IS DISTINCT FROM NEW.entity THEN
       PERFORM IncorrectEntity();
     END IF;
   END IF;
 
-  IF OLD.class <> NEW.class THEN
+  IF OLD.class IS DISTINCT FROM NEW.class THEN
     NEW.state := GetState(NEW.class, OLD.state_type);
 
     IF OLD.state IS DISTINCT FROM NEW.state THEN
@@ -223,14 +230,23 @@ BEGIN
     END IF;
   END IF;
 
-  IF NEW.state IS NOT NULL THEN
-    SELECT type INTO NEW.state_type FROM db.state WHERE id = NEW.state;
-  ELSE
-    NEW.state_type := NULL;
+  IF OLD.state IS DISTINCT FROM NEW.state THEN
+	IF NEW.state IS NOT NULL THEN
+	  SELECT type INTO NEW.state_type FROM db.state WHERE id = NEW.state;
+	ELSE
+	  NEW.state_type := NULL;
+	END IF;
   END IF;
 
-  IF OLD.owner <> NEW.owner THEN
-    SELECT system INTO bSystem FROM users WHERE id = OLD.owner AND scope = current_scope();
+  IF OLD.scope IS DISTINCT FROM NEW.scope THEN
+	PERFORM FROM db.area WHERE id = GetSessionArea(current_session()) AND scope = NEW.scope;
+	IF NOT FOUND THEN
+	  NEW.scope := OLD.scope;
+	END IF;
+  END IF;
+
+  IF OLD.owner IS DISTINCT FROM NEW.owner THEN
+    SELECT system INTO bSystem FROM users WHERE id = OLD.owner AND scope = NEW.scope;
     IF NOT bSystem THEN
       DELETE FROM db.aou WHERE object = NEW.id AND userid = OLD.owner AND mask = B'111';
     END IF;

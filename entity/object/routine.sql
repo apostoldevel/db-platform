@@ -692,6 +692,7 @@ BEGIN
   uMethod := GetObjectMethod(pObject, pAction);
 
   IF uMethod IS NULL THEN
+
   	PERFORM MethodActionNotFound(pObject, pAction);
   END IF;
 

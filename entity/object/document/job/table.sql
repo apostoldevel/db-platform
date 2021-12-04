@@ -9,6 +9,7 @@
 CREATE TABLE db.job (
     id			    uuid PRIMARY KEY,
     document	    uuid NOT NULL REFERENCES db.document(id) ON DELETE CASCADE,
+    scope	        uuid NOT NULL REFERENCES db.scope(id) ON DELETE RESTRICT,
     code		    text NOT NULL,
     scheduler       uuid NOT NULL REFERENCES db.scheduler(id),
     program         uuid NOT NULL REFERENCES db.program(id),
@@ -21,6 +22,7 @@ COMMENT ON TABLE db.job IS 'Задание.';
 
 COMMENT ON COLUMN db.job.id IS 'Идентификатор';
 COMMENT ON COLUMN db.job.document IS 'Документ';
+COMMENT ON COLUMN db.job.scope IS 'Область видимости базы данных';
 COMMENT ON COLUMN db.job.code IS 'Код';
 COMMENT ON COLUMN db.job.scheduler IS 'Планировщик';
 COMMENT ON COLUMN db.job.program IS 'Программа';
@@ -28,9 +30,10 @@ COMMENT ON COLUMN db.job.dateRun IS 'Дата запуска.';
 
 --------------------------------------------------------------------------------
 
-CREATE UNIQUE INDEX ON db.job (code);
+CREATE UNIQUE INDEX ON db.job (scope, code);
 
 CREATE INDEX ON db.job (document);
+CREATE INDEX ON db.job (scope);
 CREATE INDEX ON db.job (scheduler);
 CREATE INDEX ON db.job (program);
 CREATE INDEX ON db.job (dateRun);
@@ -57,6 +60,10 @@ BEGIN
 
   IF NEW.dateRun IS NULL THEN
     NEW.dateRun := Now();
+  END IF;
+
+  IF NEW.scope IS NULL THEN
+    NEW.scope := current_scope();
   END IF;
 
   RETURN NEW;

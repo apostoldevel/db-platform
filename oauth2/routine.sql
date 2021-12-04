@@ -34,13 +34,8 @@ CREATE OR REPLACE FUNCTION GetProvider (
   pCode		text
 ) RETURNS 	integer
 AS $$
-DECLARE
-  nId		integer;
-BEGIN
-  SELECT id INTO nId FROM oauth2.provider WHERE code = pCode;
-  RETURN nId;
-END;
-$$ LANGUAGE plpgsql
+  SELECT id FROM oauth2.provider WHERE code = pCode;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -52,13 +47,8 @@ CREATE OR REPLACE FUNCTION GetProviderCode (
   pId		integer
 ) RETURNS 	text
 AS $$
-DECLARE
-  vCode		text;
-BEGIN
-  SELECT code INTO vCode FROM oauth2.provider WHERE id = pId;
-  RETURN vCode;
-END;
-$$ LANGUAGE plpgsql
+  SELECT code FROM oauth2.provider WHERE id = pId;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -70,13 +60,8 @@ CREATE OR REPLACE FUNCTION GetProviderType (
   pId		integer
 ) RETURNS 	char
 AS $$
-DECLARE
-  vType		char;
-BEGIN
-  SELECT type INTO vType FROM oauth2.provider WHERE id = pId;
-  RETURN vType;
-END;
-$$ LANGUAGE plpgsql
+  SELECT type FROM oauth2.provider WHERE id = pId;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -116,13 +101,8 @@ CREATE OR REPLACE FUNCTION GetApplication (
   pCode		text
 ) RETURNS 	integer
 AS $$
-DECLARE
-  nId		integer;
-BEGIN
-  SELECT id INTO nId FROM oauth2.application WHERE code = pCode;
-  RETURN nId;
-END;
-$$ LANGUAGE plpgsql
+  SELECT id FROM oauth2.application WHERE code = pCode;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -134,13 +114,8 @@ CREATE OR REPLACE FUNCTION GetApplicationCode (
   pId		integer
 ) RETURNS 	text
 AS $$
-DECLARE
-  vCode		text;
-BEGIN
-  SELECT code INTO vCode FROM oauth2.application WHERE id = pId;
-  RETURN vCode;
-END;
-$$ LANGUAGE plpgsql
+  SELECT code FROM oauth2.application WHERE id = pId;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -180,13 +155,8 @@ CREATE OR REPLACE FUNCTION GetIssuer (
   pCode		text
 ) RETURNS 	integer
 AS $$
-DECLARE
-  nId		integer;
-BEGIN
-  SELECT id INTO nId FROM oauth2.issuer WHERE code = pCode;
-  RETURN nId;
-END;
-$$ LANGUAGE plpgsql
+  SELECT id FROM oauth2.issuer WHERE code = pCode;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -198,13 +168,8 @@ CREATE OR REPLACE FUNCTION GetIssuerCode (
   pId		integer
 ) RETURNS 	text
 AS $$
-DECLARE
-  vCode		text;
-BEGIN
-  SELECT code INTO vCode FROM oauth2.issuer WHERE id = pId;
-  RETURN vCode;
-END;
-$$ LANGUAGE plpgsql
+  SELECT code FROM oauth2.issuer WHERE id = pId;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -243,13 +208,8 @@ CREATE OR REPLACE FUNCTION GetAlgorithm (
   pCode		text
 ) RETURNS 	integer
 AS $$
-DECLARE
-  nId		integer;
-BEGIN
-  SELECT id INTO nId FROM oauth2.algorithm WHERE code = pCode;
-  RETURN nId;
-END;
-$$ LANGUAGE plpgsql
+  SELECT id FROM oauth2.algorithm WHERE code = pCode;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -261,13 +221,8 @@ CREATE OR REPLACE FUNCTION GetAlgorithmCode (
   pId		integer
 ) RETURNS 	text
 AS $$
-DECLARE
-  vCode		text;
-BEGIN
-  SELECT code INTO vCode FROM oauth2.algorithm WHERE id = pId;
-  RETURN vCode;
-END;
-$$ LANGUAGE plpgsql
+  SELECT code FROM oauth2.algorithm WHERE id = pId;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -279,13 +234,8 @@ CREATE OR REPLACE FUNCTION GetAlgorithmName (
   pId		integer
 ) RETURNS 	text
 AS $$
-DECLARE
-  vName		text;
-BEGIN
-  SELECT name INTO vName FROM oauth2.algorithm WHERE id = pId;
-  RETURN vName;
-END;
-$$ LANGUAGE plpgsql
+  SELECT name FROM oauth2.algorithm WHERE id = pId;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -329,13 +279,8 @@ CREATE OR REPLACE FUNCTION GetAudience (
   pCode		text
 ) RETURNS 	integer
 AS $$
-DECLARE
-  nId		integer;
-BEGIN
-  SELECT id INTO nId FROM oauth2.audience WHERE code = pCode;
-  RETURN nId;
-END;
-$$ LANGUAGE plpgsql
+  SELECT id FROM oauth2.audience WHERE code = pCode;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -347,12 +292,7 @@ CREATE OR REPLACE FUNCTION GetAudienceCode (
   pId		integer
 ) RETURNS 	text
 AS $$
-DECLARE
-  vCode		text;
-BEGIN
-  SELECT code INTO vCode FROM oauth2.audience WHERE id = pId;
-  RETURN vCode;
-END;
-$$ LANGUAGE plpgsql
+  SELECT code FROM oauth2.audience WHERE id = pId;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

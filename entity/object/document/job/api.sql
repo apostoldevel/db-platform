@@ -18,7 +18,7 @@ GRANT SELECT ON api.job TO administrator;
 
 CREATE OR REPLACE VIEW api.service_job
 AS
-  SELECT * FROM ServiceJob;
+  SELECT * FROM ServiceJob WHERE scope = current_scope();
 
 GRANT SELECT ON api.service_job TO administrator;
 GRANT SELECT ON api.service_job TO apibot;
@@ -29,10 +29,16 @@ GRANT SELECT ON api.service_job TO apibot;
 
 CREATE OR REPLACE FUNCTION api.job (
   pStateType	uuid,
-  pDateRun		timestamptz DEFAULT Now()
-) RETURNS		SETOF api.service_job
+  pDateRun		timestamptz DEFAULT Now(),
+  OUT id        uuid,
+  OUT statecode text,
+  OUT created   timestamptz
+) RETURNS		SETOF record
 AS $$
-  SELECT * FROM api.service_job WHERE statetype = pStateType AND dateRun <= pDateRun;
+  SELECT j.id, s.code AS statecode, o.pdate AS created
+    FROM db.job j INNER JOIN db.object o ON j.document = o.id AND o.scope = current_scope()
+                  INNER JOIN db.state  s ON o.state = s.id AND s.type = pStateType
+	 WHERE j.dateRun <= pDateRun;
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -43,8 +49,11 @@ $$ LANGUAGE SQL
 
 CREATE OR REPLACE FUNCTION api.job (
   pStateType	text DEFAULT 'enabled',
-  pDateFrom		double precision DEFAULT null
-) RETURNS		SETOF api.service_job
+  pDateFrom		double precision DEFAULT null,
+  OUT id        uuid,
+  OUT statecode text,
+  OUT created   timestamptz
+) RETURNS		SETOF record
 AS $$
   SELECT * FROM api.job(GetStateType(pStateType), coalesce(to_timestamp(pDateFrom), Now()));
 $$ LANGUAGE SQL
@@ -78,7 +87,7 @@ CREATE OR REPLACE FUNCTION api.add_job (
 ) RETURNS           uuid
 AS $$
 BEGIN
-  RETURN CreateJob(pParent, coalesce(pType, GetType('periodic.job.job')), pScheduler, pProgram, pDateRun, pCode, pLabel, pDescription);
+  RETURN CreateJob(pParent, coalesce(pType, GetType('periodic.job')), pScheduler, pProgram, pDateRun, pCode, pLabel, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -117,7 +126,7 @@ BEGIN
   SELECT c.id INTO uJob FROM db.job c WHERE c.id = pId;
 
   IF NOT FOUND THEN
-    PERFORM ObjectNotFound('задание', 'id', pId);
+    PERFORM ObjectNotFound('job', 'id', pId);
   END IF;
 
   PERFORM EditJob(uJob, pParent, pType, pScheduler, pProgram, pDateRun, pCode, pLabel, pDescription);

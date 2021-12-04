@@ -3,10 +3,51 @@
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
+-- api.login -------------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Вход в систему по имени и паролю виртуального пользователя.
+ * @param {text} pUserName - Имя пользователь
+ * @param {text} pPassword - Пароль пользователя
+ * @param {text} pAgent - Агент
+ * @param {inet} pHost - IP адрес
+ * @param {text} pScope - Область видимости базы данных
+ * @out param {text} session - Сессия
+ * @out param {text} secret - Секретный ключ для подписи методом HMAC-256
+ * @out param {text} code - Одноразовый код авторизации для получения маркера см. OAuth 2.0
+ * @return {record} - Возвращяет сессию указанного пользователя
+ */
+CREATE OR REPLACE FUNCTION api.login (
+  pUserName     text,
+  pPassword     text,
+  pAgent        text DEFAULT null,
+  pHost         inet DEFAULT null,
+  pScope        text DEFAULT null,
+  OUT session   text,
+  OUT secret    text,
+  OUT code      text
+) RETURNS       record
+AS $$
+BEGIN
+  session := Login(CreateSystemOAuth2(pScope), pUserName, pPassword, pAgent, pHost);
+
+  IF session IS NULL THEN
+    PERFORM AuthenticateError(GetErrorMessage());
+  END IF;
+
+  code := oauth2_current_code(session);
+  secret := session_secret(session);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- api.signin ------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
  * @brief Вход в систему по имени и паролю виртуального пользователя.
+ * Требуется предварительная авторизация OAuth 2.0 клиента.
  * @param {text} pUserName - Пользователь (login)
  * @param {text} pPassword - Пароль
  * @param {text} pAgent - Агент
@@ -142,7 +183,7 @@ $$ LANGUAGE plpgsql
 -- api.su ----------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Substitute user.
+ * @brief Substitute user.
  * Меняет текущего пользователя в активном сеансе на указанного пользователя
  * @param {text} pUserName - Имя пользователь для подстановки
  * @param {text} pPassword - Пароль текущего пользователя
@@ -161,44 +202,6 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- api.login -------------------------------------------------------------------
---------------------------------------------------------------------------------
-/**
- * Вход в систему под именем виртуального пользователя.
- * @param {text} pUserName - Имя пользователь
- * @param {text} pPassword - Пароль пользователя
- * @param {text} pAgent - Агент
- * @param {inet} pHost - IP адрес
- * @out param {text} session - Сессия
- * @out param {text} secret - Секретный ключ для подписи методом HMAC-256
- * @out param {text} code - Одноразовый код авторизации для получения маркера см. OAuth 2.0
- * @return {record} - Возвращяет сессию указанного пользователя
- */
-CREATE OR REPLACE FUNCTION api.login (
-  pUserName     text,
-  pPassword     text,
-  pAgent        text DEFAULT null,
-  pHost         inet DEFAULT null,
-  OUT session   text,
-  OUT secret    text,
-  OUT code      text
-) RETURNS       record
-AS $$
-BEGIN
-  session := Login(CreateSystemOAuth2(), pUserName, pPassword, pAgent, pHost);
-
-  IF session IS NULL THEN
-    PERFORM AuthenticateError(GetErrorMessage());
-  END IF;
-
-  code := oauth2_current_code(session);
-  secret := session_secret(session);
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
 -- api.get_session -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
@@ -206,18 +209,57 @@ $$ LANGUAGE plpgsql
  * @param {text} pUserName - Имя пользователь
  * @param {text} pAgent - Агент
  * @param {inet} pHost - IP адрес
+ * @param {text} pScope - Область видимости базы данных
+ * @param {bool} pNew - Создать новую сессию
+ * @param {bool} pLogin - Авторизоваться в системе
  * @return {text} - Сессия
  */
 CREATE OR REPLACE FUNCTION api.get_session (
   pUserName     text,
   pAgent        text,
   pHost         inet,
-  pNew          bool default true,
-  pLogin        bool default false
+  pScope        text DEFAULT null,
+  pNew          bool DEFAULT null,
+  pLogin        bool DEFAULT null
 ) RETURNS       text
 AS $$
 BEGIN
-  RETURN GetSession(GetUser(pUserName), CreateSystemOAuth2(), pAgent, pHost, pNew, pLogin);
+  RETURN GetSession(GetUser(pUserName), CreateSystemOAuth2(pScope), pAgent, pHost, coalesce(pNew, false), coalesce(pLogin, false));
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.get_sessions ------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Везврящает сесии пользователей для каждой зоны.
+ * @param {text} pUserName - Имя пользователь
+ * @param {text} pAgent - Агент
+ * @param {inet} pHost - IP адрес
+ * @return {text} - Сессия
+ */
+CREATE OR REPLACE FUNCTION api.get_sessions (
+  pUserName     text,
+  pAgent        text,
+  pHost         inet,
+  pNew          bool default null,
+  pLogin        bool default null
+) RETURNS       SETOF text
+AS $$
+DECLARE
+  r             record;
+  uUserId       uuid;
+BEGIN
+  uUserId := GetUser(pUserName);
+
+  FOR r IN SELECT code FROM db.scope ORDER BY code
+  LOOP
+    RETURN NEXT GetSession(uUserId, CreateSystemOAuth2(r.code), pAgent, pHost, coalesce(pNew, false), coalesce(pLogin, false));
+  END LOOP;
+
+  RETURN;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

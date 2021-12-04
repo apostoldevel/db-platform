@@ -348,27 +348,47 @@ COMMENT ON COLUMN db.profile.picture IS 'Логотип.';
 CREATE OR REPLACE FUNCTION db.ft_profile_before()
 RETURNS trigger AS $$
 BEGIN
-  IF NEW.locale IS NULL THEN
-    SELECT id INTO NEW.locale FROM db.locale WHERE code = locale_code();
-  END IF;
+  IF (TG_OP = 'UPDATE') THEN
 
-  IF NEW.scope IS NULL THEN
-    SELECT current_scope() INTO NEW.scope;
-  END IF;
+    IF NEW.area IS DISTINCT FROM OLD.area THEN
+      IF NOT IsMemberArea(NEW.area, NEW.userid) THEN
+        PERFORM UserNotMemberArea(GetUserName(NEW.userid), GetAreaName(NEW.area));
+      END IF;
+    END IF;
 
-  SELECT id INTO NEW.area FROM db.area WHERE id = NEW.area AND scope = NEW.scope;
+    IF OLD.interface IS DISTINCT FROM NEW.interface THEN
+      IF NOT IsMemberInterface(NEW.interface, NEW.userid) THEN
+        PERFORM UserNotMemberInterface(GetUserName(NEW.userid), GetInterfaceName(NEW.interface));
+      END IF;
+    END IF;
 
-  IF NOT IsMemberArea(NEW.area, NEW.userid) THEN
-    SELECT GetAreaGuest(NEW.scope) INTO NEW.area; -- guest
-    INSERT INTO db.member_area (area, member) VALUES (NEW.area, NEW.userid) ON CONFLICT DO NOTHING;
-  END IF;
+    IF OLD.scope IS DISTINCT FROM NEW.scope THEN
+      SELECT scope INTO NEW.scope FROM db.area WHERE id = NEW.area;
+    END IF;
 
-  IF NEW.area IS NULL THEN
-    SELECT OLD.area INTO NEW.area;
-  END IF;
+  ELSE
 
-  IF NOT IsMemberInterface(NEW.interface, NEW.userid) THEN
-    SELECT '00000000-0000-4004-a000-000000000003' INTO NEW.interface; -- guest
+	IF NEW.locale IS NULL THEN
+	  SELECT id INTO NEW.locale FROM db.locale WHERE code = locale_code();
+	END IF;
+
+    IF NOT IsMemberArea(NEW.area, NEW.userid) THEN
+      PERFORM AddMemberToArea(NEW.userid, NEW.area);
+    END IF;
+
+    IF NOT IsMemberInterface(NEW.interface, NEW.userid) THEN
+      PERFORM AddMemberToInterface(NEW.userid, NEW.interface);
+    END IF;
+
+    IF NEW.scope IS NULL THEN
+      SELECT scope INTO NEW.scope FROM db.area WHERE id = NEW.area;
+    ELSE
+      PERFORM FROM db.area WHERE id = NEW.area AND scope = NEW.scope;
+      IF NOT FOUND THEN
+        RAISE EXCEPTION 'Area "% (%)" not present in scope "% (%)".', NEW.area, GetAreaName(NEW.area), NEW.scope, GetScopeName(NEW.scope);
+      END IF;
+    END IF;
+
   END IF;
 
   RETURN NEW;
@@ -868,6 +888,7 @@ CREATE TABLE db.session (
     locale      uuid NOT NULL REFERENCES db.locale(id),
     area        uuid NOT NULL REFERENCES db.area(id),
     interface   uuid NOT NULL REFERENCES db.interface(id),
+    scope       uuid NOT NULL REFERENCES db.scope(id),
     oper_date   timestamp DEFAULT NULL,
     created     timestamp DEFAULT Now() NOT NULL,
     updated     timestamp DEFAULT Now() NOT NULL,
@@ -888,6 +909,7 @@ COMMENT ON COLUMN db.session.userid IS 'Пользователь';
 COMMENT ON COLUMN db.session.locale IS 'Язык';
 COMMENT ON COLUMN db.session.area IS 'Область видимости документов';
 COMMENT ON COLUMN db.session.interface IS 'Рабочие место';
+COMMENT ON COLUMN db.session.scope IS 'Область видимости базы данных';
 COMMENT ON COLUMN db.session.oper_date IS 'Дата операционного дня';
 COMMENT ON COLUMN db.session.created IS 'Дата и время создания сессии';
 COMMENT ON COLUMN db.session.updated IS 'Дата и время последнего обновления сессии';
@@ -901,8 +923,10 @@ CREATE UNIQUE INDEX ON db.session (oauth2);
 
 CREATE INDEX ON db.session (suid);
 CREATE INDEX ON db.session (userid);
+CREATE INDEX ON db.session (scope);
 CREATE INDEX ON db.session (created);
 CREATE INDEX ON db.session (updated);
+CREATE INDEX ON db.session (agent);
 
 --------------------------------------------------------------------------------
 -- FUNCTION ft_session_before --------------------------------------------------
@@ -967,6 +991,13 @@ BEGIN
       END IF;
     END IF;
 
+    IF OLD.scope IS DISTINCT FROM NEW.scope THEN
+      PERFORM FROM db.area WHERE id = NEW.area AND scope = NEW.scope;
+      IF NOT FOUND THEN
+        NEW.scope := OLD.scope;
+      END IF;
+    END IF;
+
     RETURN NEW;
   ELSIF (TG_OP = 'INSERT') THEN
     IF NEW.suid IS NULL THEN
@@ -1012,6 +1043,15 @@ BEGIN
 
     IF NOT IsMemberInterface(NEW.interface, NEW.userid) THEN
       PERFORM UserNotMemberInterface(GetUserName(NEW.userid), GetInterfaceName(NEW.interface));
+    END IF;
+
+    IF NEW.scope IS NULL THEN
+      SELECT scope INTO NEW.scope FROM db.area WHERE id = NEW.area;
+    ELSE
+      PERFORM FROM db.area WHERE id = NEW.area AND scope = NEW.scope;
+      IF NOT FOUND THEN
+        RAISE EXCEPTION 'Area "% (%)" not present in scope "% (%)".', NEW.area, GetAreaName(NEW.area), NEW.scope, GetScopeName(NEW.scope);
+      END IF;
     END IF;
 
     RETURN NEW;

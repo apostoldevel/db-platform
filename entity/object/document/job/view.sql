@@ -5,15 +5,18 @@
 CREATE OR REPLACE VIEW Job (Id, Document, Code,
   Scheduler, SchedulerCode, SchedulerName,
   DateStart, DateStop, Period, DateRun,
-  Program, ProgramCode, ProgramName
+  Program, ProgramCode, ProgramName,
+  Scope, ScopeCode, ScopeName, ScopeDescription
 )
 AS
   SELECT j.id, j.document, j.code,
          j.scheduler, s.code, s.name,
          s.datestart, s.datestop, s.period, j.daterun,
-         j.program, p.code, p.name
+         j.program, p.code, p.name,
+         j.scope, t.code, t.name, t.description
     FROM db.job j INNER JOIN Scheduler s ON j.scheduler = s.id
-                  INNER JOIN Program   p ON j.program = p.id;
+                  INNER JOIN Program   p ON j.program = p.id
+                  INNER JOIN Scope     t ON j.scope = t.id;
 
 GRANT SELECT ON Job TO administrator;
 

@@ -24,7 +24,7 @@ BEGIN
     PERFORM IncorrectClassType();
   END IF;
 
-  SELECT id INTO uDocument FROM db.job WHERE code = pCode;
+  SELECT id INTO uDocument FROM db.job WHERE scope = current_scope() AND code = pCode;
 
   IF FOUND THEN
     PERFORM JobExists(pCode);
@@ -32,8 +32,8 @@ BEGIN
 
   uDocument := CreateDocument(pParent, pType, pLabel, pDescription);
 
-  INSERT INTO db.job (id, document, code, scheduler, program, daterun)
-  VALUES (uDocument, uDocument, pCode, pScheduler, pProgram, pDateRun);
+  INSERT INTO db.job (id, document, scope, code, scheduler, program, daterun)
+  VALUES (uDocument, uDocument, current_scope(), pCode, pScheduler, pProgram, pDateRun);
 
   uMethod := GetMethod(uClass, GetAction('create'));
   PERFORM ExecuteMethod(uDocument, uMethod);

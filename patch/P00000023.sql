@@ -1,7 +1,7 @@
 ALTER TABLE db.document
   ADD scope uuid REFERENCES db.scope(id);
 
-UPDATE db.document d SET scope = (SELECT a.scope FROM db.area a WHERE a.id = d.area);
+UPDATE db.document d SET scope = a.scope FROM db.area a WHERE a.id = d.area;
 
 ALTER TABLE db.document
 	ALTER COLUMN scope SET NOT NULL;

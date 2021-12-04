@@ -68,84 +68,6 @@ END;
 $$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
--- EventMessageSubmit ----------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION EventMessageSubmit (
-  pObject	uuid default context_object()
-) RETURNS	void
-AS $$
-BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'submit', 'Сообщение готово к отправке.', pObject);
-END;
-$$ LANGUAGE plpgsql;
-
---------------------------------------------------------------------------------
--- EventMessageSend ------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION EventMessageSend (
-  pObject	uuid default context_object()
-) RETURNS	void
-AS $$
-BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'send', 'Сообщение отправляется.', pObject);
-END;
-$$ LANGUAGE plpgsql;
-
---------------------------------------------------------------------------------
--- EventMessageCancel ----------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION EventMessageCancel (
-  pObject	uuid default context_object()
-) RETURNS	void
-AS $$
-BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'cancel', 'Отправка сообщения отменена.', pObject);
-END;
-$$ LANGUAGE plpgsql;
-
---------------------------------------------------------------------------------
--- EventMessageDone ------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION EventMessageDone (
-  pObject	uuid default context_object()
-) RETURNS	void
-AS $$
-BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'done', 'Сообщение отправено.', pObject);
-END;
-$$ LANGUAGE plpgsql;
-
---------------------------------------------------------------------------------
--- EventMessageFail ------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION EventMessageFail (
-  pObject	uuid default context_object()
-) RETURNS	void
-AS $$
-BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'Fail', 'Сбой при отправке сообщения.', pObject);
-END;
-$$ LANGUAGE plpgsql;
-
---------------------------------------------------------------------------------
--- EventMessageRepeat ----------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION EventMessageRepeat (
-  pObject	uuid default context_object()
-) RETURNS	void
-AS $$
-BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'repeat', 'Повторная отправка сообщения.', pObject);
-END;
-$$ LANGUAGE plpgsql;
-
---------------------------------------------------------------------------------
 -- EventMessageDisable ---------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -200,7 +122,7 @@ BEGIN
   DELETE FROM db.object_link WHERE linked = pObject;
   DELETE FROM db.message WHERE id = pObject;
 
-  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Сообщение уничтожен.');
+  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Сообщение уничтожено.');
 END;
 $$ LANGUAGE plpgsql;
 

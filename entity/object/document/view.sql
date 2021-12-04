@@ -8,9 +8,9 @@ CREATE OR REPLACE VIEW Document (Id, Object, Entity, Class, Type, Area, Descript
 ) AS
   SELECT d.id, d.object, d.entity, d.class, d.type, d.area, dt.description,
          a.code, a.name, a.description,
-         a.scope, s.code, s.name, s.description
+         d.scope, s.code, s.name, s.description
     FROM db.document d INNER JOIN db.area           a ON d.area = a.id
-                       INNER JOIN db.scope          s ON s.id = a.scope
+                       INNER JOIN db.scope          s ON d.scope = s.id
                         LEFT JOIN db.document_text dt ON d.id = dt.document AND dt.locale = current_locale();
 
 GRANT SELECT ON Document TO administrator;
