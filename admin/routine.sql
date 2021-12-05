@@ -834,7 +834,6 @@ CREATE OR REPLACE FUNCTION CreateOAuth2 (
 ) RETURNS       bigint
 AS $$
 BEGIN
-  pScope := coalesce(NULLIF(pScope, 'http://localhost:8080'), current_database()::text);
   pAccessType := coalesce(pAccessType, 'online');
   RETURN CreateOAuth2(pAudience, ScopeToArray(pScope), pAccessType, pRedirectURI, pState);
 END;

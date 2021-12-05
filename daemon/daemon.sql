@@ -276,7 +276,6 @@ DECLARE
   account       db.user%rowtype;
   profile       db.profile%rowtype;
 
-  uId           uuid;
   uUserId       uuid;
   uScope        uuid;
 
@@ -374,15 +373,15 @@ BEGIN
         INSERT INTO db.auth (userId, audience, code) VALUES (uUserId, nAudience, account.username);
       END IF;
 
-      SELECT userId INTO uId FROM db.profile WHERE userid = uUserId AND scope = uScope;
+      PERFORM FROM db.profile WHERE userid = uUserId AND scope = uScope;
 
       IF NOT FOUND THEN
-		PERFORM CreateProfile(uUserId, uScope, profile.family_name, profile.given_name, null, profile.locale, profile.area, profile.interface, profile.email_verified, profile.phone_verified, profile.picture);
-	  END IF;
+        PERFORM CreateProfile(uUserId, uScope, profile.family_name, profile.given_name, null, profile.locale, profile.area, profile.interface, profile.email_verified, profile.phone_verified, profile.picture);
+      END IF;
 
       SELECT id INTO nAudience FROM oauth2.audience WHERE provider = GetProvider('default') AND application = nApplication;
 
-      vSession := GetSession(uUserId, CreateOAuth2(nAudience, pScope), pAgent, pHost, true, false);
+      vSession := GetSession(uUserId, CreateOAuth2(nAudience, pScope), pAgent, pHost, false, false);
 
       IF vSession IS NULL THEN
         RAISE EXCEPTION '%', GetErrorMessage();
@@ -549,7 +548,8 @@ BEGIN
 
   IF grant_type = 'urn:ietf:params:oauth:grant-type:jwt-bearer' THEN
     assertion := pPayload->>'assertion';
-    RETURN daemon.login(assertion, pAgent, pHost, current_database());
+    scope := pPayload->>'scope';
+    RETURN daemon.login(assertion, pAgent, pHost, scope);
   END IF;
 
   SELECT a.id INTO nAudience FROM oauth2.audience a WHERE a.code = pClientId;

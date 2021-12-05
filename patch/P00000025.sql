@@ -327,11 +327,11 @@ BEGIN
 	END IF;
 
     IF NOT IsMemberArea(NEW.area, NEW.userid) THEN
-      PERFORM AddMemberToArea(NEW.userid, NEW.area);
+      INSERT INTO db.member_area (area, member) VALUES (NEW.area, NEW.userid) ON CONFLICT DO NOTHING;
     END IF;
 
     IF NOT IsMemberInterface(NEW.interface, NEW.userid) THEN
-      PERFORM AddMemberToInterface(NEW.userid, NEW.interface);
+      INSERT INTO db.member_interface (interface, member) VALUES (NEW.interface, NEW.userid) ON CONFLICT DO NOTHING;
     END IF;
 
     IF NEW.scope IS NULL THEN

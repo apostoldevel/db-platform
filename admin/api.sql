@@ -609,7 +609,19 @@ CREATE OR REPLACE FUNCTION api.change_password (
   pNewPass      text
 ) RETURNS       void
 AS $$
+DECLARE
+  vPassword     text;
 BEGIN
+  IF length(pOldPass) = 128 THEN
+	SELECT encode(hmac(secret::text, GetSecretKey(), 'sha1'), 'hex') INTO vPassword
+	  FROM db.user
+	 WHERE hash = encode(digest(pOldPass, 'sha1'), 'hex');
+
+	IF FOUND THEN
+	  pOldPass := vPassword;
+	END IF;
+  END IF;
+
   IF NOT CheckPassword(pId, pOldPass) THEN
     RAISE EXCEPTION '%', GetErrorMessage();
   END IF;
@@ -1243,7 +1255,7 @@ $$ LANGUAGE SQL
 
 CREATE OR REPLACE VIEW api.area
 AS
-  SELECT * FROM AreaTree('00000000-0000-4003-a000-000000000000');
+  SELECT * FROM AreaTree(GetAreaRoot());
 
 GRANT SELECT ON api.area TO administrator;
 
