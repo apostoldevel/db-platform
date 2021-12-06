@@ -124,7 +124,7 @@ BEGIN
   ELSE
     PERFORM FROM db.area WHERE id = GetSessionArea(current_session()) AND scope = NEW.scope;
     IF NOT FOUND THEN
-      RAISE EXCEPTION 'Area "%" not present in scope "%".', GetSessionArea(current_session()), GetScopeName(NEW.scope);
+      RAISE EXCEPTION 'ERR-40000: Area "%" not present in scope "%".', GetSessionArea(current_session()), GetScopeName(NEW.scope);
     END IF;
   END IF;
 
