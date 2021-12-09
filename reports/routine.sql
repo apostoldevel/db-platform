@@ -85,6 +85,7 @@ BEGIN
 	  SELECT id AS value, label
 		FROM ObjectDocument
 	   WHERE entity = pEntity
+         AND statetype = '00000000-0000-4000-b001-000000000002'::uuid
 	   ORDER BY label
 	   LIMIT pLimit
 	LOOP
@@ -96,6 +97,7 @@ BEGIN
 		FROM ObjectDocument
 	   WHERE entity = pEntity
 	     AND class IN (SELECT unnest(pClasses))
+         AND statetype = '00000000-0000-4000-b001-000000000002'::uuid
 	   ORDER BY label
 	   LIMIT pLimit
 	LOOP
@@ -128,6 +130,7 @@ BEGIN
 	  SELECT id AS value, name AS label
 		FROM ObjectReference
 	   WHERE entity = pEntity
+         AND statetype = '00000000-0000-4000-b001-000000000002'::uuid
 	   ORDER BY name
 	   LIMIT pLimit
 	LOOP
@@ -139,6 +142,7 @@ BEGIN
 		FROM ObjectReference
 	   WHERE entity = pEntity
 	     AND class IN (SELECT unnest(pClasses))
+         AND statetype = '00000000-0000-4000-b001-000000000002'::uuid
 	   ORDER BY label
 	   LIMIT pLimit
 	LOOP
