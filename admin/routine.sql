@@ -1713,7 +1713,7 @@ CREATE OR REPLACE FUNCTION current_area (
 RETURNS 	uuid
 AS $$
 BEGIN
-  RETURN GetSessionArea(pSession);
+  RETURN coalesce(GetSessionArea(pSession), '00000000-0000-4003-a000-000000000002');
 END;
 $$ LANGUAGE plpgsql STABLE
    SECURITY DEFINER
@@ -1766,7 +1766,7 @@ CREATE OR REPLACE FUNCTION current_interface (
 RETURNS 	uuid
 AS $$
 BEGIN
-  RETURN GetSessionInterface(pSession);
+  RETURN coalesce(GetSessionInterface(pSession), '00000000-0000-4004-a000-000000000003');
 END;
 $$ LANGUAGE plpgsql STABLE
    SECURITY DEFINER
