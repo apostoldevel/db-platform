@@ -586,8 +586,8 @@ $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
 --------------------------------------------------------------------------------
 
-SELECT CreateExceptionResource(GetExceptionUUID(400, 32), 'ru', 'MethodActionNotFound', 'Не найден метод объекта [%s], для действия: %s [%s]. Текущее состояние: [%s]');
-SELECT CreateExceptionResource(GetExceptionUUID(400, 32), 'en', 'MethodActionNotFound', 'Object [%s] method not FOUND, for action: %s [%s]. Current state: [%s]');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 32), 'ru', 'MethodActionNotFound', 'Не найден метод объекта [%s], для действия: %s [%s]. Текущее состояние: %s [%s]');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 32), 'en', 'MethodActionNotFound', 'Object [%s] method not FOUND, for action: %s [%s]. Current state: %s [%s]');
 
 CREATE OR REPLACE FUNCTION MethodActionNotFound (
   pObject	uuid,
@@ -595,7 +595,7 @@ CREATE OR REPLACE FUNCTION MethodActionNotFound (
 ) RETURNS	void
 AS $$
 BEGIN
-  RAISE EXCEPTION '%', format(GetExceptionStr(400, 32), pObject, GetActionCode(pAction), pAction, GetObjectState(pObject));
+  RAISE EXCEPTION '%', format(GetExceptionStr(400, 32), pObject, GetActionCode(pAction), pAction, GetObjectStateCode(pObject), GetObjectState(pObject));
 END;
 $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
