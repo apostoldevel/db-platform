@@ -1435,7 +1435,7 @@ CREATE OR REPLACE FUNCTION AddMethod (
   pCode		text DEFAULT null,
   pLabel	text DEFAULT null,
   pSequence	integer DEFAULT null,
-  pVisible	boolean DEFAULT true
+  pVisible	boolean DEFAULT null
 ) RETURNS	uuid
 AS $$
 DECLARE
@@ -1450,7 +1450,7 @@ BEGIN
   END IF;
 
   INSERT INTO db.method (parent, class, state, action, code, sequence, visible)
-  VALUES (pParent, pClass, pState, pAction, pCode, pSequence, pVisible)
+  VALUES (pParent, pClass, pState, pAction, pCode, pSequence, coalesce(pVisible, true))
   RETURNING id INTO uId;
 
   pLabel := coalesce(pLabel, GetActionName(pAction));

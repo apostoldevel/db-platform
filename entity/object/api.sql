@@ -647,7 +647,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Добавляет объект в группу.
- * @param {uuid} pObjectGroup - Идентификатор группу объектов
+ * @param {uuid} pGroup - Идентификатор группы объектов
  * @param {uuid} pObject - Идентификатор объекта
  * @return {void}
  */
@@ -657,7 +657,7 @@ CREATE OR REPLACE FUNCTION api.add_object_to_group (
 ) RETURNS   void
 AS $$
 BEGIN
-  IF NOT CheckObjectAccess(pObject, B'010') THEN
+  IF NOT CheckObjectAccess(pObject, B'100') THEN
 	PERFORM AccessDenied();
   END IF;
 
@@ -671,8 +671,8 @@ $$ LANGUAGE plpgsql
 -- api.delete_object_from_group ------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Удалить объект из группы.
- * @param {uuid} pObjectGroup - Идентификатор зоны
+ * Удаляет объект из группы.
+ * @param {uuid} pGroup - Идентификатор группы объектов
  * @param {uuid} pObject - Идентификатор объекта
  * @return {void}
  */
@@ -682,7 +682,7 @@ CREATE OR REPLACE FUNCTION api.delete_object_from_group (
 ) RETURNS   void
 AS $$
 BEGIN
-  IF NOT CheckObjectAccess(pObject, B'010') THEN
+  IF NOT CheckObjectAccess(pObject, B'100') THEN
 	PERFORM AccessDenied();
   END IF;
 
