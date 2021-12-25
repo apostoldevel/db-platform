@@ -565,6 +565,17 @@ $$ LANGUAGE SQL
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.state_by_type (
+  pType     uuid
+) RETURNS	SETOF api.state
+AS $$
+  SELECT * FROM api.state WHERE class IN (SELECT class FROM Type WHERE id = pType) ORDER BY type, sequence;
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- api.add_state ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**

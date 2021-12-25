@@ -563,6 +563,16 @@ BEGIN
 
     END IF;
 
+  WHEN '/state/by/type' THEN
+
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(type uuid, fields jsonb)
+    LOOP
+      FOR e IN EXECUTE format('SELECT %s FROM api.state_by_type($1)', JsonbToFields(r.fields, GetColumns('state_by_type', 'api'))) USING r.type
+      LOOP
+        RETURN NEXT row_to_json(e);
+      END LOOP;
+    END LOOP;
+
   ELSE
     PERFORM RouteNotFound(pPath);
   END CASE;
