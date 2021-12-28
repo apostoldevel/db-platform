@@ -17,7 +17,6 @@ BEGIN
   PERFORM RegisterRoute('current', AddEndpoint('SELECT * FROM rest.current($1, $2);'));
   PERFORM RegisterRoute('event', AddEndpoint('SELECT * FROM rest.event($1, $2);'));
   PERFORM RegisterRoute('kladr', AddEndpoint('SELECT * FROM rest.kladr($1, $2);'));
-  PERFORM RegisterRoute('notice', AddEndpoint('SELECT * FROM rest.notice($1, $2);'));
   PERFORM RegisterRoute('notification', AddEndpoint('SELECT * FROM rest.notification($1, $2);'));
   PERFORM RegisterRoute('observer', AddEndpoint('SELECT * FROM rest.observer($1, $2);'));
   PERFORM RegisterRoute('registry', AddEndpoint('SELECT * FROM rest.registry($1, $2);'));
