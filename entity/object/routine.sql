@@ -436,13 +436,8 @@ CREATE OR REPLACE FUNCTION GetNewState (
   pMethod	uuid
 ) RETURNS 	uuid
 AS $$
-DECLARE
-  uNewState	uuid;
-BEGIN
-  SELECT newstate INTO uNewState FROM db.transition WHERE method = pMethod;
-  RETURN uNewState;
-END;
-$$ LANGUAGE plpgsql
+  SELECT newstate FROM db.transition WHERE method = pMethod;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -586,7 +581,6 @@ CREATE OR REPLACE FUNCTION ExecuteMethod (
 ) RETURNS       jsonb
 AS $$
 DECLARE
-  uObject		uuid;
   uSaveObject	uuid;
   uSaveClass	uuid;
   uSaveMethod	uuid;
@@ -622,16 +616,14 @@ BEGIN
   PERFORM InitContext(pObject, uClass, pMethod, uAction);
   PERFORM InitParams(pParams);
 
-  BEGIN
-    PERFORM ExecuteAction(uClass, uAction);
-  END;
+  PERFORM ExecuteAction(uClass, uAction);
 
   PERFORM InitParams(jSaveParams);
   PERFORM InitContext(uSaveObject, uSaveClass, uSaveMethod, uSaveAction);
 
-  SELECT id INTO uObject FROM db.object WHERE id = pObject;
+  PERFORM FROM db.object WHERE id = pObject;
   IF FOUND THEN
-    PERFORM AddNotification(uClass, uAction, pMethod, uObject);
+    PERFORM AddNotification(uClass, uAction, pMethod, pObject);
   END IF;
 
   RETURN GetMethodStack(pObject, pMethod);
@@ -692,7 +684,6 @@ BEGIN
   uMethod := GetObjectMethod(pObject, pAction);
 
   IF uMethod IS NULL THEN
-
   	PERFORM MethodActionNotFound(pObject, pAction);
   END IF;
 

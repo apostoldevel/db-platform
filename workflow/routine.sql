@@ -1531,7 +1531,7 @@ BEGIN
   WITH RECURSIVE _class_tree(id, parent, level) AS (
     SELECT id, parent, level FROM db.class_tree WHERE id = pClass
     UNION
-    SELECT c.id, c.parent, c.level FROM db.class_tree c INNER JOIN _class_tree ct ON ct.parent = c.id
+    SELECT c.id, c.parent, c.level FROM db.class_tree c INNER JOIN _class_tree ct ON ct.parent = c.id AND NOT c.abstract
   )
   SELECT m.id INTO uMethod
     FROM db.method m INNER JOIN _class_tree c ON c.id = m.class

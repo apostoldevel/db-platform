@@ -358,24 +358,15 @@ CREATE OR REPLACE FUNCTION api.execute_object_action (
   pParams		jsonb DEFAULT null
 ) RETURNS		jsonb
 AS $$
-DECLARE
-  uId			uuid;
-  uMethod		uuid;
 BEGIN
-  SELECT o.id INTO uId FROM db.object o WHERE o.id = pObject;
+  PERFORM FROM db.object WHERE id = pObject;
 
   IF NOT FOUND THEN
-    PERFORM ObjectNotFound('объект', 'id', pObject);
+    PERFORM NotFound();
   END IF;
 
   IF pAction IS NULL THEN
     PERFORM ActionIsEmpty();
-  END IF;
-
-  uMethod := GetObjectMethod(pObject, pAction);
-
-  IF uMethod IS NULL THEN
-    PERFORM MethodActionNotFound(pObject, pAction);
   END IF;
 
   RETURN ExecuteObjectAction(pObject, pAction, pParams);
@@ -392,9 +383,6 @@ $$ LANGUAGE plpgsql
  * @param {uuid} pObject - Идентификатор объекта
  * @param {text} pCode - Код действия
  * @param {jsonb} pParams - Параметры в формате JSON
- * @out param {uuid} id - Идентификатор объекта
- * @out param {boolean} result - Результат
- * @out param {text} message - Текст ошибки
  * @return {jsonb}
  */
 CREATE OR REPLACE FUNCTION api.execute_object_action (
@@ -417,6 +405,88 @@ BEGIN
   END IF;
 
   RETURN api.execute_object_action(pObject, GetAction(pCode), pParams);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.execute_object_action_try -----------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Выполняет действие над объектом не вызывая ошибки.
+ * @param {uuid} pObject - Идентификатор объекта
+ * @param {uuid} pAction - Идентификатор действия
+ * @param {jsonb} pParams - Параметры в формате JSON
+ * @return {jsonb}
+ */
+CREATE OR REPLACE FUNCTION api.execute_object_action_try (
+  pObject		uuid,
+  pAction		uuid,
+  pParams		jsonb DEFAULT null
+) RETURNS		jsonb
+AS $$
+DECLARE
+  vMessage      text;
+  vContext      text;
+
+  ErrorCode     int;
+  ErrorMessage  text;
+BEGIN
+  RETURN api.execute_object_action(pObject, pAction, pParams);
+EXCEPTION
+WHEN others THEN
+  GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
+
+  PERFORM SetErrorMessage(vMessage);
+
+  SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
+
+  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, vContext);
+
+  RETURN json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.execute_object_action_try -----------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Выполняет действие над объектом по коду не вызывая ошибки.
+ * @param {uuid} pObject - Идентификатор объекта
+ * @param {text} pCode - Код действия
+ * @param {jsonb} pParams - Параметры в формате JSON
+ * @return {jsonb}
+ */
+CREATE OR REPLACE FUNCTION api.execute_object_action_try (
+  pObject       uuid,
+  pCode         text,
+  pParams		jsonb DEFAULT null
+) RETURNS       jsonb
+AS $$
+DECLARE
+  vMessage      text;
+  vContext      text;
+
+  ErrorCode     int;
+  ErrorMessage  text;
+BEGIN
+  RETURN api.execute_object_action(pObject, GetAction(pCode), pParams);
+EXCEPTION
+WHEN others THEN
+  GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
+
+  PERFORM SetErrorMessage(vMessage);
+
+  SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
+
+  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, vContext);
+
+  RETURN json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
