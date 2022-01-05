@@ -16,6 +16,7 @@ DROP FUNCTION IF EXISTS api.service_message(uuid) CASCADE;
 DROP VIEW IF EXISTS api.service_message;
 DROP VIEW IF EXISTS ServiceMessage;
 
+\ir '../workflow/update.psql'
 \ir '../entity/object/document/message/update.psql'
 \ir '../entity/object/document/message/inbox/create.psql'
 \ir '../entity/object/document/message/outbox/create.psql'
