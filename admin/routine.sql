@@ -3180,8 +3180,9 @@ BEGIN
 
   nLevel := 0;
   pParent := CheckNull(pParent);
+  pScope := coalesce(pScope, current_scope());
 
-  SELECT id INTO uId FROM db.area WHERE scope = current_scope() AND code = pCode;
+  SELECT id INTO uId FROM db.area WHERE scope = pScope AND code = pCode;
   IF FOUND THEN
     PERFORM RecordExists(pCode);
   END IF;
@@ -3229,6 +3230,7 @@ DECLARE
   vCode             text;
   uType             uuid;
   uParent			uuid;
+  uScope			uuid;
 
   nLevel	        integer;
   nSequence         integer;
@@ -3239,14 +3241,14 @@ BEGIN
     END IF;
   END IF;
 
-  SELECT parent, type, code, level, sequence INTO uParent, uType, vCode, nLevel, nSequence FROM db.area WHERE id = pId;
+  SELECT parent, type, code, level, scope, sequence INTO uParent, uType, vCode, nLevel, uScope, nSequence FROM db.area WHERE id = pId;
   IF NOT FOUND THEN
     PERFORM AreaError();
   END IF;
 
   pCode := coalesce(pCode, vCode);
   IF pCode <> vCode THEN
-    SELECT code INTO vCode FROM db.area WHERE scope = current_scope() AND code = pCode;
+    SELECT code INTO vCode FROM db.area WHERE scope = coalesce(pScope, uScope, current_scope()) AND code = pCode;
     IF FOUND THEN
       PERFORM RecordExists(pCode);
     END IF;
@@ -3624,7 +3626,7 @@ BEGIN
   SELECT area INTO uArea FROM db.profile WHERE userid = pMember AND scope = current_scope();
 
   IF NOT FOUND THEN
-    SELECT area INTO uArea FROM db.area WHERE scope = current_scope() AND type = '00000000-0000-4002-a000-000000000002'; -- guest
+    SELECT id INTO uArea FROM db.area WHERE scope = current_scope() AND type = '00000000-0000-4002-a000-000000000002'; -- guest
   END IF;
 
   RETURN uArea;
