@@ -153,3 +153,5 @@ AS
          al.path, al.json, al.nonce, to_timestamp(al.nonce / 1000000), al.signature,
          round(extract(second from runtime)::numeric, 3), al.eventid, el.text
     FROM db.api_log al LEFT JOIN db.log el ON el.id = al.eventid;
+
+GRANT SELECT ON apiLog TO administrator;
