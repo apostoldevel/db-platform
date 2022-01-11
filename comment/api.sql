@@ -8,7 +8,12 @@
 
 CREATE OR REPLACE VIEW api.comment
 AS
-  SELECT * FROM Comment;
+  WITH RECURSIVE tree AS (
+    SELECT *, ARRAY[row_number() OVER (ORDER BY priority DESC)] AS sortlist FROM Comment WHERE parent IS NULL
+     UNION ALL
+    SELECT c.*, array_append(t.sortlist, row_number() OVER (ORDER BY c.priority DESC))
+      FROM Comment c INNER JOIN tree t ON c.parent = t.id
+  ) SELECT t.*, array_to_string(sortlist, '.', '0') AS Index FROM tree t;
 
 GRANT SELECT ON api.comment TO administrator;
 
