@@ -73,7 +73,7 @@ BEGIN
   SELECT code INTO vCode FROM db.job WHERE id = pId;
 
   IF vCode <> coalesce(pCode, vCode) THEN
-    SELECT id INTO uDocument FROM db.job WHERE code = pCode;
+    SELECT id INTO uDocument FROM db.job WHERE scope = current_scope() AND code = pCode;
     IF FOUND THEN
       PERFORM JobExists(pCode);
     END IF;
