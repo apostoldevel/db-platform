@@ -623,7 +623,7 @@ BEGIN
   END IF;
 
   IF NOT CheckPassword(pId, pOldPass) THEN
-    RAISE EXCEPTION '%', GetErrorMessage();
+    RAISE EXCEPTION 'ERR-40000: %', GetErrorMessage();
   END IF;
 
   PERFORM SetPassword(pId, pNewPass);
