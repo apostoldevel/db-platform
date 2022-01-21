@@ -102,14 +102,15 @@ GRANT SELECT ON ObjectGroupMember TO administrator;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE VIEW ObjectFile (Object, Label, Owner, OwnerCode, OwnerName,
-    Name, Path, Size, Date, Data, Hash, Text, Type, Loaded
+    Name, Path, Size, Date, Data, Hash, Text, Type, Loaded, Picture
 )
 AS
     SELECT t.object, ot.label, t.owner, u.username, u.name,
            t.file_name, t.file_path, t.file_size, t.file_date, encode(t.file_data, 'base64'),
-           t.file_hash, t.file_text, t.file_type, t.load_date
+           t.file_hash, t.file_text, t.file_type, t.load_date, p.picture
       FROM db.object_file t INNER JOIN db.object_text ot ON t.object = ot.object AND ot.locale = current_locale()
-                            INNER JOIN db.user         u ON u.id = t.owner;
+                            INNER JOIN db.user         u ON u.id = t.owner
+                            INNER JOIN db.profile      p ON u.id = p.userid AND p.scope = current_scope();
 
 GRANT SELECT ON ObjectFile TO administrator;
 
