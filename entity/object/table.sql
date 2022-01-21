@@ -552,6 +552,7 @@ CREATE UNIQUE INDEX ON db.object_link (object, linked, validFromDate, validToDat
 
 CREATE TABLE db.object_file (
     object      uuid NOT NULL REFERENCES db.object(id) ON DELETE CASCADE,
+    owner       uuid NOT NULL REFERENCES db.user(id) ON DELETE RESTRICT,
     file_name	text NOT NULL,
     file_path	text NOT NULL,
     file_size	integer DEFAULT 0,
@@ -567,6 +568,7 @@ CREATE TABLE db.object_file (
 COMMENT ON TABLE db.object_file IS 'Файлы объекта.';
 
 COMMENT ON COLUMN db.object_file.object IS 'Объект';
+COMMENT ON COLUMN db.object_file.owner IS 'Владелец (пользователь)';
 COMMENT ON COLUMN db.object_file.file_name IS 'Наименование файла (без пути)';
 COMMENT ON COLUMN db.object_file.file_path IS 'Путь к файлу (без имени)';
 COMMENT ON COLUMN db.object_file.file_size IS 'Размер файла';
@@ -578,6 +580,7 @@ COMMENT ON COLUMN db.object_file.file_type IS 'Тип файла в формат
 COMMENT ON COLUMN db.object_file.load_date IS 'Дата загрузки';
 
 CREATE INDEX ON db.object_file (object);
+CREATE INDEX ON db.object_file (owner);
 CREATE INDEX ON db.object_file (file_hash);
 
 --------------------------------------------------------------------------------
@@ -585,6 +588,10 @@ CREATE INDEX ON db.object_file (file_hash);
 CREATE OR REPLACE FUNCTION db.ft_object_file_insert()
 RETURNS trigger AS $$
 BEGIN
+  IF NEW.owner IS NULL THEN
+    NEW.owner := current_userid();
+  END IF;
+
   IF NULLIF(NEW.file_path, '') IS NULL THEN
     NEW.file_path := '~/';
   END IF;
