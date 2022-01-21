@@ -1247,7 +1247,8 @@ DECLARE
   r		    record;
 BEGIN
   FOR r IN
-    SELECT Object, Name, Path, Size, Date, Hash, Text, Type, Loaded
+    SELECT Object, Label, Owner, OwnerCode, OwnerName,
+           Name, Path, Size, Date, Hash, Text, Type, Loaded, Picture
       FROM ObjectFile
      WHERE object = pObject
   LOOP
