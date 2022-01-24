@@ -2416,6 +2416,10 @@ BEGIN
 		PERFORM AccessDenied();
 	  END IF;
     END IF;
+
+    IF r.readonly THEN
+      PERFORM ReadOnlyError();
+	END IF;
   END IF;
 
   IF coalesce((SELECT true FROM pg_roles WHERE rolname = lower(r.username)), false) THEN
@@ -2716,15 +2720,19 @@ DECLARE
 BEGIN
   uUserId := current_userid();
 
+  SELECT username, passwordchange, passwordnotchange, readonly INTO r FROM db.user WHERE id = pId AND type = 'U';
+
   IF session_user <> 'kernel' THEN
     IF pId <> uUserId THEN
       IF NOT CheckAccessControlList(B'00000000100000') THEN
         PERFORM AccessDenied();
       END IF;
     END IF;
-  END IF;
 
-  SELECT username, passwordchange, passwordnotchange INTO r FROM db.user WHERE id = pId AND type = 'U';
+    IF r.readonly THEN
+      PERFORM ReadOnlyError();
+	END IF;
+  END IF;
 
   IF FOUND THEN
     bPasswordChange := r.PasswordChange;

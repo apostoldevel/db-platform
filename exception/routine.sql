@@ -860,6 +860,19 @@ $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
 --------------------------------------------------------------------------------
 
+SELECT CreateExceptionResource(GetExceptionUUID(400, 52), 'ru', 'ReadOnlyError', 'Операции изменения для ролей только для чтения запрещены');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 52), 'en', 'ReadOnlyError', 'Modify operations for read-only roles are not allowed');
+
+CREATE OR REPLACE FUNCTION ReadOnlyError (
+) RETURNS void
+AS $$
+BEGIN
+  RAISE EXCEPTION '%', GetExceptionStr(400, 52);
+END;
+$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+
+--------------------------------------------------------------------------------
+
 SELECT CreateExceptionResource(GetExceptionUUID(400, 60), 'ru', 'JsonIsEmpty', 'JSON не должен быть пустым');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 60), 'en', 'JsonIsEmpty', 'JSON must not be empty');
 
