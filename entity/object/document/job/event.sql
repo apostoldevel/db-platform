@@ -117,6 +117,7 @@ CREATE OR REPLACE FUNCTION EventJobExecute (
 AS $$
 DECLARE
   r				record;
+  s				record;
 
   uScheduler	uuid;
   uProgram		uuid;
@@ -127,6 +128,7 @@ DECLARE
 BEGIN
 --  PERFORM WriteToEventLog('M', 1000, 'execute', 'Задание выполняется.', pObject);
 
+  SELECT code, agent, host INTO s FROM db.session WHERE code = current_session();
   SELECT scheduler, program, daterun INTO uScheduler, uProgram, dtDateRun FROM db.job WHERE id = pObject;
   SELECT period INTO iPeriod FROM db.scheduler WHERE id = uScheduler;
 
@@ -147,6 +149,10 @@ BEGIN
   LOOP
 	EXECUTE r.body;
   END LOOP;
+
+  IF current_session() IS DISTINCT FROM s.code THEN
+    PERFORM Authorize(s.code, s.agent, s.host);
+  END IF;
 
   IF GetObjectTypeCode(pObject) = 'periodic.job' THEN
   	PERFORM ExecuteObjectAction(pObject, GetAction('done'));
