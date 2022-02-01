@@ -69,7 +69,7 @@ BEGIN
   SELECT class INTO NEW.class FROM db.type WHERE id = NEW.type;
   SELECT entity INTO NEW.entity FROM db.class_tree WHERE id = NEW.class;
 
-  IF OLD.entity <> NEW.entity THEN
+  IF OLD.entity IS DISTINCT FROM NEW.entity THEN
 	PERFORM IncorrectEntity();
   END IF;
 
@@ -92,6 +92,12 @@ CREATE TRIGGER t_document_before_update_type
 CREATE OR REPLACE FUNCTION db.ft_document_update_area()
 RETURNS trigger AS $$
 BEGIN
+  PERFORM FROM db.area WHERE id = NEW.area AND scope = NEW.scope;
+
+  IF NOT FOUND THEN
+    PERFORM ChangeAreaError();
+  END IF;
+
 --   IF session_user <> 'kernel' THEN
 --     IF NOT IsUserRole(GetGroup('administrator')) THEN
 --       PERFORM ChangeAreaError();
