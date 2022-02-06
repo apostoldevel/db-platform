@@ -4026,6 +4026,76 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- TokenValidation -------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION TokenValidation (
+  pToken        text
+) RETURNS       jsonb
+AS $$
+DECLARE
+  token         record;
+
+  payload       jsonb;
+
+  vSecret       text;
+
+  iss           text;
+  aud           text;
+
+  nOauth2       bigint;
+  nProvider     integer;
+  nAudience     integer;
+
+  belong        boolean;
+BEGIN
+  SELECT convert_from(url_decode(data[2]), 'utf8')::jsonb INTO payload FROM regexp_split_to_array(pToken, '\.') data;
+
+  iss := payload->>'iss';
+
+  SELECT i.provider INTO nProvider FROM oauth2.issuer i WHERE i.code = iss;
+
+  IF NOT FOUND THEN
+	PERFORM IssuerNotFound(coalesce(iss, 'null'));
+  END IF;
+
+  aud := payload->>'aud';
+
+  SELECT a.id, a.secret INTO nAudience, vSecret FROM oauth2.audience a WHERE a.provider = nProvider AND a.code = aud;
+
+  IF NOT FOUND THEN
+	PERFORM AudienceNotFound();
+  END IF;
+
+  SELECT * INTO token FROM verify(pToken, vSecret);
+
+  IF NOT coalesce(token.valid, false) THEN
+	PERFORM TokenError();
+  END IF;
+
+  SELECT h.oauth2 INTO nOauth2
+	FROM db.token_header h INNER JOIN db.token t ON h.id = t.header
+   WHERE t.hash = GetTokenHash(pToken, GetSecretKey())
+	 AND t.validFromDate <= Now()
+	 AND t.validtoDate > Now();
+
+  IF NOT FOUND THEN
+	PERFORM TokenExpired();
+  END IF;
+
+  SELECT (audience = nAudience) INTO belong FROM db.oauth2 WHERE id = nOauth2;
+
+  IF NOT coalesce(belong, false) THEN
+	PERFORM TokenBelong();
+  END IF;
+
+  RETURN payload;
+END;
+$$ LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- ValidSession ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 
