@@ -237,7 +237,6 @@ DECLARE
   e         	record;
 
   arKeys    	text[];
-  vUserName 	text;
 BEGIN
   IF NULLIF(pPath, '') IS NULL THEN
     PERFORM RouteIsEmpty();
@@ -253,24 +252,10 @@ BEGIN
     arKeys := array_cat(arKeys, GetRoutines('signin', 'api', false));
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-    IF pPayload ? 'phone' THEN
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(phone text, password text, agent text, host inet)
-      LOOP
-        SELECT username INTO vUserName FROM db.user WHERE type = 'U' AND phone = r.phone;
-        RETURN NEXT row_to_json(api.signin(vUserName, NULLIF(r.password, ''), NULLIF(r.agent, ''), r.host));
-      END LOOP;
-    ELSIF pPayload ? 'email' THEN
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(email text, password text, agent text, host inet)
-      LOOP
-        SELECT username INTO vUserName FROM db.user WHERE type = 'U' AND email = r.email;
-        RETURN NEXT row_to_json(api.signin(vUserName, NULLIF(r.password, ''), NULLIF(r.agent, ''), r.host));
-      END LOOP;
-    ELSE
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(username text, password text, agent text, host inet)
-      LOOP
-        RETURN NEXT row_to_json(api.signin(NULLIF(r.username, ''), NULLIF(r.password, ''), NULLIF(r.agent, ''), r.host));
-      END LOOP;
-    END IF;
+	FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(username text, password text, agent text, host inet)
+	LOOP
+	  RETURN NEXT row_to_json(api.signin(NULLIF(r.username, ''), NULLIF(r.password, ''), NULLIF(r.agent, ''), r.host));
+	END LOOP;
 
   WHEN '/sign/up' THEN
 
