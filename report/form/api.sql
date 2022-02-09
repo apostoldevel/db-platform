@@ -156,7 +156,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Создаёт форму отчёта
- * @param {uuid} pId - Идентификатор формы
+ * @param {uuid} pId - Идентификатор отчёта
  * @return {SETOF json}
  */
 CREATE OR REPLACE FUNCTION api.build_report_form (
