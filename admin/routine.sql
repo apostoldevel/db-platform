@@ -3044,7 +3044,7 @@ BEGIN
   UPDATE db.scope
 	 SET code = coalesce(pCode, code),
 		 name = coalesce(pName, name),
-		 description = CheckNull(coalesce(pDescription, description, '<null>'))
+		 description = CheckNull(coalesce(pDescription, description, ''))
    WHERE id = pId;
 END;
 $$ LANGUAGE plpgsql
@@ -3271,7 +3271,7 @@ BEGIN
 	     scope = coalesce(pScope, scope),
 		 code = coalesce(pCode, code),
 		 name = coalesce(pName, name),
-		 description = CheckNull(coalesce(pDescription, description, '<null>')),
+		 description = CheckNull(coalesce(pDescription, description, '')),
          level = coalesce(nLevel, level),
          sequence = pSequence,
 		 validFromDate = coalesce(pValidFromDate, validFromDate),
@@ -3693,7 +3693,7 @@ BEGIN
   UPDATE db.interface
      SET code = coalesce(pCode, code),
          name = coalesce(pName, name),
-         description = CheckNull(coalesce(pDescription, description, '<null>'))
+         description = CheckNull(coalesce(pDescription, description, ''))
    WHERE Id = pId;
 END;
 $$ LANGUAGE plpgsql

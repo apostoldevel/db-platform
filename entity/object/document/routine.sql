@@ -28,7 +28,7 @@ CREATE OR REPLACE FUNCTION EditDocumentText (
 AS $$
 BEGIN
   UPDATE db.document_text
-     SET description = CheckNull(coalesce(pDescription, description, '<null>'))
+     SET description = CheckNull(coalesce(pDescription, description, ''))
    WHERE document = pDocument AND locale = pLocale;
 
   IF NOT FOUND THEN

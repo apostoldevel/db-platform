@@ -121,6 +121,6 @@ BEGIN
 
   DELETE FROM db.version WHERE id = pObject;
 
-  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Версия уничтожена.');
+  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '') || '] Версия уничтожена.');
 END;
 $$ LANGUAGE plpgsql;

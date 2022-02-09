@@ -30,8 +30,8 @@ CREATE OR REPLACE FUNCTION EditReferenceText (
 AS $$
 BEGIN
   UPDATE db.reference_text
-     SET name = CheckNull(coalesce(pName, name, '<null>')),
-         description = CheckNull(coalesce(pDescription, description, '<null>'))
+     SET name = CheckNull(coalesce(pName, name, '')),
+         description = CheckNull(coalesce(pDescription, description, ''))
    WHERE reference = pReference AND locale = pLocale;
 
   IF NOT FOUND THEN

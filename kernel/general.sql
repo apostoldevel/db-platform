@@ -827,8 +827,8 @@ BEGIN
 
     FOR r IN SELECT * FROM json_array_elements_text(pJson)
     LOOP
-      IF array_position(pArray, coalesce(r.value, '<null>')) IS NULL THEN
-        PERFORM IncorrectValueInArray(coalesce(r.value, '<null>'), pArrayName, pArray);
+      IF array_position(pArray, coalesce(r.value, '')) IS NULL THEN
+        PERFORM IncorrectValueInArray(coalesce(r.value, ''), pArrayName, pArray);
       END IF;
     END LOOP;
 
@@ -857,8 +857,8 @@ BEGIN
 
     FOR r IN SELECT * FROM jsonb_array_elements_text(pJson)
     LOOP
-      IF array_position(pArray, coalesce(r.value, '<null>')) IS NULL THEN
-        PERFORM IncorrectValueInArray(coalesce(r.value, '<null>'), pArrayName, pArray);
+      IF array_position(pArray, coalesce(r.value, '')) IS NULL THEN
+        PERFORM IncorrectValueInArray(coalesce(r.value, ''), pArrayName, pArray);
       END IF;
     END LOOP;
 

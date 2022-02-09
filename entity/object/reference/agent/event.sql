@@ -121,6 +121,6 @@ BEGIN
 
   DELETE FROM db.agent WHERE id = pObject;
 
-  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Агент уничтожен.');
+  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '') || '] Агент уничтожен.');
 END;
 $$ LANGUAGE plpgsql;

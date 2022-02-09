@@ -452,7 +452,7 @@ BEGIN
 
 	arValues := array_cat(null, ARRAY['notify', 'object', 'mixed', 'hook']);
 	IF array_position(arValues, type) IS NULL THEN
-	  PERFORM IncorrectValueInArray(coalesce(type, '<null>'), 'type', arValues);
+	  PERFORM IncorrectValueInArray(coalesce(type, ''), 'type', arValues);
 	END IF;
 
 	IF type = 'hook' THEN
@@ -483,7 +483,7 @@ BEGIN
 
 	arValues := array_cat(null, ARRAY['notify']);
 	IF array_position(arValues, type) IS NULL THEN
-	  PERFORM IncorrectValueInArray(coalesce(type, '<null>'), 'type', arValues);
+	  PERFORM IncorrectValueInArray(coalesce(type, ''), 'type', arValues);
 	END IF;
 
   WHEN 'message' THEN
@@ -494,7 +494,7 @@ BEGIN
 
 	arValues := array_cat(null, ARRAY['notify']);
 	IF array_position(arValues, type) IS NULL THEN
-	  PERFORM IncorrectValueInArray(coalesce(type, '<null>'), 'type', arValues);
+	  PERFORM IncorrectValueInArray(coalesce(type, ''), 'type', arValues);
 	END IF;
 
   WHEN 'log' THEN
@@ -505,7 +505,7 @@ BEGIN
 
 	arValues := array_cat(null, ARRAY['notify']);
 	IF array_position(arValues, type) IS NULL THEN
-	  PERFORM IncorrectValueInArray(coalesce(type, '<null>'), 'type', arValues);
+	  PERFORM IncorrectValueInArray(coalesce(type, ''), 'type', arValues);
 	END IF;
 
   WHEN 'geo' THEN
@@ -516,7 +516,7 @@ BEGIN
 
 	arValues := array_cat(null, ARRAY['notify']);
 	IF array_position(arValues, type) IS NULL THEN
-	  PERFORM IncorrectValueInArray(coalesce(type, '<null>'), 'type', arValues);
+	  PERFORM IncorrectValueInArray(coalesce(type, ''), 'type', arValues);
 	END IF;
 
   ELSE

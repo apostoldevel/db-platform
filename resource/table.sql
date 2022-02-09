@@ -112,19 +112,19 @@ BEGIN
   END IF;
 
   IF NEW.name IS NULL THEN
-    NEW.name := CheckNull(coalesce(NEW.name, OLD.name, '<null>'));
+    NEW.name := CheckNull(coalesce(NEW.name, OLD.name, ''));
   END IF;
 
   IF NEW.description IS NULL THEN
-    NEW.description := CheckNull(coalesce(NEW.description, OLD.description, '<null>'));
+    NEW.description := CheckNull(coalesce(NEW.description, OLD.description, ''));
   END IF;
 
   IF NEW.encoding IS NULL THEN
-    NEW.encoding := CheckNull(coalesce(NEW.encoding, OLD.encoding, '<null>'));
+    NEW.encoding := CheckNull(coalesce(NEW.encoding, OLD.encoding, ''));
   END IF;
 
   IF NEW.data IS NULL THEN
-    NEW.data := CheckNull(coalesce(NEW.data, OLD.data, '<null>'));
+    NEW.data := CheckNull(coalesce(NEW.data, OLD.data, ''));
   END IF;
 
   RETURN NEW;

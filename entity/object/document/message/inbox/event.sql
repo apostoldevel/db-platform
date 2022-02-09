@@ -119,6 +119,6 @@ DECLARE
 BEGIN
   SELECT label INTO r FROM db.object_text WHERE object = pObject AND locale = current_locale();
 
-  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Входящее сообщение уничтожено.');
+  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '') || '] Входящее сообщение уничтожено.');
 END;
 $$ LANGUAGE plpgsql;

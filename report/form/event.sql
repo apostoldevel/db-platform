@@ -121,6 +121,6 @@ BEGIN
 
   DELETE FROM db.report_form WHERE id = pObject;
 
-  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Форма отчёта уничтожена.');
+  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '') || '] Форма отчёта уничтожена.');
 END;
 $$ LANGUAGE plpgsql;

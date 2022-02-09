@@ -121,6 +121,6 @@ BEGIN
 
   DELETE FROM db.report_routine WHERE id = pObject;
 
-  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Функция отчёта уничтожена.');
+  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '') || '] Функция отчёта уничтожена.');
 END;
 $$ LANGUAGE plpgsql;

@@ -195,7 +195,7 @@ BEGIN
       FOR r IN SELECT * FROM jsonb_to_recordset(pSearch) AS x(condition text, field text, compare text, value text, valarr jsonb, lstr text, rstr text)
       LOOP
         vCondition := coalesce(upper(r.condition), 'AND');
-        vField     := coalesce(lower(r.field), '<null>');
+        vField     := coalesce(lower(r.field), '');
         vCompare   := coalesce(upper(r.compare), 'EQL');
         vLStr	   := coalesce(r.lstr, '');
         vRStr	   := coalesce(r.rstr, '');
@@ -204,11 +204,11 @@ BEGIN
 
         arValues := array_cat(null, ARRAY['AND', 'OR']);
         IF array_position(arValues, vCondition) IS NULL THEN
-          PERFORM IncorrectValueInArray(coalesce(r.condition, '<null>'), 'condition', arValues);
+          PERFORM IncorrectValueInArray(coalesce(r.condition, ''), 'condition', arValues);
         END IF;
 
         IF array_position(arColumns, vField) IS NULL THEN
-          PERFORM IncorrectValueInArray(coalesce(r.field, '<null>'), 'field', arColumns);
+          PERFORM IncorrectValueInArray(coalesce(r.field, ''), 'field', arColumns);
         END IF;
 
         IF r.valarr IS NOT NULL THEN
@@ -218,7 +218,7 @@ BEGIN
 
           arValues := array_cat(null, ARRAY['IN', 'NOT IN']);
           IF array_position(arValues, vCompare) IS NULL THEN
-            PERFORM IncorrectValueInArray(coalesce(r.compare, '<null>'), 'compare', arValues);
+            PERFORM IncorrectValueInArray(coalesce(r.compare, ''), 'compare', arValues);
           END IF;
 
           IF vWhere IS NULL THEN
@@ -232,7 +232,7 @@ BEGIN
 
           arValues := array_cat(null, ARRAY['EQL', 'NEQ', 'LSS', 'LEQ', 'GTR', 'GEQ', 'GIN', 'AND', 'OR', 'XOR', 'NOT', 'ISN', 'INN', 'LKE', 'IKE', 'SIM', 'PSX', 'PSI', 'PSN', 'PIN']);
           IF array_position(arValues, vCompare) IS NULL THEN
-            PERFORM IncorrectValueInArray(coalesce(r.compare, '<null>'), 'compare', arValues);
+            PERFORM IncorrectValueInArray(coalesce(r.compare, ''), 'compare', arValues);
           END IF;
 
           IF vCompare IN ('AND', 'OR', 'XOR', 'NOT') THEN

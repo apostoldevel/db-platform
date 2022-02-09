@@ -154,6 +154,6 @@ BEGIN
 
   DELETE FROM db.report_tree WHERE id = pObject;
 
-  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Дерево отчётов уничтожено.');
+  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '') || '] Дерево отчётов уничтожено.');
 END;
 $$ LANGUAGE plpgsql;

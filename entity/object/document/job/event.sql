@@ -242,6 +242,6 @@ BEGIN
 
   DELETE FROM db.job WHERE id = pObject;
 
-  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Задание уничтожено.');
+  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '') || '] Задание уничтожено.');
 END;
 $$ LANGUAGE plpgsql;

@@ -121,6 +121,6 @@ BEGIN
 
   DELETE FROM db.scheduler WHERE id = pObject;
 
-  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Планировщик уничтожен.');
+  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '') || '] Планировщик уничтожен.');
 END;
 $$ LANGUAGE plpgsql;

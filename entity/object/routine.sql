@@ -30,8 +30,8 @@ CREATE OR REPLACE FUNCTION EditObjectText (
 AS $$
 BEGIN
   UPDATE db.object_text
-     SET label = CheckNull(coalesce(pLabel, label, '<null>')),
-         text =  CheckNull(coalesce(pText, text, '<null>'))
+     SET label = CheckNull(coalesce(pLabel, label, '')),
+         text =  CheckNull(coalesce(pText, text, ''))
    WHERE object = pObject AND locale = pLocale;
 
   IF NOT FOUND THEN
@@ -1128,8 +1128,8 @@ BEGIN
         file_date = coalesce(pDate, file_date),
         file_data = coalesce(pData, file_data),
         file_hash = coalesce(pHash, file_hash),
-        file_text = CheckNull(coalesce(pText, file_text, '<null>')),
-        file_type = CheckNull(coalesce(pType, file_type, '<null>')),
+        file_text = CheckNull(coalesce(pText, file_text, '')),
+        file_type = CheckNull(coalesce(pType, file_type, '')),
         load_date = coalesce(pLoad, load_date)
   WHERE object = pObject
     AND file_name = pName

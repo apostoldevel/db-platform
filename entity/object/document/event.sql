@@ -132,6 +132,6 @@ BEGIN
 
   DELETE FROM db.document WHERE id = pObject;
 
-  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Документ уничтожен.');
+  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '') || '] Документ уничтожен.');
 END;
 $$ LANGUAGE plpgsql;

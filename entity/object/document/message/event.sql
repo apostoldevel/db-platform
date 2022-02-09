@@ -122,7 +122,7 @@ BEGIN
   DELETE FROM db.object_link WHERE linked = pObject;
   DELETE FROM db.message WHERE id = pObject;
 
-  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Сообщение уничтожено.');
+  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '') || '] Сообщение уничтожено.');
 END;
 $$ LANGUAGE plpgsql;
 

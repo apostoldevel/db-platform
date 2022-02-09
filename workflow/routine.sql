@@ -31,7 +31,7 @@ AS $$
 BEGIN
   UPDATE db.entity_text
      SET name = coalesce(pName, name),
-         description = CheckNull(coalesce(pDescription, description, '<null>'))
+         description = CheckNull(coalesce(pDescription, description, ''))
    WHERE entity = pEntity AND locale = pLocale;
 
   IF NOT FOUND THEN
@@ -664,7 +664,7 @@ AS $$
 BEGIN
   UPDATE db.type_text
      SET name = coalesce(pName, name),
-         description = CheckNull(coalesce(pDescription, description, '<null>'))
+         description = CheckNull(coalesce(pDescription, description, ''))
    WHERE type = pType AND locale = pLocale;
 
   IF NOT FOUND THEN
@@ -1232,7 +1232,7 @@ AS $$
 BEGIN
   UPDATE db.action_text
      SET name = coalesce(pName, name),
-         description = CheckNull(coalesce(pDescription, description, '<null>'))
+         description = CheckNull(coalesce(pDescription, description, ''))
    WHERE action = pAction AND locale = pLocale;
 
   IF NOT FOUND THEN
@@ -1871,7 +1871,7 @@ BEGIN
   END IF;
 
   INSERT INTO db.event (class, type, action, text, sequence, enabled)
-  VALUES (pClass, pType, pAction, NULLIF(pText, '<null>'), pSequence, pEnabled)
+  VALUES (pClass, pType, pAction, NULLIF(pText, ''), pSequence, pEnabled)
   RETURNING id INTO uId;
 
   FOR l IN SELECT id FROM db.locale
@@ -1905,7 +1905,7 @@ BEGIN
      SET class = coalesce(pClass, class),
          type = coalesce(pType, type),
          action = coalesce(pAction, action),
-         text = NULLIF(coalesce(pText, text), '<null>'),
+         text = NULLIF(coalesce(pText, text), ''),
          sequence = coalesce(pSequence, sequence),
          enabled = coalesce(pEnabled, enabled)
    WHERE id = pId;

@@ -209,6 +209,6 @@ BEGIN
   DELETE FROM db.object_file WHERE object = pObject;
   DELETE FROM db.report_ready WHERE id = pObject;
 
-  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Готовый отчёт уничтожен.');
+  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '') || '] Готовый отчёт уничтожен.');
 END;
 $$ LANGUAGE plpgsql;

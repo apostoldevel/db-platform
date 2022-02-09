@@ -121,6 +121,6 @@ BEGIN
 
   DELETE FROM db.vendor WHERE id = pObject;
 
-  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Производитель уничтожен.');
+  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '') || '] Производитель уничтожен.');
 END;
 $$ LANGUAGE plpgsql;

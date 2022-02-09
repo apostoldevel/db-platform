@@ -122,6 +122,6 @@ BEGIN
 
   DELETE FROM db.reference WHERE id = pObject;
 
-  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Справочник уничтожен.');
+  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '') || '] Справочник уничтожен.');
 END;
 $$ LANGUAGE plpgsql;

@@ -121,6 +121,6 @@ BEGIN
 
   DELETE FROM db.program WHERE id = pObject;
 
-  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '<null>') || '] Программа уничтожена.');
+  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '') || '] Программа уничтожена.');
 END;
 $$ LANGUAGE plpgsql;
