@@ -18,7 +18,7 @@ DECLARE
   uState    uuid;
   uMethod   uuid;
 BEGIN
-  FOR r IN SELECT id FROM db.emergency_folder WHERE node = pNode
+  FOR r IN SELECT id FROM db.report_tree WHERE node = pNode
   LOOP
 	SELECT class, state INTO uClass, uState FROM db.object WHERE id = r.id;
     uMethod := GetMethod(uClass, pAction, uState);

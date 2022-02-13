@@ -20,8 +20,8 @@ GRANT SELECT ON api.report TO administrator;
  * @param {uuid} pParent - Идентификатор родителя | null
  * @param {uuid} pType - Идентификатор типа
  * @param {uuid} pTree - Идентификатор дерева отчётов.
- * @param {uuid} pForm - Идентификатор формы отчётов.
- * @param {text} pCode - Строковый идентификатор (позывной)
+ * @param {uuid} pForm - Идентификатор формы отчёта.
+ * @param {text} pCode - Строковый идентификатор (код)
  * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
  * @param {jsonb} pInfo - Дополнительная информация
@@ -54,8 +54,8 @@ $$ LANGUAGE plpgsql
  * @param {uuid} pParent - Идентификатор родителя | null
  * @param {uuid} pType - Идентификатор типа
  * @param {uuid} pTree - Идентификатор дерева отчётов.
- * @param {uuid} pForm - Идентификатор формы отчётов.
- * @param {text} pCode - Строковый идентификатор (позывной)
+ * @param {uuid} pForm - Идентификатор формы отчёта.
+ * @param {text} pCode - Строковый идентификатор (код)
  * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
  * @param {jsonb} pInfo - Дополнительная информация
