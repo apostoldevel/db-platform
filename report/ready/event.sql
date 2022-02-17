@@ -46,7 +46,7 @@ CREATE OR REPLACE FUNCTION EventReportReadyEdit (
 AS $$
 BEGIN
   IF IsDisabled(pObject) THEN
-	RAISE EXCEPTION 'ERR-40000: Изменения недопустимы.';
+	PERFORM ChangesNotAllowed();
   END IF;
 
   PERFORM WriteToEventLog('M', 1000, 'edit', 'Готовый отчёт изменён.', pObject);

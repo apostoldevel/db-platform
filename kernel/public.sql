@@ -949,74 +949,25 @@ $$ LANGUAGE plpgsql VOLATILE;
 GRANT EXECUTE ON FUNCTION random_between(int, int) TO PUBLIC;
 
 --------------------------------------------------------------------------------
--- FUNCTION hex_to_int ---------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION hex_to_int (
-  hex			text
-) RETURNS		SETOF bigint
-AS
-$$
-BEGIN
-  RETURN QUERY EXECUTE 'SELECT x' || quote_literal(hex) || '::bigint';
-END
-$$ LANGUAGE plpgsql STABLE STRICT;
-
-GRANT EXECUTE ON FUNCTION hex_to_int(text) TO PUBLIC;
-
---------------------------------------------------------------------------------
--- FUNCTION dec_to_bin ---------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION dec_to_bin (
-  D			numeric,
-  L			integer DEFAULT 1,
-  F			text DEFAULT '0'
-) RETURNS 	text
-AS
-$$
-DECLARE
-  A 		text[];
-  S 		text;
-  N 		numeric;
-  I 		integer;
-BEGIN
-  N := D;
-  I := 0;
-  S := '';
-
-  WHILE N > 0
-  LOOP
-	A[I] := to_char(mod(N, 2), 'FM0');
-	S := A[I] || S;
-	N := floor(N / 2);
-	I := I + 1;
-  END LOOP;
-
-  RETURN lpad(S, greatest(length(S), L), F);
-END
-$$ LANGUAGE plpgsql IMMUTABLE;
-
---------------------------------------------------------------------------------
 -- FUNCTION bin_to_dec ---------------------------------------------------------
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION bin_to_dec (
-  B			text
-) RETURNS 	numeric
+  B          text
+) RETURNS    numeric
 AS
 $$
 DECLARE
-  N			numeric;
-  L 		integer;
-  I			integer;
+  N          numeric;
+  L          integer;
+  I          integer;
 BEGIN
   N := 0;
   L := length(B);
 
-  FOR I IN 0 .. L - 1
+  FOR I IN 1 .. L
   LOOP
-	N := (to_number(SubStr(B, L - I, 1), '0') * power(2, I)) + N;
+	N := N + to_number(SubStr(B, I, 1), '0') * power(2::numeric, L - I);
   END LOOP;
 
   RETURN N;
@@ -1024,7 +975,209 @@ END
 $$ LANGUAGE plpgsql IMMUTABLE;
 
 --------------------------------------------------------------------------------
+-- FUNCTION dec_to_bin ---------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION dec_to_bin (
+  D			 numeric,
+  L			 integer DEFAULT 1,
+  F			 text DEFAULT '0'
+) RETURNS    text
+AS
+$$
+DECLARE
+  S 		 text;
+  N 		 numeric;
+BEGIN
+  N := D;
+  S := '';
+
+  WHILE N > 0
+  LOOP
+	S := to_char(mod(N, 2), 'FM0') || S;
+	N := floor(N / 2);
+  END LOOP;
+
+  RETURN lpad(S, greatest(length(S), L), F);
+END
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+--------------------------------------------------------------------------------
+-- FUNCTION bit_to_dec ---------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION bit_to_dec (
+  B          bit varying
+) RETURNS    numeric
+AS
+$$
+BEGIN
+  RETURN bin_to_dec(B::text);
+END
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+--------------------------------------------------------------------------------
+-- FUNCTION hex_to_bit ---------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION hex_to_bit (
+  hex			text
+) RETURNS		bit varying
+AS
+$$
+DECLARE
+  bits          bit varying;
+BEGIN
+  EXECUTE 'SELECT x' || quote_literal(hex) INTO bits;
+  RETURN bits;
+END
+$$ LANGUAGE plpgsql STABLE STRICT;
+
+GRANT EXECUTE ON FUNCTION hex_to_bit(text) TO PUBLIC;
+
+--------------------------------------------------------------------------------
+-- FUNCTION hex_to_int ---------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION hex_to_int (
+  H          text
+) RETURNS    bigint
+AS
+$$
+DECLARE
+  R          bigint;
+BEGIN
+  EXECUTE 'SELECT x' || quote_literal(H) || '::bigint' INTO R;
+  RETURN R;
+END
+$$ LANGUAGE plpgsql STABLE STRICT;
+
+GRANT EXECUTE ON FUNCTION hex_to_int(text) TO PUBLIC;
+
+--------------------------------------------------------------------------------
+-- FUNCTION hex_to_dec ---------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION hex_to_dec (
+  H          text
+) RETURNS    numeric
+AS
+$$
+DECLARE
+  B          bit varying;
+BEGIN
+  EXECUTE 'SELECT x' || quote_literal(H) INTO B;
+  RETURN bit_to_dec(B);
+END
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+--------------------------------------------------------------------------------
+-- FUNCTION dec_to_hex ---------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION dec_to_hex (
+  D          numeric,
+  L          int default null
+) RETURNS    text
+AS
+$$
+DECLARE
+  H          text;
+  M          numeric;
+  R          numeric;
+BEGIN
+  R := D;
+
+  WHILE R > 0
+  LOOP
+    M := mod(R, 16);
+    H := concat(
+		   CASE
+			 WHEN M < 10
+			 THEN chr(CAST(M + 48 AS INTEGER))
+			 ELSE chr(CAST(M + 87 AS INTEGER))
+		   END, H);
+    R := div(R, 16);
+  END LOOP;
+
+  IF H IS NULL THEN
+    H := '0';
+  END IF;
+
+  IF L IS NOT NULL AND length(H) < L THEN
+    RETURN lpad(H, L, '0');
+  END IF;
+
+  RETURN H;
+END
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+--------------------------------------------------------------------------------
+-- FUNCTION hex_to_num64 -------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION hex_to_num64 (
+  H          text
+) RETURNS    numeric
+AS $$
+  SELECT
+	(get_byte(x,0)::int8<<(31*8)) |
+	(get_byte(x,1)::int8<<(30*8)) |
+	(get_byte(x,2)::int8<<(29*8)) |
+	(get_byte(x,3)::int8<<(28*8)) |
+	(get_byte(x,4)::int8<<(27*8)) |
+	(get_byte(x,5)::int8<<(26*8)) |
+	(get_byte(x,6)::int8<<(25*8)) |
+	(get_byte(x,7)::int8<<(24*8)) |
+	(get_byte(x,8)::int8<<(23*8)) |
+	(get_byte(x,9)::int8<<(22*8)) |
+	(get_byte(x,10)::int8<<(21*8)) |
+	(get_byte(x,11)::int8<<(20*8)) |
+	(get_byte(x,12)::int8<<(19*8)) |
+	(get_byte(x,13)::int8<<(18*8)) |
+	(get_byte(x,14)::int8<<(17*8)) |
+	(get_byte(x,15)::int8<<(16*8)) |
+	(get_byte(x,16)::int8<<(15*8)) |
+	(get_byte(x,17)::int8<<(14*8)) |
+	(get_byte(x,18)::int8<<(13*8)) |
+	(get_byte(x,19)::int8<<(12*8)) |
+	(get_byte(x,20)::int8<<(11*8)) |
+	(get_byte(x,21)::int8<<(10*8)) |
+	(get_byte(x,22)::int8<<(9*8)) |
+	(get_byte(x,23)::int8<<(8*8)) |
+	(get_byte(x,24)::int8<<(7*8)) |
+	(get_byte(x,25)::int8<<(6*8)) |
+	(get_byte(x,26)::int8<<(5*8)) |
+	(get_byte(x,27)::int8<<(4*8)) |
+	(get_byte(x,28)::int8<<(3*8)) |
+	(get_byte(x,29)::int8<<(2*8)) |
+	(get_byte(x,30)::int8<<(1*8)) |
+	(get_byte(x,31)::int8)
+  FROM (SELECT decode(lpad(H, 64, '0'), 'hex') AS x) AS a;
+$$ LANGUAGE SQL STRICT IMMUTABLE;
+
+--------------------------------------------------------------------------------
 -- FUNCTION bin_to_dec ---------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION hex_to_bigint (
+  H          text
+) RETURNS    bigint
+AS $$
+  SELECT
+	(get_byte(x,0)::int8<<(7*8)) |
+	(get_byte(x,1)::int8<<(6*8)) |
+	(get_byte(x,2)::int8<<(5*8)) |
+	(get_byte(x,3)::int8<<(4*8)) |
+	(get_byte(x,4)::int8<<(3*8)) |
+	(get_byte(x,5)::int8<<(2*8)) |
+	(get_byte(x,6)::int8<<(1*8)) |
+	(get_byte(x,7)::int8)
+  FROM (SELECT decode(lpad(H, 16, '0'), 'hex') AS x) AS a;
+$$ LANGUAGE SQL STRICT IMMUTABLE;
+
+--------------------------------------------------------------------------------
+-- FUNCTION bit_copy -----------------------------------------------------------
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION bit_copy (
@@ -1044,6 +1197,62 @@ BEGIN
   END IF;
 
   RETURN bin_to_dec(SubStr(S, length(S) - (P + C - 1), C));
+END
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+--------------------------------------------------------------------------------
+-- FUNCTION to_little_endian ---------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION to_little_endian (
+  B         bytea
+) RETURNS 	bytea
+AS $$
+DECLARE
+  R         bytea;
+BEGIN
+  FOR i IN 0 .. length(B) - 1
+  LOOP
+    IF R IS NOT NULL THEN
+      R := decode(dec_to_hex(get_byte(B, i), 2), 'hex') || R;
+    ELSE
+      R := decode(dec_to_hex(get_byte(B, i), 2), 'hex');
+    END IF;
+  END LOOP;
+
+  RETURN R;
+END
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+--------------------------------------------------------------------------------
+-- FUNCTION to_little_endian ---------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION to_little_endian (
+  D 		numeric,
+  L         integer
+) RETURNS 	numeric
+AS $$
+DECLARE
+  B         bytea;
+  R         bytea;
+BEGIN
+  B := decode(dec_to_hex(D, L), 'hex');
+  R := to_little_endian(B);
+  RETURN hex_to_dec(encode(R, 'hex'));
+END
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+--------------------------------------------------------------------------------
+-- FUNCTION to_little_endian ---------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION to_little_endian (
+  H 		text
+) RETURNS 	text
+AS $$
+BEGIN
+  RETURN encode(to_little_endian(decode(H, 'hex')), 'hex');
 END
 $$ LANGUAGE plpgsql IMMUTABLE;
 

@@ -645,8 +645,8 @@ $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
 --------------------------------------------------------------------------------
 
-SELECT CreateExceptionResource(GetExceptionUUID(400, 36), 'ru', 'ChangesNotAllowed', 'Изменения документа в текущем состоянии не допускаются');
-SELECT CreateExceptionResource(GetExceptionUUID(400, 36), 'en', 'ChangesNotAllowed', 'Changes to the document in the current state are not allowed');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 36), 'ru', 'ChangesNotAllowed', 'Изменения не допускаются');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 36), 'en', 'ChangesNotAllowed', 'Changes are not allowed');
 
 CREATE OR REPLACE FUNCTION ChangesNotAllowed (
 ) RETURNS	void

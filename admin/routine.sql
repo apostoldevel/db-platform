@@ -646,6 +646,88 @@ END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION DoubleSHA256 -------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION DoubleSHA256 (
+  pData         bytea
+) RETURNS       bytea
+AS $$
+BEGIN
+  RETURN digest(digest(pData, 'sha256'), 'sha256');
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION DoubleSHA256 -------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION DoubleSHA256 (
+  pData         text
+) RETURNS       text
+AS $$
+BEGIN
+  RETURN encode(DoubleSHA256(pData), 'hex');
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION GetHashCash --------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetHashCash (
+  pData         bytea
+) RETURNS       bytea
+AS $$
+BEGIN
+  RETURN to_little_endian(DoubleSHA256(pData));
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION HashCash -----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION HashCash (
+  pData         bytea,
+  pBits         integer,
+  pNonce        integer,
+  OUT hash      text,
+  OUT nonce     integer
+) RETURNS       record
+AS $$
+DECLARE
+  tmp           bytea;
+  exp           numeric;
+  mnt           numeric;
+  trg           numeric;
+BEGIN
+  nonce := pNonce;
+
+  exp := bit_copy(pBits, 24, 8);
+  mnt := pBits & 16777215; -- 0xffffff
+  trg := mnt * power(2::numeric, 8 * (exp - 3));
+
+  WHILE nonce < 4294967296
+  LOOP
+    tmp := pData || decode(dec_to_hex(pBits, 8), 'hex') || decode(dec_to_hex(nonce, 8), 'hex');
+    hash := encode(GetHashCash(tmp), 'hex');
+    EXIT WHEN hex_to_dec(hash) <= trg;
+    nonce := nonce + 1;
+  END LOOP;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
 --------------------------------------------------------------------------------
 -- FUNCTION SessionKey ---------------------------------------------------------
 --------------------------------------------------------------------------------
