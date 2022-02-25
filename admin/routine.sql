@@ -3401,6 +3401,8 @@ BEGIN
     PERFORM AreaError();
   END IF;
 
+  PERFORM DoDeleteArea(pId);
+
   DELETE FROM db.area WHERE Id = pId;
 END;
 $$ LANGUAGE plpgsql
