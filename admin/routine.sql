@@ -867,7 +867,10 @@ BEGIN
     END IF;
 
   ELSE
-    arValid := array_append(arValid, current_database()::text);
+	FOR r IN SELECT code FROM db.scope
+	LOOP
+	  arValid := array_append(arValid, r.code);
+	END LOOP;
   END IF;
 
   RETURN arValid;
@@ -932,6 +935,10 @@ CREATE OR REPLACE FUNCTION CreateSystemOAuth2 (
 ) RETURNS       bigint
 AS $$
 BEGIN
+  IF pScope IS NULL THEN
+	SELECT code INTO pScope FROM db.scope WHERE id = '00000000-0000-4006-a000-000000000000';
+  END IF;
+
   RETURN CreateOAuth2(GetAudience(oauth2_system_client_id()), coalesce(pScope, current_database()));
 END;
 $$ LANGUAGE plpgsql
@@ -4415,7 +4422,7 @@ BEGIN
 	SELECT locale, area, interface INTO uLocale, uArea, uInterface FROM db.profile WHERE userid = up.id AND scope = uScope;
 
     IF NOT FOUND THEN
-      PERFORM AccessDenied();
+      RAISE EXCEPTION '[%] [%] Not found scope: %', pOAuth2, pRoleName, uScope;
 	END IF;
 
     INSERT INTO db.session (oauth2, userid, locale, area, interface, scope, agent, host)
