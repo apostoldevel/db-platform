@@ -167,7 +167,15 @@ AS $$
 DECLARE
   uForm     uuid;
 BEGIN
-  SELECT form INTO uForm FROM db.report WHERE id = pId;
+  SELECT id INTO uForm FROM db.report_form WHERE id = pId;
+
+  IF NOT FOUND THEN
+    SELECT form INTO uForm FROM db.report WHERE id = pId;
+    IF NOT FOUND THEN
+	  PERFORM NotFound();
+	END IF;
+  END IF;
+
   RETURN BuildReportForm(uForm, pParams);
 END;
 $$ LANGUAGE plpgsql
