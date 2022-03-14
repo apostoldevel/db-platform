@@ -93,9 +93,9 @@ BEGIN
       PERFORM LoginFailed();
     END IF;
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(text text, fields jsonb)
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(text text, entities jsonb, fields jsonb)
     LOOP
-      FOR e IN EXECUTE format('SELECT %s FROM api.search($1)', JsonbToFields(r.fields, GetColumns('search', 'api'))) USING r.text
+      FOR e IN EXECUTE format('SELECT %s FROM api.search($1, $2)', JsonbToFields(r.fields, GetColumns('search', 'api'))) USING r.text, r.entities
       LOOP
         RETURN NEXT row_to_json(e);
       END LOOP;
