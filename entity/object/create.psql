@@ -24,3 +24,6 @@
 
 \ir './reference/create.psql'
 \ir './document/create.psql'
+
+\echo [M] call search.sql
+\ir search.sql
