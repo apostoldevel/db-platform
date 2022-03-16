@@ -831,6 +831,7 @@ CREATE OR REPLACE FUNCTION ScopeToArray (
 AS $$
 DECLARE
   r				record;
+  e				record;
 
   scopes        text[];
   arValid       text[];
@@ -841,9 +842,14 @@ BEGIN
 
     arScopes := array_cat(arScopes, ARRAY[current_database()::text]);
 
-	FOR r IN SELECT code FROM db.scope
+	FOR r IN SELECT id, code FROM db.scope
 	LOOP
 	  arScopes := array_append(arScopes, r.code);
+
+	  FOR e IN SELECT code FROM db.scope_alias WHERE scope = r.id
+	  LOOP
+	    arScopes := array_append(arScopes, e.code);
+	  END LOOP;
 	END LOOP;
 
     scopes := string_to_array(pScope, ' ');
@@ -867,9 +873,14 @@ BEGIN
     END IF;
 
   ELSE
-	FOR r IN SELECT code FROM db.scope
+	FOR r IN SELECT id, code FROM db.scope
 	LOOP
 	  arValid := array_append(arValid, r.code);
+
+	  FOR e IN SELECT code FROM db.scope_alias WHERE scope = r.id
+	  LOOP
+	    arValid := array_append(arValid, e.code);
+	  END LOOP;
 	END LOOP;
   END IF;
 
