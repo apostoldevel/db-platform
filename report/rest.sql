@@ -189,6 +189,54 @@ BEGIN
       END LOOP;
 	END LOOP;
 
+  WHEN '/report/object/count' THEN
+
+    IF pPayload IS NOT NULL THEN
+      arKeys := array_cat(arKeys, ARRAY['object', 'search', 'filter', 'reclimit', 'recoffset', 'orderby']);
+      PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+    ELSE
+      pPayload := '{}';
+    END IF;
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(object uuid, search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
+      LOOP
+        FOR e IN SELECT count(*) FROM api.list_report_object(GetObjectClass(r.object), r.search, r.filter, r.reclimit, r.recoffset, r.orderby)
+        LOOP
+          RETURN NEXT row_to_json(e);
+        END LOOP;
+      END LOOP;
+
+    ELSE
+
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(object uuid, search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
+      LOOP
+        FOR e IN SELECT count(*) FROM api.list_report_object(GetObjectClass(r.object), r.search, r.filter, r.reclimit, r.recoffset, r.orderby)
+        LOOP
+          RETURN NEXT row_to_json(e);
+        END LOOP;
+      END LOOP;
+
+    END IF;
+
+  WHEN '/report/object/list' THEN
+
+    IF pPayload IS NOT NULL THEN
+      arKeys := array_cat(arKeys, ARRAY['object', 'fields', 'search', 'filter', 'reclimit', 'recoffset', 'orderby']);
+      PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+    ELSE
+      pPayload := '{}';
+    END IF;
+
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(object uuid, fields jsonb, search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
+    LOOP
+      FOR e IN EXECUTE format('SELECT %s FROM api.list_report_object($1, $2, $3, $4, $5, $6)', JsonbToFields(r.fields, GetColumns('report', 'api'))) USING GetObjectClass(r.object), r.search, r.filter, r.reclimit, r.recoffset, r.orderby
+      LOOP
+        RETURN NEXT row_to_json(e);
+      END LOOP;
+    END LOOP;
+
   ELSE
 
     RETURN NEXT rest.report_tree(pPath, pPayload);

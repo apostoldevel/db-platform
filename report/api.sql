@@ -13,6 +13,27 @@ AS
 GRANT SELECT ON api.report TO administrator;
 
 --------------------------------------------------------------------------------
+-- FUNCTION api.report_object --------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.report_object (
+  pClass	uuid
+) RETURNS 	SETOF api.report
+AS $$
+  WITH RECURSIVE classtree(id, parent, level) AS (
+	SELECT id, parent, level FROM db.class_tree WHERE id = pClass
+	 UNION
+	SELECT c.id, c.parent, c.level
+      FROM db.class_tree c INNER JOIN classtree ct ON ct.parent = c.id
+  )
+  SELECT r.*
+    FROM api.report r INNER JOIN classtree c ON r.binding = c.id
+   ORDER BY c.level DESC
+$$ LANGUAGE sql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- FUNCTION api.add_report -----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
@@ -21,6 +42,7 @@ GRANT SELECT ON api.report TO administrator;
  * @param {uuid} pType - Идентификатор типа
  * @param {uuid} pTree - Идентификатор дерева отчётов.
  * @param {uuid} pForm - Идентификатор формы отчёта.
+ * @param {uuid} pBinding - Идентификатор класса объекта. Связь с классом объекта (для отчётов объекта).
  * @param {text} pCode - Строковый идентификатор (код)
  * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
@@ -32,6 +54,7 @@ CREATE OR REPLACE FUNCTION api.add_report (
   pType         uuid,
   pTree         uuid default null,
   pForm         uuid default null,
+  pBinding      uuid default null,
   pCode         text default null,
   pName         text default null,
   pDescription  text default null,
@@ -39,7 +62,7 @@ CREATE OR REPLACE FUNCTION api.add_report (
 ) RETURNS       uuid
 AS $$
 BEGIN
-  RETURN CreateReport(pParent, coalesce(pType, GetType('sync.report')), pTree, pForm, pCode, pName, pDescription, pInfo);
+  RETURN CreateReport(pParent, coalesce(pType, GetType('sync.report')), pTree, pForm, pBinding, pCode, pName, pDescription, pInfo);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -55,6 +78,7 @@ $$ LANGUAGE plpgsql
  * @param {uuid} pType - Идентификатор типа
  * @param {uuid} pTree - Идентификатор дерева отчётов.
  * @param {uuid} pForm - Идентификатор формы отчёта.
+ * @param {uuid} pBinding - Идентификатор класса объекта. Связь с классом объекта (для отчётов объекта).
  * @param {text} pCode - Строковый идентификатор (код)
  * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
@@ -67,6 +91,7 @@ CREATE OR REPLACE FUNCTION api.update_report (
   pType         uuid default null,
   pTree         uuid default null,
   pForm         uuid default null,
+  pBinding      uuid default null,
   pCode         text default null,
   pName         text default null,
   pDescription  text default null,
@@ -82,7 +107,7 @@ BEGIN
     PERFORM ObjectNotFound('отчёт', 'id', pId);
   END IF;
 
-  PERFORM EditReport(uId, pParent, pType, pTree, pForm, pCode, pName, pDescription, pInfo);
+  PERFORM EditReport(uId, pParent, pType, pTree, pForm, pBinding, pCode, pName, pDescription, pInfo);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -98,6 +123,7 @@ CREATE OR REPLACE FUNCTION api.set_report (
   pType         uuid default null,
   pTree         uuid default null,
   pForm         uuid default null,
+  pBinding      uuid default null,
   pCode         text default null,
   pName         text default null,
   pDescription  text default null,
@@ -106,9 +132,9 @@ CREATE OR REPLACE FUNCTION api.set_report (
 AS $$
 BEGIN
   IF pId IS NULL THEN
-    pId := api.add_report(pParent, pType, pTree, pForm, pCode, pName, pDescription, pInfo);
+    pId := api.add_report(pParent, pType, pTree, pForm, pBinding, pCode, pName, pDescription, pInfo);
   ELSE
-    PERFORM api.update_report(pId, pParent, pType, pTree, pForm, pCode, pName, pDescription, pInfo);
+    PERFORM api.update_report(pId, pParent, pType, pTree, pForm, pBinding, pCode, pName, pDescription, pInfo);
   END IF;
 
   RETURN QUERY SELECT * FROM api.report WHERE id = pId;
@@ -156,6 +182,30 @@ CREATE OR REPLACE FUNCTION api.list_report (
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'report', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.list_report_object ------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Возвращает список отчётов объекта.
+ * @param {uuid} pClass - Идентификатор класса объекта.
+ * @return {SETOF api.report}
+ */
+CREATE OR REPLACE FUNCTION api.list_report_object (
+  pClass        uuid,
+  pSearch       jsonb default null,
+  pFilter       jsonb default null,
+  pLimit        integer default null,
+  pOffSet       integer default null,
+  pOrderBy      jsonb default null
+) RETURNS       SETOF api.report
+AS $$
+BEGIN
+  RETURN QUERY EXECUTE api.sql('api', format('report_object(%L::uuid)', pClass), pSearch, pFilter, pLimit, pOffSet, pOrderBy);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

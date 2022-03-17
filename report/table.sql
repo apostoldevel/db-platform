@@ -7,6 +7,7 @@ CREATE TABLE db.report (
     reference           uuid NOT NULL REFERENCES db.reference(id) ON DELETE CASCADE,
     tree				uuid NOT NULL REFERENCES db.report_tree(id),
     form				uuid REFERENCES db.report_form(id),
+    binding				uuid REFERENCES db.class_tree(id),
     info                jsonb
 );
 
@@ -16,8 +17,9 @@ COMMENT ON TABLE db.report IS 'Отчёт.';
 
 COMMENT ON COLUMN db.report.id IS 'Идентификатор.';
 COMMENT ON COLUMN db.report.reference IS 'Документ.';
-COMMENT ON COLUMN db.report.tree IS 'Ссылка на дерево отчётов.';
-COMMENT ON COLUMN db.report.form IS 'Ссылка на форму отчёта.';
+COMMENT ON COLUMN db.report.tree IS 'Дерево отчётов.';
+COMMENT ON COLUMN db.report.form IS 'Форма отчёта.';
+COMMENT ON COLUMN db.report.binding IS 'Связь с классом объекта (для отчётов объекта).';
 COMMENT ON COLUMN db.report.info IS 'Дополнительная информация.';
 
 --------------------------------------------------------------------------------
@@ -25,6 +27,7 @@ COMMENT ON COLUMN db.report.info IS 'Дополнительная информа
 CREATE INDEX ON db.report (reference);
 CREATE INDEX ON db.report (tree);
 CREATE INDEX ON db.report (form);
+CREATE INDEX ON db.report (binding);
 
 --------------------------------------------------------------------------------
 

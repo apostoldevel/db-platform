@@ -1542,6 +1542,11 @@ BEGIN
       SELECT id INTO uScope FROM db.scope WHERE code = arScopes[i];
       IF FOUND THEN
         RETURN NEXT uScope;
+      ELSE
+        SELECT scope INTO uScope FROM db.scope_alias WHERE code = arScopes[i];
+        IF FOUND THEN
+          RETURN NEXT uScope;
+        END IF;
       END IF;
     END LOOP;
   END IF;
