@@ -180,7 +180,7 @@ AS $$
 DECLARE
   uReport       uuid;
 BEGIN
-  uReport := CreateReport(pParent, GetType('async.report'), pTree, pForm, pBinding, pCode, pName, pDescription);
+  uReport := CreateReport(pParent, GetType('sync.report'), pTree, pForm, pBinding, pCode, pName, pDescription);
   PERFORM CreateReportRoutine(pParent, GetType('plpgsql.report_routine'), uReport, 'rpc_' || pCode, pName, 'rpc_' || pCode, pDescription);
 
   RETURN uReport;
