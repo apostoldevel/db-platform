@@ -1147,10 +1147,11 @@ CREATE OR REPLACE FUNCTION DeleteObjectFile (
   pObject   uuid,
   pName		text,
   pPath		text DEFAULT null
-) RETURNS	void
+) RETURNS	boolean
 AS $$
 BEGIN
   DELETE FROM db.object_file WHERE object = pObject AND file_name = pName AND file_path = coalesce(pPath, '~/');
+  RETURN FOUND;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

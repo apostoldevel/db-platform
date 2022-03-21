@@ -727,6 +727,31 @@ BEGIN
       END LOOP;
     END LOOP;
 
+  WHEN '/object/file/delete' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['id', 'path', 'name']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, path text, name text)
+      LOOP
+        RETURN NEXT json_build_object('success', api.delete_object_file(r.id, r.name, r.path));
+      END LOOP;
+
+    ELSE
+
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, path text, name text)
+      LOOP
+        RETURN NEXT json_build_object('success', api.delete_object_file(r.id, r.name, r.path));
+      END LOOP;
+
+    END IF;
+
   WHEN '/object/file/clear' THEN
 
     IF pPayload IS NULL THEN

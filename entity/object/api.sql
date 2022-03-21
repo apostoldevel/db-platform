@@ -899,6 +899,35 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- api.delete_object_file ------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Удалялет файл объекта
+ * @param {uuid} pId - Идентификатор объекта
+ * @param {text} pName - Наименование файла
+ * @param {text} pPath - Путь к файлу
+ * @return {api.object_file}
+ */
+CREATE OR REPLACE FUNCTION api.delete_object_file (
+  pId       uuid,
+  pName     text,
+  pPath     text default null
+) RETURNS	boolean
+AS $$
+BEGIN
+  IF NOT CheckObjectAccess(pId, B'001') THEN
+	PERFORM AccessDenied();
+  END IF;
+
+  pPath := coalesce(pPath, '~/');
+
+  RETURN DeleteObjectFile(pId, pName, pPath);
+END
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- api.list_object_file --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
