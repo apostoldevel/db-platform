@@ -804,13 +804,12 @@ CREATE TRIGGER t_token_header_before_delete
 CREATE TABLE db.token (
     id              bigserial PRIMARY KEY,
     header          bigint NOT NULL REFERENCES db.token_header(id) ON DELETE CASCADE,
-    type            char NOT NULL,
+    type            char NOT NULL CHECK (type IN ('C', 'A', 'R', 'I')),
     token           text NOT NULL,
     hash            varchar(40) NOT NULL,
     used            timestamptz,
     validFromDate   timestamptz DEFAULT Now() NOT NULL,
-    validToDate     timestamptz DEFAULT TO_DATE('4433-12-31', 'YYYY-MM-DD') NOT NULL,
-    CHECK (type IN ('C', 'A', 'R', 'I'))
+    validToDate     timestamptz DEFAULT TO_DATE('4433-12-31', 'YYYY-MM-DD') NOT NULL
 );
 
 COMMENT ON TABLE db.token IS 'Токены.';

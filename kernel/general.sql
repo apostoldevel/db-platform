@@ -729,6 +729,36 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- FUNCTION jsonb_compare_value ------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION jsonb_compare_value (
+  pOld		jsonb,
+  pNew      jsonb
+) RETURNS 	jsonb
+AS $$
+DECLARE
+  r         record;
+  j         jsonb;
+  result    jsonb;
+BEGIN
+  result := jsonb_build_object();
+
+  FOR r IN SELECT * FROM jsonb_each(pOld)
+  LOOP
+    j := jsonb_build_object(r.key, r.value);
+    IF NOT pNew @> j THEN
+	  result := result || j;
+	END IF;
+  END LOOP;
+
+  RETURN result;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- CheckJsonKeys ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 

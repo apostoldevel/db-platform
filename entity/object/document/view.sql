@@ -22,13 +22,13 @@ GRANT SELECT ON Document TO administrator;
 CREATE OR REPLACE VIEW DocumentAreaTree
 AS
   WITH RECURSIVE area_tree(id, parent) AS (
-    SELECT id, parent FROM db.area WHERE type = '00000000-0000-4002-a001-000000000000' AND scope IS NOT DISTINCT FROM current_scope() AND id IS DISTINCT FROM current_area()
+    SELECT id, parent FROM db.area WHERE type = '00000000-0000-4002-a001-000000000000'::uuid AND scope IS NOT DISTINCT FROM current_scope() AND id IS DISTINCT FROM current_area()
      UNION
     SELECT id, parent FROM db.area WHERE id IS NOT DISTINCT FROM current_area()
      UNION
     SELECT a.id, a.parent
       FROM db.area a INNER JOIN area_tree t ON a.parent = t.id
-     WHERE a.type IS DISTINCT FROM '00000000-0000-4002-a001-000000000000' AND a.scope IS NOT DISTINCT FROM current_scope()
+     WHERE a.type IS DISTINCT FROM '00000000-0000-4002-a001-000000000000'::uuid AND a.scope IS NOT DISTINCT FROM current_scope()
   ) SELECT a.* FROM Area a INNER JOIN area_tree t USING (id);
 
 GRANT SELECT ON DocumentAreaTree TO administrator;

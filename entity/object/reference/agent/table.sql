@@ -48,9 +48,9 @@ CREATE TRIGGER t_agent_before_insert
 CREATE OR REPLACE FUNCTION ft_agent_after_insert()
 RETURNS trigger AS $$
 BEGIN
-  UPDATE db.aou SET deny = B'000', allow = B'100' WHERE object = NEW.id AND userid = '00000000-0000-4000-a002-000000000002'; -- mailbot
+  UPDATE db.aou SET deny = B'000', allow = B'100' WHERE object = NEW.id AND userid = '00000000-0000-4000-a002-000000000002'::uuid; -- mailbot
   IF not FOUND THEN
-    INSERT INTO db.aou SELECT NEW.id, '00000000-0000-4000-a002-000000000002', B'000', B'100'; -- mailbot
+    INSERT INTO db.aou SELECT NEW.id, '00000000-0000-4000-a002-000000000002'::uuid, B'000', B'100'; -- mailbot
   END IF;
   RETURN NEW;
 END;

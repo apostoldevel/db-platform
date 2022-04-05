@@ -24,6 +24,7 @@ SELECT InitAPI();
 SELECT CreatePublisher('notify', 'Уведомления', 'Уведомления о системных событиях.');
 SELECT CreatePublisher('notice', 'Извещения', 'Системные извещения.');
 SELECT CreatePublisher('message', 'Сообщения', 'Уведомления о сообщениях.');
+SELECT CreatePublisher('replication', 'Репликация', 'Уведомления о наличии данных для репликации.');
 SELECT CreatePublisher('log', 'Журналы', 'Журналы событий.');
 SELECT CreatePublisher('geo', 'Геолокация', 'Данные геолокации.');
 

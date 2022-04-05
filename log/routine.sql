@@ -113,3 +113,30 @@ END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- WriteDiagnostics ------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION WriteDiagnostics (
+  pMessage      text,
+  pContext      text default null
+) RETURNS       void
+AS $$
+DECLARE
+  ErrorCode     int;
+  ErrorMessage  text;
+BEGIN
+  PERFORM SetErrorMessage(pMessage);
+
+  SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(pMessage);
+
+  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
+
+  IF pContext IS NOT NULL THEN
+    PERFORM WriteToEventLog('D', ErrorCode, pContext);
+  END IF;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;

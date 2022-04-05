@@ -28,7 +28,7 @@ BEGIN
   CASE lower(pPath)
   WHEN '/ping' THEN
 
-	RETURN NEXT json_build_object();
+	RETURN NEXT json_build_object('error', json_build_object('code', 200, 'message', 'OK'));
 
   WHEN '/time' THEN
 

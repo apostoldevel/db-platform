@@ -7,6 +7,7 @@
 \ir './registry/create.psql'
 \ir './log/create.psql'
 \ir './api/create.psql'
+\ir './replication/create.psql'
 \ir './daemon/create.psql'
 \ir './session/create.psql'
 \ir './current/create.psql'

@@ -361,6 +361,25 @@ BEGIN
       PERFORM IncorrectJsonType(jsonb_typeof(pFilter->'subjects'), 'array');
     END IF;
 
+  WHEN 'replication' THEN
+
+  	arFilter := array_cat(arFilter, ARRAY['actions', 'schemas', 'names']);
+  	PERFORM CheckJsonbKeys('/listener/replication/filter', arFilter, pFilter);
+
+    IF jsonb_typeof(pFilter->'actions') != 'array' THEN
+      PERFORM IncorrectJsonType(jsonb_typeof(pFilter->'actions'), 'array');
+    END IF;
+
+  	PERFORM CheckCodes(ARRAY['I', 'U', 'D'], JsonbToStrArray(pFilter->'actions'));
+
+    IF jsonb_typeof(pFilter->'schemas') != 'array' THEN
+      PERFORM IncorrectJsonType(jsonb_typeof(pFilter->'schemas'), 'array');
+    END IF;
+
+    IF jsonb_typeof(pFilter->'names') != 'array' THEN
+      PERFORM IncorrectJsonType(jsonb_typeof(pFilter->'names'), 'array');
+    END IF;
+
   WHEN 'log' THEN
 
   	arFilter := array_cat(arFilter, ARRAY['types', 'codes', 'categories']);
@@ -497,6 +516,18 @@ BEGIN
 	  PERFORM IncorrectValueInArray(coalesce(type, ''), 'type', arValues);
 	END IF;
 
+  WHEN 'replication' THEN
+
+	arParams := array_cat(null, ARRAY['type']);
+	PERFORM CheckJsonbKeys('/listener/replication/params', arParams, pParams);
+
+	type := pParams->>'type';
+
+	arValues := array_cat(null, ARRAY['notify']);
+	IF array_position(arValues, type) IS NULL THEN
+	  PERFORM IncorrectValueInArray(coalesce(type, ''), 'type', arValues);
+	END IF;
+
   WHEN 'log' THEN
 	arParams := array_cat(null, ARRAY['type']);
 	PERFORM CheckJsonbKeys('/listener/log/params', arParams, pParams);
@@ -566,6 +597,14 @@ DECLARE
 BEGIN
   SELECT userid INTO uUserId FROM db.session WHERE code = pSession;
 
+  IF NOT FOUND THEN
+    RETURN false;
+  END IF;
+
+  IF pData IS NULL THEN
+    RETURN false;
+  END IF;
+
   CASE pPublisher
   WHEN 'notify' THEN
 
@@ -573,11 +612,11 @@ BEGIN
 	SELECT * INTO d FROM jsonb_to_record(pData) AS x(id uuid, entity uuid, class uuid, action uuid, method uuid, object uuid);
 	SELECT * INTO n FROM Notification WHERE id = d.id;
 
-	RETURN array_position(coalesce(JsonbToStrArray(f.entities), ARRAY[n.entitycode]), n.entitycode) IS NOT NULL AND
-           array_position(coalesce(JsonbToStrArray(f.classes) , ARRAY[n.classcode]) , n.classcode ) IS NOT NULL AND
-           array_position(coalesce(JsonbToStrArray(f.actions) , ARRAY[n.actioncode]), n.actioncode) IS NOT NULL AND
-           array_position(coalesce(JsonbToStrArray(f.methods) , ARRAY[n.methodcode]), n.methodcode) IS NOT NULL AND
-           array_position(coalesce(JsonbToUUIDArray(f.objects), ARRAY[d.object])    , d.object    ) IS NOT NULL AND
+	RETURN n.entitycode = ANY (coalesce(JsonbToStrArray(f.entities), ARRAY[n.entitycode])) AND
+           n.classcode  = ANY (coalesce(JsonbToStrArray(f.classes) , ARRAY[n.classcode]))  AND
+           n.actioncode = ANY (coalesce(JsonbToStrArray(f.actions) , ARRAY[n.actioncode])) AND
+           n.methodcode = ANY (coalesce(JsonbToStrArray(f.methods) , ARRAY[n.methodcode])) AND
+           d.object     = ANY (coalesce(JsonbToUUIDArray(f.objects), ARRAY[d.object]))     AND
 	       CheckObjectAccess(d.object, B'100', uUserId);
 
   WHEN 'notice' THEN
@@ -585,22 +624,31 @@ BEGIN
 	SELECT * INTO f FROM jsonb_to_record(pFilter) AS x(categories jsonb);
 	SELECT * INTO d FROM jsonb_to_record(pData) AS x(userid uuid, object uuid, category text);
 
-	RETURN d.userid = uUserId AND
-		   array_position(coalesce(JsonbToStrArray(f.categories), ARRAY[d.category]), d.category) IS NOT NULL;
+	RETURN d.userid = uUserId AND d.category = ANY (coalesce(JsonbToStrArray(f.categories), ARRAY[d.category]));
 
   WHEN 'message' THEN
 
-	SELECT * INTO f FROM jsonb_to_record(pFilter) AS x(classes jsonb, types jsonb, agents jsonb, codes jsonb, profiles jsonb, addresses jsonb, subjects jsonb );
+	SELECT * INTO f FROM jsonb_to_record(pFilter) AS x(classes jsonb, types jsonb, agents jsonb, codes jsonb, profiles jsonb, addresses jsonb, subjects jsonb);
 	SELECT * INTO d FROM jsonb_to_record(pData) AS x(id uuid, class text, type text, agent text, code text, profile text, address text, subject text);
 
-	RETURN array_position(coalesce(JsonbToStrArray(f.classes)  , ARRAY[d.class])  , d.class  ) IS NOT NULL AND
-	       array_position(coalesce(JsonbToStrArray(f.types)    , ARRAY[d.type])   , d.type   ) IS NOT NULL AND
-           array_position(coalesce(JsonbToStrArray(f.agents)   , ARRAY[d.agent])  , d.agent  ) IS NOT NULL AND
-           array_position(coalesce(JsonbToStrArray(f.codes)    , ARRAY[d.code])   , d.code   ) IS NOT NULL AND
-           array_position(coalesce(JsonbToStrArray(f.profiles) , ARRAY[d.profile]), d.profile) IS NOT NULL AND
-           array_position(coalesce(JsonbToStrArray(f.addresses), ARRAY[d.address]), d.address) IS NOT NULL AND
-           array_position(coalesce(JsonbToStrArray(f.subjects) , ARRAY[d.subject]), d.subject) IS NOT NULL AND
+	RETURN d.class   = ANY (coalesce(JsonbToStrArray(f.classes)  , ARRAY[d.class]))   AND
+	       d.type    = ANY (coalesce(JsonbToStrArray(f.types)    , ARRAY[d.type]))    AND
+           d.agent   = ANY (coalesce(JsonbToStrArray(f.agents)   , ARRAY[d.agent]))   AND
+           d.code    = ANY (coalesce(JsonbToStrArray(f.codes)    , ARRAY[d.code]))    AND
+           d.profile = ANY (coalesce(JsonbToStrArray(f.profiles) , ARRAY[d.profile])) AND
+           d.address = ANY (coalesce(JsonbToStrArray(f.addresses), ARRAY[d.address])) AND
+           d.subject = ANY (coalesce(JsonbToStrArray(f.subjects) , ARRAY[d.subject])) AND
 	       CheckObjectAccess(d.id, B'100', uUserId);
+
+  WHEN 'replication' THEN
+
+	SELECT * INTO f FROM jsonb_to_record(pFilter) AS x(actions jsonb, schemas jsonb, names jsonb);
+	SELECT * INTO d FROM jsonb_to_record(pData) AS x(action text, schema text, name text);
+
+	RETURN IsUserRole('00000000-0000-4000-a000-000000000005', uUserId)      AND -- replication group
+	       d.action = ANY (coalesce(JsonbToStrArray(f.actions), ARRAY[d.action])) AND
+		   d.schema = ANY (coalesce(JsonbToStrArray(f.schemas), ARRAY[d.schema])) AND
+		   d.name   = ANY (coalesce(JsonbToStrArray(f.names)  , ARRAY[d.name]));
 
   WHEN 'log' THEN
 
@@ -609,18 +657,18 @@ BEGIN
 	SELECT * INTO f FROM jsonb_to_record(pFilter) AS x(types jsonb, codes jsonb, categories jsonb);
 	SELECT * INTO d FROM jsonb_to_record(pData) AS x(type text, code integer, username text, category text);
 
-	RETURN vUserName = d.username AND
-	       array_position(coalesce(JsonbToStrArray(f.types), ARRAY[d.type]), d.type) IS NOT NULL AND
-		   array_position(coalesce(JsonbToIntArray(f.codes), ARRAY[d.code]), d.code) IS NOT NULL AND
-		   array_position(coalesce(JsonbToStrArray(f.categories), ARRAY[d.category]), d.category) IS NOT NULL;
+	RETURN vUserName  = d.username AND
+	       d.type     = ANY (coalesce(JsonbToStrArray(f.types)     , ARRAY[d.type])) AND
+		   d.code     = ANY (coalesce(JsonbToIntArray(f.codes)     , ARRAY[d.code])) AND
+		   d.category = ANY (coalesce(JsonbToStrArray(f.categories), ARRAY[d.category]));
 
   WHEN 'geo' THEN
 
 	SELECT * INTO f FROM jsonb_to_record(pFilter) AS x(codes jsonb, objects jsonb);
 	SELECT * INTO d FROM jsonb_to_record(pData) AS x(code text, object uuid);
 
-	RETURN array_position(coalesce(JsonbToStrArray(f.codes), ARRAY[d.code]), d.code) IS NOT NULL AND
-           array_position(coalesce(JsonbToUUIDArray(f.objects), ARRAY[d.object]), d.object) IS NOT NULL AND
+	RETURN d.code   = ANY (coalesce(JsonbToStrArray(f.codes)   , ARRAY[d.code]))   AND
+           d.object = ANY (coalesce(JsonbToUUIDArray(f.objects), ARRAY[d.object])) AND
 	       CheckObjectAccess(d.object, B'100', uUserId);
 
   ELSE
@@ -725,6 +773,13 @@ BEGIN
     WHEN 'message' THEN
 	  uId := pData->>'id';
 	  FOR e IN SELECT * FROM Message WHERE id = uId
+	  LOOP
+		RETURN NEXT row_to_json(e);
+	  END LOOP;
+
+    WHEN 'replication' THEN
+	  nId := pData->>'id';
+	  FOR e IN SELECT * FROM ReplicationLog WHERE id = nId
 	  LOOP
 		RETURN NEXT row_to_json(e);
 	  END LOOP;

@@ -1,0 +1,1 @@
+\ir '../replication/create.psql'

@@ -7,6 +7,7 @@
 \ir './registry/update.psql'
 \ir './log/update.psql'
 \ir './api/update.psql'
+\ir './replication/update.psql'
 \ir './daemon/update.psql'
 \ir './session/update.psql'
 \ir './current/update.psql'

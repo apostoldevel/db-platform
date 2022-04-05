@@ -122,7 +122,7 @@ DECLARE
   ErrorCode     int;
   ErrorMessage  text;
 BEGIN
-  SELECT userId INTo uUserId FROM db.session WHERE code = pSession;
+  SELECT userId INTO uUserId FROM db.session WHERE code = pSession;
 
   IF NOT FOUND OR current_userid() IS DISTINCT FROM uUserId THEN -- Обход блокировки
 	IF SessionIn(pSession, pAgent, pHost) IS NULL THEN
