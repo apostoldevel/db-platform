@@ -33,10 +33,12 @@ $$ LANGUAGE SQL
 -- api.get_max_relay_id --------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION api.get_max_relay_id()
-RETURNS       bigint
+CREATE OR REPLACE FUNCTION api.get_max_relay_id (
+  pSource       text
+)
+RETURNS         bigint
 AS $$
-  SELECT max(id) FROM replication.relay;
+  SELECT max(id) FROM replication.relay WHERE source = pSource;
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -46,6 +48,7 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.add_to_relay_log (
+  pSource       text,
   pId           bigint,
   pDateTime     timestamptz,
   pAction       char,
@@ -53,13 +56,11 @@ CREATE OR REPLACE FUNCTION api.add_to_relay_log (
   pName         text,
   pKey          jsonb,
   pData         jsonb,
-  pPriority     int DEFAULT null,
-  pState        integer DEFAULT null,
-  pMessage      text DEFAULT null
+  pPriority     int DEFAULT null
 ) RETURNS       bigint
 AS $$
 BEGIN
-  RETURN replication.add_relay(pId, pDateTime, pAction, pSchema, pName, pKey, pData, pPriority, pState, pMessage);
+  RETURN replication.add_relay(pSource, pId, pDateTime, pAction, pSchema, pName, pKey, pData, pPriority);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -70,12 +71,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.list_replication_log (
-  pSearch	jsonb default null,
-  pFilter	jsonb default null,
-  pLimit	integer default null,
-  pOffSet	integer default null,
-  pOrderBy	jsonb default null
-) RETURNS	SETOF api.replication_log
+  pSearch       jsonb default null,
+  pFilter       jsonb default null,
+  pLimit        integer default null,
+  pOffSet       integer default null,
+  pOrderBy      jsonb default null
+) RETURNS       SETOF api.replication_log
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'replication_log', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
@@ -89,12 +90,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.list_relay_log (
-  pSearch	jsonb default null,
-  pFilter	jsonb default null,
-  pLimit	integer default null,
-  pOffSet	integer default null,
-  pOrderBy	jsonb default null
-) RETURNS	SETOF api.relay_log
+  pSearch       jsonb default null,
+  pFilter       jsonb default null,
+  pLimit        integer default null,
+  pOffSet       integer default null,
+  pOrderBy      jsonb default null
+) RETURNS       SETOF api.relay_log
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'relay_log', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
@@ -108,10 +109,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.replication_apply_relay (
+  pSource       text,
   pId           bigint
 ) RETURNS       text
 AS $$
-  SELECT GetErrorMessage() FROM replication.apply_relay(pId)
+  SELECT GetErrorMessage() FROM replication.apply_relay(pSource, pId)
 $$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -120,12 +122,13 @@ $$ LANGUAGE sql
 -- api.replication_apply -------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION api.replication_apply()
+CREATE OR REPLACE FUNCTION api.replication_apply (
+  pSource       text
+)
 RETURNS         text
 AS $$
 BEGIN
-  PERFORM replication.apply();
-
+  PERFORM replication.apply(pSource);
   RETURN 'Accepted';
 END;
 $$ LANGUAGE plpgsql

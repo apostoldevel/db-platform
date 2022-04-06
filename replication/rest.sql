@@ -35,20 +35,33 @@ BEGIN
   CASE pPath
   WHEN '/replication/apply' THEN
 
-    RETURN NEXT json_build_object('status', api.replication_apply());
-
-  WHEN '/replication/log' THEN
-
     IF pPayload IS NOT NULL THEN
-      arKeys := array_cat(arKeys, ARRAY['relayid']);
+      arKeys := array_cat(arKeys, ARRAY['source']);
       PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
     ELSE
       pPayload := '{}';
     END IF;
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(relayid bigint)
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(source text)
     LOOP
-      FOR e IN SELECT * FROM api.replication_log(r.relayid)
+      FOR e IN SELECT api.replication_apply(r.source) AS status
+      LOOP
+        RETURN NEXT json_build_object('status', e.status);
+      END LOOP;
+    END LOOP;
+
+  WHEN '/replication/log' THEN
+
+    IF pPayload IS NOT NULL THEN
+      arKeys := array_cat(arKeys, ARRAY['id']);
+      PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+    ELSE
+      pPayload := '{}';
+    END IF;
+
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id bigint)
+    LOOP
+      FOR e IN SELECT * FROM api.replication_log(r.id)
       LOOP
         RETURN NEXT row_to_json(e);
       END LOOP;
@@ -144,16 +157,22 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN EXECUTE format('SELECT api.add_to_relay_log(%s) AS id FROM jsonb_to_recordset($1) AS x(%s)', array_to_string(GetRoutines('add_to_relay_log', 'api', false, 'x'), ', '), array_to_string(GetRoutines('add_to_relay_log', 'api', true), ', ')) USING pPayload
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(source text, id bigint, datetime timestamp with time zone, action character, schema text, name text, key jsonb, data jsonb, priority integer)
       LOOP
-        RETURN NEXT json_build_object('relayid', r.id, 'status', 'Accepted');
+        FOR e IN SELECT api.add_to_relay_log(r.source, r.id, r.datetime, r.action, r.schema, r.name, r.key, r.data, r.priority) AS id
+        LOOP
+          RETURN NEXT json_build_object('source', r.source, 'id', r.id, 'status', 'Accepted');
+        END LOOP;
       END LOOP;
 
     ELSE
 
-      FOR r IN EXECUTE format('SELECT api.add_to_relay_log(%s) AS id FROM jsonb_to_record($1) AS x(%s)', array_to_string(GetRoutines('add_to_relay_log', 'api', false, 'x'), ', '), array_to_string(GetRoutines('add_to_relay_log', 'api', true), ', ')) USING pPayload
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(source text, id bigint, datetime timestamp with time zone, action character, schema text, name text, key jsonb, data jsonb, priority integer)
       LOOP
-        RETURN NEXT json_build_object('relayid', r.id, 'status', 'Accepted');
+        FOR e IN SELECT api.add_to_relay_log(r.source, r.id, r.datetime, r.action, r.schema, r.name, r.key, r.data, r.priority) AS id
+        LOOP
+          RETURN NEXT json_build_object('source', r.source, 'id', r.id, 'status', 'Accepted');
+        END LOOP;
       END LOOP;
 
     END IF;
@@ -161,7 +180,7 @@ BEGIN
   WHEN '/replication/relay/apply' THEN
 
     IF pPayload IS NOT NULL THEN
-      arKeys := array_cat(arKeys, ARRAY['id']);
+      arKeys := array_cat(arKeys, ARRAY['source', 'id']);
       PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
     ELSE
       pPayload := '{}';
@@ -169,16 +188,16 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id bigint)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(source text, id bigint)
       LOOP
-        RETURN NEXT json_build_object('id', r.id, 'message', api.replication_apply_relay(r.id));
+        RETURN NEXT json_build_object('source', r.source, 'id', r.id, 'message', api.replication_apply_relay(r.source, r.id));
       END LOOP;
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id bigint)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(source text, id bigint)
       LOOP
-        RETURN NEXT json_build_object('id', r.id, 'message', api.replication_apply_relay(r.id));
+        RETURN NEXT json_build_object('source', r.source, 'id', r.id, 'message', api.replication_apply_relay(r.source, r.id));
       END LOOP;
 
     END IF;

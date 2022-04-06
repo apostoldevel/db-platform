@@ -35,7 +35,7 @@ CREATE INDEX ON replication.log (priority);
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION replication.ft_replication_after_insert()
+CREATE OR REPLACE FUNCTION replication.ft_log_after_insert()
 RETURNS trigger AS $$
 BEGIN
   PERFORM pg_notify('replication', json_build_object('id', NEW.id, 'datetime', NEW.datetime, 'action', NEW.action, 'schema', NEW.schema, 'name', NEW.name)::text);
@@ -48,17 +48,20 @@ $$ LANGUAGE plpgsql
 
 --------------------------------------------------------------------------------
 
-CREATE TRIGGER t_replication_after_insert
+CREATE TRIGGER t_replication_log
   AFTER INSERT ON replication.log
   FOR EACH ROW
-  EXECUTE PROCEDURE replication.ft_replication_after_insert();
+  EXECUTE PROCEDURE replication.ft_log_after_insert();
 
 --------------------------------------------------------------------------------
 -- replication.relay -----------------------------------------------------------
 --------------------------------------------------------------------------------
 
 CREATE TABLE replication.relay (
-    id          bigint PRIMARY KEY,
+    source      text NOT NULL,
+    id          bigint NOT NULL,
+    state		integer NOT NULL DEFAULT 0 CHECK (state BETWEEN 0 AND 2),
+    created     timestamptz DEFAULT Now() NOT NULL,
     datetime	timestamptz NOT NULL,
     action      char NOT NULL CHECK (action IN ('I', 'U', 'D')),
     schema      text NOT NULL,
@@ -66,14 +69,16 @@ CREATE TABLE replication.relay (
     key         jsonb,
     data        jsonb,
     priority    integer NOT NULL DEFAULT 0,
-    uploaded    timestamptz DEFAULT Now() NOT NULL,
-    state		integer NOT NULL DEFAULT 0 CHECK (state BETWEEN 0 AND 2),
-    message		text
+    message		text,
+    PRIMARY KEY (source, id)
 );
 
 COMMENT ON TABLE replication.relay IS 'Журнал ретрансляции.';
 
+COMMENT ON COLUMN replication.relay.source IS 'Источник данных';
 COMMENT ON COLUMN replication.relay.id IS 'Идентификатор';
+COMMENT ON COLUMN replication.relay.state IS 'Состояние';
+COMMENT ON COLUMN replication.relay.created IS 'Дата и время загрузки';
 COMMENT ON COLUMN replication.relay.datetime IS 'Дата и время';
 COMMENT ON COLUMN replication.relay.action IS 'Действие';
 COMMENT ON COLUMN replication.relay.schema IS 'Схема';
@@ -81,13 +86,9 @@ COMMENT ON COLUMN replication.relay.name IS 'Наименование табли
 COMMENT ON COLUMN replication.relay.key IS 'Ключ';
 COMMENT ON COLUMN replication.relay.data IS 'Данные';
 COMMENT ON COLUMN replication.relay.priority IS 'Приоритет';
-COMMENT ON COLUMN replication.relay.uploaded IS 'Дата и время загрузки';
-COMMENT ON COLUMN replication.relay.state IS 'Состояние';
 COMMENT ON COLUMN replication.relay.message IS 'Сообщение об ошибке при наличии';
 
-CREATE INDEX ON replication.relay (action);
-CREATE INDEX ON replication.relay (schema);
-CREATE INDEX ON replication.relay (name);
+CREATE INDEX ON replication.relay (source);
 CREATE INDEX ON replication.relay (state);
 
 --------------------------------------------------------------------------------

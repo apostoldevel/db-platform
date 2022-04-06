@@ -151,10 +151,13 @@ $$ LANGUAGE SQL
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- replication.add_log ---------------------------------------------------------
+-- replication.add_relay -------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION replication.add_log (
+CREATE OR REPLACE FUNCTION replication.add_relay (
+  pSource       text,
+  pId           bigint,
+  pDateTime     timestamptz,
   pAction       char,
   pSchema       text,
   pName         text,
@@ -163,39 +166,9 @@ CREATE OR REPLACE FUNCTION replication.add_log (
   pPriority     int DEFAULT null
 ) RETURNS       bigint
 AS $$
-DECLARE
-  nId           bigint;
 BEGIN
-  INSERT INTO replication.log (action, schema, name, key, data, priority)
-  VALUES (pAction, pSchema, pName, pKey, pData, coalesce(pPriority, 0))
-  RETURNING id INTO nId;
-
-  RETURN nId;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- replication.add_relay -------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION replication.add_relay (
-  pId           bigint,
-  pDateTime     timestamptz,
-  pAction       char,
-  pSchema       text,
-  pName         text,
-  pKey          jsonb,
-  pData         jsonb,
-  pPriority     int DEFAULT null,
-  pState        integer DEFAULT null,
-  pMessage      text DEFAULT null
-) RETURNS       bigint
-AS $$
-BEGIN
-  INSERT INTO replication.relay (id, datetime, action, schema, name, key, data, priority, state, message)
-  VALUES (pId, pDateTime, pAction, pSchema, pName, pKey, pData, coalesce(pPriority, 0), coalesce(pState, 0), pMessage);
+  INSERT INTO replication.relay (source, id, datetime, action, schema, name, key, data, priority)
+  VALUES (pSource, pId, pDateTime, pAction, pSchema, pName, pKey, pData, coalesce(pPriority, 0));
 
   RETURN pId;
 END;
@@ -208,6 +181,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION replication.apply_relay (
+  pSource       text,
   pId           bigint
 ) RETURNS       void
 AS $$
@@ -223,7 +197,7 @@ DECLARE
   vMessage      text;
   vContext      text;
 BEGIN
-  SELECT * INTO r FROM replication.relay WHERE id = pId;
+  SELECT * INTO r FROM replication.relay WHERE source = pSource AND id = pId;
 
   IF NOT FOUND THEN
 	PERFORM NotFound();
@@ -259,7 +233,7 @@ BEGIN
 
     FOR e IN SELECT * FROM jsonb_each_text(r.key)
     LOOP
-      v := array_append(v, e.key || ' = ' || quote_nullable(e.value));
+      k := array_append(k, e.key || ' = ' || quote_nullable(e.value));
     END LOOP;
 
     SQL := format('DELETE FROM %I.%I WHERE %s', r.schema, r.name, array_to_string(k, ' AND '));
@@ -270,9 +244,9 @@ BEGIN
 
   EXECUTE format('ALTER TABLE %I.%I ENABLE TRIGGER USER', r.schema, r.name);
 
-  PERFORM SetErrorMessage('Accepted');
+  PERFORM SetErrorMessage('Success');
 
-  UPDATE replication.relay SET state = 1, message = null WHERE id = pId;
+  UPDATE replication.relay SET state = 1, message = null WHERE source = pSource AND id = pId;
 EXCEPTION
 WHEN others THEN
   GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
@@ -286,7 +260,7 @@ WHEN others THEN
 
   PERFORM WriteToEventLog('D', 9999, 'replication', SQL);
 
-  UPDATE replication.relay SET state = 2, message = vMessage WHERE id = pId;
+  UPDATE replication.relay SET state = 2, message = vMessage WHERE source = pSource AND id = pId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -296,15 +270,17 @@ $$ LANGUAGE plpgsql
 -- replication.apply -----------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION replication.apply()
+CREATE OR REPLACE FUNCTION replication.apply (
+  pSource       text
+)
 RETURNS         void
 AS $$
 DECLARE
   r             record;
 BEGIN
-  FOR r IN SELECT id FROM replication.relay WHERE state = 0 ORDER BY datetime, priority
+  FOR r IN SELECT id FROM replication.relay WHERE source = pSource AND state = 0 ORDER BY datetime, priority
   LOOP
-    PERFORM replication.apply_relay(r.id);
+    PERFORM replication.apply_relay(pSource, r.id);
   END LOOP;
 END;
 $$ LANGUAGE plpgsql
@@ -375,7 +351,7 @@ CREATE OR REPLACE FUNCTION replication.create_trigger (
 ) RETURNS       text
 AS $$
 BEGIN
-  RETURN format('CREATE TRIGGER t_%s_replication AFTER INSERT OR UPDATE OR DELETE ON %s.%s FOR EACH ROW EXECUTE PROCEDURE replication.ft_log();', pName, pSchema, pName);
+  RETURN format('CREATE TRIGGER t__%s_replication AFTER INSERT OR UPDATE OR DELETE ON %s.%s FOR EACH ROW EXECUTE PROCEDURE replication.ft_log();', pName, pSchema, pName);
 END
 $$ LANGUAGE plpgsql
   SECURITY DEFINER
@@ -391,17 +367,17 @@ CREATE OR REPLACE FUNCTION replication.drop_trigger (
 ) RETURNS       text
 AS $$
 BEGIN
-  RETURN format('DROP TRIGGER IF EXISTS t_%s_replication ON %s.%s;', pName, pSchema, pName);
+  RETURN format('DROP TRIGGER IF EXISTS t__%s_replication ON %s.%s;', pName, pSchema, pName);
 END
 $$ LANGUAGE plpgsql
   SECURITY DEFINER
   SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- replication.build -----------------------------------------------------------
+-- replication.on --------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION replication.build()
+CREATE OR REPLACE FUNCTION replication.on()
 RETURNS void
 AS $$
 DECLARE
@@ -420,6 +396,35 @@ BEGIN
       EXECUTE replication.create_trigger(r.schema, r.name);
 	END IF;
   END LOOP;
+EXCEPTION
+WHEN others THEN
+  GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
+  PERFORM WriteDiagnostics(vMessage, vContext);
+END;
+$$ LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- replication.off -------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION replication.off()
+RETURNS void
+AS $$
+DECLARE
+  r             record;
+
+  vMessage      text;
+  vContext      text;
+BEGIN
+  FOR r IN SELECT * FROM ReplicationTable
+  LOOP
+    EXECUTE replication.drop_trigger(r.schema, r.name);
+  END LOOP;
+
+  TRUNCATE replication.pkey;
+  TRUNCATE replication.list;
 EXCEPTION
 WHEN others THEN
   GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
