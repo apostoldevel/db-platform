@@ -97,13 +97,16 @@ BEGIN
 	  END IF;
     END LOOP;
 
-    IF jData IS NOT NULL THEN
+	IF TG_TABLE_NAME = 'object_text' THEN
+	  jData := jData - 'searchable_en';
+	  jData := jData - 'searchable_ru';
+	END IF;
 
-	  IF TG_TABLE_NAME = 'object_text' THEN
-		jData := jData - 'searchable_en';
-		jData := jData - 'searchable_ru';
-	  END IF;
+	IF TG_TABLE_NAME = 'user' THEN
+	  jData := jData - 'status';
+	END IF;
 
+    IF NULLIF(jData, jsonb_build_object()) IS NOT NULL THEN
       INSERT INTO replication.log(action, schema, name, key, data, priority) SELECT 'U', TG_TABLE_SCHEMA, TG_TABLE_NAME, jKey, jData, nPriority;
     END IF;
 
@@ -278,7 +281,7 @@ AS $$
 DECLARE
   r             record;
 BEGIN
-  FOR r IN SELECT id FROM replication.relay WHERE source = pSource AND state = 0 ORDER BY datetime, priority
+  FOR r IN SELECT id FROM replication.relay WHERE source = pSource AND state = 0 ORDER BY id
   LOOP
     PERFORM replication.apply_relay(pSource, r.id);
   END LOOP;
