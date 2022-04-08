@@ -13,8 +13,7 @@ CREATE TABLE replication.log (
     schema      text NOT NULL,
     name        text NOT NULL,
     key         jsonb,
-    data        jsonb,
-    priority    integer NOT NULL DEFAULT 0
+    data        jsonb
 );
 
 COMMENT ON TABLE replication.log IS 'Журнал репликации.';
@@ -26,12 +25,10 @@ COMMENT ON COLUMN replication.log.schema IS 'Схема';
 COMMENT ON COLUMN replication.log.name IS 'Наименование таблицы';
 COMMENT ON COLUMN replication.log.key IS 'Ключ';
 COMMENT ON COLUMN replication.log.data IS 'Данные';
-COMMENT ON COLUMN replication.log.priority IS 'Приоритет';
 
 CREATE INDEX ON replication.log (action);
 CREATE INDEX ON replication.log (schema);
 CREATE INDEX ON replication.log (name);
-CREATE INDEX ON replication.log (priority);
 
 --------------------------------------------------------------------------------
 
@@ -68,7 +65,6 @@ CREATE TABLE replication.relay (
     name        text NOT NULL,
     key         jsonb,
     data        jsonb,
-    priority    integer NOT NULL DEFAULT 0,
     message		text,
     PRIMARY KEY (source, id)
 );
@@ -85,7 +81,6 @@ COMMENT ON COLUMN replication.relay.schema IS 'Схема';
 COMMENT ON COLUMN replication.relay.name IS 'Наименование таблицы';
 COMMENT ON COLUMN replication.relay.key IS 'Ключ';
 COMMENT ON COLUMN replication.relay.data IS 'Данные';
-COMMENT ON COLUMN replication.relay.priority IS 'Приоритет';
 COMMENT ON COLUMN replication.relay.message IS 'Сообщение об ошибке при наличии';
 
 CREATE INDEX ON replication.relay (source);
@@ -99,7 +94,6 @@ CREATE TABLE replication.list (
     schema      text NOT NULL,
     name        text NOT NULL,
     updated     timestamptz DEFAULT Now() NOT NULL,
-    priority    integer NOT NULL DEFAULT 0,
     PRIMARY KEY (schema, name)
 );
 
@@ -108,7 +102,6 @@ COMMENT ON TABLE replication.list IS 'Список таблиц для репл�
 COMMENT ON COLUMN replication.list.schema IS 'Схема';
 COMMENT ON COLUMN replication.list.name IS 'Наименование таблицы';
 COMMENT ON COLUMN replication.list.updated IS 'Дата и время последнего обновления';
-COMMENT ON COLUMN replication.list.priority IS 'Приоритет';
 
 --------------------------------------------------------------------------------
 -- replication.pkey ------------------------------------------------------------

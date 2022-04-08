@@ -55,12 +55,11 @@ CREATE OR REPLACE FUNCTION api.add_to_relay_log (
   pSchema       text,
   pName         text,
   pKey          jsonb,
-  pData         jsonb,
-  pPriority     int DEFAULT null
+  pData         jsonb
 ) RETURNS       bigint
 AS $$
 BEGIN
-  RETURN replication.add_relay(pSource, pId, pDateTime, pAction, pSchema, pName, pKey, pData, pPriority);
+  RETURN replication.add_relay(pSource, pId, pDateTime, pAction, pSchema, pName, pKey, pData);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

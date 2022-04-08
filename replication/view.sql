@@ -24,9 +24,9 @@ GRANT ALL ON RelayLog TO administrator;
 
 CREATE OR REPLACE VIEW ReplicationTable
 AS
-  SELECT schema, name, true AS active, updated, priority FROM replication.list
+  SELECT schema, name, true AS active, updated FROM replication.list
   UNION
-  SELECT table_schema, table_name, false, null, null
+  SELECT table_schema, table_name, false, null
     FROM information_schema.tables i
    WHERE table_type = 'BASE TABLE'
      AND table_schema = 'db'

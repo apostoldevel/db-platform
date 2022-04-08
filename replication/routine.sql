@@ -14,8 +14,6 @@ DECLARE
   uEntity       uuid;
   uObject       uuid;
 
-  nPriority     int;
-
   arKeys        text[];
   pEntities     text[];
 
@@ -33,8 +31,6 @@ BEGIN
   IF TG_TABLE_NAME = ANY (pEntities) THEN
 	RETURN NULL;
   END IF;
-
-  SELECT priority INTO nPriority FROM replication.list WHERE schema = TG_TABLE_SCHEMA AND name = TG_TABLE_NAME;
 
   IF (TG_OP = 'INSERT') THEN
 
@@ -60,7 +56,7 @@ BEGIN
       END IF;
     END IF;
 
-    INSERT INTO replication.log(action, schema, name, data, priority) SELECT 'I', TG_TABLE_SCHEMA, TG_TABLE_NAME, jNew, nPriority;
+    INSERT INTO replication.log(action, schema, name, data) SELECT 'I', TG_TABLE_SCHEMA, TG_TABLE_NAME, jNew;
 
   ELSIF (TG_OP = 'UPDATE') THEN
 
@@ -107,7 +103,7 @@ BEGIN
 	END IF;
 
     IF NULLIF(jData, jsonb_build_object()) IS NOT NULL THEN
-      INSERT INTO replication.log(action, schema, name, key, data, priority) SELECT 'U', TG_TABLE_SCHEMA, TG_TABLE_NAME, jKey, jData, nPriority;
+      INSERT INTO replication.log(action, schema, name, key, data) SELECT 'U', TG_TABLE_SCHEMA, TG_TABLE_NAME, jKey, jData;
     END IF;
 
   ELSIF (TG_OP = 'DELETE') THEN
@@ -124,7 +120,7 @@ BEGIN
     END LOOP;
 
     IF jKey IS NOT NULL THEN
-      INSERT INTO replication.log(action, schema, name, key, priority) SELECT 'D', TG_TABLE_SCHEMA, TG_TABLE_NAME, jKey, nPriority;
+      INSERT INTO replication.log(action, schema, name, key) SELECT 'D', TG_TABLE_SCHEMA, TG_TABLE_NAME, jKey;
     END IF;
 
   END IF;
@@ -165,13 +161,12 @@ CREATE OR REPLACE FUNCTION replication.add_relay (
   pSchema       text,
   pName         text,
   pKey          jsonb,
-  pData         jsonb,
-  pPriority     int DEFAULT null
+  pData         jsonb
 ) RETURNS       bigint
 AS $$
 BEGIN
-  INSERT INTO replication.relay (source, id, datetime, action, schema, name, key, data, priority)
-  VALUES (pSource, pId, pDateTime, pAction, pSchema, pName, pKey, pData, coalesce(pPriority, 0));
+  INSERT INTO replication.relay (source, id, datetime, action, schema, name, key, data)
+  VALUES (pSource, pId, pDateTime, pAction, pSchema, pName, pKey, pData);
 
   RETURN pId;
 END;
@@ -297,17 +292,16 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION replication.set_table (
   pSchema       text,
   pName         text,
-  pPriority     int,
   pActive       boolean
 ) RETURNS       void
 AS $$
 BEGIN
   IF pActive THEN
-    UPDATE replication.list SET priority = pPriority, updated = Now() WHERE schema = pSchema AND name = pName;
+    UPDATE replication.list SET updated = Now() WHERE schema = pSchema AND name = pName;
 
     IF NOT FOUND THEN
-      INSERT INTO replication.list (schema, name, priority, updated)
-      VALUES (pSchema, pName, pPriority, Now());
+      INSERT INTO replication.list (schema, name, updated)
+      VALUES (pSchema, pName, Now());
     END IF;
   ELSE
     DELETE FROM replication.list WHERE schema = pSchema AND name = pName;
