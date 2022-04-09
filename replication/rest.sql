@@ -177,6 +177,31 @@ BEGIN
 
     END IF;
 
+  WHEN '/replication/relay/max' THEN
+
+    IF pPayload IS NOT NULL THEN
+      arKeys := array_cat(arKeys, ARRAY['source']);
+      PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+    ELSE
+      pPayload := '{}';
+    END IF;
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(source text)
+      LOOP
+        RETURN NEXT json_build_object('source', r.source, 'id', api.get_max_relay_id(r.source));
+      END LOOP;
+
+    ELSE
+
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(source text)
+      LOOP
+        RETURN NEXT json_build_object('source', r.source, 'id', api.get_max_relay_id(r.source));
+      END LOOP;
+
+    END IF;
+
   WHEN '/replication/relay/apply' THEN
 
     IF pPayload IS NOT NULL THEN

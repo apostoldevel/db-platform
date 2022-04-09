@@ -290,9 +290,10 @@ AS
   SELECT s.code, s.userid, s.suid, u.username, u.name,
          s.locale, s.area, s.interface,
          s.created, s.updated, u.input_last, s.host, u.lc_ip,
-         u.status, u.statustext, u.state, u.statetext, u.session_limit
+         u.status, u.statustext, u.state, u.statetext, u.session_limit, mg.userid IS NOT NULL AS system
     FROM db.session s INNER JOIN db.area a ON s.area = a.id
-                      INNER JOIN users   u ON s.userid = u.id AND u.scope = a.scope;
+                      INNER JOIN users   u ON s.userid = u.id AND u.scope = a.scope
+                       LEFT JOIN db.member_group mg ON mg.member = u.id AND mg.userid = '00000000-0000-4000-a000-000000000000'::uuid;
 
 GRANT SELECT ON api.session TO administrator;
 

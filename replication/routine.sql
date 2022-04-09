@@ -141,10 +141,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION replication.log (
-  pFrom         bigint
+  pFrom         bigint,
+  pLimit        int DEFAULT 150
 ) RETURNS       SETOF replication.log
 AS $$
-  SELECT * FROM replication.log WHERE id > pFrom ORDER BY id LIMIT 150
+  SELECT * FROM replication.log WHERE id > pFrom ORDER BY id LIMIT pLimit
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

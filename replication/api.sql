@@ -7,6 +7,7 @@ AS
   SELECT * FROM replication.log;
 
 GRANT SELECT ON api.replication_log TO administrator;
+GRANT SELECT ON api.replication_log TO apibot;
 
 --------------------------------------------------------------------------------
 
@@ -15,16 +16,18 @@ AS
   SELECT * FROM replication.relay;
 
 GRANT SELECT ON api.relay_log TO administrator;
+GRANT SELECT ON api.relay_log TO apibot;
 
 --------------------------------------------------------------------------------
 -- api.replication_log ---------------------------------------------------------
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.replication_log (
-  pFrom         bigint
+  pFrom         bigint,
+  pLimit        int DEFAULT null
 ) RETURNS       SETOF api.replication_log
 AS $$
-  SELECT * FROM replication.log(pFrom);
+  SELECT * FROM replication.log(pFrom, coalesce(pLimit, 150));
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

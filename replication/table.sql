@@ -36,7 +36,6 @@ CREATE OR REPLACE FUNCTION replication.ft_log_after_insert()
 RETURNS trigger AS $$
 BEGIN
   PERFORM pg_notify('replication', json_build_object('id', NEW.id, 'datetime', NEW.datetime, 'action', NEW.action, 'schema', NEW.schema, 'name', NEW.name)::text);
-  PERFORM pg_notify('replication_log', row_to_json(NEW)::text);
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql
