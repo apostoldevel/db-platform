@@ -1,0 +1,5 @@
+\echo [M] call view.sql
+\ir view.sql
+
+\echo [M] call routine.sql
+\ir routine.sql

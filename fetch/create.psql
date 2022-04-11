@@ -1,0 +1,11 @@
+\echo [M] call schema.sql
+\ir schema.sql
+
+\echo [M] call table.sql
+\ir table.sql
+
+\echo [M] call view.sql
+\ir view.sql
+
+\echo [M] call routine.sql
+\ir routine.sql
