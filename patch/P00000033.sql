@@ -1,1 +1,1 @@
-\ir '../fetch/create.psql'
+\ir '../http/create.psql'
