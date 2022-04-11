@@ -1215,12 +1215,47 @@ CREATE OR REPLACE FUNCTION GetToken (
   pId       bigint
 ) RETURNS   text
 AS $$
-DECLARE
-  vToken    text;
-BEGIN
   SELECT token INTO vToken FROM db.token WHERE id = pId;
+$$ LANGUAGE sql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- GetAccessToken --------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetAccessToken (
+  pUserName     text,
+  pPassword     text
+) RETURNS       text
+AS $$
+DECLARE
+  uUserId       uuid;
+
+  vToken        text;
+  vSession      text;
+
+  nAudience     int;
+BEGIN
+  uUserId := GetUser(pUserName);
+
+  SELECT code INTO vSession FROM db.session WHERE userid = uUserId ORDER BY created DESC LIMIT 1;
+
+  SELECT token INTO vToken
+    FROM db.token_header h INNER JOIN db.token t ON h.id = t.header AND t.type = 'A'
+   WHERE h.session = vSession
+     AND t.validFromDate <= Now()
+     AND t.validtoDate > Now();
+
+  IF vToken IS NULL THEN
+    vSession := SignIn(CreateOAuth2(nAudience, current_scope(), 'offline'), pUserName, pPassword);
+
+    SELECT t->>'access_token' INTO vToken
+      FROM CreateToken(nAudience, oauth2_current_code(vSession), INTERVAL '1 day') AS t;
+  END IF;
+
   RETURN vToken;
-END;
+END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

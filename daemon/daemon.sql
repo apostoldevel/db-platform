@@ -377,7 +377,7 @@ CREATE OR REPLACE FUNCTION daemon.authorize (
 ) RETURNS       json
 AS $$
 DECLARE
-  t             record;
+  r             record;
 
   nToken        bigint;
 
@@ -404,11 +404,11 @@ BEGIN
     RAISE EXCEPTION '%', GetErrorMessage();
   END IF;
 
-  SELECT * INTO t FROM db.token WHERE id = nToken;
+  SELECT * INTO r FROM db.token WHERE id = nToken;
 
-  expires_in := trunc(extract(EPOCH FROM t.validToDate)) - trunc(extract(EPOCH FROM Now()));
+  expires_in := trunc(extract(EPOCH FROM r.validToDate)) - trunc(extract(EPOCH FROM Now()));
 
-  RETURN json_build_object('access_token', t.token, 'token_type', 'Bearer', 'expires_in', expires_in, 'session', pSession);
+  RETURN json_build_object('access_token', r.token, 'token_type', 'Bearer', 'expires_in', expires_in, 'session', pSession);
 EXCEPTION
 WHEN others THEN
   GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;

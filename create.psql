@@ -2,7 +2,7 @@
 \ir './oauth2/create.psql'
 \ir './locale/create.psql'
 \ir './admin/create.psql'
-\ir './fetch/create.psql'
+\ir './http/create.psql'
 \ir './resource/create.psql'
 \ir './exception/create.psql'
 \ir './registry/create.psql'

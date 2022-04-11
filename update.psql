@@ -2,7 +2,7 @@
 \ir './oauth2/update.psql'
 \ir './locale/update.psql'
 \ir './admin/update.psql'
-\ir './fetch/update.psql'
+\ir './http/update.psql'
 \ir './resource/update.psql'
 \ir './exception/update.psql'
 \ir './registry/update.psql'
