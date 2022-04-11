@@ -1215,7 +1215,7 @@ CREATE OR REPLACE FUNCTION GetToken (
   pId       bigint
 ) RETURNS   text
 AS $$
-  SELECT token INTO vToken FROM db.token WHERE id = pId;
+  SELECT token FROM db.token WHERE id = pId;
 $$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
