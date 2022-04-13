@@ -140,6 +140,8 @@ AS $$
 DECLARE
   r             record;
 
+  uId           uuid;
+
 --  vTable        text;
 
   vWith         text;
@@ -203,12 +205,12 @@ BEGIN
         vField := quote_literal_json(vField);
 
         arValues := array_cat(null, ARRAY['AND', 'OR']);
-        IF array_position(arValues, vCondition) IS NULL THEN
-          PERFORM IncorrectValueInArray(coalesce(r.condition, ''), 'condition', arValues);
+        IF NOT vCondition = ANY (arValues) THEN
+          PERFORM IncorrectValueInArray(vCondition, 'condition', arValues);
         END IF;
 
-        IF array_position(arColumns, vField) IS NULL THEN
-          PERFORM IncorrectValueInArray(coalesce(r.field, ''), 'field', arColumns);
+        IF NOT vField = ANY (arColumns) THEN
+          PERFORM IncorrectValueInArray(vField, 'field', arColumns);
         END IF;
 
         IF r.valarr IS NOT NULL THEN
@@ -217,7 +219,7 @@ BEGIN
           vCompare := coalesce(nullif(upper(vCompare), 'EQL'), 'IN');
 
           arValues := array_cat(null, ARRAY['IN', 'NOT IN']);
-          IF array_position(arValues, vCompare) IS NULL THEN
+          IF NOT vCompare = ANY (arValues) THEN
             PERFORM IncorrectValueInArray(coalesce(r.compare, ''), 'compare', arValues);
           END IF;
 
@@ -231,8 +233,30 @@ BEGIN
           vValue := quote_nullable(r.value);
 
           arValues := array_cat(null, ARRAY['EQL', 'NEQ', 'LSS', 'LEQ', 'GTR', 'GEQ', 'GIN', 'AND', 'OR', 'XOR', 'NOT', 'ISN', 'INN', 'LKE', 'IKE', 'SIM', 'PSX', 'PSI', 'PSN', 'PIN']);
-          IF array_position(arValues, vCompare) IS NULL THEN
-            PERFORM IncorrectValueInArray(coalesce(r.compare, ''), 'compare', arValues);
+          IF NOT vCompare = ANY (arValues) THEN
+            PERFORM IncorrectValueInArray(vCompare, 'compare', arValues);
+          END IF;
+
+          IF vField = 'statetypecode' THEN
+            vField := 'statetype';
+            SELECT id INTO uId FROM db.state_type WHERE code = r.value;
+            vValue := quote_nullable(uId);
+          ELSIF vField = 'statecode' THEN
+            vField := 'state';
+            SELECT id INTO uId FROM db.state WHERE code = r.value;
+            vValue := quote_nullable(uId);
+          ELSIF vField = 'entitycode' THEN
+            vField := 'entity';
+            SELECT id INTO uId FROM db.entity WHERE code = r.value;
+            vValue := quote_nullable(uId);
+          ELSIF vField = 'classcode' THEN
+            vField := 'class';
+            SELECT id INTO uId FROM db.class_tree WHERE code = r.value;
+            vValue := quote_nullable(uId);
+          ELSIF vField = 'typecode' THEN
+            vField := 'type';
+            SELECT id INTO uId FROM db.type WHERE code = r.value;
+            vValue := quote_nullable(uId);
           END IF;
 
           IF vCompare IN ('AND', 'OR', 'XOR', 'NOT') THEN
@@ -260,19 +284,19 @@ BEGIN
     --PERFORM CheckJsonbValues('orderby', array_cat(arColumns, array_add_text(arColumns, ' desc')), pOrderBy);
     vSelect := vSelect || E'\n ORDER BY ' || array_to_string(array_quote_literal_json(JsonbToStrArray(pOrderBy)), ',');
   ELSE
-    IF array_position(arColumns, 'sequence') IS NOT NULL THEN
+    IF 'sequence' = ANY (arColumns) THEN
       vSelect := vSelect || E'\n ORDER BY sequence';
-    ELSIF array_position(arColumns, 'created') IS NOT NULL THEN
+    ELSIF 'created' = ANY (arColumns) THEN
       vSelect := vSelect || E'\n ORDER BY created DESC';
-    ELSIF array_position(arColumns, 'datetime') IS NOT NULL THEN
+    ELSIF 'datetime' = ANY(arColumns) THEN
       vSelect := vSelect || E'\n ORDER BY datetime DESC';
-    ELSIF array_position(arColumns, 'name') IS NOT NULL THEN
+    ELSIF 'name' = ANY (arColumns) THEN
       vSelect := vSelect || E'\n ORDER BY name';
-    ELSIF array_position(arColumns, 'label') IS NOT NULL THEN
+    ELSIF 'label' = ANY (arColumns) THEN
       vSelect := vSelect || E'\n ORDER BY label';
-    ELSIF array_position(arColumns, 'code') IS NOT NULL THEN
+    ELSIF 'code' = ANY (arColumns) THEN
       vSelect := vSelect || E'\n ORDER BY code';
-    ELSIF array_position(arColumns, 'id') IS NOT NULL THEN
+    ELSIF 'id' = ANY (arColumns) THEN
       vSelect := vSelect || E'\n ORDER BY id';
     END IF;
   END IF;
@@ -289,7 +313,7 @@ BEGIN
     vSelect := vSelect || E'\nOFFSET ' || pOffSet;
   END IF;
 
-  PERFORM WriteToEventLog('D', 9001, 'sql', vSelect);
+  --PERFORM WriteToEventLog('D', 9001, 'sql', vSelect);
 
   RETURN vSelect;
 END;

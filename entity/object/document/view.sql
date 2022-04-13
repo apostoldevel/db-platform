@@ -115,6 +115,6 @@ AS
          o.oper, o.opercode, o.opername, o.operdate,
          d.area, d.areacode, d.areaname, d.areadescription,
          d.scope, d.scopecode, d.scopename, d.scopedescription
-    FROM AccessDocument d INNER JOIN Object o ON o.id = d.object;
+    FROM CurrentDocument d INNER JOIN Object o ON o.id = d.object;
 
 GRANT SELECT ON ObjectDocument TO administrator;
