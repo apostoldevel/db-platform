@@ -187,6 +187,7 @@ AS $$
 DECLARE
   r             record;
   e             record;
+  u             record;
 
   k             text[];
   v             text[];
@@ -206,24 +207,53 @@ BEGIN
 
   IF r.action = 'I' THEN
 
-    FOR e IN SELECT * FROM jsonb_each_text(r.data)
+    FOR e IN SELECT * FROM jsonb_each(r.data)
     LOOP
       k := array_append(k, e.key);
-      v := array_append(v, quote_nullable(e.value));
+
+      IF jsonb_typeof(e.value) = 'string' THEN
+        v := array_append(v, quote_nullable(e.value->>0));
+      ELSIF jsonb_typeof(e.value) = 'null' THEN
+        v := array_append(v, 'null');
+      ELSIF jsonb_typeof(e.value) = 'object' THEN
+        FOR u IN SELECT * FROM jsonb_to_record(e.value) AS x(vtype int, vinteger int, vnumeric numeric, vdatetime timestamptz, vstring text, vboolean boolean)
+        LOOP
+          v := array_append(v, format('(%s, %L, %L, %L, %L, %L)::Variant', u.vtype, u.vinteger, u.vnumeric, u.vdatetime, u.vstring, u.vboolean));
+		END LOOP;
+      ELSE
+        v := array_append(v, e.value->>0);
+      END IF;
     END LOOP;
 
     SQL := format('INSERT INTO %I.%I (%s) VALUES (%s);', r.schema, r.name, array_to_string(k, ', '), array_to_string(v, ', '));
 
   ELSIF r.action = 'U' THEN
 
-    FOR e IN SELECT * FROM jsonb_each_text(r.key)
+    FOR e IN SELECT * FROM jsonb_each(r.key)
     LOOP
-      k := array_append(k, e.key || ' = ' || quote_nullable(e.value));
+      IF jsonb_typeof(e.value) = 'string' THEN
+        k := array_append(k, e.key || ' = ' || quote_nullable(e.value->>0));
+      ELSIF jsonb_typeof(e.value) = 'null' THEN
+        k := array_append(k, e.key || ' IS NULL');
+      ELSE
+        k := array_append(k, e.key || ' = ' || e.value);
+      END IF;
     END LOOP;
 
-    FOR e IN SELECT * FROM jsonb_each_text(r.data)
+    FOR e IN SELECT * FROM jsonb_each(r.data)
     LOOP
-      v := array_append(v, e.key || ' = ' || quote_nullable(e.value));
+      IF jsonb_typeof(e.value) = 'string' THEN
+        v := array_append(v, e.key || ' = ' || quote_nullable(e.value->>0));
+      ELSIF jsonb_typeof(e.value) = 'null' THEN
+        v := array_append(v, e.key || ' = null');
+      ELSIF jsonb_typeof(e.value) = 'object' THEN
+        FOR u IN SELECT * FROM jsonb_to_record(e.value) AS x(vtype int, vinteger int, vnumeric numeric, vdatetime timestamptz, vstring text, vboolean boolean)
+        LOOP
+          v := array_append(v, e.key || format(' = (%s, %L, %L, %L, %L, %L)::Variant', u.vtype, u.vinteger, u.vnumeric, u.vdatetime, u.vstring, u.vboolean));
+		END LOOP;
+      ELSE
+        v := array_append(v, e.key || ' = ' || e.value);
+      END IF;
     END LOOP;
 
     SQL := format('UPDATE %I.%I SET %s WHERE %s', r.schema, r.name, array_to_string(v, ', '), array_to_string(k, ' AND '));
@@ -257,10 +287,10 @@ WHEN others THEN
   PERFORM WriteDiagnostics(vMessage, vContext);
   PERFORM SafeSetVar('replication_apply', 'false');
 
-  PERFORM WriteToEventLog('D', 9999, 'replication', SQL);
+  PERFORM WriteToEventLog('D', 9999, 'replication', coalesce(SQL, '<null>'));
 
   UPDATE replication.relay SET state = 2, message = vMessage WHERE source = pSource AND id = pId;
-END;
+END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -272,15 +302,21 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION replication.apply (
   pSource       text
 )
-RETURNS         void
+RETURNS         int
 AS $$
 DECLARE
+  result        int;
   r             record;
 BEGIN
-  FOR r IN SELECT id FROM replication.relay WHERE source = pSource AND state = 0 ORDER BY id
+  result := 0;
+
+  FOR r IN SELECT id FROM replication.relay WHERE source = pSource AND state = 0 ORDER BY id LIMIT 1000
   LOOP
     PERFORM replication.apply_relay(pSource, r.id);
+    result := result + 1;
   END LOOP;
+
+  RETURN result;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

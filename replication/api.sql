@@ -127,11 +127,10 @@ $$ LANGUAGE sql
 CREATE OR REPLACE FUNCTION api.replication_apply (
   pSource       text
 )
-RETURNS         text
+RETURNS         int
 AS $$
 BEGIN
-  PERFORM replication.apply(pSource);
-  RETURN 'Accepted';
+  RETURN replication.apply(pSource);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

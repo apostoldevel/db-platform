@@ -44,9 +44,9 @@ BEGIN
 
     FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(source text)
     LOOP
-      FOR e IN SELECT api.replication_apply(r.source) AS status
+      FOR e IN SELECT api.replication_apply(r.source) AS count
       LOOP
-        RETURN NEXT json_build_object('status', e.status);
+        RETURN NEXT json_build_object('count', e.count);
       END LOOP;
     END LOOP;
 
