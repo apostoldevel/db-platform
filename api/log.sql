@@ -149,9 +149,9 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE VIEW apiLog (Id, DateTime, su, Session, UserName,
   Path, JSON, Nonce, NonceTime, Signature, RunTime, EventId, Error)
 AS
-  SELECT al.id, al.datetime, al.su, al.session, al.username,
-         al.path, al.json, al.nonce, to_timestamp(al.nonce / 1000000), al.signature,
-         round(extract(second from runtime)::numeric, 3), al.eventid, null
-    FROM db.api_log al;
+  SELECT id, datetime, su, session, username,
+         path, json, nonce, to_timestamp(nonce / 1000000), signature,
+         round(extract(second from runtime)::numeric, 3), eventid, null
+    FROM db.api_log;
 
 GRANT SELECT ON apiLog TO administrator;
