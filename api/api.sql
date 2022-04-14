@@ -237,27 +237,23 @@ BEGIN
             PERFORM IncorrectValueInArray(vCompare, 'compare', arValues);
           END IF;
 
-          IF vField = 'statetypecode' THEN
-            vField := 'statetype';
-            SELECT id INTO uId FROM db.state_type WHERE code = r.value;
-            vValue := quote_nullable(uId);
-          ELSIF vField = 'statecode' THEN
-            vField := 'state';
-            SELECT id INTO uId FROM db.state WHERE code = r.value;
-            vValue := quote_nullable(uId);
-          ELSIF vField = 'entitycode' THEN
-            vField := 'entity';
-            SELECT id INTO uId FROM db.entity WHERE code = r.value;
-            vValue := quote_nullable(uId);
-          ELSIF vField = 'classcode' THEN
-            vField := 'class';
-            SELECT id INTO uId FROM db.class_tree WHERE code = r.value;
-            vValue := quote_nullable(uId);
-          ELSIF vField = 'typecode' THEN
-            vField := 'type';
-            SELECT id INTO uId FROM db.type WHERE code = r.value;
-            vValue := quote_nullable(uId);
-          END IF;
+		  IF vField = 'statetypecode' THEN
+			vField := 'statetype';
+			SELECT id INTO uId FROM db.state_type WHERE code = r.value;
+			vValue := quote_nullable(uId);
+		  ELSIF vField = 'typecode' THEN
+			vField := 'type';
+			SELECT id INTO uId FROM db.type WHERE code = r.value;
+			vValue := quote_nullable(uId);
+		  ELSIF vField = 'classcode' THEN
+			vField := 'class';
+			SELECT id INTO uId FROM db.class_tree WHERE code = r.value;
+			vValue := quote_nullable(uId);
+		  ELSIF vField = 'entitycode' THEN
+			vField := 'entity';
+			SELECT id INTO uId FROM db.entity WHERE code = r.value;
+			vValue := quote_nullable(uId);
+		  END IF;
 
           IF vCompare IN ('AND', 'OR', 'XOR', 'NOT') THEN
             vValue := vValue || ' = ' || vValue;
@@ -314,6 +310,8 @@ BEGIN
   END IF;
 
   --PERFORM WriteToEventLog('D', 9001, 'sql', vSelect);
+
+  RAISE NOTICE '%', vSelect;
 
   RETURN vSelect;
 END;
