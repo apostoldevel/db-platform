@@ -151,7 +151,7 @@ CREATE OR REPLACE VIEW apiLog (Id, DateTime, su, Session, UserName,
 AS
   SELECT al.id, al.datetime, al.su, al.session, al.username,
          al.path, al.json, al.nonce, to_timestamp(al.nonce / 1000000), al.signature,
-         round(extract(second from runtime)::numeric, 3), al.eventid, null--, el.text
-    FROM db.api_log al LEFT JOIN db.log el ON el.id = al.eventid;
+         round(extract(second from runtime)::numeric, 3), al.eventid, null
+    FROM db.api_log al;
 
 GRANT SELECT ON apiLog TO administrator;
