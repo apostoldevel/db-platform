@@ -49,7 +49,6 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- api.add_to_relay_log --------------------------------------------------------
 --------------------------------------------------------------------------------
-drop function api.add_to_relay_log(text, bigint, timestamp with time zone, char, text, text, jsonb, jsonb);
 
 CREATE OR REPLACE FUNCTION api.add_to_relay_log (
   pSource       text,
