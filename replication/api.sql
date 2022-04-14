@@ -49,6 +49,7 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- api.add_to_relay_log --------------------------------------------------------
 --------------------------------------------------------------------------------
+drop function api.add_to_relay_log(text, bigint, timestamp with time zone, char, text, text, jsonb, jsonb);
 
 CREATE OR REPLACE FUNCTION api.add_to_relay_log (
   pSource       text,
@@ -58,10 +59,15 @@ CREATE OR REPLACE FUNCTION api.add_to_relay_log (
   pSchema       text,
   pName         text,
   pKey          jsonb,
-  pData         jsonb
+  pData         jsonb,
+  pProxy        bool DEFAULT false
 ) RETURNS       bigint
 AS $$
 BEGIN
+  IF coalesce(pProxy, false) THEN
+	PERFORM replication.add_log(pDateTime, pAction, pSchema, pName, pKey, pData);
+  END IF;
+
   RETURN replication.add_relay(pSource, pId, pDateTime, pAction, pSchema, pName, pKey, pData);
 END;
 $$ LANGUAGE plpgsql

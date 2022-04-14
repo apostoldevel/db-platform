@@ -151,6 +151,32 @@ $$ LANGUAGE SQL
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- replication.add_log ---------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION replication.add_log (
+  pDateTime     timestamptz,
+  pAction       char,
+  pSchema       text,
+  pName         text,
+  pKey          jsonb,
+  pData         jsonb
+) RETURNS       bigint
+AS $$
+DECLARE
+  uId           bigint;
+BEGIN
+  INSERT INTO replication.log(datetime, action, schema, name, key, data)
+  VALUES (pDateTime, pAction, pSchema, pName, pKey, pData)
+  RETURNING id INTO uId;
+
+  RETURN uId;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- replication.add_relay -------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -215,11 +241,15 @@ BEGIN
         v := array_append(v, quote_nullable(e.value->>0));
       ELSIF jsonb_typeof(e.value) = 'null' THEN
         v := array_append(v, 'null');
-      ELSIF jsonb_typeof(e.value) = 'object' THEN
-        FOR u IN SELECT * FROM jsonb_to_record(e.value) AS x(vtype int, vinteger int, vnumeric numeric, vdatetime timestamptz, vstring text, vboolean boolean)
-        LOOP
-          v := array_append(v, format('(%s, %L, %L, %L, %L, %L)::Variant', u.vtype, u.vinteger, u.vnumeric, u.vdatetime, u.vstring, u.vboolean));
-		END LOOP;
+      ELSIF jsonb_typeof(e.value) = 'object' OR jsonb_typeof(e.value) = 'array' THEN
+        IF e.key = 'value' THEN
+          FOR u IN SELECT * FROM jsonb_to_record(e.value) AS x(vtype int, vinteger int, vnumeric numeric, vdatetime timestamptz, vstring text, vboolean boolean)
+          LOOP
+            v := array_append(v, format('(%s, %L, %L, %L, %L, %L)::Variant', u.vtype, u.vinteger, u.vnumeric, u.vdatetime, u.vstring, u.vboolean));
+		  END LOOP;
+        ELSE
+          v := array_append(v, quote_nullable(e.value->>0));
+        END IF;
       ELSE
         v := array_append(v, e.value->>0);
       END IF;
@@ -246,11 +276,15 @@ BEGIN
         v := array_append(v, e.key || ' = ' || quote_nullable(e.value->>0));
       ELSIF jsonb_typeof(e.value) = 'null' THEN
         v := array_append(v, e.key || ' = null');
-      ELSIF jsonb_typeof(e.value) = 'object' THEN
-        FOR u IN SELECT * FROM jsonb_to_record(e.value) AS x(vtype int, vinteger int, vnumeric numeric, vdatetime timestamptz, vstring text, vboolean boolean)
-        LOOP
-          v := array_append(v, e.key || format(' = (%s, %L, %L, %L, %L, %L)::Variant', u.vtype, u.vinteger, u.vnumeric, u.vdatetime, u.vstring, u.vboolean));
-		END LOOP;
+      ELSIF jsonb_typeof(e.value) = 'object' OR jsonb_typeof(e.value) = 'array' THEN
+        IF e.key = 'value' THEN
+          FOR u IN SELECT * FROM jsonb_to_record(e.value) AS x(vtype int, vinteger int, vnumeric numeric, vdatetime timestamptz, vstring text, vboolean boolean)
+          LOOP
+            v := array_append(v, e.key || format(' = (%s, %L, %L, %L, %L, %L)::Variant', u.vtype, u.vinteger, u.vnumeric, u.vdatetime, u.vstring, u.vboolean));
+		  END LOOP;
+        ELSE
+          v := array_append(v, e.key || ' = ' || quote_nullable(e.value->>0));
+        END IF;
       ELSE
         v := array_append(v, e.key || ' = ' || e.value);
       END IF;
@@ -310,7 +344,7 @@ DECLARE
 BEGIN
   result := 0;
 
-  FOR r IN SELECT id FROM replication.relay WHERE source = pSource AND state = 0 ORDER BY id LIMIT 1000
+  FOR r IN SELECT id FROM replication.relay WHERE source = pSource AND state = 0 ORDER BY id LIMIT 5000
   LOOP
     PERFORM replication.apply_relay(pSource, r.id);
     result := result + 1;
