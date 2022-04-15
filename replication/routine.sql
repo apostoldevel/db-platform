@@ -344,7 +344,7 @@ DECLARE
 BEGIN
   result := 0;
 
-  FOR r IN SELECT id FROM replication.relay WHERE source = pSource AND state = 0 ORDER BY id LIMIT 5000
+  FOR r IN SELECT id FROM replication.relay WHERE source = pSource AND state = 0 ORDER BY id LIMIT 1000
   LOOP
     PERFORM replication.apply_relay(pSource, r.id);
     result := result + 1;
@@ -410,6 +410,23 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- replication.delete_key ------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION replication.delete_key (
+  pSchema       text,
+  pName         text
+) RETURNS       boolean
+AS $$
+BEGIN
+  DELETE FROM replication.pkey WHERE schema = pSchema AND name = pName;
+  RETURN FOUND;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- replication.create_trigger --------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -440,6 +457,31 @@ END
 $$ LANGUAGE plpgsql
   SECURITY DEFINER
   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- replication.table -----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION replication.table (
+  pSchema       text,
+  pName         text,
+  pActive       boolean
+) RETURNS       void
+AS $$
+BEGIN
+  PERFORM replication.delete_key(pSchema, pName);
+  EXECUTE replication.drop_trigger(pSchema, pName);
+
+  PERFORM replication.set_table(pSchema, pName, pActive);
+
+  IF pActive THEN
+    PERFORM replication.set_key(pSchema, pName);
+    EXECUTE replication.create_trigger(pSchema, pName);
+  END IF;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
 -- replication.on --------------------------------------------------------------

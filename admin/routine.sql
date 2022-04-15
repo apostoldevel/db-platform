@@ -1376,6 +1376,35 @@ $$ LANGUAGE plpgsql STABLE STRICT
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- FUNCTION SetLogMode ---------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION SetLogMode (
+  pValue	boolean
+) RETURNS	void
+AS $$
+BEGIN
+  PERFORM SafeSetVar('log', pValue::text);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION GetLogMode ---------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetLogMode()
+RETURNS		boolean
+AS $$
+BEGIN
+  RETURN coalesce(SafeGetVar('log')::boolean, false);
+END;
+$$ LANGUAGE plpgsql STABLE STRICT
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- FUNCTION SetDebugMode -------------------------------------------------------
 --------------------------------------------------------------------------------
 
