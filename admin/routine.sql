@@ -1248,10 +1248,11 @@ BEGIN
      AND t.validtoDate > Now();
 
   IF vToken IS NULL THEN
-    vSession := SignIn(CreateOAuth2(nAudience, current_scope(), 'offline'), pUserName, pPassword);
-
-    SELECT t->>'access_token' INTO vToken
-      FROM CreateToken(nAudience, oauth2_current_code(vSession), INTERVAL '1 day') AS t;
+    SELECT id INTO nAudience FROM oauth2.audience WHERE code = pUserName;
+    IF FOUND THEN
+      vSession := SignIn(CreateOAuth2(nAudience, ScopeToArray(null), 'offline'), pUserName, pPassword);
+      SELECT t->>'access_token' INTO vToken FROM CreateToken(nAudience, oauth2_current_code(vSession), INTERVAL '1 day') AS t;
+    END IF;
   END IF;
 
   RETURN vToken;
