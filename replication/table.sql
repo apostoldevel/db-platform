@@ -13,7 +13,8 @@ CREATE TABLE replication.log (
     schema      text NOT NULL,
     name        text NOT NULL,
     key         jsonb,
-    data        jsonb
+    data        jsonb,
+    source      text DEFAULT null
 );
 
 COMMENT ON TABLE replication.log IS 'Журнал репликации.';
@@ -25,10 +26,12 @@ COMMENT ON COLUMN replication.log.schema IS 'Схема';
 COMMENT ON COLUMN replication.log.name IS 'Наименование таблицы';
 COMMENT ON COLUMN replication.log.key IS 'Ключ';
 COMMENT ON COLUMN replication.log.data IS 'Данные';
+COMMENT ON COLUMN replication.log.source IS 'Источник данных';
 
 CREATE INDEX ON replication.log (action);
 CREATE INDEX ON replication.log (schema);
 CREATE INDEX ON replication.log (name);
+CREATE INDEX ON replication.log (source);
 
 --------------------------------------------------------------------------------
 

@@ -160,14 +160,15 @@ CREATE OR REPLACE FUNCTION replication.add_log (
   pSchema       text,
   pName         text,
   pKey          jsonb,
-  pData         jsonb
+  pData         jsonb,
+  pSource       text DEFAULT null
 ) RETURNS       bigint
 AS $$
 DECLARE
   uId           bigint;
 BEGIN
-  INSERT INTO replication.log(datetime, action, schema, name, key, data)
-  VALUES (pDateTime, pAction, pSchema, pName, pKey, pData)
+  INSERT INTO replication.log(datetime, action, schema, name, key, data, source)
+  VALUES (pDateTime, pAction, pSchema, pName, pKey, pData, pSource)
   RETURNING id INTO uId;
 
   RETURN uId;

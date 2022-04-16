@@ -157,9 +157,9 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(source text, id bigint, datetime timestamp with time zone, action character, schema text, name text, key jsonb, data jsonb)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(source text, id bigint, datetime timestamp with time zone, action character, schema text, name text, key jsonb, data jsonb, proxy boolean)
       LOOP
-        FOR e IN SELECT api.add_to_relay_log(r.source, r.id, r.datetime, r.action, r.schema, r.name, r.key, r.data) AS id
+        FOR e IN SELECT api.add_to_relay_log(r.source, r.id, r.datetime, r.action, r.schema, r.name, r.key, r.data, r.proxy) AS id
         LOOP
           RETURN NEXT json_build_object('source', r.source, 'id', r.id, 'status', 'Accepted');
         END LOOP;
@@ -167,9 +167,9 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(source text, id bigint, datetime timestamp with time zone, action character, schema text, name text, key jsonb, data jsonb)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(source text, id bigint, datetime timestamp with time zone, action character, schema text, name text, key jsonb, data jsonb, proxy boolean)
       LOOP
-        FOR e IN SELECT api.add_to_relay_log(r.source, r.id, r.datetime, r.action, r.schema, r.name, r.key, r.data) AS id
+        FOR e IN SELECT api.add_to_relay_log(r.source, r.id, r.datetime, r.action, r.schema, r.name, r.key, r.data, r.proxy) AS id
         LOOP
           RETURN NEXT json_build_object('source', r.source, 'id', r.id, 'status', 'Accepted');
         END LOOP;
