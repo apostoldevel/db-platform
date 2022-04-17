@@ -661,7 +661,7 @@ BEGIN
 	       d.action = ANY (coalesce(JsonbToStrArray(f.actions), ARRAY[d.action])) AND
 		   d.schema = ANY (coalesce(JsonbToStrArray(f.schemas), ARRAY[d.schema])) AND
 		   d.name   = ANY (coalesce(JsonbToStrArray(f.names)  , ARRAY[d.name]))   AND
-		   d.name   = ANY (coalesce(JsonbToStrArray(f.sources), ARRAY[d.source]));
+		   d.source = ANY (coalesce(JsonbToStrArray(f.sources), ARRAY[d.source]));
 
   WHEN 'log' THEN
 
