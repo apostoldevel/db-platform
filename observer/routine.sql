@@ -470,7 +470,7 @@ BEGIN
 	type := pParams->>'type';
 
 	arValues := array_cat(null, ARRAY['notify', 'object', 'mixed', 'hook']);
-	IF array_position(arValues, type) IS NULL THEN
+	IF type = ANY (arValues) THEN
 	  PERFORM IncorrectValueInArray(coalesce(type, ''), 'type', arValues);
 	END IF;
 
@@ -501,7 +501,7 @@ BEGIN
 	type := pParams->>'type';
 
 	arValues := array_cat(null, ARRAY['notify']);
-	IF array_position(arValues, type) IS NULL THEN
+	IF type = ANY (arValues) THEN
 	  PERFORM IncorrectValueInArray(coalesce(type, ''), 'type', arValues);
 	END IF;
 
@@ -512,19 +512,19 @@ BEGIN
 	type := pParams->>'type';
 
 	arValues := array_cat(null, ARRAY['notify']);
-	IF array_position(arValues, type) IS NULL THEN
+	IF type = ANY (arValues) THEN
 	  PERFORM IncorrectValueInArray(coalesce(type, ''), 'type', arValues);
 	END IF;
 
   WHEN 'replication' THEN
 
-	arParams := array_cat(null, ARRAY['type']);
+	arParams := array_cat(null, ARRAY['type', 'source']);
 	PERFORM CheckJsonbKeys('/listener/replication/params', arParams, pParams);
 
 	type := pParams->>'type';
 
 	arValues := array_cat(null, ARRAY['notify']);
-	IF array_position(arValues, type) IS NULL THEN
+	IF type = ANY (arValues) THEN
 	  PERFORM IncorrectValueInArray(coalesce(type, ''), 'type', arValues);
 	END IF;
 
@@ -535,7 +535,7 @@ BEGIN
 	type := pParams->>'type';
 
 	arValues := array_cat(null, ARRAY['notify']);
-	IF array_position(arValues, type) IS NULL THEN
+	IF type = ANY (arValues) THEN
 	  PERFORM IncorrectValueInArray(coalesce(type, ''), 'type', arValues);
 	END IF;
 
@@ -546,7 +546,7 @@ BEGIN
 	type := pParams->>'type';
 
 	arValues := array_cat(null, ARRAY['notify']);
-	IF array_position(arValues, type) IS NULL THEN
+	IF type = ANY (arValues) THEN
 	  PERFORM IncorrectValueInArray(coalesce(type, ''), 'type', arValues);
 	END IF;
 
@@ -564,8 +564,8 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION DoFilterListener (
   pPublisher	text,
-  pUserId		uuid,
-  pFilter		jsonb,
+  pSession		text,
+  pIdentity		text,
   pData			jsonb
 ) RETURNS		boolean
 AS $$
@@ -582,12 +582,13 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION FilterListener (
   pPublisher	text,
-  pSession		varchar,
-  pFilter		jsonb,
+  pSession		text,
+  pIdentity		text,
   pData			jsonb
 ) RETURNS		boolean
 AS $$
 DECLARE
+  r				record;
   f				record;
   d				record;
   n				record;
@@ -601,6 +602,12 @@ BEGIN
     RETURN false;
   END IF;
 
+  SELECT filter, params INTO r FROM db.listener WHERE publisher = pPublisher AND session = pSession AND identity = pIdentity;
+
+  IF NOT FOUND THEN
+    RETURN false;
+  END IF;
+
   IF pData IS NULL THEN
     RETURN false;
   END IF;
@@ -608,7 +615,7 @@ BEGIN
   CASE pPublisher
   WHEN 'notify' THEN
 
-	SELECT * INTO f FROM jsonb_to_record(pFilter) AS x(entities jsonb, classes jsonb, actions jsonb, methods jsonb, objects jsonb);
+	SELECT * INTO f FROM jsonb_to_record(r.filter) AS x(entities jsonb, classes jsonb, actions jsonb, methods jsonb, objects jsonb);
 	SELECT * INTO d FROM jsonb_to_record(pData) AS x(id uuid, entity uuid, class uuid, action uuid, method uuid, object uuid);
 	SELECT * INTO n FROM Notification WHERE id = d.id;
 
@@ -621,14 +628,14 @@ BEGIN
 
   WHEN 'notice' THEN
 
-	SELECT * INTO f FROM jsonb_to_record(pFilter) AS x(categories jsonb);
+	SELECT * INTO f FROM jsonb_to_record(r.filter) AS x(categories jsonb);
 	SELECT * INTO d FROM jsonb_to_record(pData) AS x(userid uuid, object uuid, category text);
 
 	RETURN d.userid = uUserId AND d.category = ANY (coalesce(JsonbToStrArray(f.categories), ARRAY[d.category]));
 
   WHEN 'message' THEN
 
-	SELECT * INTO f FROM jsonb_to_record(pFilter) AS x(classes jsonb, types jsonb, agents jsonb, codes jsonb, profiles jsonb, addresses jsonb, subjects jsonb);
+	SELECT * INTO f FROM jsonb_to_record(r.filter) AS x(classes jsonb, types jsonb, agents jsonb, codes jsonb, profiles jsonb, addresses jsonb, subjects jsonb);
 	SELECT * INTO d FROM jsonb_to_record(pData) AS x(id uuid, class text, type text, agent text, code text, profile text, address text, subject text);
 
 	RETURN d.class   = ANY (coalesce(JsonbToStrArray(f.classes)  , ARRAY[d.class]))   AND
@@ -642,10 +649,11 @@ BEGIN
 
   WHEN 'replication' THEN
 
-	SELECT * INTO f FROM jsonb_to_record(pFilter) AS x(actions jsonb, schemas jsonb, names jsonb);
-	SELECT * INTO d FROM jsonb_to_record(pData) AS x(action text, schema text, name text);
+	SELECT * INTO f FROM jsonb_to_record(r.filter) AS x(actions jsonb, schemas jsonb, names jsonb);
+	SELECT * INTO d FROM jsonb_to_record(pData) AS x(action text, schema text, name text, source text);
 
 	RETURN IsUserRole('00000000-0000-4000-a000-000000000005', uUserId)      AND -- replication group
+	       r.params->>'source' IS DISTINCT FROM d.source                                AND
 	       d.action = ANY (coalesce(JsonbToStrArray(f.actions), ARRAY[d.action])) AND
 		   d.schema = ANY (coalesce(JsonbToStrArray(f.schemas), ARRAY[d.schema])) AND
 		   d.name   = ANY (coalesce(JsonbToStrArray(f.names)  , ARRAY[d.name]));
@@ -654,7 +662,7 @@ BEGIN
 
     SELECT username INTO vUserName FROM db.user WHERE id = uUserId;
 
-	SELECT * INTO f FROM jsonb_to_record(pFilter) AS x(types jsonb, codes jsonb, categories jsonb);
+	SELECT * INTO f FROM jsonb_to_record(r.filter) AS x(types jsonb, codes jsonb, categories jsonb);
 	SELECT * INTO d FROM jsonb_to_record(pData) AS x(type text, code integer, username text, category text);
 
 	RETURN vUserName  = d.username AND
@@ -664,7 +672,7 @@ BEGIN
 
   WHEN 'geo' THEN
 
-	SELECT * INTO f FROM jsonb_to_record(pFilter) AS x(codes jsonb, objects jsonb);
+	SELECT * INTO f FROM jsonb_to_record(r.filter) AS x(codes jsonb, objects jsonb);
 	SELECT * INTO d FROM jsonb_to_record(pData) AS x(code text, object uuid);
 
 	RETURN d.code   = ANY (coalesce(JsonbToStrArray(f.codes)   , ARRAY[d.code]))   AND
@@ -672,7 +680,7 @@ BEGIN
 	       CheckObjectAccess(d.object, B'100', uUserId);
 
   ELSE
-  	RETURN DoFilterListener(pPublisher, uUserId, pFilter, pData);
+  	RETURN DoFilterListener(pPublisher, pSession, pIdentity, pData);
   END CASE;
 END
 $$ LANGUAGE plpgsql
@@ -684,8 +692,10 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DoEventListener (
-  pPublisher	text,
-  pData			jsonb
+  pPublisher    text,
+  pSession      varchar,
+  pIdentity     text,
+  pData         jsonb
 ) RETURNS       SETOF json
 AS $$
 BEGIN
@@ -701,39 +711,46 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventListener (
-  pPublisher	text,
-  pSession		varchar,
-  pIdentity		text,
-  pData			jsonb
+  pPublisher    text,
+  pSession      varchar,
+  pIdentity     text,
+  pData         jsonb
 ) RETURNS       SETOF json
 AS $$
 DECLARE
   r             record;
   e             record;
 
-  uId			uuid;
-  nId			bigint;
+  uId           uuid;
+  nId           bigint;
 
-  vType			text;
+  vType         text;
+  vRoutine      text;
 
-  mixed			jsonb;
-  hook			jsonb;
+  mixed         jsonb;
+  hook          jsonb;
 BEGIN
   pIdentity := coalesce(pIdentity, 'main');
 
-  SELECT * INTO r FROM db.listener WHERE publisher = pPublisher AND session = pSession AND identity = pIdentity;
-
-  IF FOUND AND FilterListener(r.publisher, r.session, r.filter, pData) THEN
+  IF FilterListener(pPublisher, pSession, pIdentity, pData) THEN
 
 	CASE pPublisher
 	WHEN 'notify' THEN
+      SELECT params INTO r FROM db.listener WHERE publisher = pPublisher AND session = pSession AND identity = pIdentity;
+
 	  vType := r.params->>'type';
+
 	  IF vType = 'object' THEN
-		FOR e IN EXECUTE format('SELECT * FROM api.get_%s($1)', GetClassCode((pData->>'class')::uuid)) USING (pData->>'object')::uuid
+
+	    vRoutine := coalesce(GetClassCode((pData->>'class')::uuid), GetEntityCode((pData->>'entity')::uuid), 'object');
+
+		FOR e IN EXECUTE format('SELECT * FROM api.get_%s($1)', vRoutine) USING (pData->>'object')::uuid
 		LOOP
 		  RETURN NEXT row_to_json(e);
 		END LOOP;
+
 	  ELSIF vType = 'mixed' THEN
+
 	    uId := pData->>'id';
 
         mixed := jsonb_build_object();
@@ -743,56 +760,75 @@ BEGIN
 		  mixed := jsonb_build_object('notify', row_to_json(e));
 		END LOOP;
 
-		FOR e IN EXECUTE format('SELECT * FROM api.get_%s($1)', GetClassCode((pData->>'class')::uuid)) USING (pData->>'object')::uuid
+	    vRoutine := coalesce(GetClassCode((pData->>'class')::uuid), GetEntityCode((pData->>'entity')::uuid), 'object');
+
+		FOR e IN EXECUTE format('SELECT * FROM api.get_%s($1)', vRoutine) USING (pData->>'object')::uuid
 		LOOP
 		  mixed := mixed || jsonb_build_object('object', row_to_json(e));
 		END LOOP;
 
         RETURN NEXT mixed;
+
 	  ELSIF vType = 'hook' THEN
+
         hook := r.params->'hook';
+
 		FOR e IN SELECT * FROM api.run(coalesce(hook->>'method', 'POST'), hook->>'path', hook->'payload')
 		LOOP
 		  RETURN NEXT e.run;
 		END LOOP;
+
 	  ELSE
+
 	    uId := pData->>'id';
+
 		FOR e IN SELECT * FROM Notification WHERE id = uId
 		LOOP
 		  RETURN NEXT row_to_json(e);
 		END LOOP;
+
 	  END IF;
 
     WHEN 'notice' THEN
+
 	  uId := pData->>'id';
+
 	  FOR e IN SELECT * FROM Notice WHERE id = uId
 	  LOOP
 		RETURN NEXT row_to_json(e);
 	  END LOOP;
 
     WHEN 'message' THEN
+
 	  uId := pData->>'id';
+
 	  FOR e IN SELECT * FROM Message WHERE id = uId
 	  LOOP
 		RETURN NEXT row_to_json(e);
 	  END LOOP;
 
     WHEN 'replication' THEN
+
 	  nId := pData->>'id';
+
 	  FOR e IN SELECT * FROM ReplicationLog WHERE id = nId
 	  LOOP
 		RETURN NEXT row_to_json(e);
 	  END LOOP;
 
     WHEN 'log' THEN
+
 	  nId := pData->>'id';
+
 	  FOR e IN SELECT * FROM EventLog WHERE id = nId
 	  LOOP
 		RETURN NEXT row_to_json(e);
 	  END LOOP;
 
     WHEN 'geo' THEN
+
 	  uId := pData->>'id';
+
 	  FOR e IN SELECT * FROM ObjectCoordinates WHERE id = uId
 	  LOOP
 		RETURN NEXT row_to_json(e);
