@@ -241,13 +241,13 @@ $$ LANGUAGE plpgsql
  */
 CREATE OR REPLACE FUNCTION api.decode_object_access (
   pId       uuid,
-  pUserId	uuid DEFAULT current_userid(),
+  pUserId	uuid DEFAULT null,
   OUT s		boolean,
   OUT u		boolean,
   OUT d		boolean
 ) RETURNS 	record
 AS $$
-  SELECT * FROM DecodeObjectAccess(pId, pUserId);
+  SELECT * FROM DecodeObjectAccess(pId, coalesce(pUserId, current_userid()));
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
