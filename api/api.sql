@@ -311,7 +311,7 @@ BEGIN
 
   --PERFORM WriteToEventLog('D', 9001, 'sql', vSelect);
 
-  RAISE NOTICE '%', vSelect;
+  --RAISE NOTICE '%', vSelect;
 
   RETURN vSelect;
 END;
