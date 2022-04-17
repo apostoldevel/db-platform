@@ -6,9 +6,21 @@ COMMENT ON COLUMN replication.log.source IS 'Источник данных';
 CREATE INDEX ON replication.log (source);
 ---
 
+ALTER TABLE replication.relay
+  ADD COLUMN proxy bool DEFAULT false;
+
+COMMENT ON COLUMN replication.relay.proxy IS 'Дублировать запись в журнал репликации';
+
+UPDATE replication.relay SET proxy = false;
+
+ALTER TABLE replication.relay
+  ALTER COLUMN proxy SET NOT NULL;
+---
+
 DROP FUNCTION IF EXISTS api.replication_log(bigint, integer);
 DROP FUNCTION IF EXISTS replication.log(bigint, integer);
 DROP FUNCTION IF EXISTS replication.add_log(timestamp with time zone, char, text, text, jsonb, jsonb);
+DROP FUNCTION IF EXISTS replication.add_relay(text, bigint, timestamp with time zone, char, text, text, jsonb, jsonb);
 ---
 
 CREATE OR REPLACE FUNCTION replication.ft_log_after_insert()

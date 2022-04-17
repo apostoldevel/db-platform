@@ -190,12 +190,13 @@ CREATE OR REPLACE FUNCTION replication.add_relay (
   pSchema       text,
   pName         text,
   pKey          jsonb,
-  pData         jsonb
+  pData         jsonb,
+  pProxy        bool DEFAULT false
 ) RETURNS       bigint
 AS $$
 BEGIN
-  INSERT INTO replication.relay (source, id, datetime, action, schema, name, key, data)
-  VALUES (pSource, pId, pDateTime, pAction, pSchema, pName, pKey, pData);
+  INSERT INTO replication.relay (source, id, datetime, action, schema, name, key, data, proxy)
+  VALUES (pSource, pId, pDateTime, pAction, pSchema, pName, pKey, pData, pProxy);
 
   RETURN pId;
 END;
@@ -312,6 +313,10 @@ BEGIN
   PERFORM SetErrorMessage('Success');
 
   UPDATE replication.relay SET state = 1, message = null WHERE source = pSource AND id = pId;
+
+  IF r.proxy THEN
+	PERFORM replication.add_log(r.datetime, r.action, r.schema, r.name, r.key, r.data, r.source);
+  END IF;
 EXCEPTION
 WHEN others THEN
   GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;

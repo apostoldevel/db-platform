@@ -623,11 +623,11 @@ BEGIN
 	SELECT * INTO d FROM jsonb_to_record(pData) AS x(id uuid, entity uuid, class uuid, action uuid, method uuid, object uuid);
 	SELECT * INTO n FROM Notification WHERE id = d.id;
 
-	RETURN n.entitycode = ANY (coalesce(JsonbToStrArray(f.entities), ARRAY[n.entitycode])) AND
-           n.classcode  = ANY (coalesce(JsonbToStrArray(f.classes) , ARRAY[n.classcode]))  AND
-           n.actioncode = ANY (coalesce(JsonbToStrArray(f.actions) , ARRAY[n.actioncode])) AND
-           n.methodcode = ANY (coalesce(JsonbToStrArray(f.methods) , ARRAY[n.methodcode])) AND
-           d.object     = ANY (coalesce(JsonbToUUIDArray(f.objects), ARRAY[d.object]))     AND
+	RETURN coalesce(n.entitycode = ANY (JsonbToStrArray(f.entities)), true) AND
+           coalesce(n.classcode  = ANY (JsonbToStrArray(f.classes)),  true) AND
+           coalesce(n.actioncode = ANY (JsonbToStrArray(f.actions)),  true) AND
+           coalesce(n.methodcode = ANY (JsonbToStrArray(f.methods)),  true) AND
+           coalesce(d.object     = ANY (JsonbToUUIDArray(f.objects)), true) AND
 	       CheckObjectAccess(d.object, B'100', uUserId);
 
   WHEN 'notice' THEN
@@ -635,20 +635,20 @@ BEGIN
 	SELECT * INTO f FROM jsonb_to_record(r.filter) AS x(categories jsonb);
 	SELECT * INTO d FROM jsonb_to_record(pData) AS x(userid uuid, object uuid, category text);
 
-	RETURN d.userid = uUserId AND d.category = ANY (coalesce(JsonbToStrArray(f.categories), ARRAY[d.category]));
+	RETURN d.userid = uUserId AND coalesce(d.category = ANY (JsonbToStrArray(f.categories)), true);
 
   WHEN 'message' THEN
 
 	SELECT * INTO f FROM jsonb_to_record(r.filter) AS x(classes jsonb, types jsonb, agents jsonb, codes jsonb, profiles jsonb, addresses jsonb, subjects jsonb);
 	SELECT * INTO d FROM jsonb_to_record(pData) AS x(id uuid, class text, type text, agent text, code text, profile text, address text, subject text);
 
-	RETURN d.class   = ANY (coalesce(JsonbToStrArray(f.classes)  , ARRAY[d.class]))   AND
-	       d.type    = ANY (coalesce(JsonbToStrArray(f.types)    , ARRAY[d.type]))    AND
-           d.agent   = ANY (coalesce(JsonbToStrArray(f.agents)   , ARRAY[d.agent]))   AND
-           d.code    = ANY (coalesce(JsonbToStrArray(f.codes)    , ARRAY[d.code]))    AND
-           d.profile = ANY (coalesce(JsonbToStrArray(f.profiles) , ARRAY[d.profile])) AND
-           d.address = ANY (coalesce(JsonbToStrArray(f.addresses), ARRAY[d.address])) AND
-           d.subject = ANY (coalesce(JsonbToStrArray(f.subjects) , ARRAY[d.subject])) AND
+	RETURN coalesce(d.class   = ANY (JsonbToStrArray(f.classes)),   true) AND
+	       coalesce(d.type    = ANY (JsonbToStrArray(f.types)),     true) AND
+           coalesce(d.agent   = ANY (JsonbToStrArray(f.agents)),    true) AND
+           coalesce(d.code    = ANY (JsonbToStrArray(f.codes)),     true) AND
+           coalesce(d.profile = ANY (JsonbToStrArray(f.profiles)),  true) AND
+           coalesce(d.address = ANY (JsonbToStrArray(f.addresses)), true) AND
+           coalesce(d.subject = ANY (JsonbToStrArray(f.subjects)),  true) AND
 	       CheckObjectAccess(d.id, B'100', uUserId);
 
   WHEN 'replication' THEN
@@ -656,12 +656,12 @@ BEGIN
 	SELECT * INTO f FROM jsonb_to_record(r.filter) AS x(actions jsonb, schemas jsonb, names jsonb, sources jsonb);
 	SELECT * INTO d FROM jsonb_to_record(pData) AS x(action text, schema text, name text, source text);
 
-	RETURN IsUserRole('00000000-0000-4000-a000-000000000005', uUserId)      AND -- replication group
-	       r.params->>'source' IS DISTINCT FROM d.source                                AND
-	       d.action = ANY (coalesce(JsonbToStrArray(f.actions), ARRAY[d.action])) AND
-		   d.schema = ANY (coalesce(JsonbToStrArray(f.schemas), ARRAY[d.schema])) AND
-		   d.name   = ANY (coalesce(JsonbToStrArray(f.names)  , ARRAY[d.name]))   AND
-		   d.source = ANY (coalesce(JsonbToStrArray(f.sources), ARRAY[d.source]));
+	RETURN IsUserRole('00000000-0000-4000-a000-000000000005', uUserId) AND -- replication group
+	       r.params->>'source' IS DISTINCT FROM d.source AND
+	       coalesce(d.action = ANY (JsonbToStrArray(f.actions)), true) AND
+		   coalesce(d.schema = ANY (JsonbToStrArray(f.schemas)), true) AND
+		   coalesce(d.name   = ANY (JsonbToStrArray(f.names)),   true) AND
+		   coalesce(d.source = ANY (JsonbToStrArray(f.sources)), true);
 
   WHEN 'log' THEN
 
@@ -670,22 +670,24 @@ BEGIN
 	SELECT * INTO f FROM jsonb_to_record(r.filter) AS x(types jsonb, codes jsonb, categories jsonb);
 	SELECT * INTO d FROM jsonb_to_record(pData) AS x(type text, code integer, username text, category text);
 
-	RETURN vUserName  = d.username AND
-	       d.type     = ANY (coalesce(JsonbToStrArray(f.types)     , ARRAY[d.type])) AND
-		   d.code     = ANY (coalesce(JsonbToIntArray(f.codes)     , ARRAY[d.code])) AND
-		   d.category = ANY (coalesce(JsonbToStrArray(f.categories), ARRAY[d.category]));
+	RETURN vUserName           = d.username                                       AND
+	       coalesce(d.type     = ANY (JsonbToStrArray(f.types)),      true) AND
+		   coalesce(d.code     = ANY (JsonbToIntArray(f.codes)),      true) AND
+		   coalesce(d.category = ANY (JsonbToStrArray(f.categories)), true);
 
   WHEN 'geo' THEN
 
 	SELECT * INTO f FROM jsonb_to_record(r.filter) AS x(codes jsonb, objects jsonb);
 	SELECT * INTO d FROM jsonb_to_record(pData) AS x(code text, object uuid);
 
-	RETURN d.code   = ANY (coalesce(JsonbToStrArray(f.codes)   , ARRAY[d.code]))   AND
-           d.object = ANY (coalesce(JsonbToUUIDArray(f.objects), ARRAY[d.object])) AND
+	RETURN coalesce(d.code   = ANY (JsonbToStrArray(f.codes)),    true) AND
+           coalesce(d.object = ANY (JsonbToUUIDArray(f.objects)), true) AND
 	       CheckObjectAccess(d.object, B'100', uUserId);
 
   ELSE
+
   	RETURN DoFilterListener(pPublisher, pSession, pIdentity, pData);
+
   END CASE;
 END
 $$ LANGUAGE plpgsql

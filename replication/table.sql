@@ -68,6 +68,7 @@ CREATE TABLE replication.relay (
     key         jsonb,
     data        jsonb,
     message		text,
+    proxy       boolean NOT NULL DEFAULT false,
     PRIMARY KEY (source, id)
 );
 
@@ -84,6 +85,7 @@ COMMENT ON COLUMN replication.relay.name IS 'Наименование табли
 COMMENT ON COLUMN replication.relay.key IS 'Ключ';
 COMMENT ON COLUMN replication.relay.data IS 'Данные';
 COMMENT ON COLUMN replication.relay.message IS 'Сообщение об ошибке при наличии';
+COMMENT ON COLUMN replication.relay.proxy IS 'Дублировать запись в журнал репликации';
 
 CREATE INDEX ON replication.relay (source);
 CREATE INDEX ON replication.relay (state);

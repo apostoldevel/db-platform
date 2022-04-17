@@ -64,11 +64,7 @@ CREATE OR REPLACE FUNCTION api.add_to_relay_log (
 ) RETURNS       bigint
 AS $$
 BEGIN
-  IF coalesce(pProxy, false) THEN
-	PERFORM replication.add_log(pDateTime, pAction, pSchema, pName, pKey, pData, pSource);
-  END IF;
-
-  RETURN replication.add_relay(pSource, pId, pDateTime, pAction, pSchema, pName, pKey, pData);
+  RETURN replication.add_relay(pSource, pId, pDateTime, pAction, pSchema, pName, pKey, pData, pProxy);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
