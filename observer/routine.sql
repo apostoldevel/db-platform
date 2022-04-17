@@ -363,7 +363,7 @@ BEGIN
 
   WHEN 'replication' THEN
 
-  	arFilter := array_cat(arFilter, ARRAY['actions', 'schemas', 'names']);
+  	arFilter := array_cat(arFilter, ARRAY['actions', 'schemas', 'names', 'sources']);
   	PERFORM CheckJsonbKeys('/listener/replication/filter', arFilter, pFilter);
 
     IF jsonb_typeof(pFilter->'actions') != 'array' THEN
@@ -378,6 +378,10 @@ BEGIN
 
     IF jsonb_typeof(pFilter->'names') != 'array' THEN
       PERFORM IncorrectJsonType(jsonb_typeof(pFilter->'names'), 'array');
+    END IF;
+
+    IF jsonb_typeof(pFilter->'sources') != 'array' THEN
+      PERFORM IncorrectJsonType(jsonb_typeof(pFilter->'sources'), 'array');
     END IF;
 
   WHEN 'log' THEN
@@ -470,7 +474,7 @@ BEGIN
 	type := pParams->>'type';
 
 	arValues := array_cat(null, ARRAY['notify', 'object', 'mixed', 'hook']);
-	IF type = ANY (arValues) THEN
+	IF NOT type = ANY (arValues) THEN
 	  PERFORM IncorrectValueInArray(coalesce(type, ''), 'type', arValues);
 	END IF;
 
@@ -501,7 +505,7 @@ BEGIN
 	type := pParams->>'type';
 
 	arValues := array_cat(null, ARRAY['notify']);
-	IF type = ANY (arValues) THEN
+	IF NOT type = ANY (arValues) THEN
 	  PERFORM IncorrectValueInArray(coalesce(type, ''), 'type', arValues);
 	END IF;
 
@@ -512,7 +516,7 @@ BEGIN
 	type := pParams->>'type';
 
 	arValues := array_cat(null, ARRAY['notify']);
-	IF type = ANY (arValues) THEN
+	IF NOT type = ANY (arValues) THEN
 	  PERFORM IncorrectValueInArray(coalesce(type, ''), 'type', arValues);
 	END IF;
 
@@ -524,7 +528,7 @@ BEGIN
 	type := pParams->>'type';
 
 	arValues := array_cat(null, ARRAY['notify']);
-	IF type = ANY (arValues) THEN
+	IF NOT type = ANY (arValues) THEN
 	  PERFORM IncorrectValueInArray(coalesce(type, ''), 'type', arValues);
 	END IF;
 
@@ -535,7 +539,7 @@ BEGIN
 	type := pParams->>'type';
 
 	arValues := array_cat(null, ARRAY['notify']);
-	IF type = ANY (arValues) THEN
+	IF NOT type = ANY (arValues) THEN
 	  PERFORM IncorrectValueInArray(coalesce(type, ''), 'type', arValues);
 	END IF;
 
@@ -546,7 +550,7 @@ BEGIN
 	type := pParams->>'type';
 
 	arValues := array_cat(null, ARRAY['notify']);
-	IF type = ANY (arValues) THEN
+	IF NOT type = ANY (arValues) THEN
 	  PERFORM IncorrectValueInArray(coalesce(type, ''), 'type', arValues);
 	END IF;
 
@@ -649,14 +653,15 @@ BEGIN
 
   WHEN 'replication' THEN
 
-	SELECT * INTO f FROM jsonb_to_record(r.filter) AS x(actions jsonb, schemas jsonb, names jsonb);
+	SELECT * INTO f FROM jsonb_to_record(r.filter) AS x(actions jsonb, schemas jsonb, names jsonb, sources jsonb);
 	SELECT * INTO d FROM jsonb_to_record(pData) AS x(action text, schema text, name text, source text);
 
 	RETURN IsUserRole('00000000-0000-4000-a000-000000000005', uUserId)      AND -- replication group
 	       r.params->>'source' IS DISTINCT FROM d.source                                AND
 	       d.action = ANY (coalesce(JsonbToStrArray(f.actions), ARRAY[d.action])) AND
 		   d.schema = ANY (coalesce(JsonbToStrArray(f.schemas), ARRAY[d.schema])) AND
-		   d.name   = ANY (coalesce(JsonbToStrArray(f.names)  , ARRAY[d.name]));
+		   d.name   = ANY (coalesce(JsonbToStrArray(f.names)  , ARRAY[d.name]))   AND
+		   d.name   = ANY (coalesce(JsonbToStrArray(f.sources), ARRAY[d.source]));
 
   WHEN 'log' THEN
 
