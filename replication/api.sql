@@ -24,10 +24,11 @@ GRANT SELECT ON api.relay_log TO apibot;
 
 CREATE OR REPLACE FUNCTION api.replication_log (
   pFrom         bigint,
-  pLimit        int DEFAULT null
+  pSource       text,
+  pLimit        int DEFAULT 500
 ) RETURNS       SETOF api.replication_log
 AS $$
-  SELECT * FROM replication.log(pFrom, coalesce(pLimit, 150));
+  SELECT * FROM replication.log(pFrom, pSource, coalesce(pLimit, 500));
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

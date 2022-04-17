@@ -53,15 +53,15 @@ BEGIN
   WHEN '/replication/log' THEN
 
     IF pPayload IS NOT NULL THEN
-      arKeys := array_cat(arKeys, ARRAY['id']);
+      arKeys := array_cat(arKeys, ARRAY['id', 'source', 'reclimit']);
       PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
     ELSE
       pPayload := '{}';
     END IF;
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id bigint)
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id bigint, source text, reclimit integer)
     LOOP
-      FOR e IN SELECT * FROM api.replication_log(r.id)
+      FOR e IN SELECT * FROM api.replication_log(r.id, r.source, r.reclimit)
       LOOP
         RETURN NEXT row_to_json(e);
       END LOOP;
