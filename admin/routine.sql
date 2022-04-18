@@ -1399,7 +1399,7 @@ CREATE OR REPLACE FUNCTION GetLogMode()
 RETURNS		boolean
 AS $$
 BEGIN
-  RETURN coalesce(SafeGetVar('log')::boolean, false);
+  RETURN coalesce(SafeGetVar('log')::boolean, true);
 END;
 $$ LANGUAGE plpgsql STABLE STRICT
    SECURITY DEFINER
