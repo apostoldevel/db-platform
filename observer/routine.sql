@@ -843,7 +843,7 @@ BEGIN
 
 	ELSE
 
-	  FOR r IN SELECT * FROM DoEventListener(pPublisher, pData) AS data
+	  FOR r IN SELECT * FROM DoEventListener(pPublisher, pSession, pIdentity, pData) AS data
 	  LOOP
 		RETURN NEXT r.data;
 	  END LOOP;
