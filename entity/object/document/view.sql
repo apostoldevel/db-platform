@@ -16,7 +16,7 @@ CREATE OR REPLACE VIEW Document (Id, Object, Entity, Class, Type, Area, Descript
 GRANT SELECT ON Document TO administrator;
 
 --------------------------------------------------------------------------------
--- CurrentDocument -------------------------------------------------------------
+-- DocumentAreaTree ------------------------------------------------------------
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE VIEW DocumentAreaTree
@@ -34,6 +34,24 @@ AS
 GRANT SELECT ON DocumentAreaTree TO administrator;
 
 --------------------------------------------------------------------------------
+-- DocumentAreaTreeId ----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW DocumentAreaTreeId
+AS
+  WITH RECURSIVE area_tree(id, parent) AS (
+    SELECT id, parent FROM db.area WHERE type = '00000000-0000-4002-a001-000000000000'::uuid AND scope IS NOT DISTINCT FROM current_scope() AND id IS DISTINCT FROM current_area()
+     UNION
+    SELECT id, parent FROM db.area WHERE id IS NOT DISTINCT FROM current_area()
+     UNION
+    SELECT a.id, a.parent
+      FROM db.area a INNER JOIN area_tree t ON a.parent = t.id
+     WHERE a.type IS DISTINCT FROM '00000000-0000-4002-a001-000000000000'::uuid AND a.scope IS NOT DISTINCT FROM current_scope()
+  ) SELECT id FROM db.area INNER JOIN area_tree USING (id);
+
+GRANT SELECT ON DocumentAreaTreeId TO administrator;
+
+--------------------------------------------------------------------------------
 -- CurrentDocument -------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -44,10 +62,10 @@ CREATE OR REPLACE VIEW CurrentDocument (Id, Object, Entity, Class, Type, Area, D
   SELECT d.id, d.object, d.entity, d.class, d.type, d.area, dt.description,
          a.code, a.name, a.description,
          a.scope, s.code, s.name, s.description
-    FROM db.document d INNER JOIN DocumentAreaTree  t ON d.area = t.id
-                       INNER JOIN db.area           a ON d.area = a.id
-                       INNER JOIN db.scope          s ON s.id = a.scope
-                        LEFT JOIN db.document_text dt ON d.id = dt.document AND dt.locale = current_locale();
+    FROM db.document d INNER JOIN DocumentAreaTreeId dat ON d.area = dat.id
+                       INNER JOIN db.area              a ON d.area = a.id
+                       INNER JOIN db.scope             s ON s.id = a.scope
+                        LEFT JOIN db.document_text    dt ON d.id = dt.document AND dt.locale = current_locale();
 
 GRANT SELECT ON CurrentDocument TO administrator;
 
