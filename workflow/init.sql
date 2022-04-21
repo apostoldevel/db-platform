@@ -433,6 +433,9 @@ BEGIN
 
   uAction := AddAction('00000000-0000-4000-b003-000000000047', 'continue', 'Продолжить');
   PERFORM EditActionText(uAction, 'Continue', null, uLocale);
+
+  uAction := AddAction('00000000-0000-4000-b003-000000000048', 'agree', 'Согласовать');
+  PERFORM EditActionText(uAction, 'Agree', null, uLocale);
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

@@ -143,18 +143,21 @@ CREATE OR REPLACE FUNCTION ChangeDocumentArea (
 ) RETURNS       void
 AS $$
 DECLARE
-  uArea         uuid;
-  uClass        uuid;
+  r             record;
   uMethod       uuid;
 BEGIN
-  SELECT area INTO uArea FROM db.document WHERE id = pId;
+  FOR r IN
+    WITH RECURSIVE _tree(id, parent, class, area) AS (
+      SELECT o.id, o.parent, o.class, d.area FROM db.object o INNER JOIN db.document d USING (id) WHERE o.id = pId
+       UNION
+      SELECT o.id, o.parent, o.class, d.area FROM db.object o INNER JOIN db.document d USING (id) INNER JOIN _tree t ON o.parent = t.id
+    ) SELECT * FROM _tree t
+  LOOP
+    UPDATE db.document SET area = pArea WHERE id = r.id;
 
-  UPDATE db.document SET area = pArea WHERE id = pId;
-
-  SELECT class INTO uClass FROM db.object WHERE id = pId;
-
-  uMethod := GetMethod(uClass, GetAction('save'));
-  PERFORM ExecuteMethod(pId, uMethod, jsonb_build_object('old', jsonb_build_object('area', uArea), 'new', jsonb_build_object('area', pArea)));
+    uMethod := GetMethod(r.class, GetAction('save'));
+    PERFORM ExecuteMethod(r.id, uMethod, jsonb_build_object('old', jsonb_build_object('area', r.area), 'new', jsonb_build_object('area', pArea)));
+  END LOOP;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

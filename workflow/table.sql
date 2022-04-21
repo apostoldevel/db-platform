@@ -406,7 +406,7 @@ CREATE INDEX ON db.method (class);
 CREATE INDEX ON db.method (state);
 CREATE INDEX ON db.method (action);
 
-CREATE UNIQUE INDEX ON db.method (class, state, action);
+--CREATE UNIQUE INDEX ON db.method (class, state, action);
 CREATE UNIQUE INDEX ON db.method (class, code);
 
 --------------------------------------------------------------------------------

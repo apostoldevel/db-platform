@@ -873,6 +873,19 @@ $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
 --------------------------------------------------------------------------------
 
+SELECT CreateExceptionResource(GetExceptionUUID(400, 53), 'ru', 'ActionAlreadyCompleted', 'Вы уже выполнили это действие');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 53), 'en', 'ActionAlreadyCompleted', 'You have already completed this action');
+
+CREATE OR REPLACE FUNCTION ActionAlreadyCompleted (
+) RETURNS	void
+AS $$
+BEGIN
+  RAISE EXCEPTION '%', GetExceptionStr(400, 53);
+END;
+$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+
+--------------------------------------------------------------------------------
+
 SELECT CreateExceptionResource(GetExceptionUUID(400, 60), 'ru', 'JsonIsEmpty', 'JSON не должен быть пустым');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 60), 'en', 'JsonIsEmpty', 'JSON must not be empty');
 
