@@ -47,6 +47,10 @@ CREATE TABLE http.request (
   content       text,
   done          text,
   fail          text,
+  agent         text,
+  profile       text,
+  command       text,
+  message       text,
   error         text
 );
 
@@ -61,11 +65,17 @@ COMMENT ON COLUMN http.request.headers IS 'Заголовки';
 COMMENT ON COLUMN http.request.content IS 'Содержание запроса';
 COMMENT ON COLUMN http.request.done IS 'Имя функции обратного вызова в случае успешного ответа';
 COMMENT ON COLUMN http.request.fail IS 'Имя функции обратного вызова в случае сбоя';
-COMMENT ON COLUMN http.request.error IS 'Текст описания ошибки';
+COMMENT ON COLUMN http.request.agent IS 'Агент (при наличии)';
+COMMENT ON COLUMN http.request.profile IS 'Профиль настроек агента (при наличии)';
+COMMENT ON COLUMN http.request.command IS 'Команда (при наличии)';
+COMMENT ON COLUMN http.request.message IS 'Сообщение (при наличии)';
+COMMENT ON COLUMN http.request.error IS 'Текст описания ошибки (при наличии)';
 
 CREATE INDEX ON http.request (state);
 CREATE INDEX ON http.request (method);
 CREATE INDEX ON http.request (resource);
+CREATE INDEX ON http.request (agent);
+CREATE INDEX ON http.request (command);
 
 --------------------------------------------------------------------------------
 

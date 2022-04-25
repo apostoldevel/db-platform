@@ -60,7 +60,7 @@ AS $$
 DECLARE
   vCategory text;
 BEGIN
-  IF pType IN ('M', 'W', 'E', 'D') AND GetLogMode() THEN
+  IF pType IN ('M', 'W', 'E', 'D') /*AND GetLogMode()*/ THEN
 
     IF pObject IS NOT NULL THEN
       SELECT GetClassCode(class) INTO vCategory FROM db.object WHERE id = pObject;
