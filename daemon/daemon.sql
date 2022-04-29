@@ -1017,7 +1017,7 @@ CREATE OR REPLACE FUNCTION daemon.signed_fetch (
   pSignature    text DEFAULT null,
   pAgent        text DEFAULT null,
   pHost         inet DEFAULT null,
-  pTimeWindow   INTERVAL DEFAULT '5 sec'
+  pTimeWindow   INTERVAL DEFAULT '15 sec'
 ) RETURNS       SETOF json
 AS $$
 DECLARE
@@ -1056,7 +1056,7 @@ BEGIN
 
   dtTimeStamp := coalesce(to_timestamp(pNonce / 1000000), Now());
 
-  IF (dtTimeStamp < (Now() + INTERVAL '5 sec') AND (Now() - dtTimeStamp) <= pTimeWindow) THEN
+  IF (dtTimeStamp < (Now() + INTERVAL '15 sec') AND (Now() - dtTimeStamp) <= pTimeWindow) THEN
 
 	SELECT (pSignature = GetSignature(pPath, pNonce, pJson, secret)) INTO passed
 	  FROM db.session
