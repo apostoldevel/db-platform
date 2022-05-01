@@ -14,24 +14,29 @@ CREATE OR REPLACE VIEW Object (Id, Parent,
   Scope, ScopeCode, ScopeName, ScopeDescription
 ) AS
   SELECT o.id, o.parent,
-         o.entity, e.code, e.name,
-         o.class, c.code, c.label,
-         o.type, t.code, t.name, t.description,
+         o.entity, e.code, et.name,
+         o.class, c.code, ct.label,
+         o.type, y.code, ty.name, ty.description,
          ot.label, ot.text,
-         o.state_type, st.code, st.name,
-         o.state, s.code, s.label, o.udate,
+         o.state_type, st.code, stt.name,
+         o.state, s.code, sst.label, o.udate,
          o.owner, w.username, w.name, o.pdate,
-         o.oper, u.username, u.name, o.ldate,
-         o.scope, p.code, p.name, p.description
-    FROM db.object o INNER JOIN Entity          e ON o.entity = e.id
-                     INNER JOIN Class           c ON o.class = c.id
-                     INNER JOIN Type            t ON o.type = t.id
-                     INNER JOIN StateType      st ON o.state_type = st.id
-                     INNER JOIN State           s ON o.state = s.id
-                     INNER JOIN db.scope        p ON o.scope = p.id
-                     INNER JOIN db.user         w ON o.owner = w.id
-                     INNER JOIN db.user         u ON o.oper = u.id
-                      LEFT JOIN db.object_text ot ON ot.object = o.id AND ot.locale = current_locale();
+         o.oper, u.username, w.name, o.ldate,
+         o.scope, sc.code, sc.name, sc.description
+    FROM db.object o  LEFT JOIN db.object_text      ot ON ot.object = o.id AND ot.locale = current_locale()
+                     INNER JOIN db.entity            e ON o.entity = e.id
+                      LEFT JOIN db.entity_text      et ON et.entity = e.id AND et.locale = current_locale()
+                     INNER JOIN db.class_tree        c ON o.class = c.id
+                      LEFT JOIN db.class_text       ct ON ct.class = c.id AND ct.locale = current_locale()
+                     INNER JOIN db.type              y ON o.type = y.id
+                      LEFT JOIN db.type_text        ty ON ty.type = y.id AND ty.locale = current_locale()
+                     INNER JOIN db.state_type       st ON o.state_type = st.id
+                      LEFT JOIN db.state_type_text stt ON stt.type = st.id AND stt.locale = current_locale()
+                     INNER JOIN db.state             s ON o.state = s.id
+                      LEFT JOIN db.state_text      sst ON sst.state = s.id AND sst.locale = current_locale()
+                     INNER JOIN db.user              w ON o.owner = w.id
+                     INNER JOIN db.user              u ON o.oper = u.id
+                     INNER JOIN db.scope            sc ON o.scope = sc.id;
 
 GRANT SELECT ON Object TO administrator;
 

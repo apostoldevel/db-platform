@@ -4825,7 +4825,7 @@ DECLARE
 BEGIN
   pOAuth2 := coalesce(pOAuth2, CreateSystemOAuth2());
   pNew := coalesce(pNew, false);
-  pLogin := coalesce(pLogin, false);
+  pLogin := coalesce(pLogin, true);
 
   IF session_user <> 'kernel' THEN
     uSUID := coalesce(session_userid(), GetUser(session_user));

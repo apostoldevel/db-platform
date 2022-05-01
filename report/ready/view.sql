@@ -57,7 +57,7 @@ CREATE OR REPLACE VIEW ObjectReportReady (Id, Object, Parent,
     FROM db.report_ready t INNER JOIN db.document          d ON t.document = d.id
                            INNER JOIN DocumentAreaTreeId dat ON d.area = dat.id
                             LEFT JOIN db.document_text    dt ON dt.document = d.id AND dt.locale = current_locale()
-                           INNER JOIN db.object            o ON t.document = o.id
+                           INNER JOIN db.object            o ON d.object = o.id
                             LEFT JOIN db.object_text      ot ON ot.object = o.id AND ot.locale = current_locale()
                            INNER JOIN db.reference         r ON t.report = r.id
                             LEFT JOIN db.reference_text   rt ON rt.reference = r.id AND rt.locale = current_locale()

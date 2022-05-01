@@ -1,0 +1,2 @@
+DROP VIEW ObjectAgent CASCADE;
+DROP VIEW AccessJob CASCADE;
