@@ -1017,7 +1017,7 @@ CREATE OR REPLACE FUNCTION daemon.signed_fetch (
   pSignature    text DEFAULT null,
   pAgent        text DEFAULT null,
   pHost         inet DEFAULT null,
-  pTimeWindow   INTERVAL DEFAULT '15 sec'
+  pTimeWindow   INTERVAL DEFAULT '1 min'
 ) RETURNS       SETOF json
 AS $$
 DECLARE
