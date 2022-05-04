@@ -54,6 +54,19 @@ AS
 GRANT SELECT ON AccessObject TO administrator;
 
 --------------------------------------------------------------------------------
+-- AccessObjectId --------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW AccessObjectId
+AS
+  WITH access AS (
+    SELECT * FROM aou(current_userid())
+  )
+  SELECT o.id FROM db.object o INNER JOIN access ac ON o.id = ac.object WHERE o.scope = current_scope();
+
+GRANT SELECT ON AccessObject TO administrator;
+
+--------------------------------------------------------------------------------
 -- VIEW ObjectMembers ----------------------------------------------------------
 --------------------------------------------------------------------------------
 

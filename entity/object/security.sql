@@ -14,7 +14,7 @@ AS $$
       SELECT pUserId AS userid UNION SELECT userid FROM db.member_group WHERE member = pUserId
   )
   SELECT a.object, bit_or(a.deny), bit_or(a.allow), bit_or(a.allow) & ~bit_or(a.deny)
-    FROM db.aou a INNER JOIN db.object    o ON a.object = o.id AND o.scope = current_scope()
+    FROM db.aou a INNER JOIN db.object    o ON a.object = o.id
                   INNER JOIN member_group m ON a.userid = m.userid
    GROUP BY a.object;
 $$ LANGUAGE SQL
