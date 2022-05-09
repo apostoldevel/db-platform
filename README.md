@@ -12,7 +12,7 @@
 
 **Платформа** построена на базе фреймворка [Апостол](https://github.com/ufocomp/apostol), имеет модульную конструкцию и включает в себя встроенную поддержку СУБД PostgreSQL.
 
-Подробное описание доступно в [WiKi](https://github.com/apostoldevel/db-platform/wiki).
+Подробное описание доступно в [Wiki](https://github.com/apostoldevel/db-platform/wiki).
 
 УСТАНОВКА
 -
