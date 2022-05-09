@@ -12,22 +12,7 @@
 
 **Платформа** построена на базе фреймворка [Апостол](https://github.com/ufocomp/apostol), имеет модульную конструкцию и включает в себя встроенную поддержку СУБД PostgreSQL.
 
-Платформа состоит из следующих модулей (частей):
-
-- [Сервера авторизации](https://github.com/ufocomp/module-AuthServer) (OAuth 2.0);
-- [Сервера приложений](https://github.com/ufocomp/module-AppServer) (REST API);
-- [Сервера сообщений](https://github.com/ufocomp/process-MessageServer) (SMTP/FCM/API);
-- [Сервера потоковых данных](https://github.com/ufocomp/process-StreamServer) (UDP);
-- [Веб-сервера](https://github.com/ufocomp/module-WebServer) (HTTP);
-- [WebSocket API](https://github.com/ufocomp/module-WebSocketAPI) (WebSocket).
-
-Платформа устанавливается на сервер из [исходных кодов](https://github.com/ufocomp/apostol-crm) в виде системной службы под операционную систему Linux.
-
-[База данных](https://github.com/ufocomp/db-platform) платформы написана на языке программирования PL/pgSQL.
-
-**Конфигурация** написана на языке программирования PL/pgSQL, используется для разработки бизнес-логики и RESTful API.
-
-Конфигурация базируется на API платформы и дополняет её функциями необходимыми для решения задач конкретного проекта.
+Подробное описание доступно в [WiKi](https://github.com/apostoldevel/db-platform/wiki).
 
 УСТАНОВКА
 -
