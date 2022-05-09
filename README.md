@@ -25,8 +25,8 @@
 
 Для того чтобы установить базу данных необходимо выполнить:
 
-1. Прописать наименование базы данных в файле db/sql/sets.conf
-1. Прописать пароли для пользователей СУБД [libpq-pgpass](https://postgrespro.ru/docs/postgrespro/13/libpq-pgpass):
+1. Прописать наименование базы данных в файле `db/sql/sets.conf`;
+1. Прописать пароли для пользователей СУБД [libpq-pgpass](https://postgrespro.ru/docs/postgrespro/14/libpq-pgpass):
    ~~~
    $ sudo -iu postgres -H vim .pgpass
    ~~~
@@ -35,12 +35,11 @@
    *:*:*:admin:admin
    *:*:*:daemon:daemon
    ~~~
-1. Указать в файле настроек /etc/postgresql/{version}/main/postgresql.conf:
-   Пути поиска схемы kernel:
+1. Указать в файле настроек `/etc/postgresql/{version}/main/postgresql.conf` пути поиска схемы kernel:
    ~~~
    search_path = '"$user", kernel, public'	# schema names
    ~~~
-1. Указать в файле настроек /etc/postgresql/{version}/main/pg_hba.conf:
+1. Указать в файле настроек `/etc/postgresql/{version}/main/pg_hba.conf`:
    ~~~
    # TYPE  DATABASE        USER            ADDRESS                 METHOD
    local	all		kernel					md5
@@ -54,12 +53,7 @@
 1. Выполнить:
    ~~~
    $ cd db/
-   $ ./install.sh --make
+   $ ./runme.sh --make
    ~~~
 
 ###### Параметр `--make` необходим для установки базы данных в первый раз. Далее установочный скрипт можно запускать или без параметров или с параметром `--install`.
-
-ДОКУМЕНТАЦИЯ
--
-
-[Подробная документация доступа по этой ссылке](https://github.com/ufocomp/db-platform/wiki)
