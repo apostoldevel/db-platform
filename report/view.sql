@@ -88,7 +88,7 @@ CREATE OR REPLACE VIEW ObjectReport (Id, Object, Parent,
                       LEFT JOIN db.reference_text rtrt ON rtrt.reference = rtr.id AND rtrt.locale = current_locale()
                      INNER JOIN db.reference        rf ON t.form = rf.id
                       LEFT JOIN db.reference_text  rft ON rft.reference = rf.id AND rft.locale = current_locale()
-                     INNER JOIN db.class_tree        b ON o.class = b.id
+                      LEFT JOIN db.class_tree        b ON t.binding = b.id
                       LEFT JOIN db.class_text       bt ON bt.class = b.id AND bt.locale = current_locale();
 
 GRANT SELECT ON ObjectReport TO administrator;
