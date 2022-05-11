@@ -2,12 +2,12 @@
 -- Document --------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW Document (Id, Object, Entity, Class, Type, Area, Description,
-  AreaCode, AreaName, AreaDescription,
+CREATE OR REPLACE VIEW Document (Id, Object, Entity, Class, Type, Description,
+  Area, AreaCode, AreaName, AreaDescription,
   Scope, ScopeCode, ScopeName, ScopeDescription
 ) AS
-  SELECT d.id, d.object, d.entity, d.class, d.type, d.area, dt.description,
-         a.code, a.name, a.description,
+  SELECT d.id, d.object, d.entity, d.class, d.type, dt.description,
+         d.area, a.code, a.name, a.description,
          d.scope, s.code, s.name, s.description
     FROM db.document d INNER JOIN db.area           a ON d.area = a.id
                        INNER JOIN db.scope          s ON d.scope = s.id
