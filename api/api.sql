@@ -309,9 +309,10 @@ BEGIN
     vSelect := vSelect || E'\nOFFSET ' || pOffSet;
   END IF;
 
-  --PERFORM WriteToEventLog('D', 9001, 'sql', vSelect);
-
-  --RAISE NOTICE '%', vSelect;
+  IF GetDebugMode() THEN
+    PERFORM WriteToEventLog('D', 9001, 'sql', vSelect);
+    RAISE NOTICE '%', vSelect;
+  END IF;
 
   RETURN vSelect;
 END;
