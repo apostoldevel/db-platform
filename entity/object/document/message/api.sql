@@ -338,7 +338,6 @@ AS $$
 DECLARE
   uMessageId	uuid;
 
-  vCharSet      text;
   vName			text;
   vPhone        text;
   bVerified		bool;
@@ -348,8 +347,6 @@ BEGIN
 	SELECT secret INTO vOAuthSecret FROM oauth2.audience WHERE code = session_username();
 	PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
   END IF;
-
-  vCharSet := coalesce(nullif(pg_client_encoding(), 'UTF8'), 'utf-8');
 
   SELECT name, phone, phone_verified, locale INTO vName, vPhone, bVerified
 	FROM db.user u INNER JOIN db.profile p ON u.id = p.userid AND p.scope = current_scope()

@@ -367,22 +367,26 @@ CREATE OR REPLACE FUNCTION SendSMS (
 ) RETURNS       uuid
 AS $$
 DECLARE
+  profile		text;
+  address		text;
+  subject		text;
+
+  content		jsonb;
+
   uMessageId    uuid;
 
-  vCharSet      text;
   vPhone        text;
-  vContent      text;
-
-  message       xml;
 BEGIN
-  vCharSet := coalesce(nullif(pg_client_encoding(), 'UTF8'), 'utf-8');
-
   SELECT phone INTO vPhone FROM db.user WHERE id = pUserId;
 
   IF vPhone IS NOT NULL THEN
-    message := xmlelement(name "soap12:Envelope", xmlattributes('http://www.w3.org/2001/XMLSchema-instance' AS "xmlns:xsi", 'http://www.w3.org/2001/XMLSchema' AS "xmlns:xsd", 'http://www.w3.org/2003/05/soap-envelope' AS "xmlns:soap12"), xmlelement(name "soap12:Body", xmlelement(name "SendMessage", xmlattributes('http://mcommunicator.ru/M2M' AS xmlns), xmlelement(name "msid", vPhone), xmlelement(name "message", pMessage), xmlelement(name "naming", pProfile))));
-    vContent := format('<?xml version="1.0" encoding="%s"?>', vCharSet) || xmlserialize(DOCUMENT message AS text);
-    uMessageId := SendM2M(pParent, pProfile, vPhone, 'SendMessage', vContent, pMessage);
+    profile := 'mts';
+    address := '/messages';
+    subject := vPhone;
+    content := json_build_object('messages', jsonb_build_array(json_build_object('content', json_build_object('short_text', pMessage), 'to', jsonb_build_array(json_build_object('msisdn', vPhone)))), 'options', json_build_object('from',  json_build_object('sms_address', pProfile)));
+
+    uMessageId := SendMessage(pParent, GetAgent('mts.agent'), profile, address, subject, content::text, null, pMessage);
+
     PERFORM WriteToEventLog('M', 1001, 'sms', format('SMS передано на отправку: %s', uMessageId), uMessageId);
   ELSE
     PERFORM WriteToEventLog('E', 3001, 'sms', 'Не удалось отправить SMS, телефон не установлен.', pParent);
@@ -621,11 +625,13 @@ AS $$
 DECLARE
   uTicket         uuid;
   uMessageId      uuid;
+  vProfile        text;
   vSecurityAnswer text;
 BEGIN
+  vProfile := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Name', pUserId);
   vSecurityAnswer := random_between(100000, 999999)::text;
 
-  uMessageId := SendSMS(null, 'main', format('Код для восстановления пароля: %s. Никому его не сообщайте!', vSecurityAnswer), pUserId);
+  uMessageId := SendSMS(null, vProfile, format('Код для восстановления пароля: %s. Никому его не сообщайте!', vSecurityAnswer), pUserId);
   IF uMessageId IS NOT NULL THEN
     PERFORM CreateNotice(pUserId, null, format('Код для восстановления пароля: %s.', vSecurityAnswer));
     uTicket := NewRecoveryTicket(pUserId, vSecurityAnswer, Now(), Now() + INTERVAL '5 min');
