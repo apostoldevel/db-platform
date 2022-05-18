@@ -59,7 +59,7 @@ DECLARE
   uId       uuid;
 BEGIN
   INSERT INTO db.object (id, parent, type)
-  VALUES (GetVar('object', 'id')::uuid, pParent, pType)
+  VALUES (GetVar('object', 'id')::uuid, CheckNull(pParent), pType)
   RETURNING id INTO uId;
 
   IF pLocale IS NULL THEN
