@@ -21,6 +21,3 @@
 
 \echo [M] call search.sql
 \ir search.sql
-
-\echo [M] call report.sql
-\ir report.sql

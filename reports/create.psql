@@ -1,3 +1,4 @@
 \echo [M] call routine.sql
 \ir routine.sql
 
+\ir './object/report.sql'
