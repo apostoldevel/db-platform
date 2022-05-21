@@ -1438,3 +1438,57 @@ END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- PRIORITY --------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW api.priority
+AS
+  SELECT * FROM Priority;
+
+GRANT SELECT ON api.priority TO administrator;
+
+--------------------------------------------------------------------------------
+-- api.get_priority ------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Возвращает приоритет.
+ * @param {uuid} pId - Идентификатор
+ * @return {SETOF api.priority} - Запись
+ */
+CREATE OR REPLACE FUNCTION api.get_priority (
+  pId         uuid
+) RETURNS     SETOF api.priority
+AS $$
+  SELECT * FROM api.priority WHERE id = pId
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.list_priority -----------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Возвращает список приоритетов.
+ * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
+ * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
+ * @param {integer} pLimit - Лимит по количеству строк
+ * @param {integer} pOffSet - Пропустить указанное число строк
+ * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
+ * @return {SETOF api.priority}
+ */
+CREATE OR REPLACE FUNCTION api.list_priority (
+  pSearch	jsonb DEFAULT null,
+  pFilter	jsonb DEFAULT null,
+  pLimit	integer DEFAULT null,
+  pOffSet	integer DEFAULT null,
+  pOrderBy	jsonb DEFAULT null
+) RETURNS	SETOF api.priority
+AS $$
+BEGIN
+  RETURN QUERY EXECUTE api.sql('api', 'priority', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;

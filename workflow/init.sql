@@ -253,8 +253,9 @@ CREATE OR REPLACE FUNCTION InitWorkFlow()
 RETURNS     void
 AS $$
 DECLARE
-  uAction   uuid;
   uLocale   uuid;
+  uAction   uuid;
+  uPriority uuid;
 BEGIN
   INSERT INTO db.state_type (id, code) VALUES ('00000000-0000-4000-b001-000000000001', 'created');
   INSERT INTO db.state_type_text (type, name, locale) VALUES ('00000000-0000-4000-b001-000000000001', 'Created', GetLocale('en'));
@@ -436,6 +437,20 @@ BEGIN
 
   uAction := AddAction('00000000-0000-4000-b003-000000000048', 'agree', 'Согласовать');
   PERFORM EditActionText(uAction, 'Agree', null, uLocale);
+
+  --
+
+  uPriority := AddPriority('00000000-0000-4000-b004-000000000000', 'low', 'Низкий');
+  PERFORM EditPriorityText(uPriority, 'Low', null, uLocale);
+
+  uPriority := AddPriority('00000000-0000-4000-b004-000000000001', 'medium', 'Средний');
+  PERFORM EditPriorityText(uPriority, 'Medium', null, uLocale);
+
+  uPriority := AddPriority('00000000-0000-4000-b004-000000000002', 'high', 'Высокий');
+  PERFORM EditPriorityText(uPriority, 'High', null, uLocale);
+
+  uPriority := AddPriority('00000000-0000-4000-b004-000000000003', 'critical', 'Критический');
+  PERFORM EditPriorityText(uPriority, 'Critical', null, uLocale);
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

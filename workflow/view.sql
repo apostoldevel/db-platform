@@ -206,3 +206,14 @@ AS
                   INNER JOIN db.user u ON a.userid = u.id;
 
 GRANT SELECT ON AMU TO administrator;
+
+--------------------------------------------------------------------------------
+-- VIEW Priority ---------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW Priority
+AS
+  SELECT p.id, p.code, t.name, t.description
+    FROM db.priority p LEFT JOIN db.priority_text t ON t.priority = p.id AND t.locale = current_locale();
+
+GRANT SELECT ON Action TO administrator;

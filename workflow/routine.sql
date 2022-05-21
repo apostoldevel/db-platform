@@ -1321,6 +1321,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetAction (
+  pId		    uuid,
   pCode		    text,
   pName		    text,
   pDescription	text DEFAULT null
@@ -1329,7 +1330,7 @@ AS $$
 DECLARE
   uId		    uuid;
 BEGIN
-  uId := GetAction(pCode);
+  uId := coalesce(pId, GetAction(pCode));
 
   IF uId IS NULL THEN
 	uId := AddAction(gen_kernel_uuid('b'), pCode, pName, pDescription);
@@ -1928,5 +1929,189 @@ BEGIN
   DELETE FROM db.event WHERE id = pId;
 END;
 $$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- NewPriorityText -------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION NewPriorityText (
+  pPriority     uuid,
+  pName         text,
+  pDescription  text DEFAULT null,
+  pLocale       uuid DEFAULT current_locale()
+) RETURNS       void
+AS $$
+BEGIN
+  INSERT INTO db.priority_text (priority, locale, name, description)
+  VALUES (pPriority, pLocale, pName, pDescription);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- EditPriorityText ------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION EditPriorityText (
+  pPriority     uuid,
+  pName         text,
+  pDescription  text DEFAULT null,
+  pLocale		uuid DEFAULT null
+) RETURNS       void
+AS $$
+BEGIN
+  UPDATE db.priority_text
+     SET name = coalesce(pName, name),
+         description = CheckNull(coalesce(pDescription, description, ''))
+   WHERE priority = pPriority AND locale = pLocale;
+
+  IF NOT FOUND THEN
+    PERFORM NewPriorityText(pPriority, pName, pDescription, pLocale);
+  END IF;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION AddPriority --------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION AddPriority (
+  pId		    uuid,
+  pCode		    text,
+  pName		    text,
+  pDescription	text DEFAULT null
+) RETURNS	    uuid
+AS $$
+DECLARE
+  l             record;
+  uId		    uuid;
+BEGIN
+  INSERT INTO db.priority (id, code)
+  VALUES (pId, pCode)
+  RETURNING id INTO uId;
+
+  FOR l IN SELECT id FROM db.locale
+  LOOP
+	PERFORM NewPriorityText(uId, pName, pDescription, l.id);
+  END LOOP;
+
+  RETURN uId;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION EditPriority -------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION EditPriority (
+  pId		    uuid,
+  pCode		    text DEFAULT null,
+  pName		    text DEFAULT null,
+  pDescription	text DEFAULT null
+) RETURNS	    boolean
+AS $$
+BEGIN
+  UPDATE db.priority
+     SET code = coalesce(pCode, code)
+   WHERE id = pId;
+
+  IF FOUND THEN
+    PERFORM EditPriorityText(pId, pName, pDescription, current_locale());
+    RETURN true;
+  END IF;
+
+  RETURN false;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION DeletePriority -----------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION DeletePriority (
+  pId		uuid
+) RETURNS 	boolean
+AS $$
+BEGIN
+  DELETE FROM db.priority WHERE id = pId;
+  RETURN FOUND;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION SetPriority --------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION SetPriority (
+  pId		    uuid,
+  pCode		    text,
+  pName		    text,
+  pDescription	text DEFAULT null
+) RETURNS	    uuid
+AS $$
+DECLARE
+  uId		    uuid;
+BEGIN
+  uId := coalesce(pId, GetPriority(pCode));
+
+  IF uId IS NULL THEN
+	uId := AddPriority(gen_kernel_uuid('b'), pCode, pName, pDescription);
+  ELSE
+    PERFORM EditPriority(uId, pCode, pName, pDescription);
+  END IF;
+
+  RETURN uId;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION GetPriority --------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetPriority (
+  pCode		text
+) RETURNS 	uuid
+AS $$
+  SELECT id FROM db.priority WHERE code = pCode;
+$$ LANGUAGE sql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION GetPriorityCode ----------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetPriorityCode (
+  pId		uuid
+) RETURNS 	text
+AS $$
+  SELECT code FROM db.priority WHERE id = pId;
+$$ LANGUAGE sql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION GetPriorityName ----------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetPriorityName (
+  pId		uuid
+) RETURNS   text
+AS $$
+  SELECT name FROM db.priority_text WHERE priority = pId AND locale = current_locale();
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

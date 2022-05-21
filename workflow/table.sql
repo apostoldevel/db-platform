@@ -554,7 +554,7 @@ CREATE TABLE db.transition (
     id			uuid PRIMARY KEY DEFAULT gen_kernel_uuid('b'),
     state		uuid REFERENCES db.state(id),
     method		uuid NOT NULL UNIQUE REFERENCES db.method(id),
-    newstate    uuid NOT NULL REFERENCES db.state(id)
+    newState    uuid NOT NULL REFERENCES db.state(id)
 );
 
 COMMENT ON TABLE db.transition IS 'Переходы из одного состояния в другое.';
@@ -562,7 +562,7 @@ COMMENT ON TABLE db.transition IS 'Переходы из одного состо
 COMMENT ON COLUMN db.transition.id IS 'Идентификатор';
 COMMENT ON COLUMN db.transition.state IS 'Состояние (текущее)';
 COMMENT ON COLUMN db.transition.method IS 'Совершаемая операция (действие)';
-COMMENT ON COLUMN db.transition.newstate IS 'Состояние (новое)';
+COMMENT ON COLUMN db.transition.newState IS 'Состояние (новое)';
 
 CREATE INDEX ON db.transition (state);
 CREATE INDEX ON db.transition (method);
@@ -660,3 +660,45 @@ COMMENT ON COLUMN db.event_text.label IS 'Метка';
 
 CREATE INDEX ON db.event_text (event);
 CREATE INDEX ON db.event_text (locale);
+
+--------------------------------------------------------------------------------
+-- PRIORITY --------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE TABLE db.priority (
+    id			uuid PRIMARY KEY DEFAULT gen_kernel_uuid('b'),
+    code		text NOT NULL
+);
+
+COMMENT ON TABLE db.priority IS 'Приоритет.';
+
+COMMENT ON COLUMN db.priority.id IS 'Идентификатор';
+COMMENT ON COLUMN db.priority.code IS 'Код';
+
+CREATE UNIQUE INDEX ON db.priority (code);
+
+--------------------------------------------------------------------------------
+-- db.priority_text ------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE TABLE db.priority_text (
+    priority    uuid NOT NULL REFERENCES db.priority(id) ON DELETE CASCADE,
+    locale      uuid NOT NULL REFERENCES db.locale(id) ON DELETE RESTRICT,
+    name        text NOT NULL,
+    description text,
+    PRIMARY KEY (priority, locale)
+);
+
+--------------------------------------------------------------------------------
+
+COMMENT ON TABLE db.priority_text IS 'Текст приоритета.';
+
+COMMENT ON COLUMN db.priority_text.priority IS 'Идентификатор приоритета';
+COMMENT ON COLUMN db.priority_text.locale IS 'Идентификатор локали';
+COMMENT ON COLUMN db.priority_text.name IS 'Наименование';
+COMMENT ON COLUMN db.priority_text.description IS 'Описание';
+
+--------------------------------------------------------------------------------
+
+CREATE INDEX ON db.priority_text (priority);
+CREATE INDEX ON db.priority_text (locale);

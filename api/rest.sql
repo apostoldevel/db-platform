@@ -208,6 +208,16 @@ BEGIN
       END LOOP;
     END LOOP;
 
+  WHEN '/priority' THEN
+
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(fields jsonb)
+    LOOP
+      FOR e IN EXECUTE format('SELECT %s FROM api.priority', JsonbToFields(r.fields, GetColumns('priority', 'api')))
+      LOOP
+        RETURN NEXT row_to_json(e);
+      END LOOP;
+    END LOOP;
+
   ELSE
     PERFORM RouteNotFound(pPath);
   END CASE;

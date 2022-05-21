@@ -49,7 +49,8 @@ CREATE OR REPLACE FUNCTION CreateDocument (
   pLabel	    text DEFAULT null,
   pDescription  text DEFAULT null,
   pText         text DEFAULT null,
-  pLocale       uuid DEFAULT null
+  pLocale       uuid DEFAULT null,
+  pPriority     uuid DEFAULT null
 ) RETURNS       uuid
 AS $$
 DECLARE
@@ -64,8 +65,8 @@ BEGIN
   uEntity := GetObjectEntity(uObject);
   uClass := GetObjectClass(uObject);
 
-  INSERT INTO db.document (id, object, entity, class, type, area)
-  VALUES (uObject, uObject, uEntity, uClass, pType, current_area())
+  INSERT INTO db.document (id, object, entity, class, type, priority, area)
+  VALUES (uObject, uObject, uEntity, uClass, pType, pPriority, current_area())
   RETURNING id INTO uObject;
 
   IF pLocale IS NULL THEN
@@ -94,7 +95,8 @@ CREATE OR REPLACE FUNCTION EditDocument (
   pLabel        text DEFAULT null,
   pDescription  text DEFAULT null,
   pText			text DEFAULT null,
-  pLocale		uuid DEFAULT null
+  pLocale       uuid DEFAULT null,
+  pPriority     uuid DEFAULT null
 ) RETURNS       void
 AS $$
 DECLARE
@@ -103,7 +105,8 @@ BEGIN
   PERFORM EditObject(pId, pParent, pType, pLabel, coalesce(pText, pDescription), pLocale);
 
   UPDATE db.document
-     SET type = coalesce(pType, type)
+     SET type = coalesce(pType, type),
+         priority = coalesce(pPriority, priority)
    WHERE id = pId;
 
   IF pLocale IS NULL THEN

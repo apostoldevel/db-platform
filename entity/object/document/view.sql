@@ -2,16 +2,34 @@
 -- Document --------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW Document (Id, Object, Entity, Class, Type, Description,
+CREATE OR REPLACE VIEW Document (Id, Object,
+  Entity, EntityCode, EntityName,
+  Class, ClassCode, ClassLabel,
+  Type, TypeCode, TypeName, TypeDescription,
+  Description,
+  Priority, PriorityCode, PriorityName, PriorityDescription,
   Area, AreaCode, AreaName, AreaDescription,
   Scope, ScopeCode, ScopeName, ScopeDescription
 ) AS
-  SELECT d.id, d.object, d.entity, d.class, d.type, dt.description,
+  SELECT d.id, d.object,
+         d.entity, e.code, et.name,
+         d.class, c.code, ct.label,
+         d.type, y.code, ty.name, ty.description,
+         dt.description,
+         d.priority, p.code, pt.name, pt.description,
          d.area, a.code, a.name, a.description,
          d.scope, s.code, s.name, s.description
-    FROM db.document d INNER JOIN db.area           a ON d.area = a.id
-                       INNER JOIN db.scope          s ON d.scope = s.id
-                        LEFT JOIN db.document_text dt ON d.id = dt.document AND dt.locale = current_locale();
+    FROM db.document d INNER JOIN db.entity            e ON d.entity = e.id
+                        LEFT JOIN db.entity_text      et ON et.entity = e.id AND et.locale = current_locale()
+                       INNER JOIN db.class_tree        c ON d.class = c.id
+                        LEFT JOIN db.class_text       ct ON ct.class = c.id AND ct.locale = current_locale()
+                       INNER JOIN db.type              y ON d.type = y.id
+                        LEFT JOIN db.type_text        ty ON ty.type = y.id AND ty.locale = current_locale()
+                       INNER JOIN db.priority          p ON d.priority = p.id
+                        LEFT JOIN db.priority_text    pt ON pt.priority = p.id AND pt.locale = current_locale()
+                        LEFT JOIN db.document_text    dt ON dt.document = d.id AND dt.locale = current_locale()
+                       INNER JOIN db.area              a ON d.area = a.id
+                       INNER JOIN db.scope             s ON d.scope = s.id;
 
 GRANT SELECT ON Document TO administrator;
 
@@ -29,7 +47,7 @@ AS
     SELECT a.id, a.parent
       FROM db.area a INNER JOIN area_tree t ON a.parent = t.id
      WHERE a.type IS DISTINCT FROM '00000000-0000-4002-a001-000000000000'::uuid AND a.scope IS NOT DISTINCT FROM current_scope()
-  ) SELECT a.* FROM Area a INNER JOIN area_tree t USING (id);
+  ) SELECT a.* FROM db.area a INNER JOIN area_tree t USING (id);
 
 GRANT SELECT ON DocumentAreaTree TO administrator;
 
@@ -55,17 +73,34 @@ GRANT SELECT ON DocumentAreaTreeId TO administrator;
 -- CurrentDocument -------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW CurrentDocument (Id, Object, Entity, Class, Type, Area, Description,
-  AreaCode, AreaName, AreaDescription,
+CREATE OR REPLACE VIEW CurrentDocument (Id, Object,
+  Entity, EntityCode, EntityName,
+  Class, ClassCode, ClassLabel,
+  Type, TypeCode, TypeName, TypeDescription,
+  Description,
+  Priority, PriorityCode, PriorityName, PriorityDescription,
+  Area, AreaCode, AreaName, AreaDescription,
   Scope, ScopeCode, ScopeName, ScopeDescription
 ) AS
-  SELECT d.id, d.object, d.entity, d.class, d.type, d.area, dt.description,
-         a.code, a.name, a.description,
-         a.scope, s.code, s.name, s.description
-    FROM db.document d INNER JOIN DocumentAreaTreeId dat ON d.area = dat.id
-                       INNER JOIN db.area              a ON d.area = a.id
-                       INNER JOIN db.scope             s ON s.id = a.scope
-                        LEFT JOIN db.document_text    dt ON d.id = dt.document AND dt.locale = current_locale();
+  SELECT d.id, d.object,
+         d.entity, e.code, et.name,
+         d.class, c.code, ct.label,
+         d.type, y.code, ty.name, ty.description,
+         dt.description,
+         d.priority, p.code, pt.name, pt.description,
+         d.area, a.code, a.name, a.description,
+         d.scope, sc.code, sc.name, sc.description
+    FROM db.document d INNER JOIN DocumentAreaTree     a ON d.area = a.id
+                       INNER JOIN db.entity            e ON d.entity = e.id
+                        LEFT JOIN db.entity_text      et ON et.entity = e.id AND et.locale = current_locale()
+                       INNER JOIN db.class_tree        c ON d.class = c.id
+                        LEFT JOIN db.class_text       ct ON ct.class = c.id AND ct.locale = current_locale()
+                       INNER JOIN db.type              y ON d.type = y.id
+                        LEFT JOIN db.type_text        ty ON ty.type = y.id AND ty.locale = current_locale()
+                       INNER JOIN db.priority          p ON d.priority = p.id
+                        LEFT JOIN db.priority_text    pt ON pt.priority = p.id AND pt.locale = current_locale()
+                        LEFT JOIN db.document_text    dt ON dt.document = d.id AND dt.locale = current_locale()
+                       INNER JOIN db.scope            sc ON d.scope = sc.id;
 
 GRANT SELECT ON CurrentDocument TO administrator;
 
@@ -100,8 +135,7 @@ CREATE OR REPLACE VIEW AccessDocument
 AS
   WITH access AS (
     SELECT * FROM AccessDocumentUser(current_userid())
-  )
-  SELECT d.* FROM CurrentDocument d INNER JOIN access ac ON d.id = ac.object;
+  ) SELECT d.* FROM db.document d INNER JOIN access ac ON d.id = ac.object;
 
 GRANT SELECT ON AccessDocument TO administrator;
 
@@ -116,23 +150,43 @@ CREATE OR REPLACE VIEW ObjectDocument (Id, Object, Parent,
   Label, Description, Text,
   StateType, StateTypeCode, StateTypeName,
   State, StateCode, StateLabel, LastUpdate,
+  Priority, PriorityCode, PriorityName, PriorityDescription,
   Owner, OwnerCode, OwnerName, Created,
   Oper, OperCode, OperName, OperDate,
   Area, AreaCode, AreaName, AreaDescription,
   Scope, ScopeCode, ScopeName, ScopeDescription
 )
 AS
-  SELECT d.id, d.object, o.parent,
-         o.entity, o.entitycode, o.entityname,
-         o.class, o.classcode, o.classlabel,
-         o.type, o.typecode, o.typename, o.typedescription,
-         o.label, d.description, o.text,
-         o.statetype, o.statetypecode, o.statetypename,
-         o.state, o.statecode, o.statelabel, o.lastupdate,
-         o.owner, o.ownercode, o.ownername, o.created,
-         o.oper, o.opercode, o.opername, o.operdate,
-         d.area, d.areacode, d.areaname, d.areadescription,
-         d.scope, d.scopecode, d.scopename, d.scopedescription
-    FROM CurrentDocument d INNER JOIN Object o ON o.id = d.object;
+  SELECT t.id, t.object, o.parent,
+         o.entity, e.code, et.name,
+         o.class, c.code, ct.label,
+         o.type, y.code, ty.name, ty.description,
+         ot.label, dt.description, ot.text,
+         o.state_type, st.code, stt.name,
+         o.state, s.code, sst.label, o.udate,
+         t.priority, p.code, pt.name, pt.description,
+         o.owner, w.username, w.name, o.pdate,
+         o.oper, u.username, w.name, o.ldate,
+         t.area, a.code, a.name, a.description,
+         o.scope, sc.code, sc.name, sc.description
+    FROM AccessDocument t INNER JOIN DocumentAreaTree     a ON t.area = a.id
+                           LEFT JOIN db.document_text    dt ON dt.document = t.id AND dt.locale = current_locale()
+                          INNER JOIN db.entity            e ON t.entity = e.id
+                           LEFT JOIN db.entity_text      et ON et.entity = e.id AND et.locale = current_locale()
+                          INNER JOIN db.class_tree        c ON t.class = c.id
+                           LEFT JOIN db.class_text       ct ON ct.class = c.id AND ct.locale = current_locale()
+                          INNER JOIN db.type              y ON t.type = y.id
+                           LEFT JOIN db.type_text        ty ON ty.type = y.id AND ty.locale = current_locale()
+                          INNER JOIN db.priority          p ON t.priority = p.id
+                           LEFT JOIN db.priority_text    pt ON pt.priority = p.id AND pt.locale = current_locale()
+                          INNER JOIN db.object            o ON t.object = o.id
+                           LEFT JOIN db.object_text      ot ON ot.object = o.id AND ot.locale = current_locale()
+                          INNER JOIN db.state_type       st ON o.state_type = st.id
+                           LEFT JOIN db.state_type_text stt ON stt.type = st.id AND stt.locale = current_locale()
+                          INNER JOIN db.state             s ON o.state = s.id
+                           LEFT JOIN db.state_text      sst ON sst.state = s.id AND sst.locale = current_locale()
+                          INNER JOIN db.user              w ON o.owner = w.id
+                          INNER JOIN db.user              u ON o.oper = u.id
+                          INNER JOIN db.scope            sc ON o.scope = sc.id;
 
 GRANT SELECT ON ObjectDocument TO administrator;
