@@ -381,11 +381,11 @@ BEGIN
 
   IF vPhone IS NOT NULL THEN
     profile := 'mts';
-    address := vPhone;
-    subject := pMessage;
+    address := '/messages';
+    subject := vPhone;
     content := json_build_object('messages', jsonb_build_array(json_build_object('content', json_build_object('short_text', pMessage), 'to', jsonb_build_array(json_build_object('msisdn', vPhone)))), 'options', json_build_object('from',  json_build_object('sms_address', pProfile)));
 
-    uMessageId := SendMessage(pParent, GetAgent('mts.agent'), profile, address, subject, content::text);
+    uMessageId := SendMessage(pParent, GetAgent('mts.agent'), profile, address, subject, content::text, null, pMessage);
 
     PERFORM WriteToEventLog('M', 1001, 'sms', format('SMS передано на отправку: %s', uMessageId), uMessageId);
   ELSE
