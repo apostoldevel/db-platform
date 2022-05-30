@@ -539,9 +539,6 @@ BEGIN
   LOOP
     EXECUTE replication.drop_trigger(r.schema, r.name);
   END LOOP;
-
-  TRUNCATE replication.pkey;
-  TRUNCATE replication.list;
 EXCEPTION
 WHEN others THEN
   GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;

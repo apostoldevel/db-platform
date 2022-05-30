@@ -1081,6 +1081,73 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- NormalizeFileName -----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION NormalizeFileName (
+  pName		text,
+  pLink     boolean DEFAULT false
+) RETURNS	text
+AS $$
+BEGIN
+  IF StrPos(pName, '/') != 0 THEN
+	RAISE EXCEPTION 'ERR-40000: Invalid file name value: %', pName;
+  END IF;
+
+  IF pLink THEN
+    RETURN URLEncode(pName);
+  END IF;
+
+  RETURN pName;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- NormalizeFilePath -----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION NormalizeFilePath (
+  pPath		text,
+  pLink     boolean DEFAULT false
+) RETURNS	text
+AS $$
+DECLARE
+  i         int;
+  arPath    text[];
+BEGIN
+  IF SubStr(pPath, 1, 1) = '.' OR StrPos(pPath, '..') != 0 THEN
+	RAISE EXCEPTION 'ERR-40000: Invalid file path value: %', pPath;
+  END IF;
+
+  IF NULLIF(NULLIF(pPath, ''), '~/') IS NULL THEN
+    RETURN '/';
+  END IF;
+
+  arPath := path_to_array(pPath);
+  IF arPath IS NULL THEN
+    RETURN '/';
+  END IF;
+
+  pPath := '/';
+
+  FOR i IN 1..array_length(arPath, 1)
+  LOOP
+    IF pLink THEN
+	  pPath := concat(pPath, URLEncode(arPath[i]), '/');
+	ELSE
+	  pPath := concat(pPath, arPath[i], '/');
+    END IF;
+  END LOOP;
+
+  RETURN pPath;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- NewObjectFile ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -1093,12 +1160,13 @@ CREATE OR REPLACE FUNCTION NewObjectFile (
   pData		bytea DEFAULT null,
   pHash		text DEFAULT null,
   pText		text DEFAULT null,
-  pType		text DEFAULT null
+  pType		text DEFAULT null,
+  pCallBack text DEFAULT null
 ) RETURNS	void
 AS $$
 BEGIN
-  INSERT INTO db.object_file (object, file_name, file_path, file_size, file_date, file_data, file_hash, file_text, file_type)
-  VALUES (pObject, pName, pPath, pSize, pDate, pData, pHash, pText, pType);
+  INSERT INTO db.object_file (object, file_name, file_path, file_size, file_date, file_data, file_hash, file_text, file_type, call_back)
+  VALUES (pObject, pName, pPath, pSize, pDate, pData, pHash, pText, pType, pCallBack);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1118,6 +1186,7 @@ CREATE OR REPLACE FUNCTION EditObjectFile (
   pHash		text DEFAULT null,
   pText		text DEFAULT null,
   pType		text DEFAULT null,
+  pCallBack text DEFAULT null,
   pLoad		timestamptz DEFAULT null
 ) RETURNS	void
 AS $$
@@ -1130,10 +1199,11 @@ BEGIN
         file_hash = coalesce(pHash, file_hash),
         file_text = CheckNull(coalesce(pText, file_text, '')),
         file_type = CheckNull(coalesce(pType, file_type, '')),
+        call_back = CheckNull(coalesce(pCallBack, call_back, '')),
         load_date = coalesce(pLoad, load_date)
   WHERE object = pObject
     AND file_name = pName
-    AND file_path = coalesce(pPath, '~/');
+    AND file_path = NormalizeFilePath(pPath);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1150,7 +1220,7 @@ CREATE OR REPLACE FUNCTION DeleteObjectFile (
 ) RETURNS	boolean
 AS $$
 BEGIN
-  DELETE FROM db.object_file WHERE object = pObject AND file_name = pName AND file_path = coalesce(pPath, '~/');
+  DELETE FROM db.object_file WHERE object = pObject AND file_name = pName AND file_path = NormalizeFilePath(pPath);
   RETURN FOUND;
 END;
 $$ LANGUAGE plpgsql
@@ -1185,23 +1255,23 @@ CREATE OR REPLACE FUNCTION SetObjectFile (
   pData		bytea DEFAULT null,
   pHash		text DEFAULT null,
   pText		text DEFAULT null,
-  pType		text DEFAULT null
+  pType		text DEFAULT null,
+  pCallBack text DEFAULT null
 ) RETURNS	int
 AS $$
-DECLARE
-  Size          int;
 BEGIN
   IF coalesce(pSize, 0) >= 0 THEN
-    SELECT file_size INTO Size FROM db.object_file WHERE object = pObject AND file_name = pName;
+    PERFORM FROM db.object_file WHERE object = pObject AND file_name = pName AND file_path = NormalizeFilePath(pPath);
     IF NOT FOUND THEN
-      PERFORM NewObjectFile(pObject, pName, pPath, pSize, pDate, pData, pHash, pText, pType);
+      PERFORM NewObjectFile(pObject, pName, pPath, pSize, pDate, pData, pHash, pText, pType, pCallBack);
     ELSE
-      PERFORM EditObjectFile(pObject, pName, pPath, pSize, pDate, pData, pHash, pText, pType);
+      PERFORM EditObjectFile(pObject, pName, pPath, pSize, pDate, pData, pHash, pText, pType, pCallBack);
     END IF;
   ELSE
-    PERFORM DeleteObjectFile(pObject, pName);
+    PERFORM DeleteObjectFile(pObject, pName, pPath);
   END IF;
-  RETURN Size;
+
+  RETURN pSize;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

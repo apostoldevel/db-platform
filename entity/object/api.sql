@@ -890,7 +890,7 @@ BEGIN
 	PERFORM AccessDenied();
   END IF;
 
-  pPath := coalesce(pPath, '~/');
+  pPath := NormalizeFilePath(pPath);
 
   RETURN QUERY SELECT * FROM api.object_file WHERE object = pId AND path IS NOT DISTINCT FROM pPath AND name = pName;
 END
@@ -918,8 +918,6 @@ BEGIN
   IF NOT CheckObjectAccess(pId, B'001') THEN
 	PERFORM AccessDenied();
   END IF;
-
-  pPath := coalesce(pPath, '~/');
 
   RETURN DeleteObjectFile(pId, pName, pPath);
 END

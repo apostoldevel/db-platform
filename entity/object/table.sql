@@ -556,11 +556,13 @@ CREATE TABLE db.object_file (
     file_name	text NOT NULL,
     file_path	text NOT NULL,
     file_size	integer DEFAULT 0,
-    file_date	timestamptz DEFAULT NULL,
-    file_data	bytea DEFAULT NULL,
-    file_hash	text DEFAULT NULL,
+    file_date	timestamptz,
+    file_data	bytea,
+    file_hash	text,
     file_text	text,
     file_type	text,
+    file_link	text,
+    call_back	text,
     load_date	timestamptz DEFAULT Now() NOT NULL,
     PRIMARY KEY(object, file_name, file_path)
 );
@@ -577,6 +579,8 @@ COMMENT ON COLUMN db.object_file.file_data IS 'Содержимое файла (
 COMMENT ON COLUMN db.object_file.file_hash IS 'Хеш файла';
 COMMENT ON COLUMN db.object_file.file_text IS 'Произвольный текст (описание)';
 COMMENT ON COLUMN db.object_file.file_type IS 'Тип файла в формате MIME';
+COMMENT ON COLUMN db.object_file.file_link IS 'Ссылка на файл';
+COMMENT ON COLUMN db.object_file.call_back IS 'Наименовании функции обратного вызова';
 COMMENT ON COLUMN db.object_file.load_date IS 'Дата загрузки';
 
 CREATE INDEX ON db.object_file (object);
@@ -592,9 +596,37 @@ BEGIN
     NEW.owner := current_userid();
   END IF;
 
-  IF NULLIF(NEW.file_path, '') IS NULL THEN
-    NEW.file_path := '~/';
+  IF NEW.call_back IS NOT NULL THEN
+    PERFORM FROM pg_namespace n INNER JOIN pg_proc p ON n.oid = p.pronamespace WHERE n.nspname = split_part(NEW.call_back, '.', 1) AND p.proname = split_part(NEW.call_back, '.', 2);
+    IF NOT FOUND THEN
+	  RAISE EXCEPTION 'ERR-40000: Not found callback function: %', NEW.call_back;
+    END IF;
   END IF;
+
+  NEW.file_name := NormalizeFileName(NEW.file_name, false);
+  NEW.file_path := NormalizeFilePath(NEW.file_path, false);
+  NEW.file_link := concat('/file/', NEW.object, NormalizeFilePath(NEW.file_path, true), NormalizeFileName(NEW.file_name, true));
+
+  RETURN NEW;
+END
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+
+CREATE TRIGGER t_object_file_insert
+  BEFORE INSERT ON db.object_file
+  FOR EACH ROW
+  EXECUTE PROCEDURE db.ft_object_file_insert();
+
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION db.ft_object_file_name()
+RETURNS trigger AS $$
+BEGIN
+  NEW.file_name := NormalizeFileName(NEW.file_name, false);
+  NEW.file_link := concat('/file/', NEW.object, NormalizeFilePath(NEW.file_path, true), NormalizeFileName(NEW.file_name, true));
 
   RETURN NEW;
 END;
@@ -604,10 +636,57 @@ $$ LANGUAGE plpgsql
 
 --------------------------------------------------------------------------------
 
-CREATE TRIGGER t_object_file
-  BEFORE INSERT ON db.object_file
+CREATE TRIGGER t_object_file_name
+  BEFORE UPDATE ON db.object_file
   FOR EACH ROW
-  EXECUTE PROCEDURE db.ft_object_file_insert();
+  WHEN (OLD.file_name IS DISTINCT FROM NEW.file_name)
+  EXECUTE PROCEDURE db.ft_object_file_name();
+
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION db.ft_object_file_path()
+RETURNS trigger AS $$
+BEGIN
+  NEW.file_path := NormalizeFilePath(NEW.file_path, false);
+  NEW.file_link := concat('/file/', NEW.object, NormalizeFilePath(NEW.file_path, true), NormalizeFileName(NEW.file_name, true));
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+
+CREATE TRIGGER t_object_file_path
+  BEFORE UPDATE ON db.object_file
+  FOR EACH ROW
+  WHEN (OLD.file_path IS DISTINCT FROM NEW.file_path)
+  EXECUTE PROCEDURE db.ft_object_file_path();
+
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION db.ft_object_file_notify()
+RETURNS trigger AS $$
+BEGIN
+  IF (TG_OP = 'DELETE') THEN
+    PERFORM pg_notify('file', json_build_object('operation', TG_OP, 'object', OLD.object, 'name', OLD.file_name, 'path', OLD.file_path)::text);
+  ELSE
+    PERFORM pg_notify('file', json_build_object('operation', TG_OP, 'object', NEW.object, 'name', NEW.file_name, 'path', NEW.file_path)::text);
+  END IF;
+
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+
+CREATE TRIGGER t_object_file_notify
+  AFTER INSERT OR UPDATE OR DELETE ON db.object_file
+  FOR EACH ROW
+  EXECUTE PROCEDURE db.ft_object_file_notify();
 
 --------------------------------------------------------------------------------
 -- db.object_data --------------------------------------------------------------

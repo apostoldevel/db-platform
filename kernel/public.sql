@@ -1362,3 +1362,34 @@ END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
 GRANT EXECUTE ON FUNCTION CheckCodes(text[], text[]) TO PUBLIC;
+
+--------------------------------------------------------------------------------
+-- URLEncode -------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION URLEncode (
+  url       text
+) RETURNS   text
+AS $$
+DECLARE
+  result    text;
+  c         text;
+  i         int;
+BEGIN
+  result := '';
+
+  FOR i IN 1..length(url)
+  LOOP
+    c := substr(url, i, 1);
+    IF regexp_match(c, '[A-Za-z0-9_~.-]') IS NOT NULL THEN
+      result := result || c;
+    ELSE
+      result := concat(result, '%', to_hex(ascii(c)));
+    END IF;
+  END LOOP;
+
+  RETURN result;
+END
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+GRANT EXECUTE ON FUNCTION URLEncode(text) TO PUBLIC;
