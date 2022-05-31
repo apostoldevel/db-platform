@@ -83,13 +83,8 @@ CREATE OR REPLACE FUNCTION GetVerificationCode (
   pId           uuid
 ) RETURNS 	    text
 AS $$
-DECLARE
-  vCode		    text;
-BEGIN
-  SELECT code INTO vCode FROM db.verification_code WHERE id = pId;
-  RETURN vCode;
-END;
-$$ LANGUAGE plpgsql
+  SELECT code FROM db.verification_code WHERE id = pId;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -103,22 +98,22 @@ CREATE OR REPLACE FUNCTION CheckVerificationCode (
 ) RETURNS       uuid
 AS $$
 DECLARE
-  nId			uuid;
+  uId			uuid;
   uUserId		uuid;
   utilized      bool;
 BEGIN
-  SELECT id, userid, used IS NOT NULL INTO nId, uUserId, utilized
+  SELECT id, userid, used IS NOT NULL INTO uId, uUserId, utilized
     FROM db.verification_code
    WHERE type = pType
      AND code = pCode
      AND validFromDate <= Now()
-     AND validtoDate > Now();
+     AND validToDate > Now();
 
   IF FOUND THEN
     IF utilized THEN
       PERFORM SetErrorMessage('Код подтверждения уже был использован.');
     ELSE
-      UPDATE db.verification_code SET used = Now() WHERE id = nId;
+      UPDATE db.verification_code SET used = Now() WHERE id = uId;
       PERFORM SetErrorMessage('Успешно.');
       RETURN uUserId;
     END IF;

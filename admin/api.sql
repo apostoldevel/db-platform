@@ -656,7 +656,7 @@ BEGIN
 	IF IsUserRole(GetGroup('system'), session_userid()) THEN
 	  SELECT a.secret INTO vOAuthSecret FROM oauth2.audience a WHERE a.code = session_username();
 	  IF FOUND THEN
-		PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
+		PERFORM SubstituteUser(GetUser('apibot'), vOAuthSecret);
 		uTicket := RecoveryPasswordByPhone(uUserId);
 		PERFORM SubstituteUser(session_userid(), vOAuthSecret);
 	  END IF;
@@ -671,7 +671,7 @@ BEGIN
 	IF IsUserRole(GetGroup('system'), session_userid()) THEN
 	  SELECT a.secret INTO vOAuthSecret FROM oauth2.audience a WHERE a.code = session_username();
 	  IF FOUND THEN
-		PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
+		PERFORM SubstituteUser(GetUser('apibot'), vOAuthSecret);
 		uTicket := RecoveryPasswordByEmail(uUserId);
 		PERFORM SubstituteUser(session_userid(), vOAuthSecret);
 	  END IF;
@@ -719,7 +719,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Сбрасывает пароль пользователя.
- * @param {uuid} pTicket -  Талон восстановления (recovery ticket)
+ * @param {uuid} pTicket - Талон восстановления (recovery ticket)
  * @param {text} vSecurityAnswer - Секретный ответ
  * @param {text} pPassword - Новый пароль
  * @return {void}
@@ -754,6 +754,72 @@ BEGIN
 
     UPDATE db.recovery_ticket SET used = Now() WHERE ticket = pTicket;
   END IF;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.registration_code -------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Запускает процедуру подтверждения номера телефона пользователя при регистрации.
+ * @param {text} pIdentifier - Идентификатор пользователя (username, email, phone)
+ * @return {uuid} - Талон регистрации (registration ticket)
+ */
+CREATE OR REPLACE FUNCTION api.registration_code (
+  pPhone            text
+) RETURNS			uuid
+AS $$
+DECLARE
+  uTicket			uuid;
+  vOAuthSecret		text;
+BEGIN
+  IF IsUserRole(GetGroup('system'), session_userid()) THEN
+    SELECT a.secret INTO vOAuthSecret FROM oauth2.audience a WHERE a.code = session_username();
+    IF FOUND THEN
+      PERFORM SubstituteUser(GetUser('apibot'), vOAuthSecret);
+      uTicket := RegistrationCodeByPhone(pPhone);
+      PERFORM SubstituteUser(session_userid(), vOAuthSecret);
+    END IF;
+  ELSE
+    uTicket := RegistrationCodeByPhone(pPhone);
+  END IF;
+
+  RETURN coalesce(uTicket, gen_random_uuid());
+END
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.check_registration_code -------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Сверяет регистрационный код.
+ * @param {uuid} pTicket - Талон регистрации (registration ticket)
+ * @param {text} vCode - Регистрационный код
+ * @return {void}
+ */
+CREATE OR REPLACE FUNCTION api.check_registration_code (
+  pTicket           uuid,
+  vCode             text,
+  OUT result    	bool,
+  OUT message   	text
+) RETURNS       	record
+AS $$
+DECLARE
+  uUserId			uuid;
+BEGIN
+  uUserId := CheckRecoveryTicket(pTicket, vCode);
+
+  result := uUserId IS NOT NULL;
+
+  IF result THEN
+    PERFORM SetErrorMessage('Номер телефона подтверждён.');
+  END IF;
+
+  message := GetErrorMessage();
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

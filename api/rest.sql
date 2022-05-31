@@ -547,6 +547,37 @@ BEGIN
 	  END LOOP;
 	END LOOP;
 
+  WHEN '/user/registration/code' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['phone']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+	FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(phone text)
+	LOOP
+	  RETURN NEXT json_build_object('ticket', api.registration_code(r.phone));
+	END LOOP;
+
+  WHEN '/user/registration/check' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['ticket', 'code']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+	FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(ticket uuid, code text)
+	LOOP
+	  FOR e IN SELECT * FROM api.check_registration_code(r.ticket, r.code)
+	  LOOP
+		RETURN NEXT row_to_json(e);
+	  END LOOP;
+	END LOOP;
+
   ELSE
     PERFORM RouteNotFound(pPath);
   END CASE;

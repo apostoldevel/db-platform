@@ -30,6 +30,7 @@ COMMENT ON COLUMN db.verification_code.validToDate IS 'Дата окончани
 --------------------------------------------------------------------------------
 
 CREATE UNIQUE INDEX ON db.verification_code (type, userid, validFromDate, validToDate);
+CREATE INDEX ON db.verification_code (type, code, validFromDate, validToDate);
 
 --------------------------------------------------------------------------------
 

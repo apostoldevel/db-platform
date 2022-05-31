@@ -627,14 +627,65 @@ DECLARE
   uMessageId      uuid;
   vProfile        text;
   vSecurityAnswer text;
+  vMessage        text;
 BEGIN
   vProfile := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Name', pUserId);
   vSecurityAnswer := random_between(100000, 999999)::text;
 
-  uMessageId := SendSMS(null, vProfile, format('Код для восстановления пароля: %s. Никому его не сообщайте!', vSecurityAnswer), pUserId);
+  IF locale_code() = 'ru' THEN
+    vMessage := 'Код для восстановления пароля: %s.';
+  ELSE
+    vMessage := 'Password recovery code: %s.';
+  END IF;
+
+  uMessageId := SendSMS(null, vProfile, format(vMessage, vSecurityAnswer), pUserId);
   IF uMessageId IS NOT NULL THEN
-    PERFORM CreateNotice(pUserId, null, format('Код для восстановления пароля: %s.', vSecurityAnswer));
     uTicket := NewRecoveryTicket(pUserId, vSecurityAnswer, Now(), Now() + INTERVAL '5 min');
+  END IF;
+
+  RETURN uTicket;
+END
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- RegistrationCodeByPhone -----------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Запускает процедуру регистрации пользователя по номеру телефона.
+ * @param {text} pPhone - Номер телефона.
+ * @return {uuid} - Талон регистрации (registration ticket)
+ */
+CREATE OR REPLACE FUNCTION RegistrationCodeByPhone (
+  pPhone          text
+) RETURNS         uuid
+AS $$
+DECLARE
+  uTicket         uuid;
+  uMessageId      uuid;
+  vCode           text;
+  vNaming         text;
+  vMessage        text;
+  jContent        json;
+BEGIN
+  vNaming := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Name');
+  vCode := random_between(100000, 999999)::text;
+
+  IF locale_code() = 'ru' THEN
+    vMessage := 'Регистрационный код';
+  ELSE
+    vMessage := 'Registration code';
+  END IF;
+
+  jContent := json_build_object('messages', jsonb_build_array(json_build_object('content', json_build_object('short_text', format('%s: %s.', vMessage, vCode)), 'to', jsonb_build_array(json_build_object('msisdn', pPhone)))), 'options', json_build_object('from',  json_build_object('sms_address', vNaming)));
+
+  uMessageId := SendMessage(null, GetAgent('mts.agent'), 'mts', '/messages', pPhone, jContent::text, null, vMessage);
+
+  PERFORM WriteToEventLog('M', 1001, 'sms', format('SMS передано на отправку: %s', uMessageId), uMessageId);
+
+  IF uMessageId IS NOT NULL THEN
+    uTicket := NewRecoveryTicket(current_userid(), vCode, Now(), Now() + INTERVAL '5 min');
   END IF;
 
   RETURN uTicket;
