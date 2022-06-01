@@ -1319,7 +1319,7 @@ DECLARE
 BEGIN
   FOR r IN
     SELECT Object, Label, Owner, OwnerCode, OwnerName,
-           Name, Path, Size, Date, Hash, Text, Type, Loaded, Picture
+           Name, Path, Size, Date, Link, Hash, Text, Type, Loaded, Picture
       FROM ObjectFile
      WHERE object = pObject
   LOOP
