@@ -507,16 +507,18 @@ BEGIN
 
   FOR r IN SELECT * FROM ReplicationTable
   LOOP
-    EXECUTE replication.drop_trigger(r.schema, r.name);
-    IF r.active THEN
-      PERFORM replication.set_key(r.schema, r.name);
-      EXECUTE replication.create_trigger(r.schema, r.name);
-	END IF;
+    BEGIN
+      EXECUTE replication.drop_trigger(r.schema, r.name);
+      IF r.active THEN
+        PERFORM replication.set_key(r.schema, r.name);
+        EXECUTE replication.create_trigger(r.schema, r.name);
+      END IF;
+    EXCEPTION
+    WHEN others THEN
+      GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
+      PERFORM WriteDiagnostics(vMessage, vContext);
+    END;
   END LOOP;
-EXCEPTION
-WHEN others THEN
-  GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
-  PERFORM WriteDiagnostics(vMessage, vContext);
 END;
 $$ LANGUAGE plpgsql
   SECURITY DEFINER
