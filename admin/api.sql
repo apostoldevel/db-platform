@@ -816,6 +816,7 @@ BEGIN
   result := uUserId IS NOT NULL;
 
   IF result THEN
+    PERFORM AddVerificationCode(uUserId, 'P', vCode);
     PERFORM SetErrorMessage('Номер телефона подтверждён.');
   END IF;
 
