@@ -1250,8 +1250,8 @@ CREATE OR REPLACE FUNCTION SetObjectFile (
   pObject	uuid,
   pName		text,
   pPath		text,
-  pSize		integer,
-  pDate		timestamptz,
+  pSize		integer DEFAULT null,
+  pDate		timestamptz DEFAULT null,
   pData		bytea DEFAULT null,
   pHash		text DEFAULT null,
   pText		text DEFAULT null,
@@ -1319,7 +1319,7 @@ DECLARE
 BEGIN
   FOR r IN
     SELECT Object, Label, Owner, OwnerCode, OwnerName,
-           Name, Path, Size, Date, Hash, Text, Type, Loaded, Picture
+           Name, Path, Size, Date, Link, Hash, Text, Type, Loaded, Picture
       FROM ObjectFile
      WHERE object = pObject
   LOOP

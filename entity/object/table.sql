@@ -607,6 +607,13 @@ BEGIN
   NEW.file_path := NormalizeFilePath(NEW.file_path, false);
   NEW.file_link := concat('/file/', NEW.object, NormalizeFilePath(NEW.file_path, true), NormalizeFileName(NEW.file_name, true));
 
+  IF NEW.file_path = '/public/' THEN
+    UPDATE db.aou SET allow = allow | B'100' WHERE object = NEW.object AND userid = '00000000-0000-4000-a000-000000000000'::uuid;
+    IF NOT FOUND THEN
+      INSERT INTO db.aou SELECT NEW.object, '00000000-0000-4000-a000-000000000000'::uuid, B'000', B'100';
+    END IF;
+  END IF;
+
   RETURN NEW;
 END
 $$ LANGUAGE plpgsql
@@ -649,6 +656,13 @@ RETURNS trigger AS $$
 BEGIN
   NEW.file_path := NormalizeFilePath(NEW.file_path, false);
   NEW.file_link := concat('/file/', NEW.object, NormalizeFilePath(NEW.file_path, true), NormalizeFileName(NEW.file_name, true));
+
+  IF NEW.file_path = '/public/' THEN
+    UPDATE db.aou SET allow = allow | B'100' WHERE object = NEW.object AND userid = '00000000-0000-4000-a000-000000000000'::uuid;
+    IF NOT FOUND THEN
+      INSERT INTO db.aou SELECT NEW.object, '00000000-0000-4000-a000-000000000000'::uuid, B'000', B'100';
+    END IF;
+  END IF;
 
   RETURN NEW;
 END;
