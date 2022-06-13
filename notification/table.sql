@@ -12,6 +12,8 @@ CREATE TABLE db.notification (
     class		uuid NOT NULL REFERENCES db.class_tree(id) ON DELETE CASCADE,
     action		uuid NOT NULL REFERENCES db.action(id) ON DELETE CASCADE,
     method		uuid NOT NULL REFERENCES db.method(id) ON DELETE CASCADE,
+    state_old   uuid NOT NULL REFERENCES db.state(id) ON DELETE CASCADE,
+    state_new   uuid NOT NULL REFERENCES db.state(id) ON DELETE CASCADE,
     object		uuid NOT NULL REFERENCES db.object(id) ON DELETE CASCADE,
     userid      uuid NOT NULL REFERENCES db.user(id) ON DELETE CASCADE,
     datetime    timestamptz NOT NULL DEFAULT Now()
@@ -24,6 +26,8 @@ COMMENT ON COLUMN db.notification.entity IS 'Сущность';
 COMMENT ON COLUMN db.notification.class IS 'Класс';
 COMMENT ON COLUMN db.notification.action IS 'Действие';
 COMMENT ON COLUMN db.notification.method IS 'Метод';
+COMMENT ON COLUMN db.notification.state_old IS 'Состояние (старое)';
+COMMENT ON COLUMN db.notification.state_new IS 'Состояние (новое)';
 COMMENT ON COLUMN db.notification.object IS 'Объект';
 COMMENT ON COLUMN db.notification.userid IS 'Учётная запись пользователя';
 COMMENT ON COLUMN db.notification.datetime IS 'Дата и время';

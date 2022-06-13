@@ -592,6 +592,8 @@ DECLARE
 
   uClass        uuid;
   uAction       uuid;
+  uOldState     uuid;
+  uNewState     uuid;
 BEGIN
   IF session_user <> 'apibot' THEN
 	IF NOT CheckMethodAccess(pMethod, B'100') THEN
@@ -608,8 +610,7 @@ BEGIN
 
   PERFORM ClearMethodStack(pObject, pMethod);
 
-  uClass := GetObjectClass(pObject);
-
+  SELECT class, state INTO uClass, uOldState FROM db.object WHERE id = pObject;
   SELECT action INTO uAction FROM db.method WHERE id = pMethod;
   SELECT code INTO sActionCode FROM db.action WHERE id = uAction;
 
@@ -621,9 +622,9 @@ BEGIN
   PERFORM InitParams(jSaveParams);
   PERFORM InitContext(uSaveObject, uSaveClass, uSaveMethod, uSaveAction);
 
-  PERFORM FROM db.object WHERE id = pObject;
+  SELECT state INTO uNewState FROM db.object WHERE id = pObject;
   IF FOUND THEN
-    PERFORM AddNotification(uClass, uAction, pMethod, pObject);
+    PERFORM AddNotification(uClass, uAction, pMethod, uOldState, uNewState, pObject);
   END IF;
 
   RETURN GetMethodStack(pObject, pMethod);

@@ -28,20 +28,22 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateNotification (
-  pEntity	uuid,
-  pClass	uuid,
-  pAction	uuid,
-  pMethod   uuid,
-  pObject	uuid,
-  pUserId	uuid DEFAULT current_userid(),
-  pDateTime timestamptz DEFAULT Now()
-) RETURNS	uuid
+  pEntity	    uuid,
+  pClass	    uuid,
+  pAction	    uuid,
+  pMethod       uuid,
+  pStateOld     uuid,
+  pStateNew     uuid,
+  pObject	    uuid,
+  pUserId	    uuid DEFAULT current_userid(),
+  pDateTime     timestamptz DEFAULT Now()
+) RETURNS	    uuid
 AS $$
 DECLARE
-  uId		uuid;
+  uId		    uuid;
 BEGIN
-  INSERT INTO db.notification (entity, class, action, method, object, userid, datetime)
-  VALUES (pEntity, pClass, pAction, pMethod, pObject, pUserId, pDateTime)
+  INSERT INTO db.notification (entity, class, action, method, state_old, state_new, object, userid, datetime)
+  VALUES (pEntity, pClass, pAction, pMethod, pStateOld, pStateNew, pObject, pUserId, pDateTime)
   RETURNING id INTO uId;
 
   RETURN uId;
@@ -55,15 +57,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EditNotification (
-  pId       uuid,
-  pEntity	uuid DEFAULT null,
-  pClass	uuid DEFAULT null,
-  pMethod   uuid DEFAULT null,
-  pAction	uuid DEFAULT null,
-  pObject	uuid DEFAULT null,
-  pUserId	uuid DEFAULT null,
-  pDateTime timestamptz DEFAULT null
-) RETURNS	void
+  pId           uuid,
+  pEntity	    uuid DEFAULT null,
+  pClass	    uuid DEFAULT null,
+  pAction	    uuid DEFAULT null,
+  pMethod       uuid DEFAULT null,
+  pStateOld     uuid DEFAULT null,
+  pStateNew     uuid DEFAULT null,
+  pObject	    uuid DEFAULT null,
+  pUserId	    uuid DEFAULT null,
+  pDateTime     timestamptz DEFAULT null
+) RETURNS	    void
 AS $$
 BEGIN
   UPDATE db.notification
@@ -71,6 +75,8 @@ BEGIN
          class = coalesce(pClass, class),
          action = coalesce(pAction, action),
          method = coalesce(pMethod, method),
+         state_old = coalesce(pStateOld, state_old),
+         state_new = coalesce(pStateNew, state_new),
          object = coalesce(pObject, object),
          userid = coalesce(pUserId, userid),
          datetime = coalesce(pDateTime, datetime)
@@ -85,8 +91,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DeleteNotification (
-  pId		uuid
-) RETURNS 	void
+  pId		    uuid
+) RETURNS 	    void
 AS $$
 BEGIN
   DELETE FROM db.notification WHERE id = pId;
@@ -103,6 +109,8 @@ CREATE OR REPLACE FUNCTION AddNotification (
   pClass		uuid,
   pAction		uuid,
   pMethod   	uuid,
+  pStateOld     uuid,
+  pStateNew     uuid,
   pObject		uuid,
   pUserId		uuid DEFAULT current_userid(),
   pDateTime 	timestamptz DEFAULT Now()
@@ -112,7 +120,7 @@ DECLARE
   uEntity		uuid;
 BEGIN
   SELECT entity INTO uEntity FROM db.class_tree WHERE id = pClass;
-  PERFORM CreateNotification(uEntity, pClass, pAction, pMethod, pObject, pUserId, pDateTime);
+  PERFORM CreateNotification(uEntity, pClass, pAction, pMethod, pStateOld, pStateNew, pObject, pUserId, pDateTime);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
