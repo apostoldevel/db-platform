@@ -19,10 +19,10 @@ AS
                             LEFT JOIN db.state            os ON n.state_old = os.id
                             LEFT JOIN db.state_text      ost ON os.id = ost.state AND ost.locale = current_locale()
                             LEFT JOIN db.state_type       ot ON os.type = ot.id
-                            LEFT JOIN db.state_type_text ott ON ot.id = ott.type AND ost.locale = current_locale()
+                            LEFT JOIN db.state_type_text ott ON ot.id = ott.type AND ott.locale = current_locale()
                             LEFT JOIN db.state            ns ON n.state_new = ns.id
-                            LEFT JOIN db.state_text      nst ON ns.id = nst.state AND ost.locale = current_locale()
+                            LEFT JOIN db.state_text      nst ON ns.id = nst.state AND nst.locale = current_locale()
                             LEFT JOIN db.state_type       nt ON ns.type = nt.id
-                            LEFT JOIN db.state_type_text ntt ON nt.id = ntt.type AND ost.locale = current_locale();
+                            LEFT JOIN db.state_type_text ntt ON nt.id = ntt.type AND ntt.locale = current_locale();
 
 GRANT SELECT ON Notification TO administrator;
