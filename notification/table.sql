@@ -12,8 +12,8 @@ CREATE TABLE db.notification (
     class		uuid NOT NULL REFERENCES db.class_tree(id) ON DELETE CASCADE,
     action		uuid NOT NULL REFERENCES db.action(id) ON DELETE CASCADE,
     method		uuid NOT NULL REFERENCES db.method(id) ON DELETE CASCADE,
-    state_old   uuid NOT NULL REFERENCES db.state(id) ON DELETE CASCADE,
-    state_new   uuid NOT NULL REFERENCES db.state(id) ON DELETE CASCADE,
+    state_old   uuid REFERENCES db.state(id) ON DELETE CASCADE,
+    state_new   uuid REFERENCES db.state(id) ON DELETE CASCADE,
     object		uuid NOT NULL REFERENCES db.object(id) ON DELETE CASCADE,
     userid      uuid NOT NULL REFERENCES db.user(id) ON DELETE CASCADE,
     datetime    timestamptz NOT NULL DEFAULT Now()
