@@ -1021,7 +1021,7 @@ DECLARE
   dtDateTo      timestamptz;
 BEGIN
   -- получим дату значения в текущем диапозоне дат
-  SELECT linked, validFromDate, validToDate INTO uLinked, dtDateFrom, dtDateTo
+  SELECT id, linked, validFromDate, validToDate INTO uId, uLinked, dtDateFrom, dtDateTo
     FROM db.object_link
    WHERE object = pObject
      AND key = pKey
@@ -1037,8 +1037,8 @@ BEGIN
        AND validToDate > pDateFrom;
 
     IF pLinked IS NOT NULL THEN
-      INSERT INTO db.object_link (object, key, linked, validFromDate, validToDate)
-      VALUES (pObject, pKey, pLinked, pDateFrom, coalesce(dtDateTo, MAXDATE()))
+      INSERT INTO db.object_link (object, linked, key, validFromDate, validToDate)
+      VALUES (pObject, pLinked, pKey, pDateFrom, coalesce(dtDateTo, MAXDATE()))
       RETURNING id INTO uId;
     END IF;
   END IF;

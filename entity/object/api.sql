@@ -731,6 +731,97 @@ $$ LANGUAGE SQL
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- OBJECT LINK -----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- api.object_link -------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW api.object_link
+AS
+  SELECT l.* FROM ObjectLink l INNER JOIN AccessObject a ON l.object = a.id;
+
+GRANT SELECT ON api.object_link TO administrator;
+
+--------------------------------------------------------------------------------
+-- api.set_object_link ---------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Устанавливает связь с объектом
+ * @param {uuid} pObject - Идентификатор объекта
+ * @param {uuid} pLinked - Идентификатор адреса
+ * @param {text} pKey - Ключ
+ * @param {timestamptz} pDateFrom - Дата операции
+ * @return {SETOF api.object_link}
+ */
+CREATE OR REPLACE FUNCTION api.set_object_link (
+  pObject     uuid,
+  pLinked     uuid,
+  pKey        text DEFAULT null,
+  pDateFrom   timestamptz DEFAULT null
+) RETURNS     SETOF api.object_link
+AS $$
+DECLARE
+  uId         uuid;
+BEGIN
+  IF NOT CheckObjectAccess(pObject, B'010') THEN
+	PERFORM AccessDenied();
+  END IF;
+
+  uId := SetObjectLink(pObject, pLinked, coalesce(pKey, pLinked::text), coalesce(pDateFrom, oper_date()));
+
+  RETURN QUERY SELECT * FROM api.get_object_link(uId);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.get_object_link ---------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Возвращает связь с объектом
+ * @param {uuid} pId - Идентификатор
+ * @return {api.object_link}
+ */
+CREATE OR REPLACE FUNCTION api.get_object_link (
+  pId       uuid
+) RETURNS   SETOF api.object_link
+AS $$
+  SELECT * FROM api.object_link WHERE id = pId;
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.list_object_link --------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Возвращает список связей с объектом.
+ * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
+ * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
+ * @param {integer} pLimit - Лимит по количеству строк
+ * @param {integer} pOffSet - Пропустить указанное число строк
+ * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
+ * @return {SETOF api.object_link}
+ */
+CREATE OR REPLACE FUNCTION api.list_object_link (
+  pSearch	jsonb DEFAULT null,
+  pFilter	jsonb DEFAULT null,
+  pLimit	integer DEFAULT null,
+  pOffSet	integer DEFAULT null,
+  pOrderBy	jsonb DEFAULT null
+) RETURNS	SETOF api.object_link
+AS $$
+BEGIN
+  RETURN QUERY EXECUTE api.sql('api', 'object_link', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- OBJECT FILE -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 

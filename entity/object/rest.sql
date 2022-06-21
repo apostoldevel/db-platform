@@ -593,6 +593,194 @@ BEGIN
 
     END IF;
 
+  WHEN '/object/link' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, GetRoutines('set_object_link', 'api', false));
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(object uuid, linked uuid, key text, datefrom timestamptz)
+      LOOP
+        FOR e IN SELECT * FROM api.set_object_link(r.object, r.linked, NULLIF(r.key, ''), r.datefrom)
+        LOOP
+          RETURN NEXT row_to_json(e);
+        END LOOP;
+      END LOOP;
+
+    ELSE
+
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(object uuid, linked uuid, key text, datefrom timestamptz)
+      LOOP
+        FOR e IN SELECT * FROM api.set_object_link(r.object, r.linked, NULLIF(r.key, ''), r.datefrom)
+        LOOP
+          RETURN NEXT row_to_json(e);
+        END LOOP;
+      END LOOP;
+
+    END IF;
+
+  WHEN '/object/unlink' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, GetRoutines('set_object_link', 'api', false));
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(object uuid, linked uuid, key text, datefrom timestamptz)
+      LOOP
+        r.key := NULLIF(r.key, '');
+        r.datefrom := coalesce(r.datefrom, oper_date());
+
+		SELECT key INTO r.key
+		  FROM db.object_link
+		 WHERE object = r.object
+		   AND linked = r.linked
+		   AND validFromDate <= r.datefrom
+		   AND validToDate > r.datefrom;
+
+        IF FOUND THEN
+		  PERFORM SetObjectLink(r.object, null, r.key, r.datefrom);
+		END IF;
+
+        RETURN NEXT json_build_object('object', r.object, 'linked', r.linked, 'key', r.key, 'datefrom', r.datefrom, 'unlink', FOUND);
+      END LOOP;
+
+    ELSE
+
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(object uuid, linked uuid, key text, datefrom timestamptz)
+      LOOP
+        r.key := NULLIF(r.key, '');
+        r.datefrom := coalesce(r.datefrom, oper_date());
+
+		SELECT key INTO r.key
+		  FROM db.object_link
+		 WHERE object = r.object
+		   AND linked = r.linked
+		   AND validFromDate <= r.datefrom
+		   AND validToDate > r.datefrom;
+
+        IF FOUND THEN
+		  PERFORM SetObjectLink(r.object, null, r.key, r.datefrom);
+		END IF;
+
+        RETURN NEXT json_build_object('object', r.object, 'linked', r.linked, 'key', r.key, 'datefrom', r.datefrom, 'unlink', FOUND);
+      END LOOP;
+
+    END IF;
+
+  WHEN '/object/link/set' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, GetRoutines('set_object_link', 'api', false));
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN EXECUTE format('SELECT row_to_json(api.set_object_link(%s)) FROM jsonb_to_recordset($1) AS x(%s)', array_to_string(GetRoutines('set_object_link', 'api', false, 'x'), ', '), array_to_string(GetRoutines('set_object_link', 'api', true), ', ')) USING pPayload
+      LOOP
+        RETURN NEXT r;
+      END LOOP;
+
+    ELSE
+
+      FOR r IN EXECUTE format('SELECT row_to_json(api.set_object_link(%s)) FROM jsonb_to_record($1) AS x(%s)', array_to_string(GetRoutines('set_object_link', 'api', false, 'x'), ', '), array_to_string(GetRoutines('set_object_link', 'api', true), ', ')) USING pPayload
+      LOOP
+        RETURN NEXT r;
+      END LOOP;
+
+    END IF;
+
+  WHEN '/object/link/get' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['id', 'fields']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, fields jsonb)
+      LOOP
+        FOR e IN EXECUTE format('SELECT %s FROM api.get_object_link($1)', JsonbToFields(r.fields, GetColumns('object_link', 'api'))) USING r.id
+        LOOP
+          RETURN NEXT row_to_json(e);
+        END LOOP;
+      END LOOP;
+
+    ELSE
+
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, fields jsonb)
+      LOOP
+        FOR e IN EXECUTE format('SELECT %s FROM api.get_object_link($1)', JsonbToFields(r.fields, GetColumns('object_link', 'api'))) USING r.id
+        LOOP
+          RETURN NEXT row_to_json(e);
+        END LOOP;
+      END LOOP;
+
+    END IF;
+
+  WHEN '/object/link/count' THEN
+
+    IF pPayload IS NOT NULL THEN
+      arKeys := array_cat(arKeys, ARRAY['search', 'filter', 'reclimit', 'recoffset', 'orderby']);
+      PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+    ELSE
+      pPayload := '{}';
+    END IF;
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
+      LOOP
+        FOR e IN SELECT count(*) FROM api.list_object_link(r.search, r.filter, r.reclimit, r.recoffset, r.orderby)
+        LOOP
+          RETURN NEXT row_to_json(e);
+        END LOOP;
+      END LOOP;
+
+    ELSE
+
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
+      LOOP
+        FOR e IN SELECT count(*) FROM api.list_object_link(r.search, r.filter, r.reclimit, r.recoffset, r.orderby)
+        LOOP
+          RETURN NEXT row_to_json(e);
+        END LOOP;
+      END LOOP;
+
+    END IF;
+
+  WHEN '/object/link/list' THEN
+
+    IF pPayload IS NOT NULL THEN
+      arKeys := array_cat(arKeys, ARRAY['fields', 'search', 'filter', 'reclimit', 'recoffset', 'orderby']);
+      PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+    ELSE
+      pPayload := '{}';
+    END IF;
+
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(fields jsonb, search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
+    LOOP
+      FOR e IN EXECUTE format('SELECT %s FROM api.list_object_link($1, $2, $3, $4, $5)', JsonbToFields(r.fields, GetColumns('object_file', 'api'))) USING r.search, r.filter, r.reclimit, r.recoffset, r.orderby
+      LOOP
+        RETURN NEXT row_to_json(e);
+      END LOOP;
+    END LOOP;
+
   WHEN '/object/file' THEN
 
     IF pPayload IS NULL THEN
@@ -703,6 +891,37 @@ BEGIN
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, path text, name text, fields jsonb)
       LOOP
         FOR e IN EXECUTE format('SELECT %s FROM api.get_object_file($1, $2, $3)', JsonbToFields(r.fields, GetColumns('object_file', 'api'))) USING r.id, r.name, r.path
+        LOOP
+          RETURN NEXT row_to_json(e);
+        END LOOP;
+      END LOOP;
+
+    END IF;
+
+  WHEN '/object/file/count' THEN
+
+    IF pPayload IS NOT NULL THEN
+      arKeys := array_cat(arKeys, ARRAY['search', 'filter', 'reclimit', 'recoffset', 'orderby']);
+      PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+    ELSE
+      pPayload := '{}';
+    END IF;
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
+      LOOP
+        FOR e IN SELECT count(*) FROM api.list_object_file(r.search, r.filter, r.reclimit, r.recoffset, r.orderby)
+        LOOP
+          RETURN NEXT row_to_json(e);
+        END LOOP;
+      END LOOP;
+
+    ELSE
+
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
+      LOOP
+        FOR e IN SELECT count(*) FROM api.list_object_file(r.search, r.filter, r.reclimit, r.recoffset, r.orderby)
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;

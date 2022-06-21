@@ -116,6 +116,21 @@ AS
 GRANT SELECT ON ObjectGroupMember TO administrator;
 
 --------------------------------------------------------------------------------
+-- VIEW ObjectLink -------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW ObjectLink
+AS
+  SELECT l.id, l.object, ot.label AS ObjectLabel, l.linked, lt.label AS LinkedLabel,
+         l.key, l.validfromdate, l.validtodate
+    FROM db.object_link l INNER JOIN db.object_text ot ON ot.object = l.object AND ot.locale = current_locale()
+                          INNER JOIN db.object_text lt ON lt.object = l.linked AND lt.locale = current_locale()
+   WHERE l.validfromdate <= oper_date()
+     AND l.validtodate > oper_date();
+
+GRANT SELECT ON ObjectLink TO administrator;
+
+--------------------------------------------------------------------------------
 -- VIEW ObjectFile -------------------------------------------------------------
 --------------------------------------------------------------------------------
 
