@@ -21,7 +21,7 @@ CREATE OR REPLACE VIEW Object (Id, Parent,
          o.state_type, st.code, stt.name,
          o.state, s.code, sst.label, o.udate,
          o.owner, w.username, w.name, o.pdate,
-         o.oper, u.username, w.name, o.ldate,
+         o.oper, u.username, u.name, o.ldate,
          o.scope, sc.code, sc.name, sc.description
     FROM db.object o  LEFT JOIN db.object_text      ot ON ot.object = o.id AND ot.locale = current_locale()
                      INNER JOIN db.entity            e ON o.entity = e.id
