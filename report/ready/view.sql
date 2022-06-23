@@ -51,7 +51,7 @@ CREATE OR REPLACE VIEW ObjectReportReady (Id, Object, Parent,
          o.state_type, st.code, stt.name,
          o.state, s.code, sst.label, o.udate,
          o.owner, w.username, w.name, o.pdate,
-         o.oper, u.username, w.name, o.ldate,
+         o.oper, u.username, u.name, o.ldate,
          d.area, a.code, a.name, a.description,
          o.scope, sc.code, sc.name, sc.description
     FROM db.report_ready t INNER JOIN db.document          d ON t.document = d.id

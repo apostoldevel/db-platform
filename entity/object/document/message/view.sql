@@ -66,7 +66,7 @@ CREATE OR REPLACE VIEW ObjectMessage (Id, Object, Parent,
          o.state, s.code, sst.label, o.udate,
          d.priority, p.code, pt.name, pt.description,
          o.owner, w.username, w.name, o.pdate,
-         o.oper, u.username, w.name, o.ldate,
+         o.oper, u.username, u.name, o.ldate,
          d.area, a.code, a.name, a.description,
          o.scope, sc.code, sc.name, sc.description
     FROM AccessMessage t INNER JOIN db.document          d ON t.document = d.id
@@ -128,7 +128,7 @@ CREATE OR REPLACE VIEW ServiceMessage (Id, Object, Parent,
          o.state, s.code, sst.label, o.udate,
          d.priority, p.code, pt.name, pt.description,
          o.owner, w.username, w.name, o.pdate,
-         o.oper, u.username, w.name, o.ldate,
+         o.oper, u.username, u.name, o.ldate,
          d.area, a.code, a.name, a.description,
          o.scope, sc.code, sc.name, sc.description
     FROM db.message t INNER JOIN db.document          d ON t.document = d.id

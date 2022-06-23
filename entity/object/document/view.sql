@@ -166,7 +166,7 @@ AS
          o.state, s.code, sst.label, o.udate,
          t.priority, p.code, pt.name, pt.description,
          o.owner, w.username, w.name, o.pdate,
-         o.oper, u.username, w.name, o.ldate,
+         o.oper, u.username, u.name, o.ldate,
          t.area, a.code, a.name, a.description,
          o.scope, sc.code, sc.name, sc.description
     FROM AccessDocument t INNER JOIN DocumentAreaTree     a ON t.area = a.id

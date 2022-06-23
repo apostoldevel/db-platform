@@ -50,7 +50,7 @@ AS
          o.state_type, st.code, stt.name,
          o.state, s.code, sst.label, o.udate,
          o.owner, w.username, w.name, o.pdate,
-         o.oper, u.username, w.name, o.ldate,
+         o.oper, u.username, u.name, o.ldate,
          o.scope, sc.code, sc.name, sc.description
     FROM db.version t INNER JOIN db.reference         r ON t.reference = r.id AND r.scope = current_scope()
                        LEFT JOIN db.reference_text   rt ON rt.reference = r.id AND rt.locale = current_locale()
