@@ -740,7 +740,12 @@ $$ LANGUAGE SQL
 
 CREATE OR REPLACE VIEW api.object_link
 AS
-  SELECT l.* FROM ObjectLink l INNER JOIN AccessObject a ON l.object = a.id;
+  SELECT l.id, l.object AS objectId, row_to_json(oo) AS object, l.linked AS linkedId, row_to_json(ol) AS linked,
+         l.key, l.validfromdate, l.validtodate
+    FROM db.object_link l INNER JOIN AccessObject oo ON l.object = oo.id
+                          INNER JOIN Object       ol ON l.linked = ol.id
+   WHERE l.validfromdate <= oper_date()
+     AND l.validtodate > oper_date();
 
 GRANT SELECT ON api.object_link TO administrator;
 
