@@ -2921,6 +2921,11 @@ BEGIN
        SET passwordchange = bPasswordChange,
            pswhash = crypt(pPassword, gen_salt('md5'))
      WHERE id = pId;
+
+    IF session_user <> 'kernel' THEN
+      INSERT INTO db.log (type, code, username, session, event, text)
+      VALUES ('W', 2222, r.username, current_session(), 'password', 'Смена пароля.');
+    END IF;
   ELSE
     PERFORM UserNotFound(pId);
   END IF;
