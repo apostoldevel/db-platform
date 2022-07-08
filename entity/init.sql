@@ -44,6 +44,10 @@ BEGIN
 
       PERFORM CreateEntityAgent(uReference);
 
+      -- Форма
+
+      PERFORM CreateEntityForm(uReference);
+
       -- Программа
 
       PERFORM CreateEntityProgram(uReference);

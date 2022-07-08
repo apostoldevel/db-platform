@@ -8,7 +8,6 @@
 
 CREATE TABLE db.form_field (
     form            uuid NOT NULL REFERENCES db.form(id) ON DELETE CASCADE,
-    locale          uuid NOT NULL REFERENCES db.locale(id) ON DELETE RESTRICT,
     key             text NOT NULL,
     type            text NOT NULL,
     label           text NOT NULL,
@@ -17,15 +16,14 @@ CREATE TABLE db.form_field (
     data            jsonb,
     mutable         boolean NOT NULL DEFAULT false,
     sequence        integer NOT NULL DEFAULT 0,
-    PRIMARY KEY (form, locale, key)
+    PRIMARY KEY (form, key)
 );
 
 --------------------------------------------------------------------------------
 
-COMMENT ON TABLE db.form_field IS 'Поля формы.';
+COMMENT ON TABLE db.form_field IS 'Поля формы журнала.';
 
 COMMENT ON COLUMN db.form_field.form IS 'Форма.';
-COMMENT ON COLUMN db.form_field.locale IS 'Локаль.';
 COMMENT ON COLUMN db.form_field.key IS 'Ключ.';
 COMMENT ON COLUMN db.form_field.type IS 'Тип.';
 COMMENT ON COLUMN db.form_field.label IS 'Метка.';
@@ -36,4 +34,4 @@ COMMENT ON COLUMN db.form_field.mutable IS 'Изменчивый.';
 COMMENT ON COLUMN db.form_field.sequence IS 'Очерёдность.';
 
 CREATE INDEX ON db.form_field (form);
-CREATE INDEX ON db.form_field (locale);
+CREATE INDEX ON db.form_field (form, key, sequence);

@@ -27,6 +27,47 @@ BEGIN
   END IF;
 
   CASE pPath
+  WHEN '/form/type' THEN
+
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(fields jsonb)
+    LOOP
+      FOR e IN EXECUTE format('SELECT %s FROM api.type($1)', JsonbToFields(r.fields, GetColumns('type', 'api'))) USING GetEntity('form')
+      LOOP
+        RETURN NEXT row_to_json(e);
+      END LOOP;
+    END LOOP;
+
+  WHEN '/form/method' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['id']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid)
+      LOOP
+        FOR e IN SELECT r.id, api.get_methods(GetObjectClass(r.id), GetObjectState(r.id)) as method FROM api.get_form(r.id) ORDER BY id
+        LOOP
+          RETURN NEXT row_to_json(e);
+        END LOOP;
+      END LOOP;
+
+    ELSE
+
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid)
+      LOOP
+        FOR e IN SELECT r.id, api.get_methods(GetObjectClass(r.id), GetObjectState(r.id)) as method FROM api.get_form(r.id) ORDER BY id
+        LOOP
+          RETURN NEXT row_to_json(e);
+        END LOOP;
+      END LOOP;
+
+    END IF;
+
   WHEN '/form/count' THEN
 
     IF pPayload IS NOT NULL THEN
@@ -147,7 +188,7 @@ BEGIN
 
   ELSE
 
-    PERFORM RouteNotFound(pPath);
+    RETURN NEXT rest.form_field(pPath, pPayload);
 
   END CASE;
 

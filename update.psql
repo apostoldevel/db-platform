@@ -15,7 +15,6 @@
 \ir './workflow/update.psql'
 \ir './kladr/update.psql'
 \ir './entity/update.psql'
-\ir './form/update.psql'
 \ir './notice/update.psql'
 \ir './comment/update.psql'
 \ir './notification/update.psql'

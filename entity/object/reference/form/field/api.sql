@@ -29,7 +29,7 @@ CREATE OR REPLACE FUNCTION api.set_form_field (
 ) RETURNS       SETOF api.form_field
 AS $$
 BEGIN
-  PERFORM SetFormField(pForm, current_locale(), pKey, pType, pLabel, pFormat, pValue, pData, pMutable, pSequence);
+  PERFORM SetFormField(pForm, pKey, pType, pLabel, pFormat, pValue, pData, pMutable, pSequence);
 
   RETURN QUERY SELECT * FROM api.get_form_field(pForm, pKey);
 END;
@@ -41,7 +41,7 @@ $$ LANGUAGE plpgsql
 -- api.get_form_field ----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает форму отчёта
+ * Возвращает форму
  * @param {uuid} pId - Идентификатор
  * @return {api.form_field}
  */
@@ -65,7 +65,7 @@ CREATE OR REPLACE FUNCTION api.delete_form_field (
 ) RETURNS       boolean
 AS $$
 BEGIN
-  RETURN DeleteFormField(pForm, current_locale(), pKey);
+  RETURN DeleteFormField(pForm, pKey);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -75,7 +75,7 @@ $$ LANGUAGE plpgsql
 -- api.list_form_field ---------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список форм отчётов.
+ * Возвращает список форм.
  * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
  * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
  * @param {integer} pLimit - Лимит по количеству строк
@@ -107,7 +107,7 @@ CREATE OR REPLACE FUNCTION api.clear_form_field (
 ) RETURNS	boolean
 AS $$
 BEGIN
-  RETURN DeleteFormField(pForm, current_locale(), null);
+  RETURN DeleteFormField(pForm, null);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -130,7 +130,7 @@ BEGIN
   PERFORM FROM db.form WHERE id = pForm;
 
   IF NOT FOUND THEN
-    PERFORM ObjectNotFound('форма', 'id', pForm);
+    PERFORM ObjectNotFound('форма журнала', 'id', pForm);
   END IF;
 
   IF pFields IS NULL THEN

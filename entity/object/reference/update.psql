@@ -13,6 +13,7 @@
 \echo [M] call event.sql
 \ir event.sql
 
+\ir './form/update.psql'
 \ir './vendor/update.psql'
 \ir './agent/update.psql'
 \ir './program/update.psql'

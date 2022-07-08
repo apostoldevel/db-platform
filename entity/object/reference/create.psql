@@ -19,6 +19,7 @@
 \echo [M] call init.sql
 \ir init.sql
 
+\ir './form/create.psql'
 \ir './vendor/create.psql'
 \ir './agent/create.psql'
 \ir './program/create.psql'

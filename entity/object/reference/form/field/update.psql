@@ -10,4 +10,5 @@
 \echo [M] call rest.sql
 \ir rest.sql
 
-\ir './field/update.psql'
+\echo [M] call event.sql
+\ir event.sql

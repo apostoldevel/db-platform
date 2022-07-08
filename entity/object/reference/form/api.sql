@@ -8,7 +8,7 @@
 
 CREATE OR REPLACE VIEW api.form
 AS
-  SELECT * FROM Form;
+  SELECT * FROM ObjectForm;
 
 GRANT SELECT ON api.form TO administrator;
 
@@ -17,21 +17,23 @@ GRANT SELECT ON api.form TO administrator;
 --------------------------------------------------------------------------------
 /**
  * Добавляет форму.
- * @param {uuid} pEntity - Сущность
+ * @param {uuid} pParent - Идентификатор объекта родителя
+ * @param {uuid} pType - Идентификатор типа
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
  * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION api.add_form (
-  pEntity       uuid,
+  pParent       uuid,
+  pType         uuid,
   pCode         text,
   pName         text,
-  pDescription  text DEFAULT null
+  pDescription  text default null
 ) RETURNS       uuid
 AS $$
 BEGIN
-  RETURN CreateForm(null, coalesce(pEntity, GetEntity('object')), pCode, pName, pDescription);
+  RETURN CreateForm(pParent, coalesce(pType, GetType('none.form')), pCode, pName, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -43,7 +45,8 @@ $$ LANGUAGE plpgsql
 /**
  * Редактирует форму.
  * @param {uuid} pId - Идентификатор
- * @param {uuid} pEntity - Сущность
+ * @param {uuid} pParent - Идентификатор объекта родителя
+ * @param {uuid} pType - Идентификатор типа
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
@@ -51,7 +54,8 @@ $$ LANGUAGE plpgsql
  */
 CREATE OR REPLACE FUNCTION api.update_form (
   pId           uuid,
-  pEntity       uuid default null,
+  pParent       uuid default null,
+  pType         uuid default null,
   pCode         text default null,
   pName         text default null,
   pDescription  text default null
@@ -66,7 +70,7 @@ BEGIN
     PERFORM ObjectNotFound('форма', 'id', pId);
   END IF;
 
-  PERFORM EditForm(pId, pEntity, pCode, pName, pDescription);
+  PERFORM EditForm(pId, pParent, pType, pCode, pName, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -78,7 +82,8 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION api.set_form (
   pId           uuid,
-  pEntity       uuid default null,
+  pParent       uuid default null,
+  pType         uuid default null,
   pCode         text default null,
   pName         text default null,
   pDescription  text default null
@@ -86,9 +91,9 @@ CREATE OR REPLACE FUNCTION api.set_form (
 AS $$
 BEGIN
   IF pId IS NULL THEN
-    pId := api.add_form(pEntity, pCode, pName, pDescription);
+    pId := api.add_form(pParent, pType, pCode, pName, pDescription);
   ELSE
-    PERFORM api.update_form(pId, pEntity, pCode, pName, pDescription);
+    PERFORM api.update_form(pId, pParent, pType, pCode, pName, pDescription);
   END IF;
 
   RETURN QUERY SELECT * FROM api.form WHERE id = pId;
@@ -101,7 +106,7 @@ $$ LANGUAGE plpgsql
 -- api.get_form ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает форму журнала
+ * Возвращает форму
  * @param {uuid} pId - Идентификатор
  * @return {api.form}
  */
@@ -145,8 +150,8 @@ $$ LANGUAGE plpgsql
 -- api.build_form --------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Создаёт форму журнала
- * @param {uuid} pId - Идентификатор журнала
+ * Создаёт форму
+ * @param {uuid} pId - Идентификатор
  * @return {SETOF json}
  */
 CREATE OR REPLACE FUNCTION api.build_form (
@@ -160,7 +165,10 @@ BEGIN
   SELECT id INTO uForm FROM db.form WHERE id = pId;
 
   IF NOT FOUND THEN
-    PERFORM NotFound();
+    SELECT form INTO uForm FROM db.journal WHERE id = pId;
+    IF NOT FOUND THEN
+	  PERFORM NotFound();
+	END IF;
   END IF;
 
   RETURN json_build_object('form', uForm, 'fields', BuildForm(uForm, pParams));
