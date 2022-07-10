@@ -13,12 +13,16 @@ GRANT SELECT ON Entity TO administrator;
 -- VIEW Class ------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW Class (Id, Parent, Entity, EntityCode, EntityName,
+CREATE OR REPLACE VIEW Class (Id, Parent,
+  Entity, EntityCode, EntityName,
   Level, Code, Label, Abstract
 ) AS
-  SELECT c.id, c.parent, c.entity, e.code, e.name, c.level, c.code, t.label, c.abstract
-    FROM db.class_tree c INNER JOIN Entity        e ON e.id = c.entity
-                          LEFT JOIN db.class_text t ON t.class = c.id AND t.locale = current_locale();
+  SELECT c.id, c.parent,
+         c.entity, e.code, et.name,
+         c.level, c.code, ct.label, c.abstract
+    FROM db.class_tree c INNER JOIN db.entity       e ON c.entity = e.id
+                          LEFT JOIN db.entity_text et ON et.entity = e.id AND et.locale = current_locale()
+                          LEFT JOIN db.class_text  ct ON ct.class = c.id AND ct.locale = current_locale();
 
 GRANT SELECT ON Class TO administrator;
 
@@ -38,6 +42,26 @@ AS
      ORDER BY sortlist;
 
 GRANT SELECT ON ClassTree TO administrator;
+
+--------------------------------------------------------------------------------
+-- FUNCTION ClassTree ----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION ClassTree (
+  pParent   uuid
+) RETURNS   SETOF ClassTree
+AS $$
+  WITH RECURSIVE tree AS (
+    SELECT *, ARRAY[row_number() OVER (ORDER BY level, code)] AS sortlist FROM Class WHERE parent IS NOT DISTINCT FROM pParent
+    UNION ALL
+      SELECT c.*, array_append(t.sortlist, row_number() OVER (ORDER BY c.level, c.code))
+        FROM Class c INNER JOIN tree t ON c.parent = t.id
+    )
+    SELECT * FROM tree
+     ORDER BY sortlist;
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
 -- VIEW ClassMembers -----------------------------------------------------------

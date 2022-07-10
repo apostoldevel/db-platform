@@ -254,6 +254,19 @@ AS
 GRANT SELECT ON api.class TO administrator;
 
 --------------------------------------------------------------------------------
+-- FUNCTION ClassTree ----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.class (
+  pParent   uuid
+) RETURNS   SETOF api.class
+AS $$
+  SELECT *, row_to_json(DecodeClassAccess(id)) as access FROM ClassTree(pParent);
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- api.add_class ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
