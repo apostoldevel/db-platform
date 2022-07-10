@@ -54,15 +54,21 @@ GRANT SELECT ON ClassMembers TO administrator;
 -- VIEW Type -------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW Type (Id, Entity, EntityCode, EntityName,
-  Class, ClassCode, ClassLabel, Code, Name, Description
+CREATE OR REPLACE VIEW Type (Id,
+  Entity, EntityCode, EntityName,
+  Class, ClassCode, ClassLabel,
+  Code, Name, Description
 )
 AS
-  SELECT o.id, c.entity, e.code, e.name,
-         o.class, c.code, c.label, o.code, t.name, t.description
-    FROM db.type o INNER JOIN Class        c ON c.id = o.class
-                   INNER JOIN Entity       e ON e.id = c.entity
-                    LEFT JOIN db.type_text t ON t.type = o.id AND t.locale = current_locale();
+  SELECT o.id,
+         c.entity, e.code, et.name,
+         o.class, c.code, ct.label,
+         o.code, tt.name, tt.description
+    FROM db.type o INNER JOIN db.class_tree   c ON o.class = c.id
+                    LEFT JOIN db.class_text  ct ON ct.class = c.id AND ct.locale = current_locale()
+                   INNER JOIN db.entity       e ON c.entity = e.id
+                    LEFT JOIN db.entity_text et ON et.entity = e.id AND et.locale = current_locale()
+                    LEFT JOIN db.type_text   tt ON tt.type = o.id AND tt.locale = current_locale();
 
 GRANT SELECT ON Type TO administrator;
 
@@ -84,16 +90,22 @@ GRANT SELECT ON StateType TO administrator;
 CREATE OR REPLACE VIEW State (Id,
   Entity, EntityCode, EntityName,
   Class, ClassCode, ClassLabel,
-  Type, TypeCode, TypeName, Code, Label, Sequence
+  Type, TypeCode, TypeName,
+  Code, Label, Sequence
 )
 AS
   SELECT s.id,
-         c.entity, c.entitycode, c.entityname,
-         s.class, c.code, c.label, s.type,
-         st.code, st.name, s.code, t.label, s.sequence
-    FROM db.state s INNER JOIN StateType    st ON st.id = s.type
-                    INNER JOIN Class         c ON c.id = s.class
-                     LEFT JOIN db.state_text t ON t.state = s.id AND t.locale = current_locale();
+         c.entity, e.code, et.name,
+         s.class, c.code, ct.label,
+         s.type, t.code, stt.name,
+         s.code, st.label, s.sequence
+    FROM db.state s INNER JOIN db.state_type        t ON s.type = t.id
+                     LEFT JOIN db.state_type_text stt ON stt.type = t.id AND stt.locale = current_locale()
+                    INNER JOIN db.class_tree        c ON s.class = c.id
+                     LEFT JOIN db.class_text       ct ON ct.class = c.id AND ct.locale = current_locale()
+                    INNER JOIN db.entity            e ON c.entity = e.id
+                     LEFT JOIN db.entity_text      et ON et.entity = e.id AND et.locale = current_locale()
+                     LEFT JOIN db.state_text       st ON st.state = s.id AND st.locale = current_locale();
 
 GRANT SELECT ON State TO administrator;
 
@@ -121,15 +133,20 @@ CREATE OR REPLACE VIEW Method (Id, Parent,
 )
 AS
   SELECT m.id, m.parent,
-         c.entity, c.entitycode, c.entityname,
-         m.class, c.code, c.label,
-         m.state, s.code, s.label,
-         m.action, a.code, a.name,
-         m.code, t.label, m.sequence, m.visible
-    FROM db.method m INNER JOIN Class          c ON c.id = m.class
-                     INNER JOIN Action         a ON a.id = m.action
-                      LEFT JOIN State          s ON s.id = m.state
-                      LEFT JOIN db.method_text t ON t.method = m.id AND t.locale = current_locale();
+         c.entity, e.code, et.name,
+         m.class, c.code, ct.label,
+         m.state, s.code, st.label,
+         m.action, a.code, at.name,
+         m.code, mt.label, m.sequence, m.visible
+    FROM db.method m INNER JOIN db.class_tree   c ON m.class = c.id
+                      LEFT JOIN db.class_text  ct ON ct.class = c.id AND ct.locale = current_locale()
+                     INNER JOIN db.entity       e ON c.entity = e.id
+                      LEFT JOIN db.entity_text et ON et.entity = e.id AND et.locale = current_locale()
+                     INNER JOIN db.action       a ON a.id = m.action
+                      LEFT JOIN db.action_text at ON at.action = a.id AND at.locale = current_locale()
+                      LEFT JOIN db.state        s ON s.id = m.state
+                      LEFT JOIN db.state_text  st ON st.state = s.id AND st.locale = current_locale()
+                      LEFT JOIN db.method_text mt ON mt.method = m.id AND mt.locale = current_locale();
 
 GRANT SELECT ON Method TO administrator;
 

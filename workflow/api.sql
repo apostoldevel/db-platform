@@ -799,7 +799,7 @@ AS $$
   SELECT *
     FROM api.method
    WHERE id = GetMethod(pClass, action, pState)
-     AND id NOT IN (SELECT id FROM api.method WHERE class = pClass AND state IS NOT DISTINCT FROM pState)
+     AND id NOT IN (SELECT id FROM db.method WHERE class = pClass AND state IS NOT DISTINCT FROM pState)
    ORDER BY statecode, sequence
 $$ LANGUAGE SQL
    SECURITY DEFINER
@@ -982,12 +982,41 @@ CREATE OR REPLACE FUNCTION api.get_methods (
 ) RETURNS       SETOF api.method
 AS $$
   SELECT *
-    FROM api.method m
-   WHERE m.class = pClass
-     AND m.state = coalesce(pState, m.state)
-     AND m.action = coalesce(pAction, m.action)
-   ORDER BY m.sequence
+    FROM api.method
+   WHERE class = pClass
+     AND state = coalesce(pState, state)
+     AND action = coalesce(pAction, action)
+   ORDER BY sequence
 $$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.get_object_methods ------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Возвращает методы объекта.
+ * @param {uuid} pObject - Идентификатор объекта
+ * @param {uuid} pAction - Идентификатор действия
+ * @return {record}
+ */
+CREATE OR REPLACE FUNCTION api.get_object_methods (
+  pObject       uuid
+) RETURNS       SETOF api.method
+AS $$
+DECLARE
+  uClass        uuid;
+  uState        uuid;
+BEGIN
+  SELECT class, state INTO uClass, uState FROM db.object WHERE id = pObject;
+
+  RETURN QUERY SELECT *
+    FROM api.method
+   WHERE class = uClass
+     AND state = uState
+   ORDER BY sequence;
+END;
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
