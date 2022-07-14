@@ -699,6 +699,74 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- JsonToIntervalArray ---------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION JsonToIntervalArray (
+  pJson		json
+) RETURNS	interval[]
+AS $$
+DECLARE
+  r		    record;
+  result	interval[];
+BEGIN
+  IF json_typeof(pJson) = 'array' THEN
+
+    FOR r IN SELECT * FROM json_array_elements_text(pJson)
+    LOOP
+      result := array_append(result, StrToInterval(r.value));
+    END LOOP;
+
+  ELSE
+
+    FOR r IN SELECT * FROM json_each_text(pJson)
+    LOOP
+      result := array_append(result, StrToInterval(r.value));
+    END LOOP;
+
+  END IF;
+
+  RETURN result;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- JsonbToIntervalArray --------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION JsonbToIntervalArray (
+  pJson		jsonb
+) RETURNS	interval[]
+AS $$
+DECLARE
+  r		    record;
+  result	interval[];
+BEGIN
+  IF jsonb_typeof(pJson) = 'array' THEN
+
+    FOR r IN SELECT * FROM jsonb_array_elements_text(pJson)
+    LOOP
+      result := array_append(result, StrToInterval(r.value));
+    END LOOP;
+
+  ELSE
+
+    FOR r IN SELECT * FROM jsonb_each_text(pJson)
+    LOOP
+      result := array_append(result, StrToInterval(r.value));
+    END LOOP;
+
+  END IF;
+
+  RETURN result;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- jsonb_array_to_string -------------------------------------------------------
 --------------------------------------------------------------------------------
 

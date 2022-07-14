@@ -375,10 +375,10 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 GRANT EXECUTE ON FUNCTION StrToTimeStamp(text, text) TO PUBLIC;
 
 --------------------------------------------------------------------------------
--- FUNCTION StrToTimeStamptz ---------------------------------------------------
+-- FUNCTION StrToTimeStampTZ ---------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION StrToTimeStamptz (
+CREATE OR REPLACE FUNCTION StrToTimeStampTZ (
   pValue	text,
   pFormat	text DEFAULT 'DD.MM.YYYY HH24:MI:SS'
 ) RETURNS	timestamptz
@@ -388,7 +388,43 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
-GRANT EXECUTE ON FUNCTION StrToTimeStamptz(text, text) TO PUBLIC;
+GRANT EXECUTE ON FUNCTION StrToTimeStampTZ(text, text) TO PUBLIC;
+
+--------------------------------------------------------------------------------
+-- FUNCTION StrToTime ----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION StrToTime (
+  pValue	text
+) RETURNS	time
+AS $$
+DECLARE
+  t         time;
+BEGIN
+  EXECUTE 'SELECT time ' || quote_literal(pValue) INTO t;
+  RETURN t;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+GRANT EXECUTE ON FUNCTION StrToTime(text) TO PUBLIC;
+
+--------------------------------------------------------------------------------
+-- FUNCTION StrToInterval ------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION StrToInterval (
+  pValue	text
+) RETURNS	interval
+AS $$
+DECLARE
+  i         interval;
+BEGIN
+  EXECUTE 'SELECT interval ' || quote_literal(pValue) INTO i;
+  RETURN i;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+GRANT EXECUTE ON FUNCTION StrToInterval(text) TO PUBLIC;
 
 --------------------------------------------------------------------------------
 -- FUNCTION MINDATE ------------------------------------------------------------
