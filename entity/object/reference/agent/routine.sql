@@ -5,18 +5,18 @@
  * Создаёт агента
  * @param {uuid} pParent - Идентификатор объекта родителя
  * @param {uuid} pType - Идентификатор типа
+ * @param {uuid} pVendor - Производитель
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
- * @param {uuid} pVendor - Производитель
  * @param {text} pDescription - Описание
  * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION CreateAgent (
   pParent       uuid,
   pType         uuid,
+  pVendor       uuid,
   pCode         text,
   pName         text,
-  pVendor       uuid,
   pDescription	text default null
 ) RETURNS       uuid
 AS $$
@@ -53,9 +53,9 @@ $$ LANGUAGE plpgsql
  * @param {uuid} pId - Идентификатор
  * @param {uuid} pParent - Идентификатор объекта родителя
  * @param {uuid} pType - Идентификатор типа
+ * @param {uuid} pVendor - Производитель
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
- * @param {uuid} pVendor - Производитель
  * @param {text} pDescription - Описание
  * @return {void}
  */
@@ -63,9 +63,9 @@ CREATE OR REPLACE FUNCTION EditAgent (
   pId           uuid,
   pParent       uuid default null,
   pType         uuid default null,
+  pVendor       uuid default null,
   pCode         text default null,
   pName         text default null,
-  pVendor       uuid default null,
   pDescription	text default null
 ) RETURNS       void
 AS $$

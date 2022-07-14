@@ -33,16 +33,16 @@ SELECT CreateVendor(null, GetType('service.vendor'), 'mts.vendor', 'МТС', 'П
 SELECT CreateVendor(null, GetType('service.vendor'), 'google.vendor', 'Google', 'Google.');
 SELECT CreateVendor(null, GetType('service.vendor'), 'sberbank.vendor', 'Сбербанк', 'Сбербанк.');
 
-SELECT CreateAgent(null, GetType('system.agent'), 'system.agent', 'Система', GetVendor('system.vendor'), 'Агент для обработки системных сообщений.');
-SELECT CreateAgent(null, GetType('system.agent'), 'notice.agent', 'Извещение', GetVendor('system.vendor'), 'Агент для обработки системных извещений.');
+SELECT CreateAgent(null, GetType('system.agent'), GetVendor('system.vendor'), 'system.agent', 'Система', 'Агент для обработки системных сообщений.');
+SELECT CreateAgent(null, GetType('system.agent'), GetVendor('system.vendor'), 'notice.agent', 'Извещение', 'Агент для обработки системных извещений.');
 
-SELECT CreateAgent(null, GetType('email.agent'), 'smtp.agent', 'SMTP', GetVendor('system.vendor'), 'Агент для передачи электронной почты по протоколу SMTP.');
-SELECT CreateAgent(null, GetType('email.agent'), 'pop3.agent', 'POP3', GetVendor('system.vendor'), 'Агент для получения электронной почты по протоколу POP3.');
-SELECT CreateAgent(null, GetType('email.agent'), 'imap.agent', 'IMAP', GetVendor('system.vendor'), 'Агент для получения электронной почты по протоколу IMAP.');
+SELECT CreateAgent(null, GetType('email.agent'), GetVendor('system.vendor'), 'smtp.agent', 'SMTP', 'Агент для передачи электронной почты по протоколу SMTP.');
+SELECT CreateAgent(null, GetType('email.agent'), GetVendor('system.vendor'), 'pop3.agent', 'POP3', 'Агент для получения электронной почты по протоколу POP3.');
+SELECT CreateAgent(null, GetType('email.agent'), GetVendor('system.vendor'), 'imap.agent', 'IMAP', 'Агент для получения электронной почты по протоколу IMAP.');
 
-SELECT CreateAgent(null, GetType('api.agent'), 'fcm.agent', 'FCM', GetVendor('google.vendor'), 'Агент для передачи push-уведомлений через Google Firebase Cloud Messaging.');
-SELECT CreateAgent(null, GetType('api.agent'), 'm2m.agent', 'M2M', GetVendor('mts.vendor'), 'Агент для передачи коротких сообщений через МТС Коммуникатор.');
-SELECT CreateAgent(null, GetType('api.agent'), 'sba.agent', 'SBA',  GetVendor('sberbank.vendor'), 'Агент для передачи данных в Интернет-Эквайринг от Сбербанка.');
+SELECT CreateAgent(null, GetType('api.agent'), GetVendor('google.vendor'), 'fcm.agent', 'FCM', 'Агент для передачи push-уведомлений через Google Firebase Cloud Messaging.');
+SELECT CreateAgent(null, GetType('api.agent'), GetVendor('mts.vendor'), 'm2m.agent', 'M2M', 'Агент для передачи коротких сообщений через МТС Коммуникатор.');
+SELECT CreateAgent(null, GetType('api.agent'), GetVendor('sberbank.vendor'), 'sba.agent', 'SBA', 'Агент для передачи данных в Интернет-Эквайринг от Сбербанка.');
 
 SELECT CreateScheduler(null, GetType('job.scheduler'), 'EACH_01_MINUTES', 'Каждую минуту', '1 minutes', MINDATE(), MAXDATE(), 'Каждую минуту.');
 SELECT CreateScheduler(null, GetType('job.scheduler'), 'EACH_05_MINUTES', 'Каждые 5 минут', '5 minutes', MINDATE(), MAXDATE(), 'Каждые 5 минут.');

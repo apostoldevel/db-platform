@@ -7,11 +7,14 @@ CREATE OR REPLACE VIEW Agent (Id, Reference, Code, Name, Description,
   Scope, ScopeCode, ScopeName, ScopeDescription
 )
 AS
-  SELECT a.id, a.reference, r.code, r.name, r.description, a.vendor,
-         v.code, v.name, v.description,
-         r.scope, r.scopecode, r.scopename, r.scopedescription
-    FROM db.agent a INNER JOIN Reference  r ON a.reference = r.id
-                    INNER JOIN Reference  v ON a.vendor = v.id;
+  SELECT a.id, a.reference, r.code, rt.name, rt.description,
+         a.vendor, vr.code, vrt.name, vrt.description,
+         r.scope, sc.code, sc.name, sc.description
+    FROM db.agent a INNER JOIN db.reference        r ON a.vendor = r.id
+                     LEFT JOIN db.reference_text  rt ON rt.reference = r.id AND rt.locale = current_locale()
+                    INNER JOIN db.reference       vr ON a.vendor = vr.id
+                     LEFT JOIN db.reference_text vrt ON vrt.reference = vr.id AND vrt.locale = current_locale()
+                    INNER JOIN db.scope           sc ON r.scope = sc.id;
 
 GRANT SELECT ON Agent TO administrator;
 
@@ -24,7 +27,7 @@ AS
   WITH access AS (
     SELECT * FROM AccessObjectUser(GetEntity('agent'), current_userid())
   )
-  SELECT a.* FROM Agent a INNER JOIN access ac ON a.id = ac.object;
+  SELECT a.* FROM db.agent a INNER JOIN access ac ON a.id = ac.object;
 
 GRANT SELECT ON AccessAgent TO administrator;
 
@@ -49,7 +52,7 @@ AS
          o.entity, e.code, et.name,
          o.class, c.code, ct.label,
          o.type, y.code, ty.name, ty.description,
-         t.vendor, rv.code, rvt.name, rvt.description,
+         t.vendor, vr.code, vrt.name, vrt.description,
          r.code, rt.name, ot.label, rt.description,
          o.state_type, st.code, stt.name,
          o.state, s.code, sst.label, o.udate,
@@ -66,14 +69,14 @@ AS
                      LEFT JOIN db.class_text       ct ON ct.class = c.id AND ct.locale = current_locale()
                     INNER JOIN db.type              y ON o.type = y.id
                      LEFT JOIN db.type_text        ty ON ty.type = y.id AND ty.locale = current_locale()
+                    INNER JOIN db.reference        vr ON t.vendor = vr.id
+                     LEFT JOIN db.reference_text  vrt ON vrt.reference = vr.id AND vrt.locale = current_locale()
                     INNER JOIN db.state_type       st ON o.state_type = st.id
                      LEFT JOIN db.state_type_text stt ON stt.type = st.id AND stt.locale = current_locale()
                     INNER JOIN db.state             s ON o.state = s.id
                      LEFT JOIN db.state_text      sst ON sst.state = s.id AND sst.locale = current_locale()
                     INNER JOIN db.user              w ON o.owner = w.id
                     INNER JOIN db.user              u ON o.oper = u.id
-                    INNER JOIN db.scope            sc ON o.scope = sc.id
-                     LEFT JOIN db.reference        rv ON t.vendor = rv.id
-                     LEFT JOIN db.reference_text  rvt ON rvt.reference = rv.id AND rvt.locale = current_locale();
+                    INNER JOIN db.scope            sc ON o.scope = sc.id;
 
 GRANT SELECT ON ObjectAgent TO administrator;

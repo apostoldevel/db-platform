@@ -9,7 +9,7 @@
 CREATE TABLE db.agent (
     id          uuid PRIMARY KEY,
     reference   uuid NOT NULL REFERENCES db.reference(id) ON DELETE CASCADE,
-    vendor      uuid NOT NULL
+    vendor      uuid NOT NULL REFERENCES db.vendor(id) ON DELETE RESTRICT
 );
 
 COMMENT ON TABLE db.agent IS 'Агент.';
@@ -19,6 +19,7 @@ COMMENT ON COLUMN db.agent.reference IS 'Справочник.';
 COMMENT ON COLUMN db.agent.vendor IS 'Производитель (поставщик).';
 
 CREATE INDEX ON db.agent (reference);
+CREATE INDEX ON db.agent (vendor);
 
 --------------------------------------------------------------------------------
 

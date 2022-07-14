@@ -19,23 +19,23 @@ GRANT SELECT ON api.agent TO administrator;
  * Добавляет агента.
  * @param {uuid} pParent - Ссылка на родительский объект: api.document | null
  * @param {uuid} pType - Идентификатор типа
+ * @param {uuid} pVendor - Производитель
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
- * @param {uuid} pVendor - Производитель
  * @param {text} pDescription - Описание
  * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION api.add_agent (
   pParent       uuid,
   pType         uuid,
+  pVendor       uuid,
   pCode         text,
   pName         text,
-  pVendor       uuid,
   pDescription	text default null
 ) RETURNS       uuid
 AS $$
 BEGIN
-  RETURN CreateAgent(pParent, coalesce(pType, GetType('system.agent')), pCode, pName, pVendor, pDescription);
+  RETURN CreateAgent(pParent, coalesce(pType, GetType('system.agent')), pVendor, pCode, pName, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -48,9 +48,9 @@ $$ LANGUAGE plpgsql
  * Редактирует агента.
  * @param {uuid} pParent - Ссылка на родительский объект: Object.Parent | null
  * @param {uuid} pType - Идентификатор типа
+ * @param {uuid} pVendor - Производитель
  * @param {text} pCode - Код
  * @param {text} pName - Наименование
- * @param {uuid} pVendor - Производитель
  * @param {text} pDescription - Описание
  * @return {void}
  */
@@ -58,9 +58,9 @@ CREATE OR REPLACE FUNCTION api.update_agent (
   pId		    uuid,
   pParent       uuid default null,
   pType         uuid default null,
+  pVendor       uuid default null,
   pCode         text default null,
   pName         text default null,
-  pVendor       uuid default null,
   pDescription	text default null
 ) RETURNS       void
 AS $$
@@ -73,7 +73,7 @@ BEGIN
     PERFORM ObjectNotFound('агент', 'id', pId);
   END IF;
 
-  PERFORM EditAgent(uAgent, pParent, pType, pCode, pName, pVendor, pDescription);
+  PERFORM EditAgent(uAgent, pParent, pType, pVendor, pCode, pName, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -87,17 +87,17 @@ CREATE OR REPLACE FUNCTION api.set_agent (
   pId           uuid,
   pParent       uuid default null,
   pType         uuid default null,
+  pVendor       uuid default null,
   pCode         text default null,
   pName         text default null,
-  pVendor       uuid default null,
   pDescription	text default null
 ) RETURNS       SETOF api.agent
 AS $$
 BEGIN
   IF pId IS NULL THEN
-    pId := api.add_agent(pParent, pType, pCode, pName, pVendor, pDescription);
+    pId := api.add_agent(pParent, pType, pVendor, pCode, pName, pDescription);
   ELSE
-    PERFORM api.update_agent(pId, pParent, pType, pCode, pName, pVendor, pDescription);
+    PERFORM api.update_agent(pId, pParent, pType, pVendor, pCode, pName, pDescription);
   END IF;
 
   RETURN QUERY SELECT * FROM api.agent WHERE id = pId;
