@@ -1018,16 +1018,33 @@ CREATE OR REPLACE FUNCTION api.get_object_methods (
 ) RETURNS       SETOF api.method
 AS $$
 DECLARE
+  r             record;
+
   uClass        uuid;
   uState        uuid;
 BEGIN
   SELECT class, state INTO uClass, uState FROM db.object WHERE id = pObject;
 
-  RETURN QUERY SELECT *
-    FROM api.method
-   WHERE class = uClass
-     AND state = uState
-   ORDER BY sequence;
+  FOR r IN SELECT id FROM db.method WHERE class = uClass AND state = uState
+  LOOP
+    PERFORM FROM db.oma WHERE object = pObject AND method = r.id AND userid = current_userid();
+    IF NOT FOUND THEN
+      WITH access AS (
+        SELECT method, bit_or(allow) & ~bit_or(deny) AS mask
+          FROM db.amu
+         WHERE method = r.id
+           AND userid IN (SELECT current_userid() UNION SELECT userid FROM db.member_group WHERE member = current_userid())
+         GROUP BY method
+      ) INSERT INTO db.oma SELECT pObject, method, current_userid(), mask FROM access;
+	END IF;
+  END LOOP;
+
+  RETURN QUERY
+    SELECT m.*
+      FROM api.method m INNER JOIN db.oma a ON a.object = pObject AND a.method = m.id AND a.userid = current_userid()
+     WHERE m.class = uClass
+       AND m.state = uState
+     ORDER BY m.sequence;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

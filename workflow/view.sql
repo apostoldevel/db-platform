@@ -153,16 +153,25 @@ CREATE OR REPLACE VIEW Method (Id, Parent,
   Class, ClassCode, ClassLabel,
   State, StateCode, StateLabel,
   Action, ActionCode, ActionName,
-  Code, Label, Sequence, Visible
+  Code, Label, Sequence,
+  Execute, Visible, Enable
 )
 AS
+  WITH _access AS (
+	SELECT a.method, bit_or(a.allow) & ~bit_or(a.deny) AS mask
+	  FROM db.amu a
+	 WHERE userid IN (SELECT current_userid() UNION SELECT userid FROM db.member_group WHERE member = current_userid())
+	 GROUP BY a.method
+  )
   SELECT m.id, m.parent,
          c.entity, e.code, et.name,
          m.class, c.code, ct.label,
          m.state, s.code, st.label,
          m.action, a.code, at.name,
-         m.code, mt.label, m.sequence, m.visible
-    FROM db.method m INNER JOIN db.class_tree   c ON m.class = c.id
+         m.code, mt.label, m.sequence,
+         ac.mask & B'100' = B'100' AS execute, ac.mask & B'010' = B'010' AS visible, ac.mask & B'001' = B'001' AS enable
+    FROM db.method m INNER JOIN _access        ac ON m.id = ac.method
+                     INNER JOIN db.class_tree   c ON m.class = c.id
                       LEFT JOIN db.class_text  ct ON ct.class = c.id AND ct.locale = current_locale()
                      INNER JOIN db.entity       e ON c.entity = e.id
                       LEFT JOIN db.entity_text et ON et.entity = e.id AND et.locale = current_locale()

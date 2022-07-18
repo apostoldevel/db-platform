@@ -323,10 +323,10 @@ COMMENT ON COLUMN db.aom.mask IS 'Маска доступа. Девять бит
 CREATE TABLE db.aou (
     object		uuid NOT NULL REFERENCES db.object(id) ON DELETE CASCADE,
     userid		uuid NOT NULL REFERENCES db.user(id) ON DELETE CASCADE,
+    entity		uuid NOT NULL REFERENCES db.entity(id) ON DELETE RESTRICT,
     deny		bit(3) NOT NULL,
     allow		bit(3) NOT NULL,
     mask		bit(3) DEFAULT B'000' NOT NULL,
-    entity		uuid NOT NULL REFERENCES db.entity(id) ON DELETE RESTRICT,
     PRIMARY KEY (object, userid)
 );
 
@@ -334,10 +334,10 @@ COMMENT ON TABLE db.aou IS 'Доступ пользователя и групп 
 
 COMMENT ON COLUMN db.aou.object IS 'Объект';
 COMMENT ON COLUMN db.aou.userid IS 'Пользователь';
+COMMENT ON COLUMN db.aou.entity IS 'Сущность';
 COMMENT ON COLUMN db.aou.deny IS 'Запрещающие биты: {sud}. Где: {s - select; u - update; d - delete}';
 COMMENT ON COLUMN db.aou.allow IS 'Разрешающие биты: {sud}. Где: {s - select; u - update; d - delete}';
 COMMENT ON COLUMN db.aou.mask IS 'Маска доступа: {sud}. Где: {s - select; u - update; d - delete}';
-COMMENT ON COLUMN db.aou.entity IS 'Сущность';
 
 CREATE INDEX ON db.aou (object);
 CREATE INDEX ON db.aou (userid);
@@ -363,6 +363,29 @@ CREATE TRIGGER t_aou_before
   BEFORE INSERT OR UPDATE ON db.aou
   FOR EACH ROW
   EXECUTE PROCEDURE ft_aou_before();
+
+--------------------------------------------------------------------------------
+-- TABLE db.oma ----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE TABLE db.oma (
+    object		uuid NOT NULL REFERENCES db.object(id) ON DELETE CASCADE,
+    method		uuid NOT NULL REFERENCES db.method(id) ON DELETE CASCADE,
+    userid		uuid NOT NULL REFERENCES db.user(id) ON DELETE CASCADE,
+    mask		bit(3) DEFAULT B'000' NOT NULL,
+    PRIMARY KEY (object, method, userid)
+);
+
+COMMENT ON TABLE db.oma IS 'Доступ пользователя к методам объекта.';
+
+COMMENT ON COLUMN db.oma.object IS 'Объект';
+COMMENT ON COLUMN db.oma.method IS 'Метод';
+COMMENT ON COLUMN db.amu.userid IS 'Пользователь';
+COMMENT ON COLUMN db.oma.mask IS 'Маска доступа: {xve}. Где: {x - execute, v - visible, e - enable}';
+
+CREATE INDEX ON db.oma (object);
+CREATE INDEX ON db.oma (method);
+CREATE INDEX ON db.oma (userid);
 
 --------------------------------------------------------------------------------
 -- OBJECT_STATE ----------------------------------------------------------------

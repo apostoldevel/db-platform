@@ -521,7 +521,9 @@ COMMENT ON TABLE db.amu IS 'Доступ пользователя к метод�
 
 COMMENT ON COLUMN db.amu.method IS 'Метод';
 COMMENT ON COLUMN db.amu.userid IS 'Пользователь';
-COMMENT ON COLUMN db.amu.mask IS 'Маска доступа. Шесть бит (d:{xve}a:{xve}) где: d - запрещающие биты; a - разрешающие биты: {x - execute, v - visible, e - enable}';
+COMMENT ON COLUMN db.amu.deny IS 'Запрещающие биты: {xve}. Где: {x - execute, v - visible, e - enable}';
+COMMENT ON COLUMN db.amu.allow IS 'Разрешающие биты: {xve}. Где: {x - execute, v - visible, e - enable}';
+COMMENT ON COLUMN db.amu.mask IS 'Маска доступа: {xve}. Где: {x - execute, v - visible, e - enable}';
 
 CREATE INDEX ON db.amu (method);
 CREATE INDEX ON db.amu (userid);
