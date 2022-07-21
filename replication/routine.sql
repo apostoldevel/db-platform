@@ -220,6 +220,7 @@ DECLARE
 
   k             text[];
   v             text[];
+  t             text[];
 
   SQL           text;
 
@@ -251,7 +252,7 @@ BEGIN
             v := array_append(v, format('(%s, %L, %L, %L, %L, %L)::Variant', u.vtype, u.vinteger, u.vnumeric, u.vdatetime, u.vstring, u.vboolean));
 		  END LOOP;
         ELSE
-          v := array_append(v, quote_nullable(e.value->>0));
+          v := array_append(v, quote_nullable(e.value));
         END IF;
       ELSE
         v := array_append(v, e.value->>0);
@@ -285,8 +286,30 @@ BEGIN
           LOOP
             v := array_append(v, e.key || format(' = (%s, %L, %L, %L, %L, %L)::Variant', u.vtype, u.vinteger, u.vnumeric, u.vdatetime, u.vstring, u.vboolean));
 		  END LOOP;
+        ELSIF r.name = 'calendar' AND e.key = 'schedule' THEN
+          FOR u IN SELECT * FROM jsonb_array_elements(e.value)
+          LOOP
+            IF jsonb_typeof(u.value) = 'array' THEN
+              t := array_append(t, '{' || array_to_string(JsonbToStrArray(u.value), ',') || '}');
+            ELSE
+              t := array_append(t, '{' || array_to_string(JsonbToStrArray(e.value), ',') || '}');
+              EXIT WHEN true;
+            END IF;
+          END LOOP;
+          v := array_append(v, e.key || format(' = %L', '{' || array_to_string(t, ',') || '}'));
+        ELSIF r.name = 'cdate' AND e.key = 'schedule' THEN
+          FOR u IN SELECT * FROM jsonb_array_elements(e.value)
+          LOOP
+            IF jsonb_typeof(u.value) = 'array' THEN
+              t := array_append(t, '{' || array_to_string(JsonbToIntervalArray(u.value), ',') || '}');
+            ELSE
+              t := array_append(t, '{' || array_to_string(JsonbToIntervalArray(e.value), ',') || '}');
+              EXIT WHEN true;
+            END IF;
+          END LOOP;
+          v := array_append(v, e.key || format(' = %L', '{' || array_to_string(t, ',') || '}'));
         ELSE
-          v := array_append(v, e.key || ' = ' || quote_nullable(e.value->>0));
+          v := array_append(v, e.key || ' = ' || quote_nullable(e.value));
         END IF;
       ELSE
         v := array_append(v, e.key || ' = ' || e.value);
@@ -305,6 +328,8 @@ BEGIN
     SQL := format('DELETE FROM %I.%I WHERE %s', r.schema, r.name, array_to_string(k, ' AND '));
 
   END IF;
+
+  RAISE NOTICE '%', SQL;
 
   EXECUTE SQL;
 
