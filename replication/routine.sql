@@ -26,7 +26,7 @@ DECLARE
   vMessage      text;
   vContext      text;
 BEGIN
-  pEntities := array_cat(pEntities, ARRAY['job', 'message']);
+  pEntities := array_cat(pEntities, ARRAY['log', 'api_log']);
 
   IF TG_TABLE_NAME = ANY (pEntities) THEN
 	RETURN NULL;
@@ -100,6 +100,10 @@ BEGIN
 
 	IF TG_TABLE_NAME = 'user' THEN
 	  jData := jData - 'status';
+	END IF;
+
+	IF TG_TABLE_NAME = 'profile' THEN
+	  jData := jData - 'input_last';
 	END IF;
 
     IF NULLIF(jData, jsonb_build_object()) IS NOT NULL THEN
@@ -251,6 +255,28 @@ BEGIN
           LOOP
             v := array_append(v, format('(%s, %L, %L, %L, %L, %L)::Variant', u.vtype, u.vinteger, u.vnumeric, u.vdatetime, u.vstring, u.vboolean));
 		  END LOOP;
+        ELSIF r.name = 'calendar' AND e.key IN ('holiday', 'dayoff', 'schedule') THEN
+          FOR u IN SELECT * FROM jsonb_array_elements(e.value)
+          LOOP
+            IF jsonb_typeof(u.value) = 'array' THEN
+              t := array_append(t, '{' || array_to_string(JsonbToStrArray(u.value), ',') || '}');
+            ELSE
+              t := array_append(t, '{' || array_to_string(JsonbToStrArray(e.value), ',') || '}');
+              EXIT WHEN true;
+            END IF;
+          END LOOP;
+          v := array_append(v, format('%L', '{' || array_to_string(t, ',') || '}'));
+        ELSIF r.name = 'cdate' AND e.key = 'schedule' THEN
+          FOR u IN SELECT * FROM jsonb_array_elements(e.value)
+          LOOP
+            IF jsonb_typeof(u.value) = 'array' THEN
+              t := array_append(t, '{' || array_to_string(JsonbToIntervalArray(u.value), ',') || '}');
+            ELSE
+              t := array_append(t, '{' || array_to_string(JsonbToIntervalArray(e.value), ',') || '}');
+              EXIT WHEN true;
+            END IF;
+          END LOOP;
+          v := array_append(v, format('%L', '{' || array_to_string(t, ',') || '}'));
         ELSE
           v := array_append(v, quote_nullable(e.value));
         END IF;
@@ -286,7 +312,7 @@ BEGIN
           LOOP
             v := array_append(v, e.key || format(' = (%s, %L, %L, %L, %L, %L)::Variant', u.vtype, u.vinteger, u.vnumeric, u.vdatetime, u.vstring, u.vboolean));
 		  END LOOP;
-        ELSIF r.name = 'calendar' AND e.key = 'schedule' THEN
+        ELSIF r.name = 'calendar' AND e.key IN ('holiday', 'dayoff', 'schedule') THEN
           FOR u IN SELECT * FROM jsonb_array_elements(e.value)
           LOOP
             IF jsonb_typeof(u.value) = 'array' THEN
@@ -328,8 +354,6 @@ BEGIN
     SQL := format('DELETE FROM %I.%I WHERE %s', r.schema, r.name, array_to_string(k, ' AND '));
 
   END IF;
-
-  RAISE NOTICE '%', SQL;
 
   EXECUTE SQL;
 
