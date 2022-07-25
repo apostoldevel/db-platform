@@ -77,7 +77,7 @@ BEGIN
   VALUES (pRequest, pRequest, pStatus, pStatusText, pHeaders, pContent, age(clock_timestamp(), cBegin))
   RETURNING id INTO uId;
 
-  UPDATE http.request SET state = 2 WHERE id = pRequest;
+  PERFORM http.done(pRequest);
 
   RETURN uId;
 END;
@@ -315,14 +315,8 @@ CREATE OR REPLACE FUNCTION http.done (
   pRequest  uuid
 ) RETURNS   void
 AS $$
-DECLARE
-  r         record;
 BEGIN
-  SELECT q.method, q.resource, a.status, a.status_text, a.content INTO r
-    FROM http.request q INNER JOIN http.response a ON q.id = a.request
-   WHERE q.id = pRequest;
-
-  RAISE NOTICE '% % % %', r.method, r.resource, r.status, r.status_text;
+  UPDATE http.request SET state = 2 WHERE id = pRequest;
 END;
 $$ LANGUAGE plpgsql
   SECURITY DEFINER
@@ -333,17 +327,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION http.fail (
-  pRequest  uuid
+  pRequest  uuid,
+  pError    text
 ) RETURNS   void
 AS $$
-DECLARE
-  r         record;
 BEGIN
-  SELECT method, resource, error INTO r
-    FROM http.request
-   WHERE id = pRequest;
-
-  RAISE NOTICE 'ERROR: % % %', r.method, r.resource, r.error;
+  UPDATE http.request SET state = 3, error = pError WHERE id = pRequest;
 END;
 $$ LANGUAGE plpgsql
   SECURITY DEFINER

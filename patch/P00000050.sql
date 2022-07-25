@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS http.fail(uuid);
