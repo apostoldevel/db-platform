@@ -201,12 +201,6 @@ BEGIN
     SELECT AccessDeniedForUser(session_user);
   END IF;
 
-  IF OLD.suid IS DISTINCT FROM NEW.suid THEN
-	IF current_username() IS DISTINCT FROM 'admin' THEN
-	  PERFORM AccessDenied();
-	END IF;
-  END IF;
-
   IF NOT CheckObjectAccess(NEW.id, B'010') THEN
     PERFORM AccessDenied();
   END IF;
