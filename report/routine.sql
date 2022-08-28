@@ -309,6 +309,35 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- GetForReportStateJson -------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetForReportStateJson (
+  pClass    uuid,
+  pLimit    integer DEFAULT 500
+) RETURNS	json
+AS $$
+DECLARE
+  r			record;
+  arResult	json[];
+BEGIN
+  FOR r IN
+    SELECT s.id AS value, st.label
+      FROM db.state s INNER JOIN db.state_text st ON s.id = st.state AND st.locale = current_locale()
+     WHERE s.class = pClass
+     ORDER BY label
+     LIMIT pLimit
+  LOOP
+    arResult := array_append(arResult, row_to_json(r));
+  END LOOP;
+
+  RETURN array_to_json(arResult);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- FUNCTION ReportErrorHTML ----------------------------------------------------
 --------------------------------------------------------------------------------
 

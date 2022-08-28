@@ -451,6 +451,7 @@ CREATE OR REPLACE FUNCTION ChangeObjectState (
 ) RETURNS 	void
 AS $$
 DECLARE
+  r         record;
   uNewState	uuid;
   uAction	uuid;
 BEGIN
@@ -458,7 +459,14 @@ BEGIN
   IF uNewState IS NOT NULL THEN
     PERFORM AddObjectState(pObject, uNewState);
     SELECT action INTO uAction FROM db.method WHERE id = pMethod;
-    PERFORM AddMethodStack(jsonb_build_object('object', pObject, 'method', pMethod, 'action', jsonb_build_object('id', uAction, 'code', GetActionCode(uAction)), 'newstate', jsonb_build_object('id', uNewState, 'code', GetStateCode(uNewState))));
+    SELECT s.id, s.type, t.code AS typecode, stt.name AS typename, stt.description AS typedescription,
+           s.code, st.label, s.sequence
+      INTO r
+      FROM db.state s INNER JOIN db.state_type        t ON s.type = t.id
+                       LEFT JOIN db.state_type_text stt ON stt.type = t.id AND stt.locale = current_locale()
+                       LEFT JOIN db.state_text       st ON st.state = s.id AND st.locale = current_locale()
+     WHERE s.id = uNewState;
+    PERFORM AddMethodStack(jsonb_build_object('object', pObject, 'method', pMethod, 'action', jsonb_build_object('id', uAction, 'code', GetActionCode(uAction)), 'newstate', row_to_json(r)));
   END IF;
 END;
 $$ LANGUAGE plpgsql

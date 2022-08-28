@@ -92,6 +92,8 @@ BEGIN
 
   -- Тип
   PERFORM AddType(uClass, 'none.form', 'Без типа', 'Без типа.');
+  PERFORM AddType(uClass, 'journal.form', 'Журнал', 'Форма журнала.');
+  PERFORM AddType(uClass, 'tracker.form', 'Суточный отчёт', 'Форма суточного отчёта.');
 
   -- Событие
   PERFORM AddFormEvents(uClass);
