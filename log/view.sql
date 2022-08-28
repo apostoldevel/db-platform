@@ -2,7 +2,7 @@
 -- VIEW EventLog ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW EventLog (Id, Type, TypeName, DateTime, UserName,
+CREATE OR REPLACE VIEW EventLog (Id, Type, TypeName, DateTime, TimeStamp, UserName,
   Session, Code, Event, Text, Category, Object
 )
 AS
@@ -13,7 +13,7 @@ AS
          WHEN type = 'E' THEN 'Ошибка'
          WHEN type = 'D' THEN 'Отладка'
          END,
-         datetime, username, session, code, event, text, category, object
+         datetime, timestamp, username, session, code, event, text, category, object
     FROM db.log;
 
 GRANT SELECT ON EventLog TO administrator;

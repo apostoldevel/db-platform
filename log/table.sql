@@ -5,7 +5,8 @@
 CREATE TABLE db.log (
     id          bigserial PRIMARY KEY NOT NULL,
     type        char DEFAULT 'M' NOT NULL CHECK (type IN ('M', 'W', 'E', 'D')),
-    datetime	timestamptz DEFAULT Now() NOT NULL,
+    datetime	timestamptz DEFAULT clock_timestamp() NOT NULL,
+    timestamp	timestamptz DEFAULT Now() NOT NULL,
     username	text NOT NULL,
     session     char(40),
     code        integer NOT NULL,
@@ -40,16 +41,14 @@ CREATE INDEX ON db.log (category);
 CREATE OR REPLACE FUNCTION ft_log_insert()
 RETURNS trigger AS $$
 BEGIN
+  NEW.datetime := clock_timestamp();
+
   IF NULLIF(NEW.username, '') IS NULL THEN
      NEW.username := coalesce(current_username(), session_user);
   END IF;
 
   IF NEW.session IS NULL THEN
     NEW.session := current_session();
-  END IF;
-
-  IF NEW.session IS NOT NULL THEN
-    NEW.session := SubStr(NEW.session, 1, 8) || '...' || SubStr(NEW.session, 33);
   END IF;
 
   RETURN NEW;
