@@ -907,13 +907,8 @@ CREATE OR REPLACE FUNCTION GetStateType (
   pCode		text
 ) RETURNS	uuid
 AS $$
-DECLARE
-  uId		uuid;
-BEGIN
-  SELECT id INTO uId FROM db.state_type WHERE code = pCode;
-  RETURN uId;
-END;
-$$ LANGUAGE plpgsql STABLE STRICT
+  SELECT id FROM db.state_type WHERE code = pCode;
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -925,13 +920,8 @@ CREATE OR REPLACE FUNCTION GetStateTypeCode (
   pId		uuid
 ) RETURNS	text
 AS $$
-DECLARE
-  vCode		text;
-BEGIN
-  SELECT code INTO vCode FROM db.state_type WHERE id = pId;
-  RETURN vCode;
-END;
-$$ LANGUAGE plpgsql
+  SELECT code FROM db.state_type WHERE id = pId;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
