@@ -29,16 +29,23 @@ GRANT SELECT ON api.service_job TO apibot;
 
 CREATE OR REPLACE FUNCTION api.job (
   pStateType	uuid,
-  pDateRun		timestamptz DEFAULT Now(),
+  pDateFrom		timestamptz DEFAULT Now(),
   OUT id        uuid,
+  OUT typecode  text,
   OUT statecode text,
-  OUT created   timestamptz
+  OUT created   timestamptz,
+  OUT daterun   timestamptz,
+  OUT body      text
 ) RETURNS		SETOF record
 AS $$
-  SELECT j.id, s.code AS statecode, j.daterun
-    FROM db.job j INNER JOIN db.object o ON j.document = o.id AND o.scope = current_scope()
-                  INNER JOIN db.state  s ON o.state = s.id AND s.type = pStateType
-	 WHERE j.dateRun <= pDateRun;
+  SELECT j.id, t.code, s.code, o.pdate, j.daterun, p.body
+    FROM db.job j INNER JOIN db.object  o ON j.document = o.id
+                  INNER JOIN db.type    t ON o.type = t.id
+                  INNER JOIN db.state   s ON o.state = s.id
+                  INNER JOIN db.program p ON j.program = p.id
+	 WHERE j.dateRun <= pDateFrom
+       AND o.state_type = pStateType
+	   AND o.scope = current_scope();
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -51,8 +58,11 @@ CREATE OR REPLACE FUNCTION api.job (
   pStateType	text DEFAULT 'enabled',
   pDateFrom		double precision DEFAULT null,
   OUT id        uuid,
+  OUT typecode  text,
   OUT statecode text,
-  OUT created   timestamptz
+  OUT created   timestamptz,
+  OUT daterun   timestamptz,
+  OUT body      text
 ) RETURNS		SETOF record
 AS $$
   SELECT * FROM api.job(GetStateType(pStateType), coalesce(to_timestamp(pDateFrom), Now()));

@@ -115,50 +115,8 @@ CREATE OR REPLACE FUNCTION EventJobExecute (
   pObject		uuid default context_object()
 ) RETURNS		void
 AS $$
-DECLARE
-  r				record;
-  s				record;
-
-  uScheduler	uuid;
-  uProgram		uuid;
-
-  dtDateRun		timestamptz;
-
-  iPeriod		interval;
 BEGIN
---  PERFORM WriteToEventLog('M', 1000, 'execute', 'Задание выполняется.', pObject);
-
-  SELECT code, agent, host INTO s FROM db.session WHERE code = current_session();
-  SELECT scheduler, program, daterun INTO uScheduler, uProgram, dtDateRun FROM db.job WHERE id = pObject;
-  SELECT period INTO iPeriod FROM db.scheduler WHERE id = uScheduler;
-
-  iPeriod := coalesce(iPeriod, '0 seconds'::interval);
-
-  IF dtDateRun > Now() THEN
-	dtDateRun := Now();
-  END IF;
-
-  dtDateRun := dtDateRun + iPeriod;
-  IF dtDateRun < Now() THEN
-    dtDateRun := Now() + iPeriod;
-  END IF;
-
-  UPDATE db.job SET daterun = dtDateRun WHERE id = pObject;
-
-  FOR r IN SELECT body FROM db.program WHERE id = uProgram
-  LOOP
-	EXECUTE r.body;
-  END LOOP;
-
-  IF current_session() IS DISTINCT FROM s.code THEN
-    PERFORM Authorize(s.code, s.agent, s.host);
-  END IF;
-
-  IF GetObjectTypeCode(pObject) = 'periodic.job' THEN
-  	PERFORM ExecuteObjectAction(pObject, GetAction('done'));
-  ELSE
-  	PERFORM ExecuteObjectAction(pObject, GetAction('complete'));
-  END IF;
+  PERFORM WriteToEventLog('M', 1000, 'execute', 'Задание выполняется.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -183,8 +141,30 @@ CREATE OR REPLACE FUNCTION EventJobDone (
   pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
+DECLARE
+  uScheduler	uuid;
+  dtDateRun		timestamptz;
+
+  iPeriod		interval;
 BEGIN
---  PERFORM WriteToEventLog('M', 1000, 'done', 'Задание выполнено.', pObject);
+  SELECT scheduler, daterun INTO uScheduler, dtDateRun FROM db.job WHERE id = pObject;
+  SELECT period INTO iPeriod FROM db.scheduler WHERE id = uScheduler;
+
+  iPeriod := coalesce(iPeriod, '0 seconds'::interval);
+
+  IF dtDateRun > Now() THEN
+    dtDateRun := Now();
+  END IF;
+
+  dtDateRun := dtDateRun + iPeriod;
+
+  IF dtDateRun < Now() THEN
+    dtDateRun := Now();
+  END IF;
+
+  UPDATE db.job SET daterun = dtDateRun WHERE id = pObject;
+
+  PERFORM WriteToEventLog('M', 1000, 'done', 'Задание выполнено.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
