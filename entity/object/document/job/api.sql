@@ -35,7 +35,7 @@ CREATE OR REPLACE FUNCTION api.job (
   OUT created   timestamptz
 ) RETURNS		SETOF record
 AS $$
-  SELECT j.id, s.code AS statecode, o.pdate AS created
+  SELECT j.id, s.code AS statecode, j.daterun
     FROM db.job j INNER JOIN db.object o ON j.document = o.id AND o.scope = current_scope()
                   INNER JOIN db.state  s ON o.state = s.id AND s.type = pStateType
 	 WHERE j.dateRun <= pDateRun;
