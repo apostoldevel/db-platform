@@ -128,7 +128,7 @@ CREATE OR REPLACE FUNCTION EventOutboxFail (
 ) RETURNS	void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'Fail', 'Сбой при отправке сообщения.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'fail', 'Сбой при отправке сообщения.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
