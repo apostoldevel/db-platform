@@ -557,6 +557,9 @@ $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 SELECT CreateExceptionResource(GetExceptionUUID(400, 30), 'ru', 'ObjectNotFound', 'Не найден(а/о) %s по %s: %s');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 30), 'en', 'ObjectNotFound', 'Not FOUND %s with %s: %s');
 
+SELECT CreateExceptionResource(GetExceptionUUID(400, 68), 'ru', 'ObjectNotFound', 'Не найден(а/о) %s по %s: <null>');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 68), 'en', 'ObjectNotFound', 'Not FOUND %s with %s: <null>');
+
 CREATE OR REPLACE FUNCTION ObjectNotFound (
   pWho		text,
   pParam	text,
@@ -564,9 +567,13 @@ CREATE OR REPLACE FUNCTION ObjectNotFound (
 ) RETURNS	void
 AS $$
 BEGIN
-  RAISE EXCEPTION '%', format(GetExceptionStr(400, 30), pWho, pParam, pId);
+  IF pId IS NULL THEN
+    RAISE EXCEPTION '%', format(GetExceptionStr(400, 68), pWho, pParam);
+  ELSE
+    RAISE EXCEPTION '%', format(GetExceptionStr(400, 30), pWho, pParam, pId);
+  END IF;
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
 --------------------------------------------------------------------------------
 
@@ -580,9 +587,13 @@ CREATE OR REPLACE FUNCTION ObjectNotFound (
 ) RETURNS	void
 AS $$
 BEGIN
-  RAISE EXCEPTION '%', format(GetExceptionStr(400, 31), pWho, pParam, pCode);
+  IF pCode IS NULL THEN
+    RAISE EXCEPTION '%', format(GetExceptionStr(400, 68), pWho, pParam);
+  ELSE
+    RAISE EXCEPTION '%', format(GetExceptionStr(400, 31), pWho, pParam, pCode);
+  END IF;
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
 --------------------------------------------------------------------------------
 
@@ -1001,6 +1012,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
+--------------------------------------------------------------------------------
+--- !!! Id: 68 занят. Смотреть ObjectNotFound
 --------------------------------------------------------------------------------
 
 SELECT CreateExceptionResource(GetExceptionUUID(400, 70), 'ru', 'IssuerNotFound', 'OAuth 2.0: Не найден эмитент: %s');
