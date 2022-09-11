@@ -106,7 +106,7 @@ CREATE OR REPLACE FUNCTION api.signout (
 ) RETURNS       boolean
 AS $$
 BEGIN
-  RETURN SignOut(pSession, pCloseAll);
+  RETURN SignOut(coalesce(pSession, current_session()), coalesce(pCloseAll, false));
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
