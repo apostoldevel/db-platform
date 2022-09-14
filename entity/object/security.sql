@@ -123,6 +123,51 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- GetObjectMethodAccessMask ---------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetObjectMethodAccessMask (
+  pObject	uuid,
+  pMethod	uuid,
+  pUserId	uuid default current_userid()
+) RETURNS	bit
+AS $$
+  SELECT mask FROM db.oma WHERE object = pObject AND method = pMethod AND userid = pUserId
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- CheckObjectMethodAccess -----------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION CheckObjectMethodAccess (
+  pObject	uuid,
+  pMethod	uuid,
+  pMask		bit,
+  pUserId	uuid default current_userid()
+) RETURNS	boolean
+AS $$
+BEGIN
+  PERFORM FROM db.oma WHERE object = pObject AND method = pMethod AND userid = pUserId;
+
+  IF NOT FOUND THEN
+	WITH access AS (
+	  SELECT method, bit_or(allow) & ~bit_or(deny) AS mask
+		FROM db.amu
+	   WHERE method = pMethod
+		 AND userid IN (SELECT pUserId UNION SELECT userid FROM db.member_group WHERE member = pUserId)
+	   GROUP BY method
+	) INSERT INTO db.oma SELECT pObject, method, pUserId, mask FROM access;
+  END IF;
+
+  RETURN coalesce(GetObjectMethodAccessMask(pObject, pMethod, pUserId) & pMask = pMask, false);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- AccessObjectUser ------------------------------------------------------------
 --------------------------------------------------------------------------------
 

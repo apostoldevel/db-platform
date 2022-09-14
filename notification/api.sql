@@ -68,3 +68,49 @@ END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- OBJECT METHOD HISTORY -------------------------------------------------------
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- api.object_method_history ---------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW api.object_method_history
+AS
+  SELECT * FROM ObjectMethodHistory;
+
+GRANT SELECT ON api.object_method_history TO administrator;
+
+--------------------------------------------------------------------------------
+-- api.get_object_method_history -----------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.get_object_method_history (
+  pId         uuid
+) RETURNS     SETOF api.object_method_history
+AS $$
+  SELECT * FROM api.object_method_history WHERE id = pId;
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.list_object_method_history ----------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.list_object_method_history (
+  pSearch	jsonb DEFAULT null,
+  pFilter	jsonb DEFAULT null,
+  pLimit	integer DEFAULT null,
+  pOffSet	integer DEFAULT null,
+  pOrderBy	jsonb DEFAULT null
+) RETURNS	SETOF api.object_method_history
+AS $$
+BEGIN
+  RETURN QUERY EXECUTE api.sql('api', 'object_method_history', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
