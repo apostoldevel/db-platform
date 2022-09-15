@@ -427,6 +427,43 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 GRANT EXECUTE ON FUNCTION StrToInterval(text) TO PUBLIC;
 
 --------------------------------------------------------------------------------
+-- FUNCTION IntervalArrayToStr -------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION IntervalArrayToStr (
+  pValue	interval[][],
+  pFormat   text DEFAULT 'HH24:MI'
+) RETURNS	text[][]
+AS $$
+DECLARE
+  t         interval;
+  r1        text[];
+  r2        text[][];
+BEGIN
+  r2 := ARRAY[['','']];
+
+  FOR i IN 1..coalesce(array_length(pValue, 1), 1)
+  LOOP
+    r1 := null;
+
+	FOR j IN 1..coalesce(array_length(pValue, 2), 1)
+	LOOP
+      t := pValue[i][j];
+      IF t IS NOT NULL THEN
+	    r1 := array_append(r1, TO_CHAR(t, pFormat));
+	  END IF;
+	END LOOP;
+
+    r2 := array_cat(r2, r1);
+  END LOOP;
+
+  RETURN r2[2:];
+END;
+$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+
+GRANT EXECUTE ON FUNCTION IntervalArrayToStr(interval[][], text) TO PUBLIC;
+
+--------------------------------------------------------------------------------
 -- FUNCTION MINDATE ------------------------------------------------------------
 --------------------------------------------------------------------------------
 

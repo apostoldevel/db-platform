@@ -11,11 +11,10 @@ RETURNS trigger AS $$
 DECLARE
   r             record;
 
-  uEntity       uuid;
   uObject       uuid;
 
   arKeys        text[];
-  pEntities     text[];
+  pTables       text[];
 
   j             jsonb;
   jNew          jsonb;
@@ -26,9 +25,9 @@ DECLARE
   vMessage      text;
   vContext      text;
 BEGIN
-  pEntities := array_cat(pEntities, ARRAY['log', 'api_log']);
+  pTables := array_cat(pTables, ARRAY['log', 'api_log', 'job', 'message', 'notification']);
 
-  IF TG_TABLE_NAME = ANY (pEntities) THEN
+  IF TG_TABLE_NAME = ANY (pTables) THEN
 	RETURN NULL;
   END IF;
 
@@ -46,12 +45,21 @@ BEGIN
     END IF;
 
     IF TG_TABLE_NAME = 'object_state' THEN
-      SELECT object INTO uObject FROM db.object_state WHERE id = (jNew->>'id')::uuid;
+      uObject := (jNew->>'object')::uuid;
+    END IF;
+
+    IF TG_TABLE_NAME = 'method_stack' THEN
+      uObject := (jNew->>'object')::uuid;
     END IF;
 
     IF uObject IS NOT NULL THEN
-      SELECT entity INTO uEntity FROM db.object WHERE id = uObject;
-      IF GetEntityCode(uEntity) = ANY (pEntities) THEN
+      PERFORM FROM db.job WHERE id = uObject;
+      IF FOUND THEN
+	    RETURN NULL;
+      END IF;
+
+      PERFORM FROM db.message WHERE id = uObject;
+      IF FOUND THEN
 	    RETURN NULL;
       END IF;
     END IF;
@@ -68,12 +76,21 @@ BEGIN
     END IF;
 
     IF TG_TABLE_NAME = 'object_state' THEN
-      SELECT object INTO uObject FROM db.object_state WHERE id = (jNew->>'id')::uuid;
+      uObject := (jNew->>'object')::uuid;
+    END IF;
+
+    IF TG_TABLE_NAME = 'method_stack' THEN
+      uObject := (jNew->>'object')::uuid;
     END IF;
 
     IF uObject IS NOT NULL THEN
-      SELECT entity INTO uEntity FROM db.object WHERE id = uObject;
-      IF GetEntityCode(uEntity) = ANY (pEntities) THEN
+      PERFORM FROM db.job WHERE id = uObject;
+      IF FOUND THEN
+	    RETURN NULL;
+      END IF;
+
+      PERFORM FROM db.message WHERE id = uObject;
+      IF FOUND THEN
 	    RETURN NULL;
       END IF;
     END IF;
