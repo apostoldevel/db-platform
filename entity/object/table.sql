@@ -171,7 +171,7 @@ BEGIN
 	  IF NEW.owner <> uUserId THEN
 		UPDATE db.aou SET allow = allow | B'100' WHERE object = NEW.id AND userid = uUserId;
 		IF NOT FOUND THEN
-		  INSERT INTO db.aou SELECT NEW.id, uUserId, B'000', B'100';
+		  INSERT INTO db.aou (object, userid, deny, allow) SELECT NEW.id, uUserId, B'000', B'100';
 		END IF;
 	  END IF;
 	END IF;
@@ -244,7 +244,7 @@ BEGIN
     IF NOT bSystem THEN
       DELETE FROM db.aou WHERE object = NEW.id AND userid = OLD.owner AND mask = B'111';
     END IF;
-	INSERT INTO db.aou SELECT NEW.id, NEW.owner, B'000', B'111'
+	INSERT INTO db.aou (object, userid, deny, allow) SELECT NEW.id, NEW.owner, B'000', B'111'
 	  ON CONFLICT (object, userid) DO UPDATE SET deny = B'000', allow = B'111';
   END IF;
 
@@ -317,10 +317,10 @@ COMMENT ON COLUMN db.aom.mask IS 'Маска доступа. Девять бит
 CREATE TABLE db.aou (
     object		uuid NOT NULL REFERENCES db.object(id) ON DELETE CASCADE,
     userid		uuid NOT NULL REFERENCES db.user(id) ON DELETE CASCADE,
-    entity		uuid NOT NULL REFERENCES db.entity(id) ON DELETE RESTRICT,
     deny		bit(3) NOT NULL,
     allow		bit(3) NOT NULL,
     mask		bit(3) DEFAULT B'000' NOT NULL,
+    entity		uuid NOT NULL REFERENCES db.entity(id) ON DELETE RESTRICT,
     PRIMARY KEY (object, userid)
 );
 
@@ -328,10 +328,10 @@ COMMENT ON TABLE db.aou IS 'Доступ пользователя и групп 
 
 COMMENT ON COLUMN db.aou.object IS 'Объект';
 COMMENT ON COLUMN db.aou.userid IS 'Пользователь';
-COMMENT ON COLUMN db.aou.entity IS 'Сущность';
 COMMENT ON COLUMN db.aou.deny IS 'Запрещающие биты: {sud}. Где: {s - select; u - update; d - delete}';
 COMMENT ON COLUMN db.aou.allow IS 'Разрешающие биты: {sud}. Где: {s - select; u - update; d - delete}';
 COMMENT ON COLUMN db.aou.mask IS 'Маска доступа: {sud}. Где: {s - select; u - update; d - delete}';
+COMMENT ON COLUMN db.aou.entity IS 'Сущность';
 
 CREATE INDEX ON db.aou (object);
 CREATE INDEX ON db.aou (userid);
