@@ -120,7 +120,10 @@ BEGIN
 	END IF;
 
 	IF TG_TABLE_NAME = 'profile' THEN
+	  jData := jData - 'input_count';
 	  jData := jData - 'input_last';
+	  jData := jData - 'lc_ip';
+	  jData := jData - 'state';
 	END IF;
 
     IF NULLIF(jData, jsonb_build_object()) IS NOT NULL THEN
