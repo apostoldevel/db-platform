@@ -546,7 +546,7 @@ $$ LANGUAGE plpgsql
 CREATE TRIGGER t_profile_login_state
   BEFORE UPDATE ON db.profile
   FOR EACH ROW
-  WHEN (OLD.lc_ip IS DISTINCT FROM NEW.lc_ip)
+  WHEN (OLD.input_last IS DISTINCT FROM NEW.input_last)
   EXECUTE PROCEDURE ft_profile_login_state();
 
 --------------------------------------------------------------------------------
