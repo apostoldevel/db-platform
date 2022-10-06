@@ -67,6 +67,41 @@ BEGIN
       END LOOP;
     END LOOP;
 
+  WHEN '/replication/log/max' THEN
+
+    RETURN NEXT json_build_object('id', api.get_max_log_id());
+
+  WHEN '/replication/log/get' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['id', 'fields']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id bigint, fields jsonb)
+      LOOP
+        FOR e IN EXECUTE format('SELECT %s FROM api.get_replication_log($1)', JsonbToFields(r.fields, GetColumns('replication_log', 'api'))) USING r.id
+        LOOP
+          RETURN NEXT row_to_json(e);
+        END LOOP;
+      END LOOP;
+
+    ELSE
+
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id bigint, fields jsonb)
+      LOOP
+        FOR e IN EXECUTE format('SELECT %s FROM api.get_replication_log($1)', JsonbToFields(r.fields, GetColumns('replication_log', 'api'))) USING r.id
+        LOOP
+          RETURN NEXT row_to_json(e);
+        END LOOP;
+      END LOOP;
+
+    END IF;
+
   WHEN '/replication/log/count' THEN
 
     IF pPayload IS NOT NULL THEN

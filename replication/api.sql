@@ -34,6 +34,18 @@ $$ LANGUAGE SQL
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- api.get_max_log_id ----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.get_max_log_id()
+RETURNS         bigint
+AS $$
+  SELECT max(id) FROM replication.log;
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- api.get_max_relay_id --------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -67,6 +79,19 @@ BEGIN
   RETURN replication.add_relay(pSource, pId, pDateTime, pAction, pSchema, pName, pKey, pData, pProxy);
 END;
 $$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.get_replication_log -----------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.get_replication_log (
+  pId           bigint
+) RETURNS       SETOF api.replication_log
+AS $$
+  SELECT * FROM api.replication_log WHERE id = pId;
+$$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
