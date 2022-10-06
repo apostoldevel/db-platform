@@ -137,6 +137,19 @@ $$ LANGUAGE sql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- GetDocumentArea -------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetDocumentArea (
+  pDocument     uuid
+) RETURNS       uuid
+AS $$
+  SELECT area FROM db.document WHERE id = pDocument
+$$ LANGUAGE sql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- ChangeDocumentArea ----------------------------------------------------------
 --------------------------------------------------------------------------------
 
