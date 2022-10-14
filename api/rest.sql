@@ -462,7 +462,7 @@ BEGIN
 
     FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, code text, fields jsonb)
     LOOP
-      FOR e IN EXECUTE format('SELECT %s FROM api.profile($1)', JsonbToFields(r.fields, GetColumns('user', 'api'))) USING coalesce(r.id, GetClient(r.code), GetClientByUserId(current_userid()))
+      FOR e IN EXECUTE format('SELECT %s FROM api.profile($1)', JsonbToFields(r.fields, GetColumns('user', 'api'))) USING coalesce(r.id, GetClient(r.code))
       LOOP
         RETURN NEXT row_to_json(e);
       END LOOP;
