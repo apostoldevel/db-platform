@@ -14,8 +14,26 @@ CREATE OR REPLACE FUNCTION daemon.validation (
   pToken        text
 ) RETURNS       jsonb
 AS $$
+DECLARE
+  vMessage      text;
+  vContext      text;
+
+  ErrorCode     int;
+  ErrorMessage  text;
 BEGIN
   RETURN TokenValidation(pToken);
+EXCEPTION
+WHEN others THEN
+  GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
+
+  PERFORM SetErrorMessage(vMessage);
+
+  SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
+
+  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, vContext);
+
+  RETURN json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
 END;
 $$ LANGUAGE plpgsql
   SECURITY DEFINER
@@ -47,7 +65,7 @@ DECLARE
   ErrorCode     int;
   ErrorMessage  text;
 BEGIN
-  PERFORM daemon.validation(pToken);
+  PERFORM TokenValidation(pToken);
 
   FOR r IN
     SELECT id, 'username' AS identifier FROM db.user WHERE username = pValue AND type = 'U'
@@ -689,7 +707,7 @@ DECLARE
   ErrorCode     int;
   ErrorMessage  text;
 BEGIN
-  token := daemon.validation(pToken);
+  token := TokenValidation(pToken);
 
   IF SessionIn(token->>'sub', pAgent, pHost) IS NULL THEN
 	PERFORM AuthenticateError(GetErrorMessage());
@@ -742,7 +760,7 @@ DECLARE
   ErrorCode     int;
   ErrorMessage  text;
 BEGIN
-  token := daemon.validation(pToken);
+  token := TokenValidation(pToken);
 
   PERFORM SessionOut(token->>'sub', pCloseAll, pMessage);
 
@@ -1143,7 +1161,7 @@ BEGIN
     pPayload := pPayload || jsonb_build_object('agent', pAgent, 'host', pHost);
   END IF;
 
-  token := daemon.validation(pToken);
+  token := TokenValidation(pToken);
 
   IF SessionIn(token->>'sub', pAgent, pHost) IS NULL THEN
 	PERFORM AuthenticateError(GetErrorMessage());
