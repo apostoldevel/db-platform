@@ -418,8 +418,7 @@ BEGIN
      AND t.validToDate > Now();
 
   IF NOT FOUND THEN
-    PERFORM SessionOut(pSession, false, 'Маркер не найден или истек срок его действия.');
-    RAISE EXCEPTION '%', GetErrorMessage();
+    PERFORM TokenExpired();
   END IF;
 
   SELECT * INTO r FROM db.token WHERE id = nToken;
