@@ -102,10 +102,6 @@ RETURNS trigger AS $$
 DECLARE
   bAbstract	boolean;
 BEGIN
-  IF lower(session_user) = 'kernel' THEN
-    PERFORM AccessDeniedForUser(session_user);
-  END IF;
-
   IF NEW.id IS NULL THEN
     SELECT gen_kernel_uuid('8') INTO NEW.id;
   END IF;
@@ -197,10 +193,6 @@ RETURNS trigger AS $$
 DECLARE
   bSystem   boolean;
 BEGIN
-  IF lower(session_user) = 'kernel' THEN
-    SELECT AccessDeniedForUser(session_user);
-  END IF;
-
   IF NOT CheckObjectAccess(NEW.id, B'010') THEN
     PERFORM AccessDenied();
   END IF;
@@ -271,10 +263,6 @@ CREATE TRIGGER t_object_before_update
 CREATE OR REPLACE FUNCTION db.ft_object_before_delete()
 RETURNS trigger AS $$
 BEGIN
-  IF lower(session_user) = 'kernel' THEN
-    SELECT AccessDeniedForUser(session_user);
-  END IF;
-
   IF NOT CheckObjectAccess(OLD.ID, B'001') THEN
     PERFORM AccessDenied();
   END IF;
@@ -701,9 +689,9 @@ CREATE OR REPLACE FUNCTION db.ft_object_file_notify()
 RETURNS trigger AS $$
 BEGIN
   IF (TG_OP = 'DELETE') THEN
-    PERFORM pg_notify('file', json_build_object('operation', TG_OP, 'object', OLD.object, 'name', OLD.file_name, 'path', OLD.file_path)::text);
+    PERFORM pg_notify('file', json_build_object('session', current_session(), 'operation', TG_OP, 'object', OLD.object, 'name', OLD.file_name, 'path', OLD.file_path)::text);
   ELSE
-    PERFORM pg_notify('file', json_build_object('operation', TG_OP, 'object', NEW.object, 'name', NEW.file_name, 'path', NEW.file_path)::text);
+    PERFORM pg_notify('file', json_build_object('session', current_session(), 'operation', TG_OP, 'object', NEW.object, 'name', NEW.file_name, 'path', NEW.file_path)::text);
   END IF;
 
   RETURN NULL;
