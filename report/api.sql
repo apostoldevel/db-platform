@@ -62,7 +62,7 @@ CREATE OR REPLACE FUNCTION api.add_report (
 ) RETURNS       uuid
 AS $$
 BEGIN
-  RETURN CreateReport(pParent, coalesce(pType, GetType('sync.report')), pTree, pForm, pBinding, pCode, pName, pDescription, pInfo);
+  RETURN CreateReport(pParent, coalesce(pType, GetType('report.report')), pTree, pForm, pBinding, pCode, pName, pDescription, pInfo);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

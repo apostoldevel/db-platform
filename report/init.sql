@@ -91,8 +91,10 @@ BEGIN
   uClass := AddClass(pParent, pEntity, 'report', 'Отчёт', false);
 
   -- Тип
-  PERFORM AddType(uClass, 'sync.report', 'Синхронный', 'Синхронный отчёт.');
-  PERFORM AddType(uClass, 'async.report', 'Асинхронный', 'Асинхронный отчет.');
+  PERFORM AddType(uClass, 'object.report', 'Объект', 'Отчеты для объектов.');
+  PERFORM AddType(uClass, 'report.report', 'Отчёт', 'Обычные отчёты.');
+  PERFORM AddType(uClass, 'import.report', 'Загрузка', 'Отчёты загрузки данных.');
+  PERFORM AddType(uClass, 'export.report', 'Выгрузка', 'Отчёты выгрузки данных.');
 
   -- Событие
   PERFORM AddReportEvents(uClass);

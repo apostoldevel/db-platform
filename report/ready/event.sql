@@ -17,9 +17,7 @@ BEGIN
 
   SELECT report INTO uReport FROM db.report_ready WHERE id = pObject;
 
-  IF GetObjectType(uReport) = GetType('sync.report') THEN
-    PERFORM ExecuteObjectAction(pObject, GetAction('execute'));
-  END IF;
+  PERFORM ExecuteObjectAction(pObject, GetAction('execute'));
 END;
 $$ LANGUAGE plpgsql;
 

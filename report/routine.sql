@@ -123,46 +123,6 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- InitSyncReport --------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION InitSyncReport (
-  pParent       uuid,
-  pTree         uuid,
-  pCode         text,
-  pName         text,
-  pDescription  text
-)
-RETURNS     	uuid
-AS $$
-BEGIN
-  RETURN InitReport(pParent, GetType('sync.report'), pTree, pCode, pName, pDescription);
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- InitAsyncReport -------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION InitAsyncReport (
-  pParent       uuid,
-  pTree         uuid,
-  pCode         text,
-  pName         text,
-  pDescription  text
-)
-RETURNS     	uuid
-AS $$
-BEGIN
-  RETURN InitReport(pParent, GetType('async.report'), pTree, pCode, pName, pDescription);
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
 -- InitObjectReport ------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -180,7 +140,7 @@ AS $$
 DECLARE
   uReport       uuid;
 BEGIN
-  uReport := CreateReport(pParent, GetType('sync.report'), pTree, pForm, pBinding, pCode, pName, pDescription);
+  uReport := CreateReport(pParent, GetType('object.report'), pTree, pForm, pBinding, pCode, pName, pDescription);
   PERFORM CreateReportRoutine(pParent, GetType('plpgsql.report_routine'), uReport, 'rpc_' || pCode, pName, 'rpc_' || pCode, pDescription);
 
   RETURN uReport;
