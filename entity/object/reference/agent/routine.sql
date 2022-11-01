@@ -104,6 +104,21 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- FUNCTION GetAgentCode -------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetAgentCode (
+  pId		uuid
+) RETURNS 	text
+AS $$
+BEGIN
+  RETURN GetReferenceCode(pId);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- FUNCTION GetAgentVendor -----------------------------------------------------
 --------------------------------------------------------------------------------
 
