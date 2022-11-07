@@ -4119,6 +4119,7 @@ BEGIN
      GROUP BY userid
   LOOP
     UPDATE db.user SET status = set_bit(set_bit(status, 3, 1), 2, 0) WHERE id = r.userid;
+    UPDATE db.profile SET state = B'000' WHERE userid = r.userid AND scope = current_scope();
   END LOOP;
 END;
 $$ LANGUAGE plpgsql
@@ -4671,9 +4672,8 @@ BEGIN
 
     IF nCount = 0 THEN
       UPDATE db.user SET status = set_bit(set_bit(status, 3, 1), 2, 0) WHERE id = uUserId;
+      UPDATE db.profile SET state = B'000' WHERE userid = uUserId AND scope = current_scope();
     END IF;
-
-    UPDATE db.profile SET state = B'000' WHERE userid = uUserId AND scope = current_scope();
 
     message := message || coalesce('. ' || pMessage, '.');
 
