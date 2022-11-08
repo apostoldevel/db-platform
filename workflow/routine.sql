@@ -755,13 +755,8 @@ CREATE OR REPLACE FUNCTION GetType (
   pCode		text
 ) RETURNS	uuid
 AS $$
-DECLARE
-  uId		uuid;
-BEGIN
-  SELECT id INTO uId FROM db.type WHERE class = pClass AND code = pCode;
-  RETURN uId;
-END;
-$$ LANGUAGE plpgsql
+  SELECT id FROM db.type WHERE class = pClass AND code = pCode;
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
