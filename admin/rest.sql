@@ -17,7 +17,6 @@ DECLARE
   e           record;
 
   arKeys      text[];
-  arJson      json[];
 BEGIN
   IF pPath IS NULL THEN
     PERFORM RouteIsEmpty();
