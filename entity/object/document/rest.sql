@@ -17,6 +17,7 @@ DECLARE
   e           record;
 
   arKeys      text[];
+  arJson      json[];
 BEGIN
   IF pPath IS NULL THEN
     PERFORM RouteIsEmpty();
@@ -71,10 +72,13 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid)
       LOOP
+        arJson := null;
         FOR e IN SELECT * FROM api.get_object_methods(r.id) ORDER BY sequence
         LOOP
-          RETURN NEXT row_to_json(e);
+          arJson := array_append(arJson, row_to_json(e));
         END LOOP;
+
+        RETURN NEXT jsonb_build_object('id', r.id, 'methods', array_to_json(arJson));
       END LOOP;
 
     ELSE
