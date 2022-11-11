@@ -1,0 +1,5 @@
+\echo [M] call routine.sql
+\ir routine.sql
+
+\ir './user/update.psql'
+\ir './session/update.psql'

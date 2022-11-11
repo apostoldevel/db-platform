@@ -1,4 +1,5 @@
 \echo [M] call routine.sql
 \ir routine.sql
 
-\ir './object/report.sql'
+\ir './object/create.psql'
+\ir './admin/create.psql'

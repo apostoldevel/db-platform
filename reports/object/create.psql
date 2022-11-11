@@ -1,0 +1,5 @@
+\echo [M] call routine.sql
+\ir routine.sql
+
+\echo [M] call init.sql
+\ir init.sql

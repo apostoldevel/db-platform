@@ -1,0 +1,8 @@
+\echo [M] call routine.sql
+\ir routine.sql
+
+\ir './user/create.psql'
+\ir './session/create.psql'
+
+\echo [M] call init.sql
+\ir init.sql

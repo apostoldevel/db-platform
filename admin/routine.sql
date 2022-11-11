@@ -3124,14 +3124,40 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- GetUserName -----------------------------------------------------------------
+-- GetUsername -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION GetUserName (
+CREATE OR REPLACE FUNCTION GetUsername (
   pId		uuid
 ) RETURNS	text
 AS $$
   SELECT username FROM db.user WHERE id = pId AND type = 'U';
+$$ LANGUAGE sql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- GetUserFullName -------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetUserFullName (
+  pId		uuid
+) RETURNS	text
+AS $$
+  SELECT name FROM db.user WHERE id = pId AND type = 'U';
+$$ LANGUAGE sql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- GetGroupUsername ------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetGroupUsername (
+  pId			uuid
+) RETURNS		text
+AS $$
+  SELECT username FROM db.user WHERE id = pId AND type = 'G';
 $$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -3144,7 +3170,7 @@ CREATE OR REPLACE FUNCTION GetGroupName (
   pId			uuid
 ) RETURNS		text
 AS $$
-  SELECT username FROM db.user WHERE id = pId AND type = 'G';
+  SELECT name FROM db.user WHERE id = pId AND type = 'G';
 $$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
