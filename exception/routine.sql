@@ -577,9 +577,6 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 
 --------------------------------------------------------------------------------
 
-SELECT CreateExceptionResource(GetExceptionUUID(400, 31), 'ru', 'ObjectNotFound', 'Не найден(а/о) %s по %s: %s');
-SELECT CreateExceptionResource(GetExceptionUUID(400, 31), 'en', 'ObjectNotFound', 'Not FOUND %s with %s: %s');
-
 CREATE OR REPLACE FUNCTION ObjectNotFound (
   pWho		text,
   pParam	text,
@@ -590,7 +587,7 @@ BEGIN
   IF pCode IS NULL THEN
     RAISE EXCEPTION '%', format(GetExceptionStr(400, 68), pWho, pParam);
   ELSE
-    RAISE EXCEPTION '%', format(GetExceptionStr(400, 31), pWho, pParam, pCode);
+    RAISE EXCEPTION '%', format(GetExceptionStr(400, 30), pWho, pParam, pCode);
   END IF;
 END;
 $$ LANGUAGE plpgsql IMMUTABLE;
