@@ -83,7 +83,7 @@ CREATE OR REPLACE FUNCTION http.ft_request_after_insert()
 RETURNS     trigger
 AS $$
 BEGIN
-  PERFORM pg_notify(TG_TABLE_SCHEMA, row_to_json(NEW)::text);
+  PERFORM pg_notify(TG_TABLE_SCHEMA, NEW.id::text);
   RETURN NULL;
 END;
 $$ LANGUAGE plpgsql
