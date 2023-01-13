@@ -43,7 +43,7 @@ BEGIN
 	END LOOP;
 
 	ch := SubStr(Result, 1, 1);
-	IF ch != '7' OR length(Result) != 11 THEN
+	IF length(Result) != 11 THEN
 	  PERFORM InvalidPhoneNumber(pPhone);
 	END IF;
   END IF;
