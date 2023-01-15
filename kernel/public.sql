@@ -883,6 +883,30 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 GRANT EXECUTE ON FUNCTION GetEpochMs(timestamp) TO PUBLIC;
 
 --------------------------------------------------------------------------------
+-- FUNCTION Dow ----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION Dow (
+  pDateTime timestamptz DEFAULT Now()
+)
+RETURNS 	int
+AS $$
+DECLARE
+  dow       int;
+BEGIN
+  dow := EXTRACT(DOW FROM pDateTime);
+
+  IF dow = 0 THEN
+	dow = 7;
+  END IF;
+
+  RETURN dow;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+GRANT EXECUTE ON FUNCTION Dow(timestamptz) TO PUBLIC;
+
+--------------------------------------------------------------------------------
 -- quote_literal_json ----------------------------------------------------------
 --------------------------------------------------------------------------------
 
