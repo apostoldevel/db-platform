@@ -1,3 +1,4 @@
 CREATE SCHEMA IF NOT EXISTS http AUTHORIZATION kernel;
 GRANT USAGE ON SCHEMA http TO apibot;
 GRANT USAGE ON SCHEMA http TO administrator;
+GRANT SELECT ON TABLE http.request TO apibot;
