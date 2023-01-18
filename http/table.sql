@@ -77,6 +77,7 @@ CREATE INDEX ON http.request (resource);
 CREATE INDEX ON http.request (agent);
 CREATE INDEX ON http.request (command);
 
+GRANT SELECT ON TABLE http.request TO apibot;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION http.ft_request_after_insert()
