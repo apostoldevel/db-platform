@@ -70,6 +70,8 @@ SELECT SignOut();
 
 DROP FUNCTION tmp_file();
 
+DELETE FROM db.object_file WHERE file IS NULL;
+
 DROP TRIGGER t_object_file ON db.object_file CASCADE;
 DROP TRIGGER t_object_file_name ON db.object_file CASCADE;
 DROP TRIGGER t_object_file_path ON db.object_file CASCADE;
