@@ -129,18 +129,37 @@ GRANT SELECT ON ObjectLink TO administrator;
 -- VIEW ObjectFile -------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW ObjectFile (Object, Label, Owner, OwnerCode, OwnerName,
-    Name, Path, Size, Date, Data, Link, Hash, Text, Type, CallBack, Loaded, Picture
+CREATE OR REPLACE VIEW ObjectFile (Object, File, Label, Owner, OwnerCode, OwnerName,
+    Name, Path, Size, Date, Link, Hash, Text, Type, Loaded, Picture
 )
 AS
-    SELECT t.object, ot.label, t.owner, u.username, u.name,
-           t.file_name, t.file_path, t.file_size, t.file_date, encode(t.file_data, 'base64'),
-           t.file_link, t.file_hash, t.file_text, t.file_type, t.call_back, t.load_date, p.picture
+    SELECT t.object, t.file, ot.label, f.owner, u.username, u.name,
+           f.name, f.path, f.size, f.date,
+           f.url, f.hash, f.text, f.mime, t.updated, p.picture
       FROM db.object_file t INNER JOIN db.object_text ot ON t.object = ot.object AND ot.locale = current_locale()
-                            INNER JOIN db.user         u ON u.id = t.owner
+                            INNER JOIN db.file         f ON f.id = t.file
+                            INNER JOIN db.user         u ON u.id = f.owner
                             INNER JOIN db.profile      p ON u.id = p.userid AND p.scope = current_scope();
 
 GRANT SELECT ON ObjectFile TO administrator;
+
+--------------------------------------------------------------------------------
+-- VIEW ObjectFileData ---------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW ObjectFileData (Object, File, Label, Owner, OwnerCode, OwnerName,
+    Name, Path, Size, Date, Data, Link, Hash, Text, Type, Loaded, Picture
+)
+AS
+    SELECT t.object, t.file, ot.label, f.owner, u.username, u.name,
+           f.name, f.path, f.size, f.date, encode(f.data, 'base64'),
+           f.url, f.hash, f.text, f.mime, t.updated, p.picture
+      FROM db.object_file t INNER JOIN db.object_text ot ON t.object = ot.object AND ot.locale = current_locale()
+                            INNER JOIN db.file         f ON f.id = t.file
+                            INNER JOIN db.user         u ON u.id = f.owner
+                            INNER JOIN db.profile      p ON u.id = p.userid AND p.scope = current_scope();
+
+GRANT SELECT ON ObjectFileData TO administrator;
 
 --------------------------------------------------------------------------------
 -- VIEW ObjectData -------------------------------------------------------------

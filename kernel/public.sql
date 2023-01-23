@@ -222,6 +222,45 @@ END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
 --------------------------------------------------------------------------------
+-- FUNCTION path_to_array ------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION path_to_array (
+  pPath			text
+) RETURNS		text[]
+AS $$
+DECLARE
+  i				integer;
+  arPath		text[];
+  vStr			text;
+  vPath			text;
+BEGIN
+  vPath := pPath;
+
+  IF NULLIF(vPath, '') IS NOT NULL THEN
+
+    i := StrPos(vPath, '/');
+    WHILE i > 0 LOOP
+      vStr := SubStr(vPath, 1, i - 1);
+
+      IF NULLIF(vStr, '') IS NOT NULL THEN
+        arPath := array_append(arPath, vStr);
+      END IF;
+
+      vPath := SubStr(vPath, i + 1);
+      i := StrPos(vPath, '/');
+    END LOOP;
+
+    IF NULLIF(vPath, '') IS NOT NULL THEN
+      arPath := array_append(arPath, vPath);
+    END IF;
+  END IF;
+
+  RETURN arPath;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+--------------------------------------------------------------------------------
 -- FUNCTION str_to_inet --------------------------------------------------------
 --------------------------------------------------------------------------------
 

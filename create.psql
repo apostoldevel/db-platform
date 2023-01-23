@@ -14,6 +14,7 @@
 \ir './current/create.psql'
 \ir './workflow/create.psql'
 \ir './kladr/create.psql'
+\ir './file/create.psql'
 \ir './entity/create.psql'
 \ir './notice/create.psql'
 \ir './comment/create.psql'

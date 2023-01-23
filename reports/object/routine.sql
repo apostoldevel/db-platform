@@ -126,7 +126,7 @@ BEGIN
     vHTML := vHTML || E'</html>\n';
   END LOOP;
 
-  PERFORM SetObjectFile(pReady, 'index.html', null, length(vHTML), localtimestamp, vHTML::bytea, encode(digest(vHTML, 'md5'), 'hex'), Lines[1], 'data:text/html;base64,');
+  PERFORM SetObjectFile(pReady, null, 'index.html', null, length(vHTML), localtimestamp, vHTML::bytea, encode(digest(vHTML, 'md5'), 'hex'), Lines[1], 'data:text/html;base64,');
 
   PERFORM ExecuteObjectAction(pReady, GetAction('complete'));
 EXCEPTION
@@ -144,7 +144,7 @@ WHEN others THEN
 
   vHTML := ReportErrorHTML(ErrorCode, ErrorMessage, vContext);
 
-  PERFORM SetObjectFile(pReady, 'index.html', null, length(vHTML), localtimestamp, vHTML::bytea, encode(digest(vHTML, 'md5'), 'hex'), 'exception', 'data:text/html;base64,');
+  PERFORM SetObjectFile(pReady, null, 'index.html', null, length(vHTML), localtimestamp, vHTML::bytea, encode(digest(vHTML, 'md5'), 'hex'), 'exception', 'data:text/html;base64,');
 END
 $$ LANGUAGE plpgsql
   SECURITY DEFINER

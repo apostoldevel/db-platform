@@ -1090,92 +1090,49 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- NormalizeFileName -----------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION NormalizeFileName (
-  pName		text,
-  pLink     boolean DEFAULT false
-) RETURNS	text
-AS $$
-BEGIN
-  IF StrPos(pName, '/') != 0 THEN
-	RAISE EXCEPTION 'ERR-40000: Invalid file name value: %', pName;
-  END IF;
-
-  IF pLink THEN
-    RETURN URLEncode(pName);
-  END IF;
-
-  RETURN pName;
-END;
-$$ LANGUAGE plpgsql IMMUTABLE
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- NormalizeFilePath -----------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION NormalizeFilePath (
-  pPath		text,
-  pLink     boolean DEFAULT false
-) RETURNS	text
-AS $$
-DECLARE
-  i         int;
-  arPath    text[];
-BEGIN
-  IF SubStr(pPath, 1, 1) = '.' OR StrPos(pPath, '..') != 0 THEN
-	RAISE EXCEPTION 'ERR-40000: Invalid file path value: %', pPath;
-  END IF;
-
-  IF NULLIF(NULLIF(pPath, ''), '~/') IS NULL THEN
-    RETURN '/';
-  END IF;
-
-  arPath := path_to_array(pPath);
-  IF arPath IS NULL THEN
-    RETURN '/';
-  END IF;
-
-  pPath := '/';
-
-  FOR i IN 1..array_length(arPath, 1)
-  LOOP
-    IF pLink THEN
-	  pPath := concat(pPath, URLEncode(arPath[i]), '/');
-	ELSE
-	  pPath := concat(pPath, arPath[i], '/');
-    END IF;
-  END LOOP;
-
-  RETURN pPath;
-END;
-$$ LANGUAGE plpgsql IMMUTABLE
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
 -- NewObjectFile ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION NewObjectFile (
-  pObject	uuid,
-  pName		text,
-  pPath		text,
-  pSize		integer,
-  pDate		timestamptz,
-  pData		bytea DEFAULT null,
-  pHash		text DEFAULT null,
-  pText		text DEFAULT null,
-  pType		text DEFAULT null,
-  pCallBack text DEFAULT null
-) RETURNS	void
+  pObject   uuid,
+  pFile     uuid,
+  pName     text,
+  pPath     text,
+  pSize     integer,
+  pDate     timestamptz,
+  pData     bytea DEFAULT null,
+  pHash     text DEFAULT null,
+  pText     text DEFAULT null,
+  pType     text DEFAULT null
+) RETURNS	uuid
 AS $$
+DECLARE
+  uRoot     uuid;
+  uParent   uuid;
+  vClass    text;
 BEGIN
-  INSERT INTO db.object_file (object, file_name, file_path, file_size, file_date, file_data, file_hash, file_text, file_type, call_back)
-  VALUES (pObject, pName, pPath, pSize, pDate, pData, pHash, pText, pType, pCallBack);
+  IF pFile IS NULL THEN
+    vClass := GetClassCode(GetObjectClass(pObject));
+
+    uRoot := GetFile(null::uuid, vClass);
+    IF uRoot IS NULL THEN
+      uRoot := NewFilePath(concat('/', vClass));
+    END IF;
+
+    IF NULLIF(pPath, '') IS NOT NULL THEN
+      uParent := NewFilePath(pPath);
+    END IF;
+
+    pFile := GetFile(uParent, pName);
+    IF pFile IS NULL THEN
+      pFile := NewFile(null, uRoot, coalesce(uParent, uRoot), pName, '-', null, null, null, pSize, pDate, pData, pType, pText, pHash);
+    END IF;
+  END IF;
+
+  INSERT INTO db.object_file (object, file)
+  VALUES (pObject, pFile);
+
+  RETURN pFile;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1187,32 +1144,35 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION EditObjectFile (
   pObject   uuid,
-  pName		text,
-  pPath		text DEFAULT null,
-  pSize		integer DEFAULT null,
-  pDate		timestamptz DEFAULT null,
-  pData		bytea DEFAULT null,
-  pHash		text DEFAULT null,
-  pText		text DEFAULT null,
-  pType		text DEFAULT null,
-  pCallBack text DEFAULT null,
-  pLoad		timestamptz DEFAULT null
+  pFile     uuid,
+  pName     text,
+  pPath     text,
+  pSize     integer,
+  pDate     timestamptz,
+  pData     bytea DEFAULT null,
+  pHash     text DEFAULT null,
+  pText     text DEFAULT null,
+  pType     text DEFAULT null
 ) RETURNS	void
 AS $$
+DECLARE
+  vClass    text;
 BEGIN
+  IF pFile IS NULL THEN
+    vClass := GetClassCode(GetObjectClass(pObject));
+
+    pFile := FindFile(concat('/', vClass, coalesce(pPath, '/'), pName));
+    IF pFile IS NULL THEN
+	  PERFORM NotFound();
+    END IF;
+  END IF;
+
+  PERFORM EditFile(pFile, null, null, pName, null, null, null, pSize, pDate, pData, pType, pText, pHash);
+
   UPDATE db.object_file
-    SET file_path = coalesce(pPath, file_path),
-        file_size = coalesce(pSize, file_size),
-        file_date = coalesce(pDate, file_date),
-        file_data = coalesce(pData, file_data),
-        file_hash = coalesce(pHash, file_hash),
-        file_text = CheckNull(coalesce(pText, file_text, '')),
-        file_type = CheckNull(coalesce(pType, file_type, '')),
-        call_back = CheckNull(coalesce(pCallBack, call_back, '')),
-        load_date = coalesce(pLoad, load_date)
-  WHERE object = pObject
-    AND file_name = pName
-    AND file_path = NormalizeFilePath(pPath);
+     SET updated = Now()
+   WHERE object = pObject
+     AND file = pFile;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1224,12 +1184,21 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION DeleteObjectFile (
   pObject   uuid,
-  pName		text,
+  pFile     uuid,
+  pName		text DEFAULT null,
   pPath		text DEFAULT null
 ) RETURNS	boolean
 AS $$
+DECLARE
+  vClass    text;
 BEGIN
-  DELETE FROM db.object_file WHERE object = pObject AND file_name = pName AND file_path = NormalizeFilePath(pPath);
+  IF pFile IS NULL THEN
+    vClass := GetClassCode(GetObjectClass(pObject));
+    pFile := FindFile(concat('/', vClass, coalesce(pPath, '/'), pName));
+  END IF;
+
+  DELETE FROM db.object_file WHERE object = pObject AND file = pFile;
+
   RETURN FOUND;
 END;
 $$ LANGUAGE plpgsql
@@ -1256,31 +1225,38 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetObjectFile (
-  pObject	uuid,
-  pName		text,
-  pPath		text,
-  pSize		integer DEFAULT null,
-  pDate		timestamptz DEFAULT null,
-  pData		bytea DEFAULT null,
-  pHash		text DEFAULT null,
-  pText		text DEFAULT null,
-  pType		text DEFAULT null,
-  pCallBack text DEFAULT null
-) RETURNS	int
+  pObject   uuid,
+  pFile     uuid,
+  pName     text,
+  pPath     text,
+  pSize     integer,
+  pDate     timestamptz,
+  pData     bytea DEFAULT null,
+  pHash     text DEFAULT null,
+  pText     text DEFAULT null,
+  pType     text DEFAULT null
+) RETURNS	uuid
 AS $$
+DECLARE
+  vClass    text;
 BEGIN
-  IF coalesce(pSize, 0) >= 0 THEN
-    PERFORM FROM db.object_file WHERE object = pObject AND file_name = pName AND file_path = NormalizeFilePath(pPath);
-    IF NOT FOUND THEN
-      PERFORM NewObjectFile(pObject, pName, pPath, pSize, pDate, pData, pHash, pText, pType, pCallBack);
-    ELSE
-      PERFORM EditObjectFile(pObject, pName, pPath, pSize, pDate, pData, pHash, pText, pType, pCallBack);
-    END IF;
-  ELSE
-    PERFORM DeleteObjectFile(pObject, pName, pPath);
+  IF pFile IS NULL THEN
+    vClass := GetClassCode(GetObjectClass(pObject));
+    pFile := FindFile(concat('/', vClass, coalesce(pPath, '/'), pName));
   END IF;
 
-  RETURN pSize;
+  IF coalesce(pSize, 0) >= 0 THEN
+    PERFORM FROM db.object_file WHERE object = pObject AND file = pFile;
+    IF NOT FOUND THEN
+      pFile := NewObjectFile(pObject, pFile, pName, pPath, pSize, pDate, pData, pHash, pText, pType);
+    ELSE
+      PERFORM EditObjectFile(pObject, pFile, pName, pPath, pSize, pDate, pData, pHash, pText, pType);
+    END IF;
+  ELSE
+    PERFORM DeleteObjectFile(pObject, pFile, pName, pPath);
+  END IF;
+
+  RETURN pFile;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1327,8 +1303,7 @@ DECLARE
   r		    record;
 BEGIN
   FOR r IN
-    SELECT Object, Label, Owner, OwnerCode, OwnerName,
-           Name, Path, Size, Date, Link, Hash, Text, Type, Loaded, Picture
+    SELECT *
       FROM ObjectFile
      WHERE object = pObject
   LOOP

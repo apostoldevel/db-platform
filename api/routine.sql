@@ -1,45 +1,4 @@
 --------------------------------------------------------------------------------
--- FUNCTION path_to_array ------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION path_to_array (
-  pPath			text
-) RETURNS		text[]
-AS $$
-DECLARE
-  i				integer;
-  arPath		text[];
-  vStr			text;
-  vPath			text;
-BEGIN
-  vPath := pPath;
-
-  IF NULLIF(vPath, '') IS NOT NULL THEN
-
-    i := StrPos(vPath, '/');
-    WHILE i > 0 LOOP
-      vStr := SubStr(vPath, 1, i - 1);
-
-      IF NULLIF(vStr, '') IS NOT NULL THEN
-        arPath := array_append(arPath, vStr);
-      END IF;
-
-      vPath := SubStr(vPath, i + 1);
-      i := StrPos(vPath, '/');
-    END LOOP;
-
-    IF NULLIF(vPath, '') IS NOT NULL THEN
-      arPath := array_append(arPath, vPath);
-    END IF;
-  END IF;
-
-  RETURN arPath;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
 -- FUNCTION AddPath ------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -227,7 +186,7 @@ CREATE OR REPLACE FUNCTION RegisterPath (
 AS $$
 DECLARE
   uId			uuid;
-  nRoot			uuid;
+  uRoot			uuid;
   uParent		uuid;
 
   arPath		text[];
@@ -237,13 +196,13 @@ BEGIN
     arPath := path_to_array(pPath);
     FOR i IN 1..array_length(arPath, 1)
     LOOP
-      uParent := coalesce(uId, nRoot);
+      uParent := coalesce(uId, uRoot);
       uId := GetPath(uParent, arPath[i]);
 
       IF uId IS NULL THEN
-        uId := AddPath(nRoot, uParent, arPath[i]);
-        IF nRoot IS NULL THEN
-  		  nRoot := uId;
+        uId := AddPath(uRoot, uParent, arPath[i]);
+        IF uRoot IS NULL THEN
+  		  uRoot := uId;
         END IF;
       END IF;
     END LOOP;

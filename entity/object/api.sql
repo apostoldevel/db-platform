@@ -841,6 +841,16 @@ AS
 GRANT SELECT ON api.object_file TO administrator;
 
 --------------------------------------------------------------------------------
+-- api.object_file_data --------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW api.object_file_data
+AS
+  SELECT f.* FROM ObjectFileData f INNER JOIN AccessObject o ON f.object = o.id;
+
+GRANT SELECT ON api.object_file_data TO administrator;
+
+--------------------------------------------------------------------------------
 -- api.set_object_file ---------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
@@ -849,25 +859,26 @@ GRANT SELECT ON api.object_file TO administrator;
  * @return {SETOF api.object_file}
  */
 CREATE OR REPLACE FUNCTION api.set_object_file (
-  pId	    uuid,
-  pName		text,
-  pPath		text,
-  pSize		integer,
-  pDate		timestamptz,
-  pData		bytea DEFAULT null,
-  pHash		text DEFAULT null,
-  pText		text DEFAULT null,
-  pType		text DEFAULT null
+  pObject   uuid,
+  pFile     uuid,
+  pName     text,
+  pPath     text,
+  pSize     integer,
+  pDate     timestamptz,
+  pData     bytea DEFAULT null,
+  pHash     text DEFAULT null,
+  pText     text DEFAULT null,
+  pType     text DEFAULT null
 ) RETURNS   SETOF api.object_file
 AS $$
 BEGIN
-  IF NOT CheckObjectAccess(pId, B'010') THEN
+  IF NOT CheckObjectAccess(pObject, B'010') THEN
 	PERFORM AccessDenied();
   END IF;
 
-  PERFORM SetObjectFile(pId, pName, pPath, pSize, pDate, pData, pHash, pText, pType);
+  pFile := SetObjectFile(pObject, pFile, pName, pPath, pSize, pDate, pData, pHash, pText, pType);
 
-  RETURN QUERY SELECT * FROM api.get_object_file(pId, pName);
+  RETURN QUERY SELECT * FROM api.object_file WHERE object = pObject AND file = pFile;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -885,21 +896,19 @@ AS $$
 DECLARE
   r         record;
   arKeys    text[];
-  uId       uuid;
 BEGIN
-  SELECT o.id INTO uId FROM db.object o WHERE o.id = pId;
-
+  PERFORM FROM db.object o WHERE o.id = pId;
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('объект', 'id', pId);
   END IF;
 
   IF pFiles IS NOT NULL THEN
-    arKeys := array_cat(arKeys, ARRAY['name', 'path', 'size', 'date', 'data', 'hash', 'text', 'type']);
+    arKeys := array_cat(arKeys, ARRAY['file', 'name', 'path', 'size', 'date', 'data', 'hash', 'text', 'type']);
     PERFORM CheckJsonKeys('/object/file/files', arKeys, pFiles);
 
-    FOR r IN SELECT * FROM json_to_recordset(pFiles) AS files(name text, path text, size int, date timestamptz, data text, hash text, text text, type text)
+    FOR r IN SELECT * FROM json_to_recordset(pFiles) AS files(file uuid, name text, path text, size int, date timestamptz, data text, hash text, text text, type text)
     LOOP
-      RETURN NEXT api.set_object_file(pId, r.name, r.path, r.size, r.date, decode(r.data, 'base64'), r.hash, r.text, r.type);
+      RETURN NEXT api.set_object_file(pId, r.file, NULLIF(Trim(r.name), ''), NULLIF(Trim(r.path), ''), r.size, r.date, decode(r.data, 'base64'), NULLIF(Trim(r.hash), ''), NULLIF(Trim(r.text), ''), NULLIF(Trim(r.type), ''));
     END LOOP;
   ELSE
     PERFORM JsonIsEmpty();
@@ -970,25 +979,34 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает файлы объекта
- * @param {uuid} pId - Идентификатор объекта
+ * @param {uuid} pObject - Идентификатор объекта
+ * @param {uuid} pFile - Идентификатор файла
  * @param {text} pName - Наименование файла
  * @param {text} pPath - Путь к файлу
- * @return {api.object_file}
+ * @return {api.object_file_data}
  */
 CREATE OR REPLACE FUNCTION api.get_object_file (
-  pId       uuid,
+  pObject   uuid,
+  pFile     uuid,
   pName     text,
   pPath     text default null
-) RETURNS	SETOF api.object_file
+) RETURNS	SETOF api.object_file_data
 AS $$
+DECLARE
+  vClass    text;
 BEGIN
-  IF NOT CheckObjectAccess(pId, B'100') THEN
-	PERFORM AccessDenied();
+  IF NOT CheckObjectAccess(pObject, B'100') THEN
+    PERFORM AccessDenied();
   END IF;
 
   pPath := NormalizeFilePath(pPath);
 
-  RETURN QUERY SELECT * FROM api.object_file WHERE object = pId AND path IS NOT DISTINCT FROM pPath AND name = pName;
+  IF pFile IS NULL THEN
+    vClass := GetClassCode(GetObjectClass(pObject));
+    pFile := FindFile(concat('/', vClass, coalesce(pPath, '/'), pName));
+  END IF;
+
+  RETURN QUERY SELECT * FROM api.object_file_data WHERE object = pObject AND file = pFile;
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1000,22 +1018,24 @@ $$ LANGUAGE plpgsql
 /**
  * Удалялет файл объекта
  * @param {uuid} pId - Идентификатор объекта
+ * @param {uuid} pFile - Идентификатор файла
  * @param {text} pName - Наименование файла
  * @param {text} pPath - Путь к файлу
  * @return {api.object_file}
  */
 CREATE OR REPLACE FUNCTION api.delete_object_file (
-  pId       uuid,
+  pObject   uuid,
+  pFile     uuid,
   pName     text,
   pPath     text default null
 ) RETURNS	boolean
 AS $$
 BEGIN
-  IF NOT CheckObjectAccess(pId, B'001') THEN
+  IF NOT CheckObjectAccess(pObject, B'001') THEN
 	PERFORM AccessDenied();
   END IF;
 
-  RETURN DeleteObjectFile(pId, pName, pPath);
+  RETURN DeleteObjectFile(pObject, pFile, pName, pPath);
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

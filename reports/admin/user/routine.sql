@@ -370,7 +370,7 @@ BEGIN
   html_file := vHTML::bytea;
   csv_file := vCSV::bytea;
 
-  PERFORM SetObjectFile(pReady, 'index.html', null, length(html_file), localtimestamp, html_file, encode(digest(html_file, 'md5'), 'hex'), Lines[1], 'data:text/html;base64,');
+  PERFORM SetObjectFile(pReady, null, 'index.html', null, length(html_file), localtimestamp, html_file, encode(digest(html_file, 'md5'), 'hex'), Lines[1], 'data:text/html;base64,');
   PERFORM SetObjectFile(pReady, format('user_%s.csv', DateToStr(Now(), 'YYYYMMDD_HH24MISS')), null, length(csv_file), localtimestamp, csv_file, encode(digest(csv_file, 'md5'), 'hex'), Lines[1], 'data:text/plain;base64,');
 
   PERFORM ExecuteObjectAction(pReady, GetAction('complete'));
@@ -389,7 +389,7 @@ WHEN others THEN
 
   vHTML := ReportErrorHTML(ErrorCode, ErrorMessage, vContext);
 
-  PERFORM SetObjectFile(pReady, 'index.html', null, length(vHTML), localtimestamp, vHTML::bytea, encode(digest(vHTML, 'md5'), 'hex'), 'exception', 'data:text/html;base64,');
+  PERFORM SetObjectFile(pReady, null, 'index.html', null, length(vHTML), localtimestamp, vHTML::bytea, encode(digest(vHTML, 'md5'), 'hex'), 'exception', 'data:text/html;base64,');
 END
 $$ LANGUAGE plpgsql
   SECURITY DEFINER
