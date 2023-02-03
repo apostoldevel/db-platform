@@ -4,7 +4,7 @@
 
 CREATE TABLE db.api_log (
     id          bigserial PRIMARY KEY,
-    datetime    timestamp DEFAULT clock_timestamp() NOT NULL,
+    datetime    timestamptz DEFAULT clock_timestamp() NOT NULL,
     su          text NOT NULL DEFAULT session_user,
     session     char(40),
     username    text,
@@ -132,7 +132,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION ClearApiLog (
-  pDateTime	timestamp
+  pDateTime	timestamptz
 ) RETURNS	void
 AS $$
 BEGIN
