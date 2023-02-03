@@ -1119,11 +1119,13 @@ BEGIN
       uRoot := NewFilePath(concat('/', vClass));
     END IF;
 
-    IF pPath IS NOT NULL THEN
+    IF NULLIF(pPath, '') IS NOT NULL THEN
       IF pPath = '~/' THEN
-        pPath := concat('/', pObject, '/');
+        pPath := concat('/', vClass, '/', pObject, '/');
       END IF;
-      uParent := NewFilePath(pPath, uRoot);
+      uParent := NewFilePath(pPath);
+    ELSE
+      uParent := uRoot;
     END IF;
 
     pFile := GetFile(uParent, pName);
