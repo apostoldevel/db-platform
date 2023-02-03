@@ -1130,7 +1130,7 @@ BEGIN
   END IF;
 
   INSERT INTO db.object_file (object, file)
-  VALUES (pObject, pFile);
+  VALUES (pObject, pFile) ON CONFLICT DO NOTHING;
 
   RETURN pFile;
 END;
