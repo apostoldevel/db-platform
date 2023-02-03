@@ -29,6 +29,7 @@ DECLARE
   r         record;
 
   uId       uuid;
+  uRoot     uuid;
   uParent   uuid;
 BEGIN
   FOR r IN
@@ -38,10 +39,11 @@ BEGIN
      WHERE c.code != 'report_ready'
      ORDER BY class, file_name
   LOOP
-    uParent := NewFilePath(r.code);
+    uRoot := NewFilePath(concat('/', r.code, '/'));
+    uParent := NewFilePath(concat('/', r.object, r.file_path), uRoot);
 
     BEGIN
-      uId := NewFile(gen_kernel_uuid('8'), uParent, uParent, r.file_name, '-', r.owner, B'111110100', null, r.file_size, r.file_date, r.file_data, r.file_type, r.file_text, r.file_hash);
+      uId := NewFile(gen_kernel_uuid('8'), uRoot, uParent, r.file_name, '-', r.owner, B'111110100', null, r.file_size, r.file_date, r.file_data, r.file_type, r.file_text, r.file_hash);
 
       UPDATE db.object_file SET file = uId, updated = r.load_date WHERE object = r.object AND file_path = r.file_path AND file_name = r.file_name;
     EXCEPTION

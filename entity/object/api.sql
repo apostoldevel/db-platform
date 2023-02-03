@@ -999,11 +999,12 @@ BEGIN
     PERFORM AccessDenied();
   END IF;
 
-  pPath := NormalizeFilePath(pPath);
-
   IF pFile IS NULL THEN
-    vClass := GetClassCode(GetObjectClass(pObject));
-    pFile := FindFile(concat('/', vClass, coalesce(pPath, '/'), pName));
+    IF NULLIF(NULLIF(pPath, ''), '~/') IS NULL THEN
+      vClass := GetClassCode(GetObjectClass(pObject));
+      pPath := concat('/', vClass, '/', pObject, '/');
+    END IF;
+    pFile := FindFile(concat(pPath, pName));
   END IF;
 
   RETURN QUERY SELECT * FROM api.object_file_data WHERE object = pObject AND file = pFile;

@@ -43,10 +43,6 @@ BEGIN
 	RAISE EXCEPTION 'ERR-40000: Invalid file path: %', pPath;
   END IF;
 
-  IF NULLIF(NULLIF(pPath, ''), '~/') IS NULL THEN
-    RETURN '/';
-  END IF;
-
   arPath := path_to_array(pPath);
   IF arPath IS NULL THEN
     RETURN '/';

@@ -1119,13 +1119,16 @@ BEGIN
       uRoot := NewFilePath(concat('/', vClass));
     END IF;
 
-    IF NULLIF(pPath, '') IS NOT NULL THEN
-      uParent := NewFilePath(pPath);
+    IF pPath IS NOT NULL THEN
+      IF pPath = '~/' THEN
+        pPath := concat('/', pObject, '/');
+      END IF;
+      uParent := NewFilePath(pPath, uRoot);
     END IF;
 
     pFile := GetFile(uParent, pName);
     IF pFile IS NULL THEN
-      pFile := NewFile(null, uRoot, coalesce(uParent, uRoot), pName, '-', null, null, null, pSize, pDate, pData, pType, pText, pHash);
+      pFile := NewFile(null, uRoot, uParent, pName, '-', null, null, null, pSize, pDate, pData, pType, pText, pHash);
     END IF;
   END IF;
 
@@ -1159,9 +1162,11 @@ DECLARE
   vClass    text;
 BEGIN
   IF pFile IS NULL THEN
-    vClass := GetClassCode(GetObjectClass(pObject));
-
-    pFile := FindFile(concat('/', vClass, coalesce(pPath, '/'), pName));
+    IF NULLIF(NULLIF(pPath, ''), '~/') IS NULL THEN
+      vClass := GetClassCode(GetObjectClass(pObject));
+      pPath := concat('/', vClass, '/', pObject, '/');
+    END IF;
+    pFile := FindFile(concat(pPath, pName));
     IF pFile IS NULL THEN
 	  PERFORM NotFound();
     END IF;
@@ -1193,8 +1198,14 @@ DECLARE
   vClass    text;
 BEGIN
   IF pFile IS NULL THEN
-    vClass := GetClassCode(GetObjectClass(pObject));
-    pFile := FindFile(concat('/', vClass, coalesce(pPath, '/'), pName));
+    IF NULLIF(NULLIF(pPath, ''), '~/') IS NULL THEN
+      vClass := GetClassCode(GetObjectClass(pObject));
+      pPath := concat('/', vClass, '/', pObject, '/');
+    END IF;
+    pFile := FindFile(concat(pPath, pName));
+    IF pFile IS NULL THEN
+	  PERFORM NotFound();
+    END IF;
   END IF;
 
   DELETE FROM db.object_file WHERE object = pObject AND file = pFile;
@@ -1241,8 +1252,11 @@ DECLARE
   vClass    text;
 BEGIN
   IF pFile IS NULL THEN
-    vClass := GetClassCode(GetObjectClass(pObject));
-    pFile := FindFile(concat('/', vClass, coalesce(pPath, '/'), pName));
+    IF NULLIF(NULLIF(pPath, ''), '~/') IS NULL THEN
+      vClass := GetClassCode(GetObjectClass(pObject));
+      pPath := concat('/', vClass, '/', pObject, '/');
+    END IF;
+    pFile := FindFile(concat(pPath, pName));
   END IF;
 
   IF coalesce(pSize, 0) >= 0 THEN
