@@ -2714,6 +2714,8 @@ BEGIN
     UPDATE db.object SET owner = '00000000-0000-4000-a000-000000000001' WHERE owner = pId;
     UPDATE db.object SET suid = '00000000-0000-4000-a000-000000000001' WHERE suid = pId;
 
+    UPDATE db.file SET owner = '00000000-0000-4000-a000-000000000001' WHERE owner = pId;
+
     DELETE FROM db.acl WHERE userid = pId;
     DELETE FROM db.aou WHERE userid = pId;
 
