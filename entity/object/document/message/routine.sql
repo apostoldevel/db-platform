@@ -616,10 +616,12 @@ $$ LANGUAGE plpgsql
 /**
  * Запускает процедуру востановления пароля пользователя по номеру телефона.
  * @param {uuid} pUserId - Идентификатор пользователя.
+ * @param {text} pHashCode - Хэш-код.
  * @return {uuid} - Талон восстановления (recovery ticket)
  */
 CREATE OR REPLACE FUNCTION RecoveryPasswordByPhone (
-  pUserId         uuid
+  pUserId         uuid,
+  pHashCode       text DEFAULT null
 ) RETURNS         uuid
 AS $$
 DECLARE
@@ -627,18 +629,25 @@ DECLARE
   uMessageId      uuid;
   vProfile        text;
   vSecurityAnswer text;
+  vText           text;
   vMessage        text;
 BEGIN
   vProfile := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Name', pUserId);
   vSecurityAnswer := random_between(100000, 999999)::text;
 
   IF locale_code() = 'ru' THEN
-    vMessage := 'Код для восстановления пароля: %s.';
+    vText := 'Код для восстановления пароля';
   ELSE
-    vMessage := 'Password recovery code: %s.';
+    vText := 'Password recovery code';
   END IF;
 
-  uMessageId := SendSMS(null, vProfile, format(vMessage, vSecurityAnswer), pUserId);
+  vMessage := format('%s: %s.', vText, vSecurityAnswer);
+
+  IF pHashCode IS NOT NULL THEN
+	vMessage := concat(vMessage, E'\n\n\n\n', pHashCode);
+  END IF;
+
+  uMessageId := SendSMS(null, vProfile, vMessage, pUserId);
   IF uMessageId IS NOT NULL THEN
     uTicket := NewRecoveryTicket(pUserId, vSecurityAnswer, Now(), Now() + INTERVAL '5 min');
   END IF;
@@ -655,10 +664,12 @@ $$ LANGUAGE plpgsql
 /**
  * Запускает процедуру регистрации пользователя по номеру телефона.
  * @param {text} pPhone - Номер телефона.
+ * @param {text} pHashCode - Хэш-код.
  * @return {uuid} - Талон регистрации (registration ticket)
  */
 CREATE OR REPLACE FUNCTION RegistrationCodeByPhone (
-  pPhone          text
+  pPhone          text,
+  pHashCode       text DEFAULT null
 ) RETURNS         uuid
 AS $$
 DECLARE
@@ -666,6 +677,7 @@ DECLARE
   uMessageId      uuid;
   vCode           text;
   vNaming         text;
+  vText           text;
   vMessage        text;
   jContent        json;
 BEGIN
@@ -673,14 +685,20 @@ BEGIN
   vCode := random_between(100000, 999999)::text;
 
   IF locale_code() = 'ru' THEN
-    vMessage := 'Регистрационный код';
+    vText := 'Регистрационный код';
   ELSE
-    vMessage := 'Registration code';
+    vText := 'Registration code';
   END IF;
 
-  jContent := json_build_object('messages', jsonb_build_array(json_build_object('content', json_build_object('short_text', format('%s: %s.', vMessage, vCode)), 'to', jsonb_build_array(json_build_object('msisdn', pPhone)))), 'options', json_build_object('from',  json_build_object('sms_address', vNaming)));
+  vMessage := format('%s: %s.', vText, vCode);
 
-  uMessageId := SendMessage(null, GetAgent('mts.agent'), 'mts', '/messages', pPhone, jContent::text, null, vMessage);
+  IF pHashCode IS NOT NULL THEN
+	vMessage := concat(vMessage, E'\n\n\n\n', pHashCode);
+  END IF;
+
+  jContent := json_build_object('messages', jsonb_build_array(json_build_object('content', json_build_object('short_text', vMessage), 'to', jsonb_build_array(json_build_object('msisdn', pPhone)))), 'options', json_build_object('from',  json_build_object('sms_address', vNaming)));
+
+  uMessageId := SendMessage(null, GetAgent('mts.agent'), 'mts', '/messages', pPhone, jContent::text, null, vText);
 
   PERFORM WriteToEventLog('M', 1001, 'sms', format('SMS передано на отправку: %s', uMessageId), uMessageId);
 

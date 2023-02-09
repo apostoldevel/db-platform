@@ -638,11 +638,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Запускает процедуру восстановления пароля пользователя.
- * @param {text} pIdentifier - Идентификатор пользователя (username, email, phone)
+ * @param {text} pIdentifier - Идентификатор пользователя (username, email, phone).
+ * @param {text} pHashCode - Хэш-код.
  * @return {uuid} - Талон восстановления (recovery ticket)
  */
 CREATE OR REPLACE FUNCTION api.recovery_password (
-  pIdentifier		text
+  pIdentifier		text,
+  pHashCode         text DEFAULT null
 ) RETURNS			uuid
 AS $$
 DECLARE
@@ -657,11 +659,11 @@ BEGIN
 	  SELECT a.secret INTO vOAuthSecret FROM oauth2.audience a WHERE a.code = session_username();
 	  IF FOUND THEN
 		PERFORM SubstituteUser(GetUser('apibot'), vOAuthSecret);
-		uTicket := RecoveryPasswordByPhone(uUserId);
+		uTicket := RecoveryPasswordByPhone(uUserId, pHashCode);
 		PERFORM SubstituteUser(session_userid(), vOAuthSecret);
 	  END IF;
 	ELSE
-	  uTicket := RecoveryPasswordByPhone(uUserId);
+	  uTicket := RecoveryPasswordByPhone(uUserId, pHashCode);
 	END IF;
   END IF;
 
@@ -764,11 +766,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Запускает процедуру подтверждения номера телефона пользователя при регистрации.
- * @param {text} pIdentifier - Идентификатор пользователя (username, email, phone)
+ * @param {text} pPhone - Номер телефона.
+ * @param {text} pHashCode - Хэш-код.
  * @return {uuid} - Талон регистрации (registration ticket)
  */
 CREATE OR REPLACE FUNCTION api.registration_code (
-  pPhone            text
+  pPhone            text,
+  pHashCode         text DEFAULT null
 ) RETURNS			uuid
 AS $$
 DECLARE
@@ -779,11 +783,11 @@ BEGIN
     SELECT a.secret INTO vOAuthSecret FROM oauth2.audience a WHERE a.code = session_username();
     IF FOUND THEN
       PERFORM SubstituteUser(GetUser('apibot'), vOAuthSecret);
-      uTicket := RegistrationCodeByPhone(pPhone);
+      uTicket := RegistrationCodeByPhone(pPhone, pHashCode);
       PERFORM SubstituteUser(session_userid(), vOAuthSecret);
     END IF;
   ELSE
-    uTicket := RegistrationCodeByPhone(pPhone);
+    uTicket := RegistrationCodeByPhone(pPhone, pHashCode);
   END IF;
 
   RETURN coalesce(uTicket, gen_random_uuid());

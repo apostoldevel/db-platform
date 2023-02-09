@@ -522,12 +522,12 @@ BEGIN
       PERFORM JsonIsEmpty();
     END IF;
 
-    arKeys := array_cat(arKeys, ARRAY['identifier']);
+    arKeys := array_cat(arKeys, ARRAY['identifier', 'hashcode']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-	FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(identifier text)
+	FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(identifier text, hashcode text)
 	LOOP
-	  RETURN NEXT json_build_object('ticket', api.recovery_password(r.identifier));
+	  RETURN NEXT json_build_object('ticket', api.recovery_password(r.identifier, r.hashcode));
 	END LOOP;
 
   WHEN '/user/security/answer' THEN
@@ -570,12 +570,12 @@ BEGIN
       PERFORM JsonIsEmpty();
     END IF;
 
-    arKeys := array_cat(arKeys, ARRAY['phone']);
+    arKeys := array_cat(arKeys, ARRAY['phone', 'hashcode']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-	FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(phone text)
+	FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(phone text, hashcode text)
 	LOOP
-	  RETURN NEXT json_build_object('ticket', api.registration_code(r.phone));
+	  RETURN NEXT json_build_object('ticket', api.registration_code(r.phone, r.hashcode));
 	END LOOP;
 
   WHEN '/user/registration/check' THEN
