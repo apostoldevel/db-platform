@@ -1212,7 +1212,17 @@ BEGIN
 
   DELETE FROM db.object_file WHERE object = pObject AND file = pFile;
 
-  RETURN FOUND;
+  IF FOUND THEN
+    PERFORM FROM db.object_file WHERE file = pFile;
+
+    IF NOT FOUND THEN
+	  PERFORM DeleteFile(pFile);
+	END IF;
+
+    RETURN true;
+  END IF;
+
+  RETURN false;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1295,6 +1305,7 @@ BEGIN
     SELECT *
       FROM ObjectFile
      WHERE object = pObject
+     ORDER BY text
   LOOP
     arResult[i] := ARRAY[r.object, r.name, r.path, r.size, r.date, r.hash, r.text, r.type, r.loaded];
     i := i + 1;
@@ -1322,6 +1333,7 @@ BEGIN
     SELECT *
       FROM ObjectFile
      WHERE object = pObject
+     ORDER BY text
   LOOP
     arResult := array_append(arResult, row_to_json(r));
   END LOOP;

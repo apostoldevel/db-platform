@@ -290,6 +290,8 @@ BEGIN
       vSelect := vSelect || E'\n ORDER BY name';
     ELSIF 'label' = ANY (arColumns) THEN
       vSelect := vSelect || E'\n ORDER BY label';
+    ELSIF 'text' = ANY (arColumns) THEN
+      vSelect := vSelect || E'\n ORDER BY text';
     ELSIF 'code' = ANY (arColumns) THEN
       vSelect := vSelect || E'\n ORDER BY code';
     ELSIF 'id' = ANY (arColumns) THEN

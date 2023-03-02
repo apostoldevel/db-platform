@@ -956,11 +956,11 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, clear boolean, files json)
       LOOP
-		IF coalesce(r.clear, false) THEN
-	  	  PERFORM api.clear_object_files(r.id);
-		END IF;
-
         IF r.files IS NOT NULL THEN
+		  IF coalesce(r.clear, false) THEN
+			PERFORM api.clear_object_files(r.id);
+		  END IF;
+
           FOR e IN SELECT * FROM api.set_object_files_json(r.id, r.files)
           LOOP
             RETURN NEXT row_to_json(e);
@@ -974,11 +974,11 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, clear boolean, files json)
       LOOP
-		IF coalesce(r.clear, false) THEN
-	  	  PERFORM api.clear_object_files(r.id);
-		END IF;
-
         IF r.files IS NOT NULL THEN
+		  IF coalesce(r.clear, false) THEN
+			PERFORM api.clear_object_files(r.id);
+		  END IF;
+
           FOR e IN SELECT * FROM api.set_object_files_json(r.id, r.files)
           LOOP
             RETURN NEXT row_to_json(e);
