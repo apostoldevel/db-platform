@@ -606,7 +606,7 @@ BEGIN
     IF vSession IS NULL THEN
       SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(GetErrorMessage());
       PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
-      RETURN json_build_object('error', json_build_object('code', 403, 'error', 'access_denied', 'message', ErrorMessage));
+      RETURN json_build_object('error', json_build_object('code', 401, 'error', 'access_denied', 'message', ErrorMessage));
     END IF;
 
     auth_code := oauth2_current_code(vSession);
