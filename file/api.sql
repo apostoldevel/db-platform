@@ -90,6 +90,27 @@ $$ LANGUAGE sql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- api.get_file_id -------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Возвращает идентификатор файла по его имени и пути
+ * @param {text} pName - Имя
+ * @param {text} pPath - Путь
+ * @return {uuid}
+ */
+CREATE OR REPLACE FUNCTION api.get_file_id (
+  pName     text,
+  pPath     text DEFAULT '~/'
+) RETURNS	uuid
+AS $$
+BEGIN
+  RETURN GetFile(pName, pPath);
+END
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- api.delete_file -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
