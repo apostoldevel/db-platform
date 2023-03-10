@@ -371,7 +371,7 @@ BEGIN
   csv_file := vCSV::bytea;
 
   PERFORM SetObjectFile(pReady, null, 'index.html', null, length(html_file), localtimestamp, html_file, encode(digest(html_file, 'md5'), 'hex'), Lines[1], 'data:text/html;base64,');
-  PERFORM SetObjectFile(pReady, format('user_%s.csv', DateToStr(Now(), 'YYYYMMDD_HH24MISS')), null, length(csv_file), localtimestamp, csv_file, encode(digest(csv_file, 'md5'), 'hex'), Lines[1], 'data:text/plain;base64,');
+  PERFORM SetObjectFile(pReady, null, format('user_%s.csv', DateToStr(Now(), 'YYYYMMDD_HH24MISS')), null, length(csv_file), localtimestamp, csv_file, encode(digest(csv_file, 'md5'), 'hex'), Lines[1], 'data:text/plain;base64,');
 
   PERFORM ExecuteObjectAction(pReady, GetAction('complete'));
 EXCEPTION
