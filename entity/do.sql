@@ -17,14 +17,26 @@ AS $$
 DECLARE
   uId			uuid;
   uArea			uuid;
+  uSave			uuid;
 BEGIN
   SELECT c.id, d.area INTO uId, uArea
     FROM db.client c INNER JOIN db.document d ON c.document = d.id
    WHERE userid = pUserId;
 
-  IF FOUND AND IsEnabled(uId) THEN
+  IF FOUND THEN
+    uSave := current_area();
+
     PERFORM SetSessionArea(uArea);
-	PERFORM ExecuteObjectAction(uId, GetAction('confirm'));
+
+    IF IsCreated(uId) THEN
+      PERFORM DoEnable(uId);
+	END IF;
+
+    IF IsEnabled(uId) THEN
+	  PERFORM ExecuteObjectAction(uId, GetAction('confirm'));
+	END IF;
+
+    PERFORM SetSessionArea(uSave);
   END IF;
 END;
 $$ LANGUAGE plpgsql
@@ -45,10 +57,27 @@ CREATE OR REPLACE FUNCTION DoConfirmPhone (
 AS $$
 DECLARE
   uId			uuid;
+  uArea			uuid;
+  uSave			uuid;
 BEGIN
-  SELECT id INTO uId FROM db.client WHERE userid = pUserId;
-  IF FOUND AND IsEnabled(uId) THEN
-	PERFORM ExecuteObjectAction(uId, GetAction('confirm'));
+  SELECT c.id, d.area INTO uId, uArea
+    FROM db.client c INNER JOIN db.document d ON c.document = d.id
+   WHERE userid = pUserId;
+
+  IF FOUND THEN
+    uSave := current_area();
+
+    PERFORM SetSessionArea(uArea);
+
+    IF IsCreated(uId) THEN
+      PERFORM DoEnable(uId);
+	END IF;
+
+    IF IsEnabled(uId) THEN
+	  PERFORM ExecuteObjectAction(uId, GetAction('confirm'));
+	END IF;
+
+    PERFORM SetSessionArea(uSave);
   END IF;
 END;
 $$ LANGUAGE plpgsql
