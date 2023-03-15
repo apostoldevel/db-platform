@@ -4365,6 +4365,50 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- FUNCTION UpdateSessionStats -------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Обновляет статистику сессии.
+ * @param {varchar} pSession - Сессия
+ * @param {text} pAgent - Агент
+ * @param {inet} pHost - IP адрес
+ * @return {void}
+ */
+CREATE OR REPLACE FUNCTION UpdateSessionStats (
+  pSession      varchar,
+  pAgent        text DEFAULT null,
+  pHost         inet DEFAULT null
+)
+RETURNS         void
+AS $$
+DECLARE
+  uUserId       uuid;
+  uScope        uuid;
+BEGIN
+  SELECT s.userid, a.scope INTO uUserId, uScope
+	FROM db.session s INNER JOIN db.area a ON s.area = a.id
+   WHERE s.code = pSession;
+
+  IF FOUND THEN
+	UPDATE db.user SET status = set_bit(set_bit(status, 3, 0), 2, 1) WHERE id = uUserId;
+
+	UPDATE db.profile
+	   SET input_last = now(),
+		   lc_ip = coalesce(pHost, lc_ip)
+	 WHERE userid = uUserId AND scope = uScope;
+
+	UPDATE db.session
+	   SET updated = localtimestamp,
+		   agent = coalesce(pAgent, agent),
+		   host = coalesce(pHost, host)
+	 WHERE code = pSession;
+  END IF;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- FUNCTION SessionIn ----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
@@ -4386,22 +4430,19 @@ AS $$
 DECLARE
   up	        db.user%rowtype;
 
-  uUserId       uuid DEFAULT null;
-  uArea         uuid DEFAULT null;
-  uScope        uuid DEFAULT null;
+  uUserId       uuid;
+  uScope        uuid;
 
-  nToken        bigint DEFAULT null;
-  nOAuth2		bigint DEFAULT null;
+  nToken        bigint;
+  nOAuth2		bigint;
 
-  nAudience		integer DEFAULT null;
+  nAudience		integer;
 BEGIN
   IF ValidSession(pSession) THEN
 
-	SELECT oauth2, userid, area INTO nOAuth2, uUserId, uArea
-	  FROM db.session
-	 WHERE code = pSession;
-
-	SELECT scope INTO uScope FROM db.area WHERE id = uArea;
+	SELECT s.oauth2, s.token, s.userid, a.scope INTO nOAuth2, nToken, uUserId, uScope
+	  FROM db.session s INNER JOIN db.area a ON s.area = a.id
+	 WHERE s.code = pSession;
 
 	SELECT * INTO up FROM db.user WHERE id = uUserId;
 
@@ -4435,20 +4476,22 @@ BEGIN
 	PERFORM SetCurrentUserId(up.id);
 	PERFORM SetOAuth2ClientId(GetAudienceCode(nAudience));
 
-	UPDATE db.user SET status = set_bit(set_bit(status, 3, 0), 2, 1) WHERE id = up.id;
+	IF pSalt IS NOT NULL THEN
+	  UPDATE db.user SET status = set_bit(set_bit(status, 3, 0), 2, 1) WHERE id = up.id;
 
-	UPDATE db.profile
-	   SET input_last = now(),
-		   lc_ip = coalesce(pHost, lc_ip)
-	 WHERE userid = up.id AND scope = uScope;
+	  UPDATE db.profile
+		 SET input_last = now(),
+			 lc_ip = coalesce(pHost, lc_ip)
+	   WHERE userid = up.id AND scope = uScope;
 
-	UPDATE db.session
-	   SET updated = localtimestamp,
-		   agent = coalesce(pAgent, agent),
-		   host = coalesce(pHost, host),
-		   salt = coalesce(pSalt, salt)
-	 WHERE code = pSession
-    RETURNING token INTO nToken;
+	  UPDATE db.session
+		 SET updated = localtimestamp,
+			 agent = coalesce(pAgent, agent),
+			 host = coalesce(pHost, host),
+			 salt = coalesce(pSalt, salt)
+	   WHERE code = pSession
+	  RETURNING token INTO nToken;
+	END IF;
 
     RETURN GetToken(nToken);
   END IF;

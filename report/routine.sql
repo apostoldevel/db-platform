@@ -93,7 +93,6 @@ $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
-
 --------------------------------------------------------------------------------
 -- InitReport ------------------------------------------------------------------
 --------------------------------------------------------------------------------
@@ -144,6 +143,29 @@ BEGIN
   PERFORM CreateReportRoutine(pParent, GetType('plpgsql.report_routine'), uReport, 'rpc_' || pCode, pName, 'rpc_' || pCode, pDescription);
 
   RETURN uReport;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- BuildReport -----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION BuildReport (
+  pReport   uuid,
+  pType     uuid default null,
+  pForm     jsonb default null
+) RETURNS	uuid
+AS $$
+DECLARE
+  r         record;
+BEGIN
+  pType := coalesce(pType, GetType('sync.report_ready'));
+
+  SELECT name, description INTO r FROM Report WHERE id = pReport;
+
+  RETURN CreateReportReady(pReport, pType, pReport, pForm, r.name, r.description);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

@@ -233,8 +233,8 @@ BEGIN
     END IF;
 
     IF r.code = 'complete' THEN
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Готовый отчёт завершено', 'EventReportReadyComplete();');
       PERFORM AddEvent(pClass, uEvent, r.id, 'Смена состояния', 'ChangeObjectState();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Готовый отчёт выполнен', 'EventReportReadyComplete();');
     END IF;
 
     IF r.code = 'fail' THEN
@@ -290,8 +290,8 @@ BEGIN
   uClass := AddClass(pParent, pEntity, 'report_ready', 'Готовый отчёт', false);
 
   -- Тип
-  PERFORM AddType(uClass, 'private.report_ready', 'Личный', 'Личный отчёт.');
-  PERFORM AddType(uClass, 'public.report_ready', 'Публичный', 'Публичный отчёт.');
+  PERFORM AddType(uClass, 'sync.report_ready', 'Синхронный', 'Синхронный отчёт.');
+  PERFORM AddType(uClass, 'async.report_ready', 'Асинхронный', 'Асинхронный отчёт.');
 
   -- Событие
   PERFORM AddReportReadyEvents(uClass);

@@ -47,13 +47,18 @@ RETURNS     trigger
 AS $$
 DECLARE
   vClass    text;
+  vEntity   text;
   vAction   text;
 BEGIN
   PERFORM pg_notify('notify', row_to_json(NEW)::text);
 
-  IF GetEntityCode(NEW.entity) = 'message' THEN
+  vEntity := GetEntityCode(NEW.entity);
+
+  IF vEntity = 'message' THEN
+
     vClass := GetClassCode(NEW.class);
     vAction := GetActionCode(NEW.action);
+
     IF vClass = 'inbox' THEN
 	  IF vAction = 'create' THEN
         PERFORM pg_notify('inbox', NEW.object::text);
@@ -62,6 +67,14 @@ BEGIN
 	  IF vAction = 'submit' OR vAction = 'repeat' THEN
         PERFORM pg_notify('outbox', NEW.object::text);
       END IF;
+	END IF;
+
+  ELSIF vEntity = 'report_ready' THEN
+
+    vAction := GetActionCode(NEW.action);
+
+    IF vAction = 'execute' THEN
+      PERFORM pg_notify('report', json_build_object('session', current_session(), 'id', NEW.object)::text);
     END IF;
   END IF;
 

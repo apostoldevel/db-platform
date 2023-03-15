@@ -142,7 +142,7 @@ DECLARE
 BEGIN
   SELECT userId INTO uUserId FROM db.session WHERE code = pSession;
 
-  IF NOT FOUND OR current_userid() IS DISTINCT FROM uUserId THEN -- Обход блокировки
+  IF NOT FOUND OR current_userid() IS DISTINCT FROM uUserId THEN
 	IF SessionIn(pSession, pAgent, pHost) IS NULL THEN
 	  PERFORM AuthenticateError(GetErrorMessage());
 	END IF;
@@ -1091,6 +1091,8 @@ BEGIN
 	LOOP
 	  RETURN NEXT r.run;
 	END LOOP;
+
+    PERFORM UpdateSessionStats(pSession, pAgent, pHost);
   ELSE
 	PERFORM NonceExpired();
   END IF;
@@ -1142,6 +1144,7 @@ DECLARE
 
   token         jsonb;
 
+  vSession      text;
   vMessage      text;
   vContext      text;
 
@@ -1162,7 +1165,9 @@ BEGIN
 
   token := TokenValidation(pToken);
 
-  IF SessionIn(token->>'sub', pAgent, pHost) IS NULL THEN
+  vSession := token->>'sub';
+
+  IF SessionIn(vSession, pAgent, pHost) IS NULL THEN
 	PERFORM AuthenticateError(GetErrorMessage());
   END IF;
 
@@ -1170,6 +1175,8 @@ BEGIN
   LOOP
 	RETURN NEXT r.run;
   END LOOP;
+
+  PERFORM UpdateSessionStats(vSession, pAgent, pHost);
 
   RETURN;
 EXCEPTION

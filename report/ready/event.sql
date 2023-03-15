@@ -10,12 +10,8 @@ CREATE OR REPLACE FUNCTION EventReportReadyCreate (
   pObject	uuid default context_object()
 ) RETURNS	void
 AS $$
-DECLARE
-  uReport   uuid;
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'create', 'Готовый отчёт создан.', pObject);
-
-  SELECT report INTO uReport FROM db.report_ready WHERE id = pObject;
 
   PERFORM ExecuteObjectAction(pObject, GetAction('execute'));
 END;
@@ -124,18 +120,8 @@ CREATE OR REPLACE FUNCTION EventReportReadyExecute (
   pObject   uuid default context_object()
 ) RETURNS   void
 AS $$
-DECLARE
-  r         record;
-
-  uReport   uuid;
-  jForm     jsonb;
 BEGIN
-  SELECT report, form INTO uReport, jForm FROM db.report_ready WHERE id = pObject;
-
-  FOR r IN SELECT definition FROM db.report_routine WHERE report = uReport ORDER BY sequence
-  LOOP
-	EXECUTE 'SELECT report.' || r.definition || '($1, $2);' USING pObject, jForm;
-  END LOOP;
+  PERFORM WriteToEventLog('M', 1000, 'execute', 'Готовый отчёт выполняется.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 

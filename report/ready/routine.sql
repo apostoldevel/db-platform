@@ -123,23 +123,25 @@ $$ LANGUAGE sql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- BuildReport -----------------------------------------------------------------
+-- ExecuteReportReady ----------------------------------------------------------
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION BuildReport (
-  pReport   uuid,
-  pType     uuid default null,
-  pForm     jsonb default null
-) RETURNS	uuid
+CREATE OR REPLACE FUNCTION ExecuteReportReady (
+  pId       uuid
+) RETURNS   void
 AS $$
 DECLARE
   r         record;
+
+  uReport   uuid;
+  jForm     jsonb;
 BEGIN
-  pType := coalesce(pType, GetType('private.report_ready'));
+  SELECT report, form INTO uReport, jForm FROM db.report_ready WHERE id = pId;
 
-  SELECT name, description INTO r FROM Report WHERE id = pReport;
-
-  RETURN CreateReportReady(pReport, pType, pReport, pForm, r.name, r.description);
+  FOR r IN SELECT definition FROM db.report_routine WHERE report = uReport ORDER BY sequence
+  LOOP
+	EXECUTE 'SELECT report.' || r.definition || '($1, $2);' USING pId, jForm;
+  END LOOP;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

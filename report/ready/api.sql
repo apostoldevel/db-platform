@@ -13,6 +13,45 @@ AS
 GRANT SELECT ON api.report_ready TO administrator;
 
 --------------------------------------------------------------------------------
+-- FUNCTION api.report_ready ---------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.report_ready (
+  pStateType	uuid,
+  OUT id        uuid,
+  OUT typecode  text,
+  OUT statecode text,
+  OUT created   timestamptz
+) RETURNS		SETOF record
+AS $$
+  SELECT r.id, t.code, s.code, o.pdate
+    FROM db.report_ready r INNER JOIN db.object  o ON r.document = o.id
+                           INNER JOIN db.type    t ON o.type = t.id
+                           INNER JOIN db.state   s ON o.state = s.id
+	 WHERE o.state_type = pStateType
+	   AND o.scope = current_scope();
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION api.report_ready ---------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.report_ready (
+  pStateType	text DEFAULT 'enabled',
+  OUT id        uuid,
+  OUT typecode  text,
+  OUT statecode text,
+  OUT created   timestamptz
+) RETURNS		SETOF record
+AS $$
+  SELECT * FROM api.report_ready(GetStateType(pStateType));
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- api.add_report_ready --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
@@ -35,7 +74,7 @@ CREATE OR REPLACE FUNCTION api.add_report_ready (
 ) RETURNS       uuid
 AS $$
 BEGIN
-  RETURN CreateReportReady(pParent, coalesce(pType, GetType('private.report_ready')), pReport, pForm, pLabel, pDescription);
+  RETURN CreateReportReady(pParent, coalesce(pType, GetType('sync.report_ready')), pReport, pForm, pLabel, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -167,9 +206,29 @@ AS $$
 DECLARE
   uId       uuid;
 BEGIN
-  uId := BuildReport(pReport, GetType('private.report_ready'), pForm);
+  uId := BuildReport(pReport, GetType('sync.report_ready'), pForm);
   RETURN QUERY SELECT * FROM api.report_ready WHERE id = uId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.execute_report_ready ----------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Выполнить готовый отчёт
+ * @param {uuid} pId - Идентификатор готового отчёта
+ * @return {void}
+ */
+CREATE OR REPLACE FUNCTION api.execute_report_ready (
+  pId       uuid
+) RETURNS	void
+AS $$
+BEGIN
+  PERFORM ExecuteReportReady(pId);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
