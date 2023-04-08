@@ -41,6 +41,7 @@ CREATE TABLE http.request (
   id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   datetime      timestamptz DEFAULT clock_timestamp() NOT NULL,
   state         integer NOT NULL DEFAULT 0 CHECK (state BETWEEN 0 AND 3),
+  type          text NOT NULL DEFAULT 'native' CHECK (type = ANY (ARRAY['native', 'curl'])),
   method        text NOT NULL DEFAULT 'GET' CHECK (method = ANY (ARRAY['GET', 'POST'])),
   resource      text NOT NULL,
   headers       jsonb,
@@ -59,6 +60,7 @@ COMMENT ON TABLE http.request IS 'HTTP запрос.';
 COMMENT ON COLUMN http.request.id IS 'Идентификатор';
 COMMENT ON COLUMN http.request.datetime IS 'Дата и время';
 COMMENT ON COLUMN http.request.state IS 'Состояние: 0 - создан, 1 - выполняется, 2 - выполнен, 3 - неудача';
+COMMENT ON COLUMN http.request.type IS 'Способ отправки: native - родной; curl - через библиотеку cURL';
 COMMENT ON COLUMN http.request.method IS 'Метод';
 COMMENT ON COLUMN http.request.resource IS 'Ресурс';
 COMMENT ON COLUMN http.request.headers IS 'Заголовки';

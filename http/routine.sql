@@ -31,6 +31,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION http.create_request (
   pResource     text,
+  pType         text DEFAULT null,
   pMethod       text DEFAULT 'GET',
   pHeaders      jsonb DEFAULT null,
   pContent      text DEFAULT null,
@@ -45,8 +46,8 @@ AS $$
 DECLARE
   uId           uuid;
 BEGIN
-  INSERT INTO http.request (state, method, resource, headers, content, done, fail, agent, profile, command, message)
-  VALUES (1, pMethod, pResource, pHeaders, pContent, pDone, pFail, pAgent, pProfile, pCommand, pMessage)
+  INSERT INTO http.request (state, type, method, resource, headers, content, done, fail, agent, profile, command, message)
+  VALUES (1, coalesce(pType, 'native'), pMethod, pResource, pHeaders, pContent, pDone, pFail, pAgent, pProfile, pCommand, pMessage)
   RETURNING id INTO uId;
 
   RETURN uId;
@@ -284,6 +285,7 @@ $$ LANGUAGE plpgsql
  * @param {text} profile - Профиль
  * @param {text} command - Команда
  * @param {text} message - Сообщение
+ * @param {text} type - Способ отправки: native - родной; curl - через библиотеку cURL
  * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION http.fetch (
@@ -296,7 +298,8 @@ CREATE OR REPLACE FUNCTION http.fetch (
   agent         text DEFAULT null,
   profile       text DEFAULT null,
   command       text DEFAULT null,
-  message       text DEFAULT null
+  message       text DEFAULT null,
+  type          text DEFAULT null
 ) RETURNS       uuid
 AS $$
 BEGIN
@@ -314,7 +317,50 @@ BEGIN
     END IF;
   END IF;
 
-  RETURN http.create_request(resource, method, headers, content, done, fail, agent, profile, command, message);
+  RETURN http.create_request(resource, type, method, headers, content, done, fail, agent, profile, command, message);
+END;
+$$ LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = http, pg_temp;
+
+--------------------------------------------------------------------------------
+-- HTTP FETCH JSON -------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Выполняет HTTP запрос.
+ * @param {text} resource - Ресурс
+ * @param {text} method - Метод
+ * @param {jsonb} headers - HTTP заголовки
+ * @param {json} content - Содержание запроса в формате JSON
+ * @param {text} done - Имя функции обратного вызова в случае успешного ответа
+ * @param {text} fail - Имя функции обратного вызова в случае сбоя
+ * @param {text} agent - Агент
+ * @param {text} profile - Профиль
+ * @param {text} command - Команда
+ * @param {text} message - Сообщение
+ * @param {text} type - Способ отправки: native - родной; curl - через библиотеку cURL
+ * @return {uuid}
+ */
+CREATE OR REPLACE FUNCTION http.fetch (
+  resource      text,
+  method        text DEFAULT 'POST',
+  headers       jsonb DEFAULT null,
+  content       jsonb DEFAULT null,
+  done          text DEFAULT null,
+  fail          text DEFAULT null,
+  agent         text DEFAULT null,
+  profile       text DEFAULT null,
+  command       text DEFAULT null,
+  message       text DEFAULT null,
+  type          text DEFAULT null
+) RETURNS       uuid
+AS $$
+BEGIN
+  IF headers IS NULL THEN
+    headers := jsonb_build_object('Content-Type', 'application/json');
+  END IF;
+
+  RETURN http.create_request(resource, type, method, headers, content::text, done, fail, agent, profile, command, message);
 END;
 $$ LANGUAGE plpgsql
   SECURITY DEFINER
