@@ -120,7 +120,8 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION WriteDiagnostics (
   pMessage      text,
-  pContext      text default null
+  pContext      text default null,
+  pObject       uuid default null
 ) RETURNS       void
 AS $$
 DECLARE
@@ -131,10 +132,10 @@ BEGIN
 
   SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(pMessage);
 
-  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
+  PERFORM WriteToEventLog('E', ErrorCode, 'exception', ErrorMessage, pObject);
 
   IF pContext IS NOT NULL THEN
-    PERFORM WriteToEventLog('D', ErrorCode, pContext);
+    PERFORM WriteToEventLog('D', ErrorCode, 'exception', pContext, pObject);
   END IF;
 END;
 $$ LANGUAGE plpgsql
