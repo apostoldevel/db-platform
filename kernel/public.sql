@@ -1523,7 +1523,7 @@ BEGIN
       result := result || c;
     ELSE
       h := encode(c::bytea, 'hex');
-      FOR j IN 0..(length(h) - 1) / 2
+      FOR j IN 0..length(h) / 2 - 1
       LOOP
         result := concat(result, '%', substr(h, j * 2 + 1, 2));
       END LOOP;
