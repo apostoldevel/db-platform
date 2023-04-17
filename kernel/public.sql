@@ -1510,7 +1510,9 @@ AS $$
 DECLARE
   result    text;
   c         text;
+  h         text;
   i         int;
+  j         int;
 BEGIN
   result := '';
 
@@ -1520,7 +1522,11 @@ BEGIN
     IF regexp_match(c, '[A-Za-z0-9_~.-]') IS NOT NULL THEN
       result := result || c;
     ELSE
-      result := concat(result, '%', to_hex(ascii(c)));
+      h := encode(c::bytea, 'hex');
+      FOR j IN 0..(length(h) - 1) / 2
+      LOOP
+        result := concat(result, '%', substr(h, j * 2 + 1, 2));
+      END LOOP;
     END IF;
   END LOOP;
 
