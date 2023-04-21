@@ -16,6 +16,7 @@ DECLARE
 BEGIN
   INSERT INTO db.address_tree (parent, code, name, short, index, level)
   VALUES (pParent, pCode, pName, pShort, pIndex, pLevel)
+  ON CONFLICT (code) DO NOTHING
   RETURNING id INTO nId;
 
   RETURN nId;
