@@ -158,7 +158,7 @@ BEGIN
 	   WHERE method = pMethod
 		 AND userid IN (SELECT pUserId UNION SELECT userid FROM db.member_group WHERE member = pUserId)
 	   GROUP BY method
-	) INSERT INTO db.oma SELECT pObject, method, pUserId, mask FROM access;
+	) INSERT INTO db.oma SELECT pObject, pMethod, pUserId, mask FROM access ON CONFLICT (object, method, userid) DO NOTHING;
   END IF;
 
   RETURN coalesce(GetObjectMethodAccessMask(pObject, pMethod, pUserId) & pMask = pMask, false);

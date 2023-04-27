@@ -326,6 +326,31 @@ BEGIN
 
     END IF;
 
+  WHEN '/message/send/push/all' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, GetRoutines('send_push_all', 'api', false));
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN EXECUTE format('SELECT api.send_push_all(%s) AS count FROM jsonb_to_recordset($1) AS x(%s)', array_to_string(GetRoutines('send_push_all', 'api', false, 'x'), ', '), array_to_string(GetRoutines('send_push_all', 'api', true), ', ')) USING pPayload
+      LOOP
+        RETURN NEXT json_build_object('count', r.count);
+      END LOOP;
+
+    ELSE
+
+      FOR r IN EXECUTE format('SELECT api.send_push_all(%s) AS count FROM jsonb_to_record($1) AS x(%s)', array_to_string(GetRoutines('send_push_all', 'api', false, 'x'), ', '), array_to_string(GetRoutines('send_push_all', 'api', true), ', ')) USING pPayload
+      LOOP
+        RETURN NEXT json_build_object('count', r.count);
+      END LOOP;
+
+    END IF;
+
   ELSE
     RETURN NEXT ExecuteDynamicMethod(pPath, pPayload);
   END CASE;

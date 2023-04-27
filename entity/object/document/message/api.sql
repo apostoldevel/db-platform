@@ -478,3 +478,25 @@ END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.send_push_all -----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.send_push_all (
+  pTitle        text,
+  pBody         text
+) RETURNS		integer
+AS $$
+BEGIN
+  IF session_user <> 'kernel' THEN
+    IF NOT IsUserRole(GetGroup('message')) THEN
+      PERFORM AccessDenied();
+    END IF;
+  END IF;
+
+  RETURN SendPushAll(pTitle, pBody);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
