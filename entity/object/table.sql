@@ -324,6 +324,7 @@ COMMENT ON COLUMN db.aou.entity IS 'Сущность';
 CREATE INDEX ON db.aou (object);
 CREATE INDEX ON db.aou (userid);
 CREATE INDEX ON db.aou (entity);
+CREATE INDEX ON db.aou (entity, userid, mask);
 
 --------------------------------------------------------------------------------
 
@@ -594,6 +595,7 @@ COMMENT ON COLUMN db.object_data.data IS 'Данные';
 CREATE INDEX ON db.object_data (object);
 CREATE INDEX ON db.object_data (type);
 CREATE INDEX ON db.object_data (code);
+CREATE INDEX ON db.object_data (object, type, code);
 
 --------------------------------------------------------------------------------
 -- db.object_coordinates -------------------------------------------------------
