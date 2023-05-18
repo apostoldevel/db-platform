@@ -8,10 +8,7 @@
 
 CREATE OR REPLACE VIEW api.notice
 AS
-  WITH cu AS (
-    SELECT current_userid() AS userid
-  )
-  SELECT * FROM Notice n INNER JOIN cu USING (userid);
+  SELECT * FROM Notice WHERE userid = current_userid();
 
 GRANT SELECT ON api.notice TO administrator;
 
