@@ -27,10 +27,15 @@ GRANT SELECT ON Message TO administrator;
 
 CREATE OR REPLACE VIEW AccessMessage
 AS
-  WITH access AS (
-    SELECT object FROM AccessObjectUser(GetEntity('message'), current_userid())
-  )
-  SELECT m.* FROM db.message m INNER JOIN access ac ON m.id = ac.object;
+WITH _access AS (
+   WITH _membergroup AS (
+	 SELECT current_userid() AS userid UNION SELECT userid FROM db.member_group WHERE member = current_userid()
+   ) SELECT object
+       FROM db.aou AS a INNER JOIN db.entity    e ON a.entity = e.id AND e.code = 'message'
+                        INNER JOIN _membergroup m ON a.userid = m.userid
+      WHERE a.mask & B'100' = B'100'
+      GROUP BY object
+) SELECT t.* FROM db.message t INNER JOIN _access ac ON t.id = ac.object;
 
 GRANT SELECT ON AccessMessage TO administrator;
 

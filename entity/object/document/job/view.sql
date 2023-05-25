@@ -26,10 +26,15 @@ GRANT SELECT ON Job TO administrator;
 
 CREATE OR REPLACE VIEW AccessJob
 AS
-  WITH access AS (
-    SELECT * FROM AccessObjectUser(GetEntity('job'), current_userid())
-  )
-  SELECT t.* FROM db.job t INNER JOIN access ac ON t.id = ac.object;
+WITH _access AS (
+   WITH _membergroup AS (
+	 SELECT current_userid() AS userid UNION SELECT userid FROM db.member_group WHERE member = current_userid()
+   ) SELECT object
+       FROM db.aou AS a INNER JOIN db.entity    e ON a.entity = e.id AND e.code = 'job'
+                        INNER JOIN _membergroup m ON a.userid = m.userid
+      WHERE a.mask & B'100' = B'100'
+      GROUP BY object
+) SELECT t.* FROM db.job t INNER JOIN _access ac ON t.id = ac.object;
 
 GRANT SELECT ON AccessJob TO administrator;
 
