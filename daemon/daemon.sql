@@ -305,11 +305,10 @@ BEGIN
 
       uScope := current_scope();
 
-      account.username := claim.sub;
-
       IF vProviderCode = 'google' THEN
         FOR google IN SELECT * FROM json_to_record(token.payload) AS x(email text, email_verified bool, name text, given_name text, family_name text, locale text, picture text)
         LOOP
+          account.username := substr(google.email, 1, strpos(google.email, '@') - 1);
           account.name := google.name;
           account.email := google.email;
 
@@ -322,6 +321,8 @@ BEGIN
           profile.email_verified := google.email_verified;
           profile.picture := google.picture;
         END LOOP;
+      ELSE
+        account.username := claim.sub;
       END IF;
 
       SELECT a.userid INTO uUserId FROM db.auth a WHERE a.audience = nAudience AND a.code = account.username;
