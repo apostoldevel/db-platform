@@ -1,0 +1,4 @@
+DROP VIEW vendor CASCADE;
+DROP VIEW program CASCADE;
+DROP VIEW scheduler CASCADE;
+DROP VIEW version CASCADE;
