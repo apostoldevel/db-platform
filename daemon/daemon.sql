@@ -325,7 +325,7 @@ BEGIN
         account.username := claim.sub;
       END IF;
 
-      SELECT a.userid INTO uUserId FROM db.auth a WHERE a.audience = nAudience AND a.code = account.username;
+      SELECT a.userid INTO uUserId FROM db.auth a WHERE a.audience = nAudience AND a.code = claim.sub;
 
       IF NOT FOUND THEN
         jName := jsonb_build_object('name', account.name, 'first', profile.given_name, 'last', profile.family_name);
@@ -334,7 +334,7 @@ BEGIN
 
         uUserId := signup.userid;
 
-        INSERT INTO db.auth (userId, audience, code) VALUES (uUserId, nAudience, account.username);
+        INSERT INTO db.auth (userId, audience, code) VALUES (uUserId, nAudience, claim.sub);
       END IF;
 
       PERFORM FROM db.profile WHERE userid = uUserId AND scope = uScope;
