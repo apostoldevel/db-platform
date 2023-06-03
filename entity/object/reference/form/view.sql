@@ -26,8 +26,8 @@ WITH _access AS (
    ) SELECT object
        FROM db.aou AS a INNER JOIN db.entity    e ON a.entity = e.id AND e.code = 'form'
                         INNER JOIN _membergroup m ON a.userid = m.userid
-      WHERE a.mask & B'100' = B'100'
       GROUP BY object
+      HAVING bit_and(mask) & B'100' = B'100'
 ) SELECT t.* FROM db.form t INNER JOIN _access ac ON t.id = ac.object;
 
 GRANT SELECT ON AccessForm TO administrator;
