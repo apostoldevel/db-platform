@@ -25,7 +25,7 @@ WITH _access AS (
        FROM db.aou AS a INNER JOIN db.entity    e ON a.entity = e.id AND e.code = 'vendor'
                         INNER JOIN _membergroup m ON a.userid = m.userid
       GROUP BY object
-      HAVING bit_and(mask) & B'100' = B'100'
+      HAVING (bit_or(a.allow) & ~bit_or(a.deny)) & B'100' = B'100'
 ) SELECT t.* FROM db.vendor t INNER JOIN _access ac ON t.id = ac.object;
 
 GRANT SELECT ON AccessVendor TO administrator;
