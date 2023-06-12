@@ -246,6 +246,102 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- UpdateDefaultMethods --------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION UpdateDefaultMethods (
+  pClass        uuid,
+  pLocale       uuid,
+  pNames        text[] DEFAULT null
+)
+RETURNS         void
+AS $$
+DECLARE
+  rec_state     record;
+  rec_method    record;
+BEGIN
+  IF pNames IS NULL THEN
+    IF pLocale = GetLocale('ru') THEN
+      pNames := array_cat(pNames, ARRAY['Создан', 'Открыт', 'Закрыт', 'Удалён', 'Открыть', 'Закрыть', 'Удалить', 'Восстановить', 'Уничтожить']);
+    ELSE
+      pNames := array_cat(pNames, ARRAY['Created', 'Opened', 'Closed', 'Deleted', 'Open', 'Close', 'Delete', 'Restore', 'Drop']);
+    END IF;
+  END IF;
+
+  FOR rec_state IN SELECT * FROM State WHERE class = pClass
+  LOOP
+    CASE rec_state.code
+    WHEN 'created' THEN
+
+      PERFORM EditStateText(rec_state.id, pNames[1], pLocale);
+
+      FOR rec_method IN SELECT * FROM Method WHERE state = rec_state.id
+      LOOP
+        IF rec_method.actioncode = 'enable' THEN
+          PERFORM EditMethodText(rec_method.id, pNames[5], pLocale);
+        END IF;
+
+        IF rec_method.actioncode = 'disable' THEN
+          PERFORM EditMethodText(rec_method.id, pNames[6], pLocale);
+        END IF;
+
+        IF rec_method.actioncode = 'delete' THEN
+          PERFORM EditMethodText(rec_method.id, pNames[7], pLocale);
+        END IF;
+      END LOOP;
+
+    WHEN 'enabled' THEN
+
+      PERFORM EditStateText(rec_state.id, pNames[2], pLocale);
+
+      FOR rec_method IN SELECT * FROM Method WHERE state = rec_state.id
+      LOOP
+        IF rec_method.actioncode = 'disable' THEN
+          PERFORM EditMethodText(rec_method.id, pNames[6], pLocale);
+        END IF;
+
+        IF rec_method.actioncode = 'delete' THEN
+          PERFORM EditMethodText(rec_method.id, pNames[7], pLocale);
+        END IF;
+      END LOOP;
+
+    WHEN 'disabled' THEN
+
+      PERFORM EditStateText(rec_state.id, pNames[3], pLocale);
+
+      FOR rec_method IN SELECT * FROM Method WHERE state = rec_state.id
+      LOOP
+        IF rec_method.actioncode = 'enable' THEN
+          PERFORM EditMethodText(rec_method.id, pNames[5], pLocale);
+        END IF;
+
+        IF rec_method.actioncode = 'delete' THEN
+          PERFORM EditMethodText(rec_method.id, pNames[7], pLocale);
+        END IF;
+      END LOOP;
+
+    WHEN 'deleted' THEN
+
+      PERFORM EditStateText(rec_state.id, pNames[4], pLocale);
+
+      FOR rec_method IN SELECT * FROM Method WHERE state = rec_state.id
+      LOOP
+        IF rec_method.actioncode = 'restore' THEN
+          PERFORM EditMethodText(rec_method.id, pNames[8], pLocale);
+        END IF;
+
+        IF rec_method.actioncode = 'drop' THEN
+          PERFORM EditMethodText(rec_method.id, pNames[9], pLocale);
+        END IF;
+      END LOOP;
+    END CASE;
+  END LOOP;
+END
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- InitWorkFlow ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 
