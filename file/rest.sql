@@ -61,7 +61,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, path text, name text, fields jsonb)
       LOOP
-        FOR e IN EXECUTE format('SELECT %s FROM api.get_file($1)', JsonbToFields(r.fields, GetColumns('file', 'api'))) USING coalesce(r.id, GetFile(r.name, r.path))
+        FOR e IN EXECUTE format('SELECT %s FROM api.get_file($1)', JsonbToFields(r.fields, GetColumns('file', 'api'))) USING coalesce(r.id, api.get_file_id(r.name, r.path))
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -71,7 +71,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, path text, name text, fields jsonb)
       LOOP
-        FOR e IN EXECUTE format('SELECT %s FROM api.get_file($1)', JsonbToFields(r.fields, GetColumns('file', 'api'))) USING coalesce(r.id, GetFile(r.name, r.path))
+        FOR e IN EXECUTE format('SELECT %s FROM api.get_file($1)', JsonbToFields(r.fields, GetColumns('file', 'api'))) USING coalesce(r.id, api.get_file_id(r.name, r.path))
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;

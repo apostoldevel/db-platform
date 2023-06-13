@@ -865,7 +865,7 @@ CREATE OR REPLACE FUNCTION api.set_object_file (
   pPath     text,
   pSize     integer,
   pDate     timestamptz,
-  pData     bytea DEFAULT null,
+  pData     text DEFAULT null,
   pHash     text DEFAULT null,
   pText     text DEFAULT null,
   pType     text DEFAULT null
@@ -876,7 +876,7 @@ BEGIN
 	PERFORM AccessDenied();
   END IF;
 
-  pFile := SetObjectFile(pObject, pFile, pName, pPath, pSize, pDate, pData, pHash, pText, pType);
+  pFile := SetObjectFile(pObject, pFile, pName, pPath, pSize, pDate, decode(pData, 'base64'), pHash, pText, pType);
 
   RETURN QUERY SELECT * FROM api.object_file WHERE object = pObject AND file = pFile;
 END;
@@ -908,7 +908,7 @@ BEGIN
 
     FOR r IN SELECT * FROM json_to_recordset(pFiles) AS files(file uuid, name text, path text, size int, date timestamptz, data text, hash text, text text, type text)
     LOOP
-      RETURN NEXT api.set_object_file(pId, r.file, NULLIF(Trim(r.name), ''), NULLIF(Trim(r.path), ''), r.size, r.date, decode(r.data, 'base64'), NULLIF(Trim(r.hash), ''), NULLIF(Trim(r.text), ''), NULLIF(Trim(r.type), ''));
+      RETURN NEXT api.set_object_file(pId, r.file, NULLIF(Trim(r.name), ''), NULLIF(Trim(r.path), ''), r.size, r.date, r.data, NULLIF(Trim(r.hash), ''), NULLIF(Trim(r.text), ''), NULLIF(Trim(r.type), ''));
     END LOOP;
   ELSE
     PERFORM JsonIsEmpty();
