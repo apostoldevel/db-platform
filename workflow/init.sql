@@ -537,6 +537,9 @@ BEGIN
   uAction := AddAction('00000000-0000-4000-b003-000000000049', 'close', 'Закрыть');
   PERFORM EditActionText(uAction, 'Close', null, uLocale);
 
+  uAction := AddAction('00000000-0000-4000-b003-000000000050', 'activate', 'Активировать');
+  PERFORM EditActionText(uAction, 'Activate', null, uLocale);
+
   --
 
   uPriority := AddPriority('00000000-0000-4000-b004-000000000000', 'low', 'Низкий');
