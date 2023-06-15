@@ -40,7 +40,7 @@ CREATE OR REPLACE FUNCTION api.set_file (
   pPath     text DEFAULT null,
   pSize     integer DEFAULT null,
   pDate     timestamptz DEFAULT null,
-  pData     bytea DEFAULT null,
+  pData     text DEFAULT null,
   pMime     text DEFAULT null,
   pText     text DEFAULT null,
   pHash     text DEFAULT null
@@ -49,22 +49,29 @@ AS $$
 DECLARE
   vRoot     text;
 BEGIN
+  pPath := NULLIF(NULLIF(pPath, '/'), '');
+
+  IF pId IS NULL THEN
+    SELECT id INTO pId FROM db.file WHERE path = NormalizeFilePath(pPath) AND name = pName;
+  END IF;
+
   IF pPath IS NULL THEN
 	SELECT path INTO pPath FROM db.file WHERE id = pId;
   END IF;
 
-  IF NULLIF(pPath, '') IS NOT NULL THEN
+  IF pPath IS NOT NULL THEN
     vRoot := split_part(pPath, '/', 2);
-
-    pRoot := GetFile(null::uuid, vRoot);
-    IF pRoot IS NULL THEN
-	  pRoot := NewFilePath(concat('/', vRoot));
+    IF vRoot IS NOT NULL THEN
+	  pRoot := GetFile(null::uuid, vRoot);
+	  IF pRoot IS NULL THEN
+		pRoot := NewFilePath(concat('/', vRoot));
+	  END IF;
     END IF;
 
     pParent := NewFilePath(pPath);
   END IF;
 
-  pId := SetFile(pId, pType, pMask::bit(9), pOwner, pRoot, pParent, pLink, pName, pSize, pDate, pData, pMime, pText, pHash);
+  pId := SetFile(pId, pType, pMask::bit(9), pOwner, pRoot, pParent, pLink, pName, pSize, pDate, decode(pData, 'base64'), pMime, pText, pHash);
 
   RETURN QUERY SELECT * FROM api.file WHERE id = pId;
 END;
@@ -100,11 +107,11 @@ $$ LANGUAGE sql
  */
 CREATE OR REPLACE FUNCTION api.get_file_id (
   pName     text,
-  pPath     text DEFAULT '~/'
+  pPath     text DEFAULT null
 ) RETURNS	uuid
 AS $$
 BEGIN
-  RETURN GetFile(pName, pPath);
+  RETURN GetFile(coalesce(NormalizeFileName(pName), 'index.html'), NormalizeFilePath(pPath));
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

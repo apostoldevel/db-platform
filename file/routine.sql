@@ -43,6 +43,10 @@ BEGIN
 	RAISE EXCEPTION 'ERR-40000: Invalid file path: %', pPath;
   END IF;
 
+  IF pPath = '~/' THEN
+    RETURN '/';
+  END IF;
+
   arPath := path_to_array(pPath);
   IF arPath IS NULL THEN
     RETURN '/';
@@ -338,6 +342,11 @@ DECLARE
 BEGIN
   IF pPath IS NOT NULL THEN
     arPath := path_to_array(pPath);
+
+    IF arPath IS NULL THEN
+      RETURN uId;
+    END IF;
+
     FOR i IN 1..array_length(arPath, 1)
     LOOP
       uParent := coalesce(uId, pRoot);
