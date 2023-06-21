@@ -345,7 +345,7 @@ BEGIN
 
       SELECT id INTO nAudience FROM oauth2.audience WHERE provider = GetProvider('default') AND application = nApplication;
 
-      vSession := GetSession(uUserId, CreateOAuth2(nAudience, pScope), pAgent, pHost, true, false);
+      vSession := GetSession(uUserId, CreateOAuth2(nAudience, pScope, 'offline'), pAgent, pHost, true, false);
 
       IF vSession IS NULL THEN
         RAISE EXCEPTION '%', GetErrorMessage();
