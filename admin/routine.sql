@@ -275,7 +275,20 @@ DECLARE
   uUserId			uuid;
   passed			boolean;
   utilized			boolean;
+  messages          text[];
 BEGIN
+  IF locale_code() = 'ru' THEN
+    messages[1] := 'Секретный код уже был использован.';
+    messages[2] := 'Успешно.';
+    messages[3] := 'Секретный код не прошёл проверку.';
+    messages[4] := 'Талон не найден.';
+  ELSE
+    messages[1] := 'The secret code has already been used.';
+    messages[2] := 'Successful.';
+    messages[3] := 'Secret code failed verification.';
+    messages[4] := 'Ticket not found.';
+  END IF;
+
   SELECT userId, (securityAnswer = crypt(pSecurityAnswer, securityAnswer)), used IS NOT NULL INTO uUserId, passed, utilized
     FROM db.recovery_ticket
    WHERE ticket = pTicket
@@ -284,17 +297,17 @@ BEGIN
 
   IF FOUND THEN
     IF utilized THEN
-      PERFORM SetErrorMessage('Талон восстановления пароля уже был использован.');
+      PERFORM SetErrorMessage(messages[1]);
     ELSE
 	  IF passed THEN
-		PERFORM SetErrorMessage('Успешно.');
+		PERFORM SetErrorMessage(messages[2]);
 		RETURN uUserId;
 	  ELSE
-		PERFORM SetErrorMessage('Секретный ответ не прошёл проверку.');
+		PERFORM SetErrorMessage(messages[3]);
 	  END IF;
     END IF;
   ELSE
-    PERFORM SetErrorMessage('Талон восстановления пароля не найден.');
+    PERFORM SetErrorMessage(messages[4]);
   END IF;
 
   RETURN null;
