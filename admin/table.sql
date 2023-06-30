@@ -828,6 +828,7 @@ CREATE UNIQUE INDEX ON db.token (header, type, validFromDate, validToDate);
 
 CREATE INDEX ON db.token (header);
 CREATE INDEX ON db.token (type);
+CREATE INDEX ON db.token (hash);
 CREATE INDEX ON db.token (used);
 
 --------------------------------------------------------------------------------
