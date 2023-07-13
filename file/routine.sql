@@ -330,7 +330,8 @@ $$ LANGUAGE sql
 
 CREATE OR REPLACE FUNCTION NewFilePath (
   pPath			text,
-  pRoot         uuid DEFAULT null
+  pRoot         uuid DEFAULT null,
+  pOwner        uuid DEFAULT null
 ) RETURNS		uuid
 AS $$
 DECLARE
@@ -353,7 +354,7 @@ BEGIN
       uId := GetFile(uParent, arPath[i]);
 
       IF uId IS NULL THEN
-        uId := AddFile(pRoot, uParent, arPath[i], 'd');
+        uId := AddFile(pRoot, uParent, arPath[i], 'd', coalesce(pOwner, current_userid()));
       END IF;
 
       IF pRoot IS NULL THEN
