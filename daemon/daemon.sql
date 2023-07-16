@@ -944,6 +944,10 @@ BEGIN
 
   vSession := SignIn(CreateSystemOAuth2(), pUsername, pPassword, pAgent, pHost);
 
+  IF vSession IS NULL THEN
+	PERFORM AuthenticateError(GetErrorMessage());
+  END IF;
+
   FOR r IN SELECT * FROM api.run(pMethod, pPath, pPayload)
   LOOP
 	RETURN NEXT r.run;
