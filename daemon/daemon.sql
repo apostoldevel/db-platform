@@ -7,8 +7,8 @@
 --------------------------------------------------------------------------------
 /**
  * Проверяет маркет доступа.
- * @param {text} pToken - Маркер JWT
- * @return {bool}
+ * @param {text} pToken - Маркер доступа в формате JWT
+ * @return {jsonb}
  */
 CREATE OR REPLACE FUNCTION daemon.validation (
   pToken        text
@@ -40,11 +40,50 @@ $$ LANGUAGE plpgsql
   SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- daemon.refresh_token --------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Проверяет и обновляет маркет доступа, если это необходимо.
+ * @param {text} pToken - Маркер доступа в формате JWT
+ * @param {text} pRefresh - Маркер обновления
+ * @return {json}
+ */
+CREATE OR REPLACE FUNCTION daemon.refresh_token (
+  pToken        text,
+  pRefresh      text
+) RETURNS       json
+AS $$
+DECLARE
+  vMessage      text;
+  vContext      text;
+
+  ErrorCode     int;
+  ErrorMessage  text;
+BEGIN
+  RETURN RefreshToken(pToken, pRefresh);
+EXCEPTION
+WHEN others THEN
+  GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
+
+  PERFORM SetErrorMessage(vMessage);
+
+  SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
+
+  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, vContext);
+
+  RETURN json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
+END;
+$$ LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- daemon.identifier -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
  * Проверить идентификатор пользователя.
- * @param {text} pToken - Маркер JWT
+ * @param {text} pToken - Маркер доступа в формате JWT
  * @param {text} pValue - Идентификатор пользователя (Логин или адрес электронной почты)
  * @return {json}
  */
@@ -214,8 +253,8 @@ $$ LANGUAGE plpgsql
 -- daemon.login ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Вход в систему по маркеру JWT (Из внешних систем).
- * @param {text} pToken - JWT
+ * @brief Вход в систему по маркеру из внешних систем.
+ * @param {text} pToken - Маркер доступа в формате JWT
  * @param {text} pAgent - Агент
  * @param {inet} pHost - IP адрес
  * @param {text} pScope - Область видимости
@@ -345,7 +384,7 @@ BEGIN
 
       SELECT id INTO nAudience FROM oauth2.audience WHERE provider = GetProvider('default') AND application = nApplication;
 
-      vSession := GetSession(uUserId, CreateOAuth2(nAudience, pScope), pAgent, pHost, true, false);
+      vSession := GetSession(uUserId, CreateOAuth2(nAudience, pScope, 'offline'), pAgent, pHost, true, false);
 
       IF vSession IS NULL THEN
         RAISE EXCEPTION '%', GetErrorMessage();
@@ -548,7 +587,7 @@ BEGIN
     END IF;
 
     SELECT h.oauth2 INTO nOauth2
-      FROM db.token_header h INNER JOIN db.token t ON h.id = t.header AND t.type = 'C'
+      FROM db.token t INNER JOIN db.token_header h ON h.id = t.header AND t.type = 'C'
      WHERE t.hash = GetTokenHash(auth_code, GetSecretKey())
        AND t.validFromDate <= Now()
        AND t.validtoDate > Now();
@@ -687,7 +726,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Открывает сесиию.
- * @param {text} pToken - Маркер JWT
+ * @param {text} pToken - Маркер доступа в формате JWT
  * @param {text} pAgent - Агент
  * @param {inet} pHost - IP адрес
  * @return {SETOF jsonb}
@@ -740,7 +779,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Закрывает сесиию.
- * @param {text} pToken - Маркер JWT
+ * @param {text} pToken - Маркер доступа в формате JWT
  * @param {boolean} pCloseAll - Закрыть все сессии
  * @param {text} pMessage - Сообщение
  * @return {SETOF jsonb}
@@ -904,6 +943,10 @@ BEGIN
   END IF;
 
   vSession := SignIn(CreateSystemOAuth2(), pUsername, pPassword, pAgent, pHost);
+
+  IF vSession IS NULL THEN
+	PERFORM AuthenticateError(GetErrorMessage());
+  END IF;
 
   FOR r IN SELECT * FROM api.run(pMethod, pPath, pPayload)
   LOOP
@@ -1123,7 +1166,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Авторизованный запрос данных в формате REST JSON API.
- * @param {text} pToken - Маркер JWT
+ * @param {text} pToken - Маркер доступа в формате JWT
  * @param {text} pMethod - HTTP-Метод
  * @param {text} pPath - Путь
  * @param {jsonb} pPayload - Данные

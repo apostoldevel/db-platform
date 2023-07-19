@@ -27,6 +27,7 @@ SELECT CreatePublisher('message', 'Сообщения', 'Уведомления 
 SELECT CreatePublisher('replication', 'Репликация', 'Уведомления о наличии данных для репликации.');
 SELECT CreatePublisher('log', 'Журналы', 'Журналы событий.');
 SELECT CreatePublisher('geo', 'Геолокация', 'Данные геолокации.');
+SELECT CreatePublisher('file', 'File server', 'Сервер файлов.');
 
 SELECT CreateVendor(null, GetType('service.vendor'), 'system.vendor', 'Система', 'Системные услуги.');
 SELECT CreateVendor(null, GetType('service.vendor'), 'mts.vendor', 'МТС', 'ПАО "МТС" (Мобитьные ТелеСистемы).');

@@ -570,12 +570,18 @@ BEGIN
       PERFORM JsonIsEmpty();
     END IF;
 
-    arKeys := array_cat(arKeys, ARRAY['phone', 'hashcode']);
+    arKeys := array_cat(arKeys, ARRAY['email', 'phone', 'hashcode']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-	FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(phone text, hashcode text)
+	FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(email text, phone text, hashcode text)
 	LOOP
-	  RETURN NEXT json_build_object('ticket', api.registration_code(r.phone, r.hashcode));
+	  IF r.email IS NOT NULL THEN
+	    RETURN NEXT json_build_object('mode', 'email', 'ticket', api.registration_code_by_email(r.email));
+	  END IF;
+
+	  IF r.phone IS NOT NULL THEN
+	    RETURN NEXT json_build_object('mode', 'phone', 'ticket', api.registration_code_by_phone(r.phone, r.hashcode));
+	  END IF;
 	END LOOP;
 
   WHEN '/user/registration/check' THEN

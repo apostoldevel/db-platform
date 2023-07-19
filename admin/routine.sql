@@ -275,7 +275,20 @@ DECLARE
   uUserId			uuid;
   passed			boolean;
   utilized			boolean;
+  messages          text[];
 BEGIN
+  IF locale_code() = 'ru' THEN
+    messages[1] := 'Секретный код уже был использован.';
+    messages[2] := 'Успешно.';
+    messages[3] := 'Секретный код не прошёл проверку.';
+    messages[4] := 'Талон не найден.';
+  ELSE
+    messages[1] := 'The secret code has already been used.';
+    messages[2] := 'Successful.';
+    messages[3] := 'Secret code failed verification.';
+    messages[4] := 'Ticket not found.';
+  END IF;
+
   SELECT userId, (securityAnswer = crypt(pSecurityAnswer, securityAnswer)), used IS NOT NULL INTO uUserId, passed, utilized
     FROM db.recovery_ticket
    WHERE ticket = pTicket
@@ -284,17 +297,17 @@ BEGIN
 
   IF FOUND THEN
     IF utilized THEN
-      PERFORM SetErrorMessage('Талон восстановления пароля уже был использован.');
+      PERFORM SetErrorMessage(messages[1]);
     ELSE
 	  IF passed THEN
-		PERFORM SetErrorMessage('Успешно.');
+		PERFORM SetErrorMessage(messages[2]);
 		RETURN uUserId;
 	  ELSE
-		PERFORM SetErrorMessage('Секретный ответ не прошёл проверку.');
+		PERFORM SetErrorMessage(messages[3]);
 	  END IF;
     END IF;
   ELSE
-    PERFORM SetErrorMessage('Талон восстановления пароля не найден.');
+    PERFORM SetErrorMessage(messages[4]);
   END IF;
 
   RETURN null;
@@ -1142,7 +1155,7 @@ DECLARE
   vType         text;
 BEGIN
   SELECT h.id, t.id INTO nHeader, nToken
-    FROM db.token_header h INNER JOIN db.token t ON h.id = t.header AND t.type = pType AND NOT (pType = 'C' AND t.used IS NOT NULL)
+    FROM db.token t INNER JOIN db.token_header h ON h.id = t.header AND t.type = pType AND NOT (pType = 'C' AND t.used IS NOT NULL)
    WHERE t.hash = GetTokenHash(pToken, GetSecretKey())
      AND t.validFromDate <= Now()
      AND t.validtoDate > Now();
@@ -4240,7 +4253,7 @@ CREATE OR REPLACE FUNCTION TokenValidation (
 ) RETURNS       jsonb
 AS $$
 DECLARE
-  token         record;
+  r             record;
 
   payload       jsonb;
 
@@ -4273,14 +4286,14 @@ BEGIN
 	PERFORM AudienceNotFound();
   END IF;
 
-  SELECT * INTO token FROM verify(pToken, vSecret);
+  SELECT * INTO r FROM verify(pToken, vSecret);
 
-  IF NOT coalesce(token.valid, false) THEN
+  IF NOT coalesce(r.valid, false) THEN
 	PERFORM TokenError();
   END IF;
 
   SELECT h.oauth2 INTO nOauth2
-	FROM db.token_header h INNER JOIN db.token t ON h.id = t.header
+	FROM db.token t INNER JOIN db.token_header h ON h.id = t.header
    WHERE t.hash = GetTokenHash(pToken, GetSecretKey())
 	 AND t.validFromDate <= Now()
 	 AND t.validtoDate > Now();
@@ -4296,6 +4309,96 @@ BEGIN
   END IF;
 
   RETURN payload;
+END;
+$$ LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- RefreshToken ----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION RefreshToken (
+  pToken        text,
+  pRefresh      text
+) RETURNS       json
+AS $$
+DECLARE
+  r             record;
+
+  payload       jsonb;
+  token         jsonb;
+
+  vSecret       text;
+
+  iss           text;
+  aud           text;
+
+  nOauth2       bigint;
+  nProvider     integer;
+  nAudience     integer;
+
+  belong        boolean;
+
+  expires_in    double precision;
+
+  dtValidToDate timestamptz;
+BEGIN
+  IF pRefresh IS NULL THEN
+	RETURN json_build_object('error', json_build_object('code', 400, 'error', 'invalid_request', 'message', 'Missing parameter: refresh_token'));
+  END IF;
+
+  SELECT convert_from(url_decode(data[2]), 'utf8')::jsonb INTO payload FROM regexp_split_to_array(pToken, '\.') data;
+
+  iss := payload->>'iss';
+
+  SELECT i.provider INTO nProvider FROM oauth2.issuer i WHERE i.code = iss;
+
+  IF NOT FOUND THEN
+	PERFORM IssuerNotFound(coalesce(iss, 'null'));
+  END IF;
+
+  aud := payload->>'aud';
+
+  SELECT a.id, a.secret INTO nAudience, vSecret FROM oauth2.audience a WHERE a.provider = nProvider AND a.code = aud;
+
+  IF NOT FOUND THEN
+	PERFORM AudienceNotFound();
+  END IF;
+
+  SELECT * INTO r FROM verify(pToken, vSecret);
+
+  IF NOT coalesce(r.valid, false) THEN
+	PERFORM TokenError();
+  END IF;
+
+  SELECT h.oauth2, t.validtodate INTO nOauth2, dtValidToDate
+	FROM db.token t INNER JOIN db.token_header h ON h.id = t.header
+   WHERE t.hash = GetTokenHash(pToken, GetSecretKey());
+
+  IF NOT FOUND THEN
+	PERFORM TokenExpired();
+  END IF;
+
+  SELECT (audience = nAudience) INTO belong FROM db.oauth2 WHERE id = nOauth2;
+
+  IF NOT coalesce(belong, false) THEN
+	PERFORM TokenBelong();
+  END IF;
+
+  IF dtValidToDate > Now() THEN
+    expires_in := trunc(extract(EPOCH FROM dtValidToDate)) - trunc(extract(EPOCH FROM Now()));
+
+    token := jsonb_build_object('session', payload->>'sub', 'access_token', pToken, 'token_type', 'Bearer', 'expires_in', expires_in);
+
+    IF NULLIF(pRefresh, '') IS NOT NULL THEN
+      token := token || jsonb_build_object('refresh_token', pRefresh);
+    END IF;
+
+    RETURN token;
+  END IF;
+
+  RETURN UpdateToken(nAudience, NULLIF(pRefresh, ''));
 END;
 $$ LANGUAGE plpgsql
   SECURITY DEFINER

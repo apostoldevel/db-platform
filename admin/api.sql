@@ -762,7 +762,40 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- api.registration_code -------------------------------------------------------
+-- api.registration_code_by_email ----------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Запускает процедуру подтверждения почтового адреса пользователя при регистрации.
+ * @param {text} pEmail - Почтовый адрес.
+ * @return {uuid} - Талон регистрации (registration ticket)
+ */
+CREATE OR REPLACE FUNCTION api.registration_code_by_email (
+  pEmail            text
+) RETURNS			uuid
+AS $$
+DECLARE
+  uTicket			uuid;
+  vOAuthSecret		text;
+BEGIN
+  IF IsUserRole(GetGroup('system'), session_userid()) THEN
+    SELECT a.secret INTO vOAuthSecret FROM oauth2.audience a WHERE a.code = session_username();
+    IF FOUND THEN
+      PERFORM SubstituteUser(GetUser('apibot'), vOAuthSecret);
+      uTicket := RegistrationCodeByEmail(pEmail);
+      PERFORM SubstituteUser(session_userid(), vOAuthSecret);
+    END IF;
+  ELSE
+    uTicket := RegistrationCodeByEmail(pEmail);
+  END IF;
+
+  RETURN coalesce(uTicket, gen_random_uuid());
+END
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.registration_code_by_phone ----------------------------------------------
 --------------------------------------------------------------------------------
 /**
  * Запускает процедуру подтверждения номера телефона пользователя при регистрации.
@@ -770,7 +803,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pHashCode - Хэш-код.
  * @return {uuid} - Талон регистрации (registration ticket)
  */
-CREATE OR REPLACE FUNCTION api.registration_code (
+CREATE OR REPLACE FUNCTION api.registration_code_by_phone (
   pPhone            text,
   pHashCode         text DEFAULT null
 ) RETURNS			uuid
@@ -791,6 +824,27 @@ BEGIN
   END IF;
 
   RETURN coalesce(uTicket, gen_random_uuid());
+END
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.registration_code -------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Запускает процедуру подтверждения номера телефона пользователя при регистрации.
+ * @param {text} pPhone - Номер телефона.
+ * @param {text} pHashCode - Хэш-код.
+ * @return {uuid} - Талон регистрации (registration ticket)
+ */
+CREATE OR REPLACE FUNCTION api.registration_code (
+  pPhone            text,
+  pHashCode         text DEFAULT null
+) RETURNS			uuid
+AS $$
+BEGIN
+  RETURN api.registration_code_by_phone(pPhone, pHashCode);
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -821,7 +875,6 @@ BEGIN
 
   IF result THEN
     PERFORM AddVerificationCode(uUserId, 'P', vCode);
-    PERFORM SetErrorMessage('Номер телефона подтверждён.');
   END IF;
 
   message := GetErrorMessage();

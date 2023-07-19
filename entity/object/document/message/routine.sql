@@ -713,3 +713,87 @@ END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- RegistrationCodeByEmail -----------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Запускает процедуру регистрации пользователя по email.
+ * @param {text} pEmail - Почтовый адрес.
+ * @return {uuid} - Талон регистрации (registration ticket)
+ */
+CREATE OR REPLACE FUNCTION RegistrationCodeByEmail (
+  pEmail            text
+) RETURNS           uuid
+AS $$
+DECLARE
+  uTicket           uuid;
+
+  vDomain           text;
+  vProject          text;
+  vHost             text;
+  vNoReply          text;
+  vSupport          text;
+  vSubject          text;
+  vText             text;
+  vHTML             text;
+  vBody             text;
+  vDescription      text;
+  vSecurityAnswer   text;
+
+  vMessage          text;
+  vContext          text;
+
+  ErrorCode         int;
+  ErrorMessage      text;
+BEGIN
+  vProject := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Name');
+  vDomain := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Domain');
+
+  vHost := current_scope_code();
+  IF vHost = current_database()::text THEN
+	vHost := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Host');
+  END IF;
+
+  vNoReply := format('noreply@%s', vDomain);
+  vSupport := format('support@%s', vDomain);
+
+  IF locale_code() = 'ru' THEN
+    vSubject := 'Код верификации.';
+    vDescription := 'Код верификации через email: ' || pEmail;
+  ELSE
+    vSubject := 'Verification code.';
+    vDescription := 'Verification code via email: ' || pEmail;
+  END IF;
+
+  vSecurityAnswer := random_between(100000, 999999)::text;
+
+  uTicket := NewRecoveryTicket(current_userid(), vSecurityAnswer, Now(), Now() + INTERVAL '30 min');
+
+  vText := GetVerificationEmailText(pEmail, pEmail, vSecurityAnswer, vProject, vHost, vSupport);
+  vHTML := GetVerificationEmailHTML(pEmail, pEmail, vSecurityAnswer, vProject, vHost, vSupport);
+
+  vBody := CreateMailBody(vProject, vNoReply, pEmail, pEmail, vSubject, vText, vHTML);
+
+  PERFORM SendMail(null, vNoReply, pEmail, vSubject, vBody, null, vDescription);
+  PERFORM CreateNotice(current_userid(), null, vDescription);
+
+  PERFORM WriteToEventLog('M', 1001, 'email', vDescription);
+
+  RETURN uTicket;
+EXCEPTION
+WHEN others THEN
+  GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
+
+  PERFORM SetErrorMessage(vMessage);
+
+  SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
+
+  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, vContext);
+
+  RETURN null;
+END
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
