@@ -282,6 +282,7 @@ DECLARE
   uMessageId	uuid;
   vProject		text;
   vDomain		text;
+  vSMTP 		text;
   vProfile		text;
   vName			text;
   vEmail		text;
@@ -307,9 +308,10 @@ BEGIN
   END IF;
 
   vProject := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Name', pUserId);
+  vSMTP := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'SMTP', pUserId);
   vDomain := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Domain', pUserId);
 
-  vProfile := format('info@%s', vDomain);
+  vProfile := format('info@%s', coalesce(vSMTP, vDomain));
 
   vBody := CreateMailBody(vProject, vProfile, vName, vEmail, pSubject, pText, pHTML);
 
