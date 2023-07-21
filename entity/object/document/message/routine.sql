@@ -527,6 +527,7 @@ DECLARE
   uTicket         uuid;
 
   vName           text;
+  vSMTP           text;
   vDomain         text;
   vUserName       text;
   vProject        text;
@@ -561,6 +562,7 @@ BEGIN
   END IF;
 
   vProject := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Name', pUserId);
+  vSMTP := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'SMTP', pUserId);
   vDomain := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Domain', pUserId);
 
   vHost := current_scope_code();
@@ -568,8 +570,8 @@ BEGIN
 	vHost := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Host', pUserId);
   END IF;
 
-  vNoReply := format('noreply@%s', vDomain);
-  vSupport := format('support@%s', vDomain);
+  vNoReply := format('noreply@%s', coalesce(vSMTP, vDomain));
+  vSupport := format('support@%s', coalesce(vSMTP, vDomain));
 
   IF locale_code() = 'ru' THEN
     vSubject := 'Сброс пароля.';
