@@ -73,12 +73,7 @@ BEGIN
 
   NEW.path := NormalizeFilePath(NEW.path, false);
   NEW.name := NormalizeFileName(NEW.name, false);
-
-  IF NEW.type = 'l' THEN
-    NEW.url := concat('https:/', NormalizeFilePath(NEW.path, true), NormalizeFileName(NEW.name, true));
-  ELSE
-    NEW.url := concat('/file', NormalizeFilePath(NEW.path, true), NormalizeFileName(NEW.name, true));
-  END IF;
+  NEW.url := concat('/file', NormalizeFilePath(NEW.path, true), NormalizeFileName(NEW.name, true));
 
   RETURN NEW;
 END
@@ -99,12 +94,7 @@ CREATE OR REPLACE FUNCTION db.ft_file_name()
 RETURNS trigger AS $$
 BEGIN
   NEW.name := NormalizeFileName(NEW.name, false);
-
-  IF NEW.type = 'l' THEN
-    NEW.url := concat('https:/', NormalizeFilePath(NEW.path, true), NormalizeFileName(NEW.name, true));
-  ELSE
-    NEW.url := concat('/file', NormalizeFilePath(NEW.path, true), NormalizeFileName(NEW.name, true));
-  END IF;
+  NEW.url := concat('/file', NormalizeFilePath(NEW.path, true), NormalizeFileName(NEW.name, true));
 
   RETURN NEW;
 END;
@@ -126,12 +116,7 @@ CREATE OR REPLACE FUNCTION db.ft_file_path()
 RETURNS trigger AS $$
 BEGIN
   NEW.path := NormalizeFilePath(NEW.path, false);
-
-  IF NEW.type = 'l' THEN
-    NEW.url := concat('https:/', NormalizeFilePath(NEW.path, true), NormalizeFileName(NEW.name, true));
-  ELSE
-    NEW.url := concat('/file', NormalizeFilePath(NEW.path, true), NormalizeFileName(NEW.name, true));
-  END IF;
+  NEW.url := concat('/file', NormalizeFilePath(NEW.path, true), NormalizeFileName(NEW.name, true));
 
   RETURN NEW;
 END;
@@ -153,9 +138,9 @@ CREATE OR REPLACE FUNCTION db.ft_file_notify()
 RETURNS trigger AS $$
 BEGIN
   IF (TG_OP = 'DELETE') THEN
-    PERFORM pg_notify('file', json_build_object('session', current_session(), 'operation', TG_OP, 'id', OLD.id)::text);
+    PERFORM pg_notify('file', json_build_object('session', current_session(), 'operation', TG_OP, 'id', OLD.id, 'name', OLD.name, 'path', OLD.path)::text);
   ELSE
-    PERFORM pg_notify('file', json_build_object('session', current_session(), 'operation', TG_OP, 'id', NEW.id)::text);
+    PERFORM pg_notify('file', json_build_object('session', current_session(), 'operation', TG_OP, 'id', NEW.id, 'name', NEW.name, 'path', NEW.path)::text);
   END IF;
 
   RETURN NULL;
