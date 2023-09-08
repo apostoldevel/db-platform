@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS api.sql(text, text, jsonb, jsonb, integer, integer, jsonb);

@@ -134,7 +134,8 @@ CREATE OR REPLACE FUNCTION api.sql (
   pFilter       jsonb DEFAULT null,
   pLimit        integer DEFAULT null,
   pOffSet       integer DEFAULT null,
-  pOrderBy      jsonb DEFAULT null
+  pOrderBy      jsonb DEFAULT null,
+  pFields       jsonb DEFAULT null
 ) RETURNS       text
 AS $$
 DECLARE
@@ -160,7 +161,7 @@ DECLARE
   arColumns     text[];
 BEGIN
   pOrderBy := NULLIF(pOrderBy, '{}');
-  pOrderBy := NULLIF(pOrderBy, '[]');
+--  pOrderBy := NULLIF(pOrderBy, '[]');
 /*
   SELECT table_name INTO vTable
     FROM information_schema.tables
@@ -173,11 +174,9 @@ BEGIN
     PERFORM ViewNotFound(pScheme, pTable);
   END IF;
 */
-  --arColumns := GetColumns(pTable, pScheme, 't');
-
-  vSelect := coalesce(vWith, '') || 'SELECT ' || coalesce(array_to_string(arColumns, ', '), 't.*') || E'\n  FROM ' || pScheme || '.' || pTable || ' t ' || coalesce(vJoin, '');
-
   arColumns := GetColumns(pTable, pScheme);
+
+  vSelect := coalesce(vWith, '') || 'SELECT ' || JsonbToFields(pFields, arColumns) || E'\n  FROM ' || pScheme || '.' || pTable || ' t ' || coalesce(vJoin, '');
 
   IF pFilter IS NOT NULL THEN
     PERFORM CheckJsonbKeys(pTable || '/filter', arColumns, pFilter);
@@ -216,17 +215,19 @@ BEGIN
         IF r.valarr IS NOT NULL THEN
           vValue := jsonb_array_to_string(r.valarr, ',');
 
-          vCompare := coalesce(nullif(upper(vCompare), 'EQL'), 'IN');
+          IF vValue IS NOT NULL THEN
+            vCompare := coalesce(nullif(upper(vCompare), 'EQL'), 'IN');
 
-          arValues := array_cat(null, ARRAY['IN', 'NOT IN']);
-          IF NOT vCompare = ANY (arValues) THEN
-            PERFORM IncorrectValueInArray(coalesce(r.compare, ''), 'compare', arValues);
-          END IF;
+            arValues := array_cat(null, ARRAY['IN', 'NOT IN']);
+            IF NOT vCompare = ANY (arValues) THEN
+              PERFORM IncorrectValueInArray(coalesce(r.compare, ''), 'compare', arValues);
+            END IF;
 
-          IF vWhere IS NULL THEN
-            vWhere := E'\n WHERE ' || vField || ' ' || vCompare || ' (' || vValue || ')';
-          ELSE
-            vWhere := vWhere || E'\n   ' || vCondition || ' ' || vField || ' ' || vCompare || ' (' || vValue  || ')';
+            IF vWhere IS NULL THEN
+              vWhere := E'\n WHERE ' || vField || ' ' || vCompare || ' (' || vValue || ')';
+            ELSE
+              vWhere := vWhere || E'\n   ' || vCondition || ' ' || vField || ' ' || vCompare || ' (' || vValue  || ')';
+            END IF;
           END IF;
 
         ELSE
@@ -278,7 +279,9 @@ BEGIN
 
   IF pOrderBy IS NOT NULL THEN
     --PERFORM CheckJsonbValues('orderby', array_cat(arColumns, array_add_text(arColumns, ' desc')), pOrderBy);
-    vSelect := vSelect || E'\n ORDER BY ' || array_to_string(array_quote_literal_json(JsonbToStrArray(pOrderBy)), ',');
+    IF JsonbToStrArray(pOrderBy) IS NOT NULL THEN
+      vSelect := vSelect || E'\n ORDER BY ' || array_to_string(array_quote_literal_json(JsonbToStrArray(pOrderBy)), ',');
+    END IF;
   ELSE
     IF 'sequence' = ANY (arColumns) THEN
       vSelect := vSelect || E'\n ORDER BY sequence';
@@ -313,7 +316,6 @@ BEGIN
 
   IF GetDebugMode() THEN
     PERFORM WriteToEventLog('D', 9001, 'sql', vSelect);
-    RAISE NOTICE '%', vSelect;
   END IF;
 
   RETURN vSelect;

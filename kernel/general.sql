@@ -1002,6 +1002,7 @@ AS $$
 BEGIN
   pJson := NULLIF(pJson, '{}');
   pJson := NULLIF(pJson, '[]');
+  pFields := array_append(pFields, 'count(id)');
 
   IF pJson IS NOT NULL THEN
     PERFORM CheckJsonbValues('fields', pFields, pJson);
