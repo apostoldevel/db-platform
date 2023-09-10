@@ -506,6 +506,9 @@ AS $$
 DECLARE
   result                jsonb;
 
+  uUserId               uuid;
+  uTicket               uuid;
+
   nAudience             integer;
   nOauth2               bigint;
 
@@ -527,6 +530,9 @@ DECLARE
   vUsername             text;
   vPassword             text;
 
+  vCode                 text;
+
+  vOAuthSession         text;
   vSession              text;
   VSecret               text;
 
@@ -645,6 +651,65 @@ BEGIN
 
     IF vSession IS NULL THEN
       SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(GetErrorMessage());
+      PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
+      RETURN json_build_object('error', json_build_object('code', 401, 'error', 'access_denied', 'message', ErrorMessage));
+    END IF;
+
+    auth_code := oauth2_current_code(vSession);
+
+    result := '{}'::jsonb;
+
+    IF arResponses && ARRAY['code'] THEN
+      result := result || jsonb_build_object('session', vSession, 'secret', session_secret(vSession), 'code', auth_code);
+    END IF;
+
+    IF arResponses && ARRAY['token'] THEN
+      result := result || CreateToken(nAudience, auth_code);
+    END IF;
+
+    IF state IS NOT NULL THEN
+      result := result || jsonb_build_object('state', state);
+    END IF;
+
+    RETURN result;
+
+  ELSIF grant_type = 'ticket' THEN
+
+    uTicket := pPayload->>'ticket';
+    vCode := pPayload->>'code';
+
+    uUserId := CheckRecoveryTicket(uTicket, vCode);
+
+    IF uUserId IS NULL THEN
+      SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(GetErrorMessage());
+      RETURN json_build_object('error', json_build_object('code', 401, 'error', 'access_denied', 'message', ErrorMessage));
+	END IF;
+
+    response_type := pPayload->>'response_type';
+    redirect_uri := pPayload->>'redirect_uri';
+
+    scope := pPayload->>'scope';
+    state := pPayload->>'state';
+
+    arResponses := string_to_array(coalesce(response_type, 'token'), ' ');
+
+    nOAuth2 := CreateOAuth2(nAudience, scope, 'offline');
+
+    vOAuthSession := SignIn(nOAuth2, pClientId, pSecret, pAgent, pHost);
+
+    IF vOAuthSession IS NULL THEN
+      RETURN json_build_object('error', json_build_object('code', 401, 'error', 'unauthorized_client', 'message', 'The client is not authorized.'));
+    END IF;
+
+    nOAuth2 := CreateOAuth2(nAudience, scope, access_type, redirect_uri, state);
+
+    vSession := GetSession(uUserId, nOAuth2, pAgent, pHost, true, true);
+
+    SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(GetErrorMessage());
+
+    PERFORM SignOut(vOAuthSession);
+
+    IF vSession IS NULL THEN
       PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
       RETURN json_build_object('error', json_build_object('code', 401, 'error', 'access_denied', 'message', ErrorMessage));
     END IF;
