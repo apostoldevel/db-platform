@@ -180,39 +180,17 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION AddRecoveryTicket (
   pUserId			uuid,
   pSecurityAnswer	text,
-  pDateFrom			timestamptz DEFAULT Now(),
+  pDateFrom			timestamptz DEFAULT null,
   pDateTo			timestamptz DEFAULT null
 ) RETURNS			uuid
 AS $$
 DECLARE
   uTicket			uuid;
-  dtDateFrom		timestamptz;
-  dtDateTo			timestamptz;
 BEGIN
-  -- получим дату значения в текущем диапозоне дат
-  SELECT ticket, validFromDate, validToDate INTO uTicket, dtDateFrom, dtDateTo
-    FROM db.recovery_ticket
-   WHERE userid = pUserId
-     AND validFromDate <= pDateFrom
-     AND validToDate > pDateFrom;
+  uTicket := gen_random_uuid();
 
-  IF coalesce(dtDateFrom, MINDATE()) = pDateFrom THEN
-    -- обновим значение в текущем диапозоне дат
-    UPDATE db.recovery_ticket SET securityAnswer = pSecurityAnswer
-     WHERE userid = pUserId
-       AND validFromDate <= pDateFrom
-       AND validToDate > pDateFrom;
-  ELSE
-    -- обновим дату значения в текущем диапозоне дат
-    UPDATE db.recovery_ticket SET used = Now(), validToDate = pDateFrom
-     WHERE userid = pUserId
-       AND validFromDate <= pDateFrom
-       AND validToDate > pDateFrom;
-
-    INSERT INTO db.recovery_ticket (userid, securityAnswer, validFromDate, validtodate)
-    VALUES (pUserId, pSecurityAnswer, pDateFrom, pDateTo)
-    RETURNING ticket INTO uTicket;
-  END IF;
+  INSERT INTO db.recovery_ticket (ticket, userid, securityAnswer, validFromDate, validtodate)
+  VALUES (uTicket, pUserId, pSecurityAnswer, coalesce(pDateFrom, Now()), coalesce(pDateTo, MAXDATE()));
 
   RETURN uTicket;
 END;
