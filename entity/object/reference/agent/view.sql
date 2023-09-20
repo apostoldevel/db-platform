@@ -74,7 +74,7 @@ AS
                         LEFT JOIN db.class_text       ct ON ct.class = c.id AND ct.locale = current_locale()
                        INNER JOIN db.type              y ON o.type = y.id
                         LEFT JOIN db.type_text        ty ON ty.type = y.id AND ty.locale = current_locale()
-                       INNER JOIN db.reference        vr ON t.vendor = vr.id
+                        LEFT JOIN db.reference        vr ON t.vendor = vr.id
                         LEFT JOIN db.reference_text  vrt ON vrt.reference = vr.id AND vrt.locale = current_locale()
                        INNER JOIN db.state_type       st ON o.state_type = st.id
                         LEFT JOIN db.state_type_text stt ON stt.type = st.id AND stt.locale = current_locale()
