@@ -4762,7 +4762,7 @@ BEGIN
       SELECT max(input_error) INTO nInputError FROM db.profile WHERE userid = up.id GROUP BY userid;
 
       IF FOUND THEN
-        IF nInputError >= 5 THEN
+        IF nInputError >= 5 AND pRoleName != 'demo' THEN
           UPDATE db.user SET lock_date = Now() + INTERVAL '1 min' WHERE id = up.id;
         END IF;
       END IF;
