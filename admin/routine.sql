@@ -128,44 +128,43 @@ BEGIN
   FOR r IN SELECT GetOAuth2Scopes(pOAuth2) AS id
   LOOP
 	SELECT scope INTO uScope FROM db.profile WHERE userid = pUserId AND scope = r.id;
-
-	IF NOT FOUND THEN
-	  uScope := r.id;
-	  uLocale := GetLocale(locale_code());
-
-	  IF IsUserRole('00000000-0000-4000-a000-000000000001'::uuid, pUserId) THEN -- administrator
-		arTypes := ARRAY['00000000-0000-4002-a001-000000000001'::uuid, '00000000-0000-4002-a001-000000000002'::uuid, '00000000-0000-4002-a001-000000000003'::uuid, '00000000-0000-4002-a001-000000000000'::uuid, '00000000-0000-4002-a000-000000000002'::uuid];
-		uInterface := '00000000-0000-4004-a000-000000000001'::uuid; -- administrator
-	  ELSE
-		arTypes := ARRAY['00000000-0000-4002-a000-000000000002'::uuid]; -- guest
-		uInterface := '00000000-0000-4004-a000-000000000003'::uuid; -- guest
-	  END IF;
-
-	  FOR e IN SELECT unnest(arTypes) AS type
-	  LOOP
-		SELECT id INTO uArea FROM db.area WHERE type = e.type AND scope = uScope;
-		EXIT WHEN uArea IS NOT NULL;
-	  END LOOP;
-
-	  IF uArea IS NULL THEN
-	    uRoot := GetAreaRoot(uScope);
-
-	    IF uRoot IS NULL THEN
-          INSERT INTO db.area (id, parent, type, code, name, description, validfromdate, validtodate, scope, level, sequence)
-          VALUES (gen_kernel_uuid('8'), null, '00000000-0000-4002-a000-000000000000', 'R-' || uScope, 'Root', null, Now(), MAXDATE(), uScope, 0, 1);
-		END IF;
-
-        INSERT INTO db.area (id, parent, type, code, name, description, validfromdate, validtodate, scope, level, sequence)
-        VALUES (gen_kernel_uuid('8'), uRoot, '00000000-0000-4002-a000-000000000002', 'G-' || uScope, 'Guest', null, Now(), MAXDATE(), uScope, 1, 1);
-	  END IF;
-
-	  INSERT INTO db.member_area (area, member) VALUES (uArea, pUserId) ON CONFLICT DO NOTHING;
-	  INSERT INTO db.member_interface (interface, member) VALUES (uInterface, pUserId) ON CONFLICT DO NOTHING;
-	  INSERT INTO db.profile (userid, scope, locale, area, interface) VALUES (pUserId, uScope, uLocale, uArea, uInterface);
-	END IF;
-
 	EXIT WHEN uScope IS NOT NULL;
   END LOOP;
+
+  IF uScope IS NULL THEN
+	uScope := r.id;
+	uLocale := GetLocale(locale_code());
+
+	IF IsUserRole('00000000-0000-4000-a000-000000000001'::uuid, pUserId) THEN -- administrator
+	  arTypes := ARRAY['00000000-0000-4002-a001-000000000001'::uuid, '00000000-0000-4002-a001-000000000002'::uuid, '00000000-0000-4002-a001-000000000003'::uuid, '00000000-0000-4002-a001-000000000000'::uuid, '00000000-0000-4002-a000-000000000002'::uuid];
+	  uInterface := '00000000-0000-4004-a000-000000000001'::uuid; -- administrator
+	ELSE
+	  arTypes := ARRAY['00000000-0000-4002-a000-000000000002'::uuid]; -- guest
+	  uInterface := '00000000-0000-4004-a000-000000000003'::uuid; -- guest
+	END IF;
+
+	FOR e IN SELECT unnest(arTypes) AS type
+	LOOP
+	  SELECT id INTO uArea FROM db.area WHERE type = e.type AND scope = uScope;
+	  EXIT WHEN uArea IS NOT NULL;
+	END LOOP;
+
+	IF uArea IS NULL THEN
+	  uRoot := GetAreaRoot(uScope);
+
+	  IF uRoot IS NULL THEN
+		INSERT INTO db.area (id, parent, type, code, name, description, validfromdate, validtodate, scope, level, sequence)
+		VALUES (gen_kernel_uuid('8'), null, '00000000-0000-4002-a000-000000000000', 'R-' || uScope, 'Root', null, Now(), MAXDATE(), uScope, 0, 1);
+	  END IF;
+
+	  INSERT INTO db.area (id, parent, type, code, name, description, validfromdate, validtodate, scope, level, sequence)
+	  VALUES (gen_kernel_uuid('8'), uRoot, '00000000-0000-4002-a000-000000000002', 'G-' || uScope, 'Guest', null, Now(), MAXDATE(), uScope, 1, 1);
+	END IF;
+
+	INSERT INTO db.member_area (area, member) VALUES (uArea, pUserId) ON CONFLICT DO NOTHING;
+	INSERT INTO db.member_interface (interface, member) VALUES (uInterface, pUserId) ON CONFLICT DO NOTHING;
+	INSERT INTO db.profile (userid, scope, locale, area, interface) VALUES (pUserId, uScope, uLocale, uArea, uInterface);
+  END IF;
 
   RETURN uScope;
 END;
