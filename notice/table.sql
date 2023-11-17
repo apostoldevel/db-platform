@@ -15,7 +15,7 @@ CREATE TABLE db.notice (
     status		integer DEFAULT 0 NOT NULL CHECK (status BETWEEN 0 AND 4),
     created		timestamp DEFAULT Now() NOT NULL,
     updated		timestamp DEFAULT Now() NOT NULL,
-    data        json
+    data        jsonb
 );
 
 COMMENT ON TABLE db.notice IS 'Извещение.';

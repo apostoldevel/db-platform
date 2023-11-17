@@ -8,7 +8,7 @@
  * @param {text} pText - Текст извещения
  * @param {text} pCategory - Категория извещения
  * @param {integer} pStatus - Статус: 0 - создано; 1 - доставлено; 2 - прочитано; 3 - принято; 4 - отказано
- * @param {json} pData - Данные в произвольном формате
+ * @param {jsonb} pData - Данные в произвольном формате
  * @return {uuid} - Идентификатор извещения
  */
 CREATE OR REPLACE FUNCTION CreateNotice (
@@ -17,7 +17,7 @@ CREATE OR REPLACE FUNCTION CreateNotice (
   pText			text,
   pCategory		text default null,
   pStatus		integer default null,
-  pData         json default null
+  pData         jsonb default null
 ) RETURNS		uuid
 AS $$
 DECLARE
@@ -44,7 +44,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pText - Текст извещения
  * @param {text} pCategory - Категория извещения
  * @param {integer} pStatus - Статус: 0 - создано; 1 - доставлено; 2 - прочитано; 3 - принято; 4 - отказано
- * @param {json} pData - Данные в произвольном формате
+ * @param {jsonb} pData - Данные в произвольном формате
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION EditNotice (
@@ -54,7 +54,7 @@ CREATE OR REPLACE FUNCTION EditNotice (
   pText			text default null,
   pCategory		text default null,
   pStatus		integer default null,
-  pData         json default null
+  pData         jsonb default null
 ) RETURNS		void
 AS $$
 BEGIN
@@ -65,7 +65,7 @@ BEGIN
          category = coalesce(pCategory, category),
          status = coalesce(pStatus, status),
          updated = Now(),
-         data = CheckNull(coalesce(pData, data, '{}'::json))
+         data = CheckNull(coalesce(pData, data, '{}'::jsonb))
    WHERE id = pId;
 END;
 $$ LANGUAGE plpgsql
@@ -83,7 +83,7 @@ CREATE OR REPLACE FUNCTION SetNotice (
   pText			text default null,
   pCategory		text default null,
   pStatus		integer default null,
-  pData         json default null
+  pData         jsonb default null
 ) RETURNS		uuid
 AS $$
 BEGIN

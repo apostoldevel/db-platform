@@ -47,7 +47,7 @@ $$ LANGUAGE SQL
  * @param {text} pText - Текст извещения
  * @param {text} pCategory - Категория извещения
  * @param {integer} pStatus - Статус: 0 - создано; 1 - доставлено; 2 - прочитано; 3 - принято; 4 - отказано
- * @param {json} pData - Данные в произвольном формате
+ * @param {jsonb} pData - Данные в произвольном формате
  * @return {uuid} - Идентификатор извещения
  */
 CREATE OR REPLACE FUNCTION api.add_notice (
@@ -55,11 +55,12 @@ CREATE OR REPLACE FUNCTION api.add_notice (
   pObject		uuid,
   pText			text,
   pCategory		text default null,
-  pStatus		integer default null
+  pStatus		integer default null,
+  pData         jsonb default null
 ) RETURNS		uuid
 AS $$
 BEGIN
-  RETURN CreateNotice(coalesce(pUserId, current_userid()), pObject, pText, pCategory, pStatus);
+  RETURN CreateNotice(coalesce(pUserId, current_userid()), pObject, pText, pCategory, pStatus, pData);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -76,7 +77,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pText - Текст извещения
  * @param {text} pCategory - Категория извещения
  * @param {integer} pStatus - Статус: 0 - создано; 1 - доставлено; 2 - прочитано; 3 - принято; 4 - отказано
- * @param {json} pData - Данные в произвольном формате
+ * @param {jsonb} pData - Данные в произвольном формате
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_notice (
@@ -85,11 +86,12 @@ CREATE OR REPLACE FUNCTION api.update_notice (
   pObject		uuid default null,
   pText			text default null,
   pCategory		text default null,
-  pStatus		integer default null
+  pStatus		integer default null,
+  pData         jsonb default null
 ) RETURNS		void
 AS $$
 BEGIN
-  PERFORM EditNotice(pId, pUserId, pObject, pText, pCategory, pStatus);
+  PERFORM EditNotice(pId, pUserId, pObject, pText, pCategory, pStatus, pData);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -106,7 +108,7 @@ CREATE OR REPLACE FUNCTION api.set_notice (
   pText			text default null,
   pCategory		text default null,
   pStatus		integer default null,
-  pData         json default null
+  pData         jsonb default null
 ) RETURNS		SETOF api.notice
 AS $$
 BEGIN
