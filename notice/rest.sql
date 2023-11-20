@@ -162,6 +162,37 @@ BEGIN
       END LOOP;
     END LOOP;
 
+  WHEN '/notice/mark' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, GetRoutines('mark_notice', 'api', false));
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid)
+      LOOP
+        FOR e IN SELECT * FROM api.mark_notice(r.id)
+        LOOP
+          RETURN NEXT json_build_object('id', r.id, 'marked', e.mark_notice);
+        END LOOP;
+      END LOOP;
+
+    ELSE
+
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid)
+      LOOP
+        FOR e IN SELECT * FROM api.mark_notice(r.id)
+        LOOP
+          RETURN NEXT json_build_object('id', r.id, 'marked', e.mark_notice);
+        END LOOP;
+      END LOOP;
+
+    END IF;
+
   ELSE
     PERFORM RouteNotFound(pPath);
   END CASE;

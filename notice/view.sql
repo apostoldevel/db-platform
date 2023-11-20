@@ -18,6 +18,7 @@ AS
          ELSE 'undefined'
          END AS StatusCode,
          n.created, n.updated, n.data
-    FROM db.notice n LEFT JOIN Object o ON n.object = o.id;
+    FROM db.notice n LEFT JOIN Object o ON n.object = o.id
+   WHERE userid = current_userid();
 
 GRANT SELECT ON Notice TO administrator;

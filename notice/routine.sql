@@ -24,7 +24,7 @@ DECLARE
   uNotice		uuid;
 BEGIN
   INSERT INTO db.notice (userid, object, text, category, status, data)
-  VALUES (pUserId, pObject, pText, coalesce(pCategory, 'notice'), coalesce(pStatus, 0), pData)
+  VALUES (coalesce(pUserId, current_userid()), pObject, pText, coalesce(pCategory, 'notice'), coalesce(pStatus, 0), pData)
   RETURNING id INTO uNotice;
 
   RETURN uNotice;
@@ -58,15 +58,17 @@ CREATE OR REPLACE FUNCTION EditNotice (
 ) RETURNS		void
 AS $$
 BEGIN
+  pUserId := coalesce(pUserId, current_userid());
+
   UPDATE db.notice
-     SET userid = coalesce(pUserId, userid),
-         object = coalesce(pObject, object),
+     SET object = coalesce(pObject, object),
          text = coalesce(pText, text),
          category = coalesce(pCategory, category),
          status = coalesce(pStatus, status),
          updated = Now(),
          data = CheckNull(coalesce(pData, data, '{}'::jsonb))
-   WHERE id = pId;
+   WHERE id = pId
+     AND userid = pUserId;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -112,7 +114,32 @@ CREATE OR REPLACE FUNCTION DeleteNotice (
 ) RETURNS		boolean
 AS $$
 BEGIN
-  DELETE FROM db.notice WHERE id = pId;
+  DELETE FROM db.notice WHERE id = pId AND userid = current_userid();
+  RETURN FOUND;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- MarkNotice ------------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Помечает извещения как прочитанные.
+ * @param {uuid} pId - Идентификатор извещения, если null, то для всех не прочитанных.
+ * @return {boolean}
+ */
+CREATE OR REPLACE FUNCTION MarkNotice (
+  pId			uuid
+) RETURNS		boolean
+AS $$
+BEGIN
+  IF pId IS NOT NULL THEN
+    UPDATE db.notice SET status = 2 WHERE id = pId AND userid = current_userid() AND status < 2;
+  ELSE
+    UPDATE db.notice SET status = 2 WHERE userid = current_userid() AND status < 2;
+  END IF;
+
   RETURN FOUND;
 END;
 $$ LANGUAGE plpgsql

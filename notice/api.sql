@@ -8,7 +8,7 @@
 
 CREATE OR REPLACE VIEW api.notice
 AS
-  SELECT * FROM Notice WHERE userid = current_userid();
+  SELECT * FROM Notice;
 
 GRANT SELECT ON api.notice TO administrator;
 
@@ -60,7 +60,7 @@ CREATE OR REPLACE FUNCTION api.add_notice (
 ) RETURNS		uuid
 AS $$
 BEGIN
-  RETURN CreateNotice(coalesce(pUserId, current_userid()), pObject, pText, pCategory, pStatus, pData);
+  RETURN CreateNotice(pUserId, pObject, pText, pCategory, pStatus, pData);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -144,15 +144,8 @@ CREATE OR REPLACE FUNCTION api.delete_notice (
   pId			uuid
 ) RETURNS		boolean
 AS $$
-DECLARE
-  r				record;
 BEGIN
-  FOR r IN SELECT id FROM api.notice WHERE id = pId
-  LOOP
-  	RETURN DeleteNotice(r.id);
-  END LOOP;
-
-  RETURN false;
+  RETURN DeleteNotice(pId);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -184,3 +177,19 @@ END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.mark_notice -------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION api.mark_notice (
+  pId			uuid
+) RETURNS		boolean
+AS $$
+BEGIN
+  RETURN MarkNotice(pId);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
