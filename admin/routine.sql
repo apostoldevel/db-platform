@@ -74,15 +74,15 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION UpdateProfile (
   pUserId       	uuid,
   pScope            uuid,
-  pFamilyName		text,
-  pGivenName		text,
-  pPatronymicName	text,
-  pLocale			uuid,
-  pArea				uuid,
-  pInterface		uuid,
-  pEmailVerified	bool,
-  pPhoneVerified	bool,
-  pPicture			text
+  pFamilyName		text DEFAULT null,
+  pGivenName		text DEFAULT null,
+  pPatronymicName	text DEFAULT null,
+  pLocale			uuid DEFAULT null,
+  pArea				uuid DEFAULT null,
+  pInterface		uuid DEFAULT null,
+  pEmailVerified	bool DEFAULT null,
+  pPhoneVerified	bool DEFAULT null,
+  pPicture			text DEFAULT null
 ) RETURNS 	    	boolean
 AS $$
 BEGIN
