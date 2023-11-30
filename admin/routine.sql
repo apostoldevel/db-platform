@@ -2591,7 +2591,7 @@ BEGIN
   pName := coalesce(NULLIF(pName, ''), r.name);
   pPhone := coalesce(NULLIF(pPhone, ''), r.phone);
   pEmail := coalesce(NULLIF(pEmail, ''), r.email);
-  pDescription := coalesce(NULLIF(pDescription, ''), r.description);
+
   pPasswordChange := coalesce(pPasswordChange, r.passwordchange);
   pPasswordNotChange := coalesce(pPasswordNotChange, r.passwordnotchange);
 
@@ -2600,7 +2600,7 @@ BEGIN
          name = coalesce(pName, username),
          phone = CheckNull(pPhone),
          email = CheckNull(pEmail),
-         description = CheckNull(pDescription),
+         description = CheckNull(coalesce(pDescription, r.description, '')),
          passwordchange = pPasswordChange,
          passwordnotchange = pPasswordNotChange
    WHERE id = pId;
