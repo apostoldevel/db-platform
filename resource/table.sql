@@ -102,6 +102,7 @@ CREATE INDEX ON db.resource_data (locale);
 CREATE INDEX ON db.resource_data (name);
 CREATE INDEX ON db.resource_data (name text_pattern_ops);
 
+CREATE UNIQUE INDEX ON db.resource_data (name, locale);
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION ft_resource_data_before()

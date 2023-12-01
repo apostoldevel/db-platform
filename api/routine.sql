@@ -425,13 +425,17 @@ CREATE OR REPLACE FUNCTION UnregisterRoute (
 ) RETURNS	    void
 AS $$
 DECLARE
+  r             record;
   uPath			uuid;
 BEGIN
   pPath := '/' || pNamespace || '/' || pVersion || coalesce('/' || pPath, '');
 
   uPath := FindPath(pPath);
-  IF uPath IS NULL THEN
-    DELETE FROM db.route WHERE method = pMethod AND path = uPath;
+  IF uPath IS NOT NULL THEN
+	FOR r IN SELECT unnest(pMethod) AS method
+	LOOP
+      DELETE FROM db.route WHERE method = r.method AND path = uPath;
+	END LOOP;
   END IF;
 END;
 $$ LANGUAGE plpgsql

@@ -470,8 +470,8 @@ $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 
 --------------------------------------------------------------------------------
 
-SELECT CreateExceptionResource(GetExceptionUUID(400, 24), 'ru', 'UserNotFound', 'Пользователь с идентификатором "%s" не существует');
-SELECT CreateExceptionResource(GetExceptionUUID(400, 24), 'en', 'UserNotFound', 'User with id "%s" does not exist');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 24), 'ru', 'UserIdNotFound', 'Пользователь с идентификатором "%s" не существует');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 24), 'en', 'UserIdNotFound', 'User with id "%s" does not exist');
 
 CREATE OR REPLACE FUNCTION UserNotFound (
   pId		uuid
@@ -557,8 +557,8 @@ $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 SELECT CreateExceptionResource(GetExceptionUUID(400, 30), 'ru', 'ObjectNotFound', 'Не найден(а/о) %s по %s: %s');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 30), 'en', 'ObjectNotFound', 'Not FOUND %s with %s: %s');
 
-SELECT CreateExceptionResource(GetExceptionUUID(400, 68), 'ru', 'ObjectNotFound', 'Не найден(а/о) %s по %s: <null>');
-SELECT CreateExceptionResource(GetExceptionUUID(400, 68), 'en', 'ObjectNotFound', 'Not FOUND %s with %s: <null>');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 68), 'ru', 'ObjectIdIsNull', 'Не найден(а/о) %s по %s: <null>');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 68), 'en', 'ObjectIdIsNull', 'Not FOUND %s with %s: <null>');
 
 CREATE OR REPLACE FUNCTION ObjectNotFound (
   pWho		text,

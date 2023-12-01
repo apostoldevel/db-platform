@@ -3,14 +3,14 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetResourceSequence (
-  pId		uuid,
-  pSequence	integer,
-  pDelta	integer
-) RETURNS 	void
+  pId           uuid,
+  pSequence     integer,
+  pDelta        integer
+) RETURNS       void
 AS $$
 DECLARE
-  uId		uuid;
-  uNode     uuid;
+  uId           uuid;
+  uNode         uuid;
 BEGIN
   IF pDelta <> 0 THEN
     SELECT node INTO uNode FROM db.resource WHERE id = pId;
@@ -36,11 +36,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SortResource (
-  pNode     uuid
-) RETURNS 	void
+  pNode         uuid
+) RETURNS       void
 AS $$
 DECLARE
-  r         record;
+  r             record;
 BEGIN
   FOR r IN
     SELECT id, (row_number() OVER(order by sequence))::int as newsequence
@@ -59,19 +59,19 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetResourceData (
-  pResource	    uuid,
-  pLocale		uuid,
-  pName			text,
-  pDescription	text,
-  pEncoding		text,
-  pData			text
-) RETURNS 	    void
+  pResource     uuid,
+  pLocale       uuid,
+  pName         text,
+  pDescription  text,
+  pEncoding     text,
+  pData         text
+) RETURNS       void
 AS $$
 BEGIN
   INSERT INTO db.resource_data (resource, locale, name, description, encoding, data)
   VALUES (pResource, pLocale, pName, pDescription, pEncoding, pData)
     ON CONFLICT (resource, locale) DO UPDATE
-	  SET name = pName,
+      SET name = pName,
           description = pDescription,
           encoding = pEncoding,
           data = pData;
@@ -101,17 +101,17 @@ CREATE OR REPLACE FUNCTION CreateResource (
   pId           uuid,
   pRoot         uuid,
   pNode         uuid,
-  pType     	text,
+  pType         text,
   pName         text,
-  pDescription	text DEFAULT null,
-  pEncoding		text DEFAULT null,
-  pData			text DEFAULT null,
+  pDescription  text DEFAULT null,
+  pEncoding     text DEFAULT null,
+  pData         text DEFAULT null,
   pSequence     integer DEFAULT null,
-  pLocale		uuid DEFAULT current_locale()
+  pLocale       uuid DEFAULT current_locale()
 ) RETURNS       uuid
 AS $$
 DECLARE
-  uResource		uuid;
+  uResource     uuid;
   nLevel        integer;
 BEGIN
   nLevel := 0;
@@ -160,20 +160,20 @@ CREATE OR REPLACE FUNCTION UpdateResource (
   pId           uuid,
   pRoot         uuid DEFAULT null,
   pNode         uuid DEFAULT null,
-  pType			text DEFAULT null,
+  pType         text DEFAULT null,
   pName         text DEFAULT null,
-  pDescription	text DEFAULT null,
-  pEncoding		text DEFAULT null,
-  pData			text DEFAULT null,
+  pDescription  text DEFAULT null,
+  pEncoding     text DEFAULT null,
+  pData         text DEFAULT null,
   pSequence     integer DEFAULT null,
-  pLocale		uuid DEFAULT current_locale()
+  pLocale       uuid DEFAULT current_locale()
 ) RETURNS       void
 AS $$
 DECLARE
   uNode         uuid;
 
   nSequence     integer;
-  nLevel	    integer;
+  nLevel        integer;
 BEGIN
   IF pNode IS NOT NULL THEN
     SELECT level + 1 INTO nLevel FROM db.resource WHERE id = pNode;
@@ -232,27 +232,27 @@ CREATE OR REPLACE FUNCTION SetResource (
   pId           uuid,
   pRoot         uuid DEFAULT null,
   pNode         uuid DEFAULT null,
-  pType			text DEFAULT null,
+  pType         text DEFAULT null,
   pName         text DEFAULT null,
-  pDescription	text DEFAULT null,
-  pEncoding		text DEFAULT null,
-  pData			text DEFAULT null,
+  pDescription  text DEFAULT null,
+  pEncoding     text DEFAULT null,
+  pData         text DEFAULT null,
   pSequence     integer DEFAULT null,
-  pLocale		uuid DEFAULT current_locale()
+  pLocale       uuid DEFAULT current_locale()
 ) RETURNS       uuid
 AS $$
 DECLARE
-  uResource		uuid;
+  uResource     uuid;
 BEGIN
   IF pId IS NULL THEN
     uResource := CreateResource(pId, pRoot, pNode, pType, pName, pDescription, pEncoding, pData, pSequence, pLocale);
   ELSE
-	SELECT id INTO uResource FROM db.resource WHERE id = pId;
-	IF NOT FOUND THEN
-	  uResource := CreateResource(pId, pRoot, pNode, pType, pName, pDescription, pEncoding, pData, pSequence, pLocale);
-	ELSE
-	  PERFORM UpdateResource(pId, pRoot, pNode, pType, pName, pDescription, pEncoding, pData, pSequence, pLocale);
-	END IF;
+    SELECT id INTO uResource FROM db.resource WHERE id = pId;
+    IF NOT FOUND THEN
+      uResource := CreateResource(pId, pRoot, pNode, pType, pName, pDescription, pEncoding, pData, pSequence, pLocale);
+    ELSE
+      PERFORM UpdateResource(pId, pRoot, pNode, pType, pName, pDescription, pEncoding, pData, pSequence, pLocale);
+    END IF;
   END IF;
 
   RETURN uResource;
@@ -266,9 +266,9 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetResource (
-  pResource	    uuid,
-  pLocale		uuid DEFAULT current_locale()
-) RETURNS		text
+  pResource     uuid,
+  pLocale       uuid DEFAULT current_locale()
+) RETURNS       text
 AS $$
   SELECT data FROM db.resource_data WHERE resource = pResource AND locale = pLocale;
 $$ LANGUAGE sql
@@ -280,8 +280,8 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DeleteResource (
-  pId       uuid
-) RETURNS   void
+  pId           uuid
+) RETURNS       void
 AS $$
 BEGIN
   DELETE FROM db.resource WHERE id = pId;
