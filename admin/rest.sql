@@ -469,6 +469,31 @@ BEGIN
 
     END IF;
 
+  WHEN '/admin/user/profile/set' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, GetRoutines('set_user_profile', 'api', false));
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN EXECUTE format('SELECT row_to_json(api.set_user_profile(%s)) FROM jsonb_to_recordset($1) AS x(%s)', array_to_string(GetRoutines('set_user_profile', 'api', false, 'x'), ', '), array_to_string(GetRoutines('set_user_profile', 'api', true), ', ')) USING pPayload
+      LOOP
+        RETURN NEXT r;
+      END LOOP;
+
+    ELSE
+
+      FOR r IN EXECUTE format('SELECT row_to_json(api.set_user_profile(%s)) FROM jsonb_to_record($1) AS x(%s)', array_to_string(GetRoutines('set_user_profile', 'api', false, 'x'), ', '), array_to_string(GetRoutines('set_user_profile', 'api', true), ', ')) USING pPayload
+      LOOP
+        RETURN NEXT r;
+      END LOOP;
+
+    END IF;
+
   WHEN '/admin/user/member' THEN
 
     FOR r IN SELECT * FROM api.user_member()

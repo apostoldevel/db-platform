@@ -2830,7 +2830,7 @@ BEGIN
 
   RETURN uId;
 END;
-$$ LANGUAGE plpgsql
+$$ LANGUAGE plpgsql STABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -2857,7 +2857,7 @@ BEGIN
 
   RETURN uId;
 END;
-$$ LANGUAGE plpgsql
+$$ LANGUAGE plpgsql STABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
