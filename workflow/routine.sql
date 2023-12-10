@@ -363,7 +363,7 @@ CREATE OR REPLACE FUNCTION GetClass (
 ) RETURNS 	uuid
 AS $$
   SELECT id FROM db.class_tree WHERE code = pCode;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -376,7 +376,7 @@ CREATE OR REPLACE FUNCTION GetClassEntity (
 ) RETURNS 	uuid
 AS $$
   SELECT entity FROM db.class_tree WHERE id = pClass;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -389,7 +389,7 @@ CREATE OR REPLACE FUNCTION GetClassCode (
 ) RETURNS 	text
 AS $$
   SELECT code FROM db.class_tree WHERE id = pId;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
