@@ -557,8 +557,8 @@ $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 SELECT CreateExceptionResource(GetExceptionUUID(400, 30), 'ru', 'ObjectNotFound', 'Не найден(а/о) %s по %s: %s');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 30), 'en', 'ObjectNotFound', 'Not FOUND %s with %s: %s');
 
-SELECT CreateExceptionResource(GetExceptionUUID(400, 68), 'ru', 'ObjectIdIsNull', 'Не найден(а/о) %s по %s: <null>');
-SELECT CreateExceptionResource(GetExceptionUUID(400, 68), 'en', 'ObjectIdIsNull', 'Not FOUND %s with %s: <null>');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 31), 'ru', 'ObjectIdIsNull', 'Не найден(а/о) %s по %s: <null>');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 31), 'en', 'ObjectIdIsNull', 'Not FOUND %s with %s: <null>');
 
 CREATE OR REPLACE FUNCTION ObjectNotFound (
   pWho		text,
@@ -568,7 +568,7 @@ CREATE OR REPLACE FUNCTION ObjectNotFound (
 AS $$
 BEGIN
   IF pId IS NULL THEN
-    RAISE EXCEPTION '%', format(GetExceptionStr(400, 68), pWho, pParam);
+    RAISE EXCEPTION '%', format(GetExceptionStr(400, 31), pWho, pParam);
   ELSE
     RAISE EXCEPTION '%', format(GetExceptionStr(400, 30), pWho, pParam, pId);
   END IF;
@@ -585,7 +585,7 @@ CREATE OR REPLACE FUNCTION ObjectNotFound (
 AS $$
 BEGIN
   IF pCode IS NULL THEN
-    RAISE EXCEPTION '%', format(GetExceptionStr(400, 68), pWho, pParam);
+    RAISE EXCEPTION '%', format(GetExceptionStr(400, 31), pWho, pParam);
   ELSE
     RAISE EXCEPTION '%', format(GetExceptionStr(400, 30), pWho, pParam, pCode);
   END IF;
