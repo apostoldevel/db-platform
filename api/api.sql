@@ -157,6 +157,7 @@ DECLARE
   vLStr         text;
   vRStr         text;
 
+  arOrders      text[];
   arValues      text[];
   arColumns     text[];
 BEGIN
@@ -276,12 +277,11 @@ BEGIN
   END IF;
 
   vSelect := vSelect || coalesce(vWhere, '');
+  arOrders := JsonbToStrArray(pOrderBy);
 
-  IF pOrderBy IS NOT NULL THEN
+  IF arOrders IS NOT NULL THEN
     --PERFORM CheckJsonbValues('orderby', array_cat(arColumns, array_add_text(arColumns, ' desc')), pOrderBy);
-    IF JsonbToStrArray(pOrderBy) IS NOT NULL THEN
-      vSelect := vSelect || E'\n ORDER BY ' || array_to_string(array_quote_literal_json(JsonbToStrArray(pOrderBy)), ',');
-    END IF;
+    vSelect := vSelect || E'\n ORDER BY ' || array_to_string(array_quote_literal_json(arOrders), ',');
   ELSE
     IF 'sequence' = ANY (arColumns) THEN
       vSelect := vSelect || E'\n ORDER BY sequence';
