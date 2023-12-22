@@ -25,7 +25,7 @@ CREATE OR REPLACE FUNCTION EditEntityText (
   pEntity       uuid,
   pName         text,
   pDescription  text DEFAULT null,
-  pLocale		uuid DEFAULT null
+  pLocale       uuid DEFAULT null
 ) RETURNS       void
 AS $$
 BEGIN
@@ -47,14 +47,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddEntity (
-  pCode		    text,
-  pName		    text,
-  pDescription	text DEFAULT null
-) RETURNS	    uuid
+  pCode         text,
+  pName         text,
+  pDescription  text DEFAULT null
+) RETURNS       uuid
 AS $$
 DECLARE
   l             record;
-  uId		    uuid;
+  uId           uuid;
 BEGIN
   INSERT INTO db.entity (code)
   VALUES (pCode)
@@ -62,7 +62,7 @@ BEGIN
 
   FOR l IN SELECT id FROM db.locale
   LOOP
-	PERFORM NewEntityText(uId, pName, pDescription, l.id);
+    PERFORM NewEntityText(uId, pName, pDescription, l.id);
   END LOOP;
 
   RETURN uId;
@@ -76,11 +76,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EditEntity (
-  pId		    uuid,
-  pCode		    text DEFAULT null,
-  pName		    text DEFAULT null,
-  pDescription	text DEFAULT null
-) RETURNS	    void
+  pId           uuid,
+  pCode         text DEFAULT null,
+  pName         text DEFAULT null,
+  pDescription  text DEFAULT null
+) RETURNS       void
 AS $$
 BEGIN
   UPDATE db.entity
@@ -98,8 +98,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DeleteEntity (
-  pId		uuid
-) RETURNS 	void
+  pId       uuid
+) RETURNS   void
 AS $$
 BEGIN
   DELETE FROM db.entity WHERE id = pId;
@@ -113,8 +113,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetEntity (
-  pCode		text
-) RETURNS 	uuid
+  pCode     text
+) RETURNS   uuid
 AS $$
   SELECT id FROM db.entity WHERE code = pCode;
 $$ LANGUAGE sql
@@ -144,10 +144,10 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EditClassText (
-  pClass        uuid,
-  pLabel        text,
-  pLocale		uuid DEFAULT null
-) RETURNS       void
+  pClass    uuid,
+  pLabel    text,
+  pLocale   uuid DEFAULT null
+) RETURNS   void
 AS $$
 BEGIN
   UPDATE db.class_text
@@ -167,17 +167,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddClass (
-  pParent	uuid,
+  pParent   uuid,
   pEntity   uuid,
-  pCode		text,
-  pLabel	text,
-  pAbstract	boolean
-) RETURNS	uuid
+  pCode     text,
+  pLabel    text,
+  pAbstract boolean
+) RETURNS   uuid
 AS $$
 DECLARE
   l         record;
-  uId		uuid;
-  nLevel	integer;
+  uId       uuid;
+  nLevel    integer;
 BEGIN
   nLevel := 0;
 
@@ -191,7 +191,7 @@ BEGIN
 
   FOR l IN SELECT id FROM db.locale
   LOOP
-	PERFORM NewClassText(uId, pLabel, l.id);
+    PERFORM NewClassText(uId, pLabel, l.id);
   END LOOP;
 
   RETURN uId;
@@ -228,8 +228,8 @@ BEGIN
     FOR l IN SELECT * FROM db.event_text WHERE event = r.id
     LOOP
       INSERT INTO db.event_text (event, locale, label)
-	  VALUES (uEvent, l.locale, l.label);
-	END LOOP;
+      VALUES (uEvent, l.locale, l.label);
+    END LOOP;
   END LOOP;
 
   PERFORM DefaultMethods(pDestination);
@@ -244,8 +244,8 @@ BEGIN
     FOR l IN SELECT * FROM db.state_text WHERE state = r.id
     LOOP
       INSERT INTO db.state_text (state, locale, label)
-	  VALUES (uState, l.locale, l.label);
-	END LOOP;
+      VALUES (uState, l.locale, l.label);
+    END LOOP;
 
     FOR e IN SELECT * FROM db.method WHERE class = r.class AND state = r.id
     LOOP
@@ -256,14 +256,14 @@ BEGIN
       FOR l IN SELECT * FROM db.method_text WHERE method = e.id
       LOOP
         INSERT INTO db.method_text (method, locale, label)
- 	    VALUES (uMethod, l.locale, l.label);
+         VALUES (uMethod, l.locale, l.label);
       END LOOP;
 
-	  FOR t IN SELECT * FROM db.transition WHERE method = e.id
-	  LOOP
-		INSERT INTO db.transition (state, method, newstate)
-		VALUES (uState, uMethod, t.newstate);
-	  END LOOP;
+      FOR t IN SELECT * FROM db.transition WHERE method = e.id
+      LOOP
+        INSERT INTO db.transition (state, method, newstate)
+        VALUES (uState, uMethod, t.newstate);
+      END LOOP;
     END LOOP;
   END LOOP;
 
@@ -271,7 +271,7 @@ BEGIN
   LOOP
     FOR e IN SELECT * FROM db.transition WHERE method = r.id
     LOOP
-	  UPDATE db.transition SET newstate = GetState(r.class, GetStateCode(newstate)) WHERE id = e.id;
+      UPDATE db.transition SET newstate = GetState(r.class, GetStateCode(newstate)) WHERE id = e.id;
     END LOOP;
   END LOOP;
 END;
@@ -284,15 +284,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CloneClass (
-  pParent	uuid,
+  pParent   uuid,
   pEntity   uuid,
-  pCode		text,
-  pLabel	text,
-  pAbstract	boolean
-) RETURNS	uuid
+  pCode     text,
+  pLabel    text,
+  pAbstract boolean
+) RETURNS   uuid
 AS $$
 DECLARE
-  uId		uuid;
+  uId       uuid;
 BEGIN
   uId := AddClass(pParent, pEntity, pCode, pLabel, pAbstract);
   PERFORM CopyClass(pParent, uId);
@@ -307,16 +307,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EditClass (
-  pId		uuid,
-  pParent	uuid DEFAULT null,
-  pEntity	uuid DEFAULT null,
-  pCode		text DEFAULT null,
-  pLabel	text DEFAULT null,
-  pAbstract	boolean DEFAULT null
-) RETURNS	void
+  pId       uuid,
+  pParent   uuid DEFAULT null,
+  pEntity   uuid DEFAULT null,
+  pCode     text DEFAULT null,
+  pLabel    text DEFAULT null,
+  pAbstract boolean DEFAULT null
+) RETURNS   void
 AS $$
 DECLARE
-  nLevel	integer;
+  nLevel    integer;
 BEGIN
   nLevel := 1;
 
@@ -343,11 +343,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DeleteClass (
-  pId		uuid
-) RETURNS 	void
+  pId       uuid
+) RETURNS   void
 AS $$
 BEGIN
-  DELETE FROM db.state WHERE class = pId;
+  PERFORM DeleteEvent(id) FROM db.event WHERE class = pId ORDER BY sequence DESC;
+  PERFORM DeleteMethod(id) FROM db.method WHERE class = pId ORDER BY sequence DESC;
+  PERFORM DeleteState(id) FROM db.state WHERE class = pId ORDER BY sequence DESC;
+  PERFORM DeleteType(id) FROM db.type WHERE class = pId;
+
   DELETE FROM db.class_tree WHERE id = pId;
 END;
 $$ LANGUAGE plpgsql
@@ -359,8 +363,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetClass (
-  pCode		text
-) RETURNS 	uuid
+  pCode     text
+) RETURNS   uuid
 AS $$
   SELECT id FROM db.class_tree WHERE code = pCode;
 $$ LANGUAGE sql STABLE STRICT
@@ -372,8 +376,8 @@ $$ LANGUAGE sql STABLE STRICT
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetClassEntity (
-  pClass	uuid
-) RETURNS 	uuid
+  pClass    uuid
+) RETURNS   uuid
 AS $$
   SELECT entity FROM db.class_tree WHERE id = pClass;
 $$ LANGUAGE sql STABLE STRICT
@@ -385,8 +389,8 @@ $$ LANGUAGE sql STABLE STRICT
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetClassCode (
-  pId		uuid
-) RETURNS 	text
+  pId       uuid
+) RETURNS   text
 AS $$
   SELECT code FROM db.class_tree WHERE id = pId;
 $$ LANGUAGE sql STABLE STRICT
@@ -398,8 +402,8 @@ $$ LANGUAGE sql STABLE STRICT
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetClassLabel (
-  pClass	uuid
-) RETURNS	text
+  pClass    uuid
+) RETURNS   text
 AS $$
   SELECT label FROM db.class_text WHERE class = pClass AND locale = current_locale();
 $$ LANGUAGE sql
@@ -411,11 +415,11 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetEntityCode (
-  pId		uuid
-) RETURNS 	text
+  pId       uuid
+) RETURNS   text
 AS $$
 DECLARE
-  vCode		text;
+  vCode     text;
 BEGIN
   SELECT t.code INTO vCode
     FROM db.class_tree c INNER JOIN db.entity t ON t.id = c.entity
@@ -437,12 +441,12 @@ $$ LANGUAGE plpgsql STABLE STRICT
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION acu (
-  pUserId	uuid,
-  OUT class	uuid,
-  OUT deny	bit,
-  OUT allow	bit,
-  OUT mask	bit
-) RETURNS	SETOF record
+  pUserId   uuid,
+  OUT class uuid,
+  OUT deny  bit,
+  OUT allow bit,
+  OUT mask  bit
+) RETURNS   SETOF record
 AS $$
   SELECT a.class, bit_or(a.deny), bit_or(a.allow), bit_or(a.allow) & ~bit_or(a.deny)
     FROM db.acu a
@@ -457,13 +461,13 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION acu (
-  pUserId	uuid,
-  pClass	uuid,
-  OUT class	uuid,
-  OUT deny	bit,
-  OUT allow	bit,
-  OUT mask	bit
-) RETURNS	SETOF record
+  pUserId   uuid,
+  pClass    uuid,
+  OUT class uuid,
+  OUT deny  bit,
+  OUT allow bit,
+  OUT mask  bit
+) RETURNS   SETOF record
 AS $$
   SELECT a.class, bit_or(a.deny), bit_or(a.allow), bit_or(a.allow) & ~bit_or(a.deny)
     FROM db.acu a
@@ -479,9 +483,9 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetClassAccessMask (
-  pClass	uuid,
-  pUserId	uuid default current_userid()
-) RETURNS	bit
+  pClass    uuid,
+  pUserId   uuid default current_userid()
+) RETURNS   bit
 AS $$
   SELECT mask FROM acu(pUserId, pClass)
 $$ LANGUAGE SQL
@@ -493,10 +497,10 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CheckClassAccess (
-  pClass	uuid,
-  pMask		bit,
-  pUserId	uuid default current_userid()
-) RETURNS	boolean
+  pClass    uuid,
+  pMask     bit,
+  pUserId   uuid default current_userid()
+) RETURNS   boolean
 AS $$
 BEGIN
   RETURN coalesce(GetClassAccessMask(pClass, pUserId) & pMask = pMask, false);
@@ -510,17 +514,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DecodeClassAccess (
-  pClass	uuid,
-  pUserId	uuid default current_userid(),
-  OUT a		boolean,
-  OUT c		boolean,
-  OUT s		boolean,
-  OUT u		boolean,
-  OUT d		boolean
-) RETURNS 	record
+  pClass    uuid,
+  pUserId   uuid default current_userid(),
+  OUT a     boolean,
+  OUT c     boolean,
+  OUT s     boolean,
+  OUT u     boolean,
+  OUT d     boolean
+) RETURNS   record
 AS $$
 DECLARE
-  bMask		bit(5);
+  bMask     bit(5);
 BEGIN
   bMask := GetClassAccessMask(pClass, pUserId);
 
@@ -539,8 +543,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetClassMembers (
-  pClass	uuid
-) RETURNS 	SETOF ClassMembers
+  pClass    uuid
+) RETURNS   SETOF ClassMembers
 AS $$
   SELECT * FROM ClassMembers WHERE class = pClass;
 $$ LANGUAGE SQL
@@ -570,7 +574,7 @@ AS $$
 DECLARE
   r             record;
 
-  bMethod		bit(6);
+  bMethod       bit(6);
   bDeny         bit(5);
   bAllow        bit(5);
   bMask         bit(5);
@@ -597,20 +601,20 @@ BEGIN
   END IF;
 
   IF bMask & B'01000' = B'01000' OR bMask & B'00010' = B'00010' THEN
-	bMethod := B'000111';
+    bMethod := B'000111';
   ELSE
     bMethod := B'000000';
   END IF;
 
   FOR r IN SELECT id, visible FROM db.method WHERE class = pClass
   LOOP
-	IF r.visible THEN
-	  bMethod := bMethod | B'000010';
-	ELSE
-	  bMethod := bMethod & ~B'000010';
-	END IF;
+    IF r.visible THEN
+      bMethod := bMethod | B'000010';
+    ELSE
+      bMethod := bMethod & ~B'000010';
+    END IF;
 
-	PERFORM chmodm(r.id, bMethod, pUserId);
+    PERFORM chmodm(r.id, bMethod, pUserId);
   END LOOP;
 
   IF coalesce(pObjectSet, false) THEN
@@ -658,7 +662,7 @@ CREATE OR REPLACE FUNCTION EditTypeText (
   pType         uuid,
   pName         text,
   pDescription  text DEFAULT null,
-  pLocale		uuid DEFAULT null
+  pLocale       uuid DEFAULT null
 ) RETURNS       void
 AS $$
 BEGIN
@@ -680,12 +684,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddType (
-  pClass	    uuid,
-  pCode		    text,
-  pName		    text,
-  pDescription	text DEFAULT null,
+  pClass        uuid,
+  pCode         text,
+  pName         text,
+  pDescription  text DEFAULT null,
   pId           uuid DEFAULT null
-) RETURNS	    uuid
+) RETURNS       uuid
 AS $$
 DECLARE
   l             record;
@@ -697,7 +701,7 @@ BEGIN
 
   FOR l IN SELECT id FROM db.locale
   LOOP
-	PERFORM NewTypeText(pId, pName, pDescription, l.id);
+    PERFORM NewTypeText(pId, pName, pDescription, l.id);
   END LOOP;
 
   RETURN pId;
@@ -711,12 +715,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EditType (
-  pId		    uuid,
-  pClass	    uuid DEFAULT null,
-  pCode		    text DEFAULT null,
-  pName		    text DEFAULT null,
-  pDescription	text DEFAULT null
-) RETURNS	    void
+  pId           uuid,
+  pClass        uuid DEFAULT null,
+  pCode         text DEFAULT null,
+  pName         text DEFAULT null,
+  pDescription  text DEFAULT null
+) RETURNS       void
 AS $$
 DECLARE
 BEGIN
@@ -736,8 +740,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DeleteType (
-  pId		uuid
-) RETURNS 	void
+  pId        uuid
+) RETURNS    void
 AS $$
 BEGIN
   DELETE FROM db.type WHERE id = pId;
@@ -752,8 +756,8 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION GetType (
   pClass    uuid,
-  pCode		text
-) RETURNS	uuid
+  pCode     text
+) RETURNS   uuid
 AS $$
   SELECT id FROM db.type WHERE class = pClass AND code = pCode;
 $$ LANGUAGE sql
@@ -765,9 +769,9 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetType (
-  pCode		text,
+  pCode     text,
   pClass    text DEFAULT null
-) RETURNS	uuid
+) RETURNS   uuid
 AS $$
 BEGIN
   RETURN GetType(GetClass(coalesce(pClass, SubStr(pCode, StrPos(pCode, '.') + 1))), pCode);
@@ -781,21 +785,21 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetType (
-  pClass	    uuid,
-  pCode		    text,
-  pName		    text,
-  pDescription	text DEFAULT null
-) RETURNS	    uuid
+  pClass         uuid,
+  pCode          text,
+  pName          text,
+  pDescription   text DEFAULT null
+) RETURNS        uuid
 AS $$
 DECLARE
-  uId		    uuid;
+  uId            uuid;
 BEGIN
   uId := GetType(pClass, pCode);
 
   IF uId IS NULL THEN
-	uId := AddType(pClass, pCode, pName, pDescription);
+    uId := AddType(pClass, pCode, pName, pDescription);
   ELSE
-	PERFORM EditType(uId, pClass, pCode, pName, pDescription);
+    PERFORM EditType(uId, pClass, pCode, pName, pDescription);
   END IF;
 
   RETURN uId;
@@ -809,8 +813,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetTypeCode (
-  pId		uuid
-) RETURNS	text
+  pId        uuid
+) RETURNS    text
 AS $$
   SELECT code FROM db.type WHERE id = pId;
 $$ LANGUAGE sql
@@ -822,9 +826,9 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetTypeName (
-  pId		uuid,
-  pLocale   uuid DEFAULT current_locale()
-) RETURNS	text
+  pId        uuid,
+  pLocale    uuid DEFAULT current_locale()
+) RETURNS    text
 AS $$
   SELECT name FROM db.type_text WHERE type = pId AND locale = pLocale;
 $$ LANGUAGE sql
@@ -899,8 +903,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetStateType (
-  pCode		text
-) RETURNS	uuid
+  pCode      text
+) RETURNS    uuid
 AS $$
   SELECT id FROM db.state_type WHERE code = pCode;
 $$ LANGUAGE sql STABLE STRICT
@@ -912,8 +916,8 @@ $$ LANGUAGE sql STABLE STRICT
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetStateTypeCode (
-  pId		uuid
-) RETURNS	text
+  pId        uuid
+) RETURNS    text
 AS $$
   SELECT code FROM db.state_type WHERE id = pId;
 $$ LANGUAGE sql
@@ -945,7 +949,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION EditStateText (
   pState        uuid,
   pLabel        text,
-  pLocale		uuid DEFAULT null
+  pLocale       uuid DEFAULT null
 ) RETURNS       void
 AS $$
 BEGIN
@@ -966,16 +970,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddState (
-  pClass	uuid,
-  pType		uuid,
-  pCode		text,
-  pLabel	text,
-  pSequence	integer DEFAULT null
-) RETURNS	uuid
+  pClass     uuid,
+  pType      uuid,
+  pCode      text,
+  pLabel     text,
+  pSequence  integer DEFAULT null
+) RETURNS    uuid
 AS $$
 DECLARE
-  l         record;
-  uId		uuid;
+  l          record;
+  uId        uuid;
 BEGIN
   IF pSequence IS NULL THEN
     SELECT coalesce(max(sequence), 0) + 1 INTO pSequence
@@ -990,7 +994,7 @@ BEGIN
 
   FOR l IN SELECT id FROM db.locale
   LOOP
-	PERFORM NewStateText(uId, pLabel, l.id);
+    PERFORM NewStateText(uId, pLabel, l.id);
   END LOOP;
 
   RETURN uId;
@@ -1004,13 +1008,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EditState (
-  pId		    uuid,
-  pClass	    uuid DEFAULT null,
-  pType		    uuid DEFAULT null,
-  pCode		    text DEFAULT null,
-  pLabel	    text DEFAULT null,
-  pSequence		integer DEFAULT null
-) RETURNS	    void
+  pId        uuid,
+  pClass     uuid DEFAULT null,
+  pType      uuid DEFAULT null,
+  pCode      text DEFAULT null,
+  pLabel     text DEFAULT null,
+  pSequence  integer DEFAULT null
+) RETURNS    void
 AS $$
 BEGIN
   UPDATE db.state
@@ -1031,13 +1035,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetState (
-  pId		    uuid,
-  pClass	    uuid DEFAULT null,
-  pType		    uuid DEFAULT null,
-  pCode		    text DEFAULT null,
-  pLabel	    text DEFAULT null,
-  pSequence		integer DEFAULT null
-) RETURNS	    uuid
+  pId           uuid,
+  pClass        uuid DEFAULT null,
+  pType         uuid DEFAULT null,
+  pCode         text DEFAULT null,
+  pLabel        text DEFAULT null,
+  pSequence     integer DEFAULT null
+) RETURNS       uuid
 AS $$
 BEGIN
   IF pId IS NULL THEN
@@ -1061,8 +1065,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DeleteState (
-  pId		uuid
-) RETURNS 	void
+  pId        uuid
+) RETURNS    void
 AS $$
 BEGIN
   DELETE FROM db.transition WHERE newstate = pId;
@@ -1079,17 +1083,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetState (
-  pClass	uuid,
-  pCode		text
-) RETURNS 	uuid
+  pClass    uuid,
+  pCode     text
+) RETURNS   uuid
 AS $$
 DECLARE
-  uId		uuid;
+  uId       uuid;
 BEGIN
   WITH RECURSIVE classtree(id, parent, level) AS (
-	SELECT id, parent, level FROM db.class_tree WHERE id = pClass
-	 UNION ALL
-	SELECT c.id, c.parent, c.level
+    SELECT id, parent, level FROM db.class_tree WHERE id = pClass
+     UNION ALL
+    SELECT c.id, c.parent, c.level
       FROM db.class_tree c INNER JOIN classtree ct ON ct.parent = c.id
   )
   SELECT s.id INTO uId
@@ -1108,17 +1112,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetState (
-  pClass	uuid,
-  pType		uuid
-) RETURNS	uuid
+  pClass    uuid,
+  pType     uuid
+) RETURNS   uuid
 AS $$
 DECLARE
-  uId		uuid;
+  uId       uuid;
 BEGIN
   WITH RECURSIVE classtree(id, parent, level) AS (
-	SELECT id, parent, level FROM db.class_tree WHERE id = pClass
-	 UNION ALL
-	SELECT c.id, c.parent, c.level
+    SELECT id, parent, level FROM db.class_tree WHERE id = pClass
+     UNION ALL
+    SELECT c.id, c.parent, c.level
       FROM db.class_tree c INNER JOIN classtree ct ON ct.parent = c.id
   )
   SELECT s.id INTO uId
@@ -1137,8 +1141,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetStateTypeByState (
-  pState	uuid
-) RETURNS	uuid
+  pState    uuid
+) RETURNS   uuid
 AS $$
   SELECT type FROM db.state WHERE id = pState;
 $$ LANGUAGE sql
@@ -1150,8 +1154,8 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetStateTypeCodeByState (
-  pState	uuid
-) RETURNS	text
+  pState    uuid
+) RETURNS   text
 AS $$
   SELECT code FROM db.state_type WHERE id = (SELECT type FROM db.state WHERE id = pState);
 $$ LANGUAGE sql
@@ -1163,8 +1167,8 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetStateCode (
-  pState	uuid
-) RETURNS 	text
+  pState    uuid
+) RETURNS   text
 AS $$
   SELECT code FROM db.state WHERE id = pState;
 $$ LANGUAGE sql
@@ -1176,8 +1180,8 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetStateLabel (
-  pState	uuid
-) RETURNS	text
+  pState    uuid
+) RETURNS   text
 AS $$
   SELECT label FROM db.state_text WHERE state = pState AND locale = current_locale();
 $$ LANGUAGE sql
@@ -1211,7 +1215,7 @@ CREATE OR REPLACE FUNCTION EditActionText (
   pAction       uuid,
   pName         text,
   pDescription  text DEFAULT null,
-  pLocale		uuid DEFAULT null
+  pLocale       uuid DEFAULT null
 ) RETURNS       void
 AS $$
 BEGIN
@@ -1233,15 +1237,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddAction (
-  pId		    uuid,
-  pCode		    text,
-  pName		    text,
-  pDescription	text DEFAULT null
-) RETURNS	    uuid
+  pId            uuid,
+  pCode          text,
+  pName          text,
+  pDescription   text DEFAULT null
+) RETURNS        uuid
 AS $$
 DECLARE
-  l             record;
-  uId		    uuid;
+  l              record;
+  uId            uuid;
 BEGIN
   INSERT INTO db.action (id, code)
   VALUES (pId, pCode)
@@ -1249,7 +1253,7 @@ BEGIN
 
   FOR l IN SELECT id FROM db.locale
   LOOP
-	PERFORM NewActionText(uId, pName, pDescription, l.id);
+    PERFORM NewActionText(uId, pName, pDescription, l.id);
   END LOOP;
 
   RETURN uId;
@@ -1263,11 +1267,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EditAction (
-  pId		    uuid,
-  pCode		    text DEFAULT null,
-  pName		    text DEFAULT null,
-  pDescription	text DEFAULT null
-) RETURNS	    boolean
+  pId            uuid,
+  pCode          text DEFAULT null,
+  pName          text DEFAULT null,
+  pDescription   text DEFAULT null
+) RETURNS        boolean
 AS $$
 BEGIN
   UPDATE db.action
@@ -1290,8 +1294,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DeleteAction (
-  pId		uuid
-) RETURNS 	boolean
+  pId       uuid
+) RETURNS   boolean
 AS $$
 BEGIN
   DELETE FROM db.action WHERE id = pId;
@@ -1306,19 +1310,19 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetAction (
-  pId		    uuid,
-  pCode		    text,
-  pName		    text,
-  pDescription	text DEFAULT null
-) RETURNS	    uuid
+  pId            uuid,
+  pCode          text,
+  pName          text,
+  pDescription   text DEFAULT null
+) RETURNS        uuid
 AS $$
 DECLARE
-  uId		    uuid;
+  uId            uuid;
 BEGIN
   uId := coalesce(pId, GetAction(pCode));
 
   IF uId IS NULL THEN
-	uId := AddAction(gen_kernel_uuid('b'), pCode, pName, pDescription);
+    uId := AddAction(gen_kernel_uuid('b'), pCode, pName, pDescription);
   ELSE
     PERFORM EditAction(uId, pCode, pName, pDescription);
   END IF;
@@ -1334,8 +1338,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetAction (
-  pCode		text
-) RETURNS 	uuid
+  pCode       text
+) RETURNS     uuid
 AS $$
   SELECT id FROM db.action WHERE code = pCode;
 $$ LANGUAGE sql
@@ -1347,8 +1351,8 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetActionCode (
-  pId		uuid
-) RETURNS 	text
+  pId        uuid
+) RETURNS    text
 AS $$
   SELECT code FROM db.action WHERE id = pId;
 $$ LANGUAGE sql
@@ -1360,7 +1364,7 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetActionName (
-  pId		uuid
+  pId       uuid
 ) RETURNS   text
 AS $$
   SELECT name FROM db.action_text WHERE action = pId AND locale = current_locale();
@@ -1393,7 +1397,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION EditMethodText (
   pMethod       uuid,
   pLabel        text,
-  pLocale		uuid DEFAULT null
+  pLocale       uuid DEFAULT null
 ) RETURNS       void
 AS $$
 BEGIN
@@ -1414,19 +1418,19 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddMethod (
-  pParent	uuid,
-  pClass	uuid,
-  pState	uuid,
-  pAction	uuid,
-  pCode		text DEFAULT null,
-  pLabel	text DEFAULT null,
-  pSequence	integer DEFAULT null,
-  pVisible	boolean DEFAULT null
-) RETURNS	uuid
+  pParent   uuid,
+  pClass    uuid,
+  pState    uuid,
+  pAction   uuid,
+  pCode     text DEFAULT null,
+  pLabel    text DEFAULT null,
+  pSequence integer DEFAULT null,
+  pVisible  boolean DEFAULT null
+) RETURNS   uuid
 AS $$
 DECLARE
   l         record;
-  uId		uuid;
+  uId       uuid;
 BEGIN
   IF pSequence IS NULL THEN
     SELECT coalesce(max(sequence), 0) + 1 INTO pSequence
@@ -1443,7 +1447,7 @@ BEGIN
 
   FOR l IN SELECT id FROM db.locale
   LOOP
-	PERFORM NewMethodText(uId, pLabel, l.id);
+    PERFORM NewMethodText(uId, pLabel, l.id);
   END LOOP;
 
   RETURN uId;
@@ -1457,16 +1461,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EditMethod (
-  pId		uuid,
-  pParent	uuid DEFAULT null,
-  pClass	uuid DEFAULT null,
-  pState	uuid DEFAULT null,
-  pAction	uuid DEFAULT null,
-  pCode		text DEFAULT null,
-  pLabel	text default null,
-  pSequence	integer default null,
-  pVisible	boolean default null
-) RETURNS	void
+  pId       uuid,
+  pParent   uuid DEFAULT null,
+  pClass    uuid DEFAULT null,
+  pState    uuid DEFAULT null,
+  pAction   uuid DEFAULT null,
+  pCode     text DEFAULT null,
+  pLabel    text default null,
+  pSequence integer default null,
+  pVisible  boolean default null
+) RETURNS   void
 AS $$
 BEGIN
   UPDATE db.method
@@ -1490,8 +1494,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DeleteMethod (
-  pId		uuid
-) RETURNS 	void
+  pId       uuid
+) RETURNS   void
 AS $$
 BEGIN
   DELETE FROM db.method_stack WHERE method = pId;
@@ -1506,13 +1510,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetMethod (
-  pClass	uuid,
-  pAction	uuid,
-  pState	uuid DEFAULT null
-) RETURNS	uuid
+  pClass    uuid,
+  pAction   uuid,
+  pState    uuid DEFAULT null
+) RETURNS   uuid
 AS $$
 DECLARE
-  uMethod	uuid;
+  uMethod   uuid;
 BEGIN
   WITH RECURSIVE _class_tree(id, parent, level) AS (
     SELECT id, parent, level FROM db.class_tree WHERE id = pClass
@@ -1536,8 +1540,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION IsVisibleMethod (
-  pId		uuid
-) RETURNS 	bool
+  pId       uuid
+) RETURNS   bool
 AS $$
   SELECT visible FROM db.method WHERE id = pId;
 $$ LANGUAGE sql
@@ -1549,8 +1553,8 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION IsHiddenMethod (
-  pId		uuid
-) RETURNS 	bool
+  pId       uuid
+) RETURNS   bool
 AS $$
 BEGIN
   RETURN NOT IsVisibleMethod(pId);
@@ -1564,12 +1568,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION amu (
-  pUserId		uuid,
-  OUT method	uuid,
-  OUT deny		bit,
-  OUT allow		bit,
-  OUT mask		bit
-) RETURNS		SETOF record
+  pUserId       uuid,
+  OUT method    uuid,
+  OUT deny      bit,
+  OUT allow     bit,
+  OUT mask      bit
+) RETURNS       SETOF record
 AS $$
   SELECT a.method, bit_or(a.deny), bit_or(a.allow), bit_or(a.allow) & ~bit_or(a.deny)
     FROM db.amu a
@@ -1584,13 +1588,13 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION amu (
-  pUserId		uuid,
-  pMethod		uuid,
-  OUT method	uuid,
-  OUT deny		bit,
-  OUT allow		bit,
-  OUT mask		bit
-) RETURNS		SETOF record
+  pUserId       uuid,
+  pMethod       uuid,
+  OUT method    uuid,
+  OUT deny      bit,
+  OUT allow     bit,
+  OUT mask      bit
+) RETURNS       SETOF record
 AS $$
   SELECT a.method, bit_or(a.deny), bit_or(a.allow), bit_or(a.allow) & ~bit_or(a.deny)
     FROM db.amu a
@@ -1606,9 +1610,9 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetMethodAccessMask (
-  pMethod	uuid,
-  pUserId	uuid default current_userid()
-) RETURNS	bit
+  pMethod    uuid,
+  pUserId    uuid default current_userid()
+) RETURNS    bit
 AS $$
   SELECT mask FROM amu(pUserId, pMethod)
 $$ LANGUAGE SQL
@@ -1620,10 +1624,10 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CheckMethodAccess (
-  pMethod	uuid,
-  pMask		bit,
-  pUserId	uuid default current_userid()
-) RETURNS	boolean
+  pMethod    uuid,
+  pMask      bit,
+  pUserId    uuid default current_userid()
+) RETURNS    boolean
 AS $$
 BEGIN
   RETURN coalesce(GetMethodAccessMask(pMethod, pUserId) & pMask = pMask, false);
@@ -1637,15 +1641,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DecodeMethodAccess (
-  pMethod	uuid,
-  pUserId	uuid default current_userid(),
-  OUT x		boolean,
-  OUT v		boolean,
-  OUT e		boolean
-) RETURNS 	record
+  pMethod    uuid,
+  pUserId    uuid default current_userid(),
+  OUT x      boolean,
+  OUT v      boolean,
+  OUT e      boolean
+) RETURNS    record
 AS $$
 DECLARE
-  bMask		bit(3);
+  bMask      bit(3);
 BEGIN
   bMask := GetMethodAccessMask(pMethod, pUserId);
 
@@ -1662,8 +1666,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetMethodMembers (
-  pMethod	uuid
-) RETURNS 	SETOF MethodMembers
+  pMethod    uuid
+) RETURNS    SETOF MethodMembers
 AS $$
   SELECT * FROM MethodMembers WHERE method = pMethod;
 $$ LANGUAGE SQL
@@ -1681,14 +1685,14 @@ $$ LANGUAGE SQL
  * @return {void}
 */
 CREATE OR REPLACE FUNCTION chmodm (
-  pMethod	uuid,
-  pMask		bit,
-  pUserId	uuid default current_userid()
-) RETURNS	void
+  pMethod    uuid,
+  pMask      bit,
+  pUserId    uuid default current_userid()
+) RETURNS    void
 AS $$
 DECLARE
-  bDeny         bit(3);
-  bAllow        bit(3);
+  bDeny      bit(3);
+  bAllow     bit(3);
 BEGIN
   IF session_user <> 'kernel' THEN
     IF NOT IsUserRole('administrator') THEN
@@ -1721,13 +1725,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddTransition (
-  pState	uuid,
-  pMethod	uuid,
-  pNewState	uuid
-) RETURNS	uuid
+  pState     uuid,
+  pMethod    uuid,
+  pNewState  uuid
+) RETURNS    uuid
 AS $$
 DECLARE
-  uId		uuid;
+  uId        uuid;
 BEGIN
   INSERT INTO db.transition (state, method, newstate)
   VALUES (pState, pMethod, pNewState)
@@ -1744,11 +1748,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EditTransition (
-  pId		uuid,
-  pState	uuid default null,
-  pMethod	uuid default null,
-  pNewState	uuid default null
-) RETURNS	void
+  pId       uuid,
+  pState    uuid default null,
+  pMethod   uuid default null,
+  pNewState uuid default null
+) RETURNS   void
 AS $$
 BEGIN
   UPDATE db.transition
@@ -1766,8 +1770,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DeleteTransition (
-  pId		uuid
-) RETURNS 	void
+  pId       uuid
+) RETURNS   void
 AS $$
 BEGIN
   DELETE FROM db.transition WHERE id = pId;
@@ -1781,11 +1785,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetEventType (
-  pCode		text
-) RETURNS	uuid
+  pCode     text
+) RETURNS   uuid
 AS $$
 DECLARE
-  uId		uuid;
+  uId       uuid;
 BEGIN
   SELECT id INTO uId FROM db.event_type WHERE code = pCode;
 
@@ -1841,18 +1845,18 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddEvent (
-  pClass	uuid,
-  pType		uuid,
-  pAction	uuid,
-  pLabel	text,
-  pText		text default null,
-  pSequence	integer default null,
-  pEnabled	boolean default true
-) RETURNS	uuid
+  pClass    uuid,
+  pType     uuid,
+  pAction   uuid,
+  pLabel    text,
+  pText     text default null,
+  pSequence integer default null,
+  pEnabled  boolean default true
+) RETURNS   uuid
 AS $$
 DECLARE
   l         record;
-  uId		uuid;
+  uId       uuid;
 BEGIN
   IF pSequence IS NULL THEN
     SELECT coalesce(max(sequence), 0) + 1 INTO pSequence FROM db.event WHERE class = pClass AND action = pAction;
@@ -1864,7 +1868,7 @@ BEGIN
 
   FOR l IN SELECT id FROM db.locale
   LOOP
-	PERFORM NewEventText(uId, pLabel, l.id);
+    PERFORM NewEventText(uId, pLabel, l.id);
   END LOOP;
 
   RETURN uId;
@@ -1878,15 +1882,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EditEvent (
-  pId		uuid,
-  pClass	uuid default null,
-  pType		uuid default null,
-  pAction	uuid default null,
-  pLabel	text default null,
-  pText		text default null,
-  pSequence	integer default null,
-  pEnabled	boolean default null
-) RETURNS	void
+  pId       uuid,
+  pClass    uuid default null,
+  pType     uuid default null,
+  pAction   uuid default null,
+  pLabel    text default null,
+  pText     text default null,
+  pSequence integer default null,
+  pEnabled  boolean default null
+) RETURNS   oid
 AS $$
 BEGIN
   UPDATE db.event
@@ -1909,8 +1913,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DeleteEvent (
-  pId		uuid
-) RETURNS 	void
+  pId       uuid
+) RETURNS   void
 AS $$
 BEGIN
   DELETE FROM db.event WHERE id = pId;
@@ -1946,7 +1950,7 @@ CREATE OR REPLACE FUNCTION EditPriorityText (
   pPriority     uuid,
   pName         text,
   pDescription  text DEFAULT null,
-  pLocale		uuid DEFAULT null
+  pLocale       uuid DEFAULT null
 ) RETURNS       void
 AS $$
 BEGIN
@@ -1968,15 +1972,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddPriority (
-  pId		    uuid,
-  pCode		    text,
-  pName		    text,
-  pDescription	text DEFAULT null
-) RETURNS	    uuid
+  pId           uuid,
+  pCode         text,
+  pName         text,
+  pDescription  text DEFAULT null
+) RETURNS       uuid
 AS $$
 DECLARE
   l             record;
-  uId		    uuid;
+  uId           uuid;
 BEGIN
   INSERT INTO db.priority (id, code)
   VALUES (pId, pCode)
@@ -1984,7 +1988,7 @@ BEGIN
 
   FOR l IN SELECT id FROM db.locale
   LOOP
-	PERFORM NewPriorityText(uId, pName, pDescription, l.id);
+    PERFORM NewPriorityText(uId, pName, pDescription, l.id);
   END LOOP;
 
   RETURN uId;
@@ -1998,11 +2002,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EditPriority (
-  pId		    uuid,
-  pCode		    text DEFAULT null,
-  pName		    text DEFAULT null,
-  pDescription	text DEFAULT null
-) RETURNS	    boolean
+  pId           uuid,
+  pCode         text DEFAULT null,
+  pName         text DEFAULT null,
+  pDescription  text DEFAULT null
+) RETURNS       boolean
 AS $$
 BEGIN
   UPDATE db.priority
@@ -2025,8 +2029,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DeletePriority (
-  pId		uuid
-) RETURNS 	boolean
+  pId        uuid
+) RETURNS    boolean
 AS $$
 BEGIN
   DELETE FROM db.priority WHERE id = pId;
@@ -2041,19 +2045,19 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetPriority (
-  pId		    uuid,
-  pCode		    text,
-  pName		    text,
-  pDescription	text DEFAULT null
-) RETURNS	    uuid
+  pId            uuid,
+  pCode          text,
+  pName          text,
+  pDescription   text DEFAULT null
+) RETURNS        uuid
 AS $$
 DECLARE
-  uId		    uuid;
+  uId            uuid;
 BEGIN
   uId := coalesce(pId, GetPriority(pCode));
 
   IF uId IS NULL THEN
-	uId := AddPriority(gen_kernel_uuid('b'), pCode, pName, pDescription);
+    uId := AddPriority(gen_kernel_uuid('b'), pCode, pName, pDescription);
   ELSE
     PERFORM EditPriority(uId, pCode, pName, pDescription);
   END IF;
@@ -2069,8 +2073,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetPriority (
-  pCode		text
-) RETURNS 	uuid
+  pCode       text
+) RETURNS     uuid
 AS $$
   SELECT id FROM db.priority WHERE code = pCode;
 $$ LANGUAGE sql
@@ -2082,8 +2086,8 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetPriorityCode (
-  pId		uuid
-) RETURNS 	text
+  pId        uuid
+) RETURNS    text
 AS $$
   SELECT code FROM db.priority WHERE id = pId;
 $$ LANGUAGE sql
@@ -2095,7 +2099,7 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetPriorityName (
-  pId		uuid
+  pId       uuid
 ) RETURNS   text
 AS $$
   SELECT name FROM db.priority_text WHERE priority = pId AND locale = current_locale();

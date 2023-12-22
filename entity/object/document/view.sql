@@ -90,16 +90,22 @@ CREATE OR REPLACE VIEW CurrentDocument (Id, Object,
          d.priority, p.code, pt.name, pt.description,
          d.area, a.code, a.name, a.description,
          d.scope, sc.code, sc.name, sc.description
-    FROM db.document d INNER JOIN DocumentAreaTree     a ON d.area = a.id
+    FROM db.document d INNER JOIN DocumentAreaTreeId dat ON d.area = dat.id
+
                        INNER JOIN db.entity            e ON d.entity = e.id
                         LEFT JOIN db.entity_text      et ON et.entity = e.id AND et.locale = current_locale()
+
                        INNER JOIN db.class_tree        c ON d.class = c.id
                         LEFT JOIN db.class_text       ct ON ct.class = c.id AND ct.locale = current_locale()
+
                        INNER JOIN db.type              y ON d.type = y.id
                         LEFT JOIN db.type_text        ty ON ty.type = y.id AND ty.locale = current_locale()
+
                        INNER JOIN db.priority          p ON d.priority = p.id
                         LEFT JOIN db.priority_text    pt ON pt.priority = p.id AND pt.locale = current_locale()
                         LEFT JOIN db.document_text    dt ON dt.document = d.id AND dt.locale = current_locale()
+
+                       INNER JOIN db.area              a ON d.area = a.id
                        INNER JOIN db.scope            sc ON d.scope = sc.id;
 
 GRANT SELECT ON CurrentDocument TO administrator;

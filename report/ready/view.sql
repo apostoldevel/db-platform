@@ -55,24 +55,34 @@ CREATE OR REPLACE VIEW ObjectReportReady (Id, Object, Parent,
          d.area, a.code, a.name, a.description,
          o.scope, sc.code, sc.name, sc.description
     FROM db.report_ready t INNER JOIN db.document          d ON t.document = d.id
-                           INNER JOIN DocumentAreaTree     a ON d.area = a.id
+                           INNER JOIN DocumentAreaTreeId dat ON d.area = dat.id
                             LEFT JOIN db.document_text    dt ON dt.document = d.id AND dt.locale = current_locale()
+
                            INNER JOIN db.object            o ON d.object = o.id
                             LEFT JOIN db.object_text      ot ON ot.object = o.id AND ot.locale = current_locale()
+
                            INNER JOIN db.reference         r ON t.report = r.id
                             LEFT JOIN db.reference_text   rt ON rt.reference = r.id AND rt.locale = current_locale()
+
                            INNER JOIN db.entity            e ON o.entity = e.id
                             LEFT JOIN db.entity_text      et ON et.entity = e.id AND et.locale = current_locale()
+
                            INNER JOIN db.class_tree        c ON o.class = c.id
                             LEFT JOIN db.class_text       ct ON ct.class = c.id AND ct.locale = current_locale()
+
                            INNER JOIN db.type              y ON o.type = y.id
                             LEFT JOIN db.type_text        ty ON ty.type = y.id AND ty.locale = current_locale()
+
                            INNER JOIN db.state_type       st ON o.state_type = st.id
                             LEFT JOIN db.state_type_text stt ON stt.type = st.id AND stt.locale = current_locale()
+
                            INNER JOIN db.state             s ON o.state = s.id
                             LEFT JOIN db.state_text      sst ON sst.state = s.id AND sst.locale = current_locale()
+
                            INNER JOIN db.user              w ON o.owner = w.id
                            INNER JOIN db.user              u ON o.oper = u.id
+
+                           INNER JOIN db.area              a ON d.area = a.id
                            INNER JOIN db.scope            sc ON o.scope = sc.id;
 
 GRANT SELECT ON ObjectReportReady TO administrator;
