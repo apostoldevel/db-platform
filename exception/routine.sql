@@ -22,9 +22,9 @@ $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetExceptionUUID (
-  pErrGroup		integer,
-  pErrCode		integer
-) RETURNS 		uuid
+  pErrGroup       integer,
+  pErrCode        integer
+) RETURNS         uuid
 AS $$
 BEGIN
   RETURN format('00000000-0000-4000-9%s-%s', coalesce(NULLIF(IntToStr(pErrGroup, 'FM000'), '###'), '400'), IntToStr(pErrCode, 'FM000000000000'));
@@ -34,9 +34,9 @@ $$ LANGUAGE plpgsql STRICT IMMUTABLE;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetExceptionStr (
-  pErrGroup		integer,
-  pErrCode		integer
-) RETURNS		text
+  pErrGroup      integer,
+  pErrCode       integer
+) RETURNS        text
 AS $$
 BEGIN
   RETURN format('ERR-%s%s: %s.', coalesce(NULLIF(IntToStr(pErrGroup, 'FM000'), '###'), '400'), coalesce(NULLIF(IntToStr(pErrCode, 'FM00'), '##'), '00'), GetResource(GetExceptionUUID(pErrGroup, pErrCode)));
@@ -46,15 +46,15 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateExceptionResource (
-  pId			uuid,
-  pLocaleCode	text,
-  pName			text,
-  pDescription	text,
-  pRoot			uuid DEFAULT null
-) RETURNS		uuid
+  pId            uuid,
+  pLocaleCode    text,
+  pName          text,
+  pDescription   text,
+  pRoot          uuid DEFAULT null
+) RETURNS        uuid
 AS $$
 DECLARE
-  vCharSet		text;
+  vCharSet       text;
 BEGIN
   pRoot := NULLIF(coalesce(pRoot, GetExceptionUUID(0, 0)), null_uuid());
   vCharSet := coalesce(nullif(pg_client_encoding(), 'UTF8'), 'UTF-8');
@@ -86,8 +86,8 @@ SELECT CreateExceptionResource(GetExceptionUUID(401, 2), 'ru', 'AuthenticateErro
 SELECT CreateExceptionResource(GetExceptionUUID(401, 2), 'en', 'AuthenticateError', 'Authenticate Error. %s');
 
 CREATE OR REPLACE FUNCTION AuthenticateError (
-  pMessage	text
-) RETURNS 	void
+  pMessage    text
+) RETURNS     void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(401, 2), pMessage);
@@ -124,8 +124,8 @@ SELECT CreateExceptionResource(GetExceptionUUID(401, 5), 'ru', 'UserTempLockErro
 SELECT CreateExceptionResource(GetExceptionUUID(401, 5), 'en', 'UserTempLockError', 'Account is temporarily locked until %s', GetExceptionUUID(401, 2));
 
 CREATE OR REPLACE FUNCTION UserTempLockError (
-  pDate		timestamptz
-) RETURNS	void
+  pDate      timestamptz
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM AuthenticateError(format(GetResource(GetExceptionUUID(401, 5)), DateToStr(pDate)));
@@ -174,7 +174,7 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 1), 'ru', 'AccessDenied', '
 SELECT CreateExceptionResource(GetExceptionUUID(400, 1), 'en', 'AccessDenied', 'Access denied');
 
 CREATE OR REPLACE FUNCTION AccessDenied (
-) RETURNS 	void
+) RETURNS     void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 1);
@@ -187,8 +187,8 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 2), 'ru', 'AccessDeniedForU
 SELECT CreateExceptionResource(GetExceptionUUID(400, 2), 'en', 'AccessDeniedForUser', 'Access denied for user %s');
 
 CREATE OR REPLACE FUNCTION AccessDeniedForUser (
-  pUserName	text
-) RETURNS	void
+  pUserName  text
+) RETURNS    void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 2), pUserName);
@@ -201,8 +201,8 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 3), 'ru', 'ExecuteMethodErr
 SELECT CreateExceptionResource(GetExceptionUUID(400, 3), 'en', 'ExecuteMethodError', 'Insufficient rights to execute method: %s');
 
 CREATE OR REPLACE FUNCTION ExecuteMethodError (
-  pMessage	text
-) RETURNS 	void
+  pMessage    text
+) RETURNS     void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 3), pMessage);
@@ -253,7 +253,7 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 7), 'en', 'InvalidScope', '
 CREATE OR REPLACE FUNCTION InvalidScope (
   pValid    text[],
   pInvalid  text[]
-) RETURNS	void
+) RETURNS   void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 7), array_to_string(pValid, ', '), array_to_string(pInvalid, ', '));
@@ -338,8 +338,8 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 14), 'ru', 'IncorrectLocale
 SELECT CreateExceptionResource(GetExceptionUUID(400, 14), 'en', 'IncorrectLocaleCode', 'Locale not FOUND by code: %s');
 
 CREATE OR REPLACE FUNCTION IncorrectLocaleCode (
-  pCode		text
-) RETURNS	void
+  pCode      text
+) RETURNS    void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 14), pCode);
@@ -376,8 +376,8 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 17), 'ru', 'IncorrectAreaCo
 SELECT CreateExceptionResource(GetExceptionUUID(400, 17), 'en', 'IncorrectAreaCode', 'Area not FOUND by code: %s');
 
 CREATE OR REPLACE FUNCTION IncorrectAreaCode (
-  pCode		text
-) RETURNS	void
+  pCode      text
+) RETURNS    void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 17), pCode);
@@ -390,9 +390,9 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 18), 'ru', 'UserNotMemberAr
 SELECT CreateExceptionResource(GetExceptionUUID(400, 18), 'en', 'UserNotMemberArea', 'User "%s" does not have access to area "%s"');
 
 CREATE OR REPLACE FUNCTION UserNotMemberArea (
-  pUser		text,
-  pArea	text
-) RETURNS	void
+  pUser      text,
+  pArea      text
+) RETURNS    void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 18), pUser, pArea);
@@ -417,9 +417,9 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 20), 'ru', 'UserNotMemberIn
 SELECT CreateExceptionResource(GetExceptionUUID(400, 20), 'en', 'UserNotMemberInterface', 'User "%s" does not have access to interface "%s"');
 
 CREATE OR REPLACE FUNCTION UserNotMemberInterface (
-  pUser		    text,
-  pInterface	text
-) RETURNS	    void
+  pUser         text,
+  pInterface    text
+) RETURNS       void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 20), pUser, pInterface);
@@ -432,8 +432,8 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 21), 'ru', 'UnknownRoleName
 SELECT CreateExceptionResource(GetExceptionUUID(400, 21), 'en', 'UnknownRoleName', 'Unknown role name: %s');
 
 CREATE OR REPLACE FUNCTION UnknownRoleName (
-  pRoleName	text
-) RETURNS	void
+  pRoleName  text
+) RETURNS    void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 21), pRoleName);
@@ -446,8 +446,8 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 22), 'ru', 'RoleExists', 'Ð
 SELECT CreateExceptionResource(GetExceptionUUID(400, 22), 'en', 'RoleExists', 'Role "%s" already exists');
 
 CREATE OR REPLACE FUNCTION RoleExists (
-  pRoleName	text
-) RETURNS	void
+  pRoleName    text
+) RETURNS    void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 22), pRoleName);
@@ -460,8 +460,8 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 23), 'ru', 'UserNotFound', 
 SELECT CreateExceptionResource(GetExceptionUUID(400, 23), 'en', 'UserNotFound', 'User "%s" does not exist');
 
 CREATE OR REPLACE FUNCTION UserNotFound (
-  pUserName	text
-) RETURNS	void
+  pUserName    text
+) RETURNS    void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 23), pUserName);
@@ -474,8 +474,8 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 24), 'ru', 'UserIdNotFound'
 SELECT CreateExceptionResource(GetExceptionUUID(400, 24), 'en', 'UserIdNotFound', 'User with id "%s" does not exist');
 
 CREATE OR REPLACE FUNCTION UserNotFound (
-  pId		uuid
-) RETURNS	void
+  pId        uuid
+) RETURNS    void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 24), pId);
@@ -500,8 +500,8 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 26), 'ru', 'AlreadyExists',
 SELECT CreateExceptionResource(GetExceptionUUID(400, 26), 'en', 'AlreadyExists', '%s already exists');
 
 CREATE OR REPLACE FUNCTION AlreadyExists (
-  pWho		text
-) RETURNS	void
+  pWho       text
+) RETURNS    void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 26), pWho);
@@ -515,7 +515,7 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 27), 'en', 'RecordExists', 
 
 CREATE OR REPLACE FUNCTION RecordExists (
   pCode     text
-) RETURNS	void
+) RETURNS   void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 27), pCode);
@@ -530,7 +530,7 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 28), 'en', 'InvalidCodes', 
 CREATE OR REPLACE FUNCTION InvalidCodes (
   pValid    text[],
   pInvalid  text[]
-) RETURNS	void
+) RETURNS   void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 28), array_to_string(pValid, ', '), array_to_string(pInvalid, ', '));
@@ -543,9 +543,9 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 29), 'ru', 'IncorrectCode',
 SELECT CreateExceptionResource(GetExceptionUUID(400, 29), 'en', 'IncorrectCode', 'Invalid code "%s". Valid codes: [%s]');
 
 CREATE OR REPLACE FUNCTION IncorrectCode (
-  pCode		text,
-  pArray	anyarray
-) RETURNS	void
+  pCode     text,
+  pArray    anyarray
+) RETURNS   void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 29), pCode, pArray);
@@ -561,10 +561,10 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 31), 'ru', 'ObjectIdIsNull'
 SELECT CreateExceptionResource(GetExceptionUUID(400, 31), 'en', 'ObjectIdIsNull', 'Not FOUND %s with %s: <null>');
 
 CREATE OR REPLACE FUNCTION ObjectNotFound (
-  pWho		text,
-  pParam	text,
-  pId		uuid
-) RETURNS	void
+  pWho      text,
+  pParam    text,
+  pId       uuid
+) RETURNS   void
 AS $$
 BEGIN
   IF pId IS NULL THEN
@@ -578,10 +578,10 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION ObjectNotFound (
-  pWho		text,
-  pParam	text,
-  pCode		text
-) RETURNS	void
+  pWho      text,
+  pParam    text,
+  pCode     text
+) RETURNS   void
 AS $$
 BEGIN
   IF pCode IS NULL THEN
@@ -598,9 +598,9 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 32), 'ru', 'MethodActionNot
 SELECT CreateExceptionResource(GetExceptionUUID(400, 32), 'en', 'MethodActionNotFound', 'Object [%s] method not FOUND, for action: %s [%s]. Current state: %s [%s]');
 
 CREATE OR REPLACE FUNCTION MethodActionNotFound (
-  pObject	uuid,
-  pAction	uuid
-) RETURNS	void
+  pObject    uuid,
+  pAction    uuid
+) RETURNS    void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 32), pObject, GetActionCode(pAction), pAction, GetObjectStateCode(pObject), GetObjectState(pObject));
@@ -613,9 +613,9 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 33), 'ru', 'MethodNotFound'
 SELECT CreateExceptionResource(GetExceptionUUID(400, 33), 'en', 'MethodNotFound', 'Method "%s" of object "%s" not FOUND');
 
 CREATE OR REPLACE FUNCTION MethodNotFound (
-  pObject	uuid,
-  pMethod	uuid
-) RETURNS	void
+  pObject    uuid,
+  pMethod    uuid
+) RETURNS    void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 33), pMethod, pObject);
@@ -628,9 +628,9 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 34), 'ru', 'MethodByCodeNot
 SELECT CreateExceptionResource(GetExceptionUUID(400, 34), 'en', 'MethodByCodeNotFound', 'No method FOUND by code "%s" for object "%s"');
 
 CREATE OR REPLACE FUNCTION MethodByCodeNotFound (
-  pObject	uuid,
+  pObject    uuid,
   pCode     text
-) RETURNS	void
+) RETURNS    void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 34), pCode, pObject);
@@ -643,8 +643,8 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 35), 'ru', 'ChangeObjectSta
 SELECT CreateExceptionResource(GetExceptionUUID(400, 35), 'en', 'ChangeObjectStateError', 'Failed to change object state: %s');
 
 CREATE OR REPLACE FUNCTION ChangeObjectStateError (
-  pObject	uuid
-) RETURNS	void
+  pObject    uuid
+) RETURNS    void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 35), pObject);
@@ -657,7 +657,7 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 36), 'ru', 'ChangesNotAllow
 SELECT CreateExceptionResource(GetExceptionUUID(400, 36), 'en', 'ChangesNotAllowed', 'Changes are not allowed');
 
 CREATE OR REPLACE FUNCTION ChangesNotAllowed (
-) RETURNS	void
+) RETURNS    void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 36);
@@ -670,9 +670,9 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 37), 'ru', 'StateByCodeNotF
 SELECT CreateExceptionResource(GetExceptionUUID(400, 37), 'en', 'StateByCodeNotFound', 'No state FOUND by code "%s" for object "%s"');
 
 CREATE OR REPLACE FUNCTION StateByCodeNotFound (
-  pObject	uuid,
+  pObject   uuid,
   pCode     text
-) RETURNS	void
+) RETURNS   void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 37), pCode, pObject);
@@ -685,7 +685,7 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 38), 'ru', 'MethodIsEmpty',
 SELECT CreateExceptionResource(GetExceptionUUID(400, 38), 'en', 'MethodIsEmpty', 'Method ID must not be empty');
 
 CREATE OR REPLACE FUNCTION MethodIsEmpty (
-) RETURNS	void
+) RETURNS   void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 38);
@@ -698,7 +698,7 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 39), 'ru', 'ActionIsEmpty',
 SELECT CreateExceptionResource(GetExceptionUUID(400, 39), 'en', 'ActionIsEmpty', 'Action ID must not be empty');
 
 CREATE OR REPLACE FUNCTION ActionIsEmpty (
-) RETURNS	void
+) RETURNS    void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 39);
@@ -711,7 +711,7 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 40), 'ru', 'ExecutorIsEmpty
 SELECT CreateExceptionResource(GetExceptionUUID(400, 40), 'en', 'ExecutorIsEmpty', 'The executor must not be empty');
 
 CREATE OR REPLACE FUNCTION ExecutorIsEmpty (
-) RETURNS	void
+) RETURNS    void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 40);
@@ -724,7 +724,7 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 41), 'ru', 'IncorrectDateIn
 SELECT CreateExceptionResource(GetExceptionUUID(400, 41), 'en', 'IncorrectDateInterval', 'The end date of the period cannot be less than the start date of the period');
 
 CREATE OR REPLACE FUNCTION IncorrectDateInterval (
-) RETURNS	void
+) RETURNS    void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 41);
@@ -763,7 +763,7 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 44), 'ru', 'LoginIpTableErr
 SELECT CreateExceptionResource(GetExceptionUUID(400, 44), 'en', 'LoginIpTableError', 'Login is not possible. Limited access by IP-address: %s');
 
 CREATE OR REPLACE FUNCTION LoginIpTableError (
-  pHost		inet
+  pHost   inet
 ) RETURNS void
 AS $$
 BEGIN
@@ -777,7 +777,7 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 45), 'ru', 'OperationNotPos
 SELECT CreateExceptionResource(GetExceptionUUID(400, 45), 'en', 'OperationNotPossible', 'Operation is not possible, there are related documents');
 
 CREATE OR REPLACE FUNCTION OperationNotPossible (
-) RETURNS	void
+) RETURNS    void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 45);
@@ -791,8 +791,8 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 46), 'en', 'ViewNotFound', 
 
 CREATE OR REPLACE FUNCTION ViewNotFound (
   pScheme   text,
-  pTable	text
-) RETURNS	void
+  pTable    text
+) RETURNS   void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 46), pScheme, pTable);
@@ -806,7 +806,7 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 47), 'en', 'InvalidVerifica
 
 CREATE OR REPLACE FUNCTION InvalidVerificationCodeType (
   pType     char
-) RETURNS	void
+) RETURNS   void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 47), pType);
@@ -820,7 +820,7 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 48), 'en', 'InvalidPhoneNum
 
 CREATE OR REPLACE FUNCTION InvalidPhoneNumber (
   pPhone    text
-) RETURNS	void
+) RETURNS   void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 48), pPhone);
@@ -833,7 +833,7 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 49), 'ru', 'ObjectIsNull', 
 SELECT CreateExceptionResource(GetExceptionUUID(400, 49), 'en', 'ObjectIsNull', 'Object id not specified');
 
 CREATE OR REPLACE FUNCTION ObjectIsNull (
-) RETURNS	void
+) RETURNS    void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 49);
@@ -846,7 +846,7 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 50), 'ru', 'PerformActionEr
 SELECT CreateExceptionResource(GetExceptionUUID(400, 50), 'en', 'PerformActionError', 'You cannot perform this action');
 
 CREATE OR REPLACE FUNCTION PerformActionError (
-) RETURNS	void
+) RETURNS    void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 50);
@@ -859,7 +859,7 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 51), 'ru', 'IdentityNotConf
 SELECT CreateExceptionResource(GetExceptionUUID(400, 51), 'en', 'IdentityNotConfirmed', 'Identity not confirmed');
 
 CREATE OR REPLACE FUNCTION IdentityNotConfirmed (
-) RETURNS	void
+) RETURNS    void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 51);
@@ -885,7 +885,7 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 53), 'ru', 'ActionAlreadyCo
 SELECT CreateExceptionResource(GetExceptionUUID(400, 53), 'en', 'ActionAlreadyCompleted', 'You have already completed this action');
 
 CREATE OR REPLACE FUNCTION ActionAlreadyCompleted (
-) RETURNS	void
+) RETURNS    void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 53);
@@ -898,7 +898,7 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 60), 'ru', 'JsonIsEmpty', '
 SELECT CreateExceptionResource(GetExceptionUUID(400, 60), 'en', 'JsonIsEmpty', 'JSON must not be empty');
 
 CREATE OR REPLACE FUNCTION JsonIsEmpty (
-) RETURNS	void
+) RETURNS    void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 60);
@@ -911,10 +911,10 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 61), 'ru', 'IncorrectJsonKe
 SELECT CreateExceptionResource(GetExceptionUUID(400, 61), 'en', 'IncorrectJsonKey', '(%s) Invalid key "%s". Valid keys: [%s]');
 
 CREATE OR REPLACE FUNCTION IncorrectJsonKey (
-  pRoute	text,
-  pKey		text,
-  pArray	anyarray
-) RETURNS	void
+  pRoute    text,
+  pKey      text,
+  pArray    anyarray
+) RETURNS   void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 61), pRoute, pKey, pArray);
@@ -927,9 +927,9 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 62), 'ru', 'JsonKeyNotFound
 SELECT CreateExceptionResource(GetExceptionUUID(400, 62), 'en', 'JsonKeyNotFound', '(%s) Required key not FOUND: %s');
 
 CREATE OR REPLACE FUNCTION JsonKeyNotFound (
-  pRoute	text,
-  pKey		text
-) RETURNS	void
+  pRoute    text,
+  pKey      text
+) RETURNS   void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 62), pRoute, pKey);
@@ -942,9 +942,9 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 63), 'ru', 'IncorrectJsonTy
 SELECT CreateExceptionResource(GetExceptionUUID(400, 63), 'en', 'IncorrectJsonType', 'Invalid type "%s", expected "%s"');
 
 CREATE OR REPLACE FUNCTION IncorrectJsonType (
-  pType		text,
-  pExpected	text
-) RETURNS	void
+  pType      text,
+  pExpected  text
+) RETURNS    void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 63), pType, pExpected);
@@ -957,10 +957,10 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 64), 'ru', 'IncorrectKeyInA
 SELECT CreateExceptionResource(GetExceptionUUID(400, 64), 'en', 'IncorrectKeyInArray', 'Invalid key "%s" in array "%s". Valid keys: [%s]');
 
 CREATE OR REPLACE FUNCTION IncorrectKeyInArray (
-  pKey		    text,
-  pArrayName	text,
-  pArray	    anyarray
-) RETURNS	    void
+  pKey          text,
+  pArrayName    text,
+  pArray        anyarray
+) RETURNS       void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 64), pKey, pArrayName, pArray);
@@ -973,10 +973,10 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 65), 'ru', 'IncorrectValueI
 SELECT CreateExceptionResource(GetExceptionUUID(400, 65), 'en', 'IncorrectValueInArray', 'Invalid value "%s" in array "%s". Valid values: [%s]');
 
 CREATE OR REPLACE FUNCTION IncorrectValueInArray (
-  pValue	    text,
-  pArrayName	text,
-  pArray	    anyarray
-) RETURNS	    void
+  pValue        text,
+  pArrayName    text,
+  pArray        anyarray
+) RETURNS       void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 65), pValue, pArrayName, pArray);
@@ -989,8 +989,8 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 66), 'ru', 'ValueOutOfRange
 SELECT CreateExceptionResource(GetExceptionUUID(400, 66), 'en', 'ValueOutOfRange', 'Value [%s] is out of range');
 
 CREATE OR REPLACE FUNCTION ValueOutOfRange (
-  pValue	    integer
-) RETURNS	    void
+  pValue        integer
+) RETURNS       void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 66), pValue);
@@ -1080,9 +1080,9 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 80), 'ru', 'IncorrectRegist
 SELECT CreateExceptionResource(GetExceptionUUID(400, 80), 'en', 'IncorrectRegistryKey', 'Invalid key "%s". Valid keys: [%s]');
 
 CREATE OR REPLACE FUNCTION IncorrectRegistryKey (
-  pKey		text,
-  pArray	anyarray
-) RETURNS	void
+  pKey       text,
+  pArray     anyarray
+) RETURNS    void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 80), pKey, pArray);
@@ -1095,8 +1095,8 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 81), 'ru', 'IncorrectRegist
 SELECT CreateExceptionResource(GetExceptionUUID(400, 81), 'en', 'IncorrectRegistryDataType', 'Invalid data type: %s');
 
 CREATE OR REPLACE FUNCTION IncorrectRegistryDataType (
-  pType		integer
-) RETURNS	void
+  pType      integer
+) RETURNS    void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 81), pType);
@@ -1109,7 +1109,7 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 90), 'ru', 'RouteIsEmpty', 
 SELECT CreateExceptionResource(GetExceptionUUID(400, 90), 'en', 'RouteIsEmpty', 'Path must not be empty');
 
 CREATE OR REPLACE FUNCTION RouteIsEmpty (
-) RETURNS	void
+) RETURNS    void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 90);
@@ -1122,8 +1122,8 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 91), 'ru', 'RouteNotFound',
 SELECT CreateExceptionResource(GetExceptionUUID(400, 91), 'en', 'RouteNotFound', 'Route not found: %s');
 
 CREATE OR REPLACE FUNCTION RouteNotFound (
-  pRoute	text
-) RETURNS	void
+  pRoute     text
+) RETURNS    void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 91), pRoute);
@@ -1136,8 +1136,8 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 92), 'ru', 'EndPointNotSet'
 SELECT CreateExceptionResource(GetExceptionUUID(400, 92), 'en', 'EndPointNotSet', 'Endpoint not set for path: %s');
 
 CREATE OR REPLACE FUNCTION EndPointNotSet (
-  pPath		text
-) RETURNS	void
+  pPath      text
+) RETURNS    void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 92), pPath);

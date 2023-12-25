@@ -843,8 +843,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DoComplete (
-  pObject	uuid
-) RETURNS 	jsonb
+  pObject    uuid
+) RETURNS    jsonb
 AS $$
 BEGIN
   RETURN ExecuteObjectAction(pObject, GetAction('complete'));
@@ -858,8 +858,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DoFail (
-  pObject	uuid
-) RETURNS 	jsonb
+  pObject    uuid
+) RETURNS    jsonb
 AS $$
 BEGIN
   RETURN ExecuteObjectAction(pObject, GetAction('fail'));

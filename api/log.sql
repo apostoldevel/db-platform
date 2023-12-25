@@ -79,7 +79,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION NewApiLog (
-  pPath			text,
+  pPath         text,
   pJson         jsonb,
   pNonce        double precision DEFAULT null,
   pSignature    text DEFAULT null
@@ -117,8 +117,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DeleteApiLog (
-  pId		bigint
-) RETURNS	void
+  pId        bigint
+) RETURNS    void
 AS $$
 BEGIN
   DELETE FROM db.api_log WHERE id = pId;
@@ -132,8 +132,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION ClearApiLog (
-  pDateTime	timestamptz
-) RETURNS	void
+  pDateTime  timestamptz
+) RETURNS    void
 AS $$
 BEGIN
   DELETE FROM db.api_log WHERE datetime < pDateTime;

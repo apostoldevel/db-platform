@@ -160,10 +160,10 @@ $$ LANGUAGE plpgsql
  * @return {SETOF json}
  */
 CREATE OR REPLACE FUNCTION daemon.observer (
-  pPublisher	text,
-  pSession		varchar,
-  pIdentity		text,
-  pData			jsonb,
+  pPublisher    text,
+  pSession      varchar,
+  pIdentity     text,
+  pData         jsonb,
   pAgent        text DEFAULT null,
   pHost         inet DEFAULT null
 ) RETURNS       SETOF json
@@ -182,14 +182,14 @@ BEGIN
   SELECT userId INTO uUserId FROM db.session WHERE code = pSession;
 
   IF NOT FOUND OR current_userid() IS DISTINCT FROM uUserId THEN
-	IF SessionIn(pSession, pAgent, pHost) IS NULL THEN
-	  PERFORM AuthenticateError(GetErrorMessage());
-	END IF;
+    IF SessionIn(pSession, pAgent, pHost) IS NULL THEN
+      PERFORM AuthenticateError(GetErrorMessage());
+    END IF;
   END IF;
 
   FOR r IN SELECT * FROM EventListener(pPublisher, pSession, pIdentity, pData) AS data
   LOOP
-	RETURN NEXT r.data;
+    RETURN NEXT r.data;
   END LOOP;
 
   RETURN;
@@ -683,7 +683,7 @@ BEGIN
     IF uUserId IS NULL THEN
       SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(GetErrorMessage());
       RETURN json_build_object('error', json_build_object('code', 401, 'error', 'access_denied', 'message', ErrorMessage));
-	END IF;
+    END IF;
 
     response_type := pPayload->>'response_type';
     redirect_uri := pPayload->>'redirect_uri';
@@ -814,7 +814,7 @@ BEGIN
   token := TokenValidation(pToken);
 
   IF SessionIn(token->>'sub', pAgent, pHost) IS NULL THEN
-	PERFORM AuthenticateError(GetErrorMessage());
+    PERFORM AuthenticateError(GetErrorMessage());
   END IF;
 
   RETURN NEXT token;
@@ -851,8 +851,8 @@ $$ LANGUAGE plpgsql
  */
 CREATE OR REPLACE FUNCTION daemon.session_close (
   pToken        text,
-  pCloseAll		boolean DEFAULT false,
-  pMessage		text DEFAULT null
+  pCloseAll     boolean DEFAULT false,
+  pMessage      text DEFAULT null
 ) RETURNS       SETOF json
 AS $$
 DECLARE

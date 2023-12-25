@@ -192,11 +192,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetAddressTreeId (
-  pCode    	varchar
+  pCode     varchar
 ) RETURNS   integer
 AS $$
 DECLARE
-  nId		integer;
+  nId        integer;
 BEGIN
   SELECT id INTO nId FROM db.address_tree WHERE code = pCode;
 
@@ -211,12 +211,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetAddressTree (
-  pCode		varchar
+  pCode     varchar
 ) RETURNS   text[]
 AS $$
 DECLARE
   r         record;
-  arResult	text[];
+  arResult  text[];
 BEGIN
   FOR r IN (
     WITH RECURSIVE addr_tree(id, parent, name, level) AS (
@@ -243,16 +243,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetAddressTreeString (
-  pCode		varchar,       -- Код из справочника адресов
-  pShort	int DEFAULT 0, -- Сокращение: 0 - нет; 1 - слева; 2 - справа
-  pLevel	int DEFAULT 0  -- Ограничение уровня вложенности
+  pCode     varchar,       -- Код из справочника адресов
+  pShort    int DEFAULT 0, -- Сокращение: 0 - нет; 1 - слева; 2 - справа
+  pLevel    int DEFAULT 0  -- Ограничение уровня вложенности
 ) RETURNS   text
 AS $$
 DECLARE
   r         record;
-  sIndex	text;
-  sStr		text;
-  sResult	text;
+  sIndex    text;
+  sStr      text;
+  sResult   text;
 BEGIN
   FOR r IN (
     WITH RECURSIVE addr_tree(id, parent, index, name, short, level) AS (

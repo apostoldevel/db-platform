@@ -7,11 +7,11 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.path (
-    id			uuid PRIMARY KEY DEFAULT gen_kernel_uuid('8'),
+    id          uuid PRIMARY KEY DEFAULT gen_kernel_uuid('8'),
     root        uuid NOT NULL REFERENCES db.path(id),
-    parent		uuid REFERENCES db.path(id),
+    parent      uuid REFERENCES db.path(id),
     name        text NOT NULL,
-    level		integer NOT NULL
+    level       integer NOT NULL
 );
 
 COMMENT ON TABLE db.path IS 'API: Путь.';
@@ -55,8 +55,8 @@ CREATE TRIGGER t_path_insert
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.endpoint (
-    id			uuid PRIMARY KEY DEFAULT gen_kernel_uuid('8'),
-    definition	text NOT NULL
+    id            uuid PRIMARY KEY DEFAULT gen_kernel_uuid('8'),
+    definition    text NOT NULL
 );
 
 COMMENT ON TABLE db.endpoint IS 'API: Конечная точка.';
@@ -69,9 +69,9 @@ COMMENT ON COLUMN db.endpoint.definition IS 'PL/pgSQL код';
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.route (
-    method		text NOT NULL DEFAULT 'POST' CHECK (method IN ('GET', 'POST', 'PUT', 'DELETE')),
-    path       	uuid NOT NULL REFERENCES db.path(id),
-    endpoint	uuid NOT NULL REFERENCES db.endpoint(id),
+    method      text NOT NULL DEFAULT 'POST' CHECK (method IN ('GET', 'POST', 'PUT', 'DELETE')),
+    path        uuid NOT NULL REFERENCES db.path(id),
+    endpoint    uuid NOT NULL REFERENCES db.endpoint(id),
     PRIMARY KEY (method, path, endpoint)
 );
 

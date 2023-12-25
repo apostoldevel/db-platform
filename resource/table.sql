@@ -7,12 +7,12 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.resource (
-    id			    uuid PRIMARY KEY,
+    id              uuid PRIMARY KEY,
     root            uuid NOT NULL REFERENCES db.resource(id),
     node            uuid REFERENCES db.resource(id),
-    type			text NOT NULL,
+    type            text NOT NULL,
     level           integer NOT NULL,
-    sequence		integer NOT NULL
+    sequence        integer NOT NULL
 );
 
 COMMENT ON TABLE db.resource IS 'Ресурс.';
@@ -72,13 +72,13 @@ CREATE TRIGGER t_resource_before
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.resource_data (
-    resource		uuid NOT NULL REFERENCES db.resource(id) ON DELETE CASCADE,
-    locale		    uuid NOT NULL REFERENCES db.locale(id),
-    name			text,
-    description		text,
-    encoding		text,
-    data			text,
-    updated			timestamptz DEFAULT Now() NOT NULL,
+    resource        uuid NOT NULL REFERENCES db.resource(id) ON DELETE CASCADE,
+    locale          uuid NOT NULL REFERENCES db.locale(id),
+    name            text,
+    description     text,
+    encoding        text,
+    data            text,
+    updated         timestamptz DEFAULT Now() NOT NULL,
     PRIMARY KEY (resource, locale)
 );
 

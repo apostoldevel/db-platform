@@ -28,7 +28,7 @@ BEGIN
   pTables := array_cat(pTables, ARRAY['log', 'api_log', 'job', 'message', 'notification']);
 
   IF TG_TABLE_NAME = ANY (pTables) THEN
-	RETURN NULL;
+    RETURN NULL;
   END IF;
 
   IF (TG_OP = 'INSERT') THEN
@@ -55,12 +55,12 @@ BEGIN
     IF uObject IS NOT NULL THEN
       PERFORM FROM db.job WHERE id = uObject;
       IF FOUND THEN
-	    RETURN NULL;
+        RETURN NULL;
       END IF;
 
       PERFORM FROM db.message WHERE id = uObject;
       IF FOUND THEN
-	    RETURN NULL;
+        RETURN NULL;
       END IF;
     END IF;
 
@@ -86,12 +86,12 @@ BEGIN
     IF uObject IS NOT NULL THEN
       PERFORM FROM db.job WHERE id = uObject;
       IF FOUND THEN
-	    RETURN NULL;
+        RETURN NULL;
       END IF;
 
       PERFORM FROM db.message WHERE id = uObject;
       IF FOUND THEN
-	    RETURN NULL;
+        RETURN NULL;
       END IF;
     END IF;
 
@@ -102,29 +102,29 @@ BEGIN
       j := jsonb_build_object(r.key, r.value);
 
       IF r.key = ANY (arKeys) THEN
-	    jKey := coalesce(jKey, jsonb_build_object()) || j;
-	  END IF;
+        jKey := coalesce(jKey, jsonb_build_object()) || j;
+      END IF;
 
       IF NOT jOld @> j THEN
-	    jData := coalesce(jData, jsonb_build_object()) || j;
-	  END IF;
+        jData := coalesce(jData, jsonb_build_object()) || j;
+      END IF;
     END LOOP;
 
-	IF TG_TABLE_NAME = 'object_text' THEN
-	  jData := jData - 'searchable_en';
-	  jData := jData - 'searchable_ru';
-	END IF;
+    IF TG_TABLE_NAME = 'object_text' THEN
+      jData := jData - 'searchable_en';
+      jData := jData - 'searchable_ru';
+    END IF;
 
-	IF TG_TABLE_NAME = 'user' THEN
-	  jData := jData - 'status';
-	END IF;
+    IF TG_TABLE_NAME = 'user' THEN
+      jData := jData - 'status';
+    END IF;
 
-	IF TG_TABLE_NAME = 'profile' THEN
-	  jData := jData - 'input_count';
-	  jData := jData - 'input_last';
-	  jData := jData - 'lc_ip';
-	  jData := jData - 'state';
-	END IF;
+    IF TG_TABLE_NAME = 'profile' THEN
+      jData := jData - 'input_count';
+      jData := jData - 'input_last';
+      jData := jData - 'lc_ip';
+      jData := jData - 'state';
+    END IF;
 
     IF NULLIF(jData, jsonb_build_object()) IS NOT NULL THEN
       INSERT INTO replication.log(action, schema, name, key, data) SELECT 'U', TG_TABLE_SCHEMA, TG_TABLE_NAME, jKey, jData;
@@ -139,8 +139,8 @@ BEGIN
     FOR r IN SELECT * FROM jsonb_each(jOld)
     LOOP
       IF r.key = ANY (arKeys) THEN
-	    jKey := coalesce(jKey, jsonb_build_object()) || jsonb_build_object(r.key, r.value);
-	  END IF;
+        jKey := coalesce(jKey, jsonb_build_object()) || jsonb_build_object(r.key, r.value);
+      END IF;
     END LOOP;
 
     IF jKey IS NOT NULL THEN
@@ -254,7 +254,7 @@ BEGIN
   SELECT * INTO r FROM replication.relay WHERE source = pSource AND id = pId;
 
   IF NOT FOUND THEN
-	PERFORM NotFound();
+    PERFORM NotFound();
   END IF;
 
   EXECUTE format('ALTER TABLE %I.%I DISABLE TRIGGER USER', r.schema, r.name);
@@ -274,7 +274,7 @@ BEGIN
           FOR u IN SELECT * FROM jsonb_to_record(e.value) AS x(vtype int, vinteger int, vnumeric numeric, vdatetime timestamptz, vstring text, vboolean boolean)
           LOOP
             v := array_append(v, format('(%s, %L, %L, %L, %L, %L)::Variant', u.vtype, u.vinteger, u.vnumeric, u.vdatetime, u.vstring, u.vboolean));
-		  END LOOP;
+          END LOOP;
         ELSIF r.name = 'calendar' AND e.key IN ('holiday', 'dayoff', 'schedule') THEN
           FOR u IN SELECT * FROM jsonb_array_elements(e.value)
           LOOP
@@ -331,7 +331,7 @@ BEGIN
           FOR u IN SELECT * FROM jsonb_to_record(e.value) AS x(vtype int, vinteger int, vnumeric numeric, vdatetime timestamptz, vstring text, vboolean boolean)
           LOOP
             v := array_append(v, e.key || format(' = (%s, %L, %L, %L, %L, %L)::Variant', u.vtype, u.vinteger, u.vnumeric, u.vdatetime, u.vstring, u.vboolean));
-		  END LOOP;
+          END LOOP;
         ELSIF r.name = 'calendar' AND e.key IN ('holiday', 'dayoff', 'schedule') THEN
           FOR u IN SELECT * FROM jsonb_array_elements(e.value)
           LOOP
@@ -384,7 +384,7 @@ BEGIN
   UPDATE replication.relay SET state = 1, message = null WHERE source = pSource AND id = pId;
 
   IF r.proxy THEN
-	PERFORM replication.add_log(r.datetime, r.action, r.schema, r.name, r.key, r.data, r.source);
+    PERFORM replication.add_log(r.datetime, r.action, r.schema, r.name, r.key, r.data, r.source);
   END IF;
 EXCEPTION
 WHEN others THEN

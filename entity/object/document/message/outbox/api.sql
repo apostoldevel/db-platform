@@ -15,7 +15,7 @@ GRANT SELECT ON api.outbox TO apibot;
 
 CREATE OR REPLACE FUNCTION api.outbox (
   pState    uuid
-) RETURNS	SETOF api.outbox
+) RETURNS   SETOF api.outbox
 AS $$
   SELECT * FROM api.outbox WHERE state = pState;
 $$ LANGUAGE SQL
@@ -28,7 +28,7 @@ $$ LANGUAGE SQL
 
 CREATE OR REPLACE FUNCTION api.outbox (
   pState    text
-) RETURNS	SETOF api.outbox
+) RETURNS   SETOF api.outbox
 AS $$
   SELECT * FROM api.outbox(GetState(GetClass('outbox'), pState));
 $$ LANGUAGE SQL
@@ -58,7 +58,7 @@ CREATE OR REPLACE FUNCTION api.add_outbox (
   pProfile      text,
   pAddress      text,
   pSubject      text,
-  pContent		text,
+  pContent        text,
   pLabel        text default null,
   pDescription  text default null
 ) RETURNS       uuid
@@ -79,8 +79,8 @@ $$ LANGUAGE plpgsql
  * @return {api.outbox}
  */
 CREATE OR REPLACE FUNCTION api.get_outbox (
-  pId		uuid
-) RETURNS	SETOF api.outbox
+  pId        uuid
+) RETURNS    SETOF api.outbox
 AS $$
   SELECT * FROM api.outbox WHERE id = pId
 $$ LANGUAGE SQL
@@ -100,12 +100,12 @@ $$ LANGUAGE SQL
  * @return {SETOF api.outbox}
  */
 CREATE OR REPLACE FUNCTION api.list_outbox (
-  pSearch	jsonb DEFAULT null,
-  pFilter	jsonb DEFAULT null,
-  pLimit	integer DEFAULT null,
-  pOffSet	integer DEFAULT null,
-  pOrderBy	jsonb DEFAULT null
-) RETURNS	SETOF api.outbox
+  pSearch    jsonb DEFAULT null,
+  pFilter    jsonb DEFAULT null,
+  pLimit    integer DEFAULT null,
+  pOffSet    integer DEFAULT null,
+  pOrderBy    jsonb DEFAULT null
+) RETURNS    SETOF api.outbox
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'outbox', pSearch, pFilter, pLimit, pOffSet, pOrderBy);

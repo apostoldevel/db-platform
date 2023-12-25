@@ -8,18 +8,18 @@
  * @return {SETOF json} - Записи в JSON
  */
 CREATE OR REPLACE FUNCTION rest.api (
-  pPath     	text,
-  pPayload  	jsonb DEFAULT null
-) RETURNS   	SETOF json
+  pPath         text,
+  pPayload      jsonb DEFAULT null
+) RETURNS       SETOF json
 AS $$
 DECLARE
-  r         	record;
-  e         	record;
+  r             record;
+  e             record;
 
-  nKey      	integer;
-  arJson    	json[];
+  nKey          integer;
+  arJson        json[];
 
-  arKeys    	text[];
+  arKeys        text[];
 BEGIN
   IF NULLIF(pPath, '') IS NULL THEN
     PERFORM RouteIsEmpty();
@@ -28,11 +28,11 @@ BEGIN
   CASE lower(pPath)
   WHEN '/ping' THEN
 
-	RETURN NEXT json_build_object('error', json_build_object('code', 200, 'message', 'OK'));
+    RETURN NEXT json_build_object('error', json_build_object('code', 200, 'message', 'OK'));
 
   WHEN '/time' THEN
 
-	RETURN NEXT json_build_object('serverTime', trunc(extract(EPOCH FROM Now())));
+    RETURN NEXT json_build_object('serverTime', trunc(extract(EPOCH FROM Now())));
 
   WHEN '/authenticate' THEN
 
@@ -238,15 +238,15 @@ $$ LANGUAGE plpgsql
  * @return {SETOF json} - Записи в JSON
  */
 CREATE OR REPLACE FUNCTION rest.sign (
-  pPath     	text,
-  pPayload  	jsonb DEFAULT null
-) RETURNS   	SETOF json
+  pPath         text,
+  pPayload      jsonb DEFAULT null
+) RETURNS       SETOF json
 AS $$
 DECLARE
-  r         	record;
-  e         	record;
+  r             record;
+  e             record;
 
-  arKeys    	text[];
+  arKeys        text[];
 BEGIN
   IF NULLIF(pPath, '') IS NULL THEN
     PERFORM RouteIsEmpty();
@@ -262,10 +262,10 @@ BEGIN
     arKeys := array_cat(arKeys, GetRoutines('signin', 'api', false));
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-	FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(username text, password text, agent text, host inet)
-	LOOP
-	  RETURN NEXT row_to_json(api.signin(NULLIF(r.username, ''), NULLIF(r.password, ''), NULLIF(r.agent, ''), r.host));
-	END LOOP;
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(username text, password text, agent text, host inet)
+    LOOP
+      RETURN NEXT row_to_json(api.signin(NULLIF(r.username, ''), NULLIF(r.password, ''), NULLIF(r.agent, ''), r.host));
+    END LOOP;
 
   WHEN '/sign/up' THEN
 
@@ -276,10 +276,10 @@ BEGIN
     arKeys := array_cat(arKeys, GetRoutines('signup', 'api', false));
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-	FOR r IN EXECUTE format('SELECT row_to_json(api.signup(%s)) FROM jsonb_to_record($1) AS x(%s)', array_to_string(GetRoutines('signup', 'api', false, 'x'), ', '), array_to_string(GetRoutines('signup', 'api', true), ', ')) USING pPayload
-	LOOP
-	  RETURN NEXT r;
-	END LOOP;
+    FOR r IN EXECUTE format('SELECT row_to_json(api.signup(%s)) FROM jsonb_to_record($1) AS x(%s)', array_to_string(GetRoutines('signup', 'api', false, 'x'), ', '), array_to_string(GetRoutines('signup', 'api', true), ', ')) USING pPayload
+    LOOP
+      RETURN NEXT r;
+    END LOOP;
 
   WHEN '/sign/out' THEN
 
@@ -322,15 +322,15 @@ $$ LANGUAGE plpgsql
  * @return {SETOF json} - Записи в JSON
  */
 CREATE OR REPLACE FUNCTION rest.user (
-  pPath     	text,
-  pPayload  	jsonb DEFAULT null
-) RETURNS   	SETOF json
+  pPath         text,
+  pPayload      jsonb DEFAULT null
+) RETURNS       SETOF json
 AS $$
 DECLARE
-  r         	record;
-  e         	record;
+  r             record;
+  e             record;
 
-  arKeys    	text[];
+  arKeys        text[];
 BEGIN
   IF NULLIF(pPath, '') IS NULL THEN
     PERFORM RouteIsEmpty();

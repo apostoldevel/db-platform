@@ -116,8 +116,8 @@ $$ LANGUAGE plpgsql
  * @return {api.report_form}
  */
 CREATE OR REPLACE FUNCTION api.get_report_form (
-  pId		uuid
-) RETURNS	api.report_form
+  pId        uuid
+) RETURNS    api.report_form
 AS $$
   SELECT * FROM api.report_form WHERE id = pId
 $$ LANGUAGE SQL
@@ -137,12 +137,12 @@ $$ LANGUAGE SQL
  * @return {SETOF api.report_form}
  */
 CREATE OR REPLACE FUNCTION api.list_report_form (
-  pSearch	jsonb default null,
-  pFilter	jsonb default null,
-  pLimit	integer default null,
-  pOffSet	integer default null,
-  pOrderBy	jsonb default null
-) RETURNS	SETOF api.report_form
+  pSearch   jsonb default null,
+  pFilter   jsonb default null,
+  pLimit    integer default null,
+  pOffSet   integer default null,
+  pOrderBy  jsonb default null
+) RETURNS   SETOF api.report_form
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'report_form', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
@@ -162,7 +162,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.build_report_form (
   pId       uuid,
   pParams   json
-) RETURNS	json
+) RETURNS   json
 AS $$
 DECLARE
   uForm     uuid;
@@ -172,8 +172,8 @@ BEGIN
   IF NOT FOUND THEN
     SELECT form INTO uForm FROM db.report WHERE id = pId;
     IF NOT FOUND THEN
-	  PERFORM NotFound();
-	END IF;
+      PERFORM NotFound();
+    END IF;
   END IF;
 
   RETURN BuildReportForm(uForm, pParams);

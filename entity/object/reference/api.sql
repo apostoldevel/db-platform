@@ -27,8 +27,8 @@ GRANT SELECT ON api.reference TO administrator;
 CREATE OR REPLACE FUNCTION api.add_reference (
   pParent       uuid,
   pType         uuid,
-  pCode			text,
-  pName			text,
+  pCode         text,
+  pName         text,
   pDescription  text DEFAULT null
 ) RETURNS       uuid
 AS $$

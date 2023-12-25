@@ -7,14 +7,14 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.notification (
-    id			uuid PRIMARY KEY DEFAULT gen_kernel_uuid('8'),
-    entity		uuid NOT NULL REFERENCES db.entity(id) ON DELETE CASCADE,
-    class		uuid NOT NULL REFERENCES db.class_tree(id) ON DELETE CASCADE,
-    action		uuid NOT NULL REFERENCES db.action(id) ON DELETE CASCADE,
-    method		uuid NOT NULL REFERENCES db.method(id) ON DELETE CASCADE,
+    id          uuid PRIMARY KEY DEFAULT gen_kernel_uuid('8'),
+    entity      uuid NOT NULL REFERENCES db.entity(id) ON DELETE CASCADE,
+    class       uuid NOT NULL REFERENCES db.class_tree(id) ON DELETE CASCADE,
+    action      uuid NOT NULL REFERENCES db.action(id) ON DELETE CASCADE,
+    method      uuid NOT NULL REFERENCES db.method(id) ON DELETE CASCADE,
     state_old   uuid REFERENCES db.state(id) ON DELETE CASCADE,
     state_new   uuid REFERENCES db.state(id) ON DELETE CASCADE,
-    object		uuid NOT NULL REFERENCES db.object(id) ON DELETE CASCADE,
+    object      uuid NOT NULL REFERENCES db.object(id) ON DELETE CASCADE,
     userid      uuid NOT NULL REFERENCES db.user(id) ON DELETE CASCADE,
     datetime    timestamptz NOT NULL DEFAULT Now()
 );
@@ -60,14 +60,14 @@ BEGIN
     vAction := GetActionCode(NEW.action);
 
     IF vClass = 'inbox' THEN
-	  IF vAction = 'create' THEN
+      IF vAction = 'create' THEN
         PERFORM pg_notify('inbox', NEW.object::text);
       END IF;
     ELSIF vClass = 'outbox' THEN
-	  IF vAction = 'submit' OR vAction = 'repeat' THEN
+      IF vAction = 'submit' OR vAction = 'repeat' THEN
         PERFORM pg_notify('outbox', NEW.object::text);
       END IF;
-	END IF;
+    END IF;
 
   ELSIF vEntity = 'report_ready' THEN
 

@@ -7,13 +7,13 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION NormalizeFileName (
-  pName		text,
+  pName     text,
   pLink     boolean DEFAULT false
-) RETURNS	text
+) RETURNS   text
 AS $$
 BEGIN
   IF StrPos(pName, '/') != 0 THEN
-	RAISE EXCEPTION 'ERR-40000: Invalid file name: %', pName;
+    RAISE EXCEPTION 'ERR-40000: Invalid file name: %', pName;
   END IF;
 
   IF pLink THEN
@@ -31,16 +31,16 @@ $$ LANGUAGE plpgsql IMMUTABLE
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION NormalizeFilePath (
-  pPath		text,
+  pPath     text,
   pLink     boolean DEFAULT false
-) RETURNS	text
+) RETURNS   text
 AS $$
 DECLARE
   i         int;
   arPath    text[];
 BEGIN
   IF SubStr(pPath, 1, 1) = '.' OR StrPos(pPath, '..') != 0 THEN
-	RAISE EXCEPTION 'ERR-40000: Invalid file path: %', pPath;
+    RAISE EXCEPTION 'ERR-40000: Invalid file path: %', pPath;
   END IF;
 
   IF pPath = '~/' THEN
@@ -57,9 +57,9 @@ BEGIN
   FOR i IN 1..array_length(arPath, 1)
   LOOP
     IF pLink THEN
-	  pPath := concat(pPath, URLEncode(arPath[i]), '/');
-	ELSE
-	  pPath := concat(pPath, arPath[i], '/');
+      pPath := concat(pPath, URLEncode(arPath[i]), '/');
+    ELSE
+      pPath := concat(pPath, arPath[i], '/');
     END IF;
   END LOOP;
 
@@ -74,12 +74,12 @@ $$ LANGUAGE plpgsql IMMUTABLE
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CollectFilePath (
-  pId		uuid
-) RETURNS	text
+  pId        uuid
+) RETURNS    text
 AS $$
 DECLARE
-  r		    record;
-  vPath		text;
+  r          record;
+  vPath      text;
 BEGIN
   FOR r IN
     WITH RECURSIVE tree(id, parent, name) AS (
@@ -122,11 +122,11 @@ CREATE OR REPLACE FUNCTION NewFile (
   pMime     text DEFAULT null,
   pText     text DEFAULT null,
   pHash     text DEFAULT null
-) RETURNS	uuid
+) RETURNS   uuid
 AS $$
 DECLARE
   uId       uuid;
-  nLevel	integer;
+  nLevel    integer;
 BEGIN
   nLevel := 0;
   pParent := coalesce(pParent, pRoot);
@@ -163,7 +163,7 @@ CREATE OR REPLACE FUNCTION AddFile (
   pMime     text DEFAULT null,
   pText     text DEFAULT null,
   pHash     text DEFAULT null
-) RETURNS	uuid
+) RETURNS   uuid
 AS $$
 BEGIN
   RETURN NewFile(null, pRoot, pParent, pName, pType, pOwner, pMask, pLink, pSize, pDate, pData, pMime, pText, pHash);
@@ -190,7 +190,7 @@ CREATE OR REPLACE FUNCTION EditFile (
   pMime     text DEFAULT null,
   pText     text DEFAULT null,
   pHash     text DEFAULT null
-) RETURNS	bool
+) RETURNS   bool
 AS $$
 BEGIN
   UPDATE db.file
@@ -233,7 +233,7 @@ CREATE OR REPLACE FUNCTION SetFile (
   pMime     text DEFAULT null,
   pText     text DEFAULT null,
   pHash     text DEFAULT null
-) RETURNS	uuid
+) RETURNS   uuid
 AS $$
 BEGIN
   IF pId IS NULL THEN
@@ -254,7 +254,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION DeleteFile (
   pId       uuid
-) RETURNS	boolean
+) RETURNS   boolean
 AS $$
 BEGIN
   DELETE FROM db.file WHERE id = pId;
@@ -269,11 +269,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DeleteFiles (
-  pId		uuid
-) RETURNS	void
+  pId        uuid
+) RETURNS    void
 AS $$
 DECLARE
-  r		    record;
+  r          record;
 BEGIN
   FOR r IN SELECT id FROM db.file WHERE parent = pId
   LOOP
@@ -291,12 +291,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetFile (
-  pParent		uuid,
-  pName			text
-) RETURNS		uuid
+  pParent        uuid,
+  pName          text
+) RETURNS        uuid
 AS $$
 DECLARE
-  uId			uuid;
+  uId            uuid;
 BEGIN
   IF pParent IS NULL THEN
     SELECT id INTO uId FROM db.file WHERE parent IS NULL AND name = pName;
@@ -317,7 +317,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION GetFile (
   pName     text,
   pPath     text
-) RETURNS	uuid
+) RETURNS   uuid
 AS $$
   SELECT id FROM db.file WHERE path = pPath AND name = pName;
 $$ LANGUAGE sql
@@ -329,10 +329,10 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION NewFilePath (
-  pPath			text,
+  pPath         text,
   pRoot         uuid DEFAULT null,
   pOwner        uuid DEFAULT null
-) RETURNS		uuid
+) RETURNS       uuid
 AS $$
 DECLARE
   uId			uuid;

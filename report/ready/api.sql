@@ -17,19 +17,19 @@ GRANT SELECT ON api.report_ready TO administrator;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.report_ready (
-  pStateType	uuid,
+  pStateType    uuid,
   OUT id        uuid,
   OUT typecode  text,
   OUT statecode text,
   OUT created   timestamptz
-) RETURNS		SETOF record
+) RETURNS       SETOF record
 AS $$
   SELECT r.id, t.code, s.code, o.pdate
     FROM db.report_ready r INNER JOIN db.object  o ON r.document = o.id
                            INNER JOIN db.type    t ON o.type = t.id
                            INNER JOIN db.state   s ON o.state = s.id
-	 WHERE o.state_type = pStateType
-	   AND o.scope = current_scope();
+     WHERE o.state_type = pStateType
+       AND o.scope = current_scope();
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -39,12 +39,12 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.report_ready (
-  pStateType	text DEFAULT 'enabled',
+  pStateType    text DEFAULT 'enabled',
   OUT id        uuid,
   OUT typecode  text,
   OUT statecode text,
   OUT created   timestamptz
-) RETURNS		SETOF record
+) RETURNS       SETOF record
 AS $$
   SELECT * FROM api.report_ready(GetStateType(pStateType));
 $$ LANGUAGE SQL
@@ -201,7 +201,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.build_report (
   pReport   uuid,
   pForm     jsonb
-) RETURNS	SETOF api.report_ready
+) RETURNS   SETOF api.report_ready
 AS $$
 DECLARE
   uId       uuid;
@@ -223,7 +223,7 @@ $$ LANGUAGE plpgsql
  */
 CREATE OR REPLACE FUNCTION api.execute_report_ready (
   pId       uuid
-) RETURNS	void
+) RETURNS   void
 AS $$
 BEGIN
   PERFORM ExecuteReportReady(pId);

@@ -16,7 +16,7 @@ WITH RECURSIVE area_tree(id, parent) AS (
   SELECT id, parent, 0 AS level FROM db.area WHERE parent IS NULL
   UNION
   SELECT a.id, a.parent, t.level + 1
-	FROM db.area a, area_tree t
+    FROM db.area a, area_tree t
    WHERE t.id = a.parent
   ) UPDATE db.area r SET level = at.level FROM area_tree at WHERE r.id = at.id;
 
@@ -33,8 +33,8 @@ SELECT SignOut();
 UPDATE db.area SET sequence = 1 WHERE parent IS NULL;
 
 ALTER TABLE db.area
-	ALTER COLUMN level SET NOT NULL,
-	ALTER COLUMN sequence SET NOT NULL;
+    ALTER COLUMN level SET NOT NULL,
+    ALTER COLUMN sequence SET NOT NULL;
 
 COMMENT ON COLUMN db.area.level IS 'Уровень вложенности.';
 COMMENT ON COLUMN db.area.sequence IS 'Очерёдность';

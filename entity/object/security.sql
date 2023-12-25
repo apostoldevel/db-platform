@@ -51,9 +51,9 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetObjectMask (
-  pObject	uuid,
-  pUserId	uuid DEFAULT current_userid()
-) RETURNS	bit
+  pObject    uuid,
+  pUserId    uuid DEFAULT current_userid()
+) RETURNS    bit
 AS $$
   SELECT CASE
          WHEN pUserId = o.owner THEN SubString(mask FROM 1 FOR 3)
@@ -71,9 +71,9 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetObjectAccessMask (
-  pObject	uuid,
-  pUserId	uuid DEFAULT current_userid()
-) RETURNS	bit
+  pObject    uuid,
+  pUserId    uuid DEFAULT current_userid()
+) RETURNS    bit
 AS $$
   SELECT mask FROM aou(pUserId, pObject)
 $$ LANGUAGE SQL
@@ -85,10 +85,10 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CheckObjectAccess (
-  pObject	uuid,
-  pMask		bit,
-  pUserId	uuid DEFAULT current_userid()
-) RETURNS	boolean
+  pObject    uuid,
+  pMask      bit,
+  pUserId    uuid DEFAULT current_userid()
+) RETURNS    boolean
 AS $$
 BEGIN
   RETURN coalesce(coalesce(GetObjectAccessMask(pObject, pUserId), GetObjectMask(pObject, pUserId)) & pMask = pMask, false);
@@ -102,15 +102,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DecodeObjectAccess (
-  pObject	uuid,
-  pUserId	uuid DEFAULT current_userid(),
-  OUT s		boolean,
-  OUT u		boolean,
-  OUT d		boolean
-) RETURNS 	record
+  pObject    uuid,
+  pUserId    uuid DEFAULT current_userid(),
+  OUT s      boolean,
+  OUT u      boolean,
+  OUT d      boolean
+) RETURNS    record
 AS $$
 DECLARE
-  bMask		bit(3);
+  bMask        bit(3);
 BEGIN
   bMask := coalesce(GetObjectAccessMask(pObject, pUserId), GetObjectMask(pObject, pUserId));
 
@@ -127,10 +127,10 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetObjectMethodAccessMask (
-  pObject	uuid,
-  pMethod	uuid,
-  pUserId	uuid default current_userid()
-) RETURNS	bit
+  pObject    uuid,
+  pMethod    uuid,
+  pUserId    uuid default current_userid()
+) RETURNS    bit
 AS $$
   SELECT mask FROM db.oma WHERE object = pObject AND method = pMethod AND userid = pUserId
 $$ LANGUAGE SQL
@@ -142,23 +142,23 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CheckObjectMethodAccess (
-  pObject	uuid,
-  pMethod	uuid,
-  pMask		bit,
-  pUserId	uuid default current_userid()
-) RETURNS	boolean
+  pObject    uuid,
+  pMethod    uuid,
+  pMask      bit,
+  pUserId    uuid default current_userid()
+) RETURNS    boolean
 AS $$
 BEGIN
   PERFORM FROM db.oma WHERE object = pObject AND method = pMethod AND userid = pUserId;
 
   IF NOT FOUND THEN
-	WITH access AS (
-	  SELECT method, bit_or(allow) & ~bit_or(deny) AS mask
-		FROM db.amu
-	   WHERE method = pMethod
-		 AND userid IN (SELECT pUserId UNION SELECT userid FROM db.member_group WHERE member = pUserId)
-	   GROUP BY method
-	) INSERT INTO db.oma SELECT pObject, pMethod, pUserId, mask FROM access ON CONFLICT (object, method, userid) DO NOTHING;
+    WITH access AS (
+      SELECT method, bit_or(allow) & ~bit_or(deny) AS mask
+        FROM db.amu
+       WHERE method = pMethod
+         AND userid IN (SELECT pUserId UNION SELECT userid FROM db.member_group WHERE member = pUserId)
+       GROUP BY method
+    ) INSERT INTO db.oma SELECT pObject, pMethod, pUserId, mask FROM access ON CONFLICT (object, method, userid) DO NOTHING;
   END IF;
 
   RETURN coalesce(GetObjectMethodAccessMask(pObject, pMethod, pUserId) & pMask = pMask, false);
@@ -172,8 +172,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AccessObjectUser (
-  pEntity	uuid,
-  pUserId	uuid DEFAULT current_userid()
+  pEntity    uuid,
+  pUserId    uuid DEFAULT current_userid()
 ) RETURNS TABLE (
     object  uuid
 )
@@ -224,8 +224,8 @@ BEGIN
     bDeny := coalesce(SubString(pMask FROM 1 FOR 3), B'000');
     bAllow := coalesce(SubString(pMask FROM 4 FOR 3), B'000');
 
-	INSERT INTO db.aou SELECT pObject, pUserId, bDeny, bAllow
-	  ON CONFLICT (object, userid) DO UPDATE SET deny = bDeny, allow = bAllow;
+    INSERT INTO db.aou SELECT pObject, pUserId, bDeny, bAllow
+      ON CONFLICT (object, userid) DO UPDATE SET deny = bDeny, allow = bAllow;
   ELSE
     DELETE FROM db.aou WHERE object = pObject AND userid = pUserId;
   END IF;

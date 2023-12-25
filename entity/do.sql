@@ -11,13 +11,13 @@
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION DoConfirmEmail (
-  pUserId		uuid
+  pUserId       uuid
 ) RETURNS       void
 AS $$
 DECLARE
-  uId			uuid;
-  uArea			uuid;
-  uSave			uuid;
+  uId           uuid;
+  uArea         uuid;
+  uSave         uuid;
 BEGIN
   SELECT c.id, d.area INTO uId, uArea
     FROM db.client c INNER JOIN db.document d ON c.document = d.id
@@ -30,11 +30,11 @@ BEGIN
 
     IF IsCreated(uId) THEN
       PERFORM DoEnable(uId);
-	END IF;
+    END IF;
 
     IF IsEnabled(uId) THEN
-	  PERFORM ExecuteObjectAction(uId, GetAction('confirm'));
-	END IF;
+      PERFORM ExecuteObjectAction(uId, GetAction('confirm'));
+    END IF;
 
     PERFORM SetSessionArea(uSave);
   END IF;
@@ -52,13 +52,13 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION DoConfirmPhone (
-  pUserId		uuid
+  pUserId       uuid
 ) RETURNS       void
 AS $$
 DECLARE
-  uId			uuid;
-  uArea			uuid;
-  uSave			uuid;
+  uId           uuid;
+  uArea         uuid;
+  uSave         uuid;
 BEGIN
   SELECT c.id, d.area INTO uId, uArea
     FROM db.client c INNER JOIN db.document d ON c.document = d.id
@@ -71,11 +71,11 @@ BEGIN
 
     IF IsCreated(uId) THEN
       PERFORM DoEnable(uId);
-	END IF;
+    END IF;
 
     IF IsEnabled(uId) THEN
-	  PERFORM ExecuteObjectAction(uId, GetAction('confirm'));
-	END IF;
+      PERFORM ExecuteObjectAction(uId, GetAction('confirm'));
+    END IF;
 
     PERFORM SetSessionArea(uSave);
   END IF;
@@ -93,23 +93,23 @@ $$ LANGUAGE plpgsql
  * @return {text[]}
  */
 CREATE OR REPLACE FUNCTION DoFCMTokens (
-  pUserId		uuid
+  pUserId       uuid
 ) RETURNS       text[]
 AS $$
 DECLARE
-  r				record;
-  result		text[];
-  uClient		uuid;
+  r             record;
+  result        text[];
+  uClient       uuid;
 BEGIN
   SELECT c.id INTO uClient FROM db.client c WHERE c.userid = pUserId;
 
   IF NOT FOUND THEN
     result := array_append(result, RegGetValueString('CURRENT_USER', 'CONFIG\Firebase\CloudMessaging', 'Token', pUserId));
   ELSE
-	FOR r IN SELECT address FROM db.device WHERE client = uClient AND IsEnabled(id)
-	LOOP
+    FOR r IN SELECT address FROM db.device WHERE client = uClient AND IsEnabled(id)
+    LOOP
       result := array_append(result, r.address);
-	END LOOP;
+    END LOOP;
   END IF;
 
   RETURN result;

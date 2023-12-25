@@ -44,10 +44,10 @@ $$ LANGUAGE SQL
 CREATE OR REPLACE FUNCTION api.list_address_tree (
   pSearch   jsonb DEFAULT null,
   pFilter   jsonb DEFAULT null,
-  pLimit	integer DEFAULT null,
-  pOffSet	integer DEFAULT null,
-  pOrderBy	jsonb DEFAULT null
-) RETURNS	SETOF api.address_tree
+  pLimit    integer DEFAULT null,
+  pOffSet   integer DEFAULT null,
+  pOrderBy  jsonb DEFAULT null
+) RETURNS   SETOF api.address_tree
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'address_tree', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
@@ -65,8 +65,8 @@ $$ LANGUAGE plpgsql
  * @return {SETOF api.address_tree}
  */
 CREATE OR REPLACE FUNCTION api.get_address_tree_history (
-  pId		integer
-) RETURNS	SETOF api.address_tree
+  pId        integer
+) RETURNS    SETOF api.address_tree
 AS $$
   WITH RECURSIVE addr_tree(id, parent, code, name, short, index, level) AS (
     SELECT id, parent, code, name, short, index, level FROM db.address_tree WHERE id = pId
@@ -91,9 +91,9 @@ $$ LANGUAGE SQL
  * @return {text}
  */
 CREATE OR REPLACE FUNCTION api.get_address_tree_string (
-  pCode		    varchar,
-  pShort	    integer DEFAULT 0,
-  pLevel	    integer DEFAULT 0
+  pCode         varchar,
+  pShort        integer DEFAULT 0,
+  pLevel        integer DEFAULT 0
 ) RETURNS       text
 AS $$
 BEGIN

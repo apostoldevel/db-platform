@@ -6,7 +6,7 @@ CREATE OR REPLACE FUNCTION NewReferenceText (
   pReference    uuid,
   pName         text,
   pDescription  text DEFAULT null,
-  pLocale		uuid DEFAULT current_locale()
+  pLocale       uuid DEFAULT current_locale()
 ) RETURNS       void
 AS $$
 BEGIN
@@ -25,7 +25,7 @@ CREATE OR REPLACE FUNCTION EditReferenceText (
   pReference    uuid,
   pName         text,
   pDescription  text DEFAULT null,
-  pLocale		uuid DEFAULT null
+  pLocale       uuid DEFAULT null
 ) RETURNS       void
 AS $$
 BEGIN
@@ -52,11 +52,11 @@ CREATE OR REPLACE FUNCTION CreateReference (
   pCode         text,
   pName         text,
   pDescription  text DEFAULT null,
-  pLocale		uuid DEFAULT null
+  pLocale       uuid DEFAULT null
 ) RETURNS       uuid
 AS $$
 DECLARE
-  l				record;
+  l             record;
 
   uObject       uuid;
   uEntity       uuid;
@@ -72,10 +72,10 @@ BEGIN
   RETURNING id INTO uObject;
 
   IF pLocale IS NULL THEN
-	FOR l IN SELECT id FROM db.locale
-	LOOP
-	  PERFORM NewReferenceText(uObject, pName, pDescription, l.id);
-	END LOOP;
+    FOR l IN SELECT id FROM db.locale
+    LOOP
+      PERFORM NewReferenceText(uObject, pName, pDescription, l.id);
+    END LOOP;
   ELSE
     PERFORM NewReferenceText(uObject, pName, pDescription, pLocale);
   END IF;
@@ -97,11 +97,11 @@ CREATE OR REPLACE FUNCTION EditReference (
   pCode         text DEFAULT null,
   pName         text DEFAULT null,
   pDescription  text DEFAULT null,
-  pLocale		uuid DEFAULT null
+  pLocale       uuid DEFAULT null
 ) RETURNS       void
 AS $$
 DECLARE
-  l				record;
+  l             record;
 BEGIN
   PERFORM EditObject(pId, pParent, pType, pName, pDescription, pLocale);
 
@@ -111,10 +111,10 @@ BEGIN
    WHERE id = pId;
 
   IF pLocale IS NULL THEN
-	FOR l IN SELECT id FROM db.locale
-	LOOP
-	  PERFORM EditReferenceText(pId, pName, pDescription, l.id);
-	END LOOP;
+    FOR l IN SELECT id FROM db.locale
+    LOOP
+      PERFORM EditReferenceText(pId, pName, pDescription, l.id);
+    END LOOP;
   ELSE
     PERFORM EditReferenceText(pId, pName, pDescription, pLocale);
   END IF;
@@ -130,7 +130,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION GetReference (
   pEntity       uuid,
   pCode         text,
-  pScope		uuid DEFAULT current_scope()
+  pScope        uuid DEFAULT current_scope()
 ) RETURNS       uuid
 AS $$
   SELECT id FROM db.reference WHERE scope = pScope AND entity = pEntity AND code = pCode;
@@ -173,7 +173,7 @@ $$ LANGUAGE sql
 
 CREATE OR REPLACE FUNCTION GetReferenceName (
   pId           uuid,
-  pLocale		uuid DEFAULT current_locale()
+  pLocale       uuid DEFAULT current_locale()
 ) RETURNS       text
 AS $$
   SELECT name FROM db.reference_text WHERE reference = pId AND locale = pLocale;

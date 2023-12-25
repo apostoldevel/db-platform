@@ -17,11 +17,11 @@ CREATE OR REPLACE FUNCTION CreateAgent (
   pVendor       uuid,
   pCode         text,
   pName         text,
-  pDescription	text default null
+  pDescription  text default null
 ) RETURNS       uuid
 AS $$
 DECLARE
-  uReference	uuid;
+  uReference    uuid;
   uClass        uuid;
   uMethod       uuid;
 BEGIN
@@ -66,7 +66,7 @@ CREATE OR REPLACE FUNCTION EditAgent (
   pVendor       uuid default null,
   pCode         text default null,
   pName         text default null,
-  pDescription	text default null
+  pDescription  text default null
 ) RETURNS       void
 AS $$
 DECLARE
@@ -93,8 +93,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetAgent (
-  pCode		text
-) RETURNS 	uuid
+  pCode       text
+) RETURNS     uuid
 AS $$
 BEGIN
   RETURN GetReference(pCode, 'agent');
@@ -108,8 +108,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetAgentCode (
-  pId		uuid
-) RETURNS 	text
+  pId        uuid
+) RETURNS    text
 AS $$
 BEGIN
   RETURN GetReferenceCode(pId);
@@ -124,7 +124,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION GetAgentVendor (
   pId       uuid
-) RETURNS 	uuid
+) RETURNS   uuid
 AS $$
   SELECT vendor FROM db.agent WHERE id = pId;
 $$ LANGUAGE SQL

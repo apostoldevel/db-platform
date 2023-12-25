@@ -3,7 +3,7 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION InitAPI()
-RETURNS			void
+RETURNS            void
 AS $$
 BEGIN
   PERFORM RegisterRoute(null, AddEndpoint('SELECT * FROM rest.api($1, $2);'));

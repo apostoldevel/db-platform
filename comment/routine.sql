@@ -12,16 +12,16 @@
  * @return {uuid} - Идентификатор комментария
  */
 CREATE OR REPLACE FUNCTION CreateComment (
-  pParent		uuid,
-  pObject		uuid,
-  pOwner		uuid,
-  pPriority		integer,
-  pText			text,
+  pParent       uuid,
+  pObject       uuid,
+  pOwner        uuid,
+  pPriority     integer,
+  pText         text,
   pData         jsonb default null
-) RETURNS		uuid
+) RETURNS       uuid
 AS $$
 DECLARE
-  uComment		uuid;
+  uComment      uuid;
 BEGIN
   INSERT INTO db.comment (parent, object, owner, priority, text, data)
   VALUES (pParent, pObject, pOwner, coalesce(pPriority, 0), pText, pData)
@@ -45,11 +45,11 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION EditComment (
-  pId			uuid,
-  pPriority		integer default null,
-  pText			text default null,
+  pId           uuid,
+  pPriority     integer default null,
+  pText         text default null,
   pData         jsonb default null
-) RETURNS		void
+) RETURNS       void
 AS $$
 BEGIN
   UPDATE db.comment
@@ -71,8 +71,8 @@ $$ LANGUAGE plpgsql
  * @return {boolean}
  */
 CREATE OR REPLACE FUNCTION DeleteComment (
-  pId			uuid
-) RETURNS		boolean
+  pId           uuid
+) RETURNS    	boolean
 AS $$
 BEGIN
   DELETE FROM db.comment WHERE id = pId;

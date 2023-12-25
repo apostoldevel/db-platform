@@ -23,7 +23,7 @@ CREATE UNIQUE INDEX ON db.scope (code);
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.scope_alias (
-    scope	        uuid NOT NULL REFERENCES db.scope(id) ON DELETE CASCADE,
+    scope           uuid NOT NULL REFERENCES db.scope(id) ON DELETE CASCADE,
     code            text NOT NULL,
     PRIMARY KEY (scope, code)
 );
@@ -67,7 +67,7 @@ CREATE TABLE db.area (
     name            text NOT NULL,
     description     text,
     level           integer NOT NULL,
-    sequence		integer NOT NULL,
+    sequence        integer NOT NULL,
     validFromDate   timestamp DEFAULT Now() NOT NULL,
     validToDate     timestamp DEFAULT TO_DATE('4433-12-31', 'YYYY-MM-DD') NOT NULL
 );
@@ -95,10 +95,10 @@ CREATE UNIQUE INDEX ON db.area (scope, code);
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION db.ft_area_before_insert()
-RETURNS	trigger AS $$
+RETURNS    trigger AS $$
 BEGIN
   IF NEW.id IS NULL THEN
-	NEW.id := gen_kernel_uuid('8');
+    NEW.id := gen_kernel_uuid('8');
   END IF;
 
   IF NEW.scope IS NULL THEN
@@ -145,14 +145,14 @@ COMMENT ON COLUMN db.interface.description IS 'Описание';
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.user (
-    id					uuid PRIMARY KEY,
-    type				char NOT NULL,
-    username			text NOT NULL,
-    name				text NOT NULL,
-    phone				text,
-    email				text,
-    description			text,
-    secret				bytea NOT NULL,
+    id                  uuid PRIMARY KEY,
+    type                char NOT NULL,
+    username            text NOT NULL,
+    name                text NOT NULL,
+    phone               text,
+    email               text,
+    description         text,
+    secret    			bytea NOT NULL,
     hash				text NOT NULL,
     status				bit(4) DEFAULT B'0001' NOT NULL,
     created             timestamp DEFAULT Now() NOT NULL,

@@ -188,10 +188,10 @@ CREATE OR REPLACE VIEW AccessMethod (Id, Parent,
 )
 AS
   WITH _access AS (
-	SELECT a.method, bit_or(a.allow) & ~bit_or(a.deny) AS mask
-	  FROM db.amu a
-	 WHERE userid IN (SELECT current_userid() UNION SELECT userid FROM db.member_group WHERE member = current_userid())
-	 GROUP BY a.method
+    SELECT a.method, bit_or(a.allow) & ~bit_or(a.deny) AS mask
+      FROM db.amu a
+     WHERE userid IN (SELECT current_userid() UNION SELECT userid FROM db.member_group WHERE member = current_userid())
+     GROUP BY a.method
   )
   SELECT m.id, m.parent,
          c.entity, e.code, et.name,

@@ -30,14 +30,14 @@ GRANT SELECT ON all_col_comments TO PUBLIC;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION get_columns (
-  pTable	text,
-  pSchema	text DEFAULT current_schema(),
-  pAlias	text DEFAULT null
-) RETURNS	text[]
+  pTable    text,
+  pSchema   text DEFAULT current_schema(),
+  pAlias    text DEFAULT null
+) RETURNS   text[]
 AS $$
 DECLARE
-  arResult	text[];
-  r			record;
+  arResult  text[];
+  r         record;
 BEGIN
   FOR r IN
     SELECT column_name
@@ -62,10 +62,10 @@ GRANT EXECUTE ON FUNCTION get_columns(text, text, text) TO PUBLIC;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetColumns (
-  pTable	text,
-  pSchema	text DEFAULT current_schema(),
-  pAlias	text DEFAULT null
-) RETURNS	text[]
+  pTable    text,
+  pSchema   text DEFAULT current_schema(),
+  pAlias    text DEFAULT null
+) RETURNS   text[]
 AS $$
 BEGIN
   RETURN get_columns(pTable, pSchema, pAlias);
@@ -82,11 +82,11 @@ GRANT EXECUTE ON FUNCTION GetColumns(text, text, text) TO PUBLIC;
 
 CREATE OR REPLACE FUNCTION get_routines (
   pRoutine      text,
-  pSchema	    text DEFAULT current_schema(),
-  pDataType 	boolean DEFAULT false,
-  pAlias	    text DEFAULT null,
+  pSchema       text DEFAULT current_schema(),
+  pDataType     boolean DEFAULT false,
+  pAlias        text DEFAULT null,
   pNameFrom     int DEFAULT 2
-) RETURNS	    text[]
+) RETURNS       text[]
 AS $$
 DECLARE
   r             record;
@@ -121,11 +121,11 @@ GRANT EXECUTE ON FUNCTION get_routines(text, text, boolean, text, int) TO PUBLIC
 
 CREATE OR REPLACE FUNCTION GetRoutines (
   pRoutine      text,
-  pSchema	    text DEFAULT current_schema(),
-  pDataType 	boolean DEFAULT false,
-  pAlias	    text DEFAULT null,
+  pSchema       text DEFAULT current_schema(),
+  pDataType     boolean DEFAULT false,
+  pAlias        text DEFAULT null,
   pNameFrom     int DEFAULT 2
-) RETURNS	    text[]
+) RETURNS       text[]
 AS $$
 BEGIN
   RETURN get_routines(pRoutine, pSchema, pDataType, pAlias, pNameFrom);
@@ -141,13 +141,13 @@ GRANT EXECUTE ON FUNCTION GetRoutines(text, text, boolean, text, int) TO PUBLIC;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION array_pos (
-  anyarray	    text[],
-  anyelement 	text
-) RETURNS	    int
+  anyarray       text[],
+  anyelement     text
+) RETURNS        int
 AS $$
 DECLARE
-  i		        int;
-  l		        int;
+  i              int;
+  l              int;
 BEGIN
   i := 1;
   l := array_length(anyarray, 1);
@@ -168,13 +168,13 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION array_pos (
-  anyarray	    numeric[],
-  anyelement 	numeric
-) RETURNS	    int
+  anyarray       numeric[],
+  anyelement     numeric
+) RETURNS        int
 AS $$
 DECLARE
-  i		        int;
-  l		        int;
+  i              int;
+  l              int;
 BEGIN
   i := 1;
   l := array_length(anyarray, 1);
@@ -195,12 +195,12 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION string_to_array_trim (
-  str		text,
-  sep	 	text
-) RETURNS	text[]
+  str        text,
+  sep        text
+) RETURNS    text[]
 AS $$
 DECLARE
-  i		    int;
+  i    	    int;
   pos		int;
   arr		text[];
 BEGIN

@@ -7,10 +7,10 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.job (
-    id			    uuid PRIMARY KEY,
-    document	    uuid NOT NULL REFERENCES db.document(id) ON DELETE CASCADE,
-    scope	        uuid NOT NULL REFERENCES db.scope(id) ON DELETE RESTRICT,
-    code		    text NOT NULL,
+    id              uuid PRIMARY KEY,
+    document        uuid NOT NULL REFERENCES db.document(id) ON DELETE CASCADE,
+    scope           uuid NOT NULL REFERENCES db.scope(id) ON DELETE RESTRICT,
+    code            text NOT NULL,
     scheduler       uuid NOT NULL REFERENCES db.scheduler(id),
     program         uuid NOT NULL REFERENCES db.program(id),
     dateRun         timestamptz NOT NULL DEFAULT Now()
@@ -43,7 +43,7 @@ CREATE INDEX ON db.job (dateRun);
 CREATE OR REPLACE FUNCTION db.ft_job_insert()
 RETURNS trigger AS $$
 DECLARE
-  iPeriod		interval;
+  iPeriod        interval;
 BEGIN
   IF NEW.id IS NULL THEN
     SELECT NEW.document INTO NEW.id;

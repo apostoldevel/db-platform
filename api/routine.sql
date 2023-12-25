@@ -3,14 +3,14 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddPath (
-  pRoot		uuid,
-  pParent	uuid,
+  pRoot     uuid,
+  pParent   uuid,
   pName     text
-) RETURNS	uuid
+) RETURNS   uuid
 AS $$
 DECLARE
-  uId		uuid;
-  nLevel	integer;
+  uId       uuid;
+  nLevel    integer;
 BEGIN
   nLevel := 0;
   pParent := coalesce(pParent, pRoot);
@@ -34,12 +34,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetPath (
-  pParent		uuid,
-  pName			text
-) RETURNS		uuid
+  pParent        uuid,
+  pName          text
+) RETURNS        uuid
 AS $$
 DECLARE
-  uId			uuid;
+  uId            uuid;
 BEGIN
   IF pParent IS NULL THEN
     SELECT id INTO uId FROM db.path WHERE parent IS NULL AND name = pName;
@@ -58,8 +58,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DeletePath (
-  pId		uuid
-) RETURNS	void
+  pId        uuid
+) RETURNS    void
 AS $$
 BEGIN
   DELETE FROM db.path WHERE id = pId;
@@ -73,11 +73,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DeletePaths (
-  pId		uuid
-) RETURNS	void
+  pId        uuid
+) RETURNS    void
 AS $$
 DECLARE
-  r		    record;
+  r          record;
 BEGIN
   FOR r IN SELECT id FROM db.path WHERE parent = pId
   LOOP
@@ -95,11 +95,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddEndPoint (
-  pDefinition	text
-) RETURNS		uuid
+  pDefinition    text
+) RETURNS        uuid
 AS $$
 DECLARE
-  uId			uuid;
+  uId            uuid;
 BEGIN
   INSERT INTO db.endpoint (definition)
   VALUES (pDefinition)
@@ -116,13 +116,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EditEndPoint (
-  pId			uuid,
-  pDefinition	text
-) RETURNS		void
+  pId            uuid,
+  pDefinition    text
+) RETURNS        void
 AS $$
 BEGIN
   UPDATE db.endpoint
-	 SET definition = coalesce(pDefinition, definition)
+     SET definition = coalesce(pDefinition, definition)
    WHERE id = pId;
 END;
 $$ LANGUAGE plpgsql
@@ -134,12 +134,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetEndpoint (
-  pPath			uuid,
+  pPath         uuid,
   pMethod       text DEFAULT 'POST'
-) RETURNS	    uuid
+) RETURNS       uuid
 AS $$
 DECLARE
-  nEndpoint		uuid;
+  nEndpoint        uuid;
 BEGIN
   SELECT endpoint INTO nEndpoint FROM db.route WHERE method = pMethod AND path = pPath;
   RETURN nEndpoint;
@@ -153,8 +153,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DeleteEndpoint (
-  pId		uuid
-) RETURNS	void
+  pId        uuid
+) RETURNS    void
 AS $$
 BEGIN
   DELETE FROM db.endpoint WHERE id = pId;
@@ -168,8 +168,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetEndpointDefinition (
-  pId		uuid
-) RETURNS	text
+  pId        uuid
+) RETURNS    text
 AS $$
   SELECT definition FROM db.endpoint WHERE id = pId
 $$ LANGUAGE SQL
@@ -181,15 +181,15 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION RegisterPath (
-  pPath			text
-) RETURNS		uuid
+  pPath          text
+) RETURNS        uuid
 AS $$
 DECLARE
-  uId			uuid;
-  uRoot			uuid;
-  uParent		uuid;
+  uId            uuid;
+  uRoot          uuid;
+  uParent        uuid;
 
-  arPath		text[];
+  arPath    	text[];
   i				integer;
 BEGIN
   IF pPath IS NOT NULL THEN

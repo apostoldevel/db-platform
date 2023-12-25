@@ -5,10 +5,10 @@
 CREATE TABLE db.reference (
     id              uuid PRIMARY KEY,
     object          uuid NOT NULL REFERENCES db.object(id),
-    scope			uuid NOT NULL REFERENCES db.scope(id),
-    entity		    uuid NOT NULL REFERENCES db.entity(id),
+    scope           uuid NOT NULL REFERENCES db.scope(id),
+    entity          uuid NOT NULL REFERENCES db.entity(id),
     class           uuid NOT NULL REFERENCES db.class_tree(id),
-    type			uuid NOT NULL REFERENCES db.type(id),
+    type            uuid NOT NULL REFERENCES db.type(id),
     code            text NOT NULL
 );
 
@@ -77,7 +77,7 @@ BEGIN
   SELECT entity INTO NEW.entity FROM db.class_tree WHERE id = NEW.class;
 
   IF OLD.entity <> NEW.entity THEN
-	PERFORM IncorrectEntity();
+    PERFORM IncorrectEntity();
   END IF;
 
   RETURN NEW;
@@ -99,8 +99,8 @@ CREATE TRIGGER t_reference_before_update_type
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.reference_text (
-    reference		uuid NOT NULL REFERENCES db.reference(id) ON DELETE CASCADE,
-    locale			uuid NOT NULL REFERENCES db.locale(id) ON DELETE RESTRICT,
+    reference       uuid NOT NULL REFERENCES db.reference(id) ON DELETE CASCADE,
+    locale          uuid NOT NULL REFERENCES db.locale(id) ON DELETE RESTRICT,
     name            text,
     description     text,
     PRIMARY KEY (reference, locale)

@@ -28,8 +28,8 @@ GRANT SELECT ON api.service_message TO apibot;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.service_message (
-  pClass	uuid
-) RETURNS	SETOF api.service_message
+  pClass    uuid
+) RETURNS   SETOF api.service_message
 AS $$
   SELECT * FROM api.service_message WHERE class = pClass
 $$ LANGUAGE SQL
@@ -41,10 +41,10 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.message (
-  pType		uuid,
+  pType     uuid,
   pAgent    uuid,
   pState    uuid
-) RETURNS	SETOF api.message
+) RETURNS   SETOF api.message
 AS $$
   SELECT * FROM api.message WHERE type = pType AND agent = pAgent AND state = pState;
 $$ LANGUAGE SQL
@@ -56,10 +56,10 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.message (
-  pType		text,
+  pType     text,
   pAgent    text,
   pState    text
-) RETURNS	SETOF api.message
+) RETURNS   SETOF api.message
 AS $$
   SELECT * FROM api.message(CodeToType(pType, 'message'), GetAgent(pAgent), GetState(GetClass(SubStr(pType, StrPos(pType, '.') + 1)), pState));
 $$ LANGUAGE SQL
@@ -91,7 +91,7 @@ CREATE OR REPLACE FUNCTION api.add_message (
   pProfile      text,
   pAddress      text,
   pSubject      text,
-  pContent		text,
+  pContent      text,
   pLabel        text default null,
   pDescription  text default null
 ) RETURNS       uuid
@@ -130,7 +130,7 @@ CREATE OR REPLACE FUNCTION api.update_message (
   pProfile      text default null,
   pAddress      text default null,
   pSubject      text default null,
-  pContent		text default null,
+  pContent      text default null,
   pLabel        text default null,
   pDescription  text default null
 ) RETURNS       void
@@ -189,8 +189,8 @@ $$ LANGUAGE plpgsql
  * @return {api.message}
  */
 CREATE OR REPLACE FUNCTION api.get_message (
-  pId		uuid
-) RETURNS	SETOF api.message
+  pId        uuid
+) RETURNS    SETOF api.message
 AS $$
   SELECT * FROM api.message WHERE id = pId
 $$ LANGUAGE SQL
@@ -206,8 +206,8 @@ $$ LANGUAGE SQL
  * @return {api.service_message}
  */
 CREATE OR REPLACE FUNCTION api.get_service_message (
-  pId		uuid
-) RETURNS	SETOF api.service_message
+  pId        uuid
+) RETURNS    SETOF api.service_message
 AS $$
   SELECT * FROM api.service_message WHERE id = pId
 $$ LANGUAGE SQL
@@ -227,12 +227,12 @@ $$ LANGUAGE SQL
  * @return {SETOF api.message}
  */
 CREATE OR REPLACE FUNCTION api.list_message (
-  pSearch	jsonb DEFAULT null,
-  pFilter	jsonb DEFAULT null,
-  pLimit	integer DEFAULT null,
-  pOffSet	integer DEFAULT null,
-  pOrderBy	jsonb DEFAULT null
-) RETURNS	SETOF api.message
+  pSearch   jsonb DEFAULT null,
+  pFilter   jsonb DEFAULT null,
+  pLimit    integer DEFAULT null,
+  pOffSet   integer DEFAULT null,
+  pOrderBy  jsonb DEFAULT null
+) RETURNS   SETOF api.message
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'message', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
@@ -257,7 +257,7 @@ CREATE OR REPLACE FUNCTION api.send_message (
 ) RETURNS       SETOF api.message
 AS $$
 DECLARE
-  uMessageId	uuid;
+  uMessageId    uuid;
 BEGIN
   uMessageId := SendMessage(pParent, pAgent, pProfile, pAddress, pSubject, pContent, pLabel, pDescription);
   RETURN QUERY SELECT * FROM api.message WHERE id = uMessageId;
@@ -272,31 +272,31 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION api.send_mail (
   pSubject      text,
-  pText			text,
-  pHTML			text,
+  pText         text,
+  pHTML         text,
   pDescription  text DEFAULT null,
-  pUserId		uuid DEFAULT current_userid()
-) RETURNS	    SETOF api.message
+  pUserId       uuid DEFAULT current_userid()
+) RETURNS       SETOF api.message
 AS $$
 DECLARE
-  uMessageId	uuid;
-  vProject		text;
-  vDomain		text;
-  vSMTP 		text;
-  vProfile		text;
-  vName			text;
-  vEmail		text;
-  vBody			text;
-  bVerified		bool;
-  vOAuthSecret	text;
+  uMessageId    uuid;
+  vProject      text;
+  vDomain       text;
+  vSMTP         text;
+  vProfile      text;
+  vName         text;
+  vEmail        text;
+  vBody         text;
+  bVerified     bool;
+  vOAuthSecret  text;
 BEGIN
   IF IsUserRole(GetGroup('system'), session_userid()) THEN
-	SELECT secret INTO vOAuthSecret FROM oauth2.audience WHERE code = session_username();
-	PERFORM SubstituteUser(GetUser('apibot'), vOAuthSecret);
+    SELECT secret INTO vOAuthSecret FROM oauth2.audience WHERE code = session_username();
+    PERFORM SubstituteUser(GetUser('apibot'), vOAuthSecret);
   END IF;
 
   SELECT name, email, email_verified, locale INTO vName, vEmail, bVerified
-	FROM db.user u INNER JOIN db.profile p ON u.id = p.userid AND p.scope = current_scope()
+    FROM db.user u INNER JOIN db.profile p ON u.id = p.userid AND p.scope = current_scope()
    WHERE id = pUserId;
 
   IF vEmail IS NULL THEN
@@ -334,24 +334,24 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.send_sms (
   pProfile      text,
   pMessage      text,
-  pUserId		uuid DEFAULT current_userid()
-) RETURNS	    SETOF api.message
+  pUserId       uuid DEFAULT current_userid()
+) RETURNS       SETOF api.message
 AS $$
 DECLARE
-  uMessageId	uuid;
+  uMessageId    uuid;
 
-  vName			text;
+  vName         text;
   vPhone        text;
-  bVerified		bool;
-  vOAuthSecret	text;
+  bVerified     bool;
+  vOAuthSecret  text;
 BEGIN
   IF IsUserRole(GetGroup('system'), session_userid()) THEN
-	SELECT secret INTO vOAuthSecret FROM oauth2.audience WHERE code = session_username();
-	PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
+    SELECT secret INTO vOAuthSecret FROM oauth2.audience WHERE code = session_username();
+    PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
   END IF;
 
   SELECT name, phone, phone_verified, locale INTO vName, vPhone, bVerified
-	FROM db.user u INNER JOIN db.profile p ON u.id = p.userid AND p.scope = current_scope()
+    FROM db.user u INNER JOIN db.profile p ON u.id = p.userid AND p.scope = current_scope()
    WHERE id = pUserId;
 
   IF vPhone IS NULL THEN
@@ -382,15 +382,15 @@ CREATE OR REPLACE FUNCTION api.send_push (
   pData         jsonb DEFAULT null,
   pAndroid      jsonb DEFAULT null,
   pApns         jsonb DEFAULT null
-) RETURNS	    SETOF api.message
+) RETURNS       SETOF api.message
 AS $$
 DECLARE
-  uMessageId	uuid;
-  vOAuthSecret	text;
+  uMessageId    uuid;
+  vOAuthSecret  text;
 BEGIN
   IF IsUserRole(GetGroup('system'), session_userid()) THEN
-	SELECT secret INTO vOAuthSecret FROM oauth2.audience WHERE code = session_username();
-	PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
+    SELECT secret INTO vOAuthSecret FROM oauth2.audience WHERE code = session_username();
+    PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
   END IF;
 
   uMessageId := SendPush(pObject, pTitle, pBody, pUserId, pData, pAndroid, pApns);
@@ -412,15 +412,15 @@ CREATE OR REPLACE FUNCTION api.send_push_data (
   pUserId       uuid DEFAULT current_userid(),
   pPriority     text DEFAULT null,
   pCollapse     text DEFAULT null
-) RETURNS	    SETOF api.message
+) RETURNS       SETOF api.message
 AS $$
 DECLARE
-  uMessageId	uuid;
-  vOAuthSecret	text;
+  uMessageId    uuid;
+  vOAuthSecret  text;
 BEGIN
   IF IsUserRole(GetGroup('system'), session_userid()) THEN
-	SELECT secret INTO vOAuthSecret FROM oauth2.audience WHERE code = session_username();
-	PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
+    SELECT secret INTO vOAuthSecret FROM oauth2.audience WHERE code = session_username();
+    PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
   END IF;
 
   uMessageId := SendPushData(pObject, pSubject, pData, pUserId, pPriority, pCollapse);
@@ -442,12 +442,12 @@ CREATE OR REPLACE FUNCTION api.send_push_to_role (
   pData         jsonb DEFAULT null,
   pAndroid      jsonb DEFAULT null,
   pApns         jsonb DEFAULT null
-) RETURNS		integer
+) RETURNS       integer
 AS $$
 DECLARE
   r             record;
   nCount        integer;
-  uUserId		uuid;
+  uUserId       uuid;
   vType         char;
 BEGIN
   IF session_user <> 'kernel' THEN
@@ -461,7 +461,7 @@ BEGIN
   SELECT id, type INTO uUserId, vType FROM db.user WHERE status & B'0100' != B'0100' AND username = pRoleName;
 
   IF NOT FOUND THEN
-	RETURN 0;
+    RETURN 0;
   END IF;
 
   IF vType = 'G' THEN
@@ -469,7 +469,7 @@ BEGIN
     LOOP
       PERFORM SendPush(null, pTitle, pBody, r.member, pData, pAndroid, pApns);
       nCount := nCount + 1;
-	END LOOP;
+    END LOOP;
   ELSE
     PERFORM SendPush(null, pTitle, pBody, uUserId, pData, pAndroid, pApns);
     nCount := 1;
@@ -488,7 +488,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.send_push_all (
   pTitle        text,
   pBody         text
-) RETURNS		integer
+) RETURNS       integer
 AS $$
 BEGIN
   IF session_user <> 'kernel' THEN

@@ -28,24 +28,24 @@ GRANT SELECT ON api.service_job TO apibot;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.job (
-  pStateType	uuid,
-  pDateFrom		timestamptz DEFAULT Now(),
+  pStateType    uuid,
+  pDateFrom     timestamptz DEFAULT Now(),
   OUT id        uuid,
   OUT typecode  text,
   OUT statecode text,
   OUT created   timestamptz,
   OUT daterun   timestamptz,
   OUT body      text
-) RETURNS		SETOF record
+) RETURNS       SETOF record
 AS $$
   SELECT j.id, t.code, s.code, o.pdate, j.daterun, p.body
     FROM db.job j INNER JOIN db.object  o ON j.document = o.id
                   INNER JOIN db.type    t ON o.type = t.id
                   INNER JOIN db.state   s ON o.state = s.id
                   INNER JOIN db.program p ON j.program = p.id
-	 WHERE j.dateRun <= pDateFrom
+     WHERE j.dateRun <= pDateFrom
        AND o.state_type = pStateType
-	   AND o.scope = current_scope();
+       AND o.scope = current_scope();
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -55,15 +55,15 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.job (
-  pStateType	text DEFAULT 'enabled',
-  pDateFrom		double precision DEFAULT null,
+  pStateType    text DEFAULT 'enabled',
+  pDateFrom     double precision DEFAULT null,
   OUT id        uuid,
   OUT typecode  text,
   OUT statecode text,
   OUT created   timestamptz,
   OUT daterun   timestamptz,
   OUT body      text
-) RETURNS		SETOF record
+) RETURNS       SETOF record
 AS $$
   SELECT * FROM api.job(GetStateType(pStateType), coalesce(to_timestamp(pDateFrom), Now()));
 $$ LANGUAGE SQL
@@ -131,7 +131,7 @@ CREATE OR REPLACE FUNCTION api.update_job (
 ) RETURNS           void
 AS $$
 DECLARE
-  uJob				uuid;
+  uJob              uuid;
 BEGIN
   SELECT c.id INTO uJob FROM db.job c WHERE c.id = pId;
 
@@ -183,8 +183,8 @@ $$ LANGUAGE plpgsql
  * @return {api.job}
  */
 CREATE OR REPLACE FUNCTION api.get_job (
-  pId		uuid
-) RETURNS	api.job
+  pId        uuid
+) RETURNS    api.job
 AS $$
   SELECT * FROM api.job WHERE id = pId
 $$ LANGUAGE SQL
@@ -204,12 +204,12 @@ $$ LANGUAGE SQL
  * @return {SETOF api.job}
  */
 CREATE OR REPLACE FUNCTION api.list_job (
-  pSearch	jsonb default null,
-  pFilter	jsonb default null,
-  pLimit	integer default null,
-  pOffSet	integer default null,
-  pOrderBy	jsonb default null
-) RETURNS	SETOF api.job
+  pSearch   jsonb default null,
+  pFilter   jsonb default null,
+  pLimit    integer default null,
+  pOffSet   integer default null,
+  pOrderBy  jsonb default null
+) RETURNS   SETOF api.job
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'job', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
@@ -227,8 +227,8 @@ $$ LANGUAGE plpgsql
  * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION api.get_job_id (
-  pCode		text
-) RETURNS	uuid
+  pCode      text
+) RETURNS    uuid
 AS $$
 BEGIN
   IF length(pCode) = 36 AND SubStr(pCode, 15, 1) = '4' THEN

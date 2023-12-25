@@ -3,11 +3,11 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION gen_kernel_uuid (
-  prefix	char DEFAULT null
-) RETURNS	uuid
+  prefix    char DEFAULT null
+) RETURNS   uuid
 AS $$
 DECLARE
-  result	uuid;
+  result    uuid;
 BEGIN
   result := gen_random_uuid();
   IF prefix IS NOT null THEN
@@ -25,7 +25,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION TrimPhone (
   pPhone    text
-) RETURNS	text
+) RETURNS   text
 AS $$
 DECLARE
   ch        text;
@@ -33,19 +33,19 @@ DECLARE
   Result    text;
 BEGIN
   IF pPhone IS NOT NULL THEN
-	FOR Key IN 1..Length(pPhone)
-	LOOP
-	  ch := SubStr(pPhone, Key, 1);
-	  code := ascii(ch);
-	  IF code >= 48 AND code <= 57 THEN
-		Result := coalesce(Result, '') || ch;
-	  END IF;
-	END LOOP;
+    FOR Key IN 1..Length(pPhone)
+    LOOP
+      ch := SubStr(pPhone, Key, 1);
+      code := ascii(ch);
+      IF code >= 48 AND code <= 57 THEN
+        Result := coalesce(Result, '') || ch;
+      END IF;
+    END LOOP;
 
-	ch := SubStr(Result, 1, 1);
-	IF length(Result) < 10 OR length(Result) > 12 THEN
-	  PERFORM InvalidPhoneNumber(pPhone);
-	END IF;
+    ch := SubStr(Result, 1, 1);
+    IF length(Result) < 10 OR length(Result) > 12 THEN
+      PERFORM InvalidPhoneNumber(pPhone);
+    END IF;
   END IF;
 
   RETURN Result;
@@ -59,10 +59,10 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetVar (
-  pType		TVarType,
-  pName		text,
-  pValue	text
-) RETURNS	void
+  pType     TVarType,
+  pName     text,
+  pValue    text
+) RETURNS   void
 AS $$
 BEGIN
   PERFORM set_config(pType || '.' || pName, pValue, false);
@@ -74,10 +74,10 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetVar (
-  pType		TVarType,
-  pName		text,
-  pValue	numeric
-) RETURNS	void
+  pType     TVarType,
+  pName     text,
+  pValue    numeric
+) RETURNS   void
 AS $$
 BEGIN
   PERFORM set_config(pType || '.' || pName, IntToStr(pValue), false);
@@ -89,10 +89,10 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetVar (
-  pType		TVarType,
-  pName		text,
-  pValue	uuid
-) RETURNS	void
+  pType     TVarType,
+  pName     text,
+  pValue    uuid
+) RETURNS   void
 AS $$
 BEGIN
   PERFORM set_config(pType || '.' || pName, pValue::text, false);
@@ -104,10 +104,10 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetVar (
-  pType		TVarType,
-  pName		text,
-  pValue	timestamp
-) RETURNS	void
+  pType     TVarType,
+  pName     text,
+  pValue    timestamp
+) RETURNS   void
 AS $$
 BEGIN
   PERFORM set_config(pType || '.' || pName, DateToStr(pValue), false);
@@ -119,10 +119,10 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetVar (
-  pType		TVarType,
-  pName		text,
-  pValue	timestamptz
-) RETURNS	void
+  pType     TVarType,
+  pName     text,
+  pValue    timestamptz
+) RETURNS   void
 AS $$
 BEGIN
   PERFORM set_config(pType || '.' || pName, DateToStr(pValue), false);
@@ -134,10 +134,10 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetVar (
-  pType		TVarType,
-  pName		text,
-  pValue	date
-) RETURNS	void
+  pType     TVarType,
+  pName     text,
+  pValue    date
+) RETURNS   void
 AS $$
 BEGIN
   PERFORM set_config(pType || '.' || pName, DateToStr(pValue), false);
@@ -151,8 +151,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetVar (
-  pType		TVarType,
-  pName 	text
+  pType     TVarType,
+  pName     text
 ) RETURNS   text
 AS $$
 DECLARE
@@ -178,8 +178,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetErrorMessage (
-  pMessage 	text
-) RETURNS 	void
+  pMessage    text
+) RETURNS     void
 AS $$
 BEGIN
   PERFORM SetVar('kernel', 'error_message', pMessage);

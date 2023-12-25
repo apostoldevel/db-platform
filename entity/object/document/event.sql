@@ -7,8 +7,8 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventDocumentCreate (
-  pObject	uuid DEFAULT context_object()
-) RETURNS	void
+  pObject    uuid DEFAULT context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'create', 'Документ создан.', pObject);
@@ -20,8 +20,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventDocumentOpen (
-  pObject	uuid DEFAULT context_object()
-) RETURNS	void
+  pObject    uuid DEFAULT context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'open', 'Документ открыт.', pObject);
@@ -33,8 +33,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventDocumentEdit (
-  pObject	uuid DEFAULT context_object()
-) RETURNS	void
+  pObject    uuid DEFAULT context_object()
+) RETURNS    void
 AS $$
 -- DECLARE
 --   uArea     uuid;
@@ -45,7 +45,7 @@ BEGIN
 --   IF uAreaType IS NOT DISTINCT FROM '00000000-0000-4002-a001-000000000000' THEN -- equally default area type
 --     IF uAreaType IS DISTINCT FROM current_area_type() THEN
 --       PERFORM DefaultAreaDocumentError();
--- 	   END IF;
+--     END IF;
 --   END IF;
 
   PERFORM WriteToEventLog('M', 1000, 'edit', 'Документ изменён.', pObject);
@@ -57,8 +57,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventDocumentSave (
-  pObject	uuid DEFAULT context_object()
-) RETURNS	void
+  pObject    uuid DEFAULT context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'save', 'Документ сохранён.', pObject);
@@ -70,8 +70,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventDocumentEnable (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'enable', 'Документ включен.', pObject);
@@ -83,8 +83,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventDocumentDisable (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'disable', 'Документ выключен.', pObject);
@@ -96,8 +96,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventDocumentDelete (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'delete', 'Документ удалён.', pObject);
@@ -109,8 +109,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventDocumentRestore (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'restore', 'Документ восстановлен.', pObject);
@@ -122,8 +122,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventDocumentDrop (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 DECLARE
   r         record;

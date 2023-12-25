@@ -18,7 +18,7 @@ GRANT SELECT ON api.notification TO administrator;
 
 CREATE OR REPLACE FUNCTION api.notification (
   pDateFrom     timestamptz,
-  pUserId		uuid DEFAULT current_userid()
+  pUserId       uuid DEFAULT current_userid()
 ) RETURNS       SETOF api.notification
 AS $$
   SELECT * FROM Notification(pDateFrom, pUserId);
@@ -55,12 +55,12 @@ $$ LANGUAGE SQL
  * @return {SETOF api.notification}
  */
 CREATE OR REPLACE FUNCTION api.list_notification (
-  pSearch		jsonb DEFAULT null,
-  pFilter		jsonb DEFAULT null,
-  pLimit		integer DEFAULT null,
-  pOffSet		integer DEFAULT null,
-  pOrderBy		jsonb DEFAULT null
-) RETURNS		SETOF api.notification
+  pSearch        jsonb DEFAULT null,
+  pFilter        jsonb DEFAULT null,
+  pLimit         integer DEFAULT null,
+  pOffSet        integer DEFAULT null,
+  pOrderBy       jsonb DEFAULT null
+) RETURNS        SETOF api.notification
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'notification', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
@@ -101,12 +101,12 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.list_object_method_history (
-  pSearch	jsonb DEFAULT null,
-  pFilter	jsonb DEFAULT null,
-  pLimit	integer DEFAULT null,
-  pOffSet	integer DEFAULT null,
-  pOrderBy	jsonb DEFAULT null
-) RETURNS	SETOF api.object_method_history
+  pSearch   jsonb DEFAULT null,
+  pFilter   jsonb DEFAULT null,
+  pLimit    integer DEFAULT null,
+  pOffSet   integer DEFAULT null,
+  pOrderBy  jsonb DEFAULT null
+) RETURNS   SETOF api.object_method_history
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'object_method_history', pSearch, pFilter, pLimit, pOffSet, pOrderBy);

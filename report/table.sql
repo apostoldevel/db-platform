@@ -5,9 +5,9 @@
 CREATE TABLE db.report (
     id                  uuid PRIMARY KEY,
     reference           uuid NOT NULL REFERENCES db.reference(id) ON DELETE CASCADE,
-    tree				uuid NOT NULL REFERENCES db.report_tree(id),
-    form				uuid REFERENCES db.report_form(id),
-    binding				uuid REFERENCES db.class_tree(id),
+    tree                uuid NOT NULL REFERENCES db.report_tree(id),
+    form                uuid REFERENCES db.report_form(id),
+    binding             uuid REFERENCES db.class_tree(id),
     info                jsonb
 );
 

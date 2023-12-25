@@ -20,13 +20,13 @@ CREATE OR REPLACE FUNCTION CreateReportTree (
   pNode         uuid,
   pCode         text,
   pName         text,
-  pDescription	text DEFAULT null,
+  pDescription  text DEFAULT null,
   pSequence     integer default null
 ) RETURNS       uuid
 AS $$
 DECLARE
-  uRoot			uuid;
-  uReference	uuid;
+  uRoot         uuid;
+  uReference    uuid;
   uClass        uuid;
   uMethod       uuid;
 
@@ -57,7 +57,7 @@ BEGIN
   pRoot := coalesce(pRoot, uRoot, uReference);
 
   IF pRoot IS NOT DISTINCT FROM uReference THEN
-	pNode := null;
+    pNode := null;
   END IF;
 
   INSERT INTO db.report_tree (id, reference, root, node, level, sequence)
@@ -96,19 +96,19 @@ CREATE OR REPLACE FUNCTION EditReportTree (
   pNode         uuid default null,
   pCode         text default null,
   pName         text default null,
-  pDescription	text DEFAULT null,
+  pDescription  text DEFAULT null,
   pSequence     integer default null
 ) RETURNS       void
 AS $$
 DECLARE
-  uId			uuid;
+  uId           uuid;
   uRoot         uuid;
   uNode         uuid;
   uClass        uuid;
   uMethod       uuid;
 
   nSequence     integer;
-  nLevel	    integer;
+  nLevel        integer;
 BEGIN
   SELECT root, node, level, sequence INTO uRoot, uNode, nLevel, nSequence FROM db.report_tree WHERE id = pId;
 
@@ -117,18 +117,18 @@ BEGIN
   pSequence := coalesce(pSequence, nSequence);
 
   IF pId IS NOT DISTINCT FROM pRoot THEN
-	pNode := null;
+    pNode := null;
   END IF;
 
   IF pNode IS NOT NULL THEN
-	IF pId IS NOT DISTINCT FROM pNode THEN
-	  pNode := uNode;
-	ELSE
+    IF pId IS NOT DISTINCT FROM pNode THEN
+      pNode := uNode;
+    ELSE
       SELECT node, level + 1 INTO uId, nLevel FROM db.report_tree WHERE id = pNode;
-	  IF uId IS NOT DISTINCT FROM pId THEN
-		UPDATE db.report_tree SET node = uNode WHERE id = pNode;
-	  END IF;
-	END IF;
+      IF uId IS NOT DISTINCT FROM pId THEN
+        UPDATE db.report_tree SET node = uNode WHERE id = pNode;
+      END IF;
+    END IF;
   END IF;
 
   PERFORM EditReference(pId, pParent, pType, pCode, pName, pDescription, current_locale());
@@ -167,8 +167,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetReportTree (
-  pCode		text
-) RETURNS 	uuid
+  pCode       text
+) RETURNS     uuid
 AS $$
 BEGIN
   RETURN GetReference(pCode, 'report_tree');
@@ -182,13 +182,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetReportTreeSequence (
-  pId		uuid,
-  pSequence	integer,
-  pDelta	integer
-) RETURNS 	void
+  pId       uuid,
+  pSequence integer,
+  pDelta    integer
+) RETURNS   void
 AS $$
 DECLARE
-  uId		uuid;
+  uId        uuid;
   uNode     uuid;
 BEGIN
   IF pDelta <> 0 THEN
@@ -216,7 +216,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION SortReportTree (
   pNode     uuid
-) RETURNS 	void
+) RETURNS   void
 AS $$
 DECLARE
   r         record;

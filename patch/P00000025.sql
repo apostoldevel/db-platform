@@ -4,7 +4,7 @@ ALTER TABLE db.session
 UPDATE db.session d SET scope = a.scope FROM db.area a WHERE a.id = d.area;
 
 ALTER TABLE db.session
-	ALTER COLUMN scope SET NOT NULL;
+    ALTER COLUMN scope SET NOT NULL;
 
 COMMENT ON COLUMN db.session.scope IS 'Область видимости базы данных';
 
@@ -19,7 +19,7 @@ ALTER TABLE db.job
 UPDATE db.job j SET scope = d.scope FROM db.document d WHERE j.document = d.id;
 
 ALTER TABLE db.job
-	ALTER COLUMN scope SET NOT NULL;
+    ALTER COLUMN scope SET NOT NULL;
 
 COMMENT ON COLUMN db.job.scope IS 'Область видимости базы данных';
 
@@ -175,7 +175,7 @@ UPDATE db.object o SET scope = r.scope FROM db.reference r WHERE o.id = r.object
 CREATE OR REPLACE FUNCTION db.ft_object_before_insert()
 RETURNS trigger AS $$
 DECLARE
-  bAbstract	boolean;
+  bAbstract    boolean;
 BEGIN
   IF lower(session_user) = 'kernel' THEN
     PERFORM AccessDeniedForUser(session_user);
@@ -234,9 +234,9 @@ BEGIN
   END IF;
 
   IF OLD.suid IS DISTINCT FROM NEW.suid THEN
-	IF current_username() IS DISTINCT FROM 'admin' THEN
-	  PERFORM AccessDenied();
-	END IF;
+    IF current_username() IS DISTINCT FROM 'admin' THEN
+      PERFORM AccessDenied();
+    END IF;
   END IF;
 
   IF NOT CheckObjectAccess(NEW.id, B'010') THEN
@@ -263,18 +263,18 @@ BEGIN
   END IF;
 
   IF OLD.state IS DISTINCT FROM NEW.state THEN
-	IF NEW.state IS NOT NULL THEN
-	  SELECT type INTO NEW.state_type FROM db.state WHERE id = NEW.state;
-	ELSE
-	  NEW.state_type := NULL;
-	END IF;
+    IF NEW.state IS NOT NULL THEN
+      SELECT type INTO NEW.state_type FROM db.state WHERE id = NEW.state;
+    ELSE
+      NEW.state_type := NULL;
+    END IF;
   END IF;
 
   IF OLD.scope IS DISTINCT FROM NEW.scope THEN
-	PERFORM FROM db.area WHERE id = GetSessionArea(current_session()) AND scope = NEW.scope;
-	IF NOT FOUND THEN
-	  NEW.scope := OLD.scope;
-	END IF;
+    PERFORM FROM db.area WHERE id = GetSessionArea(current_session()) AND scope = NEW.scope;
+    IF NOT FOUND THEN
+      NEW.scope := OLD.scope;
+    END IF;
   END IF;
 
   IF OLD.owner IS DISTINCT FROM NEW.owner THEN
@@ -282,7 +282,7 @@ BEGIN
     IF NOT bSystem THEN
       DELETE FROM db.aou WHERE object = NEW.id AND userid = OLD.owner AND mask = B'111';
     END IF;
-	INSERT INTO db.aou SELECT NEW.id, NEW.owner, B'000', B'111'
+    INSERT INTO db.aou SELECT NEW.id, NEW.owner, B'000', B'111'
 	  ON CONFLICT (object, userid) DO UPDATE SET deny = B'000', allow = B'111';
   END IF;
 

@@ -43,12 +43,12 @@ $$ LANGUAGE SQL
  * @return {SETOF api.entity}
  */
 CREATE OR REPLACE FUNCTION api.list_entity (
-  pSearch	jsonb DEFAULT null,
-  pFilter	jsonb DEFAULT null,
-  pLimit	integer DEFAULT null,
-  pOffSet	integer DEFAULT null,
-  pOrderBy	jsonb DEFAULT null
-) RETURNS	SETOF api.entity
+  pSearch   jsonb DEFAULT null,
+  pFilter   jsonb DEFAULT null,
+  pLimit    integer DEFAULT null,
+  pOffSet   integer DEFAULT null,
+  pOrderBy  jsonb DEFAULT null
+) RETURNS   SETOF api.entity
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'entity', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
@@ -72,8 +72,8 @@ GRANT SELECT ON api.type TO administrator;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.type (
-  pEntity	uuid
-) RETURNS	SETOF api.type
+  pEntity    uuid
+) RETURNS    SETOF api.type
 AS $$
   SELECT * FROM api.type WHERE entity = pEntity;
 $$ LANGUAGE SQL
@@ -92,11 +92,11 @@ $$ LANGUAGE SQL
  * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION api.add_type (
-  pClass	    uuid,
-  pCode		    text,
-  pName		    text,
+  pClass        uuid,
+  pCode         text,
+  pName         text,
   pDescription  text DEFAULT null
-) RETURNS 	    uuid
+) RETURNS       uuid
 AS $$
 BEGIN
   RETURN AddType(pClass, pCode, pName, pDescription);
@@ -123,7 +123,7 @@ CREATE OR REPLACE FUNCTION api.update_type (
   pClass        uuid DEFAULT null,
   pCode         text DEFAULT null,
   pName         text DEFAULT null,
-  pDescription	text DEFAULT null
+  pDescription  text DEFAULT null
 ) RETURNS       void
 AS $$
 BEGIN
@@ -142,7 +142,7 @@ CREATE OR REPLACE FUNCTION api.set_type (
   pClass        uuid DEFAULT null,
   pCode         text DEFAULT null,
   pName         text DEFAULT null,
-  pDescription	text DEFAULT null
+  pDescription  text DEFAULT null
 ) RETURNS       SETOF api.type
 AS $$
 BEGIN
@@ -202,8 +202,8 @@ $$ LANGUAGE SQL
  * @return {uuid} - Тип объекта
  */
 CREATE OR REPLACE FUNCTION api.get_type_id (
-  pCode		text
-) RETURNS	uuid
+  pCode      text
+) RETURNS    uuid
 AS $$
 BEGIN
   IF length(pCode) = 36 AND SubStr(pCode, 15, 1) = '4' THEN
@@ -229,12 +229,12 @@ $$ LANGUAGE plpgsql
  * @return {SETOF api.type}
  */
 CREATE OR REPLACE FUNCTION api.list_type (
-  pSearch	jsonb DEFAULT null,
-  pFilter	jsonb DEFAULT null,
-  pLimit	integer DEFAULT null,
-  pOffSet	integer DEFAULT null,
-  pOrderBy	jsonb DEFAULT null
-) RETURNS	SETOF api.type
+  pSearch   jsonb DEFAULT null,
+  pFilter   jsonb DEFAULT null,
+  pLimit    integer DEFAULT null,
+  pOffSet   integer DEFAULT null,
+  pOrderBy  jsonb DEFAULT null
+) RETURNS   SETOF api.type
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'type', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
@@ -280,7 +280,7 @@ $$ LANGUAGE SQL
  */
 CREATE OR REPLACE FUNCTION api.add_class (
   pParent       uuid,
-  pEntity		uuid,
+  pEntity       uuid,
   pCode         text,
   pLabel        text,
   pAbstract     boolean DEFAULT true
@@ -312,7 +312,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.update_class (
   pId           uuid,
   pParent       uuid,
-  pEntity		uuid,
+  pEntity       uuid,
   pCode         text,
   pLabel        text,
   pAbstract     boolean DEFAULT true
@@ -332,7 +332,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.set_class (
   pId           uuid,
   pParent       uuid,
-  pEntity		uuid,
+  pEntity       uuid,
   pCode         text,
   pLabel        text,
   pAbstract     boolean DEFAULT true
@@ -372,10 +372,10 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.clone_class (
-  pParent	uuid,
+  pParent   uuid,
   pEntity   uuid,
-  pCode		text,
-  pLabel	text,
+  pCode     text,
+  pLabel    text,
   pAbstract boolean DEFAULT false
 ) RETURNS   SETOF api.class
 AS $$
@@ -437,12 +437,12 @@ $$ LANGUAGE SQL
  * @return {SETOF api.class}
  */
 CREATE OR REPLACE FUNCTION api.list_class (
-  pSearch	jsonb DEFAULT null,
-  pFilter	jsonb DEFAULT null,
-  pLimit	integer DEFAULT null,
-  pOffSet	integer DEFAULT null,
-  pOrderBy	jsonb DEFAULT null
-) RETURNS	SETOF api.class
+  pSearch   jsonb DEFAULT null,
+  pFilter   jsonb DEFAULT null,
+  pLimit    integer DEFAULT null,
+  pOffSet   integer DEFAULT null,
+  pOrderBy  jsonb DEFAULT null
+) RETURNS   SETOF api.class
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'class', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
@@ -460,13 +460,13 @@ $$ LANGUAGE plpgsql
  */
 CREATE OR REPLACE FUNCTION api.decode_class_access (
   pId       uuid,
-  pUserId	uuid default current_userid(),
-  OUT a		boolean,
-  OUT c		boolean,
-  OUT s		boolean,
-  OUT u		boolean,
-  OUT d		boolean
-) RETURNS 	record
+  pUserId   uuid default current_userid(),
+  OUT a     boolean,
+  OUT c     boolean,
+  OUT s     boolean,
+  OUT u     boolean,
+  OUT d     boolean
+) RETURNS   record
 AS $$
   SELECT * FROM DecodeClassAccess(pId, pUserId);
 $$ LANGUAGE SQL
@@ -492,7 +492,7 @@ GRANT SELECT ON api.class_access TO administrator;
  */
 CREATE OR REPLACE FUNCTION api.class_access (
   pId       uuid
-) RETURNS 	SETOF api.class_access
+) RETURNS   SETOF api.class_access
 AS $$
   SELECT * FROM api.class_access WHERE class = pId;
 $$ LANGUAGE SQL
@@ -512,12 +512,12 @@ $$ LANGUAGE SQL
  * @return {SETOF api.class_access}
  */
 CREATE OR REPLACE FUNCTION api.list_class_access (
-  pSearch	jsonb DEFAULT null,
-  pFilter	jsonb DEFAULT null,
-  pLimit	integer DEFAULT null,
-  pOffSet	integer DEFAULT null,
-  pOrderBy	jsonb DEFAULT null
-) RETURNS	SETOF api.class_access
+  pSearch   jsonb DEFAULT null,
+  pFilter   jsonb DEFAULT null,
+  pLimit    integer DEFAULT null,
+  pOffSet   integer DEFAULT null,
+  pOrderBy  jsonb DEFAULT null
+) RETURNS   SETOF api.class_access
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'class_access', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
@@ -544,8 +544,8 @@ GRANT SELECT ON api.state_type TO administrator;
  * @return {record} - Запись
  */
 CREATE OR REPLACE FUNCTION api.get_state_type (
-  pId		uuid
-) RETURNS	SETOF api.state_type
+  pId        uuid
+) RETURNS    SETOF api.state_type
 AS $$
   SELECT * FROM api.state_type WHERE id = pId;
 $$ LANGUAGE SQL
@@ -563,8 +563,8 @@ GRANT SELECT ON api.state TO administrator;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.state (
-  pClass	uuid
-) RETURNS	SETOF api.state
+  pClass    uuid
+) RETURNS   SETOF api.state
 AS $$
   SELECT * FROM api.state WHERE class = pClass
   UNION ALL
@@ -581,7 +581,7 @@ $$ LANGUAGE SQL
 
 CREATE OR REPLACE FUNCTION api.state_by_type (
   pType     uuid
-) RETURNS	SETOF api.state
+) RETURNS   SETOF api.state
 AS $$
   SELECT * FROM api.state WHERE class IN (SELECT class FROM Type WHERE id = pType) ORDER BY type, sequence;
 $$ LANGUAGE SQL
@@ -722,12 +722,12 @@ $$ LANGUAGE SQL
  * @return {SETOF api.state}
  */
 CREATE OR REPLACE FUNCTION api.list_state (
-  pSearch	jsonb DEFAULT null,
-  pFilter	jsonb DEFAULT null,
-  pLimit	integer DEFAULT null,
-  pOffSet	integer DEFAULT null,
-  pOrderBy	jsonb DEFAULT null
-) RETURNS	SETOF api.state
+  pSearch   jsonb DEFAULT null,
+  pFilter   jsonb DEFAULT null,
+  pLimit    integer DEFAULT null,
+  pOffSet   integer DEFAULT null,
+  pOrderBy  jsonb DEFAULT null
+) RETURNS   SETOF api.state
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'state', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
@@ -776,12 +776,12 @@ $$ LANGUAGE SQL
  * @return {SETOF api.action}
  */
 CREATE OR REPLACE FUNCTION api.list_action (
-  pSearch	jsonb DEFAULT null,
-  pFilter	jsonb DEFAULT null,
-  pLimit	integer DEFAULT null,
-  pOffSet	integer DEFAULT null,
-  pOrderBy	jsonb DEFAULT null
-) RETURNS	SETOF api.action
+  pSearch   jsonb DEFAULT null,
+  pFilter   jsonb DEFAULT null,
+  pLimit    integer DEFAULT null,
+  pOffSet   integer DEFAULT null,
+  pOrderBy  jsonb DEFAULT null
+) RETURNS   SETOF api.action
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'action', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
@@ -964,12 +964,12 @@ $$ LANGUAGE SQL
  * @return {SETOF api.method}
  */
 CREATE OR REPLACE FUNCTION api.list_method (
-  pSearch	jsonb DEFAULT null,
-  pFilter	jsonb DEFAULT null,
-  pLimit	integer DEFAULT null,
-  pOffSet	integer DEFAULT null,
-  pOrderBy	jsonb DEFAULT null
-) RETURNS	SETOF api.method
+  pSearch   jsonb DEFAULT null,
+  pFilter   jsonb DEFAULT null,
+  pLimit    integer DEFAULT null,
+  pOffSet   integer DEFAULT null,
+  pOrderBy  jsonb DEFAULT null
+) RETURNS   SETOF api.method
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'method', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
@@ -1036,7 +1036,7 @@ BEGIN
            AND userid IN (SELECT current_userid() UNION SELECT userid FROM db.member_group WHERE member = current_userid())
          GROUP BY method
       ) INSERT INTO db.oma SELECT pObject, method, current_userid(), mask FROM access;
-	END IF;
+    END IF;
   END LOOP;
 
   RETURN QUERY
@@ -1099,11 +1099,11 @@ $$ LANGUAGE plpgsql
  */
 CREATE OR REPLACE FUNCTION api.decode_method_access (
   pId       uuid,
-  pUserId	uuid default current_userid(),
-  OUT x		boolean,
-  OUT v		boolean,
-  OUT e		boolean
-) RETURNS 	record
+  pUserId   uuid default current_userid(),
+  OUT x     boolean,
+  OUT v     boolean,
+  OUT e     boolean
+) RETURNS   record
 AS $$
   SELECT * FROM DecodeMethodAccess(pId, pUserId);
 $$ LANGUAGE SQL
@@ -1129,7 +1129,7 @@ GRANT SELECT ON api.method_access TO administrator;
  */
 CREATE OR REPLACE FUNCTION api.method_access (
   pId       uuid
-) RETURNS 	SETOF api.method_access
+) RETURNS   SETOF api.method_access
 AS $$
   SELECT * FROM api.method_access WHERE method = pId;
 $$ LANGUAGE SQL
@@ -1149,12 +1149,12 @@ $$ LANGUAGE SQL
  * @return {SETOF api.method_access}
  */
 CREATE OR REPLACE FUNCTION api.list_method_access (
-  pSearch	jsonb DEFAULT null,
-  pFilter	jsonb DEFAULT null,
-  pLimit	integer DEFAULT null,
-  pOffSet	integer DEFAULT null,
-  pOrderBy	jsonb DEFAULT null
-) RETURNS	SETOF api.method_access
+  pSearch   jsonb DEFAULT null,
+  pFilter   jsonb DEFAULT null,
+  pLimit    integer DEFAULT null,
+  pOffSet   integer DEFAULT null,
+  pOrderBy  jsonb DEFAULT null
+) RETURNS   SETOF api.method_access
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'method_access', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
@@ -1296,12 +1296,12 @@ $$ LANGUAGE SQL
  * @return {SETOF api.transition}
  */
 CREATE OR REPLACE FUNCTION api.list_transition (
-  pSearch	jsonb DEFAULT null,
-  pFilter	jsonb DEFAULT null,
-  pLimit	integer DEFAULT null,
-  pOffSet	integer DEFAULT null,
-  pOrderBy	jsonb DEFAULT null
-) RETURNS	SETOF api.transition
+  pSearch   jsonb DEFAULT null,
+  pFilter   jsonb DEFAULT null,
+  pLimit    integer DEFAULT null,
+  pOffSet   integer DEFAULT null,
+  pOrderBy  jsonb DEFAULT null
+) RETURNS   SETOF api.transition
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'transition', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
@@ -1484,12 +1484,12 @@ $$ LANGUAGE SQL
  * @return {SETOF api.event}
  */
 CREATE OR REPLACE FUNCTION api.list_event (
-  pSearch	jsonb DEFAULT null,
-  pFilter	jsonb DEFAULT null,
-  pLimit	integer DEFAULT null,
-  pOffSet	integer DEFAULT null,
-  pOrderBy	jsonb DEFAULT null
-) RETURNS	SETOF api.event
+  pSearch   jsonb DEFAULT null,
+  pFilter   jsonb DEFAULT null,
+  pLimit    integer DEFAULT null,
+  pOffSet   integer DEFAULT null,
+  pOrderBy  jsonb DEFAULT null
+) RETURNS   SETOF api.event
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'event', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
@@ -1538,12 +1538,12 @@ $$ LANGUAGE SQL
  * @return {SETOF api.priority}
  */
 CREATE OR REPLACE FUNCTION api.list_priority (
-  pSearch	jsonb DEFAULT null,
-  pFilter	jsonb DEFAULT null,
-  pLimit	integer DEFAULT null,
-  pOffSet	integer DEFAULT null,
-  pOrderBy	jsonb DEFAULT null
-) RETURNS	SETOF api.priority
+  pSearch   jsonb DEFAULT null,
+  pFilter   jsonb DEFAULT null,
+  pLimit    integer DEFAULT null,
+  pOffSet   integer DEFAULT null,
+  pOrderBy  jsonb DEFAULT null
+) RETURNS   SETOF api.priority
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'priority', pSearch, pFilter, pLimit, pOffSet, pOrderBy);

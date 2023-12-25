@@ -115,9 +115,9 @@ GRANT SELECT ON CurrentDocument TO administrator;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AccessDocumentUser (
-  pUserId	uuid DEFAULT current_userid()
+  pUserId    uuid DEFAULT current_userid()
 ) RETURNS TABLE (
-    object  uuid
+    object   uuid
 )
 AS $$
   WITH _membergroup AS (

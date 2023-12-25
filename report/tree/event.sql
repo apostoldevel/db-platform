@@ -9,7 +9,7 @@
 CREATE OR REPLACE FUNCTION EventReportMethodForAllChild (
   pNode     uuid default context_object(),
   pAction   uuid default context_action()
-) RETURNS	void
+) RETURNS   void
 AS $$
 DECLARE
   r         record;
@@ -20,7 +20,7 @@ DECLARE
 BEGIN
   FOR r IN SELECT id FROM db.report_tree WHERE node = pNode
   LOOP
-	SELECT class, state INTO uClass, uState FROM db.object WHERE id = r.id;
+    SELECT class, state INTO uClass, uState FROM db.object WHERE id = r.id;
     uMethod := GetMethod(uClass, pAction, uState);
     IF uMethod IS NOT NULL THEN
       PERFORM ExecuteMethod(r.id, uMethod);
@@ -34,8 +34,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventReportTreeCreate (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'create', 'Дерево отчётов создано.', pObject);
@@ -47,8 +47,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventReportTreeOpen (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'open', 'Дерево отчётов открыто.', pObject);
@@ -60,8 +60,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventReportTreeEdit (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'edit', 'Дерево отчётов изменено.', pObject);
@@ -73,8 +73,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventReportTreeSave (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'save', 'Дерево отчётов сохранено.', pObject);
@@ -86,8 +86,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventReportTreeEnable (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'enable', 'Дерево отчётов активно.', pObject);
@@ -100,8 +100,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventReportTreeDisable (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'disable', 'Дерево отчётов неактивно.', pObject);
@@ -114,8 +114,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventReportTreeDelete (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'delete', 'Дерево отчётов удалено.', pObject);
@@ -128,8 +128,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventReportTreeRestore (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'restore', 'Дерево отчётов восстановлено.', pObject);
@@ -142,11 +142,11 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventReportTreeDrop (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 DECLARE
-  r			record;
+  r          record;
 BEGIN
   PERFORM EventReportMethodForAllChild(pObject);
 

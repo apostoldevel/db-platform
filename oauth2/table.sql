@@ -9,7 +9,7 @@
 CREATE TABLE oauth2.provider (
     id          serial PRIMARY KEY,
     type        char NOT NULL,
-    code		text NOT NULL,
+    code        text NOT NULL,
     name        text,
     CHECK (type IN ('I', 'E'))
 );

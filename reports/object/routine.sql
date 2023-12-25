@@ -42,20 +42,20 @@ BEGIN
   LOOP
     IF l.code = 'ru' THEN
       Lines[1] := 'Информация об объекте';
-	ELSE
+    ELSE
       Lines[1] := 'Information about the object';
-	END IF;
+    END IF;
 
-	vHTML := E'<!DOCTYPE html>\n';
+    vHTML := E'<!DOCTYPE html>\n';
 
-	vHTML := vHTML || format(E'<html lang="%s">\n', l.code);
-	vHTML := vHTML || E'<head>\n';
-	vHTML := vHTML || E'  <meta charset="UTF-8">\n';
+    vHTML := vHTML || format(E'<html lang="%s">\n', l.code);
+    vHTML := vHTML || E'<head>\n';
+    vHTML := vHTML || E'  <meta charset="UTF-8">\n';
     vHTML := vHTML || format(E'  <title>%s</title>\n', Lines[1]);
-	vHTML := vHTML || E'</head>\n';
+    vHTML := vHTML || E'</head>\n';
 
-	vHTML := vHTML || E'<body>\n';
-	vHTML := vHTML || E'<div>\n';
+    vHTML := vHTML || E'<body>\n';
+    vHTML := vHTML || E'<div>\n';
 
     vHTML := vHTML || E'  <div class="text-center">\n';
     vHTML := vHTML || E'    <h2 class="mb-3">' || Lines[1] || E'</h2>\n';
@@ -67,21 +67,21 @@ BEGIN
     vHTML := vHTML || E'      <thead class="thead-light">\n';
 
     IF l.code = 'ru' THEN
-	  vHTML := vHTML || E'        <tr>\n';
-	  vHTML := vHTML || E'          <th style="width: 20%!important;">Поле</th>\n';
-	  vHTML := vHTML || E'          <th>Данные</th>\n';
-	  vHTML := vHTML || E'        </tr>\n';
-	ELSE
-	  vHTML := vHTML || E'        <tr>\n';
-	  vHTML := vHTML || E'          <th style="width: 20%!important;">Field</th>\n';
-	  vHTML := vHTML || E'          <th>Data</th>\n';
-	  vHTML := vHTML || E'        </tr>\n';
+      vHTML := vHTML || E'        <tr>\n';
+      vHTML := vHTML || E'          <th style="width: 20%!important;">Поле</th>\n';
+      vHTML := vHTML || E'          <th>Данные</th>\n';
+      vHTML := vHTML || E'        </tr>\n';
+    ELSE
+      vHTML := vHTML || E'        <tr>\n';
+      vHTML := vHTML || E'          <th style="width: 20%!important;">Field</th>\n';
+      vHTML := vHTML || E'          <th>Data</th>\n';
+      vHTML := vHTML || E'        </tr>\n';
     END IF;
 
     vHTML := vHTML || E'      </thead>\n';
     vHTML := vHTML || E'      <tbody>\n';
 
-	bEmpty := true;
+    bEmpty := true;
 
     FOR o IN
       SELECT *
@@ -92,34 +92,34 @@ BEGIN
 
       FOR f IN SELECT * FROM all_tab_columns WHERE table_name = 'object' ORDER BY column_id
       LOOP
-		vHTML := vHTML || E'        <tr>\n';
-		vHTML := vHTML || format(E'          <th>%s</th>\n', f.column_name);
+        vHTML := vHTML || E'        <tr>\n';
+        vHTML := vHTML || format(E'          <th>%s</th>\n', f.column_name);
 
         FOR d IN EXECUTE format('SELECT $1->>%L AS value', f.column_name) USING row_to_json(o)
         LOOP
-		  vHTML := vHTML || format(E'          <td>%s</th>\n', d.value);
+          vHTML := vHTML || format(E'          <td>%s</th>\n', d.value);
         END LOOP;
 
-		vHTML := vHTML || E'        </tr>\n';
-	  END LOOP;
+        vHTML := vHTML || E'        </tr>\n';
+      END LOOP;
 
-	END LOOP;
+    END LOOP;
 
-	IF bEmpty THEN
-	  IF l.code = 'ru' THEN
-		vHTML := vHTML || E'        <tr class="text-center">\n';
-		vHTML := vHTML || E'          <th colspan="2">Нет данных</th>\n';
-		vHTML := vHTML || E'        </tr>\n';
-	  ELSE
-		vHTML := vHTML || E'        <tr class="text-center">\n';
-		vHTML := vHTML || E'          <th colspan="2">No data</th>\n';
-		vHTML := vHTML || E'        </tr>\n';
-	  END IF;
-	END IF;
+    IF bEmpty THEN
+      IF l.code = 'ru' THEN
+        vHTML := vHTML || E'        <tr class="text-center">\n';
+        vHTML := vHTML || E'          <th colspan="2">Нет данных</th>\n';
+        vHTML := vHTML || E'        </tr>\n';
+      ELSE
+        vHTML := vHTML || E'        <tr class="text-center">\n';
+        vHTML := vHTML || E'          <th colspan="2">No data</th>\n';
+        vHTML := vHTML || E'        </tr>\n';
+      END IF;
+    END IF;
 
-	vHTML := vHTML || E'      </tbody>\n';
-	vHTML := vHTML || E'    </table>\n';
-	vHTML := vHTML || E'  </div>\n';
+    vHTML := vHTML || E'      </tbody>\n';
+    vHTML := vHTML || E'    </table>\n';
+    vHTML := vHTML || E'  </div>\n';
 
     vHTML := vHTML || E'</div>\n';
     vHTML := vHTML || E'</body>\n';

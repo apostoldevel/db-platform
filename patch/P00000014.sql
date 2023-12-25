@@ -50,11 +50,11 @@ BEGIN
     vClass := GetClassCode(NEW.class);
     vAction := GetActionCode(NEW.action);
     IF vClass = 'inbox' THEN
-	  IF vAction = 'create' THEN
+      IF vAction = 'create' THEN
         PERFORM pg_notify('inbox', NEW.object::text);
       END IF;
     ELSIF vClass = 'outbox' THEN
-	  IF vAction = 'submit' THEN
+      IF vAction = 'submit' THEN
         PERFORM pg_notify('outbox', NEW.object::text);
       END IF;
     END IF;
@@ -160,10 +160,10 @@ BEGIN
       NEW.area := GetDefaultArea(NEW.userid);
     END IF;
 
-	SELECT id INTO NEW.area FROM db.area WHERE id = NEW.area AND scope IN (SELECT GetOAuth2Scopes(NEW.oauth2));
-	IF NOT FOUND THEN
-	  SELECT id INTO NEW.area FROM db.area WHERE scope IN (SELECT GetOAuth2Scopes(NEW.oauth2)) AND type = '00000000-0000-4002-a001-000000000001'; -- main
-	END IF;
+    SELECT id INTO NEW.area FROM db.area WHERE id = NEW.area AND scope IN (SELECT GetOAuth2Scopes(NEW.oauth2));
+    IF NOT FOUND THEN
+      SELECT id INTO NEW.area FROM db.area WHERE scope IN (SELECT GetOAuth2Scopes(NEW.oauth2)) AND type = '00000000-0000-4002-a001-000000000001'; -- main
+    END IF;
 
     IF NOT IsMemberArea(NEW.area, NEW.userid) THEN
       SELECT '00000000-0000-4003-a000-000000000002' INTO NEW.area; -- guest
@@ -247,10 +247,10 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 CREATE OR REPLACE FUNCTION db.ft_area_before_insert()
-RETURNS	trigger AS $$
+RETURNS    trigger AS $$
 BEGIN
   IF NEW.id IS NULL THEN
-	NEW.id := gen_kernel_uuid('8');
+    NEW.id := gen_kernel_uuid('8');
   END IF;
 
   IF NEW.scope IS NULL THEN

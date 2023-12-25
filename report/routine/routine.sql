@@ -19,13 +19,13 @@ CREATE OR REPLACE FUNCTION CreateReportRoutine (
   pReport       uuid,
   pCode         text,
   pName         text,
-  pDefinition	text,
-  pDescription	text DEFAULT null,
+  pDefinition   text,
+  pDescription  text DEFAULT null,
   pSequence     integer default null
 ) RETURNS       uuid
 AS $$
 DECLARE
-  uReference	uuid;
+  uReference    uuid;
   uClass        uuid;
   uMethod       uuid;
 BEGIN
@@ -78,8 +78,8 @@ CREATE OR REPLACE FUNCTION EditReportRoutine (
   pReport       uuid default null,
   pCode         text default null,
   pName         text default null,
-  pDefinition	text default null,
-  pDescription	text DEFAULT null,
+  pDefinition   text default null,
+  pDescription  text DEFAULT null,
   pSequence     integer default null
 ) RETURNS       void
 AS $$
@@ -123,8 +123,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetReportRoutine (
-  pCode		text
-) RETURNS 	uuid
+  pCode       text
+) RETURNS     uuid
 AS $$
 BEGIN
   RETURN GetReference(pCode, 'report_routine');
@@ -138,8 +138,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetReportRoutineDefinition (
-  pId		uuid
-) RETURNS	text
+  pId        uuid
+) RETURNS    text
 AS $$
   SELECT definition FROM db.report_routine WHERE id = pId
 $$ LANGUAGE SQL
@@ -151,13 +151,13 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetReportRoutineSequence (
-  pId		uuid,
-  pSequence	integer,
-  pDelta	integer
-) RETURNS 	void
+  pId       uuid,
+  pSequence integer,
+  pDelta    integer
+) RETURNS   void
 AS $$
 DECLARE
-  uId		uuid;
+  uId       uuid;
   uReport   uuid;
 BEGIN
   IF pDelta <> 0 THEN
@@ -185,7 +185,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION SortReportRoutine (
   pReport   uuid
-) RETURNS 	void
+) RETURNS   void
 AS $$
 DECLARE
   r         record;

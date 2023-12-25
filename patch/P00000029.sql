@@ -3,7 +3,7 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.scope_alias (
-    scope	        uuid NOT NULL REFERENCES db.scope(id) ON DELETE CASCADE,
+    scope            uuid NOT NULL REFERENCES db.scope(id) ON DELETE CASCADE,
     code            text NOT NULL,
     PRIMARY KEY (scope, code)
 );

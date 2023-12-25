@@ -3,13 +3,13 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddProvider (
-  pType		    char,
-  pCode		    text,
-  pName		    text DEFAULT null
-) RETURNS 	    integer
+  pType          char,
+  pCode          text,
+  pName          text DEFAULT null
+) RETURNS        integer
 AS $$
 DECLARE
-  nId		    integer;
+  nId            integer;
 BEGIN
   IF session_user <> 'kernel' THEN
     IF NOT IsUserRole(GetGroup('administrator')) THEN
@@ -31,8 +31,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetProvider (
-  pCode		text
-) RETURNS 	integer
+  pCode     text
+) RETURNS   integer
 AS $$
   SELECT id FROM oauth2.provider WHERE code = pCode;
 $$ LANGUAGE sql
@@ -44,8 +44,8 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetProviderCode (
-  pId		integer
-) RETURNS 	text
+  pId       integer
+) RETURNS   text
 AS $$
   SELECT code FROM oauth2.provider WHERE id = pId;
 $$ LANGUAGE sql
@@ -57,8 +57,8 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetProviderType (
-  pId		integer
-) RETURNS 	char
+  pId       integer
+) RETURNS   char
 AS $$
   SELECT type FROM oauth2.provider WHERE id = pId;
 $$ LANGUAGE sql
@@ -70,13 +70,13 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddApplication (
-  pType		    char,
-  pCode		    text,
-  pName		    text DEFAULT null
-) RETURNS 	    integer
+  pType     char,
+  pCode     text,
+  pName     text DEFAULT null
+) RETURNS   integer
 AS $$
 DECLARE
-  nId		    integer;
+  nId       integer;
 BEGIN
   IF session_user <> 'kernel' THEN
     IF NOT IsUserRole(GetGroup('administrator')) THEN
@@ -98,8 +98,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetApplication (
-  pCode		text
-) RETURNS 	integer
+  pCode     text
+) RETURNS   integer
 AS $$
   SELECT id FROM oauth2.application WHERE code = pCode;
 $$ LANGUAGE sql
@@ -111,8 +111,8 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetApplicationCode (
-  pId		integer
-) RETURNS 	text
+  pId       integer
+) RETURNS   text
 AS $$
   SELECT code FROM oauth2.application WHERE id = pId;
 $$ LANGUAGE sql
@@ -125,12 +125,12 @@ $$ LANGUAGE sql
 
 CREATE OR REPLACE FUNCTION AddIssuer (
   pProvider     integer,
-  pCode		    text,
-  pName		    text
-) RETURNS 	    integer
+  pCode         text,
+  pName         text
+) RETURNS       integer
 AS $$
 DECLARE
-  nId		    integer;
+  nId           integer;
 BEGIN
   IF session_user <> 'kernel' THEN
     IF NOT IsUserRole(GetGroup('administrator')) THEN
@@ -152,8 +152,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetIssuer (
-  pCode		text
-) RETURNS 	integer
+  pCode     text
+) RETURNS   integer
 AS $$
   SELECT id FROM oauth2.issuer WHERE code = pCode;
 $$ LANGUAGE sql
@@ -165,8 +165,8 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetIssuerCode (
-  pId		integer
-) RETURNS 	text
+  pId       integer
+) RETURNS   text
 AS $$
   SELECT code FROM oauth2.issuer WHERE id = pId;
 $$ LANGUAGE sql
@@ -178,12 +178,12 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddAlgorithm (
-  pCode		    text,
-  pName		    text
-) RETURNS 	    integer
+  pCode     text,
+  pName     text
+) RETURNS   integer
 AS $$
 DECLARE
-  nId		    integer;
+  nId		integer;
 BEGIN
   IF session_user <> 'kernel' THEN
     IF NOT IsUserRole(GetGroup('administrator')) THEN

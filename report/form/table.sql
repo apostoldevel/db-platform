@@ -7,9 +7,9 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.report_form (
-    id			uuid PRIMARY KEY,
-    reference	uuid NOT NULL REFERENCES db.reference(id) ON DELETE CASCADE,
-    definition	text
+    id           uuid PRIMARY KEY,
+    reference    uuid NOT NULL REFERENCES db.reference(id) ON DELETE CASCADE,
+    definition   text
 );
 
 COMMENT ON TABLE db.report_form IS 'Форма.';

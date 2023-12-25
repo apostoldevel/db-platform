@@ -15,7 +15,7 @@ GRANT SELECT ON api.inbox TO apibot;
 
 CREATE OR REPLACE FUNCTION api.inbox (
   pState    uuid
-) RETURNS	SETOF api.inbox
+) RETURNS   SETOF api.inbox
 AS $$
   SELECT * FROM api.inbox WHERE state = pState;
 $$ LANGUAGE SQL
@@ -28,7 +28,7 @@ $$ LANGUAGE SQL
 
 CREATE OR REPLACE FUNCTION api.inbox (
   pState    text
-) RETURNS	SETOF api.inbox
+) RETURNS   SETOF api.inbox
 AS $$
   SELECT * FROM api.inbox(GetState(GetClass('inbox'), pState));
 $$ LANGUAGE SQL
@@ -58,7 +58,7 @@ CREATE OR REPLACE FUNCTION api.add_inbox (
   pProfile      text,
   pAddress      text,
   pSubject      text,
-  pContent		text,
+  pContent      text,
   pLabel        text default null,
   pDescription  text default null
 ) RETURNS       uuid
@@ -79,8 +79,8 @@ $$ LANGUAGE plpgsql
  * @return {api.inbox}
  */
 CREATE OR REPLACE FUNCTION api.get_inbox (
-  pId		uuid
-) RETURNS	SETOF api.inbox
+  pId        uuid
+) RETURNS    SETOF api.inbox
 AS $$
   SELECT * FROM api.inbox WHERE id = pId
 $$ LANGUAGE SQL
@@ -100,12 +100,12 @@ $$ LANGUAGE SQL
  * @return {SETOF api.inbox}
  */
 CREATE OR REPLACE FUNCTION api.list_inbox (
-  pSearch	jsonb DEFAULT null,
-  pFilter	jsonb DEFAULT null,
-  pLimit	integer DEFAULT null,
-  pOffSet	integer DEFAULT null,
-  pOrderBy	jsonb DEFAULT null
-) RETURNS	SETOF api.inbox
+  pSearch   jsonb DEFAULT null,
+  pFilter   jsonb DEFAULT null,
+  pLimit    integer DEFAULT null,
+  pOffSet   integer DEFAULT null,
+  pOrderBy  jsonb DEFAULT null
+) RETURNS   SETOF api.inbox
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'inbox', pSearch, pFilter, pLimit, pOffSet, pOrderBy);

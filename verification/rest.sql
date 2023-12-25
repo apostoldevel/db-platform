@@ -23,7 +23,7 @@ BEGIN
   END IF;
 
   IF current_session() IS NULL THEN
-	PERFORM LoginFailed();
+    PERFORM LoginFailed();
   END IF;
 
   CASE pPath
@@ -184,11 +184,11 @@ BEGIN
 
   WHEN '/verification/code/list' THEN
 
-	IF session_user <> 'kernel' THEN
-	  IF NOT IsUserRole(GetGroup('administrator')) THEN
-		PERFORM AccessDenied();
-	  END IF;
-	END IF;
+    IF session_user <> 'kernel' THEN
+      IF NOT IsUserRole(GetGroup('administrator')) THEN
+        PERFORM AccessDenied();
+      END IF;
+    END IF;
 
     IF pPayload IS NOT NULL THEN
       arKeys := array_cat(arKeys, ARRAY['fields', 'search', 'filter', 'reclimit', 'recoffset', 'orderby']);

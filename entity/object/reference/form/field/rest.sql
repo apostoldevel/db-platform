@@ -23,48 +23,48 @@ BEGIN
   END IF;
 
   IF current_session() IS NULL THEN
-	PERFORM LoginFailed();
+    PERFORM LoginFailed();
   END IF;
 
   CASE pPath
   WHEN '/form/field' THEN
 
-	IF pPayload IS NULL THEN
-	  PERFORM JsonIsEmpty();
-	END IF;
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
 
-	arKeys := array_cat(arKeys, ARRAY['form', 'fields']);
-	PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+    arKeys := array_cat(arKeys, ARRAY['form', 'fields']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-	IF jsonb_typeof(pPayload) = 'array' THEN
+    IF jsonb_typeof(pPayload) = 'array' THEN
 
-	  FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(form uuid, fields json)
-	  LOOP
-		IF r.fields IS NOT NULL THEN
-		  FOR e IN SELECT * FROM api.set_form_field_json(r.form, r.fields)
-		  LOOP
-			RETURN NEXT row_to_json(e);
-		  END LOOP;
-		ELSE
-		  RETURN NEXT api.get_form_field_json(r.form);
-		END IF;
-	  END LOOP;
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(form uuid, fields json)
+      LOOP
+        IF r.fields IS NOT NULL THEN
+          FOR e IN SELECT * FROM api.set_form_field_json(r.form, r.fields)
+          LOOP
+            RETURN NEXT row_to_json(e);
+          END LOOP;
+        ELSE
+          RETURN NEXT api.get_form_field_json(r.form);
+        END IF;
+      END LOOP;
 
-	ELSE
+    ELSE
 
-	  FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(form uuid, fields json)
-	  LOOP
-		IF r.fields IS NOT NULL THEN
-		  FOR e IN SELECT * FROM api.set_form_field_json(r.form, r.fields)
-		  LOOP
-			RETURN NEXT row_to_json(e);
-		  END LOOP;
-		ELSE
-		  RETURN NEXT api.get_form_field_json(r.form);
-		END IF;
-	  END LOOP;
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(form uuid, fields json)
+      LOOP
+        IF r.fields IS NOT NULL THEN
+          FOR e IN SELECT * FROM api.set_form_field_json(r.form, r.fields)
+          LOOP
+            RETURN NEXT row_to_json(e);
+          END LOOP;
+        ELSE
+          RETURN NEXT api.get_form_field_json(r.form);
+        END IF;
+      END LOOP;
 
-	END IF;
+    END IF;
 
   WHEN '/form/field/count' THEN
 

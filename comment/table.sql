@@ -11,8 +11,8 @@ CREATE TABLE db.comment (
     parent      uuid REFERENCES db.comment(id),
     object      uuid NOT NULL REFERENCES db.object(id),
     owner       uuid NOT NULL REFERENCES db.user(id),
-    created		timestamptz DEFAULT Now() NOT NULL,
-    updated		timestamptz DEFAULT Now() NOT NULL,
+    created     timestamptz DEFAULT Now() NOT NULL,
+    updated     timestamptz DEFAULT Now() NOT NULL,
     priority    integer NOT NULL DEFAULT 0,
     text        text NOT NULL,
     data        jsonb

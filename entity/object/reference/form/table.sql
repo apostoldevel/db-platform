@@ -7,8 +7,8 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.form (
-    id			uuid PRIMARY KEY,
-    reference	uuid NOT NULL REFERENCES db.reference(id) ON DELETE CASCADE
+    id           uuid PRIMARY KEY,
+    reference    uuid NOT NULL REFERENCES db.reference(id) ON DELETE CASCADE
 );
 
 COMMENT ON TABLE db.form IS 'Форма.';

@@ -7,12 +7,12 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.report_tree (
-    id			    uuid PRIMARY KEY,
-    reference		uuid NOT NULL REFERENCES db.reference(id) ON DELETE CASCADE,
+    id              uuid PRIMARY KEY,
+    reference       uuid NOT NULL REFERENCES db.reference(id) ON DELETE CASCADE,
     root            uuid NOT NULL REFERENCES db.report_tree(id),
     node            uuid REFERENCES db.report_tree(id),
     level           integer NOT NULL,
-    sequence		integer NOT NULL
+    sequence        integer NOT NULL
 );
 
 COMMENT ON TABLE db.report_tree IS 'Дерево отчётов.';

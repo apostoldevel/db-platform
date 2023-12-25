@@ -17,7 +17,7 @@ GRANT SELECT ON api.publisher TO administrator;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.publisher (
-  pCode			text
+  pCode         text
 ) RETURNS       SETOF api.publisher
 AS $$
   SELECT * FROM api.publisher WHERE code = pCode;
@@ -33,7 +33,7 @@ $$ LANGUAGE SQL
  * @return {record}
  */
 CREATE OR REPLACE FUNCTION api.get_publisher (
-  pCode			text
+  pCode         text
 ) RETURNS       SETOF api.publisher
 AS $$
   SELECT * FROM api.publisher WHERE code = pCode;
@@ -54,12 +54,12 @@ $$ LANGUAGE SQL
  * @return {SETOF api.publisher}
  */
 CREATE OR REPLACE FUNCTION api.list_publisher (
-  pSearch		jsonb DEFAULT null,
-  pFilter		jsonb DEFAULT null,
-  pLimit		integer DEFAULT null,
-  pOffSet		integer DEFAULT null,
-  pOrderBy		jsonb DEFAULT null
-) RETURNS		SETOF api.publisher
+  pSearch       jsonb DEFAULT null,
+  pFilter       jsonb DEFAULT null,
+  pLimit        integer DEFAULT null,
+  pOffSet       integer DEFAULT null,
+  pOrderBy      jsonb DEFAULT null
+) RETURNS       SETOF api.publisher
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'publisher', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
@@ -83,9 +83,9 @@ GRANT SELECT ON api.listener TO administrator;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.listener (
-  pPublisher	text,
-  pSession		varchar,
-  pIdentity		text
+  pPublisher    text,
+  pSession      varchar,
+  pIdentity     text
 ) RETURNS       SETOF api.listener
 AS $$
   SELECT * FROM api.listener WHERE publisher = pPublisher AND session = pSession AND identity = pIdentity
@@ -98,8 +98,8 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.add_listener (
-  pPublisher	text,
-  pSession		varchar,
+  pPublisher    text,
+  pSession    	varchar,
   pIdentity		text,
   pFilter		jsonb,
   pParams		jsonb

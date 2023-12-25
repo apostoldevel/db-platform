@@ -40,7 +40,7 @@ BEGIN
 
   SELECT id INTO uId FROM db.report WHERE id = pReport;
   IF NOT FOUND THEN
-	PERFORM ObjectNotFound('отчёт', 'id', pReport);
+    PERFORM ObjectNotFound('отчёт', 'id', pReport);
   END IF;
 
   uDocument := CreateDocument(pParent, pType, pLabel, pDescription);
@@ -140,7 +140,7 @@ BEGIN
 
   FOR r IN SELECT definition FROM db.report_routine WHERE report = uReport ORDER BY sequence
   LOOP
-	EXECUTE 'SELECT report.' || r.definition || '($1, $2);' USING pId, jForm;
+    EXECUTE 'SELECT report.' || r.definition || '($1, $2);' USING pId, jForm;
   END LOOP;
 END;
 $$ LANGUAGE plpgsql

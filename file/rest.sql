@@ -122,8 +122,8 @@ BEGIN
     FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(fields jsonb, search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
     LOOP
       IF r.orderby IS NULL THEN
-		r.orderby := jsonb_build_array('sortlist');
-	  END IF;
+        r.orderby := jsonb_build_array('sortlist');
+      END IF;
 
       FOR e IN EXECUTE format('SELECT %s FROM api.list_file($1, $2, $3, $4, $5)', JsonbToFields(r.fields, GetColumns('file', 'api'))) USING r.search, r.filter, r.reclimit, r.recoffset, r.orderby
       LOOP

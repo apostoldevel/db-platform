@@ -8,7 +8,7 @@
 
 CREATE TABLE replication.log (
     id          bigserial PRIMARY KEY,
-    datetime	timestamptz DEFAULT Now() NOT NULL,
+    datetime    timestamptz DEFAULT Now() NOT NULL,
     action      char NOT NULL CHECK (action IN ('I', 'U', 'D')),
     schema      text NOT NULL,
     name        text NOT NULL,
@@ -59,15 +59,15 @@ CREATE TRIGGER t_replication_log
 CREATE TABLE replication.relay (
     source      text NOT NULL,
     id          bigint NOT NULL,
-    state		integer NOT NULL DEFAULT 0 CHECK (state BETWEEN 0 AND 2),
+    state       integer NOT NULL DEFAULT 0 CHECK (state BETWEEN 0 AND 2),
     created     timestamptz DEFAULT Now() NOT NULL,
-    datetime	timestamptz NOT NULL,
+    datetime    timestamptz NOT NULL,
     action      char NOT NULL CHECK (action IN ('I', 'U', 'D')),
     schema      text NOT NULL,
     name        text NOT NULL,
     key         jsonb,
     data        jsonb,
-    message		text,
+    message     text,
     proxy       boolean NOT NULL DEFAULT false,
     PRIMARY KEY (source, id)
 );

@@ -33,68 +33,68 @@ BEGIN
   LOOP
     r.status := coalesce(r.status, 3);
 
-	FOR g IN
-	  SELECT id AS value, name AS label
+    FOR g IN
+      SELECT id AS value, name AS label
         FROM db.user
        WHERE type = 'G'
        ORDER BY name
-	LOOP
-	  arGroups := array_append(arGroups, row_to_json(g));
-	END LOOP;
+    LOOP
+      arGroups := array_append(arGroups, row_to_json(g));
+    END LOOP;
 
-	IF r.groupId IS NULL THEN
+    IF r.groupId IS NULL THEN
       FOR u IN
-	    SELECT id AS value, name AS label
-		  FROM db.user
+        SELECT id AS value, name AS label
+          FROM db.user
          WHERE type = 'U'
-	     ORDER BY name
-	  LOOP
-	    arUsers := array_append(arUsers, row_to_json(u));
-	  END LOOP;
+         ORDER BY name
+      LOOP
+        arUsers := array_append(arUsers, row_to_json(u));
+      END LOOP;
     ELSE
       FOR u IN
-	    SELECT t.id AS value, t.name AS label
-		  FROM db.user t INNER JOIN db.member_group mg ON t.id = mg.member
+        SELECT t.id AS value, t.name AS label
+          FROM db.user t INNER JOIN db.member_group mg ON t.id = mg.member
          WHERE t.type = 'U'
            AND mg.userid = r.groupId
-	     ORDER BY t.name
-	  LOOP
-	    arUsers := array_append(arUsers, row_to_json(u));
-	  END LOOP;
+         ORDER BY t.name
+      LOOP
+        arUsers := array_append(arUsers, row_to_json(u));
+      END LOOP;
     END IF;
 
-	FOR l IN SELECT code FROM db.locale WHERE id = current_locale()
-	LOOP
-	  IF l.code = 'ru' THEN
-		IF array_length(arGroups, 1) = 1 THEN
-		  fields := fields || jsonb_build_object('type', 'select', 'format', 'uuid', 'key', 'groupid', 'label', 'Группа', 'value', (arGroups[1]::json)->>'value', 'data', arGroups);
-		ELSE
-		  fields := fields || jsonb_build_object('type', 'select', 'format', 'uuid', 'key', 'groupid', 'label', 'Группа', 'data', arGroups, 'mutable', true);
-		END IF;
+    FOR l IN SELECT code FROM db.locale WHERE id = current_locale()
+    LOOP
+      IF l.code = 'ru' THEN
+        IF array_length(arGroups, 1) = 1 THEN
+          fields := fields || jsonb_build_object('type', 'select', 'format', 'uuid', 'key', 'groupid', 'label', 'Группа', 'value', (arGroups[1]::json)->>'value', 'data', arGroups);
+        ELSE
+          fields := fields || jsonb_build_object('type', 'select', 'format', 'uuid', 'key', 'groupid', 'label', 'Группа', 'data', arGroups, 'mutable', true);
+        END IF;
 
-		IF array_length(arUsers, 1) = 1 THEN
-		  fields := fields || jsonb_build_object('type', 'select', 'format', 'uuid', 'key', 'userid', 'label', 'Пользователь', 'value', (arUsers[1]::json)->>'value', 'data', arUsers);
-		ELSE
-		  fields := fields || jsonb_build_object('type', 'select', 'format', 'uuid', 'key', 'userid', 'label', 'Пользователь', 'data', arUsers, 'mutable', false);
-		END IF;
+        IF array_length(arUsers, 1) = 1 THEN
+          fields := fields || jsonb_build_object('type', 'select', 'format', 'uuid', 'key', 'userid', 'label', 'Пользователь', 'value', (arUsers[1]::json)->>'value', 'data', arUsers);
+        ELSE
+          fields := fields || jsonb_build_object('type', 'select', 'format', 'uuid', 'key', 'userid', 'label', 'Пользователь', 'data', arUsers, 'mutable', false);
+        END IF;
 
-		fields := fields || jsonb_build_object('type', 'select', 'format', 'text', 'key', 'status', 'label', 'Статус', 'value', r.status, 'data', jsonb_build_array(jsonb_build_object('value', 15, 'label', 'Все'), jsonb_build_object('value', 3, 'label', 'Действующие'), jsonb_build_object('value', 1, 'label', 'Открыт'), jsonb_build_object('value', 2, 'label', 'Активен'), jsonb_build_object('value', 4, 'label', 'Заблокирован'), jsonb_build_object('value', 8, 'label', 'Просрочен')));
-	  ELSE
-		IF array_length(arGroups, 1) = 1 THEN
-		  fields := fields || jsonb_build_object('type', 'select', 'format', 'uuid', 'key', 'groupid', 'label', 'Group', 'value', (arGroups[1]::json)->>'value', 'data', arGroups);
-		ELSE
-		  fields := fields || jsonb_build_object('type', 'select', 'format', 'uuid', 'key', 'groupid', 'label', 'Group', 'data', arGroups, 'mutable', true);
-		END IF;
+        fields := fields || jsonb_build_object('type', 'select', 'format', 'text', 'key', 'status', 'label', 'Статус', 'value', r.status, 'data', jsonb_build_array(jsonb_build_object('value', 15, 'label', 'Все'), jsonb_build_object('value', 3, 'label', 'Действующие'), jsonb_build_object('value', 1, 'label', 'Открыт'), jsonb_build_object('value', 2, 'label', 'Активен'), jsonb_build_object('value', 4, 'label', 'Заблокирован'), jsonb_build_object('value', 8, 'label', 'Просрочен')));
+      ELSE
+        IF array_length(arGroups, 1) = 1 THEN
+          fields := fields || jsonb_build_object('type', 'select', 'format', 'uuid', 'key', 'groupid', 'label', 'Group', 'value', (arGroups[1]::json)->>'value', 'data', arGroups);
+        ELSE
+          fields := fields || jsonb_build_object('type', 'select', 'format', 'uuid', 'key', 'groupid', 'label', 'Group', 'data', arGroups, 'mutable', true);
+        END IF;
 
-		IF array_length(arUsers, 1) = 1 THEN
-		  fields := fields || jsonb_build_object('type', 'select', 'format', 'uuid', 'key', 'userid', 'label', 'User', 'value', (arUsers[1]::json)->>'value', 'data', arUsers);
-		ELSE
-		  fields := fields || jsonb_build_object('type', 'select', 'format', 'uuid', 'key', 'userid', 'label', 'User', 'data', arUsers, 'mutable', false);
-		END IF;
+        IF array_length(arUsers, 1) = 1 THEN
+          fields := fields || jsonb_build_object('type', 'select', 'format', 'uuid', 'key', 'userid', 'label', 'User', 'value', (arUsers[1]::json)->>'value', 'data', arUsers);
+        ELSE
+          fields := fields || jsonb_build_object('type', 'select', 'format', 'uuid', 'key', 'userid', 'label', 'User', 'data', arUsers, 'mutable', false);
+        END IF;
 
-		fields := fields || jsonb_build_object('type', 'select', 'format', 'text', 'key', 'status', 'label', 'Status', 'value', r.status, 'data', jsonb_build_array(jsonb_build_object('value', 15, 'label', 'All'), jsonb_build_object('value', 3, 'label', 'Enable'), jsonb_build_object('value', 1, 'label', 'Open'), jsonb_build_object('value', 2, 'label', 'Active'), jsonb_build_object('value', 4, 'label', 'Locked'), jsonb_build_object('value', 8, 'label', 'Expired')));
-	  END IF;
-	END LOOP;
+        fields := fields || jsonb_build_object('type', 'select', 'format', 'text', 'key', 'status', 'label', 'Status', 'value', r.status, 'data', jsonb_build_array(jsonb_build_object('value', 15, 'label', 'All'), jsonb_build_object('value', 3, 'label', 'Enable'), jsonb_build_object('value', 1, 'label', 'Open'), jsonb_build_object('value', 2, 'label', 'Active'), jsonb_build_object('value', 4, 'label', 'Locked'), jsonb_build_object('value', 8, 'label', 'Expired')));
+      END IF;
+    END LOOP;
   END LOOP;
 
   RETURN json_build_object('form', pForm, 'fields', fields);
@@ -166,7 +166,7 @@ BEGIN
       ELSE
         Lines[3] := 'Пользователь: ' || GetUserFullName(uUserId);
       END IF;
-	ELSE
+    ELSE
       vFormat := 'YYYY-MM-YY HH24:MI:SS';
       vEmpty := 'There is no data';
 
@@ -183,20 +183,20 @@ BEGIN
       ELSE
         Lines[3] := 'User: ' || GetUserFullName(uUserId);
       END IF;
-	END IF;
+    END IF;
 
     vCSV := E'status;username;name;email;phone;description;created;host;input_last;input_count;input_error\r\n';
 
-	vHTML := E'<!DOCTYPE html>\n';
+    vHTML := E'<!DOCTYPE html>\n';
 
-	vHTML := vHTML || format(E'<html lang="%s">\n', l.code);
-	vHTML := vHTML || E'<head>\n';
-	vHTML := vHTML || E'  <meta charset="UTF-8">\n';
+    vHTML := vHTML || format(E'<html lang="%s">\n', l.code);
+    vHTML := vHTML || E'<head>\n';
+    vHTML := vHTML || E'  <meta charset="UTF-8">\n';
     vHTML := vHTML || format(E'  <title>%s</title>\n', Lines[1]);
-	vHTML := vHTML || E'</head>\n';
+    vHTML := vHTML || E'</head>\n';
 
-	vHTML := vHTML || E'<body>\n';
-	vHTML := vHTML || E'<div>\n';
+    vHTML := vHTML || E'<body>\n';
+    vHTML := vHTML || E'<div>\n';
 
     vHTML := vHTML || E'  <div class="text-center">\n';
 
@@ -208,10 +208,10 @@ BEGIN
 
     vHTML := vHTML || E'  <div class="table-responsive">\n';
 
-	vHTML := vHTML || E'  <table class="table table-bordered">\n';
-	vHTML := vHTML || E'    <thead class="thead-light">\n';
+    vHTML := vHTML || E'  <table class="table table-bordered">\n';
+    vHTML := vHTML || E'    <thead class="thead-light">\n';
 
-	IF l.code = 'ru' THEN
+    IF l.code = 'ru' THEN
       vHTML := vHTML || E'      <tr class="text-center">\n';
       vHTML := vHTML || E'        <th style="width: 10%!important;">Статус</th>\n';
       vHTML := vHTML || E'        <th style="width: 10%!important;">Username</th>\n';
@@ -225,7 +225,7 @@ BEGIN
       vHTML := vHTML || E'        <th style="width: 5%!important;">Успешных</th>\n';
       vHTML := vHTML || E'        <th style="width: 5%!important;">Неудачных</th>\n';
       vHTML := vHTML || E'      </tr>\n';
-	ELSE
+    ELSE
       vHTML := vHTML || E'      <tr class="text-center">\n';
       vHTML := vHTML || E'        <th style="width: 10%!important;">Status</th>\n';
       vHTML := vHTML || E'        <th style="width: 10%!important;">Username</th>\n';
@@ -239,128 +239,128 @@ BEGIN
       vHTML := vHTML || E'        <th style="width: 5%!important;">Input count</th>\n';
       vHTML := vHTML || E'        <th style="width: 5%!important;">Input error</th>\n';
       vHTML := vHTML || E'      </tr>\n';
-	END IF;
+    END IF;
 
     vHTML := vHTML || E'    </thead>\n';
     vHTML := vHTML || E'    </tbody>\n';
 
-	bEmpty := true;
+    bEmpty := true;
 
     IF uGroupId IS NULL THEN
-	  FOR t IN
-		SELECT *
-		  FROM users u
-		 WHERE u.id = coalesce(uUserId, id)
-		   AND u.status & nStatus != 0
-		 ORDER BY u.name
-	     LIMIT 500
-	  LOOP
-		bEmpty := false;
+      FOR t IN
+        SELECT *
+          FROM users u
+         WHERE u.id = coalesce(uUserId, id)
+           AND u.status & nStatus != 0
+         ORDER BY u.name
+         LIMIT 500
+      LOOP
+        bEmpty := false;
 
-		vHTML := vHTML || E'        <tr class="text-center">\n';
+        vHTML := vHTML || E'        <tr class="text-center">\n';
 
-		vHTML := vHTML || format(E'          <td style="width: 10%%!important;">%s</td>\n', t.statustext);
-		vHTML := vHTML || format(E'          <td style="width: 10%%!important;">%s</td>\n', t.username);
-		vHTML := vHTML || format(E'          <td style="width: 10%%!important;">%s</td>\n', t.name);
+        vHTML := vHTML || format(E'          <td style="width: 10%%!important;">%s</td>\n', t.statustext);
+        vHTML := vHTML || format(E'          <td style="width: 10%%!important;">%s</td>\n', t.username);
+        vHTML := vHTML || format(E'          <td style="width: 10%%!important;">%s</td>\n', t.name);
 
-		IF t.email_verified THEN
-		  vHTML := vHTML || format(E'          <td style="width: 10%%!important; color: green;">%s</td>\n', t.email);
-		ELSE
-		  vHTML := vHTML || format(E'          <td style="width: 10%%!important; color: red;">%s</td>\n', t.email);
-		END IF;
+        IF t.email_verified THEN
+          vHTML := vHTML || format(E'          <td style="width: 10%%!important; color: green;">%s</td>\n', t.email);
+        ELSE
+          vHTML := vHTML || format(E'          <td style="width: 10%%!important; color: red;">%s</td>\n', t.email);
+        END IF;
 
-		IF t.phone_verified THEN
-		  vHTML := vHTML || format(E'          <td style="width: 10%%!important; color: green;">%s</td>\n', t.phone);
-		ELSE
-		  vHTML := vHTML || format(E'          <td style="width: 10%%!important; color: red;">%s</td>\n', t.phone);
-		END IF;
+        IF t.phone_verified THEN
+          vHTML := vHTML || format(E'          <td style="width: 10%%!important; color: green;">%s</td>\n', t.phone);
+        ELSE
+          vHTML := vHTML || format(E'          <td style="width: 10%%!important; color: red;">%s</td>\n', t.phone);
+        END IF;
 
-		vHTML := vHTML || format(E'          <td style="width: 10%%!important;">%s</td>\n', t.description);
-		vHTML := vHTML || format(E'          <td style="width: 10%%!important;">%s</td>\n', DateToStr(t.created, vFormat));
-		vHTML := vHTML || format(E'          <td style="width: 10%%!important;">%s</td>\n', t.lc_ip);
-		vHTML := vHTML || format(E'          <td style="width: 10%%!important;">%s</td>\n', DateToStr(t.input_last, vFormat));
-		vHTML := vHTML || format(E'          <td style="width: 5%%!important;">%s</td>\n', t.input_count);
-		vHTML := vHTML || format(E'          <td style="width: 5%%!important;">%s</td>\n', t.input_error);
+        vHTML := vHTML || format(E'          <td style="width: 10%%!important;">%s</td>\n', t.description);
+        vHTML := vHTML || format(E'          <td style="width: 10%%!important;">%s</td>\n', DateToStr(t.created, vFormat));
+        vHTML := vHTML || format(E'          <td style="width: 10%%!important;">%s</td>\n', t.lc_ip);
+        vHTML := vHTML || format(E'          <td style="width: 10%%!important;">%s</td>\n', DateToStr(t.input_last, vFormat));
+        vHTML := vHTML || format(E'          <td style="width: 5%%!important;">%s</td>\n', t.input_count);
+        vHTML := vHTML || format(E'          <td style="width: 5%%!important;">%s</td>\n', t.input_error);
 
-		vHTML := vHTML || E'        </tr>\n';
+        vHTML := vHTML || E'        </tr>\n';
 
-		vCSV := vCSV || format(E'%s;', t.username);
+        vCSV := vCSV || format(E'%s;', t.username);
         vCSV := vCSV || format(E'"%s";', replace(t.name, '\', '\\'));
-		vCSV := vCSV || format(E'%s;', t.email);
-		vCSV := vCSV || format(E'%s;', t.phone);
+        vCSV := vCSV || format(E'%s;', t.email);
+        vCSV := vCSV || format(E'%s;', t.phone);
         vCSV := vCSV || format('"%s";', coalesce(replace(t.description, '\', '\\'), ''));
-		vCSV := vCSV || format(E'%s;', DateToStr(t.created, vFormat));
-		vCSV := vCSV || format(E'%s;', t.lc_ip);
-		vCSV := vCSV || format(E'%s;', DateToStr(t.input_last, vFormat));
-		vCSV := vCSV || format(E'%s;', t.input_count);
-		vCSV := vCSV || format(E'%s\r\n', t.input_error);
-	  END LOOP;
-	ELSE
-	  FOR t IN
-		SELECT *
-		  FROM users u INNER JOIN db.member_group mg ON u.id = mg.member AND mg.userid = coalesce(uGroupId, mg.userid)
-		 WHERE u.id = coalesce(uUserId, id)
-		   AND u.status & nStatus != 0
-		 ORDER BY u.name
-	     LIMIT 500
-	  LOOP
-		bEmpty := false;
+        vCSV := vCSV || format(E'%s;', DateToStr(t.created, vFormat));
+        vCSV := vCSV || format(E'%s;', t.lc_ip);
+        vCSV := vCSV || format(E'%s;', DateToStr(t.input_last, vFormat));
+        vCSV := vCSV || format(E'%s;', t.input_count);
+        vCSV := vCSV || format(E'%s\r\n', t.input_error);
+      END LOOP;
+    ELSE
+      FOR t IN
+        SELECT *
+          FROM users u INNER JOIN db.member_group mg ON u.id = mg.member AND mg.userid = coalesce(uGroupId, mg.userid)
+         WHERE u.id = coalesce(uUserId, id)
+           AND u.status & nStatus != 0
+         ORDER BY u.name
+         LIMIT 500
+      LOOP
+        bEmpty := false;
 
-		vHTML := vHTML || E'        <tr class="text-center">\n';
+        vHTML := vHTML || E'        <tr class="text-center">\n';
 
-		vHTML := vHTML || format(E'          <td style="width: 10%%!important;">%s</td>\n', t.statustext);
-		vHTML := vHTML || format(E'          <td style="width: 10%%!important;">%s</td>\n', t.username);
-		vHTML := vHTML || format(E'          <td style="width: 10%%!important;">%s</td>\n', t.name);
+        vHTML := vHTML || format(E'          <td style="width: 10%%!important;">%s</td>\n', t.statustext);
+        vHTML := vHTML || format(E'          <td style="width: 10%%!important;">%s</td>\n', t.username);
+        vHTML := vHTML || format(E'          <td style="width: 10%%!important;">%s</td>\n', t.name);
 
-		IF t.email_verified THEN
-		  vHTML := vHTML || format(E'          <td style="width: 10%%!important; color: green;">%s</td>\n', t.email);
-		ELSE
-		  vHTML := vHTML || format(E'          <td style="width: 10%%!important; color: red;">%s</td>\n', t.email);
-		END IF;
+        IF t.email_verified THEN
+          vHTML := vHTML || format(E'          <td style="width: 10%%!important; color: green;">%s</td>\n', t.email);
+        ELSE
+          vHTML := vHTML || format(E'          <td style="width: 10%%!important; color: red;">%s</td>\n', t.email);
+        END IF;
 
-		IF t.phone_verified THEN
-		  vHTML := vHTML || format(E'          <td style="width: 10%%!important; color: green;">%s</td>\n', t.phone);
-		ELSE
-		  vHTML := vHTML || format(E'          <td style="width: 10%%!important; color: red;">%s</td>\n', t.phone);
-		END IF;
+        IF t.phone_verified THEN
+          vHTML := vHTML || format(E'          <td style="width: 10%%!important; color: green;">%s</td>\n', t.phone);
+        ELSE
+          vHTML := vHTML || format(E'          <td style="width: 10%%!important; color: red;">%s</td>\n', t.phone);
+        END IF;
 
-		vHTML := vHTML || format(E'          <td style="width: 10%%!important;">%s</td>\n', t.description);
-		vHTML := vHTML || format(E'          <td style="width: 10%%!important;">%s</td>\n', DateToStr(t.created, vFormat));
-		vHTML := vHTML || format(E'          <td style="width: 10%%!important;">%s</td>\n', t.lc_ip);
-		vHTML := vHTML || format(E'          <td style="width: 10%%!important;">%s</td>\n', DateToStr(t.input_last, vFormat));
-		vHTML := vHTML || format(E'          <td style="width: 5%%!important;">%s</td>\n', t.input_count);
-		vHTML := vHTML || format(E'          <td style="width: 5%%!important;">%s</td>\n', t.input_error);
+        vHTML := vHTML || format(E'          <td style="width: 10%%!important;">%s</td>\n', t.description);
+        vHTML := vHTML || format(E'          <td style="width: 10%%!important;">%s</td>\n', DateToStr(t.created, vFormat));
+        vHTML := vHTML || format(E'          <td style="width: 10%%!important;">%s</td>\n', t.lc_ip);
+        vHTML := vHTML || format(E'          <td style="width: 10%%!important;">%s</td>\n', DateToStr(t.input_last, vFormat));
+        vHTML := vHTML || format(E'          <td style="width: 5%%!important;">%s</td>\n', t.input_count);
+        vHTML := vHTML || format(E'          <td style="width: 5%%!important;">%s</td>\n', t.input_error);
 
-		vHTML := vHTML || E'        </tr>\n';
+        vHTML := vHTML || E'        </tr>\n';
 
-		vCSV := vCSV || format(E'%s;', t.username);
+        vCSV := vCSV || format(E'%s;', t.username);
         vCSV := vCSV || format(E'"%s";', replace(t.name, '\', '\\'));
-		vCSV := vCSV || format(E'%s;', t.email);
-		vCSV := vCSV || format(E'%s;', t.phone);
+        vCSV := vCSV || format(E'%s;', t.email);
+        vCSV := vCSV || format(E'%s;', t.phone);
         vCSV := vCSV || format('"%s";', coalesce(replace(t.description, '\', '\\'), ''));
-		vCSV := vCSV || format(E'%s;', DateToStr(t.created, vFormat));
-		vCSV := vCSV || format(E'%s;', t.lc_ip);
-		vCSV := vCSV || format(E'%s;', DateToStr(t.input_last, vFormat));
-		vCSV := vCSV || format(E'%s;', t.input_count);
-		vCSV := vCSV || format(E'%s\r\n', t.input_error);
-	  END LOOP;
-	END IF;
+        vCSV := vCSV || format(E'%s;', DateToStr(t.created, vFormat));
+        vCSV := vCSV || format(E'%s;', t.lc_ip);
+        vCSV := vCSV || format(E'%s;', DateToStr(t.input_last, vFormat));
+        vCSV := vCSV || format(E'%s;', t.input_count);
+        vCSV := vCSV || format(E'%s\r\n', t.input_error);
+      END LOOP;
+    END IF;
 
-	IF bEmpty THEN
-	  IF l.code = 'ru' THEN
-		vHTML := vHTML || E'        <tr class="text-center">\n';
-		vHTML := vHTML || E'          <th colspan="11" scope="col">Нет данных</th>\n';
-		vHTML := vHTML || E'        </tr>\n';
-	  ELSE
-		vHTML := vHTML || E'        <tr class="text-center">\n';
-		vHTML := vHTML || E'          <th colspan="11" scope="col">No data</th>\n';
-		vHTML := vHTML || E'        </tr>\n';
-	  END IF;
-	END IF;
+    IF bEmpty THEN
+      IF l.code = 'ru' THEN
+        vHTML := vHTML || E'        <tr class="text-center">\n';
+        vHTML := vHTML || E'          <th colspan="11" scope="col">Нет данных</th>\n';
+        vHTML := vHTML || E'        </tr>\n';
+      ELSE
+        vHTML := vHTML || E'        <tr class="text-center">\n';
+        vHTML := vHTML || E'          <th colspan="11" scope="col">No data</th>\n';
+        vHTML := vHTML || E'        </tr>\n';
+      END IF;
+    END IF;
 
-	vHTML := vHTML || E'      </tbody>\n';
-	vHTML := vHTML || E'    </table>\n';
-	vHTML := vHTML || E'  </div>\n';
+    vHTML := vHTML || E'      </tbody>\n';
+    vHTML := vHTML || E'    </table>\n';
+    vHTML := vHTML || E'  </div>\n';
 
     vHTML := vHTML || E'</div>\n';
     vHTML := vHTML || E'</body>\n';

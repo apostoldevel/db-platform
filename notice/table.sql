@@ -7,14 +7,14 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.notice (
-    id			uuid PRIMARY KEY DEFAULT gen_kernel_uuid('8'),
-    userid		uuid NOT NULL REFERENCES db.user(id),
-    object		uuid REFERENCES db.object(id),
-    text		text NOT NULL,
-    category	text NOT NULL,
-    status		integer DEFAULT 0 NOT NULL CHECK (status BETWEEN 0 AND 4),
-    created		timestamp DEFAULT Now() NOT NULL,
-    updated		timestamp DEFAULT Now() NOT NULL,
+    id          uuid PRIMARY KEY DEFAULT gen_kernel_uuid('8'),
+    userid      uuid NOT NULL REFERENCES db.user(id),
+    object      uuid REFERENCES db.object(id),
+    text        text NOT NULL,
+    category    text NOT NULL,
+    status      integer DEFAULT 0 NOT NULL CHECK (status BETWEEN 0 AND 4),
+    created     timestamp DEFAULT Now() NOT NULL,
+    updated     timestamp DEFAULT Now() NOT NULL,
     data        jsonb
 );
 

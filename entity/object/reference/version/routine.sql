@@ -15,11 +15,11 @@ CREATE OR REPLACE FUNCTION CreateVersion (
   pType         uuid,
   pCode         text,
   pName         text,
-  pDescription	text default null
+  pDescription  text default null
 ) RETURNS       uuid
 AS $$
 DECLARE
-  uReference	uuid;
+  uReference    uuid;
   uClass        uuid;
   uMethod       uuid;
 BEGIN
@@ -62,7 +62,7 @@ CREATE OR REPLACE FUNCTION EditVersion (
   pType         uuid default null,
   pCode         text default null,
   pName         text default null,
-  pDescription	text default null
+  pDescription  text default null
 ) RETURNS       void
 AS $$
 DECLARE
@@ -85,8 +85,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetVersion (
-  pCode		text
-) RETURNS 	uuid
+  pCode       text
+) RETURNS     uuid
 AS $$
 BEGIN
   RETURN GetReference(pCode, 'version');

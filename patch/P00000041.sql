@@ -64,13 +64,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION NormalizeFileName (
-  pName		text,
+  pName        text,
   pLink     boolean DEFAULT false
-) RETURNS	text
+) RETURNS    text
 AS $$
 BEGIN
   IF StrPos(pName, '/') != 0 THEN
-	RAISE EXCEPTION 'ERR-40000: Invalid file name value: %', pName;
+    RAISE EXCEPTION 'ERR-40000: Invalid file name value: %', pName;
   END IF;
 
   IF pLink THEN
@@ -88,16 +88,16 @@ $$ LANGUAGE plpgsql IMMUTABLE
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION NormalizeFilePath (
-  pPath		text,
+  pPath        text,
   pLink     boolean DEFAULT false
-) RETURNS	text
+) RETURNS    text
 AS $$
 DECLARE
   i         int;
   arPath    text[];
 BEGIN
   IF SubStr(pPath, 1, 1) = '.' OR StrPos(pPath, '..') != 0 THEN
-	RAISE EXCEPTION 'ERR-40000: Invalid file path value: %', pPath;
+    RAISE EXCEPTION 'ERR-40000: Invalid file path value: %', pPath;
   END IF;
 
   IF NULLIF(NULLIF(pPath, ''), '~/') IS NULL THEN
@@ -114,9 +114,9 @@ BEGIN
   FOR i IN 1..array_length(arPath, 1)
   LOOP
     IF pLink THEN
-	  pPath := concat(pPath, URLEncode(arPath[i]), '/');
-	ELSE
-	  pPath := concat(pPath, arPath[i], '/');
+      pPath := concat(pPath, URLEncode(arPath[i]), '/');
+    ELSE
+      pPath := concat(pPath, arPath[i], '/');
     END IF;
   END LOOP;
 
@@ -153,7 +153,7 @@ BEGIN
   IF NEW.call_back IS NOT NULL THEN
     PERFORM FROM pg_namespace n INNER JOIN pg_proc p ON n.oid = p.pronamespace WHERE n.nspname = split_part(NEW.call_back, '.', 1) AND p.proname = split_part(NEW.call_back, '.', 2);
     IF NOT FOUND THEN
-	  RAISE EXCEPTION 'ERR-40000: Not found callback function: %', NEW.call_back;
+      RAISE EXCEPTION 'ERR-40000: Not found callback function: %', NEW.call_back;
     END IF;
   END IF;
 

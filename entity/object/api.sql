@@ -27,7 +27,7 @@ CREATE OR REPLACE FUNCTION api.add_object (
   pParent       uuid,
   pType         uuid,
   pLabel        text default null,
-  pData			text default null
+  pData         text default null
 ) RETURNS       uuid
 AS $$
 BEGIN
@@ -49,11 +49,11 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_object (
-  pId		    uuid,
+  pId           uuid,
   pParent       uuid default null,
   pType         uuid default null,
   pLabel        text default null,
-  pData			text default null
+  pData         text default null
 ) RETURNS       void
 AS $$
 DECLARE
@@ -76,11 +76,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.set_object (
-  pId		    uuid,
+  pId           uuid,
   pParent       uuid default null,
   pType         uuid default null,
   pLabel        text default null,
-  pData			text default null
+  pData         text default null
 ) RETURNS       SETOF api.object
 AS $$
 BEGIN
@@ -105,8 +105,8 @@ $$ LANGUAGE plpgsql
  * @return {api.object}
  */
 CREATE OR REPLACE FUNCTION api.get_object (
-  pId		uuid
-) RETURNS	api.object
+  pId        uuid
+) RETURNS    api.object
 AS $$
   SELECT * FROM api.object WHERE id = pId
 $$ LANGUAGE SQL
@@ -126,12 +126,12 @@ $$ LANGUAGE SQL
  * @return {SETOF api.object}
  */
 CREATE OR REPLACE FUNCTION api.list_object (
-  pSearch	jsonb default null,
-  pFilter	jsonb default null,
-  pLimit	integer default null,
-  pOffSet	integer default null,
-  pOrderBy	jsonb default null
-) RETURNS	SETOF api.object
+  pSearch   jsonb default null,
+  pFilter   jsonb default null,
+  pLimit    integer default null,
+  pOffSet   integer default null,
+  pOrderBy  jsonb default null
+) RETURNS   SETOF api.object
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'object', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
@@ -207,12 +207,12 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.object_force_delete (
-  pId	        uuid
-) RETURNS	    void
+  pId           uuid
+) RETURNS       void
 AS $$
 DECLARE
-  uId		    uuid;
-  uState	    uuid;
+  uId           uuid;
+  uState        uuid;
 BEGIN
   SELECT o.id INTO uId FROM db.object o WHERE o.id = pId;
 
@@ -241,11 +241,11 @@ $$ LANGUAGE plpgsql
  */
 CREATE OR REPLACE FUNCTION api.decode_object_access (
   pId       uuid,
-  pUserId	uuid DEFAULT null,
-  OUT s		boolean,
-  OUT u		boolean,
-  OUT d		boolean
-) RETURNS 	record
+  pUserId   uuid DEFAULT null,
+  OUT s     boolean,
+  OUT u     boolean,
+  OUT d     boolean
+) RETURNS   record
 AS $$
   SELECT * FROM DecodeObjectAccess(pId, coalesce(pUserId, current_userid()));
 $$ LANGUAGE SQL
@@ -271,7 +271,7 @@ GRANT SELECT ON api.object_access TO administrator;
  */
 CREATE OR REPLACE FUNCTION api.object_access (
   pId       uuid
-) RETURNS 	SETOF api.object_access
+) RETURNS   SETOF api.object_access
 AS $$
   SELECT * FROM api.object_access WHERE object = pId;
 $$ LANGUAGE SQL
@@ -293,10 +293,10 @@ $$ LANGUAGE SQL
  * @return {jsonb}
  */
 CREATE OR REPLACE FUNCTION api.execute_object_action (
-  pObject		uuid,
-  pAction		uuid,
-  pParams		jsonb DEFAULT null
-) RETURNS		jsonb
+  pObject        uuid,
+  pAction        uuid,
+  pParams        jsonb DEFAULT null
+) RETURNS        jsonb
 AS $$
 BEGIN
   PERFORM FROM db.object WHERE id = pObject;
@@ -328,7 +328,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.execute_object_action (
   pObject       uuid,
   pCode         text,
-  pParams		jsonb DEFAULT null
+  pParams       jsonb DEFAULT null
 ) RETURNS       jsonb
 AS $$
 DECLARE
@@ -361,10 +361,10 @@ $$ LANGUAGE plpgsql
  * @return {jsonb}
  */
 CREATE OR REPLACE FUNCTION api.execute_object_action_try (
-  pObject		uuid,
-  pAction		uuid,
-  pParams		jsonb DEFAULT null
-) RETURNS		jsonb
+  pObject        uuid,
+  pAction        uuid,
+  pParams        jsonb DEFAULT null
+) RETURNS        jsonb
 AS $$
 DECLARE
   vMessage      text;
@@ -404,7 +404,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.execute_object_action_try (
   pObject       uuid,
   pCode         text,
-  pParams		jsonb DEFAULT null
+  pParams       jsonb DEFAULT null
 ) RETURNS       jsonb
 AS $$
 DECLARE
@@ -449,7 +449,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.execute_method (
   pObject       uuid,
   pMethod       uuid,
-  pParams		jsonb DEFAULT null
+  pParams       jsonb DEFAULT null
 ) RETURNS       jsonb
 AS $$
 DECLARE
@@ -491,7 +491,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.execute_method (
   pObject       uuid,
   pCode         text,
-  pParams		jsonb DEFAULT null
+  pParams       jsonb DEFAULT null
 ) RETURNS       jsonb
 AS $$
 DECLARE
@@ -638,12 +638,12 @@ $$ LANGUAGE SQL
  * @return {SETOF api.object_group}
  */
 CREATE OR REPLACE FUNCTION api.list_object_group (
-  pSearch	jsonb DEFAULT null,
-  pFilter	jsonb DEFAULT null,
-  pLimit	integer DEFAULT null,
-  pOffSet	integer DEFAULT null,
-  pOrderBy	jsonb DEFAULT null
-) RETURNS	SETOF api.object_group
+  pSearch   jsonb DEFAULT null,
+  pFilter   jsonb DEFAULT null,
+  pLimit    integer DEFAULT null,
+  pOffSet   integer DEFAULT null,
+  pOrderBy  jsonb DEFAULT null
+) RETURNS   SETOF api.object_group
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'object_group', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
@@ -668,7 +668,7 @@ CREATE OR REPLACE FUNCTION api.add_object_to_group (
 AS $$
 BEGIN
   IF NOT CheckObjectAccess(pObject, B'100') THEN
-	PERFORM AccessDenied();
+    PERFORM AccessDenied();
   END IF;
 
   PERFORM AddObjectToGroup(pGroup, pObject);
@@ -693,7 +693,7 @@ CREATE OR REPLACE FUNCTION api.delete_object_from_group (
 AS $$
 BEGIN
   IF NOT CheckObjectAccess(pObject, B'100') THEN
-	PERFORM AccessDenied();
+    PERFORM AccessDenied();
   END IF;
 
   PERFORM DeleteObjectFromGroup(pGroup, pObject);
@@ -771,7 +771,7 @@ DECLARE
   uId         uuid;
 BEGIN
   IF NOT CheckObjectAccess(pObject, B'010') THEN
-	PERFORM AccessDenied();
+    PERFORM AccessDenied();
   END IF;
 
   uId := SetObjectLink(pObject, pLinked, coalesce(pKey, pLinked::text), coalesce(pDateFrom, oper_date()));
@@ -812,12 +812,12 @@ $$ LANGUAGE SQL
  * @return {SETOF api.object_link}
  */
 CREATE OR REPLACE FUNCTION api.list_object_link (
-  pSearch	jsonb DEFAULT null,
-  pFilter	jsonb DEFAULT null,
-  pLimit	integer DEFAULT null,
-  pOffSet	integer DEFAULT null,
-  pOrderBy	jsonb DEFAULT null
-) RETURNS	SETOF api.object_link
+  pSearch   jsonb DEFAULT null,
+  pFilter   jsonb DEFAULT null,
+  pLimit    integer DEFAULT null,
+  pOffSet   integer DEFAULT null,
+  pOrderBy  jsonb DEFAULT null
+) RETURNS   SETOF api.object_link
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'object_link', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
@@ -873,7 +873,7 @@ CREATE OR REPLACE FUNCTION api.set_object_file (
 AS $$
 BEGIN
   IF NOT CheckObjectAccess(pObject, B'010') THEN
-	PERFORM AccessDenied();
+    PERFORM AccessDenied();
   END IF;
 
   pFile := SetObjectFile(pObject, pFile, pName, pPath, pSize, pDate, decode(pData, 'base64'), pHash, pText, pType);
@@ -941,12 +941,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.get_object_files_json (
-  pId	    uuid
-) RETURNS	json
+  pId        uuid
+) RETURNS    json
 AS $$
 BEGIN
   IF NOT CheckObjectAccess(pId, B'100') THEN
-	PERFORM AccessDenied();
+    PERFORM AccessDenied();
   END IF;
 
   RETURN GetObjectFilesJson(pId);
@@ -960,12 +960,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.get_object_files_jsonb (
-  pId	    uuid
-) RETURNS	jsonb
+  pId        uuid
+) RETURNS    jsonb
 AS $$
 BEGIN
   IF NOT CheckObjectAccess(pId, B'100') THEN
-	PERFORM AccessDenied();
+    PERFORM AccessDenied();
   END IF;
 
   RETURN GetObjectFilesJsonb(pId);
@@ -990,7 +990,7 @@ CREATE OR REPLACE FUNCTION api.get_object_file (
   pFile     uuid,
   pName     text,
   pPath     text default null
-) RETURNS	SETOF api.object_file_data
+) RETURNS   SETOF api.object_file_data
 AS $$
 DECLARE
   vClass    text;
@@ -1029,11 +1029,11 @@ CREATE OR REPLACE FUNCTION api.delete_object_file (
   pFile     uuid,
   pName     text,
   pPath     text default null
-) RETURNS	boolean
+) RETURNS   boolean
 AS $$
 BEGIN
   IF NOT CheckObjectAccess(pObject, B'001') THEN
-	PERFORM AccessDenied();
+    PERFORM AccessDenied();
   END IF;
 
   RETURN DeleteObjectFile(pObject, pFile, pName, pPath);
@@ -1055,12 +1055,12 @@ $$ LANGUAGE plpgsql
  * @return {SETOF api.object_file}
  */
 CREATE OR REPLACE FUNCTION api.list_object_file (
-  pSearch	jsonb DEFAULT null,
-  pFilter	jsonb DEFAULT null,
-  pLimit	integer DEFAULT null,
-  pOffSet	integer DEFAULT null,
-  pOrderBy	jsonb DEFAULT null
-) RETURNS	SETOF api.object_file
+  pSearch   jsonb DEFAULT null,
+  pFilter   jsonb DEFAULT null,
+  pLimit    integer DEFAULT null,
+  pOffSet   integer DEFAULT null,
+  pOrderBy  jsonb DEFAULT null
+) RETURNS   SETOF api.object_file
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'object_file', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
@@ -1079,11 +1079,11 @@ $$ LANGUAGE plpgsql
  */
 CREATE OR REPLACE FUNCTION api.clear_object_files (
   pId       uuid
-) RETURNS	void
+) RETURNS   void
 AS $$
 BEGIN
   IF NOT CheckObjectAccess(pId, B'001') THEN
-	PERFORM AccessDenied();
+    PERFORM AccessDenied();
   END IF;
 
   PERFORM ClearObjectFiles(pId);
@@ -1130,7 +1130,7 @@ DECLARE
   arTypes       text[];
 BEGIN
   IF NOT CheckObjectAccess(pId, B'010') THEN
-	PERFORM AccessDenied();
+    PERFORM AccessDenied();
   END IF;
 
   pType := lower(pType);
@@ -1158,7 +1158,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION api.set_object_data_json (
   pId           uuid,
-  pData	        json
+  pData         json
 ) RETURNS       SETOF api.object_data
 AS $$
 DECLARE
@@ -1211,12 +1211,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.get_object_data_json (
-  pId	    uuid
-) RETURNS	json
+  pId        uuid
+) RETURNS    json
 AS $$
 BEGIN
   IF NOT CheckObjectAccess(pId, B'100') THEN
-	PERFORM AccessDenied();
+    PERFORM AccessDenied();
   END IF;
 
   RETURN GetObjectDataJson(pId);
@@ -1230,12 +1230,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.get_object_data_jsonb (
-  pId	    uuid
-) RETURNS	jsonb
+  pId        uuid
+) RETURNS    jsonb
 AS $$
 BEGIN
   IF NOT CheckObjectAccess(pId, B'100') THEN
-	PERFORM AccessDenied();
+    PERFORM AccessDenied();
   END IF;
 
   RETURN GetObjectDataJsonb(pId);
@@ -1253,14 +1253,14 @@ $$ LANGUAGE plpgsql
  * @return {api.object_data}
  */
 CREATE OR REPLACE FUNCTION api.get_object_data (
-  pId	    uuid,
-  pType		text,
-  pCode		text
-) RETURNS	SETOF api.object_data
+  pId        uuid,
+  pType      text,
+  pCode      text
+) RETURNS    SETOF api.object_data
 AS $$
 BEGIN
   IF NOT CheckObjectAccess(pId, B'100') THEN
-	PERFORM AccessDenied();
+    PERFORM AccessDenied();
   END IF;
 
   RETURN QUERY SELECT * FROM api.object_data WHERE object = pId AND type = pType AND code = pCode;
@@ -1282,12 +1282,12 @@ $$ LANGUAGE plpgsql
  * @return {SETOF api.object_data}
  */
 CREATE OR REPLACE FUNCTION api.list_object_data (
-  pSearch	jsonb DEFAULT null,
-  pFilter	jsonb DEFAULT null,
-  pLimit	integer DEFAULT null,
-  pOffSet	integer DEFAULT null,
-  pOrderBy	jsonb DEFAULT null
-) RETURNS	SETOF api.object_data
+  pSearch   jsonb DEFAULT null,
+  pFilter   jsonb DEFAULT null,
+  pLimit    integer DEFAULT null,
+  pOffSet   integer DEFAULT null,
+  pOrderBy  jsonb DEFAULT null
+) RETURNS   SETOF api.object_data
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'object_data', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
@@ -1346,17 +1346,17 @@ CREATE OR REPLACE FUNCTION api.set_object_coordinates (
   pAccuracy     numeric DEFAULT 0,
   pLabel        text DEFAULT null,
   pDescription  text DEFAULT null,
-  pData			jsonb DEFAULT null,
-  pDateFrom		timestamptz DEFAULT Now()
+  pData         jsonb DEFAULT null,
+  pDateFrom     timestamptz DEFAULT Now()
 ) RETURNS       SETOF api.object_coordinates
 AS $$
 DECLARE
-  r				record;
-  device		jsonb;
-  sSerial		text;
+  r             record;
+  device        jsonb;
+  sSerial       text;
 BEGIN
   IF NOT CheckObjectAccess(pId, B'010') THEN
-	PERFORM AccessDenied();
+    PERFORM AccessDenied();
   END IF;
 
   pCode := coalesce(pCode, 'default');
@@ -1364,11 +1364,11 @@ BEGIN
 
   device := pData->>'device';
   IF device IS NOT NULL THEN
-	sSerial := device->>'serial';
-	IF sSerial IS NOT NULL THEN
+    sSerial := device->>'serial';
+    IF sSerial IS NOT NULL THEN
       SELECT id, identity INTO r FROM db.device WHERE serial = sSerial;
       pData := pData || jsonb_build_object('device', device || jsonb_build_object('id', r.id, 'identity', r.identity));
-	END IF;
+    END IF;
   END IF;
 
   PERFORM NewObjectCoordinates(pId, pCode, pLatitude, pLongitude, pAccuracy, pLabel, pDescription, pData, coalesce(pDateFrom, Now()));
@@ -1439,12 +1439,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.get_object_coordinates_json (
-  pId	    uuid
-) RETURNS	json
+  pId        uuid
+) RETURNS    json
 AS $$
 BEGIN
   IF NOT CheckObjectAccess(pId, B'100') THEN
-	PERFORM AccessDenied();
+    PERFORM AccessDenied();
   END IF;
 
   RETURN GetObjectCoordinatesJson(pId);
@@ -1458,12 +1458,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.get_object_coordinates_jsonb (
-  pId	    uuid
-) RETURNS	jsonb
+  pId        uuid
+) RETURNS    jsonb
 AS $$
 BEGIN
   IF NOT CheckObjectAccess(pId, B'100') THEN
-	PERFORM AccessDenied();
+    PERFORM AccessDenied();
   END IF;
 
   RETURN GetObjectCoordinatesJsonb(pId);
@@ -1490,18 +1490,18 @@ DECLARE
   r             record;
 BEGIN
   IF NOT CheckObjectAccess(pId, B'100') THEN
-	PERFORM AccessDenied();
+    PERFORM AccessDenied();
   END IF;
 
   FOR r IN
-	SELECT *
-	  FROM api.object_coordinates
-	 WHERE object = pId
-	   AND code = pCode
-	   AND validFromDate <= pDateFrom
-	   AND validToDate > pDateFrom
+    SELECT *
+      FROM api.object_coordinates
+     WHERE object = pId
+       AND code = pCode
+       AND validFromDate <= pDateFrom
+       AND validToDate > pDateFrom
   LOOP
-	RETURN NEXT r;
+    RETURN NEXT r;
   END LOOP;
 
   RETURN;
@@ -1523,12 +1523,12 @@ $$ LANGUAGE plpgsql
  * @return {SETOF api.object_coordinates}
  */
 CREATE OR REPLACE FUNCTION api.list_object_coordinates (
-  pSearch	jsonb DEFAULT null,
-  pFilter	jsonb DEFAULT null,
-  pLimit	integer DEFAULT null,
-  pOffSet	integer DEFAULT null,
-  pOrderBy	jsonb DEFAULT null
-) RETURNS	SETOF api.object_coordinates
+  pSearch   jsonb DEFAULT null,
+  pFilter   jsonb DEFAULT null,
+  pLimit    integer DEFAULT null,
+  pOffSet   integer DEFAULT null,
+  pOrderBy  jsonb DEFAULT null
+) RETURNS   SETOF api.object_coordinates
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'object_coordinates', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
@@ -1569,12 +1569,12 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.list_object_state_history (
-  pSearch	jsonb DEFAULT null,
-  pFilter	jsonb DEFAULT null,
-  pLimit	integer DEFAULT null,
-  pOffSet	integer DEFAULT null,
-  pOrderBy	jsonb DEFAULT null
-) RETURNS	SETOF api.object_state_history
+  pSearch   jsonb DEFAULT null,
+  pFilter   jsonb DEFAULT null,
+  pLimit    integer DEFAULT null,
+  pOffSet   integer DEFAULT null,
+  pOrderBy  jsonb DEFAULT null
+) RETURNS   SETOF api.object_state_history
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'object_state_history', pSearch, pFilter, pLimit, pOffSet, pOrderBy);

@@ -7,14 +7,14 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.file (
-    id			uuid PRIMARY KEY DEFAULT gen_kernel_uuid('8'),
+    id          uuid PRIMARY KEY DEFAULT gen_kernel_uuid('8'),
     root        uuid NOT NULL REFERENCES db.file(id),
-    parent		uuid REFERENCES db.file(id),
-    link		uuid REFERENCES db.file(id),
-    owner		uuid NOT NULL REFERENCES db.user(id),
+    parent      uuid REFERENCES db.file(id),
+    link        uuid REFERENCES db.file(id),
+    owner       uuid NOT NULL REFERENCES db.user(id),
     type        char NOT NULL CHECK (type IN ('-', 'd', 'l')),
     mask        bit(9) DEFAULT B'111110100' NOT NULL,
-    level		integer NOT NULL,
+    level       integer NOT NULL,
     path        text NOT NULL,
     name        text NOT NULL,
     size        integer DEFAULT 0,

@@ -17,13 +17,13 @@ GRANT SELECT ON api.report TO administrator;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.report_object (
-  pClass	uuid
-) RETURNS 	SETOF api.report
+  pClass    uuid
+) RETURNS   SETOF api.report
 AS $$
   WITH RECURSIVE classtree(id, parent, level) AS (
-	SELECT id, parent, level FROM db.class_tree WHERE id = pClass
-	 UNION
-	SELECT c.id, c.parent, c.level
+    SELECT id, parent, level FROM db.class_tree WHERE id = pClass
+     UNION
+    SELECT c.id, c.parent, c.level
       FROM db.class_tree c INNER JOIN classtree ct ON ct.parent = c.id
   )
   SELECT r.*
@@ -221,7 +221,7 @@ $$ LANGUAGE plpgsql
  */
 CREATE OR REPLACE FUNCTION api.get_report_form_files (
   pReport   uuid
-) RETURNS	SETOF api.object_file
+) RETURNS   SETOF api.object_file
 AS $$
 DECLARE
   r         record;
@@ -230,7 +230,7 @@ BEGIN
   SELECT form INTO uForm FROM db.report WHERE id = pReport;
 
   IF NOT FOUND THEN
-	PERFORM NotFound();
+    PERFORM NotFound();
   END IF;
 
   FOR r IN SELECT * FROM api.object_file WHERE object = uForm

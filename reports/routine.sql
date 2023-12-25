@@ -23,10 +23,10 @@ BEGIN
   FOR l IN SELECT code FROM db.locale WHERE id = current_locale()
   LOOP
     IF l.code = 'ru' THEN
-	  label := 'Идентификатор';
-	ELSE
+      label := 'Идентификатор';
+    ELSE
       label := 'Identifier';
-	END IF;
+    END IF;
   END LOOP;
 
   RETURN json_build_object('form', pForm, 'fields', jsonb_build_array(jsonb_build_object('type', 'string', 'format', 'uuid', 'key', 'identifier', 'label', label)));
@@ -56,10 +56,10 @@ BEGIN
   FOR l IN SELECT code FROM db.locale WHERE id = current_locale()
   LOOP
     IF l.code = 'ru' THEN
-	  label := 'Импортировать файл';
-	ELSE
+      label := 'Импортировать файл';
+    ELSE
       label := 'Import file';
-	END IF;
+    END IF;
   END LOOP;
 
   RETURN json_build_object('form', pForm, 'fields', jsonb_build_array(jsonb_build_object('type', 'file', 'format', 'JSON', 'key', 'files', 'label', label)));
@@ -89,10 +89,10 @@ BEGIN
   FOR l IN SELECT code FROM db.locale WHERE id = current_locale()
   LOOP
     IF l.code = 'ru' THEN
-	  label := 'Импортировать файлы';
-	ELSE
+      label := 'Импортировать файлы';
+    ELSE
       label := 'Import files';
-	END IF;
+    END IF;
   END LOOP;
 
   RETURN json_build_object('form', pForm, 'fields', jsonb_build_array(jsonb_build_object('type', 'file', 'format', 'JSON', 'key', 'files', 'multiple', true, 'label', label)));

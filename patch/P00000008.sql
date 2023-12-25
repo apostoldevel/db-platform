@@ -24,11 +24,11 @@ DROP TABLE db.listener CASCADE;
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.listener (
-    publisher	text NOT NULL REFERENCES db.publisher(code) ON DELETE RESTRICT,
-    session		varchar(40) NOT NULL REFERENCES db.session(code) ON DELETE CASCADE,
-    identity	text NOT NULL,
-    filter		jsonb NOT NULL,
-    params		jsonb NOT NULL,
+    publisher    text NOT NULL REFERENCES db.publisher(code) ON DELETE RESTRICT,
+    session        varchar(40) NOT NULL REFERENCES db.session(code) ON DELETE CASCADE,
+    identity    text NOT NULL,
+    filter        jsonb NOT NULL,
+    params        jsonb NOT NULL,
     PRIMARY KEY (publisher, session, identity)
 );
 

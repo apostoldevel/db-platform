@@ -100,7 +100,7 @@ CREATE INDEX ON db.reference (scope);
 UPDATE db.reference SET scope = GetScope(current_database());
 
 ALTER TABLE db.reference
-	ALTER COLUMN scope SET NOT NULL;
+    ALTER COLUMN scope SET NOT NULL;
 
 DROP INDEX IF EXISTS db.reference_entity_code_idx;
 
@@ -111,7 +111,7 @@ CREATE UNIQUE INDEX ON db.reference (scope, entity, code);
 CREATE OR REPLACE FUNCTION db.ft_reference_before_insert()
 RETURNS trigger AS $$
 DECLARE
-  vCode		text;
+  vCode        text;
 BEGIN
   IF NEW.id IS NULL THEN
     SELECT NEW.object INTO NEW.id;

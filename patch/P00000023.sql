@@ -4,7 +4,7 @@ ALTER TABLE db.document
 UPDATE db.document d SET scope = a.scope FROM db.area a WHERE a.id = d.area;
 
 ALTER TABLE db.document
-	ALTER COLUMN scope SET NOT NULL;
+    ALTER COLUMN scope SET NOT NULL;
 
 COMMENT ON COLUMN db.document.scope IS 'Область видимости базы данных';
 
@@ -26,7 +26,7 @@ CREATE TRIGGER t_object_before_update
   EXECUTE PROCEDURE db.ft_object_before_update();
 
 ALTER TABLE db.object
-	ALTER COLUMN scope SET NOT NULL;
+    ALTER COLUMN scope SET NOT NULL;
 
 COMMENT ON COLUMN db.object.scope IS 'Область видимости базы данных';
 
@@ -40,7 +40,7 @@ DROP VIEW IF EXISTS SafeObject CASCADE;
 CREATE OR REPLACE FUNCTION db.ft_object_before_insert()
 RETURNS trigger AS $$
 DECLARE
-  bAbstract	boolean;
+  bAbstract    boolean;
 BEGIN
   IF lower(session_user) = 'kernel' THEN
     PERFORM AccessDeniedForUser(session_user);

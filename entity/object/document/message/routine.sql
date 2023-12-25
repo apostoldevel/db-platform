@@ -367,11 +367,11 @@ CREATE OR REPLACE FUNCTION SendSMS (
 ) RETURNS       uuid
 AS $$
 DECLARE
-  profile		text;
-  address		text;
-  subject		text;
+  profile       text;
+  address       text;
+  subject       text;
 
-  content		jsonb;
+  content       jsonb;
 
   uMessageId    uuid;
 
@@ -430,23 +430,23 @@ BEGIN
     LOOP
       token := tokens[i];
       IF token IS NOT NULL THEN
-		message := jsonb_build_object('token', token, 'notification', jsonb_build_object('title', pTitle, 'body', pBody));
+        message := jsonb_build_object('token', token, 'notification', jsonb_build_object('title', pTitle, 'body', pBody));
 
-		IF pAndroid IS NOT NULL THEN
-		  message := message || jsonb_build_object('android', pAndroid);
-		END IF;
+        IF pAndroid IS NOT NULL THEN
+          message := message || jsonb_build_object('android', pAndroid);
+        END IF;
 
-		IF pApns IS NOT NULL THEN
-		  message := message || jsonb_build_object('apns', pApns);
-		END IF;
+        IF pApns IS NOT NULL THEN
+          message := message || jsonb_build_object('apns', pApns);
+        END IF;
 
-		IF pData IS NOT NULL THEN
-		  message := message || jsonb_build_object('data', pData);
-		END IF;
+        IF pData IS NOT NULL THEN
+          message := message || jsonb_build_object('data', pData);
+        END IF;
 
-		uMessageId := SendFCM(pObject, projectId, GetUserName(pUserId), pTitle, jsonb_build_object('message', message)::text);
-		PERFORM WriteToEventLog('M', 1001, 'push', format('Push сообщение передано на отправку: %s', uMessageId), pObject);
-	  END IF;
+        uMessageId := SendFCM(pObject, projectId, GetUserName(pUserId), pTitle, jsonb_build_object('message', message)::text);
+        PERFORM WriteToEventLog('M', 1001, 'push', format('Push сообщение передано на отправку: %s', uMessageId), pObject);
+      END IF;
     END LOOP;
   ELSE
     PERFORM WriteToEventLog('E', 3001, 'push', 'Не удалось отправить Push сообщение, токен не установлен.', pObject);
@@ -490,15 +490,15 @@ BEGIN
     LOOP
       token := tokens[i];
       IF token IS NOT NULL THEN
-		android := jsonb_build_object('priority', coalesce(pPriority, 'normal'));
-		IF pCollapse IS NOT NULL THEN
-		  android := android || jsonb_build_object('collapse_key', pCollapse);
-		END IF;
+        android := jsonb_build_object('priority', coalesce(pPriority, 'normal'));
+        IF pCollapse IS NOT NULL THEN
+          android := android || jsonb_build_object('collapse_key', pCollapse);
+        END IF;
 
-		message := jsonb_build_object('token', token, 'android', android, 'data', pData);
+        message := jsonb_build_object('token', token, 'android', android, 'data', pData);
 
-		uMessageId := SendFCM(pObject, projectId, GetUserName(pUserId), pSubject, jsonb_build_object('message', message)::text);
-		PERFORM WriteToEventLog('M', 1001, 'push', format('Push сообщение передано на отправку: %s', uMessageId), pObject);
+        uMessageId := SendFCM(pObject, projectId, GetUserName(pUserId), pSubject, jsonb_build_object('message', message)::text);
+        PERFORM WriteToEventLog('M', 1001, 'push', format('Push сообщение передано на отправку: %s', uMessageId), pObject);
       END IF;
     END LOOP;
   ELSE
@@ -567,7 +567,7 @@ BEGIN
 
   vHost := current_scope_code();
   IF vHost = current_database()::text THEN
-	vHost := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Host', pUserId);
+    vHost := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Host', pUserId);
   END IF;
 
   vNoReply := format('noreply@%s', coalesce(vSMTP, vDomain));
@@ -646,7 +646,7 @@ BEGIN
   vMessage := format('%s: %s.', vText, vSecurityAnswer);
 
   IF pHashCode IS NOT NULL THEN
-	vMessage := concat(vMessage, E'\n\n\n\n', pHashCode);
+    vMessage := concat(vMessage, E'\n\n\n\n', pHashCode);
   END IF;
 
   uMessageId := SendSMS(null, vProfile, vMessage, pUserId);
@@ -695,7 +695,7 @@ BEGIN
   vMessage := format('%s: %s.', vText, vCode);
 
   IF pHashCode IS NOT NULL THEN
-	vMessage := concat(vMessage, E'\n\n\n\n', pHashCode);
+    vMessage := concat(vMessage, E'\n\n\n\n', pHashCode);
   END IF;
 
   jContent := json_build_object('messages', jsonb_build_array(json_build_object('content', json_build_object('short_text', vMessage), 'to', jsonb_build_array(json_build_object('msisdn', pPhone)))), 'options', json_build_object('from',  json_build_object('sms_address', vNaming)));
@@ -752,7 +752,7 @@ BEGIN
 
   vHost := current_scope_code();
   IF vHost = current_database()::text THEN
-	vHost := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Host');
+    vHost := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Host');
   END IF;
 
   vNoReply := format('noreply@%s', vDomain);

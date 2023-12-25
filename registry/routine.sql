@@ -3,14 +3,14 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION registry.reg_key_to_array (
-  pKey		text
-) RETURNS 	text[]
+  pKey        text
+) RETURNS     text[]
 AS $$
 DECLARE
-  i		    integer;
-  arKey		text[];
-  vStr		text;
-  vKey		text;
+  i           integer;
+  arKey       text[];
+  vStr        text;
+  vKey        text;
 BEGIN
   vKey := pKey;
 
@@ -44,12 +44,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION registry.get_reg_key (
-  pId		uuid
-) RETURNS	text
+  pId        uuid
+) RETURNS    text
 AS $$
 DECLARE
-  vKey		text;
-  r		    record;
+  vKey       text;
+  r          record;
 BEGIN
   FOR r IN
     WITH RECURSIVE keytree(id, parent, key) AS (
@@ -79,8 +79,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION registry.get_reg_value (
-  pId		uuid
-) RETURNS	Variant
+  pId        uuid
+) RETURNS    Variant
 AS $$
   SELECT vtype, vinteger, vnumeric, vdatetime, vstring, vboolean
     FROM registry.value
@@ -94,8 +94,8 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION RegEnumKey (
-  pId		uuid
-) RETURNS	SETOF registry.key
+  pId        uuid
+) RETURNS    SETOF registry.key
 AS $$
   SELECT * FROM registry.key WHERE parent = pId
 $$ LANGUAGE SQL
@@ -107,12 +107,12 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION RegEnumValue (
-  pKey		uuid,
-  OUT id	uuid,
-  OUT key	uuid,
-  OUT vname	text,
-  OUT value	Variant
-) RETURNS	SETOF record
+  pKey       uuid,
+  OUT id     uuid,
+  OUT key    uuid,
+  OUT vname  text,
+  OUT value  Variant
+) RETURNS    SETOF record
 AS $$
   SELECT v.id, v.key, v.vname, registry.get_reg_value(v.id) FROM registry.value v WHERE v.key = pKey
 $$ LANGUAGE SQL
@@ -124,8 +124,8 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION RegEnumValueEx (
-  pKey		uuid
-) RETURNS	SETOF registry.value
+  pKey       uuid
+) RETURNS    SETOF registry.value
 AS $$
   SELECT * FROM registry.value WHERE key = pKey
 $$ LANGUAGE SQL
@@ -137,8 +137,8 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION RegQueryValue (
-  pId		uuid
-) RETURNS	Variant
+  pId        uuid
+) RETURNS    Variant
 AS $$
   SELECT registry.get_reg_value(id) FROM registry.value WHERE id = pId
 $$ LANGUAGE SQL
@@ -150,8 +150,8 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION RegQueryValueEx (
-  pId		uuid
-) RETURNS	registry.value
+  pId        uuid
+) RETURNS    registry.value
 AS $$
   SELECT * FROM registry.value WHERE id = pId
 $$ LANGUAGE SQL
@@ -163,9 +163,9 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION RegGetValue (
-  pKey		    uuid,
-  pValueName	text
-) RETURNS	    Variant
+  pKey          uuid,
+  pValueName    text
+) RETURNS       Variant
 AS $$
   SELECT registry.get_reg_value(id) FROM registry.value WHERE key = pKey AND vname = pValueName
 $$ LANGUAGE SQL
@@ -177,9 +177,9 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION RegGetValueEx (
-  pKey		    uuid,
-  pValueName	text
-) RETURNS	    registry.value
+  pKey          uuid,
+  pValueName    text
+) RETURNS       registry.value
 AS $$
   SELECT * FROM registry.value WHERE key = pKey AND vname = pValueName
 $$ LANGUAGE SQL
@@ -191,13 +191,13 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION RegSetValue (
-  pKey		    uuid,
-  pValueName	text,
-  pData		    Variant
-) RETURNS	    uuid
+  pKey           uuid,
+  pValueName     text,
+  pData          Variant
+) RETURNS        uuid
 AS $$
 DECLARE
-  uId		    uuid;
+  uId            uuid;
 BEGIN
   SELECT id INTO uId FROM registry.value WHERE id = pKey;
 
@@ -249,18 +249,18 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION RegSetValueEx (
-  pKey		    uuid,
-  pValueName	text,
-  pType		    integer,
-  pInteger	    integer default null,
-  pNumeric	    numeric default null,
-  pDateTime	    timestamp default null,
-  pString	    text default null,
-  pBoolean	    boolean default null
-) RETURNS	    uuid
+  pKey          uuid,
+  pValueName    text,
+  pType         integer,
+  pInteger      integer default null,
+  pNumeric      numeric default null,
+  pDateTime     timestamp default null,
+  pString       text default null,
+  pBoolean      boolean default null
+) RETURNS       uuid
 AS $$
 DECLARE
-  nId		    uuid;
+  nId           uuid;
 BEGIN
   SELECT id INTO nId FROM registry.value WHERE id = pKey;
 
@@ -312,14 +312,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddRegKey (
-  pRoot		uuid,
-  pParent	uuid,
-  pKey		text
-) RETURNS	uuid
+  pRoot     uuid,
+  pParent   uuid,
+  pKey      text
+) RETURNS   uuid
 AS $$
 DECLARE
-  nId		uuid;
-  nLevel	integer;
+  nId       uuid;
+  nLevel    integer;
 BEGIN
   nLevel := 0;
   pParent := coalesce(pParent, pRoot);
@@ -343,11 +343,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetRegRoot (
-  pKey		text
-) RETURNS	uuid
+  pKey       text
+) RETURNS    uuid
 AS $$
 DECLARE
-  nId		uuid;
+  nId        uuid;
 BEGIN
   SELECT id INTO nId FROM registry.key WHERE key = pKey AND level = 0;
   RETURN nId;
@@ -361,12 +361,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetRegKey (
-  pParent	uuid,
-  pKey		text
-) RETURNS	uuid
+  pParent    uuid,
+  pKey       text
+) RETURNS    uuid
 AS $$
 DECLARE
-  nId		uuid;
+  nId        uuid;
 BEGIN
   SELECT id INTO nId FROM registry.key WHERE parent = pParent AND key = pKey;
   RETURN nId;
@@ -380,12 +380,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetRegKeyValue (
-  pKey		    uuid,
-  pValueName	text
-) RETURNS	    uuid
+  pKey          uuid,
+  pValueName    text
+) RETURNS       uuid
 AS $$
 DECLARE
-  nId		    uuid;
+  nId           uuid;
 BEGIN
   SELECT id INTO nId FROM registry.value WHERE key = pKey AND vname = pValueName;
   RETURN nId;
@@ -399,8 +399,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DelRegKey (
-  pKey		uuid
-) RETURNS	void
+  pKey       uuid
+) RETURNS    void
 AS $$
 BEGIN
   DELETE FROM registry.value WHERE key = pKey;
@@ -415,8 +415,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DelRegKeyValue (
-  pId		uuid
-) RETURNS	void
+  pId        uuid
+) RETURNS    void
 AS $$
 BEGIN
   DELETE FROM registry.value WHERE id = pId;
@@ -430,11 +430,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DelTreeRegKey (
-  pKey		uuid
-) RETURNS	void
+  pKey       uuid
+) RETURNS    void
 AS $$
 DECLARE
-  r		    record;
+  r          record;
 BEGIN
   FOR r IN SELECT id FROM registry.key WHERE parent = pKey
   LOOP
@@ -452,18 +452,18 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION RegCreateKey (
-  pKey		text,
-  pSubKey	text,
+  pKey      text,
+  pSubKey   text,
   pUserId   uuid DEFAULT current_userid()
-) RETURNS 	uuid
+) RETURNS   uuid
 AS $$
 DECLARE
-  nId		uuid;
-  nRoot		uuid;
-  uParent	uuid;
+  nId       uuid;
+  nRoot     uuid;
+  uParent   uuid;
 
-  arKey		text[];
-  i		    integer;
+  arKey     text[];
+  i         integer;
 BEGIN
   arKey := ARRAY['CURRENT_CONFIG', 'CURRENT_USER'];
 
@@ -508,15 +508,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION RegOpenKey (
-  pKey		text,
-  pSubKey	text,
+  pKey      text,
+  pSubKey   text,
   pUserId   uuid DEFAULT current_userid()
-) RETURNS 	uuid
+) RETURNS   uuid
 AS $$
 DECLARE
-  nId		uuid;
-  arKey		text[];
-  i		    integer;
+  nId       uuid;
+  arKey     text[];
+  i         integer;
 BEGIN
   arKey := ARRAY['CURRENT_CONFIG', 'CURRENT_USER'];
 
@@ -554,13 +554,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION RegDeleteKey (
-  pKey		text,
-  pSubKey	text,
+  pKey      text,
+  pSubKey   text,
   pUserId   uuid DEFAULT current_userid()
-) RETURNS 	boolean
+) RETURNS   boolean
 AS $$
 DECLARE
-  nKey		uuid;
+  nKey      uuid;
 BEGIN
   nKey := RegOpenKey(pKey, pSubKey, pUserId);
   IF nKey IS NOT NULL THEN
@@ -586,7 +586,7 @@ CREATE OR REPLACE FUNCTION RegDeleteKeyValue (
   pKey          text,
   pSubKey       text,
   pValueName    text,
-  pUserId		uuid DEFAULT current_userid()
+  pUserId       uuid DEFAULT current_userid()
 ) RETURNS       boolean
 AS $$
 DECLARE
@@ -620,13 +620,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION RegDeleteTree (
-  pKey		text,
-  pSubKey	text,
-  pUserId	uuid DEFAULT current_userid()
-) RETURNS 	boolean
+  pKey       text,
+  pSubKey    text,
+  pUserId    uuid DEFAULT current_userid()
+) RETURNS    boolean
 AS $$
 DECLARE
-  nKey		uuid;
+  nKey       uuid;
 BEGIN
   nKey := RegOpenKey(pKey, pSubKey, pUserId);
   IF nKey IS NOT NULL THEN
@@ -721,8 +721,8 @@ AS
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION registry.registry (
-  pKey		uuid
-) RETURNS	SETOF registry.registry
+  pKey       uuid
+) RETURNS    SETOF registry.registry
 AS $$
   SELECT * FROM registry.registry WHERE key = pKey
 $$ LANGUAGE SQL
@@ -734,8 +734,8 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION registry.registry_ex (
-  pKey		uuid
-) RETURNS	SETOF registry.registry_ex
+  pKey       uuid
+) RETURNS    SETOF registry.registry_ex
 AS $$
   SELECT * FROM registry.registry_ex WHERE key = pKey
 $$ LANGUAGE SQL
@@ -747,8 +747,8 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION registry.registry_key (
-  pKey		uuid
-) RETURNS	SETOF registry.registry_key
+  pKey       uuid
+) RETURNS    SETOF registry.registry_key
 AS $$
   SELECT * FROM registry.registry_key WHERE root = pKey
 $$ LANGUAGE SQL
@@ -760,8 +760,8 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION registry.registry_value (
-  pKey		uuid
-) RETURNS	SETOF registry.registry_value
+  pKey       uuid
+) RETURNS    SETOF registry.registry_value
 AS $$
   SELECT * FROM registry.registry_value WHERE key = pKey
 $$ LANGUAGE SQL
@@ -773,8 +773,8 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION registry.registry_value_ex (
-  pKey		uuid
-) RETURNS	SETOF registry.registry_value_ex
+  pKey       uuid
+) RETURNS    SETOF registry.registry_value_ex
 AS $$
   SELECT * FROM registry.registry_value_ex WHERE key = pKey
 $$ LANGUAGE SQL
@@ -786,12 +786,12 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION RegSetValueInteger (
-  pKey		    text,
-  pSubKey		text,
-  pValueName	text,
-  pValue		integer,
-  pUserId		uuid DEFAULT current_userid()
-) RETURNS	    uuid
+  pKey          text,
+  pSubKey       text,
+  pValueName    text,
+  pValue        integer,
+  pUserId       uuid DEFAULT current_userid()
+) RETURNS       uuid
 AS $$
 BEGIN
   RETURN RegSetValueEx(RegCreateKey(pKey, pSubKey, pUserId), pValueName, 0, pInteger => pValue);
@@ -805,12 +805,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION RegSetValueNumeric (
-  pKey		    text,
-  pSubKey		text,
-  pValueName	text,
-  pValue		numeric,
-  pUserId		uuid DEFAULT current_userid()
-) RETURNS	    uuid
+  pKey          text,
+  pSubKey       text,
+  pValueName    text,
+  pValue        numeric,
+  pUserId       uuid DEFAULT current_userid()
+) RETURNS       uuid
 AS $$
 BEGIN
   RETURN RegSetValueEx(RegCreateKey(pKey, pSubKey, pUserId), pValueName, 1, pNumeric => pValue);
@@ -824,12 +824,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION RegSetValueDate (
-  pKey		    text,
-  pSubKey		text,
-  pValueName	text,
-  pValue		timestamp,
-  pUserId		uuid DEFAULT current_userid()
-) RETURNS	    timestamp
+  pKey          text,
+  pSubKey       text,
+  pValueName    text,
+  pValue        timestamp,
+  pUserId       uuid DEFAULT current_userid()
+) RETURNS       timestamp
 AS $$
 BEGIN
   RETURN RegSetValueEx(RegCreateKey(pKey, pSubKey, pUserId), pValueName, 2, pDateTime => pValue);
@@ -843,12 +843,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION RegSetValueString (
-  pKey		    text,
-  pSubKey		text,
-  pValueName	text,
-  pValue		text,
-  pUserId		uuid DEFAULT current_userid()
-) RETURNS	    text
+  pKey          text,
+  pSubKey       text,
+  pValueName    text,
+  pValue        text,
+  pUserId       uuid DEFAULT current_userid()
+) RETURNS       text
 AS $$
 BEGIN
   RETURN RegSetValueEx(RegCreateKey(pKey, pSubKey, pUserId), pValueName, 3, pString => pValue);
@@ -862,12 +862,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION RegSetValueBoolean (
-  pKey		    text,
-  pSubKey		text,
-  pValueName	text,
-  pValue		boolean,
-  pUserId		uuid DEFAULT current_userid()
-) RETURNS	    boolean
+  pKey          text,
+  pSubKey       text,
+  pValueName    text,
+  pValue        boolean,
+  pUserId       uuid DEFAULT current_userid()
+) RETURNS       boolean
 AS $$
 BEGIN
   RETURN RegSetValueEx(RegCreateKey(pKey, pSubKey, pUserId), pValueName, 4, pBoolean => pValue);
@@ -881,11 +881,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION RegGetValueType (
-  pKey		    text,
-  pSubKey		text,
-  pValueName	text,
-  pUserId		uuid DEFAULT current_userid()
-) RETURNS	    integer
+  pKey          text,
+  pSubKey       text,
+  pValueName    text,
+  pUserId       uuid DEFAULT current_userid()
+) RETURNS       integer
 AS $$
 BEGIN
   RETURN (RegGetValue(RegOpenKey(pKey, pSubKey, pUserId), pValueName)).vtype;
@@ -899,11 +899,11 @@ $$ LANGUAGE plpgsql STABLE
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION RegGetValueInteger (
-  pKey		    text,
-  pSubKey		text,
-  pValueName	text,
-  pUserId		uuid DEFAULT current_userid()
-) RETURNS	    integer
+  pKey          text,
+  pSubKey       text,
+  pValueName    text,
+  pUserId       uuid DEFAULT current_userid()
+) RETURNS       integer
 AS $$
 BEGIN
   RETURN (RegGetValue(RegOpenKey(pKey, pSubKey, pUserId), pValueName)).vInteger;
@@ -917,11 +917,11 @@ $$ LANGUAGE plpgsql STABLE
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION RegGetValueNumeric (
-  pKey		    text,
-  pSubKey		text,
-  pValueName	text,
-  pUserId		uuid DEFAULT current_userid()
-) RETURNS	    numeric
+  pKey          text,
+  pSubKey       text,
+  pValueName    text,
+  pUserId       uuid DEFAULT current_userid()
+) RETURNS       numeric
 AS $$
 BEGIN
   RETURN (RegGetValue(RegOpenKey(pKey, pSubKey, pUserId), pValueName)).vNumeric;
@@ -935,11 +935,11 @@ $$ LANGUAGE plpgsql STABLE
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION RegGetValueDate (
-  pKey		    text,
-  pSubKey		text,
-  pValueName	text,
-  pUserId		uuid DEFAULT current_userid()
-) RETURNS	    timestamp
+  pKey          text,
+  pSubKey       text,
+  pValueName    text,
+  pUserId       uuid DEFAULT current_userid()
+) RETURNS       timestamp
 AS $$
 BEGIN
   RETURN (RegGetValue(RegOpenKey(pKey, pSubKey, pUserId), pValueName)).vDateTime;
@@ -953,11 +953,11 @@ $$ LANGUAGE plpgsql STABLE
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION RegGetValueString (
-  pKey		    text,
-  pSubKey		text,
-  pValueName	text,
-  pUserId		uuid DEFAULT current_userid()
-) RETURNS	    text
+  pKey          text,
+  pSubKey       text,
+  pValueName    text,
+  pUserId       uuid DEFAULT current_userid()
+) RETURNS       text
 AS $$
 BEGIN
   RETURN (RegGetValue(RegOpenKey(pKey, pSubKey, pUserId), pValueName)).vString;
@@ -971,11 +971,11 @@ $$ LANGUAGE plpgsql STABLE
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION RegGetValueBoolean (
-  pKey		    text,
-  pSubKey		text,
-  pValueName	text,
-  pUserId		uuid DEFAULT current_userid()
-) RETURNS	    boolean
+  pKey          text,
+  pSubKey       text,
+  pValueName    text,
+  pUserId       uuid DEFAULT current_userid()
+) RETURNS       boolean
 AS $$
 BEGIN
   RETURN (RegGetValue(RegOpenKey(pKey, pSubKey, pUserId), pValueName)).vBoolean;
