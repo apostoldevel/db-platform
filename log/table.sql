@@ -5,12 +5,12 @@
 CREATE TABLE db.log (
     id          bigserial PRIMARY KEY NOT NULL,
     type        char DEFAULT 'M' NOT NULL CHECK (type IN ('M', 'W', 'E', 'D')),
-    datetime	timestamptz DEFAULT clock_timestamp() NOT NULL,
-    timestamp	timestamptz DEFAULT Now() NOT NULL,
-    username	text NOT NULL,
+    datetime    timestamptz DEFAULT clock_timestamp() NOT NULL,
+    timestamp   timestamptz DEFAULT Now() NOT NULL,
+    username    text NOT NULL,
     session     char(40),
     code        integer NOT NULL,
-    event		text NOT NULL,
+    event       text NOT NULL,
     text        text NOT NULL,
     category    text,
     object      uuid
@@ -38,7 +38,7 @@ CREATE INDEX ON db.log (category);
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION ft_log_insert()
+CREATE OR REPLACE FUNCTION db.ft_log_insert()
 RETURNS trigger AS $$
 BEGIN
   NEW.datetime := clock_timestamp();
@@ -62,7 +62,7 @@ $$ LANGUAGE plpgsql
 CREATE TRIGGER t_log_insert
   BEFORE INSERT ON db.log
   FOR EACH ROW
-  EXECUTE PROCEDURE ft_log_insert();
+  EXECUTE PROCEDURE db.ft_log_insert();
 
 --------------------------------------------------------------------------------
 

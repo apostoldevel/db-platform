@@ -26,7 +26,7 @@ CREATE INDEX ON db.scheduler (reference);
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION ft_scheduler_insert()
+CREATE OR REPLACE FUNCTION db.ft_scheduler_insert()
 RETURNS trigger AS $$
 DECLARE
 BEGIN
@@ -53,4 +53,4 @@ $$ LANGUAGE plpgsql
 CREATE TRIGGER t_scheduler_insert
   BEFORE INSERT ON db.scheduler
   FOR EACH ROW
-  EXECUTE PROCEDURE ft_scheduler_insert();
+  EXECUTE PROCEDURE db.ft_scheduler_insert();

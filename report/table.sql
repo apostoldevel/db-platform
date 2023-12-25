@@ -31,7 +31,7 @@ CREATE INDEX ON db.report (binding);
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION ft_report_before_insert()
+CREATE OR REPLACE FUNCTION db.ft_report_before_insert()
 RETURNS trigger AS $$
 DECLARE
 BEGIN
@@ -50,4 +50,4 @@ $$ LANGUAGE plpgsql
 CREATE TRIGGER t_report_before_insert
   BEFORE INSERT ON db.report
   FOR EACH ROW
-  EXECUTE PROCEDURE ft_report_before_insert();
+  EXECUTE PROCEDURE db.ft_report_before_insert();

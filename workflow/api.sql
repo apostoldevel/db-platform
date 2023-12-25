@@ -796,7 +796,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE VIEW api.method
 AS
-  SELECT * FROM Method;
+  SELECT * FROM AccessMethod;
 
 GRANT SELECT ON api.method TO administrator;
 

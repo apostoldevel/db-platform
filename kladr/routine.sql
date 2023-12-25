@@ -192,7 +192,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetAddressTreeId (
-  pCode		varchar
+  pCode    	varchar
 ) RETURNS   integer
 AS $$
 DECLARE

@@ -32,7 +32,7 @@ CREATE INDEX ON db.path (name);
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION ft_path_insert()
+CREATE OR REPLACE FUNCTION db.ft_path_insert()
 RETURNS trigger AS $$
 BEGIN
   IF NEW.root IS NULL THEN
@@ -48,7 +48,7 @@ $$ LANGUAGE plpgsql
 CREATE TRIGGER t_path_insert
   BEFORE INSERT ON db.path
   FOR EACH ROW
-  EXECUTE PROCEDURE ft_path_insert();
+  EXECUTE PROCEDURE db.ft_path_insert();
 
 --------------------------------------------------------------------------------
 -- db.endpoint -----------------------------------------------------------------

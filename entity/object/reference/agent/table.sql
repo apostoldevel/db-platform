@@ -23,7 +23,7 @@ CREATE INDEX ON db.agent (vendor);
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION ft_agent_before_insert()
+CREATE OR REPLACE FUNCTION db.ft_agent_before_insert()
 RETURNS trigger AS $$
 DECLARE
 BEGIN
@@ -42,11 +42,11 @@ $$ LANGUAGE plpgsql
 CREATE TRIGGER t_agent_before_insert
   BEFORE INSERT ON db.agent
   FOR EACH ROW
-  EXECUTE PROCEDURE ft_agent_before_insert();
+  EXECUTE PROCEDURE db.ft_agent_before_insert();
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION ft_agent_after_insert()
+CREATE OR REPLACE FUNCTION db.ft_agent_after_insert()
 RETURNS trigger AS $$
 BEGIN
   UPDATE db.aou SET deny = B'000', allow = B'100' WHERE object = NEW.id AND userid = '00000000-0000-4000-a002-000000000002'::uuid; -- mailbot
@@ -64,4 +64,4 @@ $$ LANGUAGE plpgsql
 CREATE TRIGGER t_agent_after_insert
   AFTER INSERT ON db.agent
   FOR EACH ROW
-  EXECUTE PROCEDURE ft_agent_after_insert();
+  EXECUTE PROCEDURE db.ft_agent_after_insert();

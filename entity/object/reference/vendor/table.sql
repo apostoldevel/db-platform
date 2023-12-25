@@ -20,7 +20,7 @@ CREATE INDEX ON db.vendor (reference);
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION ft_vendor_insert()
+CREATE OR REPLACE FUNCTION db.ft_vendor_insert()
 RETURNS trigger AS $$
 DECLARE
 BEGIN
@@ -39,4 +39,4 @@ $$ LANGUAGE plpgsql
 CREATE TRIGGER t_vendor_insert
   BEFORE INSERT ON db.vendor
   FOR EACH ROW
-  EXECUTE PROCEDURE ft_vendor_insert();
+  EXECUTE PROCEDURE db.ft_vendor_insert();

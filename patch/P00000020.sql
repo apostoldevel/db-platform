@@ -47,4 +47,4 @@ CREATE TRIGGER t_profile_login_state
   BEFORE UPDATE ON db.profile
   FOR EACH ROW
   WHEN (OLD.lc_ip IS DISTINCT FROM NEW.lc_ip)
-  EXECUTE PROCEDURE ft_profile_login_state();
+  EXECUTE PROCEDURE db.ft_profile_login_state();

@@ -21,8 +21,8 @@ GRANT SELECT ON api.address_tree TO administrator;
  * @return {api.address_tree}
  */
 CREATE OR REPLACE FUNCTION api.get_address_tree (
-  pId		integer
-) RETURNS	SETOF api.address_tree
+  pId        integer
+) RETURNS    SETOF api.address_tree
 AS $$
   SELECT * FROM api.address_tree WHERE id = pId
 $$ LANGUAGE SQL
@@ -42,8 +42,8 @@ $$ LANGUAGE SQL
  * @return {SETOF api.address_tree} - Дерево адресов
  */
 CREATE OR REPLACE FUNCTION api.list_address_tree (
-  pSearch	jsonb DEFAULT null,
-  pFilter	jsonb DEFAULT null,
+  pSearch   jsonb DEFAULT null,
+  pFilter   jsonb DEFAULT null,
   pLimit	integer DEFAULT null,
   pOffSet	integer DEFAULT null,
   pOrderBy	jsonb DEFAULT null

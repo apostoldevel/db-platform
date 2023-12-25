@@ -30,7 +30,7 @@ CREATE INDEX ON db.report_tree (node);
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION ft_report_tree_insert()
+CREATE OR REPLACE FUNCTION db.ft_report_tree_insert()
 RETURNS trigger AS $$
 DECLARE
 BEGIN
@@ -49,4 +49,4 @@ $$ LANGUAGE plpgsql
 CREATE TRIGGER t_report_tree_insert
   BEFORE INSERT ON db.report_tree
   FOR EACH ROW
-  EXECUTE PROCEDURE ft_report_tree_insert();
+  EXECUTE PROCEDURE db.ft_report_tree_insert();

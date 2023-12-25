@@ -424,7 +424,7 @@ CREATE TRIGGER t_profile_before
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION ft_profile_login_state()
+CREATE OR REPLACE FUNCTION db.ft_profile_login_state()
 RETURNS trigger AS $$
 DECLARE
   i         int;
@@ -547,7 +547,7 @@ CREATE TRIGGER t_profile_login_state
   BEFORE UPDATE ON db.profile
   FOR EACH ROW
   WHEN (OLD.input_last IS DISTINCT FROM NEW.input_last)
-  EXECUTE PROCEDURE ft_profile_login_state();
+  EXECUTE PROCEDURE db.ft_profile_login_state();
 
 --------------------------------------------------------------------------------
 -- member_group ----------------------------------------------------------------
@@ -1156,7 +1156,7 @@ COMMENT ON COLUMN db.acl.mask IS 'Маска доступа: {sLlEIDUCpducoi}.';
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION ft_acl_before()
+CREATE OR REPLACE FUNCTION db.ft_acl_before()
 RETURNS TRIGGER AS $$
 BEGIN
   NEW.mask = NEW.allow & ~NEW.deny;
@@ -1169,4 +1169,4 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER t_acl_before
   BEFORE INSERT OR UPDATE ON db.acl
   FOR EACH ROW
-  EXECUTE PROCEDURE ft_acl_before();
+  EXECUTE PROCEDURE db.ft_acl_before();

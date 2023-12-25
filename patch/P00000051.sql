@@ -3,7 +3,7 @@ DROP VIEW EventLog CASCADE;
 ALTER TABLE db.log
     ADD COLUMN timestamp timestamptz DEFAULT Now() NOT NULL;
 
-CREATE OR REPLACE FUNCTION ft_log_insert()
+CREATE OR REPLACE FUNCTION db.ft_log_insert()
 RETURNS trigger AS $$
 BEGIN
   NEW.datetime := clock_timestamp();

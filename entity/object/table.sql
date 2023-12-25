@@ -328,7 +328,7 @@ CREATE INDEX ON db.aou (entity, userid, mask);
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION ft_aou_before()
+CREATE OR REPLACE FUNCTION db.ft_aou_before()
 RETURNS TRIGGER AS $$
 BEGIN
   IF (TG_OP = 'INSERT') THEN
@@ -345,7 +345,7 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER t_aou_before
   BEFORE INSERT OR UPDATE ON db.aou
   FOR EACH ROW
-  EXECUTE PROCEDURE ft_aou_before();
+  EXECUTE PROCEDURE db.ft_aou_before();
 
 --------------------------------------------------------------------------------
 -- TABLE db.oma ----------------------------------------------------------------

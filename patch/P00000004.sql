@@ -9,12 +9,12 @@ DROP FUNCTION api.set_model(uuid,uuid,text,uuid,uuid,text,text,text);
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.model_property (
-    model		uuid NOT NULL REFERENCES db.model(id) ON DELETE CASCADE,
-    property	uuid NOT NULL REFERENCES db.property(id) ON DELETE RESTRICT,
-    measure		uuid REFERENCES db.measure(id),
-    value		variant,
-    format		text,
-    sequence	integer NOT NULL,
+    model       uuid NOT NULL REFERENCES db.model(id) ON DELETE CASCADE,
+    property    uuid NOT NULL REFERENCES db.property(id) ON DELETE RESTRICT,
+    measure     uuid REFERENCES db.measure(id),
+    value       variant,
+    format      text,
+    sequence    integer NOT NULL,
     PRIMARY KEY (model, property)
 );
 

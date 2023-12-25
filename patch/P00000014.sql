@@ -19,7 +19,7 @@ DROP VIEW Account CASCADE;
 DROP FUNCTION IF EXISTS api.send_message(text, text, text, text, text, text);
 --
 
-CREATE OR REPLACE FUNCTION ft_message_before_insert()
+CREATE OR REPLACE FUNCTION db.ft_message_before_insert()
 RETURNS trigger AS $$
 BEGIN
   IF NEW.id IS NULL THEN
@@ -207,7 +207,7 @@ $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
-CREATE OR REPLACE FUNCTION ft_class_tree_after_insert()
+CREATE OR REPLACE FUNCTION db.ft_class_tree_after_insert()
 RETURNS trigger AS $$
 BEGIN
   IF NEW.parent IS NULL THEN
@@ -233,7 +233,7 @@ $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
-CREATE OR REPLACE FUNCTION ft_agent_after_insert()
+CREATE OR REPLACE FUNCTION db.ft_agent_after_insert()
 RETURNS trigger AS $$
 BEGIN
   UPDATE db.aou SET deny = B'000', allow = B'100' WHERE object = NEW.id AND userid = '00000000-0000-4000-a002-000000000002'; -- mailbot

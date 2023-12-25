@@ -20,7 +20,7 @@ CREATE INDEX ON db.form (reference);
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION ft_form_insert()
+CREATE OR REPLACE FUNCTION db.ft_form_insert()
 RETURNS trigger AS $$
 DECLARE
 BEGIN
@@ -39,4 +39,4 @@ $$ LANGUAGE plpgsql
 CREATE TRIGGER t_form_insert
   BEFORE INSERT ON db.form
   FOR EACH ROW
-  EXECUTE PROCEDURE ft_form_insert();
+  EXECUTE PROCEDURE db.ft_form_insert();

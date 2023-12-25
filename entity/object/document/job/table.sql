@@ -40,7 +40,7 @@ CREATE INDEX ON db.job (dateRun);
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION ft_job_insert()
+CREATE OR REPLACE FUNCTION db.ft_job_insert()
 RETURNS trigger AS $$
 DECLARE
   iPeriod		interval;
@@ -77,4 +77,4 @@ $$ LANGUAGE plpgsql
 CREATE TRIGGER t_job_insert
   BEFORE INSERT ON db.job
   FOR EACH ROW
-  EXECUTE PROCEDURE ft_job_insert();
+  EXECUTE PROCEDURE db.ft_job_insert();

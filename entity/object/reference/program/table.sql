@@ -22,7 +22,7 @@ CREATE INDEX ON db.program (reference);
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION ft_program_insert()
+CREATE OR REPLACE FUNCTION db.ft_program_insert()
 RETURNS trigger AS $$
 DECLARE
 BEGIN
@@ -41,5 +41,5 @@ $$ LANGUAGE plpgsql
 CREATE TRIGGER t_program_insert
   BEFORE INSERT ON db.program
   FOR EACH ROW
-  EXECUTE PROCEDURE ft_program_insert();
+  EXECUTE PROCEDURE db.ft_program_insert();
 

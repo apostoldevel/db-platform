@@ -102,6 +102,10 @@ CREATE OR REPLACE FUNCTION DeleteEntity (
 ) RETURNS   void
 AS $$
 BEGIN
+  IF session_user = 'kernel' THEN
+    PERFORM DeleteClass(id) FROM db.class_tree WHERE entity = pId;
+  END IF;
+
   DELETE FROM db.entity WHERE id = pId;
 END;
 $$ LANGUAGE plpgsql
@@ -347,10 +351,12 @@ CREATE OR REPLACE FUNCTION DeleteClass (
 ) RETURNS   void
 AS $$
 BEGIN
-  PERFORM DeleteEvent(id) FROM db.event WHERE class = pId ORDER BY sequence DESC;
-  PERFORM DeleteMethod(id) FROM db.method WHERE class = pId ORDER BY sequence DESC;
-  PERFORM DeleteState(id) FROM db.state WHERE class = pId ORDER BY sequence DESC;
-  PERFORM DeleteType(id) FROM db.type WHERE class = pId;
+  IF session_user = 'kernel' THEN
+    PERFORM DeleteEvent(id) FROM db.event WHERE class = pId ORDER BY sequence DESC;
+    PERFORM DeleteMethod(id) FROM db.method WHERE class = pId ORDER BY sequence DESC;
+    PERFORM DeleteState(id) FROM db.state WHERE class = pId ORDER BY sequence DESC;
+    PERFORM DeleteType(id) FROM db.type WHERE class = pId;
+  END IF;
 
   DELETE FROM db.class_tree WHERE id = pId;
 END;
@@ -1890,7 +1896,7 @@ CREATE OR REPLACE FUNCTION EditEvent (
   pText     text default null,
   pSequence integer default null,
   pEnabled  boolean default null
-) RETURNS   oid
+) RETURNS   void
 AS $$
 BEGIN
   UPDATE db.event

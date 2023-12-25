@@ -3,12 +3,12 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.kladr (
-    code		varchar(13) PRIMARY KEY,
-    name		varchar(40) NOT NULL,
-    socr		varchar(10),
-    index		varchar(6),
-    gninmb		varchar(4),
-    uno		    varchar(4),
+    code        varchar(13) PRIMARY KEY,
+    name        varchar(40) NOT NULL,
+    socr        varchar(10),
+    index       varchar(6),
+    gninmb      varchar(4),
+    uno         varchar(4),
     ocatd		varchar(11),
     status      varchar(1)
 );

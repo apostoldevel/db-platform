@@ -94,7 +94,7 @@ CREATE INDEX ON db.class_text (locale);
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION ft_class_tree_after_insert()
+CREATE OR REPLACE FUNCTION db.ft_class_tree_after_insert()
 RETURNS trigger AS $$
 BEGIN
   IF NEW.parent IS NULL THEN
@@ -125,11 +125,11 @@ $$ LANGUAGE plpgsql
 CREATE TRIGGER t_class_tree_insert
   AFTER INSERT ON db.class_tree
   FOR EACH ROW
-  EXECUTE PROCEDURE ft_class_tree_after_insert();
+  EXECUTE PROCEDURE db.ft_class_tree_after_insert();
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION ft_class_tree_before_delete()
+CREATE OR REPLACE FUNCTION db.ft_class_tree_before_delete()
 RETURNS trigger AS $$
 BEGIN
   DELETE FROM db.acu WHERE class = OLD.ID;
@@ -145,7 +145,7 @@ $$ LANGUAGE plpgsql
 CREATE TRIGGER t_class_tree_before_delete
   BEFORE DELETE ON db.class_tree
   FOR EACH ROW
-  EXECUTE PROCEDURE ft_class_tree_before_delete();
+  EXECUTE PROCEDURE db.ft_class_tree_before_delete();
 
 --------------------------------------------------------------------------------
 -- TABLE db.acu ----------------------------------------------------------------
@@ -173,7 +173,7 @@ CREATE INDEX ON db.acu (userid);
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION ft_acu_before()
+CREATE OR REPLACE FUNCTION db.ft_acu_before()
 RETURNS TRIGGER AS $$
 BEGIN
   IF (TG_OP = 'INSERT') THEN
@@ -191,7 +191,7 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER t_acu_before
   BEFORE INSERT OR UPDATE ON db.acu
   FOR EACH ROW
-  EXECUTE PROCEDURE ft_acu_before();
+  EXECUTE PROCEDURE db.ft_acu_before();
 
 --------------------------------------------------------------------------------
 -- TYPE ------------------------------------------------------------------------
@@ -457,7 +457,7 @@ CREATE TRIGGER t_method_before_insert
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION ft_method_after_insert()
+CREATE OR REPLACE FUNCTION db.ft_method_after_insert()
 RETURNS trigger AS $$
 DECLARE
   bAllow	bit(3);
@@ -481,7 +481,7 @@ $$ LANGUAGE plpgsql
 CREATE TRIGGER t_method_after_insert
   AFTER INSERT ON db.method
   FOR EACH ROW
-  EXECUTE PROCEDURE ft_method_after_insert();
+  EXECUTE PROCEDURE db.ft_method_after_insert();
 
 --------------------------------------------------------------------------------
 
@@ -530,7 +530,7 @@ CREATE INDEX ON db.amu (userid);
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION ft_amu_before()
+CREATE OR REPLACE FUNCTION db.ft_amu_before()
 RETURNS TRIGGER AS $$
 BEGIN
   IF (TG_OP = 'INSERT') THEN
@@ -546,7 +546,7 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER t_amu_before
   BEFORE INSERT OR UPDATE ON db.amu
   FOR EACH ROW
-  EXECUTE PROCEDURE ft_amu_before();
+  EXECUTE PROCEDURE db.ft_amu_before();
 
 --------------------------------------------------------------------------------
 -- db.transition ---------------------------------------------------------------

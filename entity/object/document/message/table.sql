@@ -39,7 +39,7 @@ CREATE INDEX ON db.message (subject text_pattern_ops);
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION ft_message_before_insert()
+CREATE OR REPLACE FUNCTION db.ft_message_before_insert()
 RETURNS trigger AS $$
 BEGIN
   IF NEW.id IS NULL THEN
@@ -59,7 +59,7 @@ $$ LANGUAGE plpgsql
 CREATE TRIGGER t_message_before_insert
   BEFORE INSERT ON db.message
   FOR EACH ROW
-  EXECUTE PROCEDURE ft_message_before_insert();
+  EXECUTE PROCEDURE db.ft_message_before_insert();
 
 --------------------------------------------------------------------------------
 
@@ -94,7 +94,7 @@ CREATE TRIGGER t_message_after_insert
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION ft_message_before_update()
+CREATE OR REPLACE FUNCTION db.ft_message_before_update()
 RETURNS trigger AS $$
 BEGIN
   IF NEW.code IS DISTINCT FROM OLD.code THEN
@@ -113,4 +113,4 @@ $$ LANGUAGE plpgsql
 CREATE TRIGGER t_message_before_update
   BEFORE UPDATE ON db.message
   FOR EACH ROW
-  EXECUTE PROCEDURE ft_message_before_update();
+  EXECUTE PROCEDURE db.ft_message_before_update();

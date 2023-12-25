@@ -353,7 +353,7 @@ $$ LANGUAGE plpgsql
 
 --
 
-CREATE OR REPLACE FUNCTION ft_job_insert()
+CREATE OR REPLACE FUNCTION db.ft_job_insert()
 RETURNS trigger AS $$
 DECLARE
   iPeriod		interval;

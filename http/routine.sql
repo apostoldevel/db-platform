@@ -142,19 +142,19 @@ BEGIN
   CASE split_part(path, '/', 4)
   WHEN 'ping' THEN
 
-	RETURN NEXT json_build_object('code', 200, 'message', 'OK');
+    RETURN NEXT json_build_object('code', 200, 'message', 'OK');
 
   WHEN 'time' THEN
 
-	RETURN NEXT json_build_object('serverTime', trunc(extract(EPOCH FROM Now())));
+    RETURN NEXT json_build_object('serverTime', trunc(extract(EPOCH FROM Now())));
 
   WHEN 'headers' THEN
 
-	RETURN NEXT coalesce(headers, jsonb_build_object());
+    RETURN NEXT coalesce(headers, jsonb_build_object());
 
   WHEN 'params' THEN
 
-	RETURN NEXT coalesce(params, jsonb_build_object());
+    RETURN NEXT coalesce(params, jsonb_build_object());
 
   WHEN 'log' THEN
 
