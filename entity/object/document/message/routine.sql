@@ -634,7 +634,7 @@ DECLARE
   vText           text;
   vMessage        text;
 BEGIN
-  vProfile := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Name', pUserId);
+  vProfile := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject\SMS', 'Address', pUserId);
   vSecurityAnswer := random_between(100000, 999999)::text;
 
   IF locale_code() = 'ru' THEN
@@ -683,7 +683,7 @@ DECLARE
   vMessage        text;
   jContent        json;
 BEGIN
-  vNaming := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Name');
+  vNaming := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject\SMS', 'Address');
   vCode := random_between(100000, 999999)::text;
 
   IF locale_code() = 'ru' THEN
