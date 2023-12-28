@@ -20,12 +20,12 @@ GRANT SELECT ON api.event_log TO administrator;
  * @return {SETOF api.event_log} - Записи
  */
 CREATE OR REPLACE FUNCTION api.event_log (
-  pUserName		text DEFAULT null,
-  pType			char DEFAULT null,
-  pCode			integer DEFAULT null,
-  pDateFrom	    timestamp DEFAULT null,
-  pDateTo	    timestamp DEFAULT null
-) RETURNS	    SETOF api.event_log
+  pUserName      text DEFAULT null,
+  pType          char DEFAULT null,
+  pCode          integer DEFAULT null,
+  pDateFrom      timestamp DEFAULT null,
+  pDateTo        timestamp DEFAULT null
+) RETURNS        SETOF api.event_log
 AS $$
   SELECT *
     FROM api.event_log
@@ -45,10 +45,10 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.write_to_log (
-  pType		    text,
-  pCode		    integer,
-  pText		    text
-) RETURNS	    SETOF api.event_log
+  pType         text,
+  pCode         integer,
+  pText         text
+) RETURNS       SETOF api.event_log
 AS $$
 DECLARE
   nId           bigint;
@@ -69,8 +69,8 @@ $$ LANGUAGE plpgsql
  * @return {api.event_log}
  */
 CREATE OR REPLACE FUNCTION api.get_event_log (
-  pId		bigint
-) RETURNS	api.event_log
+  pId        bigint
+) RETURNS    api.event_log
 AS $$
   SELECT * FROM api.event_log WHERE id = pId
 $$ LANGUAGE SQL
@@ -90,12 +90,12 @@ $$ LANGUAGE SQL
  * @return {SETOF api.event_log}
  */
 CREATE OR REPLACE FUNCTION api.list_event_log (
-  pSearch	jsonb DEFAULT null,
-  pFilter	jsonb DEFAULT null,
-  pLimit	integer DEFAULT null,
-  pOffSet	integer DEFAULT null,
-  pOrderBy	jsonb DEFAULT null
-) RETURNS	SETOF api.event_log
+  pSearch    jsonb DEFAULT null,
+  pFilter    jsonb DEFAULT null,
+  pLimit     integer DEFAULT null,
+  pOffSet    integer DEFAULT null,
+  pOrderBy   jsonb DEFAULT null
+) RETURNS    SETOF api.event_log
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'event_log', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
@@ -129,11 +129,11 @@ GRANT SELECT ON api.user_log TO administrator;
  * @return {SETOF api.event_log} - Записи
  */
 CREATE OR REPLACE FUNCTION api.user_log (
-  pType		    char DEFAULT null,
-  pCode		    integer DEFAULT null,
-  pDateFrom	    timestamp DEFAULT null,
-  pDateTo	    timestamp DEFAULT null
-) RETURNS	    SETOF api.user_log
+  pType         char DEFAULT null,
+  pCode         integer DEFAULT null,
+  pDateFrom     timestamp DEFAULT null,
+  pDateTo       timestamp DEFAULT null
+) RETURNS       SETOF api.user_log
 AS $$
   SELECT *
     FROM api.user_log
@@ -156,8 +156,8 @@ $$ LANGUAGE SQL
  * @return {api.user_log}
  */
 CREATE OR REPLACE FUNCTION api.get_user_log (
-  pId		bigint
-) RETURNS	api.user_log
+  pId        bigint
+) RETURNS    api.user_log
 AS $$
   SELECT * FROM api.user_log WHERE id = pId
 $$ LANGUAGE SQL
@@ -177,12 +177,12 @@ $$ LANGUAGE SQL
  * @return {SETOF api.user_log}
  */
 CREATE OR REPLACE FUNCTION api.list_user_log (
-  pSearch	jsonb DEFAULT null,
-  pFilter	jsonb DEFAULT null,
-  pLimit	integer DEFAULT null,
-  pOffSet	integer DEFAULT null,
-  pOrderBy	jsonb DEFAULT null
-) RETURNS	SETOF api.user_log
+  pSearch    jsonb DEFAULT null,
+  pFilter    jsonb DEFAULT null,
+  pLimit     integer DEFAULT null,
+  pOffSet    integer DEFAULT null,
+  pOrderBy   jsonb DEFAULT null
+) RETURNS    SETOF api.user_log
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'user_log', pSearch, pFilter, pLimit, pOffSet, pOrderBy);

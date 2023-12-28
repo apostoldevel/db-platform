@@ -15,7 +15,7 @@ CREATE OR REPLACE FUNCTION api.set_session_area (
 ) RETURNS   void
 AS $$
 DECLARE
-  uId		uuid;
+  uId        uuid;
 BEGIN
   SELECT id INTO uId FROM db.area WHERE id = pArea;
 
@@ -42,7 +42,7 @@ CREATE OR REPLACE FUNCTION api.set_session_area (
 ) RETURNS   void
 AS $$
 DECLARE
-  uId		uuid;
+  uId       uuid;
 BEGIN
   SELECT id INTO uId FROM db.area WHERE code = pArea;
 
@@ -65,11 +65,11 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.set_session_interface (
-  pInterface	uuid
+  pInterface    uuid
 ) RETURNS       void
 AS $$
 DECLARE
-  uId			uuid;
+  uId           uuid;
 BEGIN
   SELECT id INTO uId FROM db.interface WHERE id = pInterface;
 
@@ -92,11 +92,11 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.set_session_interface (
-  pInterface	uuid
+  pInterface    uuid
 ) RETURNS       void
 AS $$
 DECLARE
-  uId			uuid;
+  uId           uuid;
 BEGIN
   SELECT id INTO uId FROM db.interface WHERE id = pInterface;
 
@@ -119,7 +119,7 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.set_session_oper_date (
-  pOperDate 	timestamp
+  pOperDate     timestamp
 ) RETURNS       void
 AS $$
 BEGIN

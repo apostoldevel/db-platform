@@ -8,25 +8,25 @@
  * @return {SETOF json} - Записи в JSON
  */
 CREATE OR REPLACE FUNCTION rest.notification (
-  pPath		text,
-  pPayload	jsonb default null
-) RETURNS	SETOF json
+  pPath     text,
+  pPayload  jsonb default null
+) RETURNS   SETOF json
 AS $$
 DECLARE
-  r			record;
-  e			record;
-  o			record;
+  r         record;
+  e         record;
+  o         record;
 
-  search	jsonb;
+  search    jsonb;
 
-  arKeys	text[];
+  arKeys    text[];
 BEGIN
   IF pPath IS NULL THEN
     PERFORM RouteIsEmpty();
   END IF;
 
   IF current_session() IS NULL THEN
-	PERFORM LoginFailed();
+    PERFORM LoginFailed();
   END IF;
 
   CASE pPath
@@ -125,7 +125,7 @@ BEGIN
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
-	  ELSE
+      ELSE
         FOR e IN EXECUTE format('SELECT %s FROM api.list_notification($1, $2, $3, $4, $5)', JsonbToFields(r.fields, GetColumns('notification', 'api'))) USING r.search, r.filter, r.reclimit, r.recoffset, r.orderby
         LOOP
           RETURN NEXT row_to_json(e);
@@ -147,22 +147,22 @@ BEGIN
       search := jsonb_build_array(jsonb_build_object('field', 'object', 'valarr', r.objects, 'compare', 'IN'));
 
       IF r.fromdate IS NOT NULL THEN
-	    search := search || jsonb_build_object('field', 'datetime', 'compare', 'GEQ', 'value', r.fromdate);
-	  END IF;
+        search := search || jsonb_build_object('field', 'datetime', 'compare', 'GEQ', 'value', r.fromdate);
+      END IF;
 
       IF r.todate IS NOT NULL THEN
-	    search := search || jsonb_build_object('field', 'datetime', 'compare', 'LSS', 'value', r.todate);
-	  END IF;
+        search := search || jsonb_build_object('field', 'datetime', 'compare', 'LSS', 'value', r.todate);
+      END IF;
 
-	  FOR e IN SELECT entity, object FROM api.list_notification(search, null, null, null, null) GROUP BY entity, object
-	  LOOP
-		FOR o IN EXECUTE format('SELECT * FROM api.get_%s($1)', GetEntityCode(e.entity)) USING e.object
-		LOOP
-		  IF o.id IS NOT NULL THEN
-	        RETURN NEXT row_to_json(o);
-	      END IF;
-		END LOOP;
-	  END LOOP;
+      FOR e IN SELECT entity, object FROM api.list_notification(search, null, null, null, null) GROUP BY entity, object
+      LOOP
+        FOR o IN EXECUTE format('SELECT * FROM api.get_%s($1)', GetEntityCode(e.entity)) USING e.object
+        LOOP
+          IF o.id IS NOT NULL THEN
+            RETURN NEXT row_to_json(o);
+          END IF;
+        END LOOP;
+      END LOOP;
     END LOOP;
 
   ELSE

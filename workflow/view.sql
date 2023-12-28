@@ -153,15 +153,45 @@ CREATE OR REPLACE VIEW Method (Id, Parent,
   Class, ClassCode, ClassLabel,
   State, StateCode, StateLabel,
   Action, ActionCode, ActionName,
+  Code, Label, Sequence
+)
+AS
+  SELECT m.id, m.parent,
+         c.entity, e.code, et.name,
+         m.class, c.code, ct.label,
+         m.state, s.code, st.label,
+         m.action, a.code, at.name,
+         m.code, mt.label, m.sequence
+    FROM db.method m INNER JOIN db.class_tree   c ON m.class = c.id
+                      LEFT JOIN db.class_text  ct ON ct.class = c.id AND ct.locale = current_locale()
+                     INNER JOIN db.entity       e ON c.entity = e.id
+                      LEFT JOIN db.entity_text et ON et.entity = e.id AND et.locale = current_locale()
+                     INNER JOIN db.action       a ON a.id = m.action
+                      LEFT JOIN db.action_text at ON at.action = a.id AND at.locale = current_locale()
+                      LEFT JOIN db.state        s ON s.id = m.state
+                      LEFT JOIN db.state_text  st ON st.state = s.id AND st.locale = current_locale()
+                      LEFT JOIN db.method_text mt ON mt.method = m.id AND mt.locale = current_locale();
+
+GRANT SELECT ON Method TO administrator;
+
+--------------------------------------------------------------------------------
+-- VIEW AccessMethod -----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW AccessMethod (Id, Parent,
+  Entity, EntityCode, EntityName,
+  Class, ClassCode, ClassLabel,
+  State, StateCode, StateLabel,
+  Action, ActionCode, ActionName,
   Code, Label, Sequence,
   Execute, Visible, Enable
 )
 AS
   WITH _access AS (
-	SELECT a.method, bit_or(a.allow) & ~bit_or(a.deny) AS mask
-	  FROM db.amu a
-	 WHERE userid IN (SELECT current_userid() UNION SELECT userid FROM db.member_group WHERE member = current_userid())
-	 GROUP BY a.method
+    SELECT a.method, bit_or(a.allow) & ~bit_or(a.deny) AS mask
+      FROM db.amu a
+     WHERE userid IN (SELECT current_userid() UNION SELECT userid FROM db.member_group WHERE member = current_userid())
+     GROUP BY a.method
   )
   SELECT m.id, m.parent,
          c.entity, e.code, et.name,
@@ -181,7 +211,7 @@ AS
                       LEFT JOIN db.state_text  st ON st.state = s.id AND st.locale = current_locale()
                       LEFT JOIN db.method_text mt ON mt.method = m.id AND mt.locale = current_locale();
 
-GRANT SELECT ON Method TO administrator;
+GRANT SELECT ON AccessMethod TO administrator;
 
 --------------------------------------------------------------------------------
 -- VIEW MethodMembers ----------------------------------------------------------

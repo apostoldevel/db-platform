@@ -3,11 +3,11 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE registry.key (
-    id			uuid PRIMARY KEY DEFAULT gen_kernel_uuid('8'),
-    root		uuid REFERENCES registry.key(id),
-    parent		uuid REFERENCES registry.key(id),
-    key			text NOT NULL,
-    level		integer NOT NULL
+    id          uuid PRIMARY KEY DEFAULT gen_kernel_uuid('8'),
+    root        uuid REFERENCES registry.key(id),
+    parent      uuid REFERENCES registry.key(id),
+    key         text NOT NULL,
+    level       integer NOT NULL
 );
 
 COMMENT ON TABLE registry.key IS 'Реестр (ключ).';
@@ -29,15 +29,15 @@ CREATE UNIQUE INDEX ON registry.key (root, parent, key);
 --------------------------------------------------------------------------------
 
 CREATE TABLE registry.value (
-    id			uuid PRIMARY KEY DEFAULT gen_kernel_uuid('8'),
-    key			uuid NOT NULL REFERENCES registry.key(id) ON DELETE CASCADE,
-    vname		text NOT NULL,
-    vtype		integer NOT NULL,
-    vinteger	integer,
-    vnumeric	numeric,
-    vdatetime	timestamp,
-    vstring		text,
-    vboolean	boolean,
+    id          uuid PRIMARY KEY DEFAULT gen_kernel_uuid('8'),
+    key         uuid NOT NULL REFERENCES registry.key(id) ON DELETE CASCADE,
+    vname       text NOT NULL,
+    vtype       integer NOT NULL,
+    vinteger    integer,
+    vnumeric    numeric,
+    vdatetime   timestamp,
+    vstring     text,
+    vboolean    boolean,
     CHECK (vtype BETWEEN 0 AND 4)
 );
 

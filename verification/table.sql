@@ -56,8 +56,8 @@ BEGIN
     RETURN NEW;
   ELSIF (TG_OP = 'INSERT') THEN
     IF NEW.type = 'M' THEN
-	  NEW.type := 'M';
-	END IF;
+      NEW.type := 'M';
+    END IF;
 
     IF NEW.validFromDate IS NULL THEN
       NEW.validFromDate := Now();
@@ -73,14 +73,14 @@ BEGIN
       NEW.validToDate := NEW.validFromDate + delta;
     END IF;
 
-	IF NEW.code IS NULL THEN
+    IF NEW.code IS NULL THEN
       IF NEW.type = 'M' THEN
-		NEW.code := gen_random_uuid()::text;
+        NEW.code := gen_random_uuid()::text;
       ELSIF NEW.type = 'P' THEN
-		NEW.code := random_between(100000, 999999)::text;
-	  ELSE
-		PERFORM InvalidVerificationCodeType(NEW.type);
-	  END IF;
+        NEW.code := random_between(100000, 999999)::text;
+      ELSE
+        PERFORM InvalidVerificationCodeType(NEW.type);
+      END IF;
     END IF;
 
     RETURN NEW;

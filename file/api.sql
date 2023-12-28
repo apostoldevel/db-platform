@@ -56,16 +56,16 @@ BEGIN
   END IF;
 
   IF pPath IS NULL THEN
-	SELECT path INTO pPath FROM db.file WHERE id = pId;
+    SELECT path INTO pPath FROM db.file WHERE id = pId;
   END IF;
 
   IF pPath IS NOT NULL THEN
     vRoot := split_part(pPath, '/', 2);
     IF vRoot IS NOT NULL THEN
-	  pRoot := GetFile(null::uuid, vRoot);
-	  IF pRoot IS NULL THEN
-		pRoot := NewFilePath(concat('/', vRoot));
-	  END IF;
+      pRoot := GetFile(null::uuid, vRoot);
+      IF pRoot IS NULL THEN
+        pRoot := NewFilePath(concat('/', vRoot));
+      END IF;
     END IF;
 
     pParent := NewFilePath(pPath);
@@ -89,7 +89,7 @@ $$ LANGUAGE plpgsql
  */
 CREATE OR REPLACE FUNCTION api.get_file (
   pId       uuid
-) RETURNS	SETOF api.file_data
+) RETURNS   SETOF api.file_data
 AS $$
   SELECT * FROM api.file_data WHERE id = pId;
 $$ LANGUAGE sql
@@ -108,7 +108,7 @@ $$ LANGUAGE sql
 CREATE OR REPLACE FUNCTION api.get_file_id (
   pName     text,
   pPath     text DEFAULT null
-) RETURNS	uuid
+) RETURNS   uuid
 AS $$
 BEGIN
   RETURN GetFile(coalesce(NormalizeFileName(pName), 'index.html'), NormalizeFilePath(pPath));
@@ -127,7 +127,7 @@ $$ LANGUAGE plpgsql
  */
 CREATE OR REPLACE FUNCTION api.delete_file (
   pId       uuid
-) RETURNS	boolean
+) RETURNS   boolean
 AS $$
 BEGIN
   RETURN DeleteFile(pId);
@@ -149,12 +149,12 @@ $$ LANGUAGE plpgsql
  * @return {SETOF api.file}
  */
 CREATE OR REPLACE FUNCTION api.list_file (
-  pSearch	jsonb DEFAULT null,
-  pFilter	jsonb DEFAULT null,
-  pLimit	integer DEFAULT null,
-  pOffSet	integer DEFAULT null,
-  pOrderBy	jsonb DEFAULT null
-) RETURNS	SETOF api.file
+  pSearch   jsonb DEFAULT null,
+  pFilter   jsonb DEFAULT null,
+  pLimit    integer DEFAULT null,
+  pOffSet   integer DEFAULT null,
+  pOrderBy  jsonb DEFAULT null
+) RETURNS   SETOF api.file
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'file', pSearch, pFilter, pLimit, pOffSet, pOrderBy);

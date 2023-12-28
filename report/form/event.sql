@@ -7,8 +7,8 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventReportFormCreate (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'create', 'Форма отчёта создана.', pObject);
@@ -20,8 +20,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventReportFormOpen (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'open', 'Форма отчёта открыта.', pObject);
@@ -33,8 +33,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventReportFormEdit (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'edit', 'Форма отчёта изменена.', pObject);
@@ -46,8 +46,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventReportFormSave (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'save', 'Форма отчёта сохранена.', pObject);
@@ -59,8 +59,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventReportFormEnable (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'enable', 'Форма отчёта включена.', pObject);
@@ -72,8 +72,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventReportFormDisable (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'disable', 'Форма отчёта выключена.', pObject);
@@ -85,8 +85,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventReportFormDelete (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'delete', 'Форма отчёта удалена.', pObject);
@@ -98,8 +98,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventReportFormRestore (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'restore', 'Форма отчёта восстановлена.', pObject);
@@ -111,11 +111,11 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventReportFormDrop (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 DECLARE
-  r			record;
+  r          record;
 BEGIN
   SELECT label INTO r FROM db.object_text WHERE object = pObject AND locale = current_locale();
 

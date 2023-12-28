@@ -43,12 +43,12 @@ $$ LANGUAGE SQL
  * @return {uuid} - Идентификатор комментария
  */
 CREATE OR REPLACE FUNCTION api.add_comment (
-  pParent		uuid,
-  pObject		uuid,
-  pPriority		integer,
-  pText			text,
+  pParent       uuid,
+  pObject       uuid,
+  pPriority     integer,
+  pText         text,
   pData         jsonb default null
-) RETURNS		uuid
+) RETURNS       uuid
 AS $$
 BEGIN
   RETURN CreateComment(pParent, pObject, current_userid(), coalesce(pPriority, 0), pText, pData);
@@ -69,11 +69,11 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_comment (
-  pId			uuid,
-  pPriority		integer default null,
-  pText			text default null,
+  pId           uuid,
+  pPriority     integer default null,
+  pText         text default null,
   pData         jsonb default null
-) RETURNS		void
+) RETURNS       void
 AS $$
 DECLARE
   uOwner        uuid;
@@ -81,13 +81,13 @@ BEGIN
   SELECT owner INTO uOwner FROM db.comment WHERE id = pId;
 
   IF NOT FOUND THEN
-	PERFORM NotFound();
+    PERFORM NotFound();
   END IF;
 
   IF uOwner <> current_userid() THEN
     IF NOT IsUserRole(GetGroup('administrator')) THEN
-	  PERFORM AccessDenied();
-	END IF;
+      PERFORM AccessDenied();
+    END IF;
   END IF;
 
   PERFORM EditComment(pId, pPriority, pText, pData);
@@ -101,7 +101,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.set_comment (
-  pId			uuid,
+  pId        	uuid,
   pParent		uuid default null,
   pObject		uuid default null,
   pPriority		integer default null,

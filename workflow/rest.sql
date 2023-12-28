@@ -23,13 +23,13 @@ BEGIN
   END IF;
 
   IF current_session() IS NULL THEN
-	PERFORM LoginFailed();
+    PERFORM LoginFailed();
   END IF;
 
   IF session_user <> 'kernel' THEN
-	IF NOT IsUserRole(GetGroup('administrator')) THEN
-	  PERFORM AccessDenied();
-	END IF;
+    IF NOT IsUserRole(GetGroup('administrator')) THEN
+      PERFORM AccessDenied();
+    END IF;
   END IF;
 
   CASE pPath

@@ -24,7 +24,7 @@ BEGIN
   END IF;
 
   IF current_session() IS NULL THEN
-	PERFORM LoginFailed();
+    PERFORM LoginFailed();
   END IF;
 
   CASE pPath
@@ -237,7 +237,7 @@ BEGIN
   WHEN '/object/method/execute' THEN
 
     IF pPayload IS NULL THEN
-	  PERFORM JsonIsEmpty();
+      PERFORM JsonIsEmpty();
     END IF;
 
     IF current_session() IS NULL THEN
@@ -802,16 +802,16 @@ BEGIN
         r.key := NULLIF(r.key, '');
         r.datefrom := coalesce(r.datefrom, oper_date());
 
-		SELECT key INTO r.key
-		  FROM db.object_link
-		 WHERE object = r.object
-		   AND linked = r.linked
-		   AND validFromDate <= r.datefrom
-		   AND validToDate > r.datefrom;
+        SELECT key INTO r.key
+          FROM db.object_link
+         WHERE object = r.object
+           AND linked = r.linked
+           AND validFromDate <= r.datefrom
+           AND validToDate > r.datefrom;
 
         IF FOUND THEN
-		  PERFORM SetObjectLink(r.object, null, r.key, r.datefrom);
-		END IF;
+          PERFORM SetObjectLink(r.object, null, r.key, r.datefrom);
+        END IF;
 
         RETURN NEXT json_build_object('object', r.object, 'linked', r.linked, 'key', r.key, 'datefrom', r.datefrom, 'unlink', FOUND);
       END LOOP;
@@ -823,16 +823,16 @@ BEGIN
         r.key := NULLIF(r.key, '');
         r.datefrom := coalesce(r.datefrom, oper_date());
 
-		SELECT key INTO r.key
-		  FROM db.object_link
-		 WHERE object = r.object
-		   AND linked = r.linked
-		   AND validFromDate <= r.datefrom
-		   AND validToDate > r.datefrom;
+        SELECT key INTO r.key
+          FROM db.object_link
+         WHERE object = r.object
+           AND linked = r.linked
+           AND validFromDate <= r.datefrom
+           AND validToDate > r.datefrom;
 
         IF FOUND THEN
-		  PERFORM SetObjectLink(r.object, null, r.key, r.datefrom);
-		END IF;
+          PERFORM SetObjectLink(r.object, null, r.key, r.datefrom);
+        END IF;
 
         RETURN NEXT json_build_object('object', r.object, 'linked', r.linked, 'key', r.key, 'datefrom', r.datefrom, 'unlink', FOUND);
       END LOOP;
@@ -957,9 +957,9 @@ BEGIN
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, clear boolean, files json)
       LOOP
         IF r.files IS NOT NULL THEN
-		  IF coalesce(r.clear, false) THEN
-			PERFORM api.clear_object_files(r.id);
-		  END IF;
+          IF coalesce(r.clear, false) THEN
+            PERFORM api.clear_object_files(r.id);
+          END IF;
 
           FOR e IN SELECT * FROM api.set_object_files_json(r.id, r.files)
           LOOP
@@ -975,9 +975,9 @@ BEGIN
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, clear boolean, files json)
       LOOP
         IF r.files IS NOT NULL THEN
-		  IF coalesce(r.clear, false) THEN
-			PERFORM api.clear_object_files(r.id);
-		  END IF;
+          IF coalesce(r.clear, false) THEN
+            PERFORM api.clear_object_files(r.id);
+          END IF;
 
           FOR e IN SELECT * FROM api.set_object_files_json(r.id, r.files)
           LOOP
@@ -1003,9 +1003,9 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, clear boolean, files json)
       LOOP
-		IF coalesce(r.clear, false) THEN
-	  	  PERFORM api.clear_object_files(r.id);
-		END IF;
+        IF coalesce(r.clear, false) THEN
+            PERFORM api.clear_object_files(r.id);
+        END IF;
 
         FOR e IN SELECT * FROM api.set_object_files_json(r.id, r.files)
         LOOP
@@ -1017,9 +1017,9 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, clear boolean, files json)
       LOOP
-		IF coalesce(r.clear, false) THEN
-	  	  PERFORM api.clear_object_files(r.id);
-		END IF;
+        IF coalesce(r.clear, false) THEN
+            PERFORM api.clear_object_files(r.id);
+        END IF;
 
         FOR e IN SELECT * FROM api.set_object_files_json(r.id, r.files)
         LOOP

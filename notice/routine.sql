@@ -12,16 +12,16 @@
  * @return {uuid} - Идентификатор извещения
  */
 CREATE OR REPLACE FUNCTION CreateNotice (
-  pUserId		uuid,
-  pObject		uuid,
-  pText			text,
-  pCategory		text default null,
-  pStatus		integer default null,
+  pUserId       uuid,
+  pObject       uuid,
+  pText         text,
+  pCategory     text default null,
+  pStatus       integer default null,
   pData         jsonb default null
-) RETURNS		uuid
+) RETURNS       uuid
 AS $$
 DECLARE
-  uNotice		uuid;
+  uNotice       uuid;
 BEGIN
   INSERT INTO db.notice (userid, object, text, category, status, data)
   VALUES (coalesce(pUserId, current_userid()), pObject, pText, coalesce(pCategory, 'notice'), coalesce(pStatus, 0), pData)
@@ -48,14 +48,14 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION EditNotice (
-  pId			uuid,
-  pUserId		uuid default null,
-  pObject		uuid default null,
-  pText			text default null,
-  pCategory		text default null,
-  pStatus		integer default null,
+  pId           uuid,
+  pUserId       uuid default null,
+  pObject       uuid default null,
+  pText         text default null,
+  pCategory     text default null,
+  pStatus       integer default null,
   pData         jsonb default null
-) RETURNS		void
+) RETURNS       void
 AS $$
 BEGIN
   pUserId := coalesce(pUserId, current_userid());
@@ -79,14 +79,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetNotice (
-  pId			uuid,
-  pUserId		uuid default null,
-  pObject		uuid default null,
-  pText			text default null,
-  pCategory		text default null,
-  pStatus		integer default null,
+  pId           uuid,
+  pUserId       uuid default null,
+  pObject       uuid default null,
+  pText         text default null,
+  pCategory     text default null,
+  pStatus       integer default null,
   pData         jsonb default null
-) RETURNS		uuid
+) RETURNS       uuid
 AS $$
 BEGIN
   IF pId IS NULL THEN
@@ -110,7 +110,7 @@ $$ LANGUAGE plpgsql
  * @return {boolean}
  */
 CREATE OR REPLACE FUNCTION DeleteNotice (
-  pId			uuid
+  pId    		uuid
 ) RETURNS		boolean
 AS $$
 BEGIN

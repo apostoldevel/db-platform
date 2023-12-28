@@ -107,10 +107,10 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION GetJob (
   pCode     text
-) RETURNS	uuid
+) RETURNS   uuid
 AS $$
 DECLARE
-  uId		uuid;
+  uId       uuid;
 BEGIN
   SELECT id INTO uId FROM db.job WHERE code = pCode;
   RETURN uId;

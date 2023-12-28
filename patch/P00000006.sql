@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- FUNCTION ft_session_before --------------------------------------------------
+-- FUNCTION db.ft_session_before --------------------------------------------------
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION db.ft_session_before()
@@ -96,10 +96,10 @@ BEGIN
       NEW.area := GetDefaultArea(NEW.userid);
     END IF;
 
-	SELECT id INTO NEW.area FROM db.area WHERE id = NEW.area AND scope IN (SELECT GetOAuth2Scopes(NEW.oauth2));
-	IF NOT FOUND THEN
-	  SELECT id INTO NEW.area FROM db.area WHERE scope IN (SELECT GetOAuth2Scopes(NEW.oauth2)) AND type = GetAreaType('main');
-	END IF;
+    SELECT id INTO NEW.area FROM db.area WHERE id = NEW.area AND scope IN (SELECT GetOAuth2Scopes(NEW.oauth2));
+    IF NOT FOUND THEN
+      SELECT id INTO NEW.area FROM db.area WHERE scope IN (SELECT GetOAuth2Scopes(NEW.oauth2)) AND type = GetAreaType('main');
+    END IF;
 
     IF NOT IsMemberArea(NEW.area, NEW.userid) THEN
       NEW.area := GetArea('guest');
@@ -150,7 +150,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION db.ft_reference_before_insert()
 RETURNS trigger AS $$
 DECLARE
-  vCode		text;
+  vCode        text;
 BEGIN
   IF NEW.id IS NULL THEN
     SELECT NEW.object INTO NEW.id;

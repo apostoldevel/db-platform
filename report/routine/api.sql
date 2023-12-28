@@ -33,8 +33,8 @@ CREATE OR REPLACE FUNCTION api.add_report_routine (
   pReport       uuid,
   pCode         text,
   pName         text,
-  pDefinition	text,
-  pDescription	text DEFAULT null,
+  pDefinition   text,
+  pDescription  text DEFAULT null,
   pSequence     integer default null
 ) RETURNS       uuid
 AS $$
@@ -68,8 +68,8 @@ CREATE OR REPLACE FUNCTION api.update_report_routine (
   pReport       uuid default null,
   pCode         text default null,
   pName         text default null,
-  pDefinition	text default null,
-  pDescription	text default null,
+  pDefinition   text default null,
+  pDescription  text default null,
   pSequence     integer default null
 ) RETURNS       void
 AS $$
@@ -100,7 +100,7 @@ CREATE OR REPLACE FUNCTION api.set_report_routine (
   pCode         text default null,
   pName         text default null,
   pDefinition   text default null,
-  pDescription	text default null,
+  pDescription  text default null,
   pSequence     integer default null
 ) RETURNS       SETOF api.report_routine
 AS $$
@@ -126,8 +126,8 @@ $$ LANGUAGE plpgsql
  * @return {api.report_routine}
  */
 CREATE OR REPLACE FUNCTION api.get_report_routine (
-  pId		uuid
-) RETURNS	api.report_routine
+  pId        uuid
+) RETURNS    api.report_routine
 AS $$
   SELECT * FROM api.report_routine WHERE id = pId
 $$ LANGUAGE SQL
@@ -147,12 +147,12 @@ $$ LANGUAGE SQL
  * @return {SETOF api.report_routine}
  */
 CREATE OR REPLACE FUNCTION api.list_report_routine (
-  pSearch	jsonb default null,
-  pFilter	jsonb default null,
-  pLimit	integer default null,
-  pOffSet	integer default null,
-  pOrderBy	jsonb default null
-) RETURNS	SETOF api.report_routine
+  pSearch   jsonb default null,
+  pFilter   jsonb default null,
+  pLimit    integer default null,
+  pOffSet   integer default null,
+  pOrderBy  jsonb default null
+) RETURNS   SETOF api.report_routine
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'report_routine', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
@@ -173,7 +173,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.call_report_routine (
   pId       uuid,
   pForm     json
-) RETURNS	SETOF json
+) RETURNS   SETOF json
 AS $$
 BEGIN
   RETURN QUERY SELECT * FROM CallReportRoutine(pId, pForm);

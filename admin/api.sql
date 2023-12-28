@@ -102,7 +102,7 @@ $$ LANGUAGE plpgsql
  */
 CREATE OR REPLACE FUNCTION api.signout (
   pSession      varchar DEFAULT current_session(),
-  pCloseAll 	boolean DEFAULT false
+  pCloseAll     boolean DEFAULT false
 ) RETURNS       boolean
 AS $$
 BEGIN
@@ -128,15 +128,15 @@ $$ LANGUAGE plpgsql
  * @return {record}
  */
 CREATE OR REPLACE FUNCTION api.authenticate (
-  pSession			varchar,
-  pSecret			text,
-  pAgent			text DEFAULT null,
-  pHost       		inet DEFAULT null,
+  pSession          varchar,
+  pSecret           text,
+  pAgent            text DEFAULT null,
+  pHost             inet DEFAULT null,
   OUT authorized    boolean,
-  OUT userid		uuid,
-  OUT code			text,
-  OUT message		text
-) RETURNS			record
+  OUT userid        uuid,
+  OUT code          text,
+  OUT message       text
+) RETURNS           record
 AS $$
 BEGIN
   code := Authenticate(pSession, pSecret, pAgent, pHost);
@@ -166,7 +166,7 @@ CREATE OR REPLACE FUNCTION api.authorize (
   pAgent            text DEFAULT null,
   pHost             inet DEFAULT null,
   OUT authorized    boolean,
-  OUT userid		uuid,
+  OUT userid        uuid,
   OUT message       text
 ) RETURNS           record
 AS $$
@@ -309,7 +309,7 @@ GRANT SELECT ON api.session TO administrator;
 CREATE OR REPLACE FUNCTION api.session (
   pUserId       uuid DEFAULT null,
   pUsername     text DEFAULT null
-) RETURNS	    SETOF api.session
+) RETURNS       SETOF api.session
 AS $$
   SELECT *
     FROM api.session
@@ -330,8 +330,8 @@ $$ LANGUAGE SQL
  * @return {api.session}
  */
 CREATE OR REPLACE FUNCTION api.get_session (
-  pCode		varchar
-) RETURNS	SETOF api.session
+  pCode      varchar
+) RETURNS    SETOF api.session
 AS $$
   SELECT * FROM api.session WHERE code = pCode
 $$ LANGUAGE SQL
@@ -351,12 +351,12 @@ $$ LANGUAGE SQL
  * @return {SETOF api.session}
  */
 CREATE OR REPLACE FUNCTION api.list_session (
-  pSearch	jsonb default null,
-  pFilter	jsonb default null,
-  pLimit	integer default null,
-  pOffSet	integer default null,
-  pOrderBy	jsonb default null
-) RETURNS	SETOF api.session
+  pSearch   jsonb default null,
+  pFilter   jsonb default null,
+  pLimit    integer default null,
+  pOffSet   integer default null,
+  pOrderBy  jsonb default null
+) RETURNS   SETOF api.session
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'session', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
@@ -530,10 +530,10 @@ $$ LANGUAGE SQL
  * @return {SETOF api.user}
  */
 CREATE OR REPLACE FUNCTION api.list_user (
-  pSearch	jsonb DEFAULT null,
-  pFilter	jsonb DEFAULT null,
-  pLimit	integer DEFAULT null,
-  pOffSet	integer DEFAULT null,
+  pSearch   jsonb DEFAULT null,
+  pFilter   jsonb DEFAULT null,
+  pLimit    integer DEFAULT null,
+  pOffSet   integer DEFAULT null,
   pOrderBy	jsonb DEFAULT null
 ) RETURNS	SETOF api.user
 AS $$

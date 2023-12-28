@@ -35,7 +35,7 @@ CREATE OR REPLACE FUNCTION api.add_scheduler (
   pPeriod       interval default null,
   pDateStart    timestamptz default null,
   pDateStop     timestamptz default null,
-  pDescription	text default null
+  pDescription  text default null
 ) RETURNS       uuid
 AS $$
 BEGIN
@@ -61,7 +61,7 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_scheduler (
-  pId		    uuid,
+  pId           uuid,
   pParent       uuid default null,
   pType         uuid default null,
   pCode         text default null,
@@ -69,7 +69,7 @@ CREATE OR REPLACE FUNCTION api.update_scheduler (
   pPeriod       interval default null,
   pDateStart    timestamptz default null,
   pDateStop     timestamptz default null,
-  pDescription	text default null
+  pDescription  text default null
 ) RETURNS       void
 AS $$
 DECLARE
@@ -100,7 +100,7 @@ CREATE OR REPLACE FUNCTION api.set_scheduler (
   pPeriod       interval default null,
   pDateStart    timestamptz default null,
   pDateStop     timestamptz default null,
-  pDescription	text default null
+  pDescription  text default null
 ) RETURNS       SETOF api.scheduler
 AS $$
 BEGIN
@@ -125,8 +125,8 @@ $$ LANGUAGE plpgsql
  * @return {api.scheduler}
  */
 CREATE OR REPLACE FUNCTION api.get_scheduler (
-  pId		uuid
-) RETURNS	api.scheduler
+  pId        uuid
+) RETURNS    api.scheduler
 AS $$
   SELECT * FROM api.scheduler WHERE id = pId
 $$ LANGUAGE SQL
@@ -146,12 +146,12 @@ $$ LANGUAGE SQL
  * @return {SETOF api.scheduler}
  */
 CREATE OR REPLACE FUNCTION api.list_scheduler (
-  pSearch	jsonb default null,
-  pFilter	jsonb default null,
-  pLimit	integer default null,
-  pOffSet	integer default null,
-  pOrderBy	jsonb default null
-) RETURNS	SETOF api.scheduler
+  pSearch   jsonb default null,
+  pFilter   jsonb default null,
+  pLimit    integer default null,
+  pOffSet   integer default null,
+  pOrderBy  jsonb default null
+) RETURNS   SETOF api.scheduler
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'scheduler', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
@@ -169,8 +169,8 @@ $$ LANGUAGE plpgsql
  * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION api.get_scheduler_id (
-  pCode		text
-) RETURNS	uuid
+  pCode      text
+) RETURNS    uuid
 AS $$
 BEGIN
   IF length(pCode) = 36 AND SubStr(pCode, 15, 1) = '4' THEN

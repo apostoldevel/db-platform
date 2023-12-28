@@ -7,8 +7,8 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventInboxCreate (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'create', 'Входящее сообщение создано.', pObject);
@@ -20,8 +20,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventInboxOpen (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'open', 'Входящее сообщение открыто на просмотр.', pObject);
@@ -33,8 +33,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventInboxEdit (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'edit', 'Входящее сообщение изменёно.', pObject);
@@ -46,8 +46,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventInboxSave (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'save', 'Входящее сообщение сохранёно.', pObject);
@@ -59,8 +59,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventInboxEnable (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'enable', 'Входящее сообщение просмотрено.', pObject);
@@ -72,8 +72,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventInboxDisable (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'disable', 'Входящее сообщение прочитано.', pObject);
@@ -85,8 +85,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventInboxDelete (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'delete', 'Входящее сообщение удалёно.', pObject);
@@ -98,8 +98,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventInboxRestore (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'restore', 'Входящее сообщение восстановлено.', pObject);
@@ -111,11 +111,11 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventInboxDrop (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 DECLARE
-  r			record;
+  r          record;
 BEGIN
   SELECT label INTO r FROM db.object_text WHERE object = pObject AND locale = current_locale();
 

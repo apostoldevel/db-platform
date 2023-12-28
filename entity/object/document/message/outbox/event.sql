@@ -7,8 +7,8 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventOutboxCreate (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'create', 'Исходящее сообщение создано.', pObject);
@@ -20,8 +20,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventOutboxOpen (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'open', 'Исходящее сообщение открыто на просмотр.', pObject);
@@ -33,8 +33,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventOutboxEdit (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'edit', 'Исходящее сообщение изменёно.', pObject);
@@ -46,8 +46,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventOutboxSave (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'save', 'Исходящее сообщение сохранёно.', pObject);
@@ -59,8 +59,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventOutboxEnable (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'enable', 'Исходящее сообщение готово к отправке.', pObject);
@@ -72,8 +72,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventOutboxSubmit (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'submit', 'Исходящее сообщение передано на отправку.', pObject);
@@ -85,8 +85,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventOutboxSend (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'send', 'Исходящее сообщение отправляется.', pObject);
@@ -98,8 +98,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventOutboxCancel (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'cancel', 'Исходящее сообщение отменено.', pObject);
@@ -111,8 +111,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventOutboxDone (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'done', 'Исходящее сообщение отправено.', pObject);
@@ -124,8 +124,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventOutboxFail (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'fail', 'Сбой при отправке сообщения.', pObject);
@@ -137,8 +137,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventOutboxRepeat (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'repeat', 'Повторная отправка сообщения.', pObject);
@@ -150,8 +150,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventOutboxDisable (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'disable', 'Исходящее сообщение закрыто.', pObject);
@@ -163,8 +163,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventOutboxDelete (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'delete', 'Исходящее сообщение удалёно.', pObject);
@@ -176,8 +176,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventOutboxRestore (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'restore', 'Исходящее сообщение восстановлено.', pObject);
@@ -189,11 +189,11 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventOutboxDrop (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 DECLARE
-  r			record;
+  r          record;
 BEGIN
   SELECT label INTO r FROM db.object_text WHERE object = pObject AND locale = current_locale();
 

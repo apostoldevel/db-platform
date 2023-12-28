@@ -10,9 +10,9 @@ BEGIN
   END IF;
 
   IF OLD.suid <> NEW.suid THEN
-	IF current_username() <> 'admin' THEN
-	  PERFORM AccessDenied();
-	END IF;
+    IF current_username() <> 'admin' THEN
+      PERFORM AccessDenied();
+    END IF;
   END IF;
 
   IF NOT CheckObjectAccess(NEW.id, B'010') THEN
@@ -49,8 +49,8 @@ BEGIN
     IF NOT bSystem THEN
       DELETE FROM db.aou WHERE object = NEW.id AND userid = OLD.owner AND mask = B'111';
     END IF;
-	INSERT INTO db.aou SELECT NEW.id, NEW.owner, B'000', B'111'
-	  ON CONFLICT (object, userid) DO UPDATE SET deny = B'000', allow = B'111';
+    INSERT INTO db.aou SELECT NEW.id, NEW.owner, B'000', B'111'
+      ON CONFLICT (object, userid) DO UPDATE SET deny = B'000', allow = B'111';
   END IF;
 
   NEW.oper := current_userid();
@@ -91,6 +91,6 @@ ALTER TABLE db.profile DROP CONSTRAINT profile_pkey;
 ALTER TABLE db.profile ADD CONSTRAINT profile_pkey PRIMARY KEY (userid, scope);
 
 ALTER TABLE db.profile
-	ALTER COLUMN scope SET NOT NULL;
+    ALTER COLUMN scope SET NOT NULL;
 
 COMMENT ON COLUMN db.profile.scope IS 'Область видимости базы данных';

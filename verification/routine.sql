@@ -5,14 +5,14 @@
 CREATE OR REPLACE FUNCTION AddVerificationCode (
   pUserId       uuid,
   pType         char,
-  pCode		    text,
+  pCode         text,
   pDateFrom     timestamptz DEFAULT Now(),
   pDateTo       timestamptz DEFAULT null
 ) RETURNS       uuid
 AS $$
 DECLARE
   uId           uuid;
-  dtDateFrom 	timestamptz;
+  dtDateFrom    timestamptz;
   dtDateTo      timestamptz;
 BEGIN
   -- получим дату значения в текущем диапозоне дат
@@ -56,7 +56,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION NewVerificationCode (
   pUserId       uuid,
   pType         char DEFAULT 'M',
-  pCode		    text DEFAULT null
+  pCode         text DEFAULT null
 ) RETURNS       uuid
 AS $$
 BEGIN
@@ -81,7 +81,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION GetVerificationCode (
   pId           uuid
-) RETURNS 	    text
+) RETURNS       text
 AS $$
   SELECT code FROM db.verification_code WHERE id = pId;
 $$ LANGUAGE sql
@@ -94,12 +94,12 @@ $$ LANGUAGE sql
 
 CREATE OR REPLACE FUNCTION CheckVerificationCode (
   pType         text,
-  pCode		    text
+  pCode         text
 ) RETURNS       uuid
 AS $$
 DECLARE
-  uId			uuid;
-  uUserId		uuid;
+  uId           uuid;
+  uUserId       uuid;
   utilized      bool;
 BEGIN
   SELECT id, userid, used IS NOT NULL INTO uId, uUserId, utilized
@@ -133,7 +133,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION ConfirmVerificationCode (
   pType         text,
-  pCode		    text
+  pCode         text
 ) RETURNS       uuid
 AS $$
 DECLARE

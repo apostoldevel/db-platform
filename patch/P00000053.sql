@@ -23,7 +23,7 @@ ALTER TABLE db.object_file
 --
 
 CREATE OR REPLACE FUNCTION tmp_file (
-) RETURNS	void
+) RETURNS    void
 AS $$
 DECLARE
   r         record;

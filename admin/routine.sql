@@ -7,8 +7,8 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetAreaType (
-  pCode		text
-) RETURNS 	uuid
+  pCode       text
+) RETURNS     uuid
 AS $$
   SELECT id FROM db.area_type WHERE code = pCode;
 $$ LANGUAGE sql STABLE STRICT
@@ -46,18 +46,18 @@ $$ LANGUAGE sql STABLE STRICT
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateProfile (
-  pUserId       	uuid,
+  pUserId           uuid,
   pScope            uuid,
-  pFamilyName		text,
-  pGivenName		text,
-  pPatronymicName	text,
-  pLocale			uuid,
-  pArea				uuid,
-  pInterface		uuid,
-  pEmailVerified	bool,
-  pPhoneVerified	bool,
-  pPicture			text
-) RETURNS 	    	void
+  pFamilyName        text,
+  pGivenName        text,
+  pPatronymicName    text,
+  pLocale            uuid,
+  pArea                uuid,
+  pInterface        uuid,
+  pEmailVerified    bool,
+  pPhoneVerified    bool,
+  pPicture            text
+) RETURNS             void
 AS $$
 BEGIN
   INSERT INTO db.profile (userid, scope, family_name, given_name, patronymic_name, locale, area, interface, email_verified, phone_verified, picture)
@@ -72,30 +72,30 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION UpdateProfile (
-  pUserId       	uuid,
+  pUserId           uuid,
   pScope            uuid,
-  pFamilyName		text DEFAULT null,
-  pGivenName		text DEFAULT null,
-  pPatronymicName	text DEFAULT null,
-  pLocale			uuid DEFAULT null,
-  pArea				uuid DEFAULT null,
-  pInterface		uuid DEFAULT null,
-  pEmailVerified	bool DEFAULT null,
-  pPhoneVerified	bool DEFAULT null,
-  pPicture			text DEFAULT null
-) RETURNS 	    	boolean
+  pFamilyName        text DEFAULT null,
+  pGivenName        text DEFAULT null,
+  pPatronymicName    text DEFAULT null,
+  pLocale            uuid DEFAULT null,
+  pArea                uuid DEFAULT null,
+  pInterface        uuid DEFAULT null,
+  pEmailVerified    bool DEFAULT null,
+  pPhoneVerified    bool DEFAULT null,
+  pPicture            text DEFAULT null
+) RETURNS             boolean
 AS $$
 BEGIN
   UPDATE db.profile
-	 SET family_name = coalesce(pFamilyName, family_name),
-	     given_name = coalesce(pGivenName, given_name),
-	     patronymic_name = coalesce(pPatronymicName, patronymic_name),
-	     locale = coalesce(pLocale, locale),
-		 area = coalesce(pArea, area),
-		 interface = coalesce(pInterface, interface),
-		 email_verified = coalesce(pEmailVerified, email_verified),
-		 phone_verified = coalesce(pPhoneVerified, phone_verified),
-		 picture = coalesce(pPicture, picture)
+     SET family_name = coalesce(pFamilyName, family_name),
+         given_name = coalesce(pGivenName, given_name),
+         patronymic_name = coalesce(pPatronymicName, patronymic_name),
+         locale = coalesce(pLocale, locale),
+         area = coalesce(pArea, area),
+         interface = coalesce(pInterface, interface),
+         email_verified = coalesce(pEmailVerified, email_verified),
+         phone_verified = coalesce(pPhoneVerified, phone_verified),
+         picture = coalesce(pPicture, picture)
    WHERE userid = pUserId AND scope = pScope;
 
   RETURN FOUND;
@@ -127,24 +127,24 @@ DECLARE
 BEGIN
   FOR r IN SELECT GetOAuth2Scopes(pOAuth2) AS id
   LOOP
-	SELECT scope INTO uScope FROM db.profile WHERE userid = pUserId AND scope = r.id;
-	EXIT WHEN uScope IS NOT NULL;
+    SELECT scope INTO uScope FROM db.profile WHERE userid = pUserId AND scope = r.id;
+    EXIT WHEN uScope IS NOT NULL;
   END LOOP;
 
   IF uScope IS NULL THEN
-	uScope := r.id;
-	uLocale := GetLocale(locale_code());
+    uScope := r.id;
+    uLocale := GetLocale(locale_code());
 
-	IF IsUserRole('00000000-0000-4000-a000-000000000001'::uuid, pUserId) THEN -- administrator
-	  arTypes := ARRAY['00000000-0000-4002-a001-000000000001'::uuid, '00000000-0000-4002-a001-000000000002'::uuid, '00000000-0000-4002-a001-000000000003'::uuid, '00000000-0000-4002-a001-000000000000'::uuid, '00000000-0000-4002-a000-000000000002'::uuid];
-	  uInterface := '00000000-0000-4004-a000-000000000001'::uuid; -- administrator
-	ELSE
-	  arTypes := ARRAY['00000000-0000-4002-a000-000000000002'::uuid]; -- guest
-	  uInterface := '00000000-0000-4004-a000-000000000003'::uuid; -- guest
-	END IF;
+    IF IsUserRole('00000000-0000-4000-a000-000000000001'::uuid, pUserId) THEN -- administrator
+      arTypes := ARRAY['00000000-0000-4002-a001-000000000001'::uuid, '00000000-0000-4002-a001-000000000002'::uuid, '00000000-0000-4002-a001-000000000003'::uuid, '00000000-0000-4002-a001-000000000000'::uuid, '00000000-0000-4002-a000-000000000002'::uuid];
+      uInterface := '00000000-0000-4004-a000-000000000001'::uuid; -- administrator
+    ELSE
+      arTypes := ARRAY['00000000-0000-4002-a000-000000000002'::uuid]; -- guest
+      uInterface := '00000000-0000-4004-a000-000000000003'::uuid; -- guest
+    END IF;
 
-	FOR e IN SELECT unnest(arTypes) AS type
-	LOOP
+    FOR e IN SELECT unnest(arTypes) AS type
+    LOOP
 	  SELECT id INTO uArea FROM db.area WHERE type = e.type AND scope = uScope;
 	  EXIT WHEN uArea IS NOT NULL;
 	END LOOP;

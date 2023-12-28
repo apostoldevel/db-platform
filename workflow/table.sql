@@ -3,8 +3,8 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.entity (
-    id			uuid PRIMARY KEY DEFAULT gen_kernel_uuid('b'),
-    code		text NOT NULL
+    id          uuid PRIMARY KEY DEFAULT gen_kernel_uuid('b'),
+    code        text NOT NULL
 );
 
 COMMENT ON TABLE db.entity IS 'Сущность.';
@@ -44,11 +44,11 @@ CREATE INDEX ON db.entity_text (locale);
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.class_tree (
-    id			uuid PRIMARY KEY DEFAULT gen_kernel_uuid('b'),
-    parent		uuid REFERENCES db.class_tree(id),
-    entity		uuid NOT NULL REFERENCES db.entity(id),
-    level		integer NOT NULL,
-    code		text NOT NULL,
+    id          uuid PRIMARY KEY DEFAULT gen_kernel_uuid('b'),
+    parent      uuid REFERENCES db.class_tree(id),
+    entity      uuid NOT NULL REFERENCES db.entity(id),
+    level       integer NOT NULL,
+    code        text NOT NULL,
     abstract    boolean DEFAULT TRUE NOT NULL
 );
 
@@ -94,7 +94,7 @@ CREATE INDEX ON db.class_text (locale);
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION ft_class_tree_after_insert()
+CREATE OR REPLACE FUNCTION db.ft_class_tree_after_insert()
 RETURNS trigger AS $$
 BEGIN
   IF NEW.parent IS NULL THEN
@@ -125,11 +125,11 @@ $$ LANGUAGE plpgsql
 CREATE TRIGGER t_class_tree_insert
   AFTER INSERT ON db.class_tree
   FOR EACH ROW
-  EXECUTE PROCEDURE ft_class_tree_after_insert();
+  EXECUTE PROCEDURE db.ft_class_tree_after_insert();
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION ft_class_tree_before_delete()
+CREATE OR REPLACE FUNCTION db.ft_class_tree_before_delete()
 RETURNS trigger AS $$
 BEGIN
   DELETE FROM db.acu WHERE class = OLD.ID;
@@ -145,18 +145,18 @@ $$ LANGUAGE plpgsql
 CREATE TRIGGER t_class_tree_before_delete
   BEFORE DELETE ON db.class_tree
   FOR EACH ROW
-  EXECUTE PROCEDURE ft_class_tree_before_delete();
+  EXECUTE PROCEDURE db.ft_class_tree_before_delete();
 
 --------------------------------------------------------------------------------
 -- TABLE db.acu ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.acu (
-    class		uuid NOT NULL REFERENCES db.class_tree(id) ON DELETE CASCADE,
-    userid		uuid NOT NULL REFERENCES db.user(id) ON DELETE CASCADE,
-    deny		bit(5) NOT NULL,
-    allow		bit(5) NOT NULL,
-    mask		bit(5) DEFAULT B'00000' NOT NULL,
+    class       uuid NOT NULL REFERENCES db.class_tree(id) ON DELETE CASCADE,
+    userid      uuid NOT NULL REFERENCES db.user(id) ON DELETE CASCADE,
+    deny        bit(5) NOT NULL,
+    allow       bit(5) NOT NULL,
+    mask        bit(5) DEFAULT B'00000' NOT NULL,
     PRIMARY KEY (class, userid)
 );
 
@@ -173,7 +173,7 @@ CREATE INDEX ON db.acu (userid);
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION ft_acu_before()
+CREATE OR REPLACE FUNCTION db.ft_acu_before()
 RETURNS TRIGGER AS $$
 BEGIN
   IF (TG_OP = 'INSERT') THEN
@@ -191,15 +191,15 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER t_acu_before
   BEFORE INSERT OR UPDATE ON db.acu
   FOR EACH ROW
-  EXECUTE PROCEDURE ft_acu_before();
+  EXECUTE PROCEDURE db.ft_acu_before();
 
 --------------------------------------------------------------------------------
 -- TYPE ------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.type (
-    id			uuid PRIMARY KEY DEFAULT gen_kernel_uuid('b'),
-    class		uuid NOT NULL REFERENCES db.class_tree(id),
+    id          uuid PRIMARY KEY DEFAULT gen_kernel_uuid('b'),
+    class       uuid NOT NULL REFERENCES db.class_tree(id),
     code        text NOT NULL
 );
 
@@ -244,8 +244,8 @@ CREATE INDEX ON db.type_text (locale);
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.state_type (
-    id			uuid PRIMARY KEY,
-    code		text NOT NULL
+    id          uuid PRIMARY KEY,
+    code        text NOT NULL
 );
 
 COMMENT ON TABLE db.state_type IS 'Тип состояния объекта.';
@@ -286,11 +286,11 @@ CREATE INDEX ON db.state_type_text (locale);
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.state (
-    id			uuid PRIMARY KEY DEFAULT gen_kernel_uuid('b'),
-    class		uuid NOT NULL REFERENCES db.class_tree(id),
-    type		uuid NOT NULL REFERENCES db.state_type(id),
-    code		text NOT NULL,
-    sequence	integer NOT NULL
+    id          uuid PRIMARY KEY DEFAULT gen_kernel_uuid('b'),
+    class       uuid NOT NULL REFERENCES db.class_tree(id),
+    type        uuid NOT NULL REFERENCES db.state_type(id),
+    code        text NOT NULL,
+    sequence    integer NOT NULL
 );
 
 COMMENT ON TABLE db.state IS 'Состояние объекта.';
@@ -336,8 +336,8 @@ CREATE INDEX ON db.state_text (locale);
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.action (
-    id			uuid PRIMARY KEY DEFAULT gen_kernel_uuid('b'),
-    code		text NOT NULL
+    id          uuid PRIMARY KEY DEFAULT gen_kernel_uuid('b'),
+    code        text NOT NULL
 );
 
 COMMENT ON TABLE db.action IS 'Действие.';
@@ -378,14 +378,14 @@ CREATE INDEX ON db.action_text (locale);
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.method (
-    id			uuid PRIMARY KEY DEFAULT gen_kernel_uuid('b'),
-    parent		uuid REFERENCES db.method(id),
-    class		uuid NOT NULL REFERENCES db.class_tree(id),
-    state		uuid REFERENCES db.state(id),
-    action		uuid NOT NULL REFERENCES db.action(id),
-    code		text NOT NULL,
+    id          uuid PRIMARY KEY DEFAULT gen_kernel_uuid('b'),
+    parent      uuid REFERENCES db.method(id),
+    class       uuid NOT NULL REFERENCES db.class_tree(id),
+    state       uuid REFERENCES db.state(id),
+    action      uuid NOT NULL REFERENCES db.action(id),
+    code        text NOT NULL,
     sequence    integer NOT NULL,
-    visible		boolean DEFAULT true
+    visible     boolean DEFAULT true
 );
 
 COMMENT ON TABLE db.method IS 'Методы класса.';
@@ -457,15 +457,15 @@ CREATE TRIGGER t_method_before_insert
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION ft_method_after_insert()
+CREATE OR REPLACE FUNCTION db.ft_method_after_insert()
 RETURNS trigger AS $$
 DECLARE
-  bAllow	bit(3);
+  bAllow    bit(3);
 BEGIN
   IF NEW.visible THEN
-	bAllow := B'111';
+    bAllow := B'111';
   ELSE
-	bAllow := B'101';
+    bAllow := B'101';
   END IF;
 
   INSERT INTO db.amu SELECT NEW.id, userid, B'000', bAllow FROM db.acu WHERE class = NEW.class;
@@ -481,7 +481,7 @@ $$ LANGUAGE plpgsql
 CREATE TRIGGER t_method_after_insert
   AFTER INSERT ON db.method
   FOR EACH ROW
-  EXECUTE PROCEDURE ft_method_after_insert();
+  EXECUTE PROCEDURE db.ft_method_after_insert();
 
 --------------------------------------------------------------------------------
 
@@ -509,11 +509,11 @@ CREATE TRIGGER t_method_before_delete
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.amu (
-    method		uuid NOT NULL REFERENCES db.method(id) ON DELETE CASCADE,
-    userid		uuid NOT NULL REFERENCES db.user(id) ON DELETE CASCADE,
-    deny		bit(3) NOT NULL,
-    allow		bit(3) NOT NULL,
-    mask		bit(3) DEFAULT B'000' NOT NULL,
+    method      uuid NOT NULL REFERENCES db.method(id) ON DELETE CASCADE,
+    userid      uuid NOT NULL REFERENCES db.user(id) ON DELETE CASCADE,
+    deny        bit(3) NOT NULL,
+    allow       bit(3) NOT NULL,
+    mask        bit(3) DEFAULT B'000' NOT NULL,
     PRIMARY KEY (method, userid)
 );
 
@@ -530,7 +530,7 @@ CREATE INDEX ON db.amu (userid);
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION ft_amu_before()
+CREATE OR REPLACE FUNCTION db.ft_amu_before()
 RETURNS TRIGGER AS $$
 BEGIN
   IF (TG_OP = 'INSERT') THEN
@@ -546,16 +546,16 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER t_amu_before
   BEFORE INSERT OR UPDATE ON db.amu
   FOR EACH ROW
-  EXECUTE PROCEDURE ft_amu_before();
+  EXECUTE PROCEDURE db.ft_amu_before();
 
 --------------------------------------------------------------------------------
 -- db.transition ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.transition (
-    id			uuid PRIMARY KEY DEFAULT gen_kernel_uuid('b'),
-    state		uuid REFERENCES db.state(id),
-    method		uuid NOT NULL UNIQUE REFERENCES db.method(id),
+    id          uuid PRIMARY KEY DEFAULT gen_kernel_uuid('b'),
+    state       uuid REFERENCES db.state(id),
+    method      uuid NOT NULL UNIQUE REFERENCES db.method(id),
     newState    uuid NOT NULL REFERENCES db.state(id)
 );
 
@@ -574,8 +574,8 @@ CREATE INDEX ON db.transition (method);
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.event_type (
-    id			uuid PRIMARY KEY,
-    code		text NOT NULL
+    id          uuid PRIMARY KEY,
+    code        text NOT NULL
 );
 
 COMMENT ON TABLE db.event_type IS 'Тип события.';
@@ -616,13 +616,13 @@ CREATE INDEX ON db.event_type_text (locale);
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.event (
-    id			uuid PRIMARY KEY DEFAULT gen_kernel_uuid('b'),
-    class		uuid NOT NULL REFERENCES db.class_tree(id),
-    type		uuid NOT NULL REFERENCES db.event_type(id),
-    action		uuid NOT NULL REFERENCES db.action(id),
-    text		text,
-    sequence	integer NOT NULL,
-    enabled		boolean DEFAULT TRUE NOT NULL
+    id          uuid PRIMARY KEY DEFAULT gen_kernel_uuid('b'),
+    class       uuid NOT NULL REFERENCES db.class_tree(id),
+    type        uuid NOT NULL REFERENCES db.event_type(id),
+    action      uuid NOT NULL REFERENCES db.action(id),
+    text        text,
+    sequence    integer NOT NULL,
+    enabled     boolean DEFAULT TRUE NOT NULL
 );
 
 COMMENT ON TABLE db.event IS 'Событие.';
@@ -668,8 +668,8 @@ CREATE INDEX ON db.event_text (locale);
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.priority (
-    id			uuid PRIMARY KEY DEFAULT gen_kernel_uuid('b'),
-    code		text NOT NULL
+    id          uuid PRIMARY KEY DEFAULT gen_kernel_uuid('b'),
+    code        text NOT NULL
 );
 
 COMMENT ON TABLE db.priority IS 'Приоритет.';

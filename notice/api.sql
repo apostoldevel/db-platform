@@ -17,7 +17,7 @@ GRANT SELECT ON api.notice TO administrator;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.notice (
-) RETURNS		SETOF api.notice
+) RETURNS        SETOF api.notice
 AS $$
   SELECT * FROM api.notice
 $$ LANGUAGE SQL
@@ -29,8 +29,8 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.notice (
-  pCategory		text
-) RETURNS		SETOF api.notice
+  pCategory      text
+) RETURNS        SETOF api.notice
 AS $$
   SELECT * FROM api.notice WHERE category = pCategory;
 $$ LANGUAGE SQL
@@ -51,13 +51,13 @@ $$ LANGUAGE SQL
  * @return {uuid} - Идентификатор извещения
  */
 CREATE OR REPLACE FUNCTION api.add_notice (
-  pUserId		uuid,
-  pObject		uuid,
-  pText			text,
-  pCategory		text default null,
-  pStatus		integer default null,
-  pData         jsonb default null
-) RETURNS		uuid
+  pUserId        uuid,
+  pObject        uuid,
+  pText          text,
+  pCategory      text default null,
+  pStatus        integer default null,
+  pData          jsonb default null
+) RETURNS        uuid
 AS $$
 BEGIN
   RETURN CreateNotice(pUserId, pObject, pText, pCategory, pStatus, pData);
@@ -81,14 +81,14 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_notice (
-  pId			uuid,
-  pUserId		uuid default null,
-  pObject		uuid default null,
-  pText			text default null,
-  pCategory		text default null,
-  pStatus		integer default null,
-  pData         jsonb default null
-) RETURNS		void
+  pId            uuid,
+  pUserId        uuid default null,
+  pObject        uuid default null,
+  pText          text default null,
+  pCategory      text default null,
+  pStatus        integer default null,
+  pData          jsonb default null
+) RETURNS        void
 AS $$
 BEGIN
   PERFORM EditNotice(pId, pUserId, pObject, pText, pCategory, pStatus, pData);
@@ -102,14 +102,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.set_notice (
-  pId			uuid,
-  pUserId		uuid default null,
-  pObject		uuid default null,
-  pText			text default null,
-  pCategory		text default null,
-  pStatus		integer default null,
-  pData         jsonb default null
-) RETURNS		SETOF api.notice
+  pId            uuid,
+  pUserId        uuid default null,
+  pObject        uuid default null,
+  pText          text default null,
+  pCategory      text default null,
+  pStatus        integer default null,
+  pData          jsonb default null
+) RETURNS        SETOF api.notice
 AS $$
 BEGIN
   pId := SetNotice(pId, pUserId, pObject, pText, pCategory, pStatus, pData);
@@ -128,8 +128,8 @@ $$ LANGUAGE plpgsql
  * @return {api.notice}
  */
 CREATE OR REPLACE FUNCTION api.get_notice (
-  pId		uuid
-) RETURNS	SETOF api.notice
+  pId        uuid
+) RETURNS    SETOF api.notice
 AS $$
   SELECT * FROM api.notice WHERE id = pId
 $$ LANGUAGE SQL
@@ -141,7 +141,7 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.delete_notice (
-  pId			uuid
+  pId        	uuid
 ) RETURNS		boolean
 AS $$
 BEGIN

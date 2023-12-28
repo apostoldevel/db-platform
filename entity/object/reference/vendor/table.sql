@@ -7,8 +7,8 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.vendor (
-    id			    uuid PRIMARY KEY,
-    reference		uuid NOT NULL REFERENCES db.reference(id) ON DELETE CASCADE
+    id               uuid PRIMARY KEY,
+    reference        uuid NOT NULL REFERENCES db.reference(id) ON DELETE CASCADE
 );
 
 COMMENT ON TABLE db.vendor IS 'Производитель (поставщик).';
@@ -20,7 +20,7 @@ CREATE INDEX ON db.vendor (reference);
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION ft_vendor_insert()
+CREATE OR REPLACE FUNCTION db.ft_vendor_insert()
 RETURNS trigger AS $$
 DECLARE
 BEGIN
@@ -39,4 +39,4 @@ $$ LANGUAGE plpgsql
 CREATE TRIGGER t_vendor_insert
   BEFORE INSERT ON db.vendor
   FOR EACH ROW
-  EXECUTE PROCEDURE ft_vendor_insert();
+  EXECUTE PROCEDURE db.ft_vendor_insert();

@@ -7,8 +7,8 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.version (
-    id			    uuid PRIMARY KEY,
-    reference		uuid NOT NULL REFERENCES db.reference(id) ON DELETE CASCADE
+    id               uuid PRIMARY KEY,
+    reference        uuid NOT NULL REFERENCES db.reference(id) ON DELETE CASCADE
 );
 
 COMMENT ON TABLE db.version IS 'Версия.';
@@ -20,7 +20,7 @@ CREATE INDEX ON db.version (reference);
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION ft_version_insert()
+CREATE OR REPLACE FUNCTION db.ft_version_insert()
 RETURNS trigger AS $$
 DECLARE
 BEGIN
@@ -39,4 +39,4 @@ $$ LANGUAGE plpgsql
 CREATE TRIGGER t_version_insert
   BEFORE INSERT ON db.version
   FOR EACH ROW
-  EXECUTE PROCEDURE ft_version_insert();
+  EXECUTE PROCEDURE db.ft_version_insert();

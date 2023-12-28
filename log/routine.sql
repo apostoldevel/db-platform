@@ -3,16 +3,16 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddEventLog (
-  pType		char,
-  pCode		integer,
-  pEvent	text,
-  pText		text,
+  pType     char,
+  pCode     integer,
+  pEvent    text,
+  pText     text,
   pCategory text DEFAULT null,
   pObject   uuid DEFAULT null
-) RETURNS	bigint
+) RETURNS   bigint
 AS $$
 DECLARE
-  nId		bigint;
+  nId       bigint;
 BEGIN
   INSERT INTO db.log (type, code, event, text, category, object)
   VALUES (pType, pCode, pEvent, pText, pCategory, pObject)
@@ -28,16 +28,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION NewEventLog (
-  pType		char,
-  pCode		integer,
-  pEvent	text,
-  pText		text,
+  pType     char,
+  pCode     integer,
+  pEvent    text,
+  pText     text,
   pCategory text DEFAULT null,
   pObject   uuid DEFAULT null
-) RETURNS	void
+) RETURNS   void
 AS $$
 DECLARE
-  nId		bigint;
+  nId        bigint;
 BEGIN
   nId := AddEventLog(pType, pCode, pEvent, pText, pCategory, pObject);
 END;
@@ -50,12 +50,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION WriteToEventLog (
-  pType		char,
-  pCode		integer,
-  pEvent	text,
-  pText		text,
+  pType     char,
+  pCode     integer,
+  pEvent    text,
+  pText     text,
   pObject   uuid DEFAULT null
-) RETURNS	void
+) RETURNS   void
 AS $$
 DECLARE
   vCategory text;
@@ -86,11 +86,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION WriteToEventLog (
-  pType		char,
-  pCode		integer,
-  pText		text,
+  pType     char,
+  pCode     integer,
+  pText     text,
   pObject   uuid DEFAULT null
-) RETURNS	void
+) RETURNS   void
 AS $$
 BEGIN
   PERFORM WriteToEventLog(pType, pCode, 'log', pText, pObject);
@@ -104,8 +104,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DeleteEventLog (
-  pId		bigint
-) RETURNS	void
+  pId       bigint
+) RETURNS   void
 AS $$
 BEGIN
   DELETE FROM db.log WHERE id = pId;

@@ -10,7 +10,7 @@ CREATE OR REPLACE FUNCTION CreateReport (
   pBinding      uuid,
   pCode         text,
   pName         text default null,
-  pDescription	text default null,
+  pDescription  text default null,
   pInfo         jsonb default null
 ) RETURNS       uuid
 AS $$
@@ -52,7 +52,7 @@ CREATE OR REPLACE FUNCTION EditReport (
   pBinding      uuid default null,
   pCode         text default null,
   pName         text default null,
-  pDescription	text default null,
+  pDescription  text default null,
   pInfo         jsonb default null
 ) RETURNS       void
 AS $$
@@ -83,8 +83,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetReport (
-  pCode		text
-) RETURNS	uuid
+  pCode      text
+) RETURNS    uuid
 AS $$
 BEGIN
   RETURN GetReference(pCode, 'report');
@@ -105,7 +105,7 @@ CREATE OR REPLACE FUNCTION InitReport (
   pName         text,
   pDescription  text
 )
-RETURNS     	uuid
+RETURNS         uuid
 AS $$
 DECLARE
   uForm         uuid;
@@ -134,7 +134,7 @@ CREATE OR REPLACE FUNCTION InitObjectReport (
   pName         text,
   pDescription  text
 )
-RETURNS     	uuid
+RETURNS         uuid
 AS $$
 DECLARE
   uReport       uuid;
@@ -156,7 +156,7 @@ CREATE OR REPLACE FUNCTION BuildReport (
   pReport   uuid,
   pType     uuid default null,
   pForm     jsonb default null
-) RETURNS	uuid
+) RETURNS   uuid
 AS $$
 DECLARE
   r         record;
@@ -179,27 +179,27 @@ CREATE OR REPLACE FUNCTION GetForReportDocumentJson (
   pEntity   uuid,
   pClasses  uuid[] DEFAULT null,
   pLimit    integer DEFAULT 500
-) RETURNS	json
+) RETURNS   json
 AS $$
 DECLARE
-  r			record;
-  arResult	json[];
+  r         record;
+  arResult  json[];
 BEGIN
   IF pClasses IS NULL THEN
-	FOR r IN
-	  SELECT id AS value, label
-		FROM ObjectDocument
-	   WHERE entity = pEntity
+    FOR r IN
+      SELECT id AS value, label
+        FROM ObjectDocument
+       WHERE entity = pEntity
          AND statetype = '00000000-0000-4000-b001-000000000002'::uuid
-	   ORDER BY label
-	   LIMIT pLimit
-	LOOP
-	  arResult := array_append(arResult, row_to_json(r));
-	END LOOP;
+       ORDER BY label
+       LIMIT pLimit
+    LOOP
+      arResult := array_append(arResult, row_to_json(r));
+    END LOOP;
   ELSE
-	FOR r IN
-	  SELECT id AS value, label
-		FROM ObjectDocument
+    FOR r IN
+      SELECT id AS value, label
+    	FROM ObjectDocument
 	   WHERE entity = pEntity
 	     AND class IN (SELECT unnest(pClasses))
          AND statetype = '00000000-0000-4000-b001-000000000002'::uuid

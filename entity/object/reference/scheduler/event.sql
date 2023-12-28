@@ -7,8 +7,8 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventSchedulerCreate (
-  pObject	uuid DEFAULT context_object()
-) RETURNS	void
+  pObject    uuid DEFAULT context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'create', 'Планировщик создан.', pObject);
@@ -20,8 +20,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventSchedulerOpen (
-  pObject	uuid DEFAULT context_object()
-) RETURNS	void
+  pObject    uuid DEFAULT context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'open', 'Планировщик открыт.', pObject);
@@ -33,8 +33,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventSchedulerEdit (
-  pObject	uuid DEFAULT context_object()
-) RETURNS	void
+  pObject    uuid DEFAULT context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'edit', 'Планировщик изменён.', pObject);
@@ -46,8 +46,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventSchedulerSave (
-  pObject	uuid DEFAULT context_object()
-) RETURNS	void
+  pObject    uuid DEFAULT context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'save', 'Планировщик сохранён.', pObject);
@@ -59,8 +59,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventSchedulerEnable (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'enable', 'Планировщик включен.', pObject);
@@ -72,8 +72,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventSchedulerDisable (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'disable', 'Планировщик выключен.', pObject);
@@ -85,8 +85,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventSchedulerDelete (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'delete', 'Планировщик удалён.', pObject);
@@ -98,8 +98,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventSchedulerRestore (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'restore', 'Планировщик восстановлен.', pObject);
@@ -111,8 +111,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventSchedulerDrop (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 DECLARE
   r         record;

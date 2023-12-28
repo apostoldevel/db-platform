@@ -7,9 +7,9 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.report_form (
-    id			uuid PRIMARY KEY,
-    reference	uuid NOT NULL REFERENCES db.reference(id) ON DELETE CASCADE,
-    definition	text
+    id           uuid PRIMARY KEY,
+    reference    uuid NOT NULL REFERENCES db.reference(id) ON DELETE CASCADE,
+    definition   text
 );
 
 COMMENT ON TABLE db.report_form IS 'Форма.';
@@ -22,7 +22,7 @@ CREATE INDEX ON db.report_form (reference);
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION ft_report_form_insert()
+CREATE OR REPLACE FUNCTION db.ft_report_form_insert()
 RETURNS trigger AS $$
 DECLARE
 BEGIN
@@ -41,4 +41,4 @@ $$ LANGUAGE plpgsql
 CREATE TRIGGER t_report_form_insert
   BEFORE INSERT ON db.report_form
   FOR EACH ROW
-  EXECUTE PROCEDURE ft_report_form_insert();
+  EXECUTE PROCEDURE db.ft_report_form_insert();

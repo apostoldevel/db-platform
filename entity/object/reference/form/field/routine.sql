@@ -3,14 +3,14 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetFormFieldSequence (
-  pForm		uuid,
-  pKey		text,
-  pSequence	integer,
-  pDelta	integer
-) RETURNS 	void
+  pForm     uuid,
+  pKey      text,
+  pSequence integer,
+  pDelta    integer
+) RETURNS   void
 AS $$
 DECLARE
-  vKey		text;
+  vKey      text;
 BEGIN
   IF pDelta <> 0 THEN
     SELECT key INTO vKey
@@ -179,8 +179,8 @@ CREATE OR REPLACE FUNCTION GetFormFieldJson (
 ) RETURNS   json
 AS $$
 DECLARE
-  r			record;
-  arResult	json[];
+  r            record;
+  arResult    json[];
 BEGIN
   FOR r IN
     SELECT *

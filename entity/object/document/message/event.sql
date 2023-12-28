@@ -7,8 +7,8 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventMessageCreate (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'create', 'Сообщение создано.', pObject);
@@ -20,8 +20,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventMessageOpen (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'open', 'Сообщение открыто на просмотр.', pObject);
@@ -33,8 +33,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventMessageEdit (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'edit', 'Сообщение изменёно.', pObject);
@@ -46,8 +46,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventMessageSave (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'save', 'Сообщение сохранёно.', pObject);
@@ -59,8 +59,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventMessageEnable (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'enable', 'Сообщение открыто.', pObject);
@@ -72,8 +72,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventMessageDisable (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'disable', 'Сообщение закрыто.', pObject);
@@ -85,8 +85,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventMessageDelete (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'delete', 'Сообщение удалёно.', pObject);
@@ -98,8 +98,8 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventMessageRestore (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 1000, 'restore', 'Сообщение восстановлено.', pObject);
@@ -111,11 +111,11 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventMessageDrop (
-  pObject	uuid default context_object()
-) RETURNS	void
+  pObject    uuid default context_object()
+) RETURNS    void
 AS $$
 DECLARE
-  r			record;
+  r          record;
 BEGIN
   SELECT label INTO r FROM db.object_text WHERE object = pObject AND locale = current_locale();
 
@@ -131,62 +131,62 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventMessageConfirmEmail (
-  pObject		uuid default context_object(),
-  pParams		jsonb default context_params()
-) RETURNS		void
+  pObject        uuid default context_object(),
+  pParams        jsonb default context_params()
+) RETURNS        void
 AS $$
 DECLARE
   uUserId       uuid;
-  vCode			text;
-  vName			text;
+  vCode         text;
+  vName         text;
   vDomain       text;
   vUserName     text;
-  vEmail		text;
-  vProject		text;
+  vEmail        text;
+  vProject      text;
   vHost         text;
   vNoReply      text;
-  vSupport		text;
+  vSupport      text;
   vSubject      text;
-  vText			text;
-  vHTML			text;
-  vBody			text;
+  vText         text;
+  vHTML         text;
+  vBody         text;
   vDescription  text;
-  bVerified		bool;
+  bVerified     bool;
 BEGIN
   SELECT userid INTO uUserId FROM db.client WHERE id = pObject;
   IF uUserId IS NOT NULL THEN
 
-	SELECT username, name, email, email_verified, locale INTO vUserName, vName, vEmail, bVerified
-	  FROM db.user u INNER JOIN db.profile p ON u.id = p.userid AND p.scope = current_scope()
-	 WHERE id = uUserId;
+    SELECT username, name, email, email_verified, locale INTO vUserName, vName, vEmail, bVerified
+      FROM db.user u INNER JOIN db.profile p ON u.id = p.userid AND p.scope = current_scope()
+     WHERE id = uUserId;
 
-	IF vEmail IS NOT NULL AND NOT bVerified THEN
+    IF vEmail IS NOT NULL AND NOT bVerified THEN
 
-	  vProject := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Name', uUserId);
-	  vDomain := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Domain', uUserId);
+      vProject := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Name', uUserId);
+      vDomain := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Domain', uUserId);
 
-	  vHost := current_scope_code();
-	  IF vHost = current_database()::text THEN
+      vHost := current_scope_code();
+      IF vHost = current_database()::text THEN
         vHost := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Host', uUserId);
-	  END IF;
+      END IF;
 
-	  vCode := GetVerificationCode(NewVerificationCode(uUserId));
+      vCode := GetVerificationCode(NewVerificationCode(uUserId));
 
-	  vNoReply := format('noreply@%s', vDomain);
-	  vSupport := format('support@%s', vDomain);
+      vNoReply := format('noreply@%s', vDomain);
+      vSupport := format('support@%s', vDomain);
 
-	  IF locale_code() = 'ru' THEN
+      IF locale_code() = 'ru' THEN
         vSubject := 'Подтвердите, пожалуйста, адрес Вашей электронной почты.';
         vDescription := 'Подтверждение email: ' || vEmail;
-	  ELSE
+      ELSE
         vSubject := 'Please confirm your email address.';
         vDescription := 'Confirm email: ' || vEmail;
-	  END IF;
+      END IF;
 
-	  vText := GetConfirmEmailText(vName, vUserName, vCode, vProject, vHost, vSupport);
-	  vHTML := GetConfirmEmailHTML(vName, vUserName, vCode, vProject, vHost, vSupport);
+      vText := GetConfirmEmailText(vName, vUserName, vCode, vProject, vHost, vSupport);
+      vHTML := GetConfirmEmailHTML(vName, vUserName, vCode, vProject, vHost, vSupport);
 
-	  vBody := CreateMailBody(vProject, vNoReply, null, vEmail, vSubject, vText, vHTML);
+      vBody := CreateMailBody(vProject, vNoReply, null, vEmail, vSubject, vText, vHTML);
 
       PERFORM SendMail(pObject, vNoReply, vEmail, vSubject, vBody, null, vDescription);
       PERFORM WriteToEventLog('M', 1001, 'email', vDescription, pObject);
@@ -200,58 +200,58 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EventMessageAccountInfo (
-  pObject		uuid default context_object()
-) RETURNS		void
+  pObject        uuid default context_object()
+) RETURNS        void
 AS $$
 DECLARE
   uUserId       uuid;
   vSecret       text;
-  vName			text;
+  vName         text;
   vDomain       text;
   vUserName     text;
-  vEmail		text;
-  vProject		text;
+  vEmail        text;
+  vProject      text;
   vHost         text;
   vNoReply      text;
-  vSupport		text;
+  vSupport      text;
   vSubject      text;
-  vText			text;
-  vHTML			text;
-  vBody			text;
+  vText         text;
+  vHTML         text;
+  vBody         text;
   vDescription  text;
-  bVerified		bool;
+  bVerified     bool;
 BEGIN
   SELECT userid INTO uUserId FROM db.client WHERE id = pObject;
   IF uUserId IS NOT NULL THEN
 
-	SELECT username, name, encode(hmac(secret::text, GetSecretKey(), 'sha512'), 'hex'), email, email_verified INTO vUserName, vName, vSecret, vEmail, bVerified
-	  FROM db.user u INNER JOIN db.profile p ON u.id = p.userid AND p.scope = current_scope()
-	 WHERE id = uUserId;
+    SELECT username, name, encode(hmac(secret::text, GetSecretKey(), 'sha512'), 'hex'), email, email_verified INTO vUserName, vName, vSecret, vEmail, bVerified
+      FROM db.user u INNER JOIN db.profile p ON u.id = p.userid AND p.scope = current_scope()
+     WHERE id = uUserId;
 
-	IF vEmail IS NOT NULL AND bVerified THEN
-	  vProject := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Name', uUserId);
-	  vDomain := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Domain', uUserId);
+    IF vEmail IS NOT NULL AND bVerified THEN
+      vProject := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Name', uUserId);
+      vDomain := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Domain', uUserId);
 
-	  vHost := current_scope_code();
-	  IF vHost = current_database()::text THEN
+      vHost := current_scope_code();
+      IF vHost = current_database()::text THEN
         vHost := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Host', uUserId);
-	  END IF;
+      END IF;
 
-	  vNoReply := format('noreply@%s', vDomain);
-	  vSupport := format('support@%s', vDomain);
+      vNoReply := format('noreply@%s', vDomain);
+      vSupport := format('support@%s', vDomain);
 
-	  IF locale_code() = 'ru' THEN
+      IF locale_code() = 'ru' THEN
         vSubject := 'Информация о Вашей учетной записи.';
         vDescription := 'Информация об учетной записи: ' || vUserName;
-	  ELSE
+      ELSE
         vSubject := 'Your account information.';
         vDescription := 'Account information: ' || vUserName;
-	  END IF;
+      END IF;
 
-	  vText := GetAccountInfoText(vName, vUserName, vSecret, vProject, vSupport);
-	  vHTML := GetAccountInfoHTML(vName, vUserName, vSecret, vProject, vSupport);
+      vText := GetAccountInfoText(vName, vUserName, vSecret, vProject, vSupport);
+      vHTML := GetAccountInfoHTML(vName, vUserName, vSecret, vProject, vSupport);
 
-	  vBody := CreateMailBody(vProject, vNoReply, null, vEmail, vSubject, vText, vHTML);
+      vBody := CreateMailBody(vProject, vNoReply, null, vEmail, vSubject, vText, vHTML);
 
       PERFORM SendMail(pObject, vNoReply, vEmail, vSubject, vBody, null, vDescription);
       PERFORM WriteToEventLog('M', 1001, 'email', vDescription, pObject);

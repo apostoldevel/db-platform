@@ -3,20 +3,20 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.object (
-    id			uuid PRIMARY KEY,
-    parent		uuid REFERENCES db.object(id),
-    scope		uuid NOT NULL REFERENCES db.scope(id),
-    entity		uuid NOT NULL REFERENCES db.entity(id),
-    class		uuid NOT NULL REFERENCES db.class_tree(id),
-    type		uuid NOT NULL REFERENCES db.type(id),
+    id          uuid PRIMARY KEY,
+    parent      uuid REFERENCES db.object(id),
+    scope       uuid NOT NULL REFERENCES db.scope(id),
+    entity      uuid NOT NULL REFERENCES db.entity(id),
+    class       uuid NOT NULL REFERENCES db.class_tree(id),
+    type        uuid NOT NULL REFERENCES db.type(id),
     state_type  uuid REFERENCES db.state_type(id),
-    state		uuid REFERENCES db.state(id),
-    suid		uuid NOT NULL REFERENCES db.user(id),
-    owner		uuid NOT NULL REFERENCES db.user(id),
-    oper		uuid NOT NULL REFERENCES db.user(id),
-    pdate		timestamptz NOT NULL DEFAULT Now(),
-    ldate		timestamptz NOT NULL DEFAULT Now(),
-    udate		timestamptz NOT NULL DEFAULT Now()
+    state       uuid REFERENCES db.state(id),
+    suid        uuid NOT NULL REFERENCES db.user(id),
+    owner       uuid NOT NULL REFERENCES db.user(id),
+    oper        uuid NOT NULL REFERENCES db.user(id),
+    pdate       timestamptz NOT NULL DEFAULT Now(),
+    ldate       timestamptz NOT NULL DEFAULT Now(),
+    udate       timestamptz NOT NULL DEFAULT Now()
 );
 
 COMMENT ON TABLE db.object IS 'Список объектов.';
@@ -57,10 +57,10 @@ CREATE INDEX ON db.object (udate);
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.object_text (
-    object		uuid NOT NULL REFERENCES db.object(id) ON DELETE CASCADE,
-    locale		uuid NOT NULL REFERENCES db.locale(id) ON DELETE RESTRICT,
-    label		text,
-    text		text,
+    object      uuid NOT NULL REFERENCES db.object(id) ON DELETE CASCADE,
+    locale      uuid NOT NULL REFERENCES db.locale(id) ON DELETE RESTRICT,
+    label       text,
+    text        text,
     PRIMARY KEY (object, locale)
 );
 
@@ -100,7 +100,7 @@ CREATE INDEX ON db.object_text USING GIN (searchable_ru);
 CREATE OR REPLACE FUNCTION db.ft_object_before_insert()
 RETURNS trigger AS $$
 DECLARE
-  bAbstract	boolean;
+  bAbstract    boolean;
 BEGIN
   IF NEW.id IS NULL THEN
     SELECT gen_kernel_uuid('8') INTO NEW.id;
@@ -157,20 +157,20 @@ BEGIN
   INSERT INTO db.aou (object, userid, deny, allow) SELECT NEW.id, userid, SubString(deny FROM 3 FOR 3), SubString(allow FROM 3 FOR 3) FROM db.acu WHERE class = NEW.class;
 
   INSERT INTO db.aou (object, userid, deny, allow) SELECT NEW.id, NEW.owner, B'000', B'111'
-	ON CONFLICT (object, userid) DO UPDATE SET deny = B'000', allow = B'111';
+    ON CONFLICT (object, userid) DO UPDATE SET deny = B'000', allow = B'111';
 
   SELECT code INTO vEntity FROM db.entity WHERE id = NEW.entity;
 
   IF vEntity = 'message' THEN
-	IF NEW.parent IS NOT NULL THEN
-	  SELECT owner INTO uUserId FROM db.object WHERE id = NEW.parent;
-	  IF NEW.owner <> uUserId THEN
-		UPDATE db.aou SET allow = allow | B'100' WHERE object = NEW.id AND userid = uUserId;
-		IF NOT FOUND THEN
-		  INSERT INTO db.aou (object, userid, deny, allow) SELECT NEW.id, uUserId, B'000', B'100';
-		END IF;
-	  END IF;
-	END IF;
+    IF NEW.parent IS NOT NULL THEN
+      SELECT owner INTO uUserId FROM db.object WHERE id = NEW.parent;
+      IF NEW.owner <> uUserId THEN
+        UPDATE db.aou SET allow = allow | B'100' WHERE object = NEW.id AND userid = uUserId;
+        IF NOT FOUND THEN
+          INSERT INTO db.aou (object, userid, deny, allow) SELECT NEW.id, uUserId, B'000', B'100';
+        END IF;
+      END IF;
+    END IF;
   END IF;
 
   RETURN NEW;
@@ -217,18 +217,18 @@ BEGIN
   END IF;
 
   IF OLD.state IS DISTINCT FROM NEW.state THEN
-	IF NEW.state IS NOT NULL THEN
-	  SELECT type INTO NEW.state_type FROM db.state WHERE id = NEW.state;
-	ELSE
-	  NEW.state_type := NULL;
-	END IF;
+    IF NEW.state IS NOT NULL THEN
+      SELECT type INTO NEW.state_type FROM db.state WHERE id = NEW.state;
+    ELSE
+      NEW.state_type := NULL;
+    END IF;
   END IF;
 
   IF OLD.scope IS DISTINCT FROM NEW.scope THEN
-	PERFORM FROM db.area WHERE id = GetSessionArea(current_session()) AND scope = NEW.scope;
-	IF NOT FOUND THEN
-	  NEW.scope := OLD.scope;
-	END IF;
+    PERFORM FROM db.area WHERE id = GetSessionArea(current_session()) AND scope = NEW.scope;
+    IF NOT FOUND THEN
+      NEW.scope := OLD.scope;
+    END IF;
   END IF;
 
   IF OLD.owner IS DISTINCT FROM NEW.owner THEN
@@ -236,8 +236,8 @@ BEGIN
     IF NOT bSystem THEN
       DELETE FROM db.aou WHERE object = NEW.id AND userid = OLD.owner AND mask = B'111';
     END IF;
-	INSERT INTO db.aou (object, userid, deny, allow) SELECT NEW.id, NEW.owner, B'000', B'111'
-	  ON CONFLICT (object, userid) DO UPDATE SET deny = B'000', allow = B'111';
+    INSERT INTO db.aou (object, userid, deny, allow) SELECT NEW.id, NEW.owner, B'000', B'111'
+      ON CONFLICT (object, userid) DO UPDATE SET deny = B'000', allow = B'111';
   END IF;
 
   NEW.oper := current_userid();
@@ -288,8 +288,8 @@ CREATE TRIGGER t_object_before_delete
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.aom (
-    object		uuid NOT NULL REFERENCES db.object(id) ON DELETE CASCADE,
-    mask		bit(9) DEFAULT B'111100000' NOT NULL,
+    object      uuid NOT NULL REFERENCES db.object(id) ON DELETE CASCADE,
+    mask        bit(9) DEFAULT B'111100000' NOT NULL,
     PRIMARY KEY (object)
 );
 
@@ -303,12 +303,12 @@ COMMENT ON COLUMN db.aom.mask IS 'Маска доступа. Девять бит
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.aou (
-    object		uuid NOT NULL REFERENCES db.object(id) ON DELETE CASCADE,
-    userid		uuid NOT NULL REFERENCES db.user(id) ON DELETE CASCADE,
-    deny		bit(3) NOT NULL,
-    allow		bit(3) NOT NULL,
-    mask		bit(3) DEFAULT B'000' NOT NULL,
-    entity		uuid NOT NULL REFERENCES db.entity(id) ON DELETE RESTRICT,
+    object      uuid NOT NULL REFERENCES db.object(id) ON DELETE CASCADE,
+    userid      uuid NOT NULL REFERENCES db.user(id) ON DELETE CASCADE,
+    deny        bit(3) NOT NULL,
+    allow       bit(3) NOT NULL,
+    mask        bit(3) DEFAULT B'000' NOT NULL,
+    entity      uuid NOT NULL REFERENCES db.entity(id) ON DELETE RESTRICT,
     PRIMARY KEY (object, userid)
 );
 
@@ -328,7 +328,7 @@ CREATE INDEX ON db.aou (entity, userid, mask);
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION ft_aou_before()
+CREATE OR REPLACE FUNCTION db.ft_aou_before()
 RETURNS TRIGGER AS $$
 BEGIN
   IF (TG_OP = 'INSERT') THEN
@@ -345,17 +345,17 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER t_aou_before
   BEFORE INSERT OR UPDATE ON db.aou
   FOR EACH ROW
-  EXECUTE PROCEDURE ft_aou_before();
+  EXECUTE PROCEDURE db.ft_aou_before();
 
 --------------------------------------------------------------------------------
 -- TABLE db.oma ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.oma (
-    object		uuid NOT NULL REFERENCES db.object(id) ON DELETE CASCADE,
-    method		uuid NOT NULL REFERENCES db.method(id) ON DELETE CASCADE,
-    userid		uuid NOT NULL REFERENCES db.user(id) ON DELETE CASCADE,
-    mask		bit(3) DEFAULT B'000' NOT NULL,
+    object      uuid NOT NULL REFERENCES db.object(id) ON DELETE CASCADE,
+    method      uuid NOT NULL REFERENCES db.method(id) ON DELETE CASCADE,
+    userid      uuid NOT NULL REFERENCES db.user(id) ON DELETE CASCADE,
+    mask        bit(3) DEFAULT B'000' NOT NULL,
     PRIMARY KEY (object, method, userid)
 );
 
@@ -375,11 +375,11 @@ CREATE INDEX ON db.oma (userid);
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.object_state (
-    id			    uuid PRIMARY KEY DEFAULT gen_kernel_uuid('8'),
-    object		    uuid NOT NULL REFERENCES db.object(id),
-    state		    uuid NOT NULL REFERENCES db.state(id),
-    validFromDate	timestamptz DEFAULT Now() NOT NULL,
-    validToDate		timestamptz DEFAULT TO_DATE('4433-12-31', 'YYYY-MM-DD') NOT NULL
+    id               uuid PRIMARY KEY DEFAULT gen_kernel_uuid('8'),
+    object           uuid NOT NULL REFERENCES db.object(id),
+    state            uuid NOT NULL REFERENCES db.state(id),
+    validFromDate    timestamptz DEFAULT Now() NOT NULL,
+    validToDate      timestamptz DEFAULT TO_DATE('4433-12-31', 'YYYY-MM-DD') NOT NULL
 );
 
 COMMENT ON TABLE db.object_state IS 'Состояние объекта.';
@@ -440,9 +440,9 @@ CREATE TRIGGER t_object_state_change
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.method_stack (
-    object		uuid NOT NULL REFERENCES db.object(id),
-    method		uuid NOT NULL REFERENCES db.method(id),
-    result		jsonb DEFAULT NULL,
+    object        uuid NOT NULL REFERENCES db.object(id),
+    method        uuid NOT NULL REFERENCES db.method(id),
+    result        jsonb DEFAULT NULL,
     PRIMARY KEY (object, method)
 );
 
@@ -533,8 +533,8 @@ CREATE TABLE db.object_link (
     object          uuid NOT NULL REFERENCES db.object(id) ON DELETE CASCADE,
     linked          uuid NOT NULL REFERENCES db.object(id) ON DELETE CASCADE,
     key             text NOT NULL,
-    validFromDate	timestamptz DEFAULT Now() NOT NULL,
-    validToDate		timestamptz DEFAULT TO_DATE('4433-12-31', 'YYYY-MM-DD') NOT NULL
+    validFromDate   timestamptz DEFAULT Now() NOT NULL,
+    validToDate     timestamptz DEFAULT TO_DATE('4433-12-31', 'YYYY-MM-DD') NOT NULL
 );
 
 --------------------------------------------------------------------------------
@@ -602,15 +602,15 @@ CREATE INDEX ON db.object_data (object, type, code);
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.object_coordinates (
-    id				uuid PRIMARY KEY DEFAULT gen_kernel_uuid('8'),
+    id              uuid PRIMARY KEY DEFAULT gen_kernel_uuid('8'),
     object          uuid NOT NULL REFERENCES db.object(id),
     code            text NOT NULL,
     latitude        numeric NOT NULL,
     longitude       numeric NOT NULL,
     accuracy        numeric NOT NULL DEFAULT 0,
     label           text,
-    description	    text,
-    data			jsonb,
+    description     text,
+    data            jsonb,
     validFromDate   timestamptz DEFAULT Now() NOT NULL,
     validToDate     timestamptz DEFAULT TO_DATE('4433-12-31', 'YYYY-MM-DD') NOT NULL
 );

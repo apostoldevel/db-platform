@@ -31,7 +31,7 @@ CREATE OR REPLACE FUNCTION api.add_program (
   pCode         text,
   pName         text,
   pBody         text,
-  pDescription	text default null
+  pDescription  text default null
 ) RETURNS       uuid
 AS $$
 BEGIN
@@ -55,13 +55,13 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_program (
-  pId		    uuid,
+  pId           uuid,
   pParent       uuid default null,
   pType         uuid default null,
   pCode         text default null,
   pName         text default null,
   pBody         text default null,
-  pDescription	text default null
+  pDescription  text default null
 ) RETURNS       void
 AS $$
 DECLARE
@@ -90,7 +90,7 @@ CREATE OR REPLACE FUNCTION api.set_program (
   pCode         text default null,
   pName         text default null,
   pBody         text default null,
-  pDescription	text default null
+  pDescription  text default null
 ) RETURNS       SETOF api.program
 AS $$
 BEGIN
@@ -115,8 +115,8 @@ $$ LANGUAGE plpgsql
  * @return {api.program}
  */
 CREATE OR REPLACE FUNCTION api.get_program (
-  pId		uuid
-) RETURNS	SETOF api.program
+  pId        uuid
+) RETURNS    SETOF api.program
 AS $$
   SELECT * FROM api.program WHERE id = pId
 $$ LANGUAGE SQL
@@ -136,12 +136,12 @@ $$ LANGUAGE SQL
  * @return {SETOF api.program}
  */
 CREATE OR REPLACE FUNCTION api.list_program (
-  pSearch	jsonb default null,
-  pFilter	jsonb default null,
-  pLimit	integer default null,
-  pOffSet	integer default null,
-  pOrderBy	jsonb default null
-) RETURNS	SETOF api.program
+  pSearch   jsonb default null,
+  pFilter   jsonb default null,
+  pLimit    integer default null,
+  pOffSet   integer default null,
+  pOrderBy  jsonb default null
+) RETURNS   SETOF api.program
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'program', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
@@ -159,8 +159,8 @@ $$ LANGUAGE plpgsql
  * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION api.get_program_id (
-  pCode		text
-) RETURNS	uuid
+  pCode      text
+) RETURNS    uuid
 AS $$
 BEGIN
   IF length(pCode) = 36 AND SubStr(pCode, 15, 1) = '4' THEN

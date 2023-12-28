@@ -5,10 +5,10 @@ DROP VIEW Method CASCADE;
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.oma (
-    object		uuid NOT NULL REFERENCES db.object(id) ON DELETE CASCADE,
-    method		uuid NOT NULL REFERENCES db.method(id) ON DELETE CASCADE,
-    userid		uuid NOT NULL REFERENCES db.user(id) ON DELETE CASCADE,
-    mask		bit(3) DEFAULT B'000' NOT NULL,
+    object        uuid NOT NULL REFERENCES db.object(id) ON DELETE CASCADE,
+    method        uuid NOT NULL REFERENCES db.method(id) ON DELETE CASCADE,
+    userid        uuid NOT NULL REFERENCES db.user(id) ON DELETE CASCADE,
+    mask        bit(3) DEFAULT B'000' NOT NULL,
     PRIMARY KEY (object, method, userid)
 );
 

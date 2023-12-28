@@ -5,7 +5,7 @@
 CREATE OR REPLACE FUNCTION NewDocumentText (
   pDocument     uuid,
   pDescription  text,
-  pLocale		uuid DEFAULT current_locale()
+  pLocale       uuid DEFAULT current_locale()
 ) RETURNS       void
 AS $$
 BEGIN
@@ -23,7 +23,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION EditDocumentText (
   pDocument     uuid,
   pDescription  text,
-  pLocale		uuid DEFAULT null
+  pLocale       uuid DEFAULT null
 ) RETURNS       void
 AS $$
 BEGIN
@@ -44,9 +44,9 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateDocument (
-  pParent	    uuid,
-  pType		    uuid,
-  pLabel	    text DEFAULT null,
+  pParent       uuid,
+  pType         uuid,
+  pLabel        text DEFAULT null,
   pDescription  text DEFAULT null,
   pText         text DEFAULT null,
   pLocale       uuid DEFAULT null,
@@ -54,10 +54,10 @@ CREATE OR REPLACE FUNCTION CreateDocument (
 ) RETURNS       uuid
 AS $$
 DECLARE
-  l				record;
+  l             record;
 
-  uObject	    uuid;
-  uEntity		uuid;
+  uObject       uuid;
+  uEntity       uuid;
   uClass        uuid;
 BEGIN
   uObject := CreateObject(pParent, pType, pLabel, coalesce(pText, pDescription));
@@ -70,10 +70,10 @@ BEGIN
   RETURNING id INTO uObject;
 
   IF pLocale IS NULL THEN
-	FOR l IN SELECT id FROM db.locale
-	LOOP
-	  PERFORM NewDocumentText(uObject, pDescription, l.id);
-	END LOOP;
+    FOR l IN SELECT id FROM db.locale
+    LOOP
+      PERFORM NewDocumentText(uObject, pDescription, l.id);
+    END LOOP;
   ELSE
     PERFORM NewDocumentText(uObject, pDescription, pLocale);
   END IF;
@@ -94,13 +94,13 @@ CREATE OR REPLACE FUNCTION EditDocument (
   pType         uuid DEFAULT null,
   pLabel        text DEFAULT null,
   pDescription  text DEFAULT null,
-  pText			text DEFAULT null,
+  pText         text DEFAULT null,
   pLocale       uuid DEFAULT null,
   pPriority     uuid DEFAULT null
 ) RETURNS       void
 AS $$
 DECLARE
-  l				record;
+  l                record;
 BEGIN
   PERFORM EditObject(pId, pParent, pType, pLabel, coalesce(pText, pDescription), pLocale);
 
@@ -110,10 +110,10 @@ BEGIN
    WHERE id = pId;
 
   IF pLocale IS NULL THEN
-	FOR l IN SELECT id FROM db.locale
-	LOOP
-	  PERFORM EditDocumentText(pId, pDescription, l.id);
-	END LOOP;
+    FOR l IN SELECT id FROM db.locale
+    LOOP
+      PERFORM EditDocumentText(pId, pDescription, l.id);
+    END LOOP;
   ELSE
     PERFORM EditDocumentText(pId, pDescription, pLocale);
   END IF;

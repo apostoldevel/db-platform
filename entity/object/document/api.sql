@@ -29,7 +29,7 @@ CREATE OR REPLACE FUNCTION api.add_document (
   pType         uuid,
   pLabel        text default null,
   pDescription  text DEFAULT null,
-  pData			text DEFAULT null
+  pData         text DEFAULT null
 ) RETURNS       uuid
 AS $$
 BEGIN
@@ -52,16 +52,16 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_document (
-  pId		    uuid,
+  pId           uuid,
   pParent       uuid default null,
   pType         uuid default null,
   pLabel        text default null,
   pDescription  text DEFAULT null,
-  pData			text DEFAULT null
+  pData         text DEFAULT null
 ) RETURNS       void
 AS $$
 DECLARE
-  uDocument		uuid;
+  uDocument     uuid;
 BEGIN
   SELECT t.id INTO uDocument FROM db.document t WHERE t.id = pId;
 
@@ -80,12 +80,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.set_document (
-  pId		    uuid,
+  pId           uuid,
   pParent       uuid default null,
   pType         uuid default null,
   pLabel        text default null,
   pDescription  text DEFAULT null,
-  pData			text DEFAULT null
+  pData         text DEFAULT null
 ) RETURNS       SETOF api.document
 AS $$
 BEGIN
@@ -110,8 +110,8 @@ $$ LANGUAGE plpgsql
  * @return {api.document}
  */
 CREATE OR REPLACE FUNCTION api.get_document (
-  pId		uuid
-) RETURNS	api.document
+  pId        uuid
+) RETURNS    api.document
 AS $$
   SELECT * FROM api.document WHERE id = pId
 $$ LANGUAGE SQL
@@ -131,12 +131,12 @@ $$ LANGUAGE SQL
  * @return {SETOF api.document}
  */
 CREATE OR REPLACE FUNCTION api.list_document (
-  pSearch	jsonb default null,
-  pFilter	jsonb default null,
-  pLimit	integer default null,
-  pOffSet	integer default null,
-  pOrderBy	jsonb default null
-) RETURNS	SETOF api.document
+  pSearch    jsonb default null,
+  pFilter    jsonb default null,
+  pLimit     integer default null,
+  pOffSet    integer default null,
+  pOrderBy   jsonb default null
+) RETURNS    SETOF api.document
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'document', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
@@ -150,7 +150,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.change_document_area (
-  pId		    uuid,
+  pId           uuid,
   pArea         uuid
 ) RETURNS       SETOF api.document
 AS $$

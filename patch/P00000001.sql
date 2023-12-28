@@ -12,10 +12,10 @@ DROP TABLE db.model CASCADE;
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.model (
-    id			    uuid PRIMARY KEY,
-    reference		uuid NOT NULL REFERENCES db.reference(id) ON DELETE CASCADE,
+    id              uuid PRIMARY KEY,
+    reference       uuid NOT NULL REFERENCES db.reference(id) ON DELETE CASCADE,
     vendor          uuid NOT NULL REFERENCES db.vendor(id) ON DELETE RESTRICT,
-    category		uuid REFERENCES db.category(id) ON DELETE RESTRICT
+    category        uuid REFERENCES db.category(id) ON DELETE RESTRICT
 );
 
 COMMENT ON TABLE db.model IS 'Модель.';
@@ -31,7 +31,7 @@ CREATE INDEX ON db.model (category);
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION ft_model_insert()
+CREATE OR REPLACE FUNCTION db.ft_model_insert()
 RETURNS trigger AS $$
 DECLARE
 BEGIN
@@ -50,7 +50,7 @@ $$ LANGUAGE plpgsql
 CREATE TRIGGER t_model_insert
   BEFORE INSERT ON db.model
   FOR EACH ROW
-  EXECUTE PROCEDURE ft_model_insert();
+  EXECUTE PROCEDURE db.ft_model_insert();
 
 --------------------------------------------------------------------------------
 

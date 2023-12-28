@@ -3,10 +3,10 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.locale (
-    id		    uuid PRIMARY KEY,
-    code	    text NOT NULL,
-    name	    text NOT NULL,
-    description	text
+    id          uuid PRIMARY KEY,
+    code        text NOT NULL,
+    name        text NOT NULL,
+    description text
 );
 
 COMMENT ON TABLE db.locale IS 'Локаль.';

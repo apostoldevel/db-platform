@@ -23,7 +23,7 @@ CREATE UNIQUE INDEX ON db.scope (code);
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.scope_alias (
-    scope	        uuid NOT NULL REFERENCES db.scope(id) ON DELETE CASCADE,
+    scope           uuid NOT NULL REFERENCES db.scope(id) ON DELETE CASCADE,
     code            text NOT NULL,
     PRIMARY KEY (scope, code)
 );
@@ -67,7 +67,7 @@ CREATE TABLE db.area (
     name            text NOT NULL,
     description     text,
     level           integer NOT NULL,
-    sequence		integer NOT NULL,
+    sequence        integer NOT NULL,
     validFromDate   timestamp DEFAULT Now() NOT NULL,
     validToDate     timestamp DEFAULT TO_DATE('4433-12-31', 'YYYY-MM-DD') NOT NULL
 );
@@ -95,10 +95,10 @@ CREATE UNIQUE INDEX ON db.area (scope, code);
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION db.ft_area_before_insert()
-RETURNS	trigger AS $$
+RETURNS    trigger AS $$
 BEGIN
   IF NEW.id IS NULL THEN
-	NEW.id := gen_kernel_uuid('8');
+    NEW.id := gen_kernel_uuid('8');
   END IF;
 
   IF NEW.scope IS NULL THEN
@@ -145,14 +145,14 @@ COMMENT ON COLUMN db.interface.description IS 'Описание';
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.user (
-    id					uuid PRIMARY KEY,
-    type				char NOT NULL,
-    username			text NOT NULL,
-    name				text NOT NULL,
-    phone				text,
-    email				text,
-    description			text,
-    secret				bytea NOT NULL,
+    id                  uuid PRIMARY KEY,
+    type                char NOT NULL,
+    username            text NOT NULL,
+    name                text NOT NULL,
+    phone               text,
+    email               text,
+    description         text,
+    secret    			bytea NOT NULL,
     hash				text NOT NULL,
     status				bit(4) DEFAULT B'0001' NOT NULL,
     created             timestamp DEFAULT Now() NOT NULL,
@@ -424,7 +424,7 @@ CREATE TRIGGER t_profile_before
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION ft_profile_login_state()
+CREATE OR REPLACE FUNCTION db.ft_profile_login_state()
 RETURNS trigger AS $$
 DECLARE
   i         int;
@@ -547,7 +547,7 @@ CREATE TRIGGER t_profile_login_state
   BEFORE UPDATE ON db.profile
   FOR EACH ROW
   WHEN (OLD.input_last IS DISTINCT FROM NEW.input_last)
-  EXECUTE PROCEDURE ft_profile_login_state();
+  EXECUTE PROCEDURE db.ft_profile_login_state();
 
 --------------------------------------------------------------------------------
 -- member_group ----------------------------------------------------------------
@@ -1156,7 +1156,7 @@ COMMENT ON COLUMN db.acl.mask IS 'Маска доступа: {sLlEIDUCpducoi}.';
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION ft_acl_before()
+CREATE OR REPLACE FUNCTION db.ft_acl_before()
 RETURNS TRIGGER AS $$
 BEGIN
   NEW.mask = NEW.allow & ~NEW.deny;
@@ -1169,4 +1169,4 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER t_acl_before
   BEFORE INSERT OR UPDATE ON db.acl
   FOR EACH ROW
-  EXECUTE PROCEDURE ft_acl_before();
+  EXECUTE PROCEDURE db.ft_acl_before();

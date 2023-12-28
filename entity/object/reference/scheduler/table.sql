@@ -7,8 +7,8 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.scheduler (
-    id			    uuid PRIMARY KEY,
-    reference		uuid NOT NULL REFERENCES db.reference(id) ON DELETE CASCADE,
+    id              uuid PRIMARY KEY,
+    reference       uuid NOT NULL REFERENCES db.reference(id) ON DELETE CASCADE,
     period          interval,
     dateStart       timestamptz NOT NULL DEFAULT Now(),
     dateStop        timestamptz NOT NULL DEFAULT TO_DATE('4433-12-31', 'YYYY-MM-DD')
@@ -26,7 +26,7 @@ CREATE INDEX ON db.scheduler (reference);
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION ft_scheduler_insert()
+CREATE OR REPLACE FUNCTION db.ft_scheduler_insert()
 RETURNS trigger AS $$
 DECLARE
 BEGIN
@@ -53,4 +53,4 @@ $$ LANGUAGE plpgsql
 CREATE TRIGGER t_scheduler_insert
   BEFORE INSERT ON db.scheduler
   FOR EACH ROW
-  EXECUTE PROCEDURE ft_scheduler_insert();
+  EXECUTE PROCEDURE db.ft_scheduler_insert();

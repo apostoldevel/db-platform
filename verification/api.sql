@@ -24,7 +24,7 @@ GRANT SELECT ON api.verification_code TO administrator;
  */
 CREATE OR REPLACE FUNCTION api.new_verification_code (
   pType         char,
-  pCode		    text DEFAULT null,
+  pCode         text DEFAULT null,
   pUserId       uuid DEFAULT current_userid()
 ) RETURNS       SETOF api.verification_code
 AS $$
@@ -50,13 +50,13 @@ $$ LANGUAGE plpgsql
  */
 CREATE OR REPLACE FUNCTION api.confirm_verification_code (
   pType         char,
-  pCode		    text,
+  pCode         text,
   OUT result    bool,
   OUT message   text
 ) RETURNS       record
 AS $$
 DECLARE
-  uUserId		uuid;
+  uUserId       uuid;
   vOAuthSecret  text;
 BEGIN
   uUserId := ConfirmVerificationCode(pType, pCode);
@@ -65,16 +65,16 @@ BEGIN
   message := GetErrorMessage();
 
   IF result AND IsUserRole(GetGroup('system'), session_userid()) THEN
-	SELECT a.secret INTO vOAuthSecret FROM oauth2.audience a WHERE a.code = session_username();
-	IF FOUND THEN
-	  PERFORM SubstituteUser(GetUser('apibot'), vOAuthSecret);
-	  IF pType = 'M' THEN
-		PERFORM DoConfirmEmail(uUserId);
-	  ELSIF pType = 'P' THEN
-		PERFORM DoConfirmPhone(uUserId);
-	  END IF;
-	  PERFORM SubstituteUser(session_userid(), vOAuthSecret);
-	END IF;
+    SELECT a.secret INTO vOAuthSecret FROM oauth2.audience a WHERE a.code = session_username();
+    IF FOUND THEN
+      PERFORM SubstituteUser(GetUser('apibot'), vOAuthSecret);
+      IF pType = 'M' THEN
+        PERFORM DoConfirmEmail(uUserId);
+      ELSIF pType = 'P' THEN
+        PERFORM DoConfirmPhone(uUserId);
+      END IF;
+      PERFORM SubstituteUser(session_userid(), vOAuthSecret);
+    END IF;
   END IF;
 END;
 $$ LANGUAGE plpgsql
@@ -89,8 +89,8 @@ $$ LANGUAGE plpgsql
  * @return {record} - Данные интерфейса
  */
 CREATE OR REPLACE FUNCTION api.get_verification_code (
-  pId		uuid
-) RETURNS	SETOF api.verification_code
+  pId        uuid
+) RETURNS    SETOF api.verification_code
 AS $$
   SELECT * FROM api.verification_code WHERE id = pId;
 $$ LANGUAGE SQL
@@ -110,12 +110,12 @@ $$ LANGUAGE SQL
  * @return {SETOF api.verification_code}
  */
 CREATE OR REPLACE FUNCTION api.list_verification_code (
-  pSearch	jsonb DEFAULT null,
-  pFilter	jsonb DEFAULT null,
-  pLimit	integer DEFAULT null,
-  pOffSet	integer DEFAULT null,
-  pOrderBy	jsonb DEFAULT null
-) RETURNS	SETOF api.verification_code
+  pSearch   jsonb DEFAULT null,
+  pFilter   jsonb DEFAULT null,
+  pLimit    integer DEFAULT null,
+  pOffSet   integer DEFAULT null,
+  pOrderBy  jsonb DEFAULT null
+) RETURNS   SETOF api.verification_code
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'verification_code', pSearch, pFilter, pLimit, pOffSet, pOrderBy);

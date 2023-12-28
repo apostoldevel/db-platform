@@ -34,7 +34,7 @@ CREATE OR REPLACE FUNCTION api.add_report_tree (
   pNode         uuid,
   pCode         text,
   pName         text,
-  pDescription	text default null,
+  pDescription  text default null,
   pSequence     integer default null
 ) RETURNS       uuid
 AS $$
@@ -61,19 +61,19 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_report_tree (
-  pId		    uuid,
+  pId           uuid,
   pParent       uuid default null,
   pType         uuid default null,
   pRoot         uuid default null,
   pNode         uuid default null,
   pCode         text default null,
   pName         text default null,
-  pDescription	text default null,
+  pDescription  text default null,
   pSequence     integer default null
 ) RETURNS       void
 AS $$
 DECLARE
-  uReportTree	uuid;
+  uReportTree   uuid;
 BEGIN
   SELECT t.id INTO uReportTree FROM db.report_tree t WHERE t.id = pId;
 
@@ -99,7 +99,7 @@ CREATE OR REPLACE FUNCTION api.set_report_tree (
   pNode         uuid default null,
   pCode         text default null,
   pName         text default null,
-  pDescription	text default null,
+  pDescription  text default null,
   pSequence     integer default null
 ) RETURNS       SETOF api.report_tree
 AS $$
@@ -125,8 +125,8 @@ $$ LANGUAGE plpgsql
  * @return {api.report_tree}
  */
 CREATE OR REPLACE FUNCTION api.get_report_tree (
-  pId		uuid
-) RETURNS	api.report_tree
+  pId        uuid
+) RETURNS    api.report_tree
 AS $$
   SELECT * FROM api.report_tree WHERE id = pId
 $$ LANGUAGE SQL
@@ -146,12 +146,12 @@ $$ LANGUAGE SQL
  * @return {SETOF api.report_tree}
  */
 CREATE OR REPLACE FUNCTION api.list_report_tree (
-  pSearch	jsonb default null,
-  pFilter	jsonb default null,
-  pLimit	integer default null,
-  pOffSet	integer default null,
-  pOrderBy	jsonb default null
-) RETURNS	SETOF api.report_tree
+  pSearch   jsonb default null,
+  pFilter   jsonb default null,
+  pLimit    integer default null,
+  pOffSet   integer default null,
+  pOrderBy  jsonb default null
+) RETURNS   SETOF api.report_tree
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'report_tree', pSearch, pFilter, pLimit, pOffSet, pOrderBy);

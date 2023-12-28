@@ -81,7 +81,7 @@ BEGIN
   SELECT entity INTO NEW.entity FROM db.class_tree WHERE id = NEW.class;
 
   IF OLD.entity IS DISTINCT FROM NEW.entity THEN
-	PERFORM IncorrectEntity();
+    PERFORM IncorrectEntity();
   END IF;
 
   RETURN NEW;
@@ -128,8 +128,8 @@ CREATE TRIGGER t_document_update_area
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.document_text (
-    document		uuid NOT NULL REFERENCES db.document(id) ON DELETE CASCADE,
-    locale			uuid NOT NULL REFERENCES db.locale(id) ON DELETE RESTRICT,
+    document        uuid NOT NULL REFERENCES db.document(id) ON DELETE CASCADE,
+    locale          uuid NOT NULL REFERENCES db.locale(id) ON DELETE RESTRICT,
     description     text,
     PRIMARY KEY (document, locale)
 );

@@ -142,26 +142,26 @@ BEGIN
   CASE split_part(path, '/', 4)
   WHEN 'ping' THEN
 
-	RETURN NEXT json_build_object('code', 200, 'message', 'OK');
+    RETURN NEXT json_build_object('code', 200, 'message', 'OK');
 
   WHEN 'time' THEN
 
-	RETURN NEXT json_build_object('serverTime', trunc(extract(EPOCH FROM Now())));
+    RETURN NEXT json_build_object('serverTime', trunc(extract(EPOCH FROM Now())));
 
   WHEN 'headers' THEN
 
-	RETURN NEXT coalesce(headers, jsonb_build_object());
+    RETURN NEXT coalesce(headers, jsonb_build_object());
 
   WHEN 'params' THEN
 
-	RETURN NEXT coalesce(params, jsonb_build_object());
+    RETURN NEXT coalesce(params, jsonb_build_object());
 
   WHEN 'log' THEN
 
-	FOR r IN SELECT * FROM http.log ORDER BY id DESC
-	LOOP
-	  RETURN NEXT row_to_json(r);
-	END LOOP;
+    FOR r IN SELECT * FROM http.log ORDER BY id DESC
+    LOOP
+      RETURN NEXT row_to_json(r);
+    END LOOP;
 
   ELSE
 
@@ -230,23 +230,23 @@ BEGIN
   CASE split_part(path, '/', 4)
   WHEN 'ping' THEN
 
-	RETURN NEXT json_build_object('code', 200, 'message', 'OK');
+    RETURN NEXT json_build_object('code', 200, 'message', 'OK');
 
   WHEN 'time' THEN
 
-	RETURN NEXT json_build_object('serverTime', trunc(extract(EPOCH FROM Now())));
+    RETURN NEXT json_build_object('serverTime', trunc(extract(EPOCH FROM Now())));
 
   WHEN 'headers' THEN
 
-	RETURN NEXT coalesce(headers, jsonb_build_object());
+    RETURN NEXT coalesce(headers, jsonb_build_object());
 
   WHEN 'params' THEN
 
-	RETURN NEXT coalesce(params, jsonb_build_object());
+    RETURN NEXT coalesce(params, jsonb_build_object());
 
   WHEN 'body' THEN
 
-	RETURN NEXT coalesce(body, jsonb_build_object());
+    RETURN NEXT coalesce(body, jsonb_build_object());
 
   ELSE
 
@@ -309,14 +309,14 @@ BEGIN
   IF done IS NOT NULL THEN
     PERFORM FROM pg_namespace n INNER JOIN pg_proc p ON n.oid = p.pronamespace WHERE n.nspname = split_part(done, '.', 1) AND p.proname = split_part(done, '.', 2);
     IF NOT FOUND THEN
-	  RAISE EXCEPTION 'Not found function: %', done;
+      RAISE EXCEPTION 'Not found function: %', done;
     END IF;
   END IF;
 
   IF fail IS NOT NULL THEN
     PERFORM FROM pg_namespace n INNER JOIN pg_proc p ON n.oid = p.pronamespace WHERE n.nspname = split_part(fail, '.', 1) AND p.proname = split_part(fail, '.', 2);
     IF NOT FOUND THEN
-	  RAISE EXCEPTION 'Not found function: %', fail;
+      RAISE EXCEPTION 'Not found function: %', fail;
     END IF;
   END IF;
 

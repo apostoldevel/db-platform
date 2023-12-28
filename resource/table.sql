@@ -7,12 +7,12 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.resource (
-    id			    uuid PRIMARY KEY,
+    id              uuid PRIMARY KEY,
     root            uuid NOT NULL REFERENCES db.resource(id),
     node            uuid REFERENCES db.resource(id),
-    type			text NOT NULL,
+    type            text NOT NULL,
     level           integer NOT NULL,
-    sequence		integer NOT NULL
+    sequence        integer NOT NULL
 );
 
 COMMENT ON TABLE db.resource IS 'Ресурс.';
@@ -29,7 +29,7 @@ CREATE INDEX ON db.resource (node);
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION ft_resource_before()
+CREATE OR REPLACE FUNCTION db.ft_resource_before()
 RETURNS trigger AS $$
 BEGIN
   IF NEW.id IS NULL THEN
@@ -65,20 +65,20 @@ $$ LANGUAGE plpgsql
 CREATE TRIGGER t_resource_before
   BEFORE INSERT ON db.resource
   FOR EACH ROW
-  EXECUTE PROCEDURE ft_resource_before();
+  EXECUTE PROCEDURE db.ft_resource_before();
 
 --------------------------------------------------------------------------------
 -- db.resource_data ------------------------------------------------------------
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.resource_data (
-    resource		uuid NOT NULL REFERENCES db.resource(id) ON DELETE CASCADE,
-    locale		    uuid NOT NULL REFERENCES db.locale(id),
-    name			text,
-    description		text,
-    encoding		text,
-    data			text,
-    updated			timestamptz DEFAULT Now() NOT NULL,
+    resource        uuid NOT NULL REFERENCES db.resource(id) ON DELETE CASCADE,
+    locale          uuid NOT NULL REFERENCES db.locale(id),
+    name            text,
+    description     text,
+    encoding        text,
+    data            text,
+    updated         timestamptz DEFAULT Now() NOT NULL,
     PRIMARY KEY (resource, locale)
 );
 
@@ -105,7 +105,7 @@ CREATE INDEX ON db.resource_data (name text_pattern_ops);
 CREATE UNIQUE INDEX ON db.resource_data (name, locale);
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION ft_resource_data_before()
+CREATE OR REPLACE FUNCTION db.ft_resource_data_before()
 RETURNS trigger AS $$
 BEGIN
   IF NEW.locale IS NULL THEN
@@ -139,4 +139,4 @@ $$ LANGUAGE plpgsql
 CREATE TRIGGER t_resource_data_before
   BEFORE INSERT OR UPDATE ON db.resource_data
   FOR EACH ROW
-  EXECUTE PROCEDURE ft_resource_data_before();
+  EXECUTE PROCEDURE db.ft_resource_data_before();

@@ -16,14 +16,14 @@ BEGIN
     vAction := GetActionCode(NEW.action);
 
     IF vClass = 'inbox' THEN
-	  IF vAction = 'create' THEN
+      IF vAction = 'create' THEN
         PERFORM pg_notify('inbox', NEW.object::text);
       END IF;
     ELSIF vClass = 'outbox' THEN
-	  IF vAction = 'submit' OR vAction = 'repeat' THEN
+      IF vAction = 'submit' OR vAction = 'repeat' THEN
         PERFORM pg_notify('outbox', NEW.object::text);
       END IF;
-	END IF;
+    END IF;
 
   ELSIF vEntity = 'report_ready' THEN
 

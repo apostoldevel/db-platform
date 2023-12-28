@@ -11,10 +11,10 @@ GRANT SELECT ON api.registry TO administrator;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.registry (
-  pId		uuid,
-  pKey		uuid,
-  pSubKey	uuid
-) RETURNS	SETOF api.registry
+  pId        uuid,
+  pKey       uuid,
+  pSubKey    uuid
+) RETURNS    SETOF api.registry
 AS $$
   SELECT *
     FROM api.registry
@@ -36,10 +36,10 @@ GRANT SELECT ON api.registry_ex TO administrator;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.registry_ex (
-  pId		uuid,
-  pKey		uuid,
-  pSubKey	uuid
-) RETURNS	SETOF api.registry_ex
+  pId        uuid,
+  pKey       uuid,
+  pSubKey    uuid
+) RETURNS    SETOF api.registry_ex
 AS $$
   SELECT *
     FROM api.registry_ex
@@ -61,11 +61,11 @@ GRANT SELECT ON api.registry_key TO administrator;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.registry_key (
-  pId		uuid,
-  pRoot		uuid,
-  pParent	uuid,
-  pKey		text
-) RETURNS	SETOF api.registry_key
+  pId        uuid,
+  pRoot      uuid,
+  pParent    uuid,
+  pKey       text
+) RETURNS    SETOF api.registry_key
 AS $$
   SELECT *
     FROM api.registry_key
@@ -96,9 +96,9 @@ GRANT SELECT ON api.registry_value_ex TO administrator;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.registry_value (
-  pId		uuid,
-  pKey		uuid
-) RETURNS	SETOF api.registry_value
+  pId        uuid,
+  pKey       uuid
+) RETURNS    SETOF api.registry_value
 AS $$
   SELECT *
     FROM api.registry_value
@@ -111,9 +111,9 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.registry_value_ex (
-  pId		uuid,
-  pKey		uuid
-) RETURNS	SETOF api.registry_value_ex
+  pId        uuid,
+  pKey       uuid
+) RETURNS    SETOF api.registry_value_ex
 AS $$
   SELECT *
     FROM api.registry_value_ex
@@ -153,8 +153,8 @@ CREATE OR REPLACE FUNCTION api.registry_enum_key (
   pKey      text,
   pSubKey   text
 ) RETURNS TABLE (
-  id	    uuid,
-  key	    text,
+  id        uuid,
+  key       text,
   subkey    text
 )
 AS $$
@@ -182,11 +182,11 @@ CREATE OR REPLACE FUNCTION api.registry_enum_value (
   pKey      text,
   pSubKey   text
 ) RETURNS TABLE (
-  id	    uuid,
-  key	    text,
+  id        uuid,
+  key       text,
   subkey    text,
   valuename text,
-  value	    variant
+  value     variant
 )
 AS $$
   SELECT R.id, pKey, pSubKey, R.vname, registry.get_reg_value(R.id) FROM RegEnumValue(RegOpenKey(pKey, pSubKey)) AS R;
@@ -218,11 +218,11 @@ CREATE OR REPLACE FUNCTION api.registry_enum_value_ex (
   pKey        text,
   pSubKey     text
 ) RETURNS TABLE (
-  id	      uuid,
-  key	      text,
+  id          uuid,
+  key         text,
   subkey      text,
   valuename   text,
-  vtype	      integer,
+  vtype       integer,
   vinteger    integer,
   vnumeric    numeric,
   vdatetime   timestamp,
@@ -294,7 +294,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.registry_read (
   pKey          text,
   pSubKey       text,
-  pValueName	text
+  pValueName    text
 ) RETURNS       Variant
 AS $$
 BEGIN
@@ -345,7 +345,7 @@ CREATE OR REPLACE FUNCTION api.registry_delete_value (
   pId           uuid,
   pKey          text,
   pSubKey       text,
-  pValueName	text
+  pValueName    text
 ) RETURNS       void
 AS $$
 BEGIN

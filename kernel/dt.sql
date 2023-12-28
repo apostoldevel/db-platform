@@ -17,12 +17,12 @@ CREATE TYPE Status AS (Status VARCHAR(1));
 -- Вариант
 
 CREATE TYPE Variant AS (
-    vType	    integer,
-    vInteger	integer,	-- vType = 0
-    vNumeric	numeric,	-- vType = 1
-    vDateTime	timestamp,	-- vType = 2
-    vString	    text,		-- vType = 3
-    vBoolean	boolean		-- vType = 4
+    vType       integer,
+    vInteger    integer,    -- vType = 0
+    vNumeric    numeric,    -- vType = 1
+    vDateTime   timestamp,  -- vType = 2
+    vString     text,       -- vType = 3
+    vBoolean    boolean     -- vType = 4
   );
 
 CREATE TYPE TIdList AS (IdList Id[]);

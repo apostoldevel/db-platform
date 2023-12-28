@@ -22,7 +22,7 @@ CREATE OR REPLACE VIEW AccessScheduler
 AS
 WITH _access AS (
    WITH _membergroup AS (
-	 SELECT current_userid() AS userid UNION SELECT userid FROM db.member_group WHERE member = current_userid()
+     SELECT current_userid() AS userid UNION SELECT userid FROM db.member_group WHERE member = current_userid()
    ) SELECT object
        FROM db.aou AS a INNER JOIN db.entity    e ON a.entity = e.id AND e.code = 'scheduler'
                         INNER JOIN _membergroup m ON a.userid = m.userid

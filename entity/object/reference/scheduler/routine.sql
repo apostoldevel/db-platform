@@ -21,11 +21,11 @@ CREATE OR REPLACE FUNCTION CreateScheduler (
   pPeriod       interval default null,
   pDateStart    timestamptz default null,
   pDateStop     timestamptz default null,
-  pDescription	text default null
+  pDescription  text default null
 ) RETURNS       uuid
 AS $$
 DECLARE
-  uReference	uuid;
+  uReference    uuid;
   uClass        uuid;
   uMethod       uuid;
 BEGIN
@@ -74,7 +74,7 @@ CREATE OR REPLACE FUNCTION EditScheduler (
   pPeriod       interval default null,
   pDateStart    timestamptz default null,
   pDateStop     timestamptz default null,
-  pDescription	text default null
+  pDescription    text default null
 ) RETURNS       void
 AS $$
 DECLARE
@@ -103,8 +103,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetScheduler (
-  pCode		text
-) RETURNS 	uuid
+  pCode        text
+) RETURNS     uuid
 AS $$
 BEGIN
   RETURN GetReference(pCode, 'scheduler');

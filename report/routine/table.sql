@@ -29,7 +29,7 @@ CREATE INDEX ON db.report_routine (report);
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION ft_report_routine_insert()
+CREATE OR REPLACE FUNCTION db.ft_report_routine_insert()
 RETURNS trigger AS $$
 DECLARE
 BEGIN
@@ -48,4 +48,4 @@ $$ LANGUAGE plpgsql
 CREATE TRIGGER t_report_routine_insert
   BEFORE INSERT ON db.report_routine
   FOR EACH ROW
-  EXECUTE PROCEDURE ft_report_routine_insert();
+  EXECUTE PROCEDURE db.ft_report_routine_insert();

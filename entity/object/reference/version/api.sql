@@ -29,7 +29,7 @@ CREATE OR REPLACE FUNCTION api.add_version (
   pType         uuid,
   pCode         text,
   pName         text,
-  pDescription	text default null
+  pDescription  text default null
 ) RETURNS       uuid
 AS $$
 BEGIN
@@ -52,12 +52,12 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_version (
-  pId		    uuid,
+  pId           uuid,
   pParent       uuid default null,
   pType         uuid default null,
   pCode         text default null,
   pName         text default null,
-  pDescription	text default null
+  pDescription  text default null
 ) RETURNS       void
 AS $$
 DECLARE
@@ -85,7 +85,7 @@ CREATE OR REPLACE FUNCTION api.set_version (
   pType         uuid default null,
   pCode         text default null,
   pName         text default null,
-  pDescription	text default null
+  pDescription  text default null
 ) RETURNS       SETOF api.version
 AS $$
 BEGIN
@@ -110,8 +110,8 @@ $$ LANGUAGE plpgsql
  * @return {api.version}
  */
 CREATE OR REPLACE FUNCTION api.get_version (
-  pId		uuid
-) RETURNS	api.version
+  pId        uuid
+) RETURNS    api.version
 AS $$
   SELECT * FROM api.version WHERE id = pId
 $$ LANGUAGE SQL
@@ -131,12 +131,12 @@ $$ LANGUAGE SQL
  * @return {SETOF api.version}
  */
 CREATE OR REPLACE FUNCTION api.list_version (
-  pSearch	jsonb default null,
-  pFilter	jsonb default null,
-  pLimit	integer default null,
-  pOffSet	integer default null,
-  pOrderBy	jsonb default null
-) RETURNS	SETOF api.version
+  pSearch   jsonb default null,
+  pFilter   jsonb default null,
+  pLimit    integer default null,
+  pOffSet   integer default null,
+  pOrderBy  jsonb default null
+) RETURNS   SETOF api.version
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'version', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
@@ -154,8 +154,8 @@ $$ LANGUAGE plpgsql
  * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION api.get_version_id (
-  pCode		text
-) RETURNS	uuid
+  pCode      text
+) RETURNS    uuid
 AS $$
 BEGIN
   IF length(pCode) = 36 AND SubStr(pCode, 15, 1) = '4' THEN

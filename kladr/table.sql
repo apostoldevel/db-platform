@@ -3,13 +3,13 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.kladr (
-    code		varchar(13) PRIMARY KEY,
-    name		varchar(40) NOT NULL,
-    socr		varchar(10),
-    index		varchar(6),
-    gninmb		varchar(4),
-    uno		    varchar(4),
-    ocatd		varchar(11),
+    code        varchar(13) PRIMARY KEY,
+    name        varchar(40) NOT NULL,
+    socr        varchar(10),
+    index       varchar(6),
+    gninmb      varchar(4),
+    uno         varchar(4),
+    ocatd       varchar(11),
     status      varchar(1)
 );
 
@@ -33,13 +33,13 @@ GRANT SELECT ON db.kladr TO administrator;
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.street (
-    code		varchar(17) PRIMARY KEY,
-    name		varchar(40) NOT NULL,
-    socr		varchar(10),
-    index		varchar(6),
-    gninmb		varchar(4),
-    uno		    varchar(4),
-    ocatd		varchar(11)
+    code        varchar(17) PRIMARY KEY,
+    name        varchar(40) NOT NULL,
+    socr        varchar(10),
+    index       varchar(6),
+    gninmb      varchar(4),
+    uno         varchar(4),
+    ocatd       varchar(11)
 );
 
 COMMENT ON TABLE db.street IS 'Классификаторы адресов Российской Федерации (Улицы).';
@@ -62,13 +62,12 @@ GRANT SELECT ON db.street TO administrator;
 
 CREATE TABLE db.address_tree (
     id          serial PRIMARY KEY,
-    parent      integer,
+    parent      integer REFERENCES db.address_tree(id),
     code        varchar(17) NOT NULL,
     name        text NOT NULL,
     short       text,
     index       varchar(6),
-    level		integer NOT NULL,
-    CONSTRAINT fk_address_tree_parent FOREIGN KEY (parent) REFERENCES db.address_tree(id)
+    level       integer NOT NULL
 );
 
 COMMENT ON TABLE db.address_tree IS 'Справочник адресов в виде дерева.';

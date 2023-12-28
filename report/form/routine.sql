@@ -21,7 +21,7 @@ CREATE OR REPLACE FUNCTION CreateReportForm (
 ) RETURNS       uuid
 AS $$
 DECLARE
-  uReference	uuid;
+  uReference    uuid;
   uClass        uuid;
   uMethod       uuid;
 BEGIN
@@ -93,8 +93,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetReportForm (
-  pCode		text
-) RETURNS 	uuid
+  pCode       text
+) RETURNS     uuid
 AS $$
 BEGIN
   RETURN GetReference(pCode, 'report_form');
@@ -108,8 +108,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetReportFormDefinition (
-  pId		uuid
-) RETURNS	text
+  pId        uuid
+) RETURNS    text
 AS $$
   SELECT definition FROM db.report_form WHERE id = pId
 $$ LANGUAGE SQL
@@ -123,7 +123,7 @@ $$ LANGUAGE SQL
 CREATE OR REPLACE FUNCTION BuildReportForm (
   pForm     uuid,
   pParams   json
-) RETURNS 	SETOF json
+) RETURNS   SETOF json
 AS $$
 BEGIN
   RETURN QUERY EXECUTE 'SELECT report.' || GetReportFormDefinition(pForm) || '($1, $2);' USING pForm, pParams;

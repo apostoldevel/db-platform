@@ -8,7 +8,7 @@ BEGIN
   IF NEW.call_back IS NOT NULL THEN
     PERFORM FROM pg_namespace n INNER JOIN pg_proc p ON n.oid = p.pronamespace WHERE n.nspname = split_part(NEW.call_back, '.', 1) AND p.proname = split_part(NEW.call_back, '.', 2);
     IF NOT FOUND THEN
-	  RAISE EXCEPTION 'ERR-40000: Not found callback function: %', NEW.call_back;
+      RAISE EXCEPTION 'ERR-40000: Not found callback function: %', NEW.call_back;
     END IF;
   END IF;
 

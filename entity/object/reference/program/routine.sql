@@ -17,11 +17,11 @@ CREATE OR REPLACE FUNCTION CreateProgram (
   pCode         text,
   pName         text,
   pBody         text,
-  pDescription	text default null
+  pDescription  text default null
 ) RETURNS       uuid
 AS $$
 DECLARE
-  uReference	uuid;
+  uReference    uuid;
   uClass        uuid;
   uMethod       uuid;
 BEGIN
@@ -66,7 +66,7 @@ CREATE OR REPLACE FUNCTION EditProgram (
   pCode         text default null,
   pName         text default null,
   pBody         text default null,
-  pDescription	text default null
+  pDescription  text default null
 ) RETURNS       void
 AS $$
 DECLARE
@@ -93,8 +93,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetProgram (
-  pCode		text
-) RETURNS 	uuid
+  pCode        text
+) RETURNS     uuid
 AS $$
 BEGIN
   RETURN GetReference(pCode, 'program');
@@ -109,7 +109,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION GetProgramBody (
   pId       uuid
-) RETURNS 	text
+) RETURNS     text
 AS $$
   SELECT body FROM db.program WHERE id = pId;
 $$ LANGUAGE SQL

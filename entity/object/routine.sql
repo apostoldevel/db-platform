@@ -839,6 +839,36 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- FUNCTION DoComplete ---------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION DoComplete (
+  pObject    uuid
+) RETURNS    jsonb
+AS $$
+BEGIN
+  RETURN ExecuteObjectAction(pObject, GetAction('complete'));
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION DoFail -------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION DoFail (
+  pObject    uuid
+) RETURNS    jsonb
+AS $$
+BEGIN
+  RETURN ExecuteObjectAction(pObject, GetAction('fail'));
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- FUNCTION DoCancel -----------------------------------------------------------
 --------------------------------------------------------------------------------
 

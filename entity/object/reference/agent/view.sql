@@ -10,7 +10,7 @@ AS
   SELECT a.id, a.reference, r.code, rt.name, rt.description,
          a.vendor, vr.code, vrt.name, vrt.description,
          r.scope, sc.code, sc.name, sc.description
-    FROM db.agent a INNER JOIN db.reference        r ON a.vendor = r.id
+    FROM db.agent a INNER JOIN db.reference        r ON a.reference = r.id
                      LEFT JOIN db.reference_text  rt ON rt.reference = r.id AND rt.locale = current_locale()
                     INNER JOIN db.reference       vr ON a.vendor = vr.id
                      LEFT JOIN db.reference_text vrt ON vrt.reference = vr.id AND vrt.locale = current_locale()
@@ -26,7 +26,7 @@ CREATE OR REPLACE VIEW AccessAgent
 AS
 WITH _access AS (
    WITH _membergroup AS (
-	 SELECT current_userid() AS userid UNION SELECT userid FROM db.member_group WHERE member = current_userid()
+     SELECT current_userid() AS userid UNION SELECT userid FROM db.member_group WHERE member = current_userid()
    ) SELECT object
        FROM db.aou AS a INNER JOIN db.entity    e ON a.entity = e.id AND e.code = 'agent'
                         INNER JOIN _membergroup m ON a.userid = m.userid

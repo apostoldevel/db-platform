@@ -43,17 +43,17 @@ CREATE OR REPLACE FUNCTION api.create_resource (
   pId           uuid,
   pRoot         uuid,
   pNode         uuid,
-  pType     	text,
+  pType         text,
   pName         text,
-  pDescription	text DEFAULT null,
-  pEncoding		text DEFAULT null,
-  pData			text DEFAULT null,
+  pDescription  text DEFAULT null,
+  pEncoding     text DEFAULT null,
+  pData         text DEFAULT null,
   pSequence     integer DEFAULT null,
-  pLocaleCode	text DEFAULT locale_code()
+  pLocaleCode   text DEFAULT locale_code()
 ) RETURNS       uuid
 AS $$
 DECLARE
-  uLocale		uuid;
+  uLocale        uuid;
 BEGIN
   SELECT id INTO uLocale FROM db.locale WHERE code = pLocaleCode;
 
@@ -88,17 +88,17 @@ CREATE OR REPLACE FUNCTION api.update_resource (
   pId           uuid,
   pRoot         uuid DEFAULT null,
   pNode         uuid DEFAULT null,
-  pType			text DEFAULT null,
+  pType         text DEFAULT null,
   pName         text DEFAULT null,
-  pDescription	text DEFAULT null,
-  pEncoding		text DEFAULT null,
-  pData			text DEFAULT null,
+  pDescription  text DEFAULT null,
+  pEncoding     text DEFAULT null,
+  pData         text DEFAULT null,
   pSequence     integer DEFAULT null,
-  pLocaleCode	text DEFAULT locale_code()
+  pLocaleCode   text DEFAULT locale_code()
 ) RETURNS       void
 AS $$
 DECLARE
-  uLocale		uuid;
+  uLocale       uuid;
 BEGIN
   SELECT id INTO uLocale FROM db.locale WHERE code = pLocaleCode;
 
@@ -120,18 +120,18 @@ CREATE OR REPLACE FUNCTION api.set_resource (
   pId           uuid,
   pRoot         uuid DEFAULT null,
   pNode         uuid DEFAULT null,
-  pType			text DEFAULT null,
+  pType         text DEFAULT null,
   pName         text DEFAULT null,
-  pDescription	text DEFAULT null,
-  pEncoding		text DEFAULT null,
-  pData			text DEFAULT null,
+  pDescription  text DEFAULT null,
+  pEncoding     text DEFAULT null,
+  pData         text DEFAULT null,
   pSequence     integer DEFAULT null,
-  pLocaleCode	text DEFAULT locale_code()
+  pLocaleCode   text DEFAULT locale_code()
 ) RETURNS       SETOF api.resource
 AS $$
 DECLARE
-  uLocale		uuid;
-  uResource		uuid;
+  uLocale       uuid;
+  uResource     uuid;
 BEGIN
   SELECT id INTO uLocale FROM db.locale WHERE code = pLocaleCode;
 
@@ -156,8 +156,8 @@ $$ LANGUAGE plpgsql
  * @return {api.resource}
  */
 CREATE OR REPLACE FUNCTION api.get_resource (
-  pId		uuid
-) RETURNS	SETOF api.resource
+  pId        uuid
+) RETURNS    SETOF api.resource
 AS $$
   SELECT * FROM api.resource WHERE id = pId
 $$ LANGUAGE SQL
@@ -196,12 +196,12 @@ $$ LANGUAGE plpgsql
  * @return {SETOF api.resource}
  */
 CREATE OR REPLACE FUNCTION api.list_resource (
-  pSearch	jsonb default null,
-  pFilter	jsonb default null,
-  pLimit	integer default null,
-  pOffSet	integer default null,
-  pOrderBy	jsonb default null
-) RETURNS	SETOF api.resource
+  pSearch   jsonb default null,
+  pFilter   jsonb default null,
+  pLimit    integer default null,
+  pOffSet   integer default null,
+  pOrderBy  jsonb default null
+) RETURNS   SETOF api.resource
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'resource', pSearch, pFilter, pLimit, pOffSet, pOrderBy);

@@ -25,10 +25,10 @@ GRANT SELECT ON api.log TO administrator;
  */
 CREATE OR REPLACE FUNCTION api.log (
   pUserName     text DEFAULT null,
-  pPath		    text DEFAULT null,
-  pDateFrom	    timestamp DEFAULT null,
-  pDateTo	    timestamp DEFAULT null
-) RETURNS	    SETOF api.log
+  pPath         text DEFAULT null,
+  pDateFrom     timestamp DEFAULT null,
+  pDateTo       timestamp DEFAULT null
+) RETURNS       SETOF api.log
 AS $$
   SELECT *
     FROM api.log
@@ -51,8 +51,8 @@ $$ LANGUAGE SQL
  * @return {api.log}
  */
 CREATE OR REPLACE FUNCTION api.get_log (
-  pId		bigint
-) RETURNS	api.log
+  pId        bigint
+) RETURNS    api.log
 AS $$
   SELECT * FROM api.log WHERE id = pId
 $$ LANGUAGE SQL
@@ -72,12 +72,12 @@ $$ LANGUAGE SQL
  * @return {SETOF api.log}
  */
 CREATE OR REPLACE FUNCTION api.list_log (
-  pSearch	jsonb DEFAULT null,
-  pFilter	jsonb DEFAULT null,
-  pLimit	integer DEFAULT null,
-  pOffSet	integer DEFAULT null,
-  pOrderBy	jsonb DEFAULT null
-) RETURNS	SETOF api.log
+  pSearch   jsonb DEFAULT null,
+  pFilter   jsonb DEFAULT null,
+  pLimit    integer DEFAULT null,
+  pOffSet   integer DEFAULT null,
+  pOrderBy  jsonb DEFAULT null
+) RETURNS   SETOF api.log
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'log', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
@@ -198,8 +198,8 @@ BEGIN
         vCondition := coalesce(upper(r.condition), 'AND');
         vField     := coalesce(lower(r.field), '');
         vCompare   := coalesce(upper(r.compare), 'EQL');
-        vLStr	   := coalesce(r.lstr, '');
-        vRStr	   := coalesce(r.rstr, '');
+        vLStr      := coalesce(r.lstr, '');
+        vRStr      := coalesce(r.rstr, '');
 
         vField := quote_literal_json(vField);
 
@@ -238,14 +238,14 @@ BEGIN
             PERFORM IncorrectValueInArray(vCompare, 'compare', arValues);
           END IF;
 
-		  IF vField = 'statetypecode' THEN
-			vField := 'statetype';
-			SELECT id INTO uId FROM db.state_type WHERE code = r.value;
-			vValue := quote_nullable(uId);
-		  ELSIF vField = 'typecode' THEN
-			vField := 'type';
-			SELECT id INTO uId FROM db.type WHERE code = r.value;
-			vValue := quote_nullable(uId);
+          IF vField = 'statetypecode' THEN
+            vField := 'statetype';
+            SELECT id INTO uId FROM db.state_type WHERE code = r.value;
+            vValue := quote_nullable(uId);
+          ELSIF vField = 'typecode' THEN
+            vField := 'type';
+            SELECT id INTO uId FROM db.type WHERE code = r.value;
+        	vValue := quote_nullable(uId);
 		  ELSIF vField = 'classcode' THEN
 			vField := 'class';
 			SELECT id INTO uId FROM db.class_tree WHERE code = r.value;

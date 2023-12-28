@@ -3,8 +3,8 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION JobExists (
-  pCode		text
-) RETURNS	void
+  pCode      text
+) RETURNS    void
 AS $$
 BEGIN
   RAISE EXCEPTION 'ERR-40000: Задание с кодом "%" уже существует.', pCode;

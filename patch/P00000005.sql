@@ -58,7 +58,7 @@ ALTER TABLE db.area
 UPDATE db.area SET scope = GetScope(current_database());
 
 ALTER TABLE db.area
-	ALTER COLUMN scope SET NOT NULL;
+    ALTER COLUMN scope SET NOT NULL;
 
 COMMENT ON COLUMN db.area.scope IS 'Область видимости базы данных';
 
@@ -71,7 +71,7 @@ RETURNS trigger AS $$
 DECLARE
 BEGIN
   IF NEW.id IS NULL THEN
-	NEW.id := gen_kernel_uuid('8');
+    NEW.id := gen_kernel_uuid('8');
   END IF;
 
   IF NEW.id = NEW.parent THEN
@@ -91,7 +91,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 ALTER TABLE db.reference
-	ADD COLUMN scope uuid REFERENCES db.scope(id);
+    ADD COLUMN scope uuid REFERENCES db.scope(id);
 
 COMMENT ON COLUMN db.reference.scope IS 'Облась видимости';
 
@@ -100,7 +100,7 @@ CREATE INDEX ON db.reference (scope);
 UPDATE db.reference SET scope = GetScope(current_database());
 
 ALTER TABLE db.reference
-	ALTER COLUMN scope SET NOT NULL;
+    ALTER COLUMN scope SET NOT NULL;
 
 DROP INDEX IF EXISTS db.reference_entity_code_idx;
 
@@ -111,7 +111,7 @@ CREATE UNIQUE INDEX ON db.reference (scope, entity, code);
 CREATE OR REPLACE FUNCTION db.ft_reference_before_insert()
 RETURNS trigger AS $$
 DECLARE
-  vCode		text;
+  vCode        text;
 BEGIN
   IF NEW.id IS NULL THEN
     SELECT NEW.object INTO NEW.id;

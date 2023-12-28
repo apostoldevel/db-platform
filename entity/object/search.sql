@@ -3,8 +3,8 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.search_en (
-  pText		text
-) RETURNS	SETOF api.object
+  pText      text
+) RETURNS    SETOF api.object
 AS $$
   WITH access AS (
     SELECT object FROM aou(current_userid())
@@ -25,8 +25,8 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.search_ru (
-  pText		text
-) RETURNS	SETOF api.object
+  pText      text
+) RETURNS    SETOF api.object
 AS $$
   WITH access AS (
     SELECT object FROM aou(current_userid())
@@ -47,16 +47,16 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.search (
-  pText			text,
+  pText         text,
   pEntities     jsonb DEFAULT null,
-  pLocaleCode	text DEFAULT locale_code()
-) RETURNS		SETOF api.object
+  pLocaleCode   text DEFAULT locale_code()
+) RETURNS       SETOF api.object
 AS $$
 BEGIN
   IF pLocaleCode = 'ru' THEN
-  	RETURN QUERY SELECT * FROM api.search_ru(pText) WHERE array_position(coalesce(JsonbToStrArray(pEntities), ARRAY[entitycode]), entitycode) IS NOT NULL;
+    RETURN QUERY SELECT * FROM api.search_ru(pText) WHERE array_position(coalesce(JsonbToStrArray(pEntities), ARRAY[entitycode]), entitycode) IS NOT NULL;
   ELSE
-  	RETURN QUERY SELECT * FROM api.search_en(pText) WHERE array_position(coalesce(JsonbToStrArray(pEntities), ARRAY[entitycode]), entitycode) IS NOT NULL;
+    RETURN QUERY SELECT * FROM api.search_en(pText) WHERE array_position(coalesce(JsonbToStrArray(pEntities), ARRAY[entitycode]), entitycode) IS NOT NULL;
   END IF;
 
   RETURN;

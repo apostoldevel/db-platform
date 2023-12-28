@@ -19,7 +19,7 @@ CREATE OR REPLACE FUNCTION CreateForm (
 ) RETURNS       uuid
 AS $$
 DECLARE
-  uReference	uuid;
+  uReference    uuid;
   uClass        uuid;
   uMethod       uuid;
 BEGIN
@@ -85,8 +85,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetForm (
-  pCode		text
-) RETURNS 	uuid
+  pCode       text
+) RETURNS     uuid
 AS $$
 BEGIN
   RETURN GetReference(pCode, 'form');
@@ -102,11 +102,11 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION BuildForm (
   pForm     uuid,
   pParams   json
-) RETURNS 	json
+) RETURNS   json
 AS $$
 DECLARE
   r         record;
-  arResult	json[];
+  arResult  json[];
 BEGIN
   FOR r IN SELECT key, type, label, format, value, data, mutable FROM db.form_field WHERE form = pForm ORDER BY sequence
   LOOP

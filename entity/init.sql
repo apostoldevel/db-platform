@@ -56,29 +56,29 @@ BEGIN
 
       PERFORM CreateEntityScheduler(uReference);
 
-	  -- Производитель
+      -- Производитель
 
-	  PERFORM CreateEntityVendor(uReference);
+      PERFORM CreateEntityVendor(uReference);
 
       -- Версия
 
       PERFORM CreateEntityVersion(uReference);
 
-	  -- Дерево отчётов
+      -- Дерево отчётов
 
-	  PERFORM CreateEntityReportTree(uReference);
+      PERFORM CreateEntityReportTree(uReference);
 
-	  -- Форма отчёта
+      -- Форма отчёта
 
-	  PERFORM CreateEntityReportForm(uReference);
+      PERFORM CreateEntityReportForm(uReference);
 
-	  -- Функция отчёта
+      -- Функция отчёта
 
-	  PERFORM CreateEntityReportRoutine(uReference);
+      PERFORM CreateEntityReportRoutine(uReference);
 
-	  -- Отчёт
+      -- Отчёт
 
-	  PERFORM CreateEntityReport(uReference);
+      PERFORM CreateEntityReport(uReference);
 
 END
 $$ LANGUAGE plpgsql

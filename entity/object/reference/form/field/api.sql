@@ -84,12 +84,12 @@ $$ LANGUAGE plpgsql
  * @return {SETOF api.form_field}
  */
 CREATE OR REPLACE FUNCTION api.list_form_field (
-  pSearch	jsonb default null,
-  pFilter	jsonb default null,
-  pLimit	integer default null,
-  pOffSet	integer default null,
-  pOrderBy	jsonb default null
-) RETURNS	SETOF api.form_field
+  pSearch   jsonb default null,
+  pFilter   jsonb default null,
+  pLimit    integer default null,
+  pOffSet   integer default null,
+  pOrderBy  jsonb default null
+) RETURNS   SETOF api.form_field
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'form_field', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
@@ -104,7 +104,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION api.clear_form_field (
   pForm     uuid
-) RETURNS	boolean
+) RETURNS   boolean
 AS $$
 BEGIN
   RETURN DeleteFormField(pForm, null);
@@ -118,14 +118,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.set_form_field_json (
-  pForm         uuid,
-  pFields	    json
-) RETURNS		SETOF api.form_field
+  pForm        uuid,
+  pFields      json
+) RETURNS      SETOF api.form_field
 AS $$
 DECLARE
-  r				record;
+  r             record;
 
-  arKeys		text[];
+  arKeys        text[];
 BEGIN
   PERFORM FROM db.form WHERE id = pForm;
 
@@ -144,7 +144,7 @@ BEGIN
 
   FOR r IN SELECT * FROM json_to_recordset(pFields) AS x(key text, type text, label text, format text, value text, data jsonb, mutable boolean, sequence integer)
   LOOP
-	RETURN QUERY SELECT * FROM api.set_form_field(pForm, r.key, r.type, r.label, r.format, r.value, r.data, r.mutable, r.sequence);
+    RETURN QUERY SELECT * FROM api.set_form_field(pForm, r.key, r.type, r.label, r.format, r.value, r.data, r.mutable, r.sequence);
   END LOOP;
 
   RETURN;

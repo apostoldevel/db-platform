@@ -24,7 +24,7 @@ BEGIN
   END IF;
 
   IF current_session() IS NULL THEN
-	PERFORM LoginFailed();
+    PERFORM LoginFailed();
   END IF;
 
   CASE pPath
@@ -185,13 +185,13 @@ BEGIN
     arKeys := array_cat(arKeys, ARRAY['id', 'form']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-	FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, form jsonb)
-	LOOP
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, form jsonb)
+    LOOP
       FOR e IN SELECT * FROM api.build_report(r.id, r.form)
       LOOP
         RETURN NEXT row_to_json(e);
       END LOOP;
-	END LOOP;
+    END LOOP;
 
   WHEN '/report/object/count' THEN
 

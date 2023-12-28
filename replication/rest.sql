@@ -23,13 +23,13 @@ BEGIN
   END IF;
 
   IF current_session() IS NULL THEN
-	PERFORM LoginFailed();
+    PERFORM LoginFailed();
   END IF;
 
   IF session_user <> 'kernel' THEN
-	IF NOT IsUserRole('00000000-0000-4000-a000-000000000005'::uuid, current_userid()) THEN -- replication
-	  PERFORM AccessDenied();
-	END IF;
+    IF NOT IsUserRole('00000000-0000-4000-a000-000000000005'::uuid, current_userid()) THEN -- replication
+      PERFORM AccessDenied();
+    END IF;
   END IF;
 
   CASE pPath

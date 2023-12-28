@@ -7,12 +7,12 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.report_tree (
-    id			    uuid PRIMARY KEY,
-    reference		uuid NOT NULL REFERENCES db.reference(id) ON DELETE CASCADE,
+    id              uuid PRIMARY KEY,
+    reference       uuid NOT NULL REFERENCES db.reference(id) ON DELETE CASCADE,
     root            uuid NOT NULL REFERENCES db.report_tree(id),
     node            uuid REFERENCES db.report_tree(id),
     level           integer NOT NULL,
-    sequence		integer NOT NULL
+    sequence        integer NOT NULL
 );
 
 COMMENT ON TABLE db.report_tree IS 'Дерево отчётов.';
@@ -30,7 +30,7 @@ CREATE INDEX ON db.report_tree (node);
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION ft_report_tree_insert()
+CREATE OR REPLACE FUNCTION db.ft_report_tree_insert()
 RETURNS trigger AS $$
 DECLARE
 BEGIN
@@ -49,4 +49,4 @@ $$ LANGUAGE plpgsql
 CREATE TRIGGER t_report_tree_insert
   BEFORE INSERT ON db.report_tree
   FOR EACH ROW
-  EXECUTE PROCEDURE ft_report_tree_insert();
+  EXECUTE PROCEDURE db.ft_report_tree_insert();
