@@ -21,7 +21,7 @@ DROP FUNCTION IF EXISTS SetAction(text, text, text);
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.priority (
-    id            uuid PRIMARY KEY DEFAULT gen_kernel_uuid('b'),
+    id          uuid PRIMARY KEY DEFAULT gen_kernel_uuid('b'),
     code        text NOT NULL
 );
 

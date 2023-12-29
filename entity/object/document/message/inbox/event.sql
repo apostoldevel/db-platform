@@ -37,7 +37,7 @@ CREATE OR REPLACE FUNCTION EventInboxEdit (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'edit', 'Входящее сообщение изменёно.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'edit', 'Входящее сообщение изменено.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -50,7 +50,7 @@ CREATE OR REPLACE FUNCTION EventInboxSave (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'save', 'Входящее сообщение сохранёно.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'save', 'Входящее сообщение сохранено.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -89,7 +89,7 @@ CREATE OR REPLACE FUNCTION EventInboxDelete (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'delete', 'Входящее сообщение удалёно.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'delete', 'Входящее сообщение удалено.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 

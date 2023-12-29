@@ -37,7 +37,7 @@ CREATE OR REPLACE FUNCTION EventOutboxEdit (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'edit', 'Исходящее сообщение изменёно.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'edit', 'Исходящее сообщение изменено.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -50,7 +50,7 @@ CREATE OR REPLACE FUNCTION EventOutboxSave (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'save', 'Исходящее сообщение сохранёно.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'save', 'Исходящее сообщение сохранено.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -167,7 +167,7 @@ CREATE OR REPLACE FUNCTION EventOutboxDelete (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'delete', 'Исходящее сообщение удалёно.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'delete', 'Исходящее сообщение удалено.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 

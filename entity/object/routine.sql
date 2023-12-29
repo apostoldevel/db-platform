@@ -779,6 +779,22 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- FUNCTION DoSave -------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION DoSave (
+  pObject   uuid,
+  pParams   jsonb DEFAULT null
+) RETURNS   jsonb
+AS $$
+BEGIN
+  RETURN ExecuteMethod(pObject, GetMethod(GetObjectClass(pObject), GetAction('save')), pParams);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- FUNCTION DoCreate -----------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -878,6 +894,22 @@ CREATE OR REPLACE FUNCTION DoCancel (
 AS $$
 BEGIN
   RETURN ExecuteObjectAction(pObject, GetAction('cancel'));
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION DoUpdate -----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION DoUpdate (
+  pObject   uuid,
+  pParams   jsonb DEFAULT null
+) RETURNS   jsonb
+AS $$
+BEGIN
+  RETURN ExecuteObjectAction(pObject, GetAction('update'), pParams);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

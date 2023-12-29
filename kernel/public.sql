@@ -1535,3 +1535,16 @@ END
 $$ LANGUAGE plpgsql IMMUTABLE;
 
 GRANT EXECUTE ON FUNCTION URLEncode(text) TO PUBLIC;
+
+--------------------------------------------------------------------------------
+-- word_count ------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION word_count (
+  str       text
+) RETURNS   integer
+AS $$
+BEGIN
+  RETURN (SELECT COUNT(*) FROM regexp_split_to_table(str, '\s+') as word);
+END;
+$$ LANGUAGE plpgsql;

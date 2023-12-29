@@ -37,7 +37,7 @@ CREATE OR REPLACE FUNCTION EventProgramEdit (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'edit', 'Программа изменёна.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'edit', 'Программа изменена.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -50,7 +50,7 @@ CREATE OR REPLACE FUNCTION EventProgramSave (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'save', 'Программа сохранёна.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'save', 'Программа сохранена.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -89,7 +89,7 @@ CREATE OR REPLACE FUNCTION EventProgramDelete (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'delete', 'Программа удалёна.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'delete', 'Программа удалена.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 

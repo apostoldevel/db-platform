@@ -207,12 +207,12 @@ BEGIN
 
     IF r.code = 'edit' THEN
       PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Исходящее сообщение изменёно', 'EventOutboxEdit();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Исходящее сообщение изменено', 'EventOutboxEdit();');
     END IF;
 
     IF r.code = 'save' THEN
       PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Исходящее сообщение сохранёно', 'EventOutboxSave();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Исходящее сообщение сохранено', 'EventOutboxSave();');
     END IF;
 
     IF r.code = 'submit' THEN

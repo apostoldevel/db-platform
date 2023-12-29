@@ -37,7 +37,7 @@ CREATE OR REPLACE FUNCTION EventVersionEdit (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'edit', 'Версия изменёна.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'edit', 'Версия изменена.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -50,7 +50,7 @@ CREATE OR REPLACE FUNCTION EventVersionSave (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'save', 'Версия сохранёна.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'save', 'Версия сохранена.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -89,7 +89,7 @@ CREATE OR REPLACE FUNCTION EventVersionDelete (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'delete', 'Версия удалёна.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'delete', 'Версия удалена.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 

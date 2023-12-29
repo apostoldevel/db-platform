@@ -160,12 +160,12 @@ BEGIN
 
     IF r.code = 'edit' THEN
       PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Сообщение изменёно', 'EventInboxEdit();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Сообщение изменено', 'EventInboxEdit();');
     END IF;
 
     IF r.code = 'save' THEN
       PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Сообщение сохранёно', 'EventInboxSave();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Сообщение сохранено', 'EventInboxSave();');
     END IF;
 
     IF r.code = 'enable' THEN

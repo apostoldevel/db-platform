@@ -37,7 +37,7 @@ CREATE OR REPLACE FUNCTION EventMessageEdit (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'edit', 'Сообщение изменёно.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'edit', 'Сообщение изменено.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -50,7 +50,7 @@ CREATE OR REPLACE FUNCTION EventMessageSave (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'save', 'Сообщение сохранёно.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'save', 'Сообщение сохранено.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -89,7 +89,7 @@ CREATE OR REPLACE FUNCTION EventMessageDelete (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'delete', 'Сообщение удалёно.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'delete', 'Сообщение удалено.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
