@@ -43,7 +43,7 @@ WITH
       WHEN algorithm = 'HS512' THEN 'sha512'
       ELSE '' END AS id)  -- hmac throws error
 SELECT url_encode(hmac(signables, secret, alg.id)) FROM alg;
-$$;
+$$ SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION algorithm_sign(text, text, text) TO PUBLIC;
 

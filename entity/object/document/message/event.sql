@@ -258,4 +258,5 @@ BEGIN
     END IF;
   END IF;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;

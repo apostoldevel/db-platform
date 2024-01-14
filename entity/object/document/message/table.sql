@@ -54,7 +54,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
+   SET search_path = kernel, public, pg_temp;
 
 CREATE TRIGGER t_message_before_insert
   BEFORE INSERT ON db.message

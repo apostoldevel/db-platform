@@ -393,4 +393,4 @@ WHEN others THEN
 END
 $$ LANGUAGE plpgsql
   SECURITY DEFINER
-  SET search_path = kernel, pg_temp;
+  SET search_path = kernel, public, pg_temp;

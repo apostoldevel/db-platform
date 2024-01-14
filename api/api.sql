@@ -279,8 +279,10 @@ BEGIN
 
   IF pOrderBy IS NOT NULL THEN
     --PERFORM CheckJsonbValues('orderby', array_cat(arColumns, array_add_text(arColumns, ' desc')), pOrderBy);
-    IF JsonbToStrArray(pOrderBy) IS NOT NULL THEN
-      vSelect := vSelect || E'\n ORDER BY ' || array_to_string(array_quote_literal_json(JsonbToStrArray(pOrderBy)), ',');
+    IF jsonb_typeof(pOrderBy) = 'array' THEN
+      IF JsonbToStrArray(pOrderBy) IS NOT NULL THEN
+        vSelect := vSelect || E'\n ORDER BY ' || array_to_string(array_quote_literal_json(JsonbToStrArray(pOrderBy)), ',');
+      END IF;
     END IF;
   ELSE
     IF 'sequence' = ANY (arColumns) THEN

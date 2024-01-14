@@ -631,7 +631,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
+   SET search_path = kernel, public, pg_temp;
 
 --------------------------------------------------------------------------------
 -- api.recovery_password -------------------------------------------------------
@@ -686,7 +686,7 @@ BEGIN
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
+   SET search_path = kernel, public, pg_temp;
 
 --------------------------------------------------------------------------------
 -- api.check_recovery_ticket ---------------------------------------------------
@@ -792,7 +792,7 @@ BEGIN
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
+   SET search_path = kernel, public, pg_temp;
 
 --------------------------------------------------------------------------------
 -- api.registration_code_by_phone ----------------------------------------------
@@ -827,7 +827,7 @@ BEGIN
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
+   SET search_path = kernel, public, pg_temp;
 
 --------------------------------------------------------------------------------
 -- api.registration_code -------------------------------------------------------

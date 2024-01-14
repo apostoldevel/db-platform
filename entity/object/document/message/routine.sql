@@ -260,7 +260,7 @@ BEGIN
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
+   SET search_path = kernel, public, pg_temp;
 
 --------------------------------------------------------------------------------
 -- SendMessage -----------------------------------------------------------------
@@ -287,7 +287,7 @@ BEGIN
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
+   SET search_path = kernel, public, pg_temp;
 
 --------------------------------------------------------------------------------
 -- SendMail --------------------------------------------------------------------
@@ -610,7 +610,7 @@ WHEN others THEN
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
+   SET search_path = kernel, public, pg_temp;
 
 --------------------------------------------------------------------------------
 -- RecoveryPasswordByPhone -----------------------------------------------------

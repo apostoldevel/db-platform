@@ -90,7 +90,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
-   SET search_path = db, kernel, pg_temp;
+   SET search_path = db, kernel, public, pg_temp;
 
 --------------------------------------------------------------------------------
 
