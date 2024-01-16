@@ -1548,3 +1548,68 @@ BEGIN
   RETURN (SELECT COUNT(*) FROM regexp_split_to_table(str, '\s+') as word);
 END;
 $$ LANGUAGE plpgsql;
+
+--------------------------------------------------------------------------------
+-- generate_aws_signature ------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION generate_aws_signature (
+  HTTPMethod            TEXT,
+  canonicalURI          TEXT,
+  canonicalQueryString  TEXT,
+  canonicalHeaders      TEXT,
+  signedHeaders         TEXT,
+  hashedPayload         TEXT,
+  SECRET_KEY            TEXT,
+  REGION                TEXT,
+  currentTimeStamp      timestamp DEFAULT null
+) RETURNS               TEXT
+AS $$
+DECLARE
+  canonicalRequest      TEXT;
+  stringToSign          TEXT;
+  dateKey               BYTEA;
+  dateRegionKey         BYTEA;
+  dateRegionServiceKey  BYTEA;
+  signingKey            BYTEA;
+  signature             TEXT;
+  currentDate           TEXT;
+BEGIN
+  currentTimeStamp := coalesce(currentTimeStamp, current_timestamp AT TIME ZONE 'UTC');
+RAISE NOTICE 'currentTimeStamp: %', currentTimeStamp;
+  -- Создаем канонический запрос
+  canonicalRequest := coalesce(HTTPMethod, 'GET') || E'\n' ||
+					  coalesce(canonicalURI, '/') || E'\n' ||
+					  coalesce(canonicalQueryString, '') || E'\n' ||
+					  canonicalHeaders || E'\n' ||
+					  signedHeaders || E'\n' ||
+					  coalesce(hashedPayload, 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855');
+RAISE NOTICE 'canonicalRequest: %', canonicalRequest;
+  -- Форматируем текущую дату
+  currentDate := to_char(currentTimeStamp, 'YYYYMMDD"T"HH24MISS"Z"');
+RAISE NOTICE 'currentDate: %', currentDate;
+
+  -- Создаем строку для подписи
+  stringToSign := 'AWS4-HMAC-SHA256' || E'\n' ||
+				  currentDate || E'\n' ||
+				  to_char(currentTimeStamp, 'YYYYMMDD') || '/' ||
+				  REGION || '/s3/aws4_request' || E'\n' ||
+				  encode(digest(canonicalRequest, 'sha256'), 'hex');
+RAISE NOTICE 'stringToSign: %', stringToSign;
+  -- Генерируем ключи подписи
+  dateKey := hmac('AWS4' || SECRET_KEY, to_char(currentTimeStamp, 'YYYYMMDD'), 'sha256');
+RAISE NOTICE 'dateKey: %', dateKey;
+  dateRegionKey := hmac(dateKey, convert_to(REGION, 'utf8'), 'sha256');
+RAISE NOTICE 'dateRegionKey: %', dateRegionKey;
+  dateRegionServiceKey := hmac(dateRegionKey, convert_to('s3', 'utf8'), 'sha256');
+RAISE NOTICE 'dateRegionServiceKey: %', dateRegionServiceKey;
+  signingKey := hmac(dateRegionServiceKey, convert_to('aws4_request', 'utf8'), 'sha256');
+RAISE NOTICE 'signingKey: %', signingKey;
+
+  -- Создаем подпись
+  signature := encode(hmac(signingKey, convert_to(stringToSign, 'utf8'), 'sha256'), 'hex');
+RAISE NOTICE 'signature: %', signature;
+
+  RETURN signature;
+END;
+$$ LANGUAGE plpgsql;

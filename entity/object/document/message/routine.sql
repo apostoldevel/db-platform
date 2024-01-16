@@ -729,6 +729,7 @@ AS $$
 DECLARE
   uTicket           uuid;
 
+  vSMTP             text;
   vDomain           text;
   vProject          text;
   vHost             text;
@@ -748,6 +749,7 @@ DECLARE
   ErrorMessage      text;
 BEGIN
   vProject := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Name');
+  vSMTP := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'SMTP');
   vDomain := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Domain');
 
   vHost := current_scope_code();
@@ -755,8 +757,8 @@ BEGIN
     vHost := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Host');
   END IF;
 
-  vNoReply := format('noreply@%s', vDomain);
-  vSupport := format('support@%s', vDomain);
+  vNoReply := format('noreply@%s', coalesce(vSMTP, vDomain));
+  vSupport := format('support@%s', coalesce(vSMTP, vDomain));
 
   IF locale_code() = 'ru' THEN
     vSubject := 'Код верификации.';
