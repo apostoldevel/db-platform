@@ -1607,3 +1607,18 @@ BEGIN
   RETURN signature;
 END;
 $$ LANGUAGE plpgsql;
+
+--------------------------------------------------------------------------------
+-- get_hostname_from_uri -------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION get_hostname_from_uri(uri TEXT)
+RETURNS TEXT AS $$
+DECLARE
+  v_hostname TEXT;
+BEGIN
+  -- Извлечение хоста из URI с помощью регулярных выражений
+  SELECT SUBSTRING(uri FROM '^(?:https?://)?([^/?#]+)') INTO v_hostname;
+  RETURN v_hostname;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE STRICT;

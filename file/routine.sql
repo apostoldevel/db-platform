@@ -121,7 +121,9 @@ CREATE OR REPLACE FUNCTION NewFile (
   pData     bytea DEFAULT null,
   pMime     text DEFAULT null,
   pText     text DEFAULT null,
-  pHash     text DEFAULT null
+  pHash     text DEFAULT null,
+  pDone     text DEFAULT null,
+  pFail     text DEFAULT null
 ) RETURNS   uuid
 AS $$
 DECLARE
@@ -135,8 +137,8 @@ BEGIN
     SELECT level + 1 INTO nLevel FROM db.file WHERE id = pParent;
   END IF;
 
-  INSERT INTO db.file (id, type, mask, owner, root, parent, link, level, path, name, size, date, data, mime, text, hash)
-  VALUES (coalesce(pId, gen_kernel_uuid('8')), coalesce(pType, '-'), coalesce(pMask, B'111110100'), coalesce(pOwner, current_userid()), pRoot, pParent, pLink, nLevel, CollectFilePath(pParent), pName, coalesce(pSize, 0), coalesce(pDate, Now()), pData, pMime, pText, pHash)
+  INSERT INTO db.file (id, type, mask, owner, root, parent, link, level, path, name, size, date, data, mime, text, hash, done, fail)
+  VALUES (coalesce(pId, gen_kernel_uuid('8')), coalesce(pType, '-'), coalesce(pMask, B'111110100'), coalesce(pOwner, current_userid()), pRoot, pParent, pLink, nLevel, CollectFilePath(pParent), pName, coalesce(pSize, 0), coalesce(pDate, Now()), pData, pMime, pText, pHash, pDone, pFail)
   RETURNING id INTO uId;
 
   RETURN uId;
@@ -162,11 +164,27 @@ CREATE OR REPLACE FUNCTION AddFile (
   pData     bytea DEFAULT null,
   pMime     text DEFAULT null,
   pText     text DEFAULT null,
-  pHash     text DEFAULT null
+  pHash     text DEFAULT null,
+  pDone     text DEFAULT null,
+  pFail     text DEFAULT null
 ) RETURNS   uuid
 AS $$
 BEGIN
-  RETURN NewFile(null, pRoot, pParent, pName, pType, pOwner, pMask, pLink, pSize, pDate, pData, pMime, pText, pHash);
+  IF pDone IS NOT NULL THEN
+    PERFORM FROM pg_namespace n INNER JOIN pg_proc p ON n.oid = p.pronamespace WHERE n.nspname = split_part(pDone, '.', 1) AND p.proname = split_part(pDone, '.', 2);
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'Not found function: %', pDone;
+    END IF;
+  END IF;
+
+  IF pFail IS NOT NULL THEN
+    PERFORM FROM pg_namespace n INNER JOIN pg_proc p ON n.oid = p.pronamespace WHERE n.nspname = split_part(pFail, '.', 1) AND p.proname = split_part(pFail, '.', 2);
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'Not found function: %', pFail;
+    END IF;
+  END IF;
+
+  RETURN NewFile(null, pRoot, pParent, pName, pType, pOwner, pMask, pLink, pSize, pDate, pData, pMime, pText, pHash, pDone, pFail);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -189,7 +207,9 @@ CREATE OR REPLACE FUNCTION EditFile (
   pData     bytea DEFAULT null,
   pMime     text DEFAULT null,
   pText     text DEFAULT null,
-  pHash     text DEFAULT null
+  pHash     text DEFAULT null,
+  pDone     text DEFAULT null,
+  pFail     text DEFAULT null
 ) RETURNS   bool
 AS $$
 BEGIN
@@ -205,7 +225,9 @@ BEGIN
         data = coalesce(pData, data),
         mime = CheckNull(coalesce(pMime, mime, '')),
         text = CheckNull(coalesce(pText, text, '')),
-        hash = CheckNull(coalesce(pHash, hash, ''))
+        hash = CheckNull(coalesce(pHash, hash, '')),
+        done = CheckNull(coalesce(pDone, done, '')),
+        fail = CheckNull(coalesce(pFail, fail, ''))
   WHERE id = pId;
 
   RETURN FOUND;
@@ -232,14 +254,16 @@ CREATE OR REPLACE FUNCTION SetFile (
   pData     bytea DEFAULT null,
   pMime     text DEFAULT null,
   pText     text DEFAULT null,
-  pHash     text DEFAULT null
+  pHash     text DEFAULT null,
+  pDone     text DEFAULT null,
+  pFail     text DEFAULT null
 ) RETURNS   uuid
 AS $$
 BEGIN
   IF pId IS NULL THEN
-    pId := NewFile(pId, pRoot, pParent, pName, pType, pOwner, pMask, pLink, pSize, pDate, pData, pMime, pText, pHash);
+    pId := AddFile(pRoot, pParent, pName, pType, pOwner, pMask, pLink, pSize, pDate, pData, pMime, pText, pHash, pDone, pFail);
   ELSE
-    PERFORM EditFile(pId, pRoot, pParent, pName, pOwner, pMask, pLink, pSize, pDate, pData, pMime, pText, pHash);
+    PERFORM EditFile(pId, pRoot, pParent, pName, pOwner, pMask, pLink, pSize, pDate, pData, pMime, pText, pHash, pDone, pFail);
   END IF;
 
   RETURN pId;
@@ -426,6 +450,98 @@ BEGIN
 
   RETURN coalesce(uId, uParent);
 END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- PutFileToS3 -----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION PutFileToS3 (
+  pId               uuid,
+  pRegion           text DEFAULT null,
+  pDone             text DEFAULT null,
+  pFail             text DEFAULT null,
+  pType             text DEFAULT null,
+  pMessage          text DEFAULT null
+) RETURNS           uuid
+AS $$
+DECLARE
+  r                 record;
+  f                 record;
+
+  currentDate       timestamp;
+
+  vEndpoint         text;
+  vAccessKey        text;
+  vSecretKey        text;
+
+  vURI              text;
+  vRoot             text;
+  vDate             text;
+  vHost             text;
+  vMethod           text;
+  vContentHash      text;
+  vAuthorization    text;
+  vCanonicalHeaders text;
+  vSignedHeaders    text;
+  vSignature        text;
+
+  headers           jsonb;
+BEGIN
+  SELECT root, path, name, data, mime, hash INTO f FROM db.file WHERE id = pId;
+
+  IF NOT FOUND THEN
+	RETURN null;
+  END IF;
+
+  SELECT name INTO vRoot FROM db.file WHERE id = f.root;
+
+  currentDate := current_timestamp AT TIME ZONE 'UTC';
+
+  pRegion := coalesce(pRegion, RegGetValueString('CURRENT_CONFIG', 'CONFIG\S3', 'Region', current_userid()));
+
+  vEndpoint := RegGetValueString('CURRENT_CONFIG', 'CONFIG\S3', 'Endpoint', current_userid());
+  vAccessKey := RegGetValueString('CURRENT_CONFIG', 'CONFIG\S3', 'AccessKey', current_userid());
+  vSecretKey := RegGetValueString('CURRENT_CONFIG', 'CONFIG\S3', 'SecretKey', current_userid());
+
+  vMethod := 'PUT';
+  vURI := f.path || f.name;
+  vDate := to_char(currentDate, 'YYYYMMDD"T"HH24MISS"Z"');
+  vHost := get_hostname_from_uri(vEndpoint);
+  vContentHash := coalesce(f.hash, encode(digest(f.data, 'sha256'), 'hex'));
+
+  headers := jsonb_build_object('Content-Type', f.mime, 'host', vHost, 'x-amz-content-sha256', vContentHash, 'x-amz-date', vDate, 'x-amz-storage-class', 'STANDARD');
+
+  IF vRoot = 'public' THEN
+    headers := headers || jsonb_build_object('x-amz-acl', 'public-read');
+  END IF;
+
+  FOR r IN SELECT * FROM jsonb_each_text(headers) ORDER BY key
+  LOOP
+    vCanonicalHeaders := coalesce(vCanonicalHeaders, '') || lower(r.key) || ':' || Trim(r.value) || E'\n';
+  END LOOP;
+
+  FOR r IN SELECT * FROM jsonb_each_text(headers) ORDER BY key
+  LOOP
+    IF vSignedHeaders IS NULL THEN
+      vSignedHeaders := lower(r.key);
+	ELSE
+      vSignedHeaders := vSignedHeaders || ';' || lower(r.key);
+	END IF;
+  END LOOP;
+
+  headers := headers - 'host';
+
+  vSignature := generate_aws_signature(vMethod, vURI, null, vCanonicalHeaders, vSignedHeaders, vContentHash, vSecretKey, pRegion, currentDate);
+
+  vAuthorization := format('AWS4-HMAC-SHA256 Credential=%s/%s/%s/s3/aws4_request, SignedHeaders=%s, Signature=%s', vAccessKey, to_char(currentDate, 'YYYYMMDD'), pRegion, vSignedHeaders, vSignature);
+
+  headers := headers || jsonb_build_object('Authorization', vAuthorization);
+
+  RETURN http.fetch(vEndpoint || vURI, vMethod, headers, f.data, pDone, pFail, vHost, pRegion, 'put', pMessage, pType, jsonb_build_object('id', pId, 'endpoint', vEndpoint, 'region', pRegion));
+END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

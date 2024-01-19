@@ -43,7 +43,9 @@ CREATE OR REPLACE FUNCTION api.set_file (
   pData     text DEFAULT null,
   pMime     text DEFAULT null,
   pText     text DEFAULT null,
-  pHash     text DEFAULT null
+  pHash     text DEFAULT null,
+  pDone     text DEFAULT null,
+  pFail     text DEFAULT null
 ) RETURNS   SETOF api.file
 AS $$
 DECLARE
@@ -71,7 +73,7 @@ BEGIN
     pParent := NewFilePath(pPath);
   END IF;
 
-  pId := SetFile(pId, pType, pMask::bit(9), pOwner, pRoot, pParent, pLink, pName, pSize, pDate, decode(pData, 'base64'), pMime, pText, pHash);
+  pId := SetFile(pId, pType, pMask::bit(9), pOwner, pRoot, pParent, pLink, pName, pSize, pDate, decode(pData, 'base64'), pMime, pText, pHash, pDone, pFail);
 
   RETURN QUERY SELECT * FROM api.file WHERE id = pId;
 END;

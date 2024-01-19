@@ -14,7 +14,7 @@ AS
          END AS typelabel,
          t.mask, t.level, t.path, t.name,
          t.size, t.date,
-         t.mime, t.text, t.hash, t.url
+         t.mime, t.text, t.hash, t.url, t.done, t.fail
     FROM db.file t INNER JOIN db.user u ON u.id = t.owner;
 
 GRANT SELECT ON File TO administrator;
@@ -33,7 +33,7 @@ AS
          END AS typelabel,
          t.mask, t.level, t.path, t.name,
          t.size, t.date, encode(t.data, 'base64') AS data,
-         t.mime, t.text, t.hash, t.url
+         t.mime, t.text, t.hash, t.url, t.done, t.fail
     FROM db.file t INNER JOIN db.user u ON u.id = t.owner;
 
 GRANT SELECT ON FileData TO administrator;

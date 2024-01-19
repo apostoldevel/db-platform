@@ -1163,7 +1163,9 @@ CREATE OR REPLACE FUNCTION NewObjectFile (
   pData     bytea DEFAULT null,
   pHash     text DEFAULT null,
   pText     text DEFAULT null,
-  pType     text DEFAULT null
+  pType     text DEFAULT null,
+  pDone     text DEFAULT null,
+  pFail     text DEFAULT null
 ) RETURNS   uuid
 AS $$
 DECLARE
@@ -1190,7 +1192,7 @@ BEGIN
 
     pFile := GetFile(uParent, pName);
     IF pFile IS NULL THEN
-      pFile := NewFile(null, uRoot, uParent, pName, '-', null, null, null, pSize, pDate, pData, pType, pText, pHash);
+      pFile := NewFile(null, uRoot, uParent, pName, '-', null, null, null, pSize, pDate, pData, pType, pText, pHash, pDone, pFail);
     END IF;
   END IF;
 

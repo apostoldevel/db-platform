@@ -6,7 +6,7 @@ CREATE TABLE http.log (
   id            bigserial PRIMARY KEY,
   datetime      timestamptz DEFAULT clock_timestamp() NOT NULL,
   username      text NOT NULL DEFAULT session_user,
-  method        text NOT NULL DEFAULT 'GET' CHECK (method = ANY (ARRAY['GET', 'POST'])),
+  method        text NOT NULL DEFAULT 'GET' CHECK (method = ANY (ARRAY['GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'OPTIONS', 'PATCH', 'TRACE'])),
   path          text NOT NULL,
   headers       jsonb,
   params        jsonb,
@@ -42,10 +42,10 @@ CREATE TABLE http.request (
   datetime      timestamptz DEFAULT clock_timestamp() NOT NULL,
   state         integer NOT NULL DEFAULT 0 CHECK (state BETWEEN 0 AND 3),
   type          text NOT NULL DEFAULT 'native' CHECK (type = ANY (ARRAY['native', 'curl'])),
-  method        text NOT NULL DEFAULT 'GET' CHECK (method = ANY (ARRAY['GET', 'POST'])),
+  method        text NOT NULL DEFAULT 'GET' CHECK (method = ANY (ARRAY['GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'OPTIONS', 'PATCH', 'TRACE'])),
   resource      text NOT NULL,
   headers       jsonb,
-  content       text,
+  content       bytea,
   done          text,
   fail          text,
   agent         text,
@@ -112,7 +112,7 @@ CREATE TABLE http.response (
   status        integer NOT NULL,
   status_text   text NOT NULL,
   headers       jsonb NOT NULL,
-  content       text,
+  content       bytea,
   runtime       interval
 );
 
