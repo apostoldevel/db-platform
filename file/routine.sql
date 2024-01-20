@@ -481,18 +481,23 @@ DECLARE
   vRoot             text;
   vDate             text;
   vHost             text;
+  vHash             text;
   vMethod           text;
-  vContentHash      text;
   vAuthorization    text;
   vCanonicalHeaders text;
   vSignedHeaders    text;
   vSignature        text;
 
+  content           bytea;
   headers           jsonb;
 BEGIN
-  SELECT root, path, name, data, mime, hash INTO f FROM db.file WHERE id = pId;
+  SELECT type, root, path, name, data, mime, hash INTO f FROM db.file WHERE id = pId;
 
   IF NOT FOUND THEN
+	RETURN null;
+  END IF;
+
+  IF f.type = 'd' OR f.type = 's' THEN
 	RETURN null;
   END IF;
 
@@ -510,9 +515,14 @@ BEGIN
   vURI := f.path || f.name;
   vDate := to_char(currentDate, 'YYYYMMDD"T"HH24MISS"Z"');
   vHost := get_hostname_from_uri(vEndpoint);
-  vContentHash := coalesce(f.hash, encode(digest(f.data, 'sha256'), 'hex'));
+  vHash := f.hash;
 
-  headers := jsonb_build_object('Content-Type', f.mime, 'host', vHost, 'x-amz-content-sha256', vContentHash, 'x-amz-date', vDate, 'x-amz-storage-class', 'STANDARD');
+  IF f.type = '-' THEN
+    content := f.data;
+    vHash := coalesce(vHash, encode(digest(f.data, 'sha256'), 'hex'));
+  END IF;
+
+  headers := jsonb_build_object('Content-Type', f.mime, 'host', vHost, 'x-amz-content-sha256', vHash, 'x-amz-date', vDate, 'x-amz-storage-class', 'STANDARD');
 
   IF vRoot = 'public' THEN
     headers := headers || jsonb_build_object('x-amz-acl', 'public-read');
@@ -532,15 +542,19 @@ BEGIN
 	END IF;
   END LOOP;
 
+  IF f.type = 'l' THEN
+    headers := headers || jsonb_build_object('x-attache-file', convert_from(f.data, 'utf8'));
+  END IF;
+
   headers := headers - 'host';
 
-  vSignature := generate_aws_signature(vMethod, vURI, null, vCanonicalHeaders, vSignedHeaders, vContentHash, vSecretKey, pRegion, currentDate);
+  vSignature := generate_aws_signature(vMethod, vURI, null, vCanonicalHeaders, vSignedHeaders, vHash, vSecretKey, pRegion, currentDate);
 
   vAuthorization := format('AWS4-HMAC-SHA256 Credential=%s/%s/%s/s3/aws4_request, SignedHeaders=%s, Signature=%s', vAccessKey, to_char(currentDate, 'YYYYMMDD'), pRegion, vSignedHeaders, vSignature);
 
   headers := headers || jsonb_build_object('Authorization', vAuthorization);
 
-  RETURN http.fetch(vEndpoint || vURI, vMethod, headers, f.data, pDone, pFail, vHost, pRegion, 'put', pMessage, pType, jsonb_build_object('id', pId, 'endpoint', vEndpoint, 'region', pRegion));
+  RETURN http.fetch(vEndpoint || vURI, vMethod, headers, content, pDone, pFail, vHost, pRegion, 'put', pMessage, pType, jsonb_build_object('id', pId, 'endpoint', vEndpoint, 'region', pRegion));
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

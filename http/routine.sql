@@ -361,7 +361,7 @@ CREATE OR REPLACE FUNCTION http.fetch (
 ) RETURNS       uuid
 AS $$
 BEGIN
-  RETURN http.create_request(resource, type, method, headers, convert_to(content::text, 'utf8'), done, fail, agent, profile, command, message, data);
+  RETURN http.create_request(resource, type, method, headers, convert_to(content, 'utf8'), done, fail, agent, profile, command, message, data);
 END;
 $$ LANGUAGE plpgsql
   SECURITY DEFINER

@@ -83,7 +83,7 @@ BEGIN
   IF NEW.type = 's' THEN
     vStorage := convert_from(NEW.data, 'utf8');
   ELSE
-    vStorage := '/file';
+    vStorage := coalesce(RegGetValueString('CURRENT_CONFIG', 'CONFIGCurrentProject', 'Host', current_userid()), '') || '/file';
   END IF;
 
   NEW.url := concat(vStorage, NormalizeFilePath(NEW.path, true), NormalizeFileName(NEW.name, true));
@@ -111,7 +111,7 @@ BEGIN
   IF NEW.type = 's' THEN
     vStorage := convert_from(NEW.data, 'utf8');
   ELSE
-    vStorage := '/file';
+    vStorage := coalesce(RegGetValueString('CURRENT_CONFIG', 'CONFIGCurrentProject', 'Host', current_userid()), '') || '/file';
   END IF;
 
   NEW.url := concat(vStorage, NormalizeFilePath(NEW.path, true), NormalizeFileName(NEW.name, true));
@@ -142,7 +142,7 @@ BEGIN
   IF NEW.type = 's' THEN
     vStorage := convert_from(NEW.data, 'utf8');
   ELSE
-    vStorage := '/file';
+    vStorage := coalesce(RegGetValueString('CURRENT_CONFIG', 'CONFIGCurrentProject', 'Host', current_userid()), '') || '/file';
   END IF;
 
   NEW.url := concat(vStorage, NormalizeFilePath(NEW.path, true), NormalizeFileName(NEW.name, true));
@@ -173,7 +173,7 @@ BEGIN
   IF NEW.type = 's' THEN
     vStorage := convert_from(NEW.data, 'utf8');
   ELSE
-    vStorage := '/file';
+    vStorage := coalesce(RegGetValueString('CURRENT_CONFIG', 'CONFIGCurrentProject', 'Host', current_userid()), '') || '/file';
   END IF;
 
   NEW.url := concat(vStorage, NormalizeFilePath(NEW.path, true), NormalizeFileName(NEW.name, true));
@@ -198,9 +198,9 @@ CREATE OR REPLACE FUNCTION db.ft_file_notify()
 RETURNS trigger AS $$
 BEGIN
   IF TG_OP = 'INSERT' THEN
-    PERFORM pg_notify('file', json_build_object('session', current_session(), 'operation', TG_OP, 'id', NEW.id, 'name', NEW.name, 'path', NEW.path, 'hash', NEW.hash)::text);
+    PERFORM pg_notify('file', json_build_object('session', current_session(), 'operation', TG_OP, 'id', NEW.id, 'type', NEW.type, 'name', NEW.name, 'path', NEW.path, 'hash', NEW.hash)::text);
   ELSE
-    PERFORM pg_notify('file', json_build_object('session', current_session(), 'operation', TG_OP, 'id', OLD.id, 'name', OLD.name, 'path', OLD.path, 'hash', OLD.hash)::text);
+    PERFORM pg_notify('file', json_build_object('session', current_session(), 'operation', TG_OP, 'id', OLD.id, 'type', NEW.type, 'name', OLD.name, 'path', OLD.path, 'hash', OLD.hash)::text);
   END IF;
 
   RETURN NULL;

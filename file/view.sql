@@ -11,6 +11,7 @@ AS
          WHEN t.type = '-' THEN 'File'
          WHEN t.type = 'd' THEN 'Directory'
          WHEN t.type = 'l' THEN 'Link'
+         WHEN t.type = 's' THEN 'Storage'
          END AS typelabel,
          t.mask, t.level, t.path, t.name,
          t.size, t.date,
@@ -30,6 +31,7 @@ AS
          WHEN t.type = '-' THEN 'File'
          WHEN t.type = 'd' THEN 'Directory'
          WHEN t.type = 'l' THEN 'Link'
+         WHEN t.type = 's' THEN 'Storage'
          END AS typelabel,
          t.mask, t.level, t.path, t.name,
          t.size, t.date, encode(t.data, 'base64') AS data,
