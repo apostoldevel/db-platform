@@ -48,16 +48,16 @@ $$ LANGUAGE sql STABLE STRICT
 CREATE OR REPLACE FUNCTION CreateProfile (
   pUserId           uuid,
   pScope            uuid,
-  pFamilyName        text,
+  pFamilyName       text,
   pGivenName        text,
-  pPatronymicName    text,
-  pLocale            uuid,
-  pArea                uuid,
+  pPatronymicName   text,
+  pLocale           uuid,
+  pArea             uuid,
   pInterface        uuid,
   pEmailVerified    bool,
   pPhoneVerified    bool,
-  pPicture            text
-) RETURNS             void
+  pPicture          text
+) RETURNS           void
 AS $$
 BEGIN
   INSERT INTO db.profile (userid, scope, family_name, given_name, patronymic_name, locale, area, interface, email_verified, phone_verified, picture)
@@ -74,16 +74,16 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION UpdateProfile (
   pUserId           uuid,
   pScope            uuid,
-  pFamilyName        text DEFAULT null,
+  pFamilyName       text DEFAULT null,
   pGivenName        text DEFAULT null,
-  pPatronymicName    text DEFAULT null,
-  pLocale            uuid DEFAULT null,
-  pArea                uuid DEFAULT null,
+  pPatronymicName   text DEFAULT null,
+  pLocale           uuid DEFAULT null,
+  pArea             uuid DEFAULT null,
   pInterface        uuid DEFAULT null,
   pEmailVerified    bool DEFAULT null,
   pPhoneVerified    bool DEFAULT null,
-  pPicture            text DEFAULT null
-) RETURNS             boolean
+  pPicture          text DEFAULT null
+) RETURNS           boolean
 AS $$
 BEGIN
   UPDATE db.profile
@@ -145,25 +145,25 @@ BEGIN
 
     FOR e IN SELECT unnest(arTypes) AS type
     LOOP
-	  SELECT id INTO uArea FROM db.area WHERE type = e.type AND scope = uScope;
-	  EXIT WHEN uArea IS NOT NULL;
-	END LOOP;
+      SELECT id INTO uArea FROM db.area WHERE type = e.type AND scope = uScope;
+      EXIT WHEN uArea IS NOT NULL;
+    END LOOP;
 
-	IF uArea IS NULL THEN
-	  uRoot := GetAreaRoot(uScope);
+    IF uArea IS NULL THEN
+      uRoot := GetAreaRoot(uScope);
 
-	  IF uRoot IS NULL THEN
-		INSERT INTO db.area (id, parent, type, code, name, description, validfromdate, validtodate, scope, level, sequence)
-		VALUES (gen_kernel_uuid('8'), null, '00000000-0000-4002-a000-000000000000', 'R-' || uScope, 'Root', null, Now(), MAXDATE(), uScope, 0, 1);
-	  END IF;
+      IF uRoot IS NULL THEN
+        INSERT INTO db.area (id, parent, type, code, name, description, validfromdate, validtodate, scope, level, sequence)
+        VALUES (gen_kernel_uuid('8'), null, '00000000-0000-4002-a000-000000000000', 'R-' || uScope, 'Root', null, Now(), MAXDATE(), uScope, 0, 1);
+      END IF;
 
-	  INSERT INTO db.area (id, parent, type, code, name, description, validfromdate, validtodate, scope, level, sequence)
-	  VALUES (gen_kernel_uuid('8'), uRoot, '00000000-0000-4002-a000-000000000002', 'G-' || uScope, 'Guest', null, Now(), MAXDATE(), uScope, 1, 1);
-	END IF;
+      INSERT INTO db.area (id, parent, type, code, name, description, validfromdate, validtodate, scope, level, sequence)
+      VALUES (gen_kernel_uuid('8'), uRoot, '00000000-0000-4002-a000-000000000002', 'G-' || uScope, 'Guest', null, Now(), MAXDATE(), uScope, 1, 1);
+    END IF;
 
-	INSERT INTO db.member_area (area, member) VALUES (uArea, pUserId) ON CONFLICT DO NOTHING;
-	INSERT INTO db.member_interface (interface, member) VALUES (uInterface, pUserId) ON CONFLICT DO NOTHING;
-	INSERT INTO db.profile (userid, scope, locale, area, interface) VALUES (pUserId, uScope, uLocale, uArea, uInterface);
+    INSERT INTO db.member_area (area, member) VALUES (uArea, pUserId) ON CONFLICT DO NOTHING;
+    INSERT INTO db.member_interface (interface, member) VALUES (uInterface, pUserId) ON CONFLICT DO NOTHING;
+    INSERT INTO db.profile (userid, scope, locale, area, interface) VALUES (pUserId, uScope, uLocale, uArea, uInterface);
   END IF;
 
   RETURN uScope;
@@ -177,14 +177,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddRecoveryTicket (
-  pUserId			uuid,
-  pSecurityAnswer	text,
-  pDateFrom			timestamptz DEFAULT null,
-  pDateTo			timestamptz DEFAULT null
-) RETURNS			uuid
+  pUserId           uuid,
+  pSecurityAnswer   text,
+  pDateFrom         timestamptz DEFAULT null,
+  pDateTo           timestamptz DEFAULT null
+) RETURNS           uuid
 AS $$
 DECLARE
-  uTicket			uuid;
+  uTicket           uuid;
 BEGIN
   uTicket := gen_random_uuid();
 
@@ -202,11 +202,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION NewRecoveryTicket (
-  pUserId			uuid,
-  pSecurityAnswer	text,
-  pDateFrom			timestamptz DEFAULT Now(),
-  pDateTo			timestamptz DEFAULT Now() + INTERVAL '1 hour'
-) RETURNS			uuid
+  pUserId           uuid,
+  pSecurityAnswer   text,
+  pDateFrom         timestamptz DEFAULT Now(),
+  pDateTo           timestamptz DEFAULT Now() + INTERVAL '1 hour'
+) RETURNS           uuid
 AS $$
 BEGIN
   RETURN AddRecoveryTicket(pUserId, crypt(pSecurityAnswer, gen_salt('md5')), pDateFrom, pDateTo);
@@ -220,12 +220,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetRecoveryTicket (
-  pUserId			uuid,
-  pDateFrom			timestamptz DEFAULT Now()
-) RETURNS			uuid
+  pUserId           uuid,
+  pDateFrom         timestamptz DEFAULT Now()
+) RETURNS           uuid
 AS $$
 DECLARE
-  uTicket			uuid;
+  uTicket           uuid;
 BEGIN
   SELECT ticket INTO uTicket
     FROM db.recovery_ticket
@@ -244,14 +244,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CheckRecoveryTicket (
-  pTicket			uuid,
-  pSecurityAnswer	text
-) RETURNS			uuid
+  pTicket           uuid,
+  pSecurityAnswer   text
+) RETURNS           uuid
 AS $$
 DECLARE
-  uUserId			uuid;
-  passed			boolean;
-  utilized			boolean;
+  uUserId           uuid;
+  passed            boolean;
+  utilized          boolean;
   messages          text[];
 BEGIN
   IF locale_code() = 'ru' THEN
@@ -276,12 +276,12 @@ BEGIN
     IF utilized THEN
       PERFORM SetErrorMessage(messages[1]);
     ELSE
-	  IF passed THEN
-		PERFORM SetErrorMessage(messages[2]);
-		RETURN uUserId;
-	  ELSE
-		PERFORM SetErrorMessage(messages[3]);
-	  END IF;
+      IF passed THEN
+        PERFORM SetErrorMessage(messages[2]);
+        RETURN uUserId;
+      ELSE
+        PERFORM SetErrorMessage(messages[3]);
+      END IF;
     END IF;
   ELSE
     PERFORM SetErrorMessage(messages[4]);
@@ -298,10 +298,10 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateAuth (
-  pUserId       uuid,
-  pAudience     integer,
-  pCode		    text
-) RETURNS 	    void
+  pUserId           uuid,
+  pAudience         integer,
+  pCode             text
+) RETURNS           void
 AS $$
 BEGIN
   IF session_user <> 'kernel' THEN
@@ -322,15 +322,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetIPTableStr (
-  pUserId	uuid,
-  pType		char DEFAULT 'A'
-) RETURNS	text
+  pUserId       uuid,
+  pType         char DEFAULT 'A'
+) RETURNS       text
 AS $$
 DECLARE
   r             record;
-  ip		integer[4];
-  vHost		text;
-  aResult	text[];
+  ip            integer[4];
+  vHost         text;
+  aResult       text[];
 BEGIN
   FOR r IN SELECT * FROM db.iptable WHERE userid = pUserId AND type = pType
   LOOP
@@ -374,19 +374,19 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetIPTableStr (
-  pUserId	uuid,
-  pType		char,
-  pIpTable	text
-) RETURNS	void
+  pUserId       uuid,
+  pType         char,
+  pIpTable      text
+) RETURNS       void
 AS $$
 DECLARE
   i             int;
 
-  vStr		text;
-  arrIp		text[];
+  vStr          text;
+  arrIp         text[];
 
-  iHost		inet;
-  nRange	int;
+  iHost         inet;
+  nRange        int;
 BEGIN
   pType := coalesce(pType, 'A');
 
@@ -415,14 +415,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CheckIPTable (
-  pUserId	uuid,
-  pType		char,
-  pHost		inet
-) RETURNS	boolean
+  pUserId       uuid,
+  pType         char,
+  pHost         inet
+) RETURNS       boolean
 AS $$
 DECLARE
   r             record;
-  passed	boolean;
+  passed        boolean;
 BEGIN
   FOR r IN SELECT * FROM db.iptable WHERE type = pType AND userid = pUserId
   LOOP
@@ -446,13 +446,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CheckIPTable (
-  pUserId	uuid,
-  pHost		inet
-) RETURNS	boolean
+  pUserId       uuid,
+  pHost         inet
+) RETURNS       boolean
 AS $$
 DECLARE
-  denied	boolean;
-  allow		boolean;
+  denied        boolean;
+  allow         boolean;
 BEGIN
   denied := coalesce(CheckIPTable(pUserId, 'D', pHost), false);
 
@@ -477,12 +477,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CheckSessionLimit (
-  pUserId	uuid
-) RETURNS	void
+  pUserId       uuid
+) RETURNS       void
 AS $$
 DECLARE
-  nCount	integer;
-  nLimit	integer;
+  nCount        integer;
+  nLimit        integer;
 
   r             record;
 BEGIN
@@ -555,7 +555,7 @@ BEGIN
   SELECT code INTO iss FROM oauth2.issuer WHERE provider = nProvider;
 
   IF NOT FOUND THEN
-	PERFORM IssuerNotFound(coalesce(iss, 'null'));
+    PERFORM IssuerNotFound(coalesce(iss, 'null'));
   END IF;
 
   token := json_build_object('iss', iss, 'aud', aud, 'sub', pSubject, 'iat', trunc(extract(EPOCH FROM pDateFrom)), 'exp', trunc(extract(EPOCH FROM pDateTo)));
@@ -798,11 +798,11 @@ $$ LANGUAGE plpgsql
  * @return {text}
  */
 CREATE OR REPLACE FUNCTION GetSignature (
-  pPath	        text,
+  pPath         text,
   pNonce        double precision,
   pJson         json,
   pSecret       text
-) RETURNS	    text
+) RETURNS       text
 AS $$
 BEGIN
   RETURN encode(hmac(pPath || trim(to_char(pNonce, '9999999999999999')) || coalesce(pJson, 'null'), pSecret, 'sha256'), 'hex');
@@ -820,8 +820,8 @@ CREATE OR REPLACE FUNCTION ScopeToArray (
 ) RETURNS       text[]
 AS $$
 DECLARE
-  r				record;
-  e				record;
+  r             record;
+  e             record;
 
   scopes        text[];
   arValid       text[];
@@ -832,15 +832,15 @@ BEGIN
 
     arScopes := array_cat(arScopes, ARRAY[current_database()::text]);
 
-	FOR r IN SELECT id, code FROM db.scope
-	LOOP
-	  arScopes := array_append(arScopes, r.code);
+    FOR r IN SELECT id, code FROM db.scope
+    LOOP
+      arScopes := array_append(arScopes, r.code);
 
-	  FOR e IN SELECT code FROM db.scope_alias WHERE scope = r.id
-	  LOOP
-	    arScopes := array_append(arScopes, e.code);
-	  END LOOP;
-	END LOOP;
+      FOR e IN SELECT code FROM db.scope_alias WHERE scope = r.id
+      LOOP
+        arScopes := array_append(arScopes, e.code);
+      END LOOP;
+    END LOOP;
 
     scopes := string_to_array(pScope, ' ');
 
@@ -863,15 +863,15 @@ BEGIN
     END IF;
 
   ELSE
-	FOR r IN SELECT id, code FROM db.scope
-	LOOP
-	  arValid := array_append(arValid, r.code);
+    FOR r IN SELECT id, code FROM db.scope
+    LOOP
+      arValid := array_append(arValid, r.code);
 
-	  FOR e IN SELECT code FROM db.scope_alias WHERE scope = r.id
-	  LOOP
-	    arValid := array_append(arValid, e.code);
-	  END LOOP;
-	END LOOP;
+      FOR e IN SELECT code FROM db.scope_alias WHERE scope = r.id
+      LOOP
+        arValid := array_append(arValid, e.code);
+      END LOOP;
+    END LOOP;
   END IF;
 
   RETURN arValid;
@@ -913,7 +913,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION CreateOAuth2 (
   pAudience     integer,
-  pScope		text,
+  pScope        text,
   pAccessType   text DEFAULT null,
   pRedirectURI  text DEFAULT null,
   pState        text DEFAULT null
@@ -932,12 +932,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateSystemOAuth2 (
-  pScope		text DEFAULT null
+  pScope        text DEFAULT null
 ) RETURNS       bigint
 AS $$
 BEGIN
   IF pScope IS NULL THEN
-	SELECT code INTO pScope FROM db.scope WHERE id = '00000000-0000-4006-a000-000000000000';
+    SELECT code INTO pScope FROM db.scope WHERE id = '00000000-0000-4006-a000-000000000000';
   END IF;
 
   RETURN CreateOAuth2(GetAudience(oauth2_system_client_id()), coalesce(pScope, current_database()));
@@ -985,7 +985,7 @@ CREATE OR REPLACE FUNCTION AddToken (
 AS $$
 DECLARE
   nId           bigint;
-  dtDateFrom 	timestamp;
+  dtDateFrom    timestamp;
   dtDateTo      timestamp;
 BEGIN
   -- получим дату значения в текущем диапозоне дат
@@ -1256,9 +1256,9 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SafeSetVar (
-  pName		text,
-  pValue	text
-) RETURNS	void
+  pName         text,
+  pValue        text
+) RETURNS       void
 AS $$
 BEGIN
   PERFORM set_config('current.' || pName, pValue, false);
@@ -1272,7 +1272,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SafeGetVar (
-  pName 	text
+  pName     text
 ) RETURNS   text
 AS $$
 BEGIN
@@ -1294,8 +1294,8 @@ CREATE OR REPLACE FUNCTION GetSecretKey (
 ) RETURNS       text
 AS $$
 DECLARE
-  vDefaultKey	text DEFAULT 'MYXIWngoebYUkOPlGYdXuy6n';
-  vSecretKey	text DEFAULT SafeGetVar(pName);
+  vDefaultKey   text DEFAULT 'MYXIWngoebYUkOPlGYdXuy6n';
+  vSecretKey    text DEFAULT SafeGetVar(pName);
 BEGIN
   RETURN coalesce(vSecretKey, vDefaultKey);
 END;
@@ -1311,7 +1311,7 @@ $$ LANGUAGE plpgsql IMMUTABLE
  * @return {text} - OAuth 2.0 Client Id
  */
 CREATE OR REPLACE FUNCTION oauth2_system_client_id()
-RETURNS		text
+RETURNS         text
 AS $$
 BEGIN
   RETURN current_database();
@@ -1325,8 +1325,8 @@ $$ LANGUAGE plpgsql STABLE STRICT
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetOAuth2ClientId (
-  pClientId	text
-) RETURNS	void
+  pClientId     text
+) RETURNS       void
 AS $$
 BEGIN
   PERFORM SafeSetVar('client_id', pClientId);
@@ -1340,7 +1340,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetOAuth2ClientId()
-RETURNS	text
+RETURNS         text
 AS $$
 BEGIN
   RETURN SafeGetVar('client_id');
@@ -1357,7 +1357,7 @@ $$ LANGUAGE plpgsql STABLE STRICT
  * @return {text} - OAuth 2.0 Client Id
  */
 CREATE OR REPLACE FUNCTION oauth2_current_client_id()
-RETURNS		text
+RETURNS         text
 AS $$
 BEGIN
   RETURN GetOAuth2ClientId();
@@ -1371,8 +1371,8 @@ $$ LANGUAGE plpgsql STABLE STRICT
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetLogMode (
-  pValue	boolean
-) RETURNS	void
+  pValue        boolean
+) RETURNS       void
 AS $$
 BEGIN
   PERFORM SafeSetVar('log', pValue::text);
@@ -1386,7 +1386,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetLogMode()
-RETURNS		boolean
+RETURNS         boolean
 AS $$
 BEGIN
   RETURN coalesce(SafeGetVar('log')::boolean, true);
@@ -1400,8 +1400,8 @@ $$ LANGUAGE plpgsql STABLE STRICT
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetDebugMode (
-  pValue	boolean
-) RETURNS	void
+  pValue        boolean
+) RETURNS       void
 AS $$
 BEGIN
   PERFORM SafeSetVar('debug', pValue::text);
@@ -1415,7 +1415,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetDebugMode()
-RETURNS		boolean
+RETURNS         boolean
 AS $$
 BEGIN
   RETURN coalesce(SafeGetVar('debug')::boolean, false);
@@ -1429,8 +1429,8 @@ $$ LANGUAGE plpgsql STABLE STRICT
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetCurrentSession (
-  pValue	text
-) RETURNS	void
+  pValue        text
+) RETURNS       void
 AS $$
 BEGIN
   PERFORM SafeSetVar('session', pValue);
@@ -1444,7 +1444,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetCurrentSession()
-RETURNS		text
+RETURNS         text
 AS $$
 BEGIN
   RETURN SafeGetVar('session');
@@ -1458,8 +1458,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetCurrentUserId (
-  pValue	uuid
-) RETURNS	void
+  pValue        uuid
+) RETURNS       void
 AS $$
 BEGIN
   PERFORM SafeSetVar('user', pValue::text);
@@ -1473,7 +1473,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetCurrentUserId()
-RETURNS		uuid
+RETURNS         uuid
 AS $$
 BEGIN
   RETURN SafeGetVar('user')::uuid;
@@ -1490,11 +1490,11 @@ $$ LANGUAGE plpgsql
  * @return {text} - Код сессии
  */
 CREATE OR REPLACE FUNCTION current_session()
-RETURNS		text
+RETURNS         text
 AS $$
 DECLARE
-  vCode		text;
-  vSession	text;
+  vCode         text;
+  vSession      text;
 BEGIN
   vCode := GetCurrentSession();
   IF vCode IS NOT NULL THEN
@@ -1518,12 +1518,12 @@ $$ LANGUAGE plpgsql STABLE
  * @return {text}
  */
 CREATE OR REPLACE FUNCTION session_secret (
-  pSession	varchar DEFAULT current_session()
+  pSession      varchar DEFAULT current_session()
 )
-RETURNS		text
+RETURNS         text
 AS $$
 DECLARE
-  vSecret	text;
+  vSecret       text;
 BEGIN
   IF pSession IS NOT NULL THEN
     SELECT secret INTO vSecret FROM db.session WHERE code = pSession;
@@ -1539,13 +1539,13 @@ $$ LANGUAGE plpgsql STABLE STRICT
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION current_scope (
-  pSession	varchar DEFAULT current_session()
+  pSession      varchar DEFAULT current_session()
 )
-RETURNS		uuid
+RETURNS         uuid
 AS $$
 DECLARE
-  uArea		uuid;
-  uScope	uuid;
+  uArea         uuid;
+  uScope        uuid;
 BEGIN
   SELECT area INTO uArea FROM db.session WHERE code = pSession;
 
@@ -1566,9 +1566,9 @@ $$ LANGUAGE plpgsql STABLE
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION current_scope_code (
-  pSession	varchar DEFAULT current_session()
+  pSession      varchar DEFAULT current_session()
 )
-RETURNS		text
+RETURNS         text
 AS $$
   SELECT code FROM db.scope WHERE id = current_scope(pSession);
 $$ LANGUAGE sql STABLE
@@ -1580,14 +1580,14 @@ $$ LANGUAGE sql STABLE
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetOAuth2Scopes (
-  pOAuth2	bigint
+  pOAuth2       bigint
 )
-RETURNS		SETOF uuid
+RETURNS         SETOF uuid
 AS $$
 DECLARE
-  i			integer;
-  uScope	uuid;
-  arScopes	text[];
+  i             integer;
+  uScope        uuid;
+  arScopes      text[];
 BEGIN
   SELECT scopes INTO arScopes FROM db.oauth2 WHERE id = pOAuth2;
 
@@ -1617,12 +1617,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION current_scopes (
-  pSession	varchar DEFAULT current_session()
+  pSession      varchar DEFAULT current_session()
 )
-RETURNS		SETOF uuid
+RETURNS         SETOF uuid
 AS $$
 DECLARE
-  nOAuth2	bigint;
+  nOAuth2       bigint;
 BEGIN
   SELECT oauth2 INTO nOAuth2 FROM db.session WHERE code = pSession;
   RETURN QUERY SELECT * FROM GetOAuth2Scopes(nOAuth2);
@@ -1640,12 +1640,12 @@ $$ LANGUAGE plpgsql STABLE STRICT
  * @return {text}
  */
 CREATE OR REPLACE FUNCTION session_area (
-  pSession	varchar DEFAULT current_session()
+  pSession      varchar DEFAULT current_session()
 )
-RETURNS		text
+RETURNS         text
 AS $$
 DECLARE
-  vArea     text;
+  vArea         text;
 BEGIN
   IF pSession IS NOT NULL THEN
     SELECT area INTO vArea FROM db.session WHERE code = pSession;
@@ -1665,12 +1665,12 @@ $$ LANGUAGE plpgsql STABLE
  * @return {text}
  */
 CREATE OR REPLACE FUNCTION session_agent (
-  pSession	varchar DEFAULT current_session()
+  pSession      varchar DEFAULT current_session()
 )
-RETURNS		text
+RETURNS         text
 AS $$
 DECLARE
-  vAgent	text;
+  vAgent        text;
 BEGIN
   IF pSession IS NOT NULL THEN
     SELECT agent INTO vAgent FROM db.session WHERE code = pSession;
@@ -1690,12 +1690,12 @@ $$ LANGUAGE plpgsql STABLE
  * @return {text} - IP адрес
  */
 CREATE OR REPLACE FUNCTION session_host (
-  pSession	varchar DEFAULT current_session()
+  pSession      varchar DEFAULT current_session()
 )
-RETURNS		text
+RETURNS         text
 AS $$
 DECLARE
-  iHost		inet;
+  iHost         inet;
 BEGIN
   IF pSession IS NOT NULL THEN
     SELECT host INTO iHost FROM db.session WHERE code = pSession;
@@ -1715,12 +1715,12 @@ $$ LANGUAGE plpgsql STABLE
  * @return {id} - Идентификатор пользователя: users.id
  */
 CREATE OR REPLACE FUNCTION session_userid (
-  pSession	varchar DEFAULT current_session()
+  pSession      varchar DEFAULT current_session()
 )
-RETURNS		uuid
+RETURNS         uuid
 AS $$
 DECLARE
-  uUserId	uuid;
+  uUserId       uuid;
 BEGIN
   IF pSession IS NOT NULL THEN
     SELECT suid INTO uUserId FROM db.session WHERE code = pSession;
@@ -1739,11 +1739,11 @@ $$ LANGUAGE plpgsql STABLE
  * @return {id} - Идентификатор пользователя: users.id
  */
 CREATE OR REPLACE FUNCTION current_userid()
-RETURNS		uuid
+RETURNS         uuid
 AS $$
 DECLARE
-  uUserId	uuid;
-  vSession	text;
+  uUserId       uuid;
+  vSession      text;
 BEGIN
   uUserId := GetCurrentUserId();
   IF uUserId IS NULL THEN
@@ -1768,9 +1768,9 @@ $$ LANGUAGE plpgsql STABLE
  * @return {text} - Имя (username) пользователя: users.username
  */
 CREATE OR REPLACE FUNCTION session_username (
-  pSession	varchar DEFAULT current_session()
+  pSession      varchar DEFAULT current_session()
 )
-RETURNS		text
+RETURNS         text
 AS $$
   SELECT username FROM db.user WHERE id = session_userid(pSession) AND type = 'U';
 $$ LANGUAGE sql STABLE
@@ -1785,7 +1785,7 @@ $$ LANGUAGE sql STABLE
  * @return {text} - Имя (username) пользователя: users.username
  */
 CREATE OR REPLACE FUNCTION current_username ()
-RETURNS		text
+RETURNS         text
 AS $$
   SELECT username FROM db.user WHERE id = current_userid();
 $$ LANGUAGE sql STABLE
@@ -1824,9 +1824,9 @@ $$ LANGUAGE plpgsql STABLE STRICT
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetSessionArea (
-  pArea 	uuid,
-  pSession	varchar DEFAULT current_session()
-) RETURNS 	void
+  pArea         uuid,
+  pSession      varchar DEFAULT current_session()
+) RETURNS       void
 AS $$
 BEGIN
   UPDATE db.session SET area = pArea WHERE code = pSession;
@@ -1840,9 +1840,9 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetSessionArea (
-  pSession	varchar DEFAULT current_session()
+  pSession      varchar DEFAULT current_session()
 )
-RETURNS 	uuid
+RETURNS         uuid
 AS $$
   SELECT area FROM db.session WHERE code = pSession;
 $$ LANGUAGE sql STABLE STRICT
@@ -1854,9 +1854,9 @@ $$ LANGUAGE sql STABLE STRICT
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION current_area_type (
-  pSession	varchar DEFAULT current_session()
+  pSession      varchar DEFAULT current_session()
 )
-RETURNS 	uuid
+RETURNS         uuid
 AS $$
   SELECT type FROM db.area WHERE id = GetSessionArea(pSession);
 $$ LANGUAGE sql STABLE STRICT
@@ -1868,9 +1868,9 @@ $$ LANGUAGE sql STABLE STRICT
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION current_area (
-  pSession	varchar DEFAULT current_session()
+  pSession      varchar DEFAULT current_session()
 )
-RETURNS 	uuid
+RETURNS         uuid
 AS $$
 BEGIN
   RETURN coalesce(GetSessionArea(pSession), '00000000-0000-4003-a000-000000000002');
@@ -1884,9 +1884,9 @@ $$ LANGUAGE plpgsql STABLE
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetSessionInterface (
-  pInterface 	uuid,
-  pSession	    varchar DEFAULT current_session()
-) RETURNS 	    void
+  pInterface    uuid,
+  pSession      varchar DEFAULT current_session()
+) RETURNS       void
 AS $$
 BEGIN
   UPDATE db.session SET interface = pInterface WHERE code = pSession;
@@ -1900,9 +1900,9 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetSessionInterface (
-  pSession	    varchar DEFAULT current_session()
+  pSession      varchar DEFAULT current_session()
 )
-RETURNS 	    uuid
+RETURNS         uuid
 AS $$
 DECLARE
   uInterface    uuid;
@@ -1921,9 +1921,9 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION current_interface (
-  pSession	varchar DEFAULT current_session()
+  pSession      varchar DEFAULT current_session()
 )
-RETURNS 	uuid
+RETURNS         uuid
 AS $$
 BEGIN
   RETURN coalesce(GetSessionInterface(pSession), '00000000-0000-4004-a000-000000000003');
@@ -1942,9 +1942,9 @@ $$ LANGUAGE plpgsql STABLE
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION SetOperDate (
-  pOperDate 	timestamp,
-  pSession	    varchar DEFAULT current_session()
-) RETURNS 	    void
+  pOperDate     timestamp,
+  pSession      varchar DEFAULT current_session()
+) RETURNS       void
 AS $$
 BEGIN
   UPDATE db.session SET oper_date = pOperDate WHERE code = pSession;
@@ -1963,9 +1963,9 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION SetOperDate (
-  pOperDate 	timestamptz,
-  pSession	    varchar DEFAULT current_session()
-) RETURNS 	    void
+  pOperDate     timestamptz,
+  pSession      varchar DEFAULT current_session()
+) RETURNS       void
 AS $$
 BEGIN
   UPDATE db.session SET oper_date = pOperDate WHERE code = pSession;
@@ -1983,12 +1983,12 @@ $$ LANGUAGE plpgsql
  * @return {timestamp} - Дата операционного дня
  */
 CREATE OR REPLACE FUNCTION GetOperDate (
-  pSession		varchar DEFAULT current_session()
+  pSession      varchar DEFAULT current_session()
 )
-RETURNS 		timestamp
+RETURNS         timestamp
 AS $$
 DECLARE
-  dtOperDate	timestamp;
+  dtOperDate    timestamp;
 BEGIN
   IF pSession IS NOT NULL THEN
     SELECT oper_date INTO dtOperDate FROM db.session WHERE code = pSession;
@@ -2008,12 +2008,12 @@ $$ LANGUAGE plpgsql
  * @return {timestamp} - Дата операционного дня
  */
 CREATE OR REPLACE FUNCTION oper_date (
-  pSession		varchar DEFAULT current_session()
+  pSession      varchar DEFAULT current_session()
 )
-RETURNS 		timestamptz
+RETURNS         timestamptz
 AS $$
 DECLARE
-  dtOperDate	timestamptz;
+  dtOperDate    timestamptz;
 BEGIN
   dtOperDate := GetOperDate(pSession);
   IF dtOperDate IS NULL THEN
@@ -2035,12 +2035,12 @@ $$ LANGUAGE plpgsql STABLE
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION SetSessionLocale (
-  pLocale   uuid,
-  pSession	varchar DEFAULT current_session()
-) RETURNS	void
+  pLocale       uuid,
+  pSession      varchar DEFAULT current_session()
+) RETURNS       void
 AS $$
 DECLARE
-  uUserId	uuid;
+  uUserId       uuid;
 BEGIN
   UPDATE db.session SET locale = pLocale WHERE code = pSession;
   SELECT userid INTO uUserId FROM db.session WHERE code = pSession;
@@ -2060,12 +2060,12 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION SetSessionLocale (
-  pCode		text DEFAULT 'ru',
-  pSession	varchar DEFAULT current_session()
-) RETURNS	void
+  pCode         text DEFAULT 'ru',
+  pSession      varchar DEFAULT current_session()
+) RETURNS       void
 AS $$
 DECLARE
-  uLocale	uuid;
+  uLocale       uuid;
 BEGIN
   SELECT id INTO uLocale FROM db.locale WHERE code = pCode;
   IF FOUND THEN
@@ -2085,8 +2085,8 @@ $$ LANGUAGE plpgsql
  * @return {uuid} - Идентификатор языка.
  */
 CREATE OR REPLACE FUNCTION GetSessionLocale (
-  pSession	varchar DEFAULT current_session()
-) RETURNS	uuid
+  pSession      varchar DEFAULT current_session()
+) RETURNS       uuid
 AS $$
   SELECT locale FROM db.session WHERE code = pSession;
 $$ LANGUAGE sql STABLE STRICT
@@ -2102,11 +2102,11 @@ $$ LANGUAGE sql STABLE STRICT
  * @return {text} - Код языка
  */
 CREATE OR REPLACE FUNCTION locale_code (
-  pSession	varchar DEFAULT current_session()
-) RETURNS	text
+  pSession      varchar DEFAULT current_session()
+) RETURNS       text
 AS $$
 DECLARE
-  vCode		text;
+  vCode         text;
 BEGIN
   SELECT code INTO vCode FROM db.locale WHERE id = GetSessionLocale(pSession);
 
@@ -2129,9 +2129,9 @@ $$ LANGUAGE plpgsql STABLE
  * @return {uuid} - Идентификатор языка.
  */
 CREATE OR REPLACE FUNCTION current_locale (
-  pSession	varchar DEFAULT current_session()
+  pSession      varchar DEFAULT current_session()
 )
-RETURNS		uuid
+RETURNS         uuid
 AS $$
 BEGIN
   RETURN coalesce(GetSessionLocale(pSession), '00000000-0000-4001-a000-000000000002');
@@ -2145,9 +2145,9 @@ $$ LANGUAGE plpgsql STABLE
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetDefaultLocale (
-  pLocale   uuid DEFAULT current_locale(),
-  pUserId	uuid DEFAULT current_userid()
-) RETURNS	void
+  pLocale       uuid DEFAULT current_locale(),
+  pUserId       uuid DEFAULT current_userid()
+) RETURNS       void
 AS $$
 BEGIN
   UPDATE db.profile SET locale = pLocale WHERE userid = pUserId AND scope = current_scope();
@@ -2161,11 +2161,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetDefaultLocale (
-  pUserId   uuid DEFAULT current_userid()
-) RETURNS	uuid
+  pUserId       uuid DEFAULT current_userid()
+) RETURNS       uuid
 AS $$
 DECLARE
-  uLocale   uuid;
+  uLocale       uuid;
 BEGIN
   SELECT locale INTO uLocale FROM db.profile WHERE userid = pUserId AND scope = current_scope();
 
@@ -2185,9 +2185,9 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION SetLocale (
   pLocale       uuid,
-  pUserId	    uuid DEFAULT current_userid(),
-  pSession	    varchar DEFAULT current_session()
-) RETURNS	    void
+  pUserId       uuid DEFAULT current_userid(),
+  pSession      varchar DEFAULT current_session()
+) RETURNS       void
 AS $$
 BEGIN
   UPDATE db.session SET locale = pLocale WHERE code = pSession;
@@ -2222,8 +2222,8 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetAccessControlListMask (
-  pUserId	uuid DEFAULT current_userid()
-) RETURNS	bit varying
+  pUserId       uuid DEFAULT current_userid()
+) RETURNS       bit varying
 AS $$
   SELECT mask FROM acl(pUserId)
 $$ LANGUAGE SQL
@@ -2235,9 +2235,9 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CheckAccessControlList (
-  pMask		bit,
-  pUserId	uuid DEFAULT current_userid()
-) RETURNS	boolean
+  pMask         bit,
+  pUserId       uuid DEFAULT current_userid()
+) RETURNS       boolean
 AS $$
 BEGIN
   RETURN coalesce(GetAccessControlListMask(pUserId) & pMask = pMask, false);
@@ -2294,8 +2294,8 @@ BEGIN
     bDeny := coalesce(SubString(pMask FROM 1 FOR nSize), dec_to_bin(0, nSize)::varbit);
     bAllow := coalesce(SubString(pMask FROM nSize + 1 FOR nSize), dec_to_bin(0, nSize)::varbit);
 
-	INSERT INTO db.acl SELECT pUserId, bDeny, bAllow
-	  ON CONFLICT (userid) DO UPDATE SET deny = bDeny, allow = bAllow;
+    INSERT INTO db.acl SELECT pUserId, bDeny, bAllow
+      ON CONFLICT (userid) DO UPDATE SET deny = bDeny, allow = bAllow;
   ELSE
     DELETE FROM db.acl WHERE userid = pUserId;
   END IF;
@@ -2315,14 +2315,14 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION SubstituteUser (
-  pUserId	uuid,
-  pPassword	text,
-  pSession	varchar DEFAULT current_session()
-) RETURNS	void
+  pUserId       uuid,
+  pPassword     text,
+  pSession      varchar DEFAULT current_session()
+) RETURNS       void
 AS $$
 BEGIN
   IF session_user <> 'kernel' THEN
-	IF NOT CheckAccessControlList(B'10000000000000', session_userid(pSession)) THEN
+    IF NOT CheckAccessControlList(B'10000000000000', session_userid(pSession)) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -2355,10 +2355,10 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION SubstituteUser (
-  pRoleName	text,
-  pPassword	text,
-  pSession	varchar DEFAULT current_session()
-) RETURNS	void
+  pRoleName     text,
+  pPassword     text,
+  pSession      varchar DEFAULT current_session()
+) RETURNS       void
 AS $$
 BEGIN
   PERFORM SubstituteUser(GetUser(pRoleName), pPassword, pSession);
@@ -2377,12 +2377,12 @@ $$ LANGUAGE plpgsql
  * @return {boolean}
  */
 CREATE OR REPLACE FUNCTION IsUserRole (
-  pRoleId	uuid,
-  pUserId	uuid DEFAULT current_userid()
-) RETURNS	boolean
+  pRoleId       uuid,
+  pUserId       uuid DEFAULT current_userid()
+) RETURNS       boolean
 AS $$
 DECLARE
-  uId		uuid;
+  uId           uuid;
 BEGIN
   SELECT member INTO uId FROM db.member_group WHERE userid = pRoleId AND member = pUserId;
   RETURN FOUND;
@@ -2401,13 +2401,13 @@ $$ LANGUAGE plpgsql
  * @return {boolean}
  */
 CREATE OR REPLACE FUNCTION IsUserRole (
-  pRole		text,
-  pUser		text DEFAULT current_username()
-) RETURNS	boolean
+  pRole         text,
+  pUser         text DEFAULT current_username()
+) RETURNS       boolean
 AS $$
 DECLARE
-  uUserId	uuid;
-  nRoleId	uuid;
+  uUserId       uuid;
+  nRoleId       uuid;
 BEGIN
   SELECT id INTO uUserId FROM db.user WHERE username = pUser AND type = 'U';
   SELECT id INTO nRoleId FROM db.user WHERE username = pRole AND type = 'G';
@@ -2444,11 +2444,11 @@ CREATE OR REPLACE FUNCTION CreateUser (
   pDescription          text DEFAULT null,
   pPasswordChange       boolean DEFAULT true,
   pPasswordNotChange    boolean DEFAULT false,
-  pId					uuid DEFAULT gen_kernel_uuid('a')
+  pId                   uuid DEFAULT gen_kernel_uuid('a')
 ) RETURNS               uuid
 AS $$
 DECLARE
-  uId					uuid;
+  uId                   uuid;
   uScope                uuid;
   vSecret               text;
 BEGIN
@@ -2504,15 +2504,15 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION CreateGroup (
   pRoleName     text,
   pName         text,
-  pDescription	text,
-  pId			uuid DEFAULT gen_kernel_uuid('a')
-) RETURNS	    uuid
+  pDescription  text,
+  pId           uuid DEFAULT gen_kernel_uuid('a')
+) RETURNS       uuid
 AS $$
 DECLARE
-  uId			uuid;
+  uId           uuid;
 BEGIN
   IF session_user <> 'kernel' THEN
-	IF NOT CheckAccessControlList(B'00000001000000') THEN
+    IF NOT CheckAccessControlList(B'00000001000000') THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -2560,10 +2560,10 @@ CREATE OR REPLACE FUNCTION UpdateUser (
   pDescription          text DEFAULT null,
   pPasswordChange       boolean DEFAULT null,
   pPasswordNotChange    boolean DEFAULT null
-) RETURNS		        void
+) RETURNS               void
 AS $$
 DECLARE
-  r			            db.user%rowtype;
+  r                        db.user%rowtype;
 BEGIN
   SELECT * INTO r FROM db.user WHERE id = pId AND type = 'U';
   IF NOT FOUND THEN
@@ -2572,14 +2572,14 @@ BEGIN
 
   IF session_user <> 'kernel' THEN
     IF pId <> current_userid() THEN
-	  IF NOT CheckAccessControlList(B'00000000001000') THEN
-		PERFORM AccessDenied();
-	  END IF;
+      IF NOT CheckAccessControlList(B'00000000001000') THEN
+        PERFORM AccessDenied();
+      END IF;
     END IF;
 
     IF r.readonly THEN
       PERFORM ReadOnlyError();
-	END IF;
+    END IF;
   END IF;
 
   IF coalesce((SELECT true FROM pg_roles WHERE rolname = lower(r.username)), false) THEN
@@ -2674,16 +2674,16 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION DeleteUser (
-  pId		uuid
-) RETURNS	void
+  pId           uuid
+) RETURNS       void
 AS $$
 DECLARE
-  vUserName	text;
+  vUserName     text;
 BEGIN
   IF session_user <> 'kernel' THEN
-	IF NOT CheckAccessControlList(B'00000000010000') THEN
-	  PERFORM AccessDenied();
-	END IF;
+    IF NOT CheckAccessControlList(B'00000000010000') THEN
+      PERFORM AccessDenied();
+    END IF;
   END IF;
 
   IF pId = current_userid() THEN
@@ -2733,11 +2733,11 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION DeleteUser (
-  pRoleName	text
-) RETURNS	void
+  pRoleName     text
+) RETURNS       void
 AS $$
 DECLARE
-  uId		uuid;
+  uId           uuid;
 BEGIN
   SELECT id INTO uId FROM db.user WHERE type = 'U' AND username = lower(pRoleName);
 
@@ -2760,14 +2760,14 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION DeleteGroup (
-  pId		    uuid
-) RETURNS	    void
+  pId           uuid
+) RETURNS       void
 AS $$
 DECLARE
   vGroupName    text;
 BEGIN
   IF session_user <> 'kernel' THEN
-	IF NOT CheckAccessControlList(B'00000010000000') THEN
+    IF NOT CheckAccessControlList(B'00000010000000') THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -2816,11 +2816,11 @@ $$ LANGUAGE plpgsql
  * @return {id}
  */
 CREATE OR REPLACE FUNCTION GetUser (
-  pRoleName	text
-) RETURNS	uuid
+  pRoleName     text
+) RETURNS       uuid
 AS $$
 DECLARE
-  uId		uuid;
+  uId           uuid;
 BEGIN
   SELECT id INTO uId FROM db.user WHERE type = 'U' AND username = pRoleName;
 
@@ -2844,10 +2844,10 @@ $$ LANGUAGE plpgsql STABLE
  */
 CREATE OR REPLACE FUNCTION GetGroup (
   pRoleName     text
-) RETURNS	    uuid
+) RETURNS       uuid
 AS $$
 DECLARE
-  uId		    uuid;
+  uId           uuid;
 BEGIN
   SELECT id INTO uId FROM db.user WHERE type = 'G' AND username = pRoleName;
 
@@ -2871,14 +2871,14 @@ $$ LANGUAGE plpgsql STABLE
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION SetPassword (
-  pId			    uuid,
-  pPassword		    text
-) RETURNS		    void
+  pId               uuid,
+  pPassword         text
+) RETURNS           void
 AS $$
 DECLARE
-  uUserId		    uuid;
-  bPasswordChange	boolean;
-  r			        record;
+  uUserId           uuid;
+  bPasswordChange   boolean;
+  r                 record;
 BEGIN
   uUserId := current_userid();
 
@@ -2893,7 +2893,7 @@ BEGIN
 
     IF r.readonly THEN
       PERFORM ReadOnlyError();
-	END IF;
+    END IF;
   END IF;
 
   IF FOUND THEN
@@ -2937,13 +2937,13 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION ChangePassword (
-  pId		uuid,
-  pOldPass	text,
-  pNewPass	text
-) RETURNS	boolean
+  pId           uuid,
+  pOldPass      text,
+  pNewPass      text
+) RETURNS       boolean
 AS $$
 DECLARE
-  r		record;
+  r             record;
 BEGIN
   SELECT username, system INTO r FROM users WHERE id = pId AND scope = current_scope();
 
@@ -2975,17 +2975,17 @@ $$ LANGUAGE plpgsql;
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION UserLock (
-  pId		uuid
-) RETURNS	void
+  pId           uuid
+) RETURNS       void
 AS $$
 DECLARE
-  uId		uuid;
+  uId           uuid;
 BEGIN
   IF session_user <> 'kernel' THEN
     IF pId <> current_userid() THEN
-	  IF NOT CheckAccessControlList(B'00100000000000') THEN
-		PERFORM AccessDenied();
-	  END IF;
+      IF NOT CheckAccessControlList(B'00100000000000') THEN
+        PERFORM AccessDenied();
+      END IF;
     END IF;
   END IF;
 
@@ -3010,16 +3010,16 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION UserUnLock (
-  pId		uuid
-) RETURNS	void
+  pId           uuid
+) RETURNS       void
 AS $$
 DECLARE
-  uId		uuid;
+  uId           uuid;
 BEGIN
   IF session_user <> 'kernel' THEN
-	IF NOT CheckAccessControlList(B'01000000000000') THEN
-	  PERFORM AccessDenied();
-	END IF;
+    IF NOT CheckAccessControlList(B'01000000000000') THEN
+      PERFORM AccessDenied();
+    END IF;
   END IF;
 
   SELECT id INTO uId FROM db.user WHERE id = pId AND type = 'U';
@@ -3044,13 +3044,13 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION AddMemberToGroup (
-  pMember	uuid,
-  pGroup	uuid
-) RETURNS	void
+  pMember       uuid,
+  pGroup        uuid
+) RETURNS       void
 AS $$
 BEGIN
   IF session_user <> 'kernel' THEN
-	IF NOT CheckAccessControlList(B'00001000000000') THEN
+    IF NOT CheckAccessControlList(B'00001000000000') THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3071,13 +3071,13 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION DeleteGroupForMember (
-  pMember	uuid,
-  pGroup	uuid DEFAULT null
-) RETURNS	void
+  pMember       uuid,
+  pGroup        uuid DEFAULT null
+) RETURNS       void
 AS $$
 BEGIN
   IF session_user <> 'kernel' THEN
-	IF NOT CheckAccessControlList(B'00010000000000') THEN
+    IF NOT CheckAccessControlList(B'00010000000000') THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3098,13 +3098,13 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION DeleteMemberFromGroup (
-  pGroup	uuid,
-  pMember	uuid DEFAULT null
-) RETURNS	void
+  pGroup        uuid,
+  pMember       uuid DEFAULT null
+) RETURNS       void
 AS $$
 BEGIN
   IF session_user <> 'kernel' THEN
-	IF NOT CheckAccessControlList(B'00010000000000') THEN
+    IF NOT CheckAccessControlList(B'00010000000000') THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3120,8 +3120,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetUsername (
-  pId		uuid
-) RETURNS	text
+  pId           uuid
+) RETURNS       text
 AS $$
   SELECT username FROM db.user WHERE id = pId AND type = 'U';
 $$ LANGUAGE sql
@@ -3133,8 +3133,8 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetUserFullName (
-  pId		uuid
-) RETURNS	text
+  pId           uuid
+) RETURNS       text
 AS $$
   SELECT name FROM db.user WHERE id = pId AND type = 'U';
 $$ LANGUAGE sql
@@ -3146,8 +3146,8 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetGroupUsername (
-  pId			uuid
-) RETURNS		text
+  pId           uuid
+) RETURNS       text
 AS $$
   SELECT username FROM db.user WHERE id = pId AND type = 'G';
 $$ LANGUAGE sql
@@ -3159,8 +3159,8 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetGroupName (
-  pId			uuid
-) RETURNS		text
+  pId           uuid
+) RETURNS       text
 AS $$
   SELECT name FROM db.user WHERE id = pId AND type = 'G';
 $$ LANGUAGE sql
@@ -3172,14 +3172,14 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateScope (
-  pCode		    text,
-  pName		    text,
-  pDescription	text DEFAULT null,
-  pId			uuid DEFAULT gen_kernel_uuid('8')
-) RETURNS 	    uuid
+  pCode         text,
+  pName         text,
+  pDescription  text DEFAULT null,
+  pId           uuid DEFAULT gen_kernel_uuid('8')
+) RETURNS       uuid
 AS $$
 DECLARE
-  uId		    uuid;
+  uId           uuid;
 BEGIN
   IF session_user <> 'kernel' THEN
     IF NOT IsUserRole(GetGroup('administrator')) THEN
@@ -3206,14 +3206,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EditScope (
-  pId			    uuid,
-  pCode			    text DEFAULT null,
-  pName			    text DEFAULT null,
-  pDescription		text DEFAULT null
+  pId           uuid,
+  pCode         text DEFAULT null,
+  pName         text DEFAULT null,
+  pDescription  text DEFAULT null
 ) RETURNS void
 AS $$
 DECLARE
-  vCode             text;
+  vCode         text;
 BEGIN
   IF session_user <> 'kernel' THEN
     IF NOT IsUserRole(GetGroup('administrator')) THEN
@@ -3235,9 +3235,9 @@ BEGIN
   END IF;
 
   UPDATE db.scope
-	 SET code = coalesce(pCode, code),
-		 name = coalesce(pName, name),
-		 description = CheckNull(coalesce(pDescription, description, ''))
+     SET code = coalesce(pCode, code),
+         name = coalesce(pName, name),
+         description = CheckNull(coalesce(pDescription, description, ''))
    WHERE id = pId;
 END;
 $$ LANGUAGE plpgsql
@@ -3249,7 +3249,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DeleteScope (
-  pId			uuid
+  pId           uuid
 ) RETURNS       void
 AS $$
 DECLARE
@@ -3277,8 +3277,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetScope (
-  pCode		text
-) RETURNS	uuid
+  pCode         text
+) RETURNS       uuid
 AS $$
   SELECT id FROM db.scope WHERE code = pCode;
 $$ LANGUAGE sql STABLE STRICT
@@ -3290,8 +3290,8 @@ $$ LANGUAGE sql STABLE STRICT
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetScopeName (
-  pId		uuid
-) RETURNS	text
+  pId           uuid
+) RETURNS       text
 AS $$
   SELECT name FROM db.scope WHERE id = pId;
 $$ LANGUAGE sql STABLE STRICT
@@ -3303,14 +3303,14 @@ $$ LANGUAGE sql STABLE STRICT
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetAreaSequence (
-  pId		uuid,
-  pSequence	integer,
-  pDelta	integer
-) RETURNS 	void
+  pId           uuid,
+  pSequence     integer,
+  pDelta        integer
+) RETURNS       void
 AS $$
 DECLARE
-  uId		uuid;
-  uParent   uuid;
+  uId           uuid;
+  uParent       uuid;
 BEGIN
   IF pDelta <> 0 THEN
     SELECT parent INTO uParent FROM db.area WHERE id = pId;
@@ -3336,11 +3336,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SortArea (
-  pParent   uuid
-) RETURNS 	void
+  pParent       uuid
+) RETURNS       void
 AS $$
 DECLARE
-  r         record;
+  r             record;
 BEGIN
   FOR r IN
     SELECT id, (row_number() OVER(order by sequence))::int as newsequence
@@ -3359,19 +3359,19 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateArea (
-  pId			uuid,
-  pParent	    uuid,
-  pType		    uuid,
-  pScope	    uuid,
-  pCode		    text,
-  pName		    text,
-  pDescription	text DEFAULT null,
+  pId           uuid,
+  pParent       uuid,
+  pType         uuid,
+  pScope        uuid,
+  pCode         text,
+  pName         text,
+  pDescription  text DEFAULT null,
   pSequence     integer DEFAULT null
-) RETURNS 	    uuid
+) RETURNS       uuid
 AS $$
 DECLARE
-  uId		    uuid;
-  nLevel		integer;
+  uId           uuid;
+  nLevel        integer;
 BEGIN
   IF session_user <> 'kernel' THEN
     IF NOT IsUserRole(GetGroup('administrator')) THEN
@@ -3415,25 +3415,25 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION EditArea (
-  pId			    uuid,
-  pParent		    uuid DEFAULT null,
-  pType			    uuid DEFAULT null,
-  pScope		    uuid DEFAULT null,
-  pCode			    text DEFAULT null,
-  pName			    text DEFAULT null,
-  pDescription		text DEFAULT null,
+  pId               uuid,
+  pParent           uuid DEFAULT null,
+  pType             uuid DEFAULT null,
+  pScope            uuid DEFAULT null,
+  pCode             text DEFAULT null,
+  pName             text DEFAULT null,
+  pDescription      text DEFAULT null,
   pSequence         integer DEFAULT null,
-  pValidFromDate	timestamp DEFAULT null,
-  pValidToDate		timestamp DEFAULT null
+  pValidFromDate    timestamp DEFAULT null,
+  pValidToDate      timestamp DEFAULT null
 ) RETURNS void
 AS $$
 DECLARE
   vCode             text;
   uType             uuid;
-  uParent			uuid;
-  uScope			uuid;
+  uParent           uuid;
+  uScope            uuid;
 
-  nLevel	        integer;
+  nLevel            integer;
   nSequence         integer;
 BEGIN
   IF session_user <> 'kernel' THEN
@@ -3459,16 +3459,16 @@ BEGIN
   pSequence := coalesce(pSequence, nSequence);
 
   UPDATE db.area
-	 SET parent = coalesce(pParent, parent),
-		 type = coalesce(pType, type),
-	     scope = coalesce(pScope, scope),
-		 code = coalesce(pCode, code),
-		 name = coalesce(pName, name),
-		 description = CheckNull(coalesce(pDescription, description, '')),
+     SET parent = coalesce(pParent, parent),
+         type = coalesce(pType, type),
+         scope = coalesce(pScope, scope),
+         code = coalesce(pCode, code),
+         name = coalesce(pName, name),
+         description = CheckNull(coalesce(pDescription, description, '')),
          level = coalesce(nLevel, level),
          sequence = pSequence,
-		 validFromDate = coalesce(pValidFromDate, validFromDate),
-		 validToDate = coalesce(pValidToDate, validToDate)
+         validFromDate = coalesce(pValidFromDate, validFromDate),
+         validToDate = coalesce(pValidToDate, validToDate)
    WHERE id = pId;
 
   IF uParent IS DISTINCT FROM pParent THEN
@@ -3495,7 +3495,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DeleteArea (
-  pId			uuid
+  pId           uuid
 ) RETURNS       void
 AS $$
 DECLARE
@@ -3525,8 +3525,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetAreaScope (
-  pArea     uuid
-) RETURNS	uuid
+  pArea         uuid
+) RETURNS       uuid
 AS $$
   SELECT scope FROM db.area WHERE id = pArea;
 $$ LANGUAGE sql STABLE STRICT
@@ -3538,9 +3538,9 @@ $$ LANGUAGE sql STABLE STRICT
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetArea (
-  pCode		text,
-  pScope    uuid default current_scope()
-) RETURNS	uuid
+  pCode         text,
+  pScope        uuid default current_scope()
+) RETURNS       uuid
 AS $$
   SELECT id FROM db.area WHERE scope = pScope AND code = pCode;
 $$ LANGUAGE sql STABLE STRICT
@@ -3552,8 +3552,8 @@ $$ LANGUAGE sql STABLE STRICT
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetAreaRoot (
-  pScope    uuid default current_scope()
-) RETURNS	uuid
+  pScope        uuid default current_scope()
+) RETURNS       uuid
 AS $$
   SELECT id FROM db.area WHERE scope = pScope AND type = '00000000-0000-4002-a000-000000000000';
 $$ LANGUAGE sql STABLE STRICT
@@ -3565,8 +3565,8 @@ $$ LANGUAGE sql STABLE STRICT
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetAreaSystem (
-  pScope    uuid default current_scope()
-) RETURNS	uuid
+  pScope        uuid default current_scope()
+) RETURNS       uuid
 AS $$
   SELECT id FROM db.area WHERE scope = pScope AND type = '00000000-0000-4002-a000-000000000001';
 $$ LANGUAGE sql STABLE STRICT
@@ -3578,8 +3578,8 @@ $$ LANGUAGE sql STABLE STRICT
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetAreaGuest (
-  pScope    uuid default current_scope()
-) RETURNS	uuid
+  pScope        uuid default current_scope()
+) RETURNS       uuid
 AS $$
   SELECT id FROM db.area WHERE scope = pScope AND type = '00000000-0000-4002-a000-000000000002';
 $$ LANGUAGE sql STABLE STRICT
@@ -3591,8 +3591,8 @@ $$ LANGUAGE sql STABLE STRICT
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetAreaDefault (
-  pScope    uuid default current_scope()
-) RETURNS	uuid
+  pScope        uuid default current_scope()
+) RETURNS       uuid
 AS $$
   SELECT id FROM db.area WHERE scope = pScope AND type = '00000000-0000-4002-a001-000000000000';
 $$ LANGUAGE sql STABLE STRICT
@@ -3604,8 +3604,8 @@ $$ LANGUAGE sql STABLE STRICT
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetAreaCode (
-  pId		uuid
-) RETURNS	text
+  pId           uuid
+) RETURNS       text
 AS $$
   SELECT code FROM db.area WHERE id = pId;
 $$ LANGUAGE sql STABLE STRICT
@@ -3617,8 +3617,8 @@ $$ LANGUAGE sql STABLE STRICT
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetAreaName (
-  pId		uuid
-) RETURNS	text
+  pId           uuid
+) RETURNS       text
 AS $$
   SELECT name FROM db.area WHERE id = pId;
 $$ LANGUAGE sql STABLE STRICT
@@ -3630,8 +3630,8 @@ $$ LANGUAGE sql STABLE STRICT
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AreaTree (
-  pArea     uuid
-) RETURNS   SETOF AreaTree
+  pArea         uuid
+) RETURNS       SETOF AreaTree
 AS $$
   WITH RECURSIVE tree AS (
     SELECT *, ARRAY[row_number() OVER (ORDER BY level, sequence)] AS sortlist FROM Area WHERE id IS NOT DISTINCT FROM pArea
@@ -3652,13 +3652,13 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION AddMemberToArea (
-  pMember	uuid,
-  pArea		uuid
-) RETURNS   void
+  pMember       uuid,
+  pArea         uuid
+) RETURNS       void
 AS $$
 BEGIN
   IF session_user <> 'kernel' THEN
-	IF NOT CheckAccessControlList(B'00001000000000') THEN
+    IF NOT CheckAccessControlList(B'00001000000000') THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3679,13 +3679,13 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION DeleteAreaForMember (
-  pMember	uuid,
-  pArea		uuid DEFAULT null
-) RETURNS   void
+  pMember       uuid,
+  pArea         uuid DEFAULT null
+) RETURNS       void
 AS $$
 BEGIN
   IF session_user <> 'kernel' THEN
-	IF NOT CheckAccessControlList(B'00010000000000') THEN
+    IF NOT CheckAccessControlList(B'00010000000000') THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3706,13 +3706,13 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION DeleteMemberFromArea (
-  pArea		uuid,
-  pMember	uuid DEFAULT null
-) RETURNS   void
+  pArea         uuid,
+  pMember       uuid DEFAULT null
+) RETURNS       void
 AS $$
 BEGIN
   IF session_user <> 'kernel' THEN
-	IF NOT CheckAccessControlList(B'00010000000000') THEN
+    IF NOT CheckAccessControlList(B'00010000000000') THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3728,10 +3728,10 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetArea (
-  pArea	        uuid,
-  pMember	    uuid DEFAULT current_userid(),
-  pSession	    varchar DEFAULT current_session()
-) RETURNS	    void
+  pArea         uuid,
+  pMember       uuid DEFAULT current_userid(),
+  pSession      varchar DEFAULT current_session()
+) RETURNS       void
 AS $$
 DECLARE
   vUserName     text;
@@ -3768,12 +3768,12 @@ $$ LANGUAGE plpgsql
  * @return {boolean}
  */
 CREATE OR REPLACE FUNCTION IsMemberArea (
-  pArea		uuid,
-  pMember   uuid DEFAULT current_userid()
-) RETURNS	boolean
+  pArea         uuid,
+  pMember       uuid DEFAULT current_userid()
+) RETURNS       boolean
 AS $$
 DECLARE
-  nCount    bigint;
+  nCount        bigint;
 BEGIN
   IF pArea IS NULL OR pMember IS NULL THEN
     RETURN false;
@@ -3804,9 +3804,9 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetDefaultArea (
-  pArea	    uuid DEFAULT current_area(),
-  pMember	uuid DEFAULT current_userid()
-) RETURNS	void
+  pArea         uuid DEFAULT current_area(),
+  pMember       uuid DEFAULT current_userid()
+) RETURNS       void
 AS $$
 BEGIN
   UPDATE db.profile SET area = pArea WHERE userid = pMember AND scope = current_scope();
@@ -3820,11 +3820,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetDefaultArea (
-  pMember   uuid DEFAULT current_userid()
-) RETURNS	uuid
+  pMember       uuid DEFAULT current_userid()
+) RETURNS       uuid
 AS $$
 DECLARE
-  uArea     uuid;
+  uArea         uuid;
 BEGIN
   SELECT area INTO uArea FROM db.profile WHERE userid = pMember AND scope = current_scope();
 
@@ -3843,14 +3843,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CreateInterface (
-  pCode		    text,
-  pName		    text,
-  pDescription	text,
-  pId		    uuid DEFAULT gen_kernel_uuid('8')
-) RETURNS 	    uuid
+  pCode         text,
+  pName         text,
+  pDescription  text,
+  pId           uuid DEFAULT gen_kernel_uuid('8')
+) RETURNS       uuid
 AS $$
 DECLARE
-  uId		    uuid;
+  uId           uuid;
 BEGIN
   IF session_user <> 'kernel' THEN
     IF NOT IsUserRole(GetGroup('administrator')) THEN
@@ -3872,11 +3872,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION UpdateInterface (
-  pId		    uuid,
-  pCode		    text DEFAULT null,
-  pName		    text DEFAULT null,
-  pDescription	text DEFAULT null
-) RETURNS 	    void
+  pId           uuid,
+  pCode         text DEFAULT null,
+  pName         text DEFAULT null,
+  pDescription  text DEFAULT null
+) RETURNS       void
 AS $$
 BEGIN
   IF session_user <> 'kernel' THEN
@@ -3900,8 +3900,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DeleteInterface (
-  pId		uuid
-) RETURNS 	void
+  pId           uuid
+) RETURNS       void
 AS $$
 BEGIN
   IF session_user <> 'kernel' THEN
@@ -3927,7 +3927,7 @@ CREATE OR REPLACE FUNCTION AddMemberToInterface (
 AS $$
 BEGIN
   IF session_user <> 'kernel' THEN
-	IF NOT CheckAccessControlList(B'00001000000000') THEN
+    IF NOT CheckAccessControlList(B'00001000000000') THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3943,13 +3943,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DeleteInterfaceForMember (
-  pMember	    uuid,
-  pInterface	uuid DEFAULT null
+  pMember       uuid,
+  pInterface    uuid DEFAULT null
 ) RETURNS       void
 AS $$
 BEGIN
   IF session_user <> 'kernel' THEN
-	IF NOT CheckAccessControlList(B'00010000000000') THEN
+    IF NOT CheckAccessControlList(B'00010000000000') THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3965,13 +3965,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DeleteMemberFromInterface (
-  pInterface	uuid,
-  pMember	    uuid DEFAULT null
+  pInterface    uuid,
+  pMember       uuid DEFAULT null
 ) RETURNS       void
 AS $$
 BEGIN
   IF session_user <> 'kernel' THEN
-	IF NOT CheckAccessControlList(B'00010000000000') THEN
+    IF NOT CheckAccessControlList(B'00010000000000') THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3987,8 +3987,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetInterface (
-  pCode		text
-) RETURNS 	uuid
+  pCode         text
+) RETURNS       uuid
 AS $$
   SELECT id FROM db.interface WHERE code = pCode;
 $$ LANGUAGE sql
@@ -4000,8 +4000,8 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetInterfaceName (
-  pId		uuid
-) RETURNS 	text
+  pId           uuid
+) RETURNS       text
 AS $$
   SELECT name FROM db.interface WHERE id = pId;
 $$ LANGUAGE sql
@@ -4013,10 +4013,10 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetInterface (
-  pInterface	uuid,
-  pMember	    uuid DEFAULT current_userid(),
-  pSession	    varchar DEFAULT current_session()
-) RETURNS	    void
+  pInterface    uuid,
+  pMember       uuid DEFAULT current_userid(),
+  pSession      varchar DEFAULT current_session()
+) RETURNS       void
 AS $$
 DECLARE
   vUserName     text;
@@ -4083,9 +4083,9 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetDefaultInterface (
-  pInterface	uuid DEFAULT current_interface(),
-  pMember	    uuid DEFAULT current_userid()
-) RETURNS	    void
+  pInterface    uuid DEFAULT current_interface(),
+  pMember       uuid DEFAULT current_userid()
+) RETURNS       void
 AS $$
 BEGIN
   UPDATE db.profile SET interface = pInterface WHERE userid = pMember AND scope = current_scope();
@@ -4099,8 +4099,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetDefaultInterface (
-  pMember	    uuid DEFAULT current_userid()
-) RETURNS	    uuid
+  pMember       uuid DEFAULT current_userid()
+) RETURNS       uuid
 AS $$
 DECLARE
   uInterface    uuid;
@@ -4108,7 +4108,7 @@ BEGIN
   SELECT interface INTO uInterface FROM db.profile WHERE userid = pMember AND scope = current_scope();
 
   IF NOT FOUND THEN
-	uInterface := '00000000-0000-4004-a000-000000000003'::uuid;
+    uInterface := '00000000-0000-4004-a000-000000000003'::uuid;
   END IF;
 
   RETURN uInterface;
@@ -4122,11 +4122,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CheckOffline (
-  pOffTime	INTERVAL DEFAULT '5 minute'
-) RETURNS	void
+  pOffTime      interval DEFAULT '5 minute'
+) RETURNS       void
 AS $$
 DECLARE
-  r         record;
+  r             record;
 BEGIN
   FOR r IN
     SELECT userid
@@ -4149,11 +4149,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CheckSession (
-  pOffTime	INTERVAL DEFAULT '3 month'
-) RETURNS	void
+  pOffTime      interval DEFAULT '3 month'
+) RETURNS       void
 AS $$
 DECLARE
-  r         record;
+  r             record;
 BEGIN
   FOR r IN
     SELECT code
@@ -4178,12 +4178,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CheckPassword (
-  pUserId	uuid,
-  pPassword	text
-) RETURNS 	boolean
+  pUserId       uuid,
+  pPassword     text
+) RETURNS       boolean
 AS $$
 DECLARE
-  passed 	boolean;
+  passed        boolean;
 BEGIN
   SELECT (pswhash = crypt(pPassword, pswhash)) INTO passed
     FROM db.user
@@ -4210,9 +4210,9 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CheckPassword (
-  pRoleName	text,
-  pPassword	text
-) RETURNS 	boolean
+  pRoleName     text,
+  pPassword     text
+) RETURNS       boolean
 AS $$
 BEGIN
   RETURN CheckPassword(GetUser(pRoleName), pPassword);
@@ -4252,7 +4252,7 @@ BEGIN
   SELECT i.provider INTO nProvider FROM oauth2.issuer i WHERE i.code = iss;
 
   IF NOT FOUND THEN
-	PERFORM IssuerNotFound(coalesce(iss, 'null'));
+    PERFORM IssuerNotFound(coalesce(iss, 'null'));
   END IF;
 
   aud := payload->>'aud';
@@ -4260,29 +4260,29 @@ BEGIN
   SELECT a.id, a.secret INTO nAudience, vSecret FROM oauth2.audience a WHERE a.provider = nProvider AND a.code = aud;
 
   IF NOT FOUND THEN
-	PERFORM AudienceNotFound();
+    PERFORM AudienceNotFound();
   END IF;
 
   SELECT * INTO r FROM verify(pToken, vSecret);
 
   IF NOT coalesce(r.valid, false) THEN
-	PERFORM TokenError();
+    PERFORM TokenError();
   END IF;
 
   SELECT h.oauth2 INTO nOauth2
-	FROM db.token t INNER JOIN db.token_header h ON h.id = t.header
+    FROM db.token t INNER JOIN db.token_header h ON h.id = t.header
    WHERE t.hash = GetTokenHash(pToken, GetSecretKey())
-	 AND t.validFromDate <= Now()
-	 AND t.validtoDate > Now();
+     AND t.validFromDate <= Now()
+     AND t.validtoDate > Now();
 
   IF NOT FOUND THEN
-	PERFORM TokenExpired();
+    PERFORM TokenExpired();
   END IF;
 
   SELECT (audience = nAudience) INTO belong FROM db.oauth2 WHERE id = nOauth2;
 
   IF NOT coalesce(belong, false) THEN
-	PERFORM TokenBelong();
+    PERFORM TokenBelong();
   END IF;
 
   RETURN payload;
@@ -4322,7 +4322,7 @@ DECLARE
   dtValidToDate timestamptz;
 BEGIN
   IF pRefresh IS NULL THEN
-	RETURN json_build_object('error', json_build_object('code', 400, 'error', 'invalid_request', 'message', 'Missing parameter: refresh_token'));
+    RETURN json_build_object('error', json_build_object('code', 400, 'error', 'invalid_request', 'message', 'Missing parameter: refresh_token'));
   END IF;
 
   SELECT convert_from(url_decode(data[2]), 'utf8')::jsonb INTO payload FROM regexp_split_to_array(pToken, '\.') data;
@@ -4332,7 +4332,7 @@ BEGIN
   SELECT i.provider INTO nProvider FROM oauth2.issuer i WHERE i.code = iss;
 
   IF NOT FOUND THEN
-	PERFORM IssuerNotFound(coalesce(iss, 'null'));
+    PERFORM IssuerNotFound(coalesce(iss, 'null'));
   END IF;
 
   aud := payload->>'aud';
@@ -4340,27 +4340,27 @@ BEGIN
   SELECT a.id, a.secret INTO nAudience, vSecret FROM oauth2.audience a WHERE a.provider = nProvider AND a.code = aud;
 
   IF NOT FOUND THEN
-	PERFORM AudienceNotFound();
+    PERFORM AudienceNotFound();
   END IF;
 
   SELECT * INTO r FROM verify(pToken, vSecret);
 
   IF NOT coalesce(r.valid, false) THEN
-	PERFORM TokenError();
+    PERFORM TokenError();
   END IF;
 
   SELECT h.oauth2, t.validtodate INTO nOauth2, dtValidToDate
-	FROM db.token t INNER JOIN db.token_header h ON h.id = t.header
+    FROM db.token t INNER JOIN db.token_header h ON h.id = t.header
    WHERE t.hash = GetTokenHash(pToken, GetSecretKey());
 
   IF NOT FOUND THEN
-	PERFORM TokenExpired();
+    PERFORM TokenExpired();
   END IF;
 
   SELECT (audience = nAudience) INTO belong FROM db.oauth2 WHERE id = nOauth2;
 
   IF NOT coalesce(belong, false) THEN
-	PERFORM TokenBelong();
+    PERFORM TokenBelong();
   END IF;
 
   IF dtValidToDate > Now() THEN
@@ -4386,11 +4386,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION ValidSession (
-  pSession	    varchar DEFAULT current_session()
-) RETURNS 	    boolean
+  pSession      varchar DEFAULT current_session()
+) RETURNS       boolean
 AS $$
 DECLARE
-  passed 	    boolean;
+  passed        boolean;
 BEGIN
   SELECT (pwkey = crypt(StrPwKey(suid, secret, created), pwkey)) INTO passed
     FROM db.session
@@ -4418,11 +4418,11 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION ValidSecret (
   pSecret       text,
-  pSession	    varchar DEFAULT current_session()
-) RETURNS 	    boolean
+  pSession      varchar DEFAULT current_session()
+) RETURNS       boolean
 AS $$
 DECLARE
-  passed 	    boolean;
+  passed        boolean;
 BEGIN
   SELECT (pSecret = secret) INTO passed
     FROM db.session
@@ -4466,22 +4466,22 @@ DECLARE
   uScope        uuid;
 BEGIN
   SELECT s.userid, a.scope INTO uUserId, uScope
-	FROM db.session s INNER JOIN db.area a ON s.area = a.id
+    FROM db.session s INNER JOIN db.area a ON s.area = a.id
    WHERE s.code = pSession;
 
   IF FOUND THEN
-	UPDATE db.user SET status = set_bit(set_bit(status, 3, 0), 2, 1) WHERE id = uUserId;
+    UPDATE db.user SET status = set_bit(set_bit(status, 3, 0), 2, 1) WHERE id = uUserId;
 
-	UPDATE db.profile
-	   SET input_last = now(),
-		   lc_ip = coalesce(pHost, lc_ip)
-	 WHERE userid = uUserId AND scope = uScope;
+    UPDATE db.profile
+       SET input_last = now(),
+           lc_ip = coalesce(pHost, lc_ip)
+     WHERE userid = uUserId AND scope = uScope;
 
-	UPDATE db.session
-	   SET updated = localtimestamp,
-		   agent = coalesce(pAgent, agent),
-		   host = coalesce(pHost, host)
-	 WHERE code = pSession;
+    UPDATE db.session
+       SET updated = localtimestamp,
+           agent = coalesce(pAgent, agent),
+           host = coalesce(pHost, host)
+     WHERE code = pSession;
   END IF;
 END;
 $$ LANGUAGE plpgsql
@@ -4508,70 +4508,70 @@ CREATE OR REPLACE FUNCTION SessionIn (
 RETURNS         text
 AS $$
 DECLARE
-  up	        db.user%rowtype;
+  up            db.user%rowtype;
 
   uUserId       uuid;
   uScope        uuid;
 
   nToken        bigint;
-  nOAuth2		bigint;
+  nOAuth2       bigint;
 
-  nAudience		integer;
+  nAudience     integer;
 BEGIN
   IF ValidSession(pSession) THEN
 
-	SELECT s.oauth2, s.token, s.userid, a.scope INTO nOAuth2, nToken, uUserId, uScope
-	  FROM db.session s INNER JOIN db.area a ON s.area = a.id
-	 WHERE s.code = pSession;
+    SELECT s.oauth2, s.token, s.userid, a.scope INTO nOAuth2, nToken, uUserId, uScope
+      FROM db.session s INNER JOIN db.area a ON s.area = a.id
+     WHERE s.code = pSession;
 
-	SELECT * INTO up FROM db.user WHERE id = uUserId;
+    SELECT * INTO up FROM db.user WHERE id = uUserId;
 
-	IF NOT FOUND THEN
-	  PERFORM LoginError();
-	END IF;
+    IF NOT FOUND THEN
+      PERFORM LoginError();
+    END IF;
 
-	IF get_bit(up.status, 1) = 1 THEN
-	  PERFORM UserLockError();
-	END IF;
+    IF get_bit(up.status, 1) = 1 THEN
+      PERFORM UserLockError();
+    END IF;
 
-	IF up.lock_date IS NOT NULL AND up.lock_date <= now() THEN
-	  PERFORM UserLockError();
-	END IF;
+    IF up.lock_date IS NOT NULL AND up.lock_date <= now() THEN
+      PERFORM UserLockError();
+    END IF;
 
-	IF get_bit(up.status, 0) = 1 THEN
-	  PERFORM PasswordExpired();
-	END IF;
+    IF get_bit(up.status, 0) = 1 THEN
+      PERFORM PasswordExpired();
+    END IF;
 
-	IF up.expiry_date IS NOT NULL AND up.expiry_date <= now() THEN
-	  PERFORM PasswordExpired();
-	END IF;
+    IF up.expiry_date IS NOT NULL AND up.expiry_date <= now() THEN
+      PERFORM PasswordExpired();
+    END IF;
 
-	IF NOT CheckIPTable(up.id, pHost) THEN
-	  PERFORM LoginIPTableError(pHost);
-	END IF;
+    IF NOT CheckIPTable(up.id, pHost) THEN
+      PERFORM LoginIPTableError(pHost);
+    END IF;
 
-	SELECT audience INTO nAudience FROM db.oauth2 WHERE id = nOAuth2;
+    SELECT audience INTO nAudience FROM db.oauth2 WHERE id = nOAuth2;
 
-	PERFORM SetCurrentSession(pSession);
-	PERFORM SetCurrentUserId(up.id);
-	PERFORM SetOAuth2ClientId(GetAudienceCode(nAudience));
+    PERFORM SetCurrentSession(pSession);
+    PERFORM SetCurrentUserId(up.id);
+    PERFORM SetOAuth2ClientId(GetAudienceCode(nAudience));
 
-	IF pSalt IS NOT NULL THEN
-	  UPDATE db.user SET status = set_bit(set_bit(status, 3, 0), 2, 1) WHERE id = up.id;
+    IF pSalt IS NOT NULL THEN
+      UPDATE db.user SET status = set_bit(set_bit(status, 3, 0), 2, 1) WHERE id = up.id;
 
-	  UPDATE db.profile
-		 SET input_last = now(),
-			 lc_ip = coalesce(pHost, lc_ip)
-	   WHERE userid = up.id AND scope = uScope;
+      UPDATE db.profile
+         SET input_last = now(),
+             lc_ip = coalesce(pHost, lc_ip)
+       WHERE userid = up.id AND scope = uScope;
 
-	  UPDATE db.session
-		 SET updated = localtimestamp,
-			 agent = coalesce(pAgent, agent),
-			 host = coalesce(pHost, host),
-			 salt = coalesce(pSalt, salt)
-	   WHERE code = pSession
-	  RETURNING token INTO nToken;
-	END IF;
+      UPDATE db.session
+         SET updated = localtimestamp,
+             agent = coalesce(pAgent, agent),
+             host = coalesce(pHost, host),
+             salt = coalesce(pSalt, salt)
+       WHERE code = pSession
+      RETURNING token INTO nToken;
+    END IF;
 
     RETURN GetToken(nToken);
   END IF;
@@ -4610,7 +4610,7 @@ DECLARE
   uLocale       uuid;
   uInterface    uuid;
 
-  nAudience		integer DEFAULT null;
+  nAudience     integer DEFAULT null;
   vSession      text DEFAULT null;
 BEGIN
   IF NULLIF(pRoleName, '') IS NULL THEN
@@ -4657,11 +4657,11 @@ BEGIN
 
     uScope := CheckUserProfile(pOAuth2, up.id);
 
-	SELECT locale, area, interface INTO uLocale, uArea, uInterface FROM db.profile WHERE userid = up.id AND scope = uScope;
+    SELECT locale, area, interface INTO uLocale, uArea, uInterface FROM db.profile WHERE userid = up.id AND scope = uScope;
 
     IF NOT FOUND THEN
       RAISE EXCEPTION '[%] [%] Not found scope: %', pOAuth2, pRoleName, uScope;
-	END IF;
+    END IF;
 
     INSERT INTO db.session (oauth2, userid, locale, area, interface, scope, agent, host)
     VALUES (pOAuth2, up.id, uLocale, uArea, uInterface, uScope, pAgent, pHost)
@@ -4767,11 +4767,11 @@ BEGIN
       END IF;
     END IF;
 
-	INSERT INTO db.log (type, code, username, event, text)
-	VALUES ('E', 3100, coalesce(pRoleName, session_user), 'login', vMessage);
+    INSERT INTO db.log (type, code, username, event, text)
+    VALUES ('E', 3100, coalesce(pRoleName, session_user), 'login', vMessage);
 
-	INSERT INTO db.log (type, code, username, event, text)
-	VALUES ('D', 9100, coalesce(pRoleName, session_user), 'login', vContext);
+    INSERT INTO db.log (type, code, username, event, text)
+    VALUES ('D', 9100, coalesce(pRoleName, session_user), 'login', vContext);
 
     RETURN null;
   END;
@@ -4794,13 +4794,13 @@ CREATE OR REPLACE FUNCTION SessionOut (
   pSession      varchar,
   pCloseAll     boolean,
   pMessage      text DEFAULT null
-) RETURNS 	    boolean
+) RETURNS       boolean
 AS $$
 DECLARE
-  uUserId	    uuid;
-  nCount	    integer;
+  uUserId       uuid;
+  nCount        integer;
 
-  message	    text;
+  message       text;
 BEGIN
   IF ValidSession(pSession) THEN
 
@@ -4808,9 +4808,9 @@ BEGIN
 
     SELECT userid INTO uUserId FROM db.session WHERE code = pSession;
 
-	IF NOT CheckAccessControlList(B'00000000000010', uUserId) THEN
-	  PERFORM AccessDenied();
-	END IF;
+    IF NOT CheckAccessControlList(B'00000000000010', uUserId) THEN
+      PERFORM AccessDenied();
+    END IF;
 
     IF pCloseAll THEN
       DELETE FROM db.session WHERE userid = uUserId;
@@ -4880,7 +4880,7 @@ WHEN others THEN
   PERFORM SetOAuth2ClientId(null);
 
   IF pSession IS NOT NULL THEN
-	SELECT userid INTO uUserId FROM db.session WHERE code = pSession;
+    SELECT userid INTO uUserId FROM db.session WHERE code = pSession;
   END IF;
 
   INSERT INTO db.log (type, code, username, session, event, text)
@@ -4975,7 +4975,7 @@ DECLARE
   uLocale       uuid;
   uInterface    uuid;
 
-  nAudience		integer;
+  nAudience     integer;
 
   vSession      text;
 BEGIN
@@ -4985,7 +4985,7 @@ BEGIN
 
   IF session_user <> 'kernel' THEN
     uSUID := coalesce(session_userid(), GetUser(session_user));
-	IF NOT CheckAccessControlList(B'10000000000000', uSUID) THEN
+    IF NOT CheckAccessControlList(B'10000000000000', uSUID) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -5017,30 +5017,30 @@ BEGIN
   END IF;
 
   IF pAgent IS NULL THEN
-	SELECT coalesce(application_name, current_database()) INTO pAgent FROM pg_stat_activity WHERE pid = pg_backend_pid();
+    SELECT coalesce(application_name, current_database()) INTO pAgent FROM pg_stat_activity WHERE pid = pg_backend_pid();
   END IF;
 
   uScope := CheckUserProfile(pOAuth2, up.id);
 
   IF NOT pNew THEN
-	SELECT code INTO vSession
-	  FROM db.session
-	 WHERE suid = up.id
-	   AND suid = userid
-	   AND scope = uScope
-	   AND agent IS NOT DISTINCT FROM pAgent
-	 ORDER BY created DESC
-	 LIMIT 1;
+    SELECT code INTO vSession
+      FROM db.session
+     WHERE suid = up.id
+       AND suid = userid
+       AND scope = uScope
+       AND agent IS NOT DISTINCT FROM pAgent
+     ORDER BY created DESC
+     LIMIT 1;
 
-	pNew := NOT FOUND;
+    pNew := NOT FOUND;
   END IF;
 
   IF pNew THEN
-	SELECT locale, area, interface INTO uLocale, uArea, uInterface FROM db.profile WHERE userid = up.id AND scope = uScope;
+    SELECT locale, area, interface INTO uLocale, uArea, uInterface FROM db.profile WHERE userid = up.id AND scope = uScope;
 
     IF NOT FOUND THEN
       PERFORM AccessDenied();
-	END IF;
+    END IF;
 
     INSERT INTO db.session (oauth2, userid, locale, area, interface, scope, agent, host)
     VALUES (pOAuth2, up.id, uLocale, uArea, uInterface, uScope, pAgent, pHost)
@@ -5048,11 +5048,11 @@ BEGIN
   END IF;
 
   IF pLogin THEN
-	SELECT audience INTO nAudience FROM db.oauth2 WHERE id = pOAuth2;
+    SELECT audience INTO nAudience FROM db.oauth2 WHERE id = pOAuth2;
 
-	PERFORM SetCurrentSession(vSession);
-	PERFORM SetCurrentUserId(up.id);
-	PERFORM SetOAuth2ClientId(GetAudienceCode(nAudience));
+    PERFORM SetCurrentSession(vSession);
+    PERFORM SetCurrentUserId(up.id);
+    PERFORM SetOAuth2ClientId(GetAudienceCode(nAudience));
   END IF;
 
   RETURN vSession;
