@@ -1606,7 +1606,8 @@ BEGIN
 
   RETURN signature;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 --------------------------------------------------------------------------------
 -- get_hostname_from_uri -------------------------------------------------------

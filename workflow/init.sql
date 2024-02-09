@@ -546,6 +546,9 @@ BEGIN
   uAction := AddAction('00000000-0000-4000-b003-000000000052', 'download', 'Загрузить');
   PERFORM EditActionText(uAction, 'Download', null, uLocale);
 
+  uAction := AddAction('00000000-0000-4000-b003-000000000053', 'prepare', 'Подготовить');
+  PERFORM EditActionText(uAction, 'Preparation', null, uLocale);
+
   --
 
   uPriority := AddPriority('00000000-0000-4000-b004-000000000000', 'low', 'Низкий');
