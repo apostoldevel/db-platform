@@ -15,7 +15,7 @@ CREATE TABLE db.object (
     owner       uuid NOT NULL REFERENCES db.user(id),
     oper        uuid NOT NULL REFERENCES db.user(id),
     pdate       timestamptz NOT NULL DEFAULT Now(),
-    ldate       timestamptz NOT NULL DEFAULT Now(),
+    ldate       timestamptz NOT NULL DEFAULT oper_date(),
     udate       timestamptz NOT NULL DEFAULT Now()
 );
 
@@ -129,7 +129,7 @@ BEGIN
   NEW.oper := current_userid();
 
   NEW.pdate := now();
-  NEW.ldate := now();
+  NEW.ldate := oper_date();
   NEW.udate := now();
 
   RETURN NEW;
@@ -242,7 +242,7 @@ BEGIN
 
   NEW.oper := current_userid();
 
-  NEW.ldate := now();
+  NEW.ldate := oper_date();
   NEW.udate := now();
 
   RETURN NEW;

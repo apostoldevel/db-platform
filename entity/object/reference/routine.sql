@@ -180,3 +180,17 @@ AS $$
 $$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION GetReferenceDescription --------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION GetReferenceDescription (
+  pId           uuid,
+  pLocale       uuid DEFAULT current_locale()
+) RETURNS       text
+AS $$
+  SELECT description FROM db.reference_text WHERE reference = pId AND locale = pLocale;
+$$ LANGUAGE sql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;

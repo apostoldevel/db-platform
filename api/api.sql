@@ -287,6 +287,8 @@ BEGIN
   ELSE
     IF 'sequence' = ANY (arColumns) THEN
       vSelect := vSelect || E'\n ORDER BY sequence';
+    ELSIF 'operdate' = ANY (arColumns) THEN
+      vSelect := vSelect || E'\n ORDER BY operdate DESC';
     ELSIF 'created' = ANY (arColumns) THEN
       vSelect := vSelect || E'\n ORDER BY created DESC';
     ELSIF 'datetime' = ANY(arColumns) THEN
