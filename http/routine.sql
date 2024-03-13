@@ -37,6 +37,7 @@ CREATE OR REPLACE FUNCTION http.create_request (
   pContent      bytea DEFAULT null,
   pDone         text DEFAULT null,
   pFail         text DEFAULT null,
+  pStream       text DEFAULT null,
   pAgent        text DEFAULT null,
   pProfile      text DEFAULT null,
   pCommand      text DEFAULT null,
@@ -47,8 +48,8 @@ AS $$
 DECLARE
   uId           uuid;
 BEGIN
-  INSERT INTO http.request (state, type, method, resource, headers, content, done, fail, agent, profile, command, message, data)
-  VALUES (1, coalesce(pType, 'native'), pMethod, pResource, pHeaders, pContent, pDone, pFail, pAgent, pProfile, pCommand, pMessage, pData)
+  INSERT INTO http.request (state, type, method, resource, headers, content, done, fail, stream, agent, profile, command, message, data)
+  VALUES (1, coalesce(pType, 'curl'), pMethod, pResource, pHeaders, pContent, pDone, pFail, pStream, pAgent, pProfile, pCommand, pMessage, pData)
   RETURNING id INTO uId;
 
   RETURN uId;
@@ -287,7 +288,8 @@ $$ LANGUAGE plpgsql
  * @param {text} command - Команда
  * @param {text} message - Сообщение
  * @param {text} type - Способ отправки: native - родной; curl - через библиотеку cURL
- * @param {text} data - Произвольные данные в формате JSON
+ * @param {jsonb} data - Произвольные данные в формате JSON
+ * @param {text} stream - Имя функции обратного вызова для потоковых данных (SSE)
  * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION http.fetch (
@@ -302,7 +304,8 @@ CREATE OR REPLACE FUNCTION http.fetch (
   command       text DEFAULT null,
   message       text DEFAULT null,
   type          text DEFAULT null,
-  data          jsonb DEFAULT null
+  data          jsonb DEFAULT null,
+  stream        text DEFAULT null
 ) RETURNS       uuid
 AS $$
 BEGIN
@@ -320,7 +323,14 @@ BEGIN
     END IF;
   END IF;
 
-  RETURN http.create_request(resource, type, method, headers, content, done, fail, agent, profile, command, message, data);
+  IF stream IS NOT NULL THEN
+    PERFORM FROM pg_namespace n INNER JOIN pg_proc p ON n.oid = p.pronamespace WHERE n.nspname = split_part(stream, '.', 1) AND p.proname = split_part(stream, '.', 2);
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'Not found function: %', stream;
+    END IF;
+  END IF;
+
+  RETURN http.create_request(resource, type, method, headers, content, done, fail, stream, agent, profile, command, message, data);
 END;
 $$ LANGUAGE plpgsql
   SECURITY DEFINER
@@ -342,7 +352,8 @@ $$ LANGUAGE plpgsql
  * @param {text} command - Команда
  * @param {text} message - Сообщение
  * @param {text} type - Способ отправки: native - родной; curl - через библиотеку cURL
- * @param {text} data - Произвольные данные в формате JSON
+ * @param {jsonb} data - Произвольные данные в формате JSON
+ * @param {text} stream - Имя функции обратного вызова для потоковых данных (SSE)
  * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION http.fetch (
@@ -357,11 +368,12 @@ CREATE OR REPLACE FUNCTION http.fetch (
   command       text DEFAULT null,
   message       text DEFAULT null,
   type          text DEFAULT null,
-  data          jsonb DEFAULT null
+  data          jsonb DEFAULT null,
+  stream        text DEFAULT null
 ) RETURNS       uuid
 AS $$
 BEGIN
-  RETURN http.create_request(resource, type, method, headers, convert_to(content, 'utf8'), done, fail, agent, profile, command, message, data);
+  RETURN http.create_request(resource, type, method, headers, convert_to(content, 'utf8'), done, fail, stream, agent, profile, command, message, data);
 END;
 $$ LANGUAGE plpgsql
   SECURITY DEFINER
@@ -383,7 +395,8 @@ $$ LANGUAGE plpgsql
  * @param {text} command - Команда
  * @param {text} message - Сообщение
  * @param {text} type - Способ отправки: native - родной; curl - через библиотеку cURL
- * @param {text} data - Произвольные данные в формате JSON
+ * @param {jsonb} data - Произвольные данные в формате JSON
+ * @param {text} stream - Имя функции обратного вызова для потоковых данных (SSE)
  * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION http.fetch (
@@ -398,15 +411,16 @@ CREATE OR REPLACE FUNCTION http.fetch (
   command       text DEFAULT null,
   message       text DEFAULT null,
   type          text DEFAULT null,
-  data          jsonb DEFAULT null
+  data          jsonb DEFAULT null,
+  stream        text DEFAULT null
 ) RETURNS       uuid
 AS $$
 BEGIN
   IF headers IS NULL THEN
-    headers := jsonb_build_object('Content-Type', 'application/json');
+    headers := jsonb_build_object('Content-Type', 'application/json', 'Accept', 'application/json');
   END IF;
 
-  RETURN http.create_request(resource, type, method, headers, convert_to(content::text, 'utf8'), done, fail, agent, profile, command, message, data);
+  RETURN http.create_request(resource, type, method, headers, convert_to(content::text, 'utf8'), done, fail, stream, agent, profile, command, message, data);
 END;
 $$ LANGUAGE plpgsql
   SECURITY DEFINER

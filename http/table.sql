@@ -48,6 +48,7 @@ CREATE TABLE http.request (
   content       bytea,
   done          text,
   fail          text,
+  stream        text,
   agent         text,
   profile       text,
   command       text,
@@ -68,6 +69,7 @@ COMMENT ON COLUMN http.request.headers IS 'Заголовки';
 COMMENT ON COLUMN http.request.content IS 'Содержание запроса';
 COMMENT ON COLUMN http.request.done IS 'Имя функции обратного вызова в случае успешного ответа';
 COMMENT ON COLUMN http.request.fail IS 'Имя функции обратного вызова в случае сбоя';
+COMMENT ON COLUMN http.request.stream IS 'Имя функции обратного вызова для потоковых данных (SSE)';
 COMMENT ON COLUMN http.request.agent IS 'Агент (при наличии)';
 COMMENT ON COLUMN http.request.profile IS 'Профиль настроек агента (при наличии)';
 COMMENT ON COLUMN http.request.command IS 'Команда (при наличии)';
