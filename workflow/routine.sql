@@ -766,7 +766,7 @@ CREATE OR REPLACE FUNCTION GetType (
 ) RETURNS   uuid
 AS $$
   SELECT id FROM db.type WHERE class = pClass AND code = pCode;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -782,7 +782,7 @@ AS $$
 BEGIN
   RETURN GetType(GetClass(coalesce(pClass, SubStr(pCode, StrPos(pCode, '.') + 1))), pCode);
 END;
-$$ LANGUAGE plpgsql
+$$ LANGUAGE plpgsql STABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 

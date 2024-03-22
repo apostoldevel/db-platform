@@ -135,7 +135,7 @@ CREATE OR REPLACE FUNCTION GetReference (
 AS $$
   SELECT id FROM db.reference WHERE scope = pScope AND entity = pEntity AND code = pCode;
 $$ LANGUAGE sql
-   SECURITY DEFINER
+   SECURITY DEFINER STABLE STRICT
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -151,7 +151,7 @@ BEGIN
   RETURN GetReference(GetEntity(coalesce(pEntity, SubStr(pCode, StrPos(pCode, '.') + 1))), pCode);
 END;
 $$ LANGUAGE plpgsql
-   SECURITY DEFINER
+   SECURITY DEFINER STABLE
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -164,7 +164,7 @@ CREATE OR REPLACE FUNCTION GetReferenceCode (
 AS $$
   SELECT code FROM db.reference WHERE id = pId;
 $$ LANGUAGE sql
-   SECURITY DEFINER
+   SECURITY DEFINER STABLE STRICT
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -178,7 +178,7 @@ CREATE OR REPLACE FUNCTION GetReferenceName (
 AS $$
   SELECT name FROM db.reference_text WHERE reference = pId AND locale = pLocale;
 $$ LANGUAGE sql
-   SECURITY DEFINER
+   SECURITY DEFINER STABLE STRICT
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -192,5 +192,5 @@ CREATE OR REPLACE FUNCTION GetReferenceDescription (
 AS $$
   SELECT description FROM db.reference_text WHERE reference = pId AND locale = pLocale;
 $$ LANGUAGE sql
-   SECURITY DEFINER
+   SECURITY DEFINER STABLE STRICT
    SET search_path = kernel, pg_temp;
