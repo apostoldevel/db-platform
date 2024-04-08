@@ -367,11 +367,15 @@ BEGIN
       SELECT a.userid INTO uUserId FROM db.auth a WHERE a.audience = nAudience AND a.code = claim.sub;
 
       IF NOT FOUND THEN
-        jName := jsonb_build_object('name', account.name, 'first', profile.given_name, 'last', profile.family_name);
+        SELECT id INTO uUserId FROM db.user WHERE email = account.email;
 
-        SELECT * INTO signup FROM api.signup(null, account.username, null, jName, account.phone, account.email, row_to_json(profile)::jsonb);
+        IF NOT FOUND THEN
+          jName := jsonb_build_object('name', account.name, 'first', profile.given_name, 'last', profile.family_name);
 
-        uUserId := signup.userid;
+          SELECT * INTO signup FROM api.signup(null, account.username, null, jName, account.phone, account.email, row_to_json(profile)::jsonb);
+
+          uUserId := signup.userid;
+        END IF;
 
         INSERT INTO db.auth (userId, audience, code) VALUES (uUserId, nAudience, claim.sub);
       END IF;
