@@ -534,8 +534,8 @@ CREATE OR REPLACE FUNCTION api.list_user (
   pFilter   jsonb DEFAULT null,
   pLimit    integer DEFAULT null,
   pOffSet   integer DEFAULT null,
-  pOrderBy	jsonb DEFAULT null
-) RETURNS	SETOF api.user
+  pOrderBy  jsonb DEFAULT null
+) RETURNS   SETOF api.user
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'user', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
@@ -549,17 +549,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.update_profile (
-  pUserId			uuid,
-  pFamilyName		text DEFAULT null,
-  pGivenName		text DEFAULT null,
-  pPatronymicName	text DEFAULT null,
-  pLocale			uuid DEFAULT null,
-  pArea				uuid DEFAULT null,
-  pInterface		uuid DEFAULT null,
-  pEmailVerified	bool DEFAULT null,
-  pPhoneVerified	bool DEFAULT null,
-  pPicture			text DEFAULT null
-) RETURNS			void
+  pUserId           uuid,
+  pFamilyName       text DEFAULT null,
+  pGivenName        text DEFAULT null,
+  pPatronymicName   text DEFAULT null,
+  pLocale           uuid DEFAULT null,
+  pArea             uuid DEFAULT null,
+  pInterface        uuid DEFAULT null,
+  pEmailVerified    bool DEFAULT null,
+  pPhoneVerified    bool DEFAULT null,
+  pPicture          text DEFAULT null
+) RETURNS           void
 AS $$
 BEGIN
   PERFORM UpdateProfile(pUserId, current_scope(), pFamilyName, pGivenName, pPatronymicName, pLocale, pArea, pInterface, pEmailVerified, pPhoneVerified, pPicture);
@@ -573,15 +573,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.set_user_profile (
-  pUserId			uuid,
-  pFamilyName		text DEFAULT null,
-  pGivenName		text DEFAULT null,
-  pPatronymicName	text DEFAULT null,
-  pLocale			text DEFAULT null,
-  pArea				text DEFAULT null,
-  pInterface		text DEFAULT null,
-  pPicture			text DEFAULT null
-) RETURNS			SETOF api.user
+  pUserId           uuid,
+  pFamilyName       text DEFAULT null,
+  pGivenName        text DEFAULT null,
+  pPatronymicName   text DEFAULT null,
+  pLocale           text DEFAULT null,
+  pArea             text DEFAULT null,
+  pInterface        text DEFAULT null,
+  pPicture          text DEFAULT null
+) RETURNS           SETOF api.user
 AS $$
 BEGIN
   pUserId := coalesce(pUserId, current_userid());
@@ -614,13 +614,13 @@ DECLARE
   vPassword     text;
 BEGIN
   IF length(pOldPass) = 128 THEN
-	SELECT encode(hmac(secret::text, GetSecretKey(), 'sha1'), 'hex') INTO vPassword
-	  FROM db.user
-	 WHERE hash = encode(digest(pOldPass, 'sha1'), 'hex');
+    SELECT encode(hmac(secret::text, GetSecretKey(), 'sha1'), 'hex') INTO vPassword
+      FROM db.user
+     WHERE hash = encode(digest(pOldPass, 'sha1'), 'hex');
 
-	IF FOUND THEN
-	  pOldPass := vPassword;
-	END IF;
+    IF FOUND THEN
+      pOldPass := vPassword;
+    END IF;
   END IF;
 
   IF NOT CheckPassword(pId, pOldPass) THEN
@@ -643,43 +643,45 @@ $$ LANGUAGE plpgsql
  * @return {uuid} - Талон восстановления (recovery ticket)
  */
 CREATE OR REPLACE FUNCTION api.recovery_password (
-  pIdentifier		text,
+  pIdentifier       text,
   pHashCode         text DEFAULT null
-) RETURNS			uuid
+) RETURNS           uuid
 AS $$
 DECLARE
-  uTicket			uuid;
-  uUserId			uuid;
-  vOAuthSecret		text;
+  uTicket           uuid;
+  uUserId           uuid;
+  vOAuthSecret      text;
 BEGIN
-  SELECT id INTO uUserId FROM db.user WHERE phone = TrimPhone(pIdentifier) AND type = 'U';
-
-  IF FOUND THEN
-	IF IsUserRole(GetGroup('system'), session_userid()) THEN
-	  SELECT a.secret INTO vOAuthSecret FROM oauth2.audience a WHERE a.code = session_username();
-	  IF FOUND THEN
-		PERFORM SubstituteUser(GetUser('apibot'), vOAuthSecret);
-		uTicket := RecoveryPasswordByPhone(uUserId, pHashCode);
-		PERFORM SubstituteUser(session_userid(), vOAuthSecret);
-	  END IF;
-	ELSE
-	  uTicket := RecoveryPasswordByPhone(uUserId, pHashCode);
-	END IF;
-  END IF;
-
-  SELECT id INTO uUserId FROM db.user WHERE email = pIdentifier AND type = 'U';
-
-  IF FOUND THEN
-	IF IsUserRole(GetGroup('system'), session_userid()) THEN
-	  SELECT a.secret INTO vOAuthSecret FROM oauth2.audience a WHERE a.code = session_username();
-	  IF FOUND THEN
-		PERFORM SubstituteUser(GetUser('apibot'), vOAuthSecret);
-		uTicket := RecoveryPasswordByEmail(uUserId);
-		PERFORM SubstituteUser(session_userid(), vOAuthSecret);
-	  END IF;
-	ELSE
-	  uTicket := RecoveryPasswordByEmail(uUserId);
-	END IF;
+  IF NULLIF(StrPos(pIdentifier, '@'), 0) IS NOT NULL THEN
+    SELECT id INTO uUserId FROM db.user WHERE email = pIdentifier AND type = 'U';
+  
+    IF FOUND THEN
+      IF IsUserRole(GetGroup('system'), session_userid()) THEN
+        SELECT a.secret INTO vOAuthSecret FROM oauth2.audience a WHERE a.code = session_username();
+        IF FOUND THEN
+          PERFORM SubstituteUser(GetUser('apibot'), vOAuthSecret);
+          uTicket := RecoveryPasswordByEmail(uUserId);
+          PERFORM SubstituteUser(session_userid(), vOAuthSecret);
+        END IF;
+      ELSE
+        uTicket := RecoveryPasswordByEmail(uUserId);
+      END IF;
+    END IF;
+  ELSE
+    SELECT id INTO uUserId FROM db.user WHERE phone = TrimPhone(pIdentifier) AND type = 'U';
+  
+    IF FOUND THEN
+      IF IsUserRole(GetGroup('system'), session_userid()) THEN
+        SELECT a.secret INTO vOAuthSecret FROM oauth2.audience a WHERE a.code = session_username();
+        IF FOUND THEN
+          PERFORM SubstituteUser(GetUser('apibot'), vOAuthSecret);
+          uTicket := RecoveryPasswordByPhone(uUserId, pHashCode);
+          PERFORM SubstituteUser(session_userid(), vOAuthSecret);
+        END IF;
+      ELSE
+        uTicket := RecoveryPasswordByPhone(uUserId, pHashCode);
+      END IF;
+    END IF;
   END IF;
 
   RETURN coalesce(uTicket, gen_random_uuid());
@@ -698,14 +700,14 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.check_recovery_ticket (
-  pTicket			uuid,
-  vSecurityAnswer	text,
-  OUT result    	bool,
-  OUT message   	text
-) RETURNS       	record
+  pTicket           uuid,
+  vSecurityAnswer   text,
+  OUT result        bool,
+  OUT message       text
+) RETURNS           record
 AS $$
 DECLARE
-  uUserId			uuid;
+  uUserId           uuid;
 BEGIN
   uUserId := CheckRecoveryTicket(pTicket, vSecurityAnswer);
 
@@ -727,16 +729,16 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.reset_password (
-  pTicket			uuid,
-  vSecurityAnswer	text,
-  pPassword			text,
-  OUT result    	bool,
-  OUT message   	text
-) RETURNS       	record
+  pTicket           uuid,
+  vSecurityAnswer   text,
+  pPassword         text,
+  OUT result        bool,
+  OUT message       text
+) RETURNS           record
 AS $$
 DECLARE
-  uUserId			uuid;
-  vOAuthSecret		text;
+  uUserId           uuid;
+  vOAuthSecret      text;
 BEGIN
   uUserId := CheckRecoveryTicket(pTicket, vSecurityAnswer);
 
@@ -747,10 +749,10 @@ BEGIN
     SELECT a.secret INTO vOAuthSecret FROM oauth2.audience a WHERE a.code = session_username();
 
     IF FOUND THEN
-	  PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
+      PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
       PERFORM SetPassword(uUserId, pPassword);
       PERFORM SubstituteUser(session_userid(), vOAuthSecret);
-	ELSE
+    ELSE
       PERFORM SetPassword(uUserId, pPassword);
     END IF;
 
@@ -771,11 +773,11 @@ $$ LANGUAGE plpgsql
  */
 CREATE OR REPLACE FUNCTION api.registration_code_by_email (
   pEmail            text
-) RETURNS			uuid
+) RETURNS           uuid
 AS $$
 DECLARE
-  uTicket			uuid;
-  vOAuthSecret		text;
+  uTicket           uuid;
+  vOAuthSecret      text;
 BEGIN
   IF IsUserRole(GetGroup('system'), session_userid()) THEN
     SELECT a.secret INTO vOAuthSecret FROM oauth2.audience a WHERE a.code = session_username();
@@ -806,11 +808,11 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.registration_code_by_phone (
   pPhone            text,
   pHashCode         text DEFAULT null
-) RETURNS			uuid
+) RETURNS           uuid
 AS $$
 DECLARE
-  uTicket			uuid;
-  vOAuthSecret		text;
+  uTicket           uuid;
+  vOAuthSecret      text;
 BEGIN
   IF IsUserRole(GetGroup('system'), session_userid()) THEN
     SELECT a.secret INTO vOAuthSecret FROM oauth2.audience a WHERE a.code = session_username();
@@ -841,7 +843,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.registration_code (
   pPhone            text,
   pHashCode         text DEFAULT null
-) RETURNS			uuid
+) RETURNS           uuid
 AS $$
 BEGIN
   RETURN api.registration_code_by_phone(pPhone, pHashCode);
@@ -862,12 +864,12 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION api.check_registration_code (
   pTicket           uuid,
   vCode             text,
-  OUT result    	bool,
-  OUT message   	text
-) RETURNS       	record
+  OUT result        bool,
+  OUT message       text
+) RETURNS           record
 AS $$
 DECLARE
-  uUserId			uuid;
+  uUserId           uuid;
 BEGIN
   uUserId := CheckRecoveryTicket(pTicket, vCode);
 
@@ -968,8 +970,8 @@ $$ LANGUAGE plpgsql
  * @return {text}
  */
 CREATE OR REPLACE FUNCTION api.get_user_iptable (
-  pId		uuid,
-  pType		char
+  pId       uuid,
+  pType     char
 ) RETURNS TABLE (id uuid, type char, iptable text)
 AS $$
   SELECT pId, pType, GetIPTableStr(pId, pType);
@@ -988,10 +990,10 @@ $$ LANGUAGE SQL
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.set_user_iptable (
-  pId       	uuid,
-  pType     	char,
-  pIpTable  	text
-) RETURNS   	void
+  pId           uuid,
+  pType         char,
+  pIpTable      text
+) RETURNS       void
 AS $$
 BEGIN
   PERFORM SetIPTableStr(pId, pType, pIpTable);
@@ -1130,12 +1132,12 @@ $$ LANGUAGE SQL
  * @return {SETOF api.group}
  */
 CREATE OR REPLACE FUNCTION api.list_group (
-  pSearch	jsonb DEFAULT null,
-  pFilter	jsonb DEFAULT null,
-  pLimit	integer DEFAULT null,
-  pOffSet	integer DEFAULT null,
-  pOrderBy	jsonb DEFAULT null
-) RETURNS	SETOF api.group
+  pSearch   jsonb DEFAULT null,
+  pFilter   jsonb DEFAULT null,
+  pLimit    integer DEFAULT null,
+  pOffSet   integer DEFAULT null,
+  pOrderBy  jsonb DEFAULT null
+) RETURNS   SETOF api.group
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'group', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
@@ -1368,8 +1370,8 @@ GRANT SELECT ON api.area_type TO administrator;
  * @return {record} - Запись
  */
 CREATE OR REPLACE FUNCTION api.get_area_type (
-  pId		uuid
-) RETURNS	SETOF api.area_type
+  pId        uuid
+) RETURNS    SETOF api.area_type
 AS $$
   SELECT * FROM api.area_type WHERE id = pId
 $$ LANGUAGE SQL
@@ -1401,7 +1403,7 @@ GRANT SELECT ON api.area TO administrator;
 CREATE OR REPLACE FUNCTION api.add_area (
   pParent       uuid,
   pType         uuid,
-  pScope		uuid,
+  pScope        uuid,
   pCode         text,
   pName         text,
   pDescription  text DEFAULT null,
@@ -1436,7 +1438,7 @@ CREATE OR REPLACE FUNCTION api.update_area (
   pId               uuid,
   pParent           uuid DEFAULT null,
   pType             uuid DEFAULT null,
-  pScope			uuid DEFAULT null,
+  pScope            uuid DEFAULT null,
   pCode             text DEFAULT null,
   pName             text DEFAULT null,
   pDescription      text DEFAULT null,
@@ -1460,7 +1462,7 @@ CREATE OR REPLACE FUNCTION api.set_area (
   pId               uuid,
   pParent           uuid DEFAULT null,
   pType             uuid DEFAULT null,
-  pScope			uuid DEFAULT null,
+  pScope            uuid DEFAULT null,
   pCode             text DEFAULT null,
   pName             text DEFAULT null,
   pDescription      text DEFAULT null,
@@ -1587,8 +1589,8 @@ $$ LANGUAGE SQL
  * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION api.get_area_id (
-  pCode		text
-) RETURNS	uuid
+  pCode     text
+) RETURNS   uuid
 AS $$
 BEGIN
   IF length(pCode) = 36 AND SubStr(pCode, 15, 1) = '4' THEN
@@ -1614,12 +1616,12 @@ $$ LANGUAGE plpgsql
  * @return {SETOF api.area}
  */
 CREATE OR REPLACE FUNCTION api.list_area (
-  pSearch	jsonb DEFAULT null,
-  pFilter	jsonb DEFAULT null,
-  pLimit	integer DEFAULT null,
-  pOffSet	integer DEFAULT null,
-  pOrderBy	jsonb DEFAULT null
-) RETURNS	SETOF api.area
+  pSearch   jsonb DEFAULT null,
+  pFilter   jsonb DEFAULT null,
+  pLimit    integer DEFAULT null,
+  pOffSet   integer DEFAULT null,
+  pOrderBy  jsonb DEFAULT null
+) RETURNS   SETOF api.area
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'area', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
@@ -1883,8 +1885,8 @@ $$ LANGUAGE plpgsql
  * @return {record} - Данные интерфейса
  */
 CREATE OR REPLACE FUNCTION api.get_interface (
-  pId		uuid
-) RETURNS	SETOF api.interface
+  pId        uuid
+) RETURNS    SETOF api.interface
 AS $$
   SELECT * FROM api.interface WHERE id = pId;
 $$ LANGUAGE SQL
@@ -1904,12 +1906,12 @@ $$ LANGUAGE SQL
  * @return {SETOF api.area}
  */
 CREATE OR REPLACE FUNCTION api.list_interface (
-  pSearch	jsonb DEFAULT null,
-  pFilter	jsonb DEFAULT null,
-  pLimit	integer DEFAULT null,
-  pOffSet	integer DEFAULT null,
-  pOrderBy	jsonb DEFAULT null
-) RETURNS	SETOF api.interface
+  pSearch   jsonb DEFAULT null,
+  pFilter   jsonb DEFAULT null,
+  pLimit    integer DEFAULT null,
+  pOffSet   integer DEFAULT null,
+  pOrderBy  jsonb DEFAULT null
+) RETURNS   SETOF api.interface
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'interface', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
@@ -1929,7 +1931,7 @@ $$ LANGUAGE plpgsql
  */
 CREATE OR REPLACE FUNCTION api.interface_member_add (
   pMember       uuid,
-  pInterface	uuid
+  pInterface    uuid
 ) RETURNS       void
 AS $$
 BEGIN
@@ -1950,7 +1952,7 @@ $$ LANGUAGE plpgsql
  */
 CREATE OR REPLACE FUNCTION api.member_interface_add (
   pMember       uuid,
-  pInterface	uuid
+  pInterface    uuid
 ) RETURNS       void
 AS $$
 BEGIN
@@ -1970,7 +1972,7 @@ $$ LANGUAGE plpgsql
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.interface_member_delete (
-  pInterface	uuid,
+  pInterface    uuid,
   pMember       uuid DEFAULT null
 ) RETURNS       void
 AS $$
@@ -1992,7 +1994,7 @@ $$ LANGUAGE plpgsql
  */
 CREATE OR REPLACE FUNCTION api.member_interface_delete (
   pMember       uuid,
-  pInterface	uuid
+  pInterface    uuid
 ) RETURNS       void
 AS $$
 BEGIN
@@ -2076,8 +2078,8 @@ CREATE OR REPLACE FUNCTION api.chmodc (
   pClass        uuid,
   pMask         int,
   pUserId       uuid default current_userid(),
-  pRecursive	boolean default true,
-  pObjectSet	boolean default false
+  pRecursive    boolean default true,
+  pObjectSet    boolean default false
 ) RETURNS       void
 AS $$
 BEGIN
@@ -2098,10 +2100,10 @@ $$ LANGUAGE plpgsql
  * @return {void}
 */
 CREATE OR REPLACE FUNCTION api.chmodm (
-  pMethod	uuid,
-  pMask		int,
-  pUserId	uuid default current_userid()
-) RETURNS 	void
+  pMethod   uuid,
+  pMask     int,
+  pUserId   uuid default current_userid()
+) RETURNS   void
 AS $$
 BEGIN
   PERFORM kernel.chmodm(pMethod, pMask::bit(6), pUserId);
@@ -2121,10 +2123,10 @@ $$ LANGUAGE plpgsql
  * @return {void}
 */
 CREATE OR REPLACE FUNCTION api.chmodo (
-  pObject	uuid,
-  pMask		int,
-  pUserId	uuid default current_userid()
-) RETURNS 	void
+  pObject   uuid,
+  pMask     int,
+  pUserId   uuid default current_userid()
+) RETURNS   void
 AS $$
 BEGIN
   PERFORM kernel.chmodo(pObject, pMask::bit(6), pUserId);
@@ -2138,8 +2140,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.check_offline (
-  pOffTime  interval DEFAULT '5 minute'
-) RETURNS   void
+  pOffTime      interval DEFAULT '5 minute'
+) RETURNS       void
 AS $$
 DECLARE
   vMessage      text;
@@ -2169,8 +2171,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.check_session (
-  pOffTime  interval DEFAULT '3 month'
-) RETURNS   void
+  pOffTime      interval DEFAULT '3 month'
+) RETURNS       void
 AS $$
 DECLARE
   vMessage      text;
