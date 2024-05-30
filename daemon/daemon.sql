@@ -372,7 +372,7 @@ BEGIN
         IF NOT FOUND THEN
           jName := jsonb_build_object('name', account.name, 'first', profile.given_name, 'last', profile.family_name);
 
-          SELECT * INTO signup FROM api.signup(null, account.username, null, jName, account.phone, account.email, row_to_json(profile)::jsonb);
+          SELECT * INTO signup FROM api.signup(null, account.username, null, jName, account.phone, account.email, jsonb_build_object('provider', vProviderCode) || row_to_json(profile)::jsonb);
 
           uUserId := signup.userid;
         END IF;
