@@ -1000,11 +1000,18 @@ BEGIN
   END IF;
 
   IF pFile IS NULL THEN
+    vClass := GetClassCode(GetObjectClass(pObject));
+
     IF NULLIF(NULLIF(pPath, ''), '~/') IS NULL THEN
-      vClass := GetClassCode(GetObjectClass(pObject));
       pPath := concat('/', vClass, '/', pObject, '/');
     END IF;
+
     pFile := FindFile(concat(pPath, pName));
+
+    IF pFile IS NULL THEN
+      pPath := concat('/', vClass, '/', GetObjectParent(pObject), '/');
+      pFile := FindFile(concat(pPath, pName));
+	END IF;
   END IF;
 
   RETURN QUERY SELECT * FROM api.object_file_data WHERE object = pObject AND file = pFile;
