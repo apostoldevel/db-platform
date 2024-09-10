@@ -779,6 +779,23 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- FUNCTION DoAction -----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION DoAction (
+  pObject   uuid,
+  pAction   text,
+  pParams   jsonb DEFAULT null
+) RETURNS   jsonb
+AS $$
+BEGIN
+  RETURN ExecuteObjectAction(pObject, GetAction(pAction), pParams);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- FUNCTION DoSave -------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -864,6 +881,21 @@ CREATE OR REPLACE FUNCTION DoComplete (
 AS $$
 BEGIN
   RETURN ExecuteObjectAction(pObject, GetAction('complete'));
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION DoDone -------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION DoDone (
+  pObject    uuid
+) RETURNS    jsonb
+AS $$
+BEGIN
+  RETURN ExecuteObjectAction(pObject, GetAction('done'));
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
