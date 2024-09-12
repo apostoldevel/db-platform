@@ -101,6 +101,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
+   STABLE STRICT
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -116,6 +117,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
+   STABLE STRICT
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -129,4 +131,5 @@ AS $$
   SELECT vendor FROM db.agent WHERE id = pId;
 $$ LANGUAGE SQL
    SECURITY DEFINER
+   STABLE STRICT
    SET search_path = kernel, pg_temp;

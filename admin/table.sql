@@ -403,7 +403,7 @@ BEGIN
     ELSE
       PERFORM FROM db.area WHERE id = NEW.area AND scope = NEW.scope;
       IF NOT FOUND THEN
-        RAISE EXCEPTION 'Area "% (%)" not present in scope "% (%)".', NEW.area, GetAreaName(NEW.area), NEW.scope, GetScopeName(NEW.scope);
+        RAISE EXCEPTION 'ERR-40000: Area "% (%)" not present in scope "% (%)".', NEW.area, GetAreaName(NEW.area), NEW.scope, GetScopeName(NEW.scope);
       END IF;
     END IF;
 
