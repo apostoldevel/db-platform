@@ -195,14 +195,14 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION string_to_array_trim (
-  str        text,
-  sep        text
-) RETURNS    text[]
+  str       text,
+  sep       text
+) RETURNS   text[]
 AS $$
 DECLARE
-  i    	    int;
-  pos		int;
-  arr		text[];
+  i         int;
+  pos       int;
+  arr       text[];
 BEGIN
   pos := StrPos(str, sep);
   i := 1;
@@ -226,14 +226,14 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION path_to_array (
-  pPath			text
-) RETURNS		text[]
+  pPath     text
+) RETURNS   text[]
 AS $$
 DECLARE
-  i				integer;
-  arPath		text[];
-  vStr			text;
-  vPath			text;
+  i         integer;
+  arPath    text[];
+  vStr      text;
+  vPath     text;
 BEGIN
   vPath := pPath;
 
@@ -265,17 +265,17 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION str_to_inet (
-  str		text,
-  OUT host	inet,
+  str       text,
+  OUT host  inet,
   OUT range integer
-) RETURNS	record
+) RETURNS   record
 AS $$
 DECLARE
-  vHost		text;
-  vStr		text;
+  vHost     text;
+  vStr      text;
 
-  pos		int;
-  nMask		int;
+  pos       int;
+  nMask     int;
 BEGIN
   range := null;
   nMask := 32;
@@ -310,9 +310,9 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION IntToStr (
-  pValue	numeric,
-  pFormat	text DEFAULT 'FM999999999990'
-) RETURNS	text
+  pValue    numeric,
+  pFormat   text DEFAULT 'FM999999999990'
+) RETURNS   text
 AS $$
 BEGIN
   RETURN to_char(pValue, pFormat);
@@ -326,9 +326,9 @@ GRANT EXECUTE ON FUNCTION IntToStr(numeric, text) TO PUBLIC;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION StrToInt (
-  pValue	text,
-  pFormat	text DEFAULT '999999999999'
-) RETURNS	numeric
+  pValue    text,
+  pFormat   text DEFAULT '999999999999'
+) RETURNS   numeric
 AS $$
 BEGIN
   RETURN to_number(pValue, pFormat);
@@ -342,9 +342,9 @@ GRANT EXECUTE ON FUNCTION IntToStr(numeric, text) TO PUBLIC;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DateToStr (
-  pValue	timestamptz,
-  pFormat	text DEFAULT 'DD.MM.YYYY HH24:MI:SS'
-) RETURNS	text
+  pValue    timestamptz,
+  pFormat   text DEFAULT 'DD.MM.YYYY HH24:MI:SS'
+) RETURNS   text
 AS $$
 BEGIN
   RETURN to_char(pValue, pFormat);
@@ -356,9 +356,9 @@ GRANT EXECUTE ON FUNCTION DateToStr(timestamptz, text) TO PUBLIC;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DateToStr (
-  pValue	timestamp,
-  pFormat	text DEFAULT 'DD.MM.YYYY HH24:MI:SS'
-) RETURNS	text
+  pValue    timestamp,
+  pFormat   text DEFAULT 'DD.MM.YYYY HH24:MI:SS'
+) RETURNS   text
 AS $$
 BEGIN
   RETURN to_char(pValue, pFormat);
@@ -370,9 +370,9 @@ GRANT EXECUTE ON FUNCTION DateToStr(timestamp, text) TO PUBLIC;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION DateToStr (
-  pValue	date,
-  pFormat	text DEFAULT 'DD.MM.YYYY'
-) RETURNS	text
+  pValue    date,
+  pFormat   text DEFAULT 'DD.MM.YYYY'
+) RETURNS   text
 AS $$
 BEGIN
   RETURN to_char(pValue, pFormat);
@@ -386,9 +386,9 @@ GRANT EXECUTE ON FUNCTION DateToStr(date, text) TO PUBLIC;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION StrToDate (
-  pValue	text,
-  pFormat	text DEFAULT 'DD.MM.YYYY'
-) RETURNS	date
+  pValue    text,
+  pFormat   text DEFAULT 'DD.MM.YYYY'
+) RETURNS   date
 AS $$
 BEGIN
   RETURN to_date(pValue, pFormat);
@@ -402,9 +402,9 @@ GRANT EXECUTE ON FUNCTION StrToDate(text, text) TO PUBLIC;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION StrToTimeStamp (
-  pValue	text,
-  pFormat	text DEFAULT 'DD.MM.YYYY HH24:MI:SS'
-) RETURNS	timestamp
+  pValue    text,
+  pFormat   text DEFAULT 'DD.MM.YYYY HH24:MI:SS'
+) RETURNS   timestamp
 AS $$
 BEGIN
   RETURN to_timestamp(pValue, pFormat);
@@ -418,9 +418,9 @@ GRANT EXECUTE ON FUNCTION StrToTimeStamp(text, text) TO PUBLIC;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION StrToTimeStampTZ (
-  pValue	text,
-  pFormat	text DEFAULT 'DD.MM.YYYY HH24:MI:SS'
-) RETURNS	timestamptz
+  pValue    text,
+  pFormat   text DEFAULT 'DD.MM.YYYY HH24:MI:SS'
+) RETURNS   timestamptz
 AS $$
 BEGIN
   RETURN to_timestamp(pValue, pFormat);
@@ -434,8 +434,8 @@ GRANT EXECUTE ON FUNCTION StrToTimeStampTZ(text, text) TO PUBLIC;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION StrToTime (
-  pValue	text
-) RETURNS	time
+  pValue    text
+) RETURNS   time
 AS $$
 DECLARE
   t         time;
@@ -452,8 +452,8 @@ GRANT EXECUTE ON FUNCTION StrToTime(text) TO PUBLIC;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION StrToInterval (
-  pValue	text
-) RETURNS	interval
+  pValue    text
+) RETURNS   interval
 AS $$
 DECLARE
   i         interval;
@@ -470,9 +470,9 @@ GRANT EXECUTE ON FUNCTION StrToInterval(text) TO PUBLIC;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION IntervalArrayToStr (
-  pValue	interval[][],
+  pValue    interval[][],
   pFormat   text DEFAULT 'HH24:MI'
-) RETURNS	text[][]
+) RETURNS   text[][]
 AS $$
 DECLARE
   t         interval;
@@ -485,13 +485,13 @@ BEGIN
   LOOP
     r1 := null;
 
-	FOR j IN 1..coalesce(array_length(pValue, 2), 1)
-	LOOP
+    FOR j IN 1..coalesce(array_length(pValue, 2), 1)
+    LOOP
       t := pValue[i][j];
       IF t IS NOT NULL THEN
-	    r1 := array_append(r1, TO_CHAR(t, pFormat));
-	  END IF;
-	END LOOP;
+        r1 := array_append(r1, TO_CHAR(t, pFormat));
+      END IF;
+    END LOOP;
 
     r2 := array_cat(r2, r1);
   END LOOP;
@@ -533,8 +533,8 @@ GRANT EXECUTE ON FUNCTION MAXDATE() TO PUBLIC;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CheckNull (
-  pValue	uuid
-) RETURNS	uuid
+  pValue    uuid
+) RETURNS   uuid
 AS $$
 BEGIN
   RETURN NULLIF(pValue, '00000000-0000-4000-8000-000000000000');
@@ -548,8 +548,8 @@ GRANT EXECUTE ON FUNCTION CheckNull(uuid) TO PUBLIC;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CheckNull (
-  pValue	text
-) RETURNS	text
+  pValue    text
+) RETURNS   text
 AS $$
 BEGIN
   RETURN NULLIF(pValue, '');
@@ -563,8 +563,8 @@ GRANT EXECUTE ON FUNCTION CheckNull(text) TO PUBLIC;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CheckNull (
-  pValue	json
-) RETURNS	json
+  pValue    json
+) RETURNS   json
 AS $$
 BEGIN
   RETURN NULLIF(pValue::jsonb, '{}'::jsonb);
@@ -578,8 +578,8 @@ GRANT EXECUTE ON FUNCTION CheckNull(json) TO PUBLIC;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CheckNull (
-  pValue	jsonb
-) RETURNS	jsonb
+  pValue    jsonb
+) RETURNS   jsonb
 AS $$
 BEGIN
   RETURN NULLIF(pValue, '{}'::jsonb);
@@ -593,8 +593,8 @@ GRANT EXECUTE ON FUNCTION CheckNull(jsonb) TO PUBLIC;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CheckNull (
-  pValue	numeric
-) RETURNS	numeric
+  pValue    numeric
+) RETURNS   numeric
 AS $$
 BEGIN
   RETURN NULLIF(pValue, 0);
@@ -608,8 +608,8 @@ GRANT EXECUTE ON FUNCTION CheckNull(numeric) TO PUBLIC;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CheckNull (
-  pValue	integer
-) RETURNS	integer
+  pValue    integer
+) RETURNS   integer
 AS $$
 BEGIN
   RETURN NULLIF(pValue, -1);
@@ -623,8 +623,8 @@ GRANT EXECUTE ON FUNCTION CheckNull(integer) TO PUBLIC;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CheckNull (
-  pValue	timestamp
-) RETURNS	timestamp
+  pValue    timestamp
+) RETURNS   timestamp
 AS $$
 BEGIN
   RETURN NULLIF(pValue, MINDATE());
@@ -638,8 +638,8 @@ GRANT EXECUTE ON FUNCTION CheckNull(timestamp) TO PUBLIC;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CheckNull (
-  pValue	timestamptz
-) RETURNS	timestamptz
+  pValue    timestamptz
+) RETURNS   timestamptz
 AS $$
 BEGIN
   RETURN NULLIF(pValue, MINDATE());
@@ -653,8 +653,8 @@ GRANT EXECUTE ON FUNCTION CheckNull(timestamptz) TO PUBLIC;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CheckNull (
-  pValue	interval
-) RETURNS	interval
+  pValue    interval
+) RETURNS   interval
 AS $$
 BEGIN
   RETURN NULLIF(pValue, interval '0');
@@ -668,8 +668,8 @@ GRANT EXECUTE ON FUNCTION CheckNull(interval) TO PUBLIC;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetCompare (
-  pCompare	text
-) RETURNS	text
+  pCompare  text
+) RETURNS   text
 AS $$
 BEGIN
   CASE pCompare
@@ -728,13 +728,13 @@ GRANT EXECUTE ON FUNCTION GetCompare(text) TO PUBLIC;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION array_add_text (
-  pArray	text[],
-  pText		text
-) RETURNS	text[]
+  pArray    text[],
+  pText     text
+) RETURNS   text[]
 AS $$
 DECLARE
-  i		    integer;
-  arResult	text[];
+  i         integer;
+  arResult  text[];
 BEGIN
   FOR i IN 1..array_length(pArray, 1)
   LOOP
@@ -752,13 +752,13 @@ GRANT EXECUTE ON FUNCTION array_add_text(text[], text) TO PUBLIC;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION min_array (
-  parray	anyarray,
-  pelement 	anyelement DEFAULT null
-) RETURNS	anyelement
+  parray    anyarray,
+  pelement  anyelement DEFAULT null
+) RETURNS   anyelement
 AS $$
 DECLARE
-  i		integer;
-  r		integer;
+  i         integer;
+  r         integer;
 BEGIN
   i := 1;
   r := null;
@@ -791,13 +791,13 @@ GRANT EXECUTE ON FUNCTION min_array(anyarray, anyelement) TO PUBLIC;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION max_array (
-  parray	anyarray,
-  pelement 	anyelement DEFAULT null
-) RETURNS	anyelement
+  parray    anyarray,
+  pelement  anyelement DEFAULT null
+) RETURNS   anyelement
 AS $$
 DECLARE
-  i		    integer;
-  r		    integer;
+  i         integer;
+  r         integer;
 BEGIN
   i := 1;
   r := null;
@@ -830,14 +830,14 @@ GRANT EXECUTE ON FUNCTION max_array(anyarray, anyelement) TO PUBLIC;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION inet_to_array (
-  ip		inet
-) RETURNS	text[]
+  ip        inet
+) RETURNS   text[]
 AS $$
 DECLARE
-  r		    text[];
-  i		    integer;
-  p		    integer;
-  v		    text;
+  r         text[];
+  i         integer;
+  p         integer;
+  v         text;
 BEGIN
   v := host(ip);
   p := position('.' in v);
@@ -864,7 +864,7 @@ GRANT EXECUTE ON FUNCTION inet_to_array(inet) TO PUBLIC;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION UTC()
-RETURNS 	timestamptz
+RETURNS     timestamptz
 AS $$
 BEGIN
   RETURN current_timestamp at time zone 'utc';
@@ -878,9 +878,8 @@ GRANT EXECUTE ON FUNCTION UTC() TO PUBLIC;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetISOTime (
-  pTime		timestamp DEFAULT current_timestamp at time zone 'utc'
-)
-RETURNS 	text
+  pTime     timestamp DEFAULT current_timestamp at time zone 'utc'
+) RETURNS   text
 AS $$
 BEGIN
   RETURN replace(to_char(pTime, 'YYYY-MM-DD#HH24:MI:SS.MSZ'), '#', 'T');
@@ -894,9 +893,8 @@ GRANT EXECUTE ON FUNCTION GetISOTime(timestamp) TO PUBLIC;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetEpoch (
-  pTime		timestamp DEFAULT current_timestamp at time zone 'utc'
-)
-RETURNS 	double precision
+  pTime     timestamp DEFAULT current_timestamp at time zone 'utc'
+) RETURNS   double precision
 AS $$
 BEGIN
   RETURN trunc(extract(EPOCH FROM pTime));
@@ -910,9 +908,8 @@ GRANT EXECUTE ON FUNCTION GetEpoch(timestamp) TO PUBLIC;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetEpochMs (
-  pTime		timestamp DEFAULT current_timestamp at time zone 'utc'
-)
-RETURNS 	double precision
+  pTime     timestamp DEFAULT current_timestamp at time zone 'utc'
+) RETURNS   double precision
 AS $$
 BEGIN
   RETURN trunc(extract(EPOCH FROM pTime) * 1000);
@@ -927,8 +924,7 @@ GRANT EXECUTE ON FUNCTION GetEpochMs(timestamp) TO PUBLIC;
 
 CREATE OR REPLACE FUNCTION Dow (
   pDateTime timestamptz DEFAULT Now()
-)
-RETURNS 	int
+) RETURNS   int
 AS $$
 DECLARE
   dow       int;
@@ -936,7 +932,7 @@ BEGIN
   dow := EXTRACT(DOW FROM pDateTime);
 
   IF dow = 0 THEN
-	dow = 7;
+    dow = 7;
   END IF;
 
   RETURN dow;
@@ -950,12 +946,12 @@ GRANT EXECUTE ON FUNCTION Dow(timestamptz) TO PUBLIC;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION quote_literal_json (
-  pStr		text
-) RETURNS	text
+  pStr      text
+) RETURNS   text
 AS $$
 DECLARE
-  l		    integer;
-  c		    integer;
+  l         integer;
+  c         integer;
 BEGIN
   l := position('->>' in pStr);
   IF l > 0 THEN
@@ -979,13 +975,13 @@ GRANT EXECUTE ON FUNCTION quote_literal_json(text) TO PUBLIC;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION array_quote_literal_json (
-  pArray	anyarray
-) RETURNS	anyarray
+  pArray    anyarray
+) RETURNS   anyarray
 AS $$
 DECLARE
-  i		    integer;
-  l		    integer;
-  vStr		text;
+  i         integer;
+  l         integer;
+  vStr      text;
 BEGIN
   FOR i IN 1..array_length(pArray, 1)
   LOOP
@@ -1009,12 +1005,12 @@ GRANT EXECUTE ON FUNCTION array_quote_literal_json(anyarray) TO PUBLIC;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION find_value_in_array (
-  pArray	anyarray,
+  pArray    anyarray,
   pKey      text
-) RETURNS	text
+) RETURNS   text
 AS $$
 DECLARE
-  i		    integer;
+  i         integer;
   pairs     text[];
 BEGIN
   FOR i IN 1..array_length(pArray, 1)
@@ -1036,10 +1032,10 @@ GRANT EXECUTE ON FUNCTION find_value_in_array(anyarray, text) TO PUBLIC;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION result_success (
-  result	out boolean,
-  message	out text
+  result    out boolean,
+  message   out text
 )
-RETURNS 	record
+RETURNS     record
 AS $$
 BEGIN
   result := true;
@@ -1054,10 +1050,10 @@ GRANT EXECUTE ON FUNCTION result_success() TO PUBLIC;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION error_success (
-  result	out int,
-  message	out text
+  result    out int,
+  message   out text
 )
-RETURNS 	record
+RETURNS     record
 AS $$
 BEGIN
   result := 0;
@@ -1072,9 +1068,9 @@ GRANT EXECUTE ON FUNCTION error_success() TO PUBLIC;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION random_between (
-  low     int,
-  high    int
-) RETURNS int
+  low       int,
+  high      int
+) RETURNS   int
 AS
 $$
 BEGIN
@@ -1089,21 +1085,21 @@ GRANT EXECUTE ON FUNCTION random_between(int, int) TO PUBLIC;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION bin_to_dec (
-  B          text
-) RETURNS    numeric
+  B         text
+) RETURNS   numeric
 AS
 $$
 DECLARE
-  N          numeric;
-  L          integer;
-  I          integer;
+  N         numeric;
+  L         integer;
+  I         integer;
 BEGIN
   N := 0;
   L := length(B);
 
   FOR I IN 1 .. L
   LOOP
-	N := N + to_number(SubStr(B, I, 1), '0') * power(2::numeric, L - I);
+    N := N + to_number(SubStr(B, I, 1), '0') * power(2::numeric, L - I);
   END LOOP;
 
   RETURN N;
@@ -1115,23 +1111,23 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION dec_to_bin (
-  D			 numeric,
-  L			 integer DEFAULT 1,
-  F			 text DEFAULT '0'
-) RETURNS    text
+  D         numeric,
+  L         integer DEFAULT 1,
+  F         text DEFAULT '0'
+) RETURNS   text
 AS
 $$
 DECLARE
-  S 		 text;
-  N 		 numeric;
+  S         text;
+  N         numeric;
 BEGIN
   N := D;
   S := '';
 
   WHILE N > 0
   LOOP
-	S := to_char(mod(N, 2), 'FM0') || S;
-	N := floor(N / 2);
+    S := to_char(mod(N, 2), 'FM0') || S;
+    N := floor(N / 2);
   END LOOP;
 
   RETURN lpad(S, greatest(length(S), L), F);
@@ -1143,8 +1139,8 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION bit_to_dec (
-  B          bit varying
-) RETURNS    numeric
+  B         bit varying
+) RETURNS   numeric
 AS
 $$
 BEGIN
@@ -1157,12 +1153,12 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION hex_to_bit (
-  hex			text
-) RETURNS		bit varying
+  hex       text
+) RETURNS   bit varying
 AS
 $$
 DECLARE
-  bits          bit varying;
+  bits      bit varying;
 BEGIN
   EXECUTE 'SELECT x' || quote_literal(hex) INTO bits;
   RETURN bits;
@@ -1176,12 +1172,12 @@ GRANT EXECUTE ON FUNCTION hex_to_bit(text) TO PUBLIC;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION hex_to_int (
-  H          text
-) RETURNS    bigint
+  H         text
+) RETURNS   bigint
 AS
 $$
 DECLARE
-  R          bigint;
+  R         bigint;
 BEGIN
   EXECUTE 'SELECT x' || quote_literal(H) || '::bigint' INTO R;
   RETURN R;
@@ -1195,12 +1191,12 @@ GRANT EXECUTE ON FUNCTION hex_to_int(text) TO PUBLIC;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION hex_to_dec (
-  H          text
-) RETURNS    numeric
+  H         text
+) RETURNS   numeric
 AS
 $$
 DECLARE
-  B          bit varying;
+  B         bit varying;
 BEGIN
   EXECUTE 'SELECT x' || quote_literal(H) INTO B;
   RETURN bit_to_dec(B);
@@ -1212,15 +1208,15 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION dec_to_hex (
-  D          numeric,
-  L          int default null
-) RETURNS    text
+  D         numeric,
+  L         int default null
+) RETURNS   text
 AS
 $$
 DECLARE
-  H          text;
-  M          numeric;
-  R          numeric;
+  H         text;
+  M         numeric;
+  R         numeric;
 BEGIN
   R := D;
 
@@ -1228,11 +1224,11 @@ BEGIN
   LOOP
     M := mod(R, 16);
     H := concat(
-		   CASE
-			 WHEN M < 10
-			 THEN chr(CAST(M + 48 AS INTEGER))
-			 ELSE chr(CAST(M + 87 AS INTEGER))
-		   END, H);
+           CASE
+             WHEN M < 10
+             THEN chr(CAST(M + 48 AS INTEGER))
+             ELSE chr(CAST(M + 87 AS INTEGER))
+           END, H);
     R := div(R, 16);
   END LOOP;
 
@@ -1253,42 +1249,42 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION hex_to_num64 (
-  H          text
-) RETURNS    numeric
+  H         text
+) RETURNS   numeric
 AS $$
   SELECT
-	(get_byte(x,0)::int8<<(31*8)) |
-	(get_byte(x,1)::int8<<(30*8)) |
-	(get_byte(x,2)::int8<<(29*8)) |
-	(get_byte(x,3)::int8<<(28*8)) |
-	(get_byte(x,4)::int8<<(27*8)) |
-	(get_byte(x,5)::int8<<(26*8)) |
-	(get_byte(x,6)::int8<<(25*8)) |
-	(get_byte(x,7)::int8<<(24*8)) |
-	(get_byte(x,8)::int8<<(23*8)) |
-	(get_byte(x,9)::int8<<(22*8)) |
-	(get_byte(x,10)::int8<<(21*8)) |
-	(get_byte(x,11)::int8<<(20*8)) |
-	(get_byte(x,12)::int8<<(19*8)) |
-	(get_byte(x,13)::int8<<(18*8)) |
-	(get_byte(x,14)::int8<<(17*8)) |
-	(get_byte(x,15)::int8<<(16*8)) |
-	(get_byte(x,16)::int8<<(15*8)) |
-	(get_byte(x,17)::int8<<(14*8)) |
-	(get_byte(x,18)::int8<<(13*8)) |
-	(get_byte(x,19)::int8<<(12*8)) |
-	(get_byte(x,20)::int8<<(11*8)) |
-	(get_byte(x,21)::int8<<(10*8)) |
-	(get_byte(x,22)::int8<<(9*8)) |
-	(get_byte(x,23)::int8<<(8*8)) |
-	(get_byte(x,24)::int8<<(7*8)) |
-	(get_byte(x,25)::int8<<(6*8)) |
-	(get_byte(x,26)::int8<<(5*8)) |
-	(get_byte(x,27)::int8<<(4*8)) |
-	(get_byte(x,28)::int8<<(3*8)) |
-	(get_byte(x,29)::int8<<(2*8)) |
-	(get_byte(x,30)::int8<<(1*8)) |
-	(get_byte(x,31)::int8)
+    (get_byte(x,0)::int8<<(31*8)) |
+    (get_byte(x,1)::int8<<(30*8)) |
+    (get_byte(x,2)::int8<<(29*8)) |
+    (get_byte(x,3)::int8<<(28*8)) |
+    (get_byte(x,4)::int8<<(27*8)) |
+    (get_byte(x,5)::int8<<(26*8)) |
+    (get_byte(x,6)::int8<<(25*8)) |
+    (get_byte(x,7)::int8<<(24*8)) |
+    (get_byte(x,8)::int8<<(23*8)) |
+    (get_byte(x,9)::int8<<(22*8)) |
+    (get_byte(x,10)::int8<<(21*8)) |
+    (get_byte(x,11)::int8<<(20*8)) |
+    (get_byte(x,12)::int8<<(19*8)) |
+    (get_byte(x,13)::int8<<(18*8)) |
+    (get_byte(x,14)::int8<<(17*8)) |
+    (get_byte(x,15)::int8<<(16*8)) |
+    (get_byte(x,16)::int8<<(15*8)) |
+    (get_byte(x,17)::int8<<(14*8)) |
+    (get_byte(x,18)::int8<<(13*8)) |
+    (get_byte(x,19)::int8<<(12*8)) |
+    (get_byte(x,20)::int8<<(11*8)) |
+    (get_byte(x,21)::int8<<(10*8)) |
+    (get_byte(x,22)::int8<<(9*8)) |
+    (get_byte(x,23)::int8<<(8*8)) |
+    (get_byte(x,24)::int8<<(7*8)) |
+    (get_byte(x,25)::int8<<(6*8)) |
+    (get_byte(x,26)::int8<<(5*8)) |
+    (get_byte(x,27)::int8<<(4*8)) |
+    (get_byte(x,28)::int8<<(3*8)) |
+    (get_byte(x,29)::int8<<(2*8)) |
+    (get_byte(x,30)::int8<<(1*8)) |
+    (get_byte(x,31)::int8)
   FROM (SELECT decode(lpad(H, 64, '0'), 'hex') AS x) AS a;
 $$ LANGUAGE SQL STRICT IMMUTABLE;
 
@@ -1297,18 +1293,18 @@ $$ LANGUAGE SQL STRICT IMMUTABLE;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION hex_to_bigint (
-  H          text
-) RETURNS    bigint
+  H         text
+) RETURNS   bigint
 AS $$
   SELECT
-	(get_byte(x,0)::int8<<(7*8)) |
-	(get_byte(x,1)::int8<<(6*8)) |
-	(get_byte(x,2)::int8<<(5*8)) |
-	(get_byte(x,3)::int8<<(4*8)) |
-	(get_byte(x,4)::int8<<(3*8)) |
-	(get_byte(x,5)::int8<<(2*8)) |
-	(get_byte(x,6)::int8<<(1*8)) |
-	(get_byte(x,7)::int8)
+    (get_byte(x,0)::int8<<(7*8)) |
+    (get_byte(x,1)::int8<<(6*8)) |
+    (get_byte(x,2)::int8<<(5*8)) |
+    (get_byte(x,3)::int8<<(4*8)) |
+    (get_byte(x,4)::int8<<(3*8)) |
+    (get_byte(x,5)::int8<<(2*8)) |
+    (get_byte(x,6)::int8<<(1*8)) |
+    (get_byte(x,7)::int8)
   FROM (SELECT decode(lpad(H, 16, '0'), 'hex') AS x) AS a;
 $$ LANGUAGE SQL STRICT IMMUTABLE;
 
@@ -1317,19 +1313,19 @@ $$ LANGUAGE SQL STRICT IMMUTABLE;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION bit_copy (
-  B 		numeric,
-  P 		integer,
-  C 		integer
-) RETURNS 	numeric
+  B         numeric,
+  P         integer,
+  C         integer
+) RETURNS   numeric
 AS
 $$
 DECLARE
-  S 		text;
+  S         text;
 BEGIN
   IF B >= 0 THEN
-	S := dec_to_bin(B, 64, '0');
+    S := dec_to_bin(B, 64, '0');
   ELSE
-	S := dec_to_bin(B, 64, '1');
+    S := dec_to_bin(B, 64, '1');
   END IF;
 
   RETURN bin_to_dec(SubStr(S, length(S) - (P + C - 1), C));
@@ -1342,7 +1338,7 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 
 CREATE OR REPLACE FUNCTION to_little_endian (
   B         bytea
-) RETURNS 	bytea
+) RETURNS   bytea
 AS $$
 DECLARE
   R         bytea;
@@ -1365,9 +1361,9 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION to_little_endian (
-  D 		numeric,
+  D         numeric,
   L         integer
-) RETURNS 	numeric
+) RETURNS   numeric
 AS $$
 DECLARE
   B         bytea;
@@ -1384,8 +1380,8 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION to_little_endian (
-  H 		text
-) RETURNS 	text
+  H         text
+) RETURNS   text
 AS $$
 BEGIN
   RETURN encode(to_little_endian(decode(H, 'hex')), 'hex');
@@ -1397,15 +1393,15 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION IEEE754_32 (
-  P			numeric
-) RETURNS 	numeric
+  P         numeric
+) RETURNS   numeric
 AS
 $$
 DECLARE
-  F   		numeric;
-  S   		numeric;
-  E   		numeric;
-  M   		numeric;
+  F         numeric;
+  S         numeric;
+  E         numeric;
+  M         numeric;
 BEGIN
   S := bit_copy(P, 31, 1);
   E := bit_copy(P, 23, 8);
@@ -1424,15 +1420,15 @@ GRANT EXECUTE ON FUNCTION IEEE754_32(numeric) TO PUBLIC;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION IEEE754_64 (
-  P			numeric
-) RETURNS 	numeric
+  P         numeric
+) RETURNS   numeric
 AS
 $$
 DECLARE
-  F   		numeric;
-  S   		numeric;
-  E   		numeric;
-  M   		numeric;
+  F         numeric;
+  S         numeric;
+  E         numeric;
+  M         numeric;
 BEGIN
   S := bit_copy(P, 63, 1);
   E := bit_copy(P, 52, 11);
@@ -1451,7 +1447,7 @@ GRANT EXECUTE ON FUNCTION IEEE754_64(numeric) TO PUBLIC;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION null_uuid (
-) RETURNS	uuid
+) RETURNS   uuid
 AS $$
 BEGIN
   RETURN '00000000-0000-4000-8000-000000000000';
@@ -1465,13 +1461,13 @@ GRANT EXECUTE ON FUNCTION null_uuid() TO PUBLIC;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CheckCodes (
-  pSource		text[],
-  pCodes		text[]
-) RETURNS       text[]
+  pSource   text[],
+  pCodes    text[]
+) RETURNS   text[]
 AS $$
 DECLARE
-  arValid       text[];
-  arInvalid     text[];
+  arValid   text[];
+  arInvalid text[];
 BEGIN
   IF pCodes IS NOT NULL THEN
     FOR i IN 1..array_length(pCodes, 1)
@@ -1579,21 +1575,21 @@ BEGIN
 
   -- Создаем канонический запрос
   canonicalRequest := coalesce(HTTPMethod, 'GET') || E'\n' ||
-					  coalesce(canonicalURI, '/') || E'\n' ||
-					  coalesce(canonicalQueryString, '') || E'\n' ||
-					  canonicalHeaders || E'\n' ||
-					  signedHeaders || E'\n' ||
-					  coalesce(hashedPayload, 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855');
+                      coalesce(canonicalURI, '/') || E'\n' ||
+                      coalesce(canonicalQueryString, '') || E'\n' ||
+                      canonicalHeaders || E'\n' ||
+                      signedHeaders || E'\n' ||
+                      coalesce(hashedPayload, 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855');
 
   -- Форматируем текущую дату
   currentDate := to_char(currentTimeStamp, 'YYYYMMDD"T"HH24MISS"Z"');
 
   -- Создаем строку для подписи
   stringToSign := 'AWS4-HMAC-SHA256' || E'\n' ||
-				  currentDate || E'\n' ||
-				  to_char(currentTimeStamp, 'YYYYMMDD') || '/' ||
-				  REGION || '/s3/aws4_request' || E'\n' ||
-				  encode(digest(canonicalRequest, 'sha256'), 'hex');
+                  currentDate || E'\n' ||
+                  to_char(currentTimeStamp, 'YYYYMMDD') || '/' ||
+                  REGION || '/s3/aws4_request' || E'\n' ||
+                  encode(digest(canonicalRequest, 'sha256'), 'hex');
 
   -- Генерируем ключи подписи
   dateKey := hmac(to_char(currentTimeStamp, 'YYYYMMDD'), 'AWS4' || SECRET_KEY, 'sha256');
@@ -1619,7 +1615,51 @@ DECLARE
   v_hostname TEXT;
 BEGIN
   -- Извлечение хоста из URI с помощью регулярных выражений
-  SELECT SUBSTRING(uri FROM '^(?:https?://)?([^/?#]+)') INTO v_hostname;
+  SELECT SubString(uri FROM '^(?:https?://)?([^/?#]+)') INTO v_hostname;
   RETURN v_hostname;
 END;
 $$ LANGUAGE plpgsql IMMUTABLE STRICT;
+
+--------------------------------------------------------------------------------
+-- get_input_value -------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION get_input_value (
+  html      text,
+  str       text
+) RETURNS   text
+AS $$
+DECLARE
+  pos       int;
+  value     text;
+  start_pos int;
+  end_pos   int;
+BEGIN
+  -- Найти начало строки с тегом input
+  pos := position(str IN html);
+
+  -- Если тег не найден, вернуть NULL
+  IF pos = 0 THEN
+    RETURN NULL;
+  END IF;
+
+  -- Найти позицию атрибута value в найденной строке
+  start_pos := position('value="' IN SubString(html FROM pos));
+
+  -- Если атрибут value не найден, вернуть NULL
+  IF start_pos = 0 THEN
+    RETURN NULL;
+  END IF;
+
+  -- Смещение для корректного нахождения значения value
+  start_pos := pos + start_pos + length('value="') - 1;
+
+  -- Найти конец значения атрибута value
+  end_pos := position('"' IN SubString(html FROM start_pos));
+
+  -- Извлечь значение атрибута value
+  value := SubString(html FROM start_pos FOR end_pos - 1);
+
+  RETURN value;
+END;
+$$ LANGUAGE plpgsql;
