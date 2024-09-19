@@ -1770,7 +1770,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
-   IMMUTABLE
+   STABLE
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -5046,7 +5046,7 @@ BEGIN
   pNew := coalesce(pNew, false);
   pLogin := coalesce(pLogin, true);
 
-  IF session_user <> 'kernel' THEN
+  IF session_user <> 'kernel' AND NOT (session_user = 'apibot' AND pUserId = '00000000-0000-4000-a002-000000000001'::uuid) THEN
     uSUID := coalesce(session_userid(), GetUser(session_user));
     IF NOT CheckAccessControlList(B'10000000000000', uSUID) THEN
       PERFORM AccessDenied();
