@@ -11,8 +11,9 @@ CREATE OR REPLACE FUNCTION GetAreaType (
 ) RETURNS     uuid
 AS $$
   SELECT id FROM db.area_type WHERE code = pCode;
-$$ LANGUAGE sql STABLE STRICT
+$$ LANGUAGE sql
    SECURITY DEFINER
+   STABLE STRICT
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -24,8 +25,9 @@ CREATE OR REPLACE FUNCTION GetAreaTypeCode (
 ) RETURNS   text
 AS $$
   SELECT code FROM db.area_type WHERE id = pId;
-$$ LANGUAGE sql STABLE STRICT
+$$ LANGUAGE sql
    SECURITY DEFINER
+   STABLE STRICT
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -37,8 +39,9 @@ CREATE OR REPLACE FUNCTION GetAreaTypeName (
 ) RETURNS   text
 AS $$
   SELECT name FROM db.area_type WHERE id = pId;
-$$ LANGUAGE sql STABLE STRICT
+$$ LANGUAGE sql
    SECURITY DEFINER
+   STABLE STRICT
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -752,7 +755,7 @@ AS $$
 BEGIN
   RETURN encode(hmac(pToken, pPassKey, 'sha1'), 'hex');
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, public, pg_temp;
 
@@ -807,7 +810,7 @@ AS $$
 BEGIN
   RETURN encode(hmac(pPath || trim(to_char(pNonce, '9999999999999999')) || coalesce(pJson, 'null'), pSecret, 'sha256'), 'hex');
 END;
-$$ LANGUAGE plpgsql IMMUTABLE
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, public, pg_temp;
 
@@ -1129,11 +1132,15 @@ AS $$
 DECLARE
   nHeader       bigint;
   nToken        bigint;
+
   vType         text;
+  vHash         text;
 BEGIN
+  vHash := GetTokenHash(pToken, GetSecretKey());
+
   SELECT h.id, t.id INTO nHeader, nToken
     FROM db.token t INNER JOIN db.token_header h ON h.id = t.header AND t.type = pType AND NOT (pType = 'C' AND t.used IS NOT NULL)
-   WHERE t.hash = GetTokenHash(pToken, GetSecretKey())
+   WHERE t.hash = vHash
      AND t.validFromDate <= Now()
      AND t.validtoDate > Now();
 
@@ -1299,8 +1306,9 @@ DECLARE
 BEGIN
   RETURN coalesce(vSecretKey, vDefaultKey);
 END;
-$$ LANGUAGE plpgsql IMMUTABLE
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
+   IMMUTABLE
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -1316,7 +1324,7 @@ AS $$
 BEGIN
   RETURN current_database();
 END;
-$$ LANGUAGE plpgsql STABLE STRICT
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1345,7 +1353,7 @@ AS $$
 BEGIN
   RETURN SafeGetVar('client_id');
 END;
-$$ LANGUAGE plpgsql STABLE STRICT
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1362,7 +1370,7 @@ AS $$
 BEGIN
   RETURN GetOAuth2ClientId();
 END;
-$$ LANGUAGE plpgsql STABLE STRICT
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1391,7 +1399,7 @@ AS $$
 BEGIN
   RETURN coalesce(SafeGetVar('log')::boolean, true);
 END;
-$$ LANGUAGE plpgsql STABLE STRICT
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1420,7 +1428,7 @@ AS $$
 BEGIN
   RETURN coalesce(SafeGetVar('debug')::boolean, false);
 END;
-$$ LANGUAGE plpgsql STABLE STRICT
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1505,8 +1513,9 @@ BEGIN
   END IF;
   RETURN null;
 END;
-$$ LANGUAGE plpgsql STABLE
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
+   STABLE
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -1530,7 +1539,7 @@ BEGIN
   END IF;
   RETURN vSecret;
 END;
-$$ LANGUAGE plpgsql STABLE STRICT
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1557,8 +1566,9 @@ BEGIN
 
   RETURN uScope;
 END;
-$$ LANGUAGE plpgsql STABLE
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
+   STABLE
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -1571,8 +1581,9 @@ CREATE OR REPLACE FUNCTION current_scope_code (
 RETURNS         text
 AS $$
   SELECT code FROM db.scope WHERE id = current_scope(pSession);
-$$ LANGUAGE sql STABLE
+$$ LANGUAGE sql
    SECURITY DEFINER
+   STABLE
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -1627,8 +1638,9 @@ BEGIN
   SELECT oauth2 INTO nOAuth2 FROM db.session WHERE code = pSession;
   RETURN QUERY SELECT * FROM GetOAuth2Scopes(nOAuth2);
 END;
-$$ LANGUAGE plpgsql STABLE STRICT
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
+   STABLE
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -1652,7 +1664,7 @@ BEGIN
   END IF;
   RETURN vArea;
 END;
-$$ LANGUAGE plpgsql STABLE
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1677,7 +1689,7 @@ BEGIN
   END IF;
   RETURN vAgent;
 END;
-$$ LANGUAGE plpgsql STABLE
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1702,7 +1714,7 @@ BEGIN
   END IF;
   RETURN host(iHost);
 END;
-$$ LANGUAGE plpgsql STABLE
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1727,8 +1739,9 @@ BEGIN
   END IF;
   RETURN uUserId;
 END;
-$$ LANGUAGE plpgsql STABLE
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
+   STABLE
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -1755,8 +1768,9 @@ BEGIN
   END IF;
   RETURN uUserId;
 END;
-$$ LANGUAGE plpgsql STABLE
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
+   IMMUTABLE
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -1773,8 +1787,9 @@ CREATE OR REPLACE FUNCTION session_username (
 RETURNS         text
 AS $$
   SELECT username FROM db.user WHERE id = session_userid(pSession) AND type = 'U';
-$$ LANGUAGE sql STABLE
+$$ LANGUAGE sql
    SECURITY DEFINER
+   STABLE STRICT
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -1788,8 +1803,9 @@ CREATE OR REPLACE FUNCTION current_username ()
 RETURNS         text
 AS $$
   SELECT username FROM db.user WHERE id = current_userid();
-$$ LANGUAGE sql STABLE
+$$ LANGUAGE sql
    SECURITY DEFINER
+   STABLE
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -1815,7 +1831,7 @@ BEGIN
 
   RETURN vCode;
 END;
-$$ LANGUAGE plpgsql STABLE STRICT
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1845,8 +1861,9 @@ CREATE OR REPLACE FUNCTION GetSessionArea (
 RETURNS         uuid
 AS $$
   SELECT area FROM db.session WHERE code = pSession;
-$$ LANGUAGE sql STABLE STRICT
+$$ LANGUAGE sql
    SECURITY DEFINER
+   STABLE STRICT
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -1859,7 +1876,7 @@ CREATE OR REPLACE FUNCTION current_area_type (
 RETURNS         uuid
 AS $$
   SELECT type FROM db.area WHERE id = GetSessionArea(pSession);
-$$ LANGUAGE sql STABLE STRICT
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1875,8 +1892,9 @@ AS $$
 BEGIN
   RETURN coalesce(GetSessionArea(pSession), '00000000-0000-4003-a000-000000000002');
 END;
-$$ LANGUAGE plpgsql STABLE
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
+   STABLE
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -1928,8 +1946,9 @@ AS $$
 BEGIN
   RETURN coalesce(GetSessionInterface(pSession), '00000000-0000-4004-a000-000000000003');
 END;
-$$ LANGUAGE plpgsql STABLE
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
+   STABLE
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -2021,8 +2040,9 @@ BEGIN
   END IF;
   RETURN dtOperDate;
 END;
-$$ LANGUAGE plpgsql STABLE
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
+   STABLE
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -2089,8 +2109,9 @@ CREATE OR REPLACE FUNCTION GetSessionLocale (
 ) RETURNS       uuid
 AS $$
   SELECT locale FROM db.session WHERE code = pSession;
-$$ LANGUAGE sql STABLE STRICT
+$$ LANGUAGE sql
    SECURITY DEFINER
+   STABLE STRICT
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -2116,8 +2137,9 @@ BEGIN
 
   RETURN coalesce(vCode, 'ru');
 END;
-$$ LANGUAGE plpgsql STABLE
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
+   STABLE
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -2136,8 +2158,9 @@ AS $$
 BEGIN
   RETURN coalesce(GetSessionLocale(pSession), '00000000-0000-4001-a000-000000000002');
 END;
-$$ LANGUAGE plpgsql STABLE
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
+   STABLE
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -2418,6 +2441,26 @@ END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    STABLE STRICT
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- IsAdmin ---------------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Проверяет пользователя на вхождение в группу "Администраторы".
+ * @return {boolean}
+ */
+CREATE OR REPLACE FUNCTION IsAdmin (
+  pMember       uuid DEFAULT current_userid()
+) RETURNS       boolean
+AS $$
+BEGIN
+  PERFORM FROM db.member_group WHERE userid = '00000000-0000-4000-a000-000000000001'::uuid AND member = pMember;
+  RETURN FOUND;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   IMMUTABLE
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -2832,8 +2875,9 @@ BEGIN
 
   RETURN uId;
 END;
-$$ LANGUAGE plpgsql STABLE
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
+   STABLE
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -2859,8 +2903,9 @@ BEGIN
 
   RETURN uId;
 END;
-$$ LANGUAGE plpgsql STABLE
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
+   STABLE
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -3283,8 +3328,9 @@ CREATE OR REPLACE FUNCTION GetScope (
 ) RETURNS       uuid
 AS $$
   SELECT id FROM db.scope WHERE code = pCode;
-$$ LANGUAGE sql STABLE STRICT
+$$ LANGUAGE sql
    SECURITY DEFINER
+   STABLE STRICT
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -3296,8 +3342,9 @@ CREATE OR REPLACE FUNCTION GetScopeName (
 ) RETURNS       text
 AS $$
   SELECT name FROM db.scope WHERE id = pId;
-$$ LANGUAGE sql STABLE STRICT
+$$ LANGUAGE sql
    SECURITY DEFINER
+   STABLE STRICT
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -3531,8 +3578,9 @@ CREATE OR REPLACE FUNCTION GetAreaScope (
 ) RETURNS       uuid
 AS $$
   SELECT scope FROM db.area WHERE id = pArea;
-$$ LANGUAGE sql STABLE STRICT
+$$ LANGUAGE sql
    SECURITY DEFINER
+   STABLE STRICT
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -3545,8 +3593,9 @@ CREATE OR REPLACE FUNCTION GetArea (
 ) RETURNS       uuid
 AS $$
   SELECT id FROM db.area WHERE scope = pScope AND code = pCode;
-$$ LANGUAGE sql STABLE STRICT
+$$ LANGUAGE sql
    SECURITY DEFINER
+   STABLE STRICT
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -3558,8 +3607,9 @@ CREATE OR REPLACE FUNCTION GetAreaRoot (
 ) RETURNS       uuid
 AS $$
   SELECT id FROM db.area WHERE scope = pScope AND type = '00000000-0000-4002-a000-000000000000';
-$$ LANGUAGE sql STABLE STRICT
+$$ LANGUAGE sql
    SECURITY DEFINER
+   STABLE STRICT
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -3571,8 +3621,9 @@ CREATE OR REPLACE FUNCTION GetAreaSystem (
 ) RETURNS       uuid
 AS $$
   SELECT id FROM db.area WHERE scope = pScope AND type = '00000000-0000-4002-a000-000000000001';
-$$ LANGUAGE sql STABLE STRICT
+$$ LANGUAGE sql
    SECURITY DEFINER
+   STABLE STRICT
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -3584,8 +3635,9 @@ CREATE OR REPLACE FUNCTION GetAreaGuest (
 ) RETURNS       uuid
 AS $$
   SELECT id FROM db.area WHERE scope = pScope AND type = '00000000-0000-4002-a000-000000000002';
-$$ LANGUAGE sql STABLE STRICT
+$$ LANGUAGE sql
    SECURITY DEFINER
+   STABLE STRICT
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -3597,8 +3649,9 @@ CREATE OR REPLACE FUNCTION GetAreaDefault (
 ) RETURNS       uuid
 AS $$
   SELECT id FROM db.area WHERE scope = pScope AND type = '00000000-0000-4002-a001-000000000000';
-$$ LANGUAGE sql STABLE STRICT
+$$ LANGUAGE sql
    SECURITY DEFINER
+   STABLE STRICT
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -3610,8 +3663,9 @@ CREATE OR REPLACE FUNCTION GetAreaCode (
 ) RETURNS       text
 AS $$
   SELECT code FROM db.area WHERE id = pId;
-$$ LANGUAGE sql STABLE STRICT
+$$ LANGUAGE sql
    SECURITY DEFINER
+   STABLE STRICT
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -3623,8 +3677,9 @@ CREATE OR REPLACE FUNCTION GetAreaName (
 ) RETURNS       text
 AS $$
   SELECT name FROM db.area WHERE id = pId;
-$$ LANGUAGE sql STABLE STRICT
+$$ LANGUAGE sql
    SECURITY DEFINER
+   STABLE STRICT
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -4236,6 +4291,7 @@ DECLARE
 
   payload       jsonb;
 
+  vHash         text;
   vSecret       text;
 
   iss           text;
@@ -4271,9 +4327,11 @@ BEGIN
     PERFORM TokenError();
   END IF;
 
+  vHash := GetTokenHash(pToken, GetSecretKey());
+
   SELECT h.oauth2 INTO nOauth2
     FROM db.token t INNER JOIN db.token_header h ON h.id = t.header
-   WHERE t.hash = GetTokenHash(pToken, GetSecretKey())
+   WHERE t.hash = vHash
      AND t.validFromDate <= Now()
      AND t.validtoDate > Now();
 
@@ -4308,6 +4366,7 @@ DECLARE
   payload       jsonb;
   token         jsonb;
 
+  vHash         text;
   vSecret       text;
 
   iss           text;
@@ -4351,9 +4410,11 @@ BEGIN
     PERFORM TokenError();
   END IF;
 
+  vHash := GetTokenHash(pToken, GetSecretKey());
+
   SELECT h.oauth2, t.validtodate INTO nOauth2, dtValidToDate
     FROM db.token t INNER JOIN db.token_header h ON h.id = t.header
-   WHERE t.hash = GetTokenHash(pToken, GetSecretKey());
+   WHERE t.hash = vHash;
 
   IF NOT FOUND THEN
     PERFORM TokenExpired();

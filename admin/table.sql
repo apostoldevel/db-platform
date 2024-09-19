@@ -83,7 +83,7 @@ COMMENT ON COLUMN db.area.name IS 'Наименование';
 COMMENT ON COLUMN db.area.description IS 'Описание';
 COMMENT ON COLUMN db.area.level IS 'Уровень вложенности.';
 COMMENT ON COLUMN db.area.sequence IS 'Очерёдность';
-COMMENT ON COLUMN db.area.validFromDate IS 'Дата начала действаия';
+COMMENT ON COLUMN db.area.validFromDate IS 'Дата начала действия';
 COMMENT ON COLUMN db.area.validToDate IS 'Дата окончания действия';
 
 CREATE INDEX ON db.area (parent);
@@ -626,7 +626,7 @@ COMMENT ON COLUMN db.recovery_ticket.ticket IS 'Талон';
 COMMENT ON COLUMN db.recovery_ticket.userId IS 'Идентификатор учётной записи';
 COMMENT ON COLUMN db.recovery_ticket.securityAnswer IS 'Секретный ответ';
 COMMENT ON COLUMN db.recovery_ticket.used IS 'Использован';
-COMMENT ON COLUMN db.recovery_ticket.validFromDate IS 'Дата начала действаия';
+COMMENT ON COLUMN db.recovery_ticket.validFromDate IS 'Дата начала действия';
 COMMENT ON COLUMN db.recovery_ticket.validToDate IS 'Дата окончания действия';
 
 --------------------------------------------------------------------------------
@@ -820,7 +820,7 @@ COMMENT ON COLUMN db.token.type IS 'Тип: [С]ode - Код авторизац�
 COMMENT ON COLUMN db.token.token IS 'Маркер';
 COMMENT ON COLUMN db.token.hash IS 'Хеш маркера';
 COMMENT ON COLUMN db.token.used IS 'Использован';
-COMMENT ON COLUMN db.token.validFromDate IS 'Дата начала действаия';
+COMMENT ON COLUMN db.token.validFromDate IS 'Дата начала действия';
 COMMENT ON COLUMN db.token.validToDate IS 'Дата окончания действия';
 
 CREATE UNIQUE INDEX ON db.token (hash, validFromDate, validToDate);

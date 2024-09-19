@@ -538,7 +538,8 @@ DECLARE
 
   vOAuthSession         text;
   vSession              text;
-  VSecret               text;
+  vSecret               text;
+  vHash                 text;
 
   vRedirectURI          text;
 
@@ -596,9 +597,11 @@ BEGIN
       RETURN json_build_object('error', json_build_object('code', 400, 'error', 'invalid_request', 'message', 'Missing parameter: redirect_uri'));
     END IF;
 
+    vHash := GetTokenHash(auth_code, GetSecretKey());
+
     SELECT h.oauth2 INTO nOauth2
       FROM db.token t INNER JOIN db.token_header h ON h.id = t.header AND t.type = 'C'
-     WHERE t.hash = GetTokenHash(auth_code, GetSecretKey())
+     WHERE t.hash = vHash
        AND t.validFromDate <= Now()
        AND t.validtoDate > Now();
 

@@ -24,7 +24,7 @@ COMMENT ON COLUMN db.verification_code.userId IS 'Идентификатор у�
 COMMENT ON COLUMN db.verification_code.type IS 'Тип: [M]ail - Почта; [P]hone - Телефон;';
 COMMENT ON COLUMN db.verification_code.code IS 'Код';
 COMMENT ON COLUMN db.verification_code.used IS 'Использован';
-COMMENT ON COLUMN db.verification_code.validFromDate IS 'Дата начала действаия';
+COMMENT ON COLUMN db.verification_code.validFromDate IS 'Дата начала действия';
 COMMENT ON COLUMN db.verification_code.validToDate IS 'Дата окончания действия';
 
 --------------------------------------------------------------------------------
