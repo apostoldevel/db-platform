@@ -1774,6 +1774,24 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- FUNCTION immutable_current_userid -------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Возвращает идентификатор текущего пользователя.
+ * @return {id} - Идентификатор пользователя: users.id
+ */
+CREATE OR REPLACE FUNCTION immutable_current_userid()
+RETURNS         uuid
+AS $$
+BEGIN
+  RETURN current_userid();
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   IMMUTABLE
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- FUNCTION session_username ---------------------------------------------------
 --------------------------------------------------------------------------------
 /**
@@ -2451,7 +2469,7 @@ $$ LANGUAGE plpgsql
  * @return {boolean}
  */
 CREATE OR REPLACE FUNCTION IsAdmin (
-  pMember       uuid DEFAULT current_userid()
+  pMember       uuid DEFAULT immutable_current_userid()
 ) RETURNS       boolean
 AS $$
 BEGIN
@@ -2460,7 +2478,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
-   IMMUTABLE
+   IMMUTABLE STRICT
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
