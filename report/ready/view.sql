@@ -55,8 +55,8 @@ CREATE OR REPLACE VIEW ObjectReportReady (Id, Object, Parent,
          d.area, a.code, a.name, a.description,
          o.scope, sc.code, sc.name, sc.description
     FROM db.report_ready t INNER JOIN db.document          d ON t.document = d.id
-                           INNER JOIN DocumentAreaTreeId dat ON d.area = dat.id
                             LEFT JOIN db.document_text    dt ON dt.document = d.id AND dt.locale = current_locale()
+                           INNER JOIN DocumentAreaTree     a ON d.area = a.id
 
                            INNER JOIN db.object            o ON d.object = o.id
                             LEFT JOIN db.object_text      ot ON ot.object = o.id AND ot.locale = current_locale()
@@ -82,7 +82,6 @@ CREATE OR REPLACE VIEW ObjectReportReady (Id, Object, Parent,
                            INNER JOIN db.user              w ON o.owner = w.id
                            INNER JOIN db.user              u ON o.oper = u.id
 
-                           INNER JOIN db.area              a ON d.area = a.id
                            INNER JOIN db.scope            sc ON o.scope = sc.id;
 
 GRANT SELECT ON ObjectReportReady TO administrator;

@@ -2469,7 +2469,7 @@ $$ LANGUAGE plpgsql
  * @return {boolean}
  */
 CREATE OR REPLACE FUNCTION IsAdmin (
-  pMember       uuid DEFAULT immutable_current_userid()
+  pMember       uuid DEFAULT current_userid()
 ) RETURNS       boolean
 AS $$
 BEGIN
@@ -2478,7 +2478,30 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
-   IMMUTABLE STRICT
+   STABLE STRICT
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- is_admin --------------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Проверяет пользователя на вхождение в группу "Администраторы" или если это apibot.
+ * @return {boolean}
+ */
+CREATE OR REPLACE FUNCTION is_admin (
+  pMember       uuid DEFAULT immutable_current_userid()
+) RETURNS       boolean
+AS $$
+BEGIN
+  IF pMember IS NULL THEN
+    RETURN false;
+  END IF;
+
+  RETURN IsAdmin(pMember) OR current_userid() = '00000000-0000-4000-a002-000000000001'::uuid;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   IMMUTABLE
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
