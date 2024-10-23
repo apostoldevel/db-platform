@@ -377,7 +377,7 @@ DECLARE
   dtDateFrom    timestamptz;
   dtDateTo      timestamptz;
 BEGIN
-  -- получим дату значения в текущем диапозоне дат
+  -- получим дату значения в текущем диапазоне дат
   SELECT id, validFromDate, validToDate INTO uId, dtDateFrom, dtDateTo
     FROM db.object_state
    WHERE object = pObject
@@ -385,13 +385,13 @@ BEGIN
      AND validToDate > pDateFrom;
 
   IF coalesce(dtDateFrom, MINDATE()) = pDateFrom THEN
-    -- обновим значение в текущем диапозоне дат
+    -- обновим значение в текущем диапазоне дат
     UPDATE db.object_state SET State = pState
      WHERE object = pObject
        AND validFromDate <= pDateFrom
        AND validToDate > pDateFrom;
   ELSE
-    -- обновим дату значения в текущем диапозоне дат
+    -- обновим дату значения в текущем диапазоне дат
     UPDATE db.object_state SET validToDate = pDateFrom
      WHERE object = pObject
        AND validFromDate <= pDateFrom
@@ -1120,7 +1120,7 @@ DECLARE
   dtDateFrom    timestamptz;
   dtDateTo      timestamptz;
 BEGIN
-  -- получим дату значения в текущем диапозоне дат
+  -- получим дату значения в текущем диапазоне дат
   SELECT id, linked, validFromDate, validToDate INTO uId, uLinked, dtDateFrom, dtDateTo
     FROM db.object_link
    WHERE object = pObject
@@ -1129,7 +1129,7 @@ BEGIN
      AND validToDate > pDateFrom;
 
   IF uLinked IS DISTINCT FROM pLinked THEN
-    -- обновим дату значения в текущем диапозоне дат
+    -- обновим дату значения в текущем диапазоне дат
     UPDATE db.object_link SET validToDate = pDateFrom
      WHERE object = pObject
        AND key = pKey
@@ -1697,7 +1697,7 @@ DECLARE
   dtDateFrom    timestamptz;
   dtDateTo      timestamptz;
 BEGIN
-  -- получим дату значения в текущем диапозоне дат
+  -- получим дату значения в текущем диапазоне дат
   SELECT id, validFromDate, validToDate INTO uId, dtDateFrom, dtDateTo
     FROM db.object_coordinates
    WHERE object = pObject
@@ -1706,7 +1706,7 @@ BEGIN
      AND validToDate > pDateFrom;
 
   IF coalesce(dtDateFrom, MINDATE()) = pDateFrom THEN
-    -- обновим значение в текущем диапозоне дат
+    -- обновим значение в текущем диапазоне дат
     UPDATE db.object_coordinates
        SET latitude = pLatitude, longitude = pLongitude, accuracy = pAccuracy,
            label = coalesce(pLabel, label),
@@ -1716,7 +1716,7 @@ BEGIN
        AND validFromDate <= pDateFrom
        AND validToDate > pDateFrom;
   ELSE
-    -- обновим дату значения в текущем диапозоне дат
+    -- обновим дату значения в текущем диапазоне дат
     UPDATE db.object_coordinates SET validToDate = pDateFrom
      WHERE object = pObject
        AND code = pCode

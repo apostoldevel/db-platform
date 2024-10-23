@@ -991,7 +991,7 @@ DECLARE
   dtDateFrom    timestamp;
   dtDateTo      timestamp;
 BEGIN
-  -- получим дату значения в текущем диапозоне дат
+  -- получим дату значения в текущем диапазоне дат
   SELECT id, validFromDate, validToDate INTO nId, dtDateFrom, dtDateTo
     FROM db.token
    WHERE header = pHeader
@@ -1000,14 +1000,14 @@ BEGIN
      AND validToDate > pDateFrom;
 
   IF coalesce(dtDateFrom, MINDATE()) = pDateFrom THEN
-    -- обновим значение в текущем диапозоне дат
+    -- обновим значение в текущем диапазоне дат
     UPDATE db.token SET token = pToken
      WHERE header = pHeader
        AND type = pType
        AND validFromDate <= pDateFrom
        AND validToDate > pDateFrom;
   ELSE
-    -- обновим дату значения в текущем диапозоне дат
+    -- обновим дату значения в текущем диапазоне дат
     UPDATE db.token SET validToDate = pDateFrom
      WHERE header = pHeader
        AND type = pType

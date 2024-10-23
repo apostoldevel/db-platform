@@ -15,7 +15,7 @@ DECLARE
   dtDateFrom    timestamptz;
   dtDateTo      timestamptz;
 BEGIN
-  -- получим дату значения в текущем диапозоне дат
+  -- получим дату значения в текущем диапазоне дат
   SELECT id, validFromDate, validToDate INTO uId, dtDateFrom, dtDateTo
     FROM db.verification_code
    WHERE type = pType
@@ -24,14 +24,14 @@ BEGIN
      AND validToDate > pDateFrom;
 
   IF coalesce(dtDateFrom, MINDATE()) = pDateFrom THEN
-    -- обновим значение в текущем диапозоне дат
+    -- обновим значение в текущем диапазоне дат
     UPDATE db.verification_code SET code = pCode
      WHERE type = pType
        AND userid = pUserId
        AND validFromDate <= pDateFrom
        AND validToDate > pDateFrom;
   ELSE
-    -- обновим дату значения в текущем диапозоне дат
+    -- обновим дату значения в текущем диапазоне дат
     UPDATE db.verification_code SET used = Now(), validToDate = pDateFrom
      WHERE type = pType
        AND userid = pUserId
