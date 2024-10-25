@@ -19,13 +19,13 @@
 
 ### PostgreSQL
 
-Для того чтобы установить PostgreSQL воспользуйтесь инструкцией по [этой](https://www.postgresql.org/download/) ссылке.
+Для того чтобы установить PostgreSQL, воспользуйтесь инструкцией по [этой](https://www.postgresql.org/download/) ссылке.
 
 ### База данных
 
-Для того чтобы установить базу данных необходимо выполнить:
+Для того чтобы установить базу данных, необходимо выполнить:
 
-1. Прописать наименование базы данных в файле `db/sql/sets.conf`;
+1. Прописать наименование базы данных в файле `db/sql/sets.psql`;
 1. Прописать пароли для пользователей СУБД [libpq-pgpass](https://postgrespro.ru/docs/postgrespro/14/libpq-pgpass):
    ~~~
    $ sudo -iu postgres -H vim .pgpass

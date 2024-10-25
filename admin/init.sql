@@ -33,11 +33,11 @@ SELECT AddMemberToInterface(CreateGroup('administrator', 'Администрат
 SELECT AddMemberToInterface(CreateGroup('user', 'Пользователи', 'Группа для пользователей системы', '00000000-0000-4000-a000-000000000002'), '00000000-0000-4004-a000-000000000002');
 SELECT AddMemberToInterface(CreateGroup('guest', 'Гости', 'Группа для гостей системы', '00000000-0000-4000-a000-000000000003'), '00000000-0000-4004-a000-000000000003');
 
-SELECT AddMemberToGroup(CreateUser('admin', :'admin', 'Администратор', null,null, 'Администратор системы', true, false, '00000000-0000-4000-a001-000000000001'), GetGroup('administrator'));
-SELECT CreateUser('daemon', :'daemon', 'Демон', null, null, 'Пользователь для вызова методов API', false, true, '00000000-0000-4000-a001-000000000002');
+SELECT AddMemberToGroup(CreateUser('admin', current_setting('admin.password'), 'Администратор', null,null, 'Администратор системы', true, false, '00000000-0000-4000-a001-000000000001'), GetGroup('administrator'));
+SELECT CreateUser('daemon', current_setting('daemon.password'), 'Демон', null, null, 'Пользователь для вызова методов API', false, true, '00000000-0000-4000-a001-000000000002');
 
-SELECT AddMemberToGroup(CreateUser('apibot', :'apibot', 'API клиент', null, null, 'Системная служба API', false, true, '00000000-0000-4000-a002-000000000001'), GetGroup('system'));
-SELECT CreateUser('mailbot', 'mailbot', 'Mail клиент', null, null, 'Почтовый клиент', false, true, '00000000-0000-4000-a002-000000000002');
+SELECT AddMemberToGroup(CreateUser('apibot', current_setting('apibot.password'), 'API клиент', null, null, 'Системная служба API', false, true, '00000000-0000-4000-a002-000000000001'), GetGroup('system'));
+SELECT CreateUser('mailbot', current_setting('mailbot.password'), 'Mail клиент', null, null, 'Почтовый клиент', false, true, '00000000-0000-4000-a002-000000000002');
 
 SELECT CreateGroup('message', 'Сообщения', 'Группа для пользователей, которым разрешена рассылка массовых сообщений', '00000000-0000-4000-a000-000000000004');
 SELECT AddMemberToGroup(GetUser('admin'), GetGroup('message'));
