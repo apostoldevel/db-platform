@@ -477,7 +477,7 @@ BEGIN
   uAction := AddAction('00000000-0000-4000-b003-000000000029', 'preparing', 'Подготовка');
   PERFORM EditActionText(uAction, 'Preparing', null, uLocale);
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000030', 'reconfirm', 'Переподтвердить');
+  uAction := AddAction('00000000-0000-4000-b003-000000000030', 'reconfirm', 'Повторно подтвердить');
   PERFORM EditActionText(uAction, 'Reconfirm', null, uLocale);
 
   uAction := AddAction('00000000-0000-4000-b003-000000000031', 'remove', 'Удалить');

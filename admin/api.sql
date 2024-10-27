@@ -15,7 +15,7 @@
  * @out param {text} session - Сессия
  * @out param {text} secret - Секретный ключ для подписи методом HMAC-256
  * @out param {text} code - Одноразовый код авторизации для получения маркера см. OAuth 2.0
- * @return {record} - Возвращяет сессию указанного пользователя
+ * @return {record} - Возвращает сессию указанного пользователя
  */
 CREATE OR REPLACE FUNCTION api.login (
   pUserName     text,
@@ -124,7 +124,7 @@ $$ LANGUAGE plpgsql
  * @out param {boolean} authorized - Результат авторизации
  * @out param {uuid} userid - Идентификатор учётной записи
  * @out param {text} code - Код авторизации (разрешение на авторизацию для OAuth2)
- * @out param {text} message - Сообшение
+ * @out param {text} message - Сообщение
  * @return {record}
  */
 CREATE OR REPLACE FUNCTION api.authenticate (
@@ -158,7 +158,7 @@ $$ LANGUAGE plpgsql
  * @param {inet} pHost - IP адрес
  * @out param {boolean} authorized - Результат авторизации
  * @out param {uuid} userid - Идентификатор учётной записи
- * @out param {text} message - Сообшение
+ * @out param {text} message - Сообщение
  * @return {record}
  */
 CREATE OR REPLACE FUNCTION api.authorize (
@@ -205,7 +205,7 @@ $$ LANGUAGE plpgsql
 -- api.get_session -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Везврящает сесиию пользователя.
+ * Возвращает сессию пользователя.
  * @param {text} pUserName - Имя пользователь
  * @param {text} pAgent - Агент
  * @param {inet} pHost - IP адрес
@@ -234,7 +234,7 @@ $$ LANGUAGE plpgsql
 -- api.get_sessions ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Везврящает сесии пользователей для каждой зоны.
+ * Возвращает сессию пользователей для каждой зоны.
  * @param {text} pUserName - Имя пользователь
  * @param {text} pAgent - Агент
  * @param {inet} pHost - IP адрес
@@ -1365,7 +1365,7 @@ GRANT SELECT ON api.area_type TO administrator;
 -- api.get_area_type -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Позвращает тип зоны.
+ * Возвращает тип зоны.
  * @param {uuid} pId - Идентификатор типа области видимости
  * @return {record} - Запись
  */
@@ -2096,7 +2096,7 @@ $$ LANGUAGE plpgsql
  * Устанавливает битовую маску доступа для методов и пользователя.
  * @param {uuid} pMethod - Идентификатор метода
  * @param {int} pMask - Маска доступа. Три бита (xve) где: x - execute, v - visible, e - enable
- * @param {uuid} pUserId - Идентификатор пользователся/группы
+ * @param {uuid} pUserId - Идентификатор пользователя/группы
  * @return {void}
 */
 CREATE OR REPLACE FUNCTION api.chmodm (
@@ -2119,7 +2119,7 @@ $$ LANGUAGE plpgsql
  * Устанавливает битовую маску доступа для объекта и пользователя.
  * @param {uuid} pObject - Идентификатор объекта
  * @param {int} pMask - Маска доступа. Три бита (sud) где: s - select, u - update, d - delete
- * @param {uuid} pUserId - Идентификатор пользователся/группы
+ * @param {uuid} pUserId - Идентификатор пользователя/группы
  * @return {void}
 */
 CREATE OR REPLACE FUNCTION api.chmodo (

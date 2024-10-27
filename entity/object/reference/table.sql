@@ -34,6 +34,8 @@ CREATE UNIQUE INDEX ON db.reference (scope, entity, code);
 
 CREATE OR REPLACE FUNCTION db.ft_reference_before_insert()
 RETURNS trigger AS $$
+DECLARE
+  vCode    text;
 BEGIN
   IF NEW.id IS NULL THEN
     SELECT NEW.object INTO NEW.id;
@@ -52,7 +54,11 @@ BEGIN
   END IF;
 
   IF NULLIF(NEW.code, '') IS NULL THEN
-    NEW.code := encode(gen_random_bytes(12), 'hex');
+    vCode := GetEntityCode(NEW.entity);
+    IF length(vCode) > 5 THEN
+	  vCode := SubStr(vCode, 1, 3);
+	END IF;
+    NEW.code := concat(vCode, '_', gen_random_code());
   END IF;
 
   RETURN NEW;
