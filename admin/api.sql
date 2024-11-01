@@ -650,6 +650,8 @@ AS $$
 DECLARE
   uTicket           uuid;
   uUserId           uuid;
+
+  vInitiator        text;
   vOAuthSecret      text;
 BEGIN
   IF NULLIF(StrPos(pIdentifier, '@'), 0) IS NOT NULL THEN
@@ -671,15 +673,25 @@ BEGIN
     SELECT id INTO uUserId FROM db.user WHERE phone = TrimPhone(pIdentifier) AND type = 'U';
   
     IF FOUND THEN
-      IF IsUserRole(GetGroup('system'), session_userid()) THEN
-        SELECT a.secret INTO vOAuthSecret FROM oauth2.audience a WHERE a.code = session_username();
-        IF FOUND THEN
-          PERFORM SubstituteUser(GetUser('apibot'), vOAuthSecret);
-          uTicket := RecoveryPasswordByPhone(uUserId, pHashCode);
-          PERFORM SubstituteUser(session_userid(), vOAuthSecret);
+      vInitiator := encode(digest(pIdentifier, 'sha1'), 'hex');
+    
+      PERFORM
+        FROM db.recovery_ticket
+       WHERE initiator = vInitiator
+         AND validFromDate <= Now()
+         AND validtoDate - interval '4 min' > Now();
+      
+      IF NOT FOUND THEN
+        IF IsUserRole(GetGroup('system'), session_userid()) THEN
+          SELECT a.secret INTO vOAuthSecret FROM oauth2.audience a WHERE a.code = session_username();
+          IF FOUND THEN
+            PERFORM SubstituteUser(GetUser('apibot'), vOAuthSecret);
+            uTicket := RecoveryPasswordByPhone(uUserId, vInitiator, pHashCode);
+            PERFORM SubstituteUser(session_userid(), vOAuthSecret);
+          END IF;
+        ELSE
+          uTicket := RecoveryPasswordByPhone(uUserId, vInitiator, pHashCode);
         END IF;
-      ELSE
-        uTicket := RecoveryPasswordByPhone(uUserId, pHashCode);
       END IF;
     END IF;
   END IF;
@@ -812,17 +824,56 @@ CREATE OR REPLACE FUNCTION api.registration_code_by_phone (
 AS $$
 DECLARE
   uTicket           uuid;
+
+  nCount            int;
+
+  vInitiator        text;
   vOAuthSecret      text;
 BEGIN
-  IF IsUserRole(GetGroup('system'), session_userid()) THEN
-    SELECT a.secret INTO vOAuthSecret FROM oauth2.audience a WHERE a.code = session_username();
+  vInitiator := encode(digest(pPhone, 'sha1'), 'hex');
+
+  PERFORM
+    FROM db.recovery_ticket
+   WHERE initiator = vInitiator
+     AND validFromDate <= Now()
+     AND validtoDate - interval '4 min' > Now();
+
+  IF NOT FOUND THEN
+
+    PERFORM
+      FROM db.api_log
+     WHERE path = '/user/registration/code'
+       AND session = current_session()
+       AND json->>'phone' != pPhone;
+
     IF FOUND THEN
-      PERFORM SubstituteUser(GetUser('apibot'), vOAuthSecret);
-      uTicket := RegistrationCodeByPhone(pPhone, pHashCode);
-      PERFORM SubstituteUser(session_userid(), vOAuthSecret);
+      PERFORM WriteToEventLog('W', 2003, 'registration_code_by_phone', format('Обнаружена попытка регистрации разных номеров телефона c одной и той же сессии. Телефон: "%s". Сессия "%s" закрыта.', pPhone, current_session()));
+      PERFORM SessionOut(current_session(), false);
+      RETURN gen_random_uuid();
     END IF;
-  ELSE
-    uTicket := RegistrationCodeByPhone(pPhone, pHashCode);
+
+    SELECT count(id) INTO nCount
+      FROM db.api_log
+     WHERE path = '/user/registration/code'
+       AND session = current_session()
+       AND json->>'phone' = pPhone;
+
+    IF nCount > 3 THEN
+      PERFORM WriteToEventLog('W', 2004, 'registration_code_by_phone', format('Превышено количество регистраций по номеру телефона "%s" с одной и той же сессии. Сессия "%s" закрыта.', pPhone, current_session()));
+      PERFORM SessionOut(current_session(), false);
+      RETURN gen_random_uuid();
+    END IF;
+
+    IF IsUserRole(GetGroup('system'), session_userid()) THEN
+      SELECT a.secret INTO vOAuthSecret FROM oauth2.audience a WHERE a.code = session_username();
+      IF FOUND THEN
+        PERFORM SubstituteUser(GetUser('apibot'), vOAuthSecret);
+        uTicket := RegistrationCodeByPhone(pPhone, pHashCode);
+        PERFORM SubstituteUser(session_userid(), vOAuthSecret);
+      END IF;
+    ELSE
+      uTicket := RegistrationCodeByPhone(pPhone, pHashCode);
+    END IF;
   END IF;
 
   RETURN coalesce(uTicket, gen_random_uuid());

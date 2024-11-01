@@ -182,6 +182,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION AddRecoveryTicket (
   pUserId           uuid,
   pSecurityAnswer   text,
+  pInitiator        text,
   pDateFrom         timestamptz DEFAULT null,
   pDateTo           timestamptz DEFAULT null
 ) RETURNS           uuid
@@ -191,8 +192,8 @@ DECLARE
 BEGIN
   uTicket := gen_random_uuid();
 
-  INSERT INTO db.recovery_ticket (ticket, userid, securityAnswer, validFromDate, validtodate)
-  VALUES (uTicket, pUserId, pSecurityAnswer, coalesce(pDateFrom, Now()), coalesce(pDateTo, MAXDATE()));
+  INSERT INTO db.recovery_ticket (ticket, userid, securityAnswer, initiator, validFromDate, validtodate)
+  VALUES (uTicket, pUserId, pSecurityAnswer, pInitiator, coalesce(pDateFrom, Now()), coalesce(pDateTo, MAXDATE()));
 
   RETURN uTicket;
 END;
@@ -207,12 +208,13 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION NewRecoveryTicket (
   pUserId           uuid,
   pSecurityAnswer   text,
+  pInitiator        text,
   pDateFrom         timestamptz DEFAULT Now(),
   pDateTo           timestamptz DEFAULT Now() + INTERVAL '1 hour'
 ) RETURNS           uuid
 AS $$
 BEGIN
-  RETURN AddRecoveryTicket(pUserId, crypt(pSecurityAnswer, gen_salt('md5')), pDateFrom, pDateTo);
+  RETURN AddRecoveryTicket(pUserId, crypt(pSecurityAnswer, gen_salt('md5')), pInitiator, pDateFrom, pDateTo);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -4256,9 +4258,29 @@ BEGIN
   FOR r IN
     SELECT code
       FROM Session
-     WHERE username <> session_user
-       AND code <> current_session()
+     WHERE username NOT IN (session_user, 'admin')
+       AND code IS DISTINCT FROM current_session()
        AND input_last < Now() - pOffTime
+  LOOP
+    PERFORM SignOut(r.code);
+  END LOOP;
+
+  FOR r IN
+    SELECT code
+      FROM Session
+     WHERE username IN ('web-plugme.ru', 'web-mosoblenergo.ru')
+       AND code IS DISTINCT FROM current_session()
+       AND input_last < Now() - INTERVAL '1 day'
+     LIMIT 5000
+  LOOP
+    PERFORM SignOut(r.code);
+  END LOOP;
+
+  FOR r IN
+    SELECT code
+      FROM db.session
+     WHERE code IS DISTINCT FROM current_session()
+       AND agent LIKE 'python-requests%'
   LOOP
     PERFORM SignOut(r.code);
   END LOOP;

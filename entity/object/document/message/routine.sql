@@ -515,7 +515,7 @@ $$ LANGUAGE plpgsql
 -- RecoveryPasswordByEmail -----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Запускает процедуру востановления пароля пользователя по адресу электронной почты.
+ * Запускает процедуру восстановления пароля пользователя по адресу электронной почты.
  * @param {text} pEmail - Адрес электронной почты пользователя.
  * @return {uuid} - Талон восстановления (recovery ticket)
  */
@@ -582,7 +582,7 @@ BEGIN
   END IF;
 
   vSecurityAnswer := encode(digest(gen_random_bytes(15), 'sha1'), 'hex');
-  uTicket := NewRecoveryTicket(pUserId, vSecurityAnswer, Now(), Now() + INTERVAL '1 hour');
+  uTicket := NewRecoveryTicket(pUserId, vSecurityAnswer, encode(digest(vEmail, 'sha1'), 'hex'), Now(), Now() + INTERVAL '1 hour');
 
   vText := GetRecoveryPasswordEmailText(vName, vUserName, uTicket::text, vSecurityAnswer, vProject, vHost, vSupport);
   vHTML := GetRecoveryPasswordEmailHTML(vName, vUserName, uTicket::text, vSecurityAnswer, vProject, vHost, vSupport);
@@ -616,13 +616,14 @@ $$ LANGUAGE plpgsql
 -- RecoveryPasswordByPhone -----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Запускает процедуру востановления пароля пользователя по номеру телефона.
+ * Запускает процедуру восстановления пароля пользователя по номеру телефона.
  * @param {uuid} pUserId - Идентификатор пользователя.
  * @param {text} pHashCode - Хэш-код.
  * @return {uuid} - Талон восстановления (recovery ticket)
  */
 CREATE OR REPLACE FUNCTION RecoveryPasswordByPhone (
   pUserId         uuid,
+  pInitiator      text,
   pHashCode       text DEFAULT null
 ) RETURNS         uuid
 AS $$
@@ -651,7 +652,7 @@ BEGIN
 
   uMessageId := SendSMS(null, vProfile, vMessage, pUserId);
   IF uMessageId IS NOT NULL THEN
-    uTicket := NewRecoveryTicket(pUserId, vSecurityAnswer, Now(), Now() + INTERVAL '5 min');
+    uTicket := NewRecoveryTicket(pUserId, vSecurityAnswer, pInitiator, Now(), Now() + INTERVAL '5 min');
   END IF;
 
   RETURN uTicket;
@@ -705,7 +706,7 @@ BEGIN
   PERFORM WriteToEventLog('M', 1001, 'sms', format('SMS передано на отправку: %s', uMessageId), uMessageId);
 
   IF uMessageId IS NOT NULL THEN
-    uTicket := NewRecoveryTicket(current_userid(), vCode, Now(), Now() + INTERVAL '5 min');
+    uTicket := NewRecoveryTicket(current_userid(), vCode, encode(digest(pPhone, 'sha1'), 'hex'), Now(), Now() + INTERVAL '5 min');
   END IF;
 
   RETURN uTicket;
@@ -770,7 +771,7 @@ BEGIN
 
   vSecurityAnswer := random_between(100000, 999999)::text;
 
-  uTicket := NewRecoveryTicket(current_userid(), vSecurityAnswer, Now(), Now() + INTERVAL '30 min');
+  uTicket := NewRecoveryTicket(current_userid(), vSecurityAnswer, encode(digest(pEmail, 'sha1'), 'hex'), Now(), Now() + INTERVAL '30 min');
 
   vText := GetVerificationEmailText(pEmail, pEmail, vSecurityAnswer, vProject, vHost, vSupport);
   vHTML := GetVerificationEmailHTML(pEmail, pEmail, vSecurityAnswer, vProject, vHost, vSupport);

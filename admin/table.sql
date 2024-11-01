@@ -615,6 +615,7 @@ CREATE TABLE db.recovery_ticket (
     ticket			uuid PRIMARY KEY,
     userId          uuid NOT NULL,
     securityAnswer	text NOT NULL,
+    initiator       text NOT NULL,
     used            timestamptz,
     validFromDate   timestamptz NOT NULL,
     validToDate     timestamptz NOT NULL
@@ -625,6 +626,7 @@ COMMENT ON TABLE db.recovery_ticket IS 'Талон восстановления 
 COMMENT ON COLUMN db.recovery_ticket.ticket IS 'Талон';
 COMMENT ON COLUMN db.recovery_ticket.userId IS 'Идентификатор учётной записи';
 COMMENT ON COLUMN db.recovery_ticket.securityAnswer IS 'Секретный ответ';
+COMMENT ON COLUMN db.recovery_ticket.initiator IS 'Инициатор';
 COMMENT ON COLUMN db.recovery_ticket.used IS 'Использован';
 COMMENT ON COLUMN db.recovery_ticket.validFromDate IS 'Дата начала действия';
 COMMENT ON COLUMN db.recovery_ticket.validToDate IS 'Дата окончания действия';
@@ -632,6 +634,7 @@ COMMENT ON COLUMN db.recovery_ticket.validToDate IS 'Дата окончания
 --------------------------------------------------------------------------------
 
 CREATE UNIQUE INDEX ON db.recovery_ticket (userid, validFromDate, validToDate);
+CREATE INDEX ON db.recovery_ticket (initiator, validFromDate, validToDate);
 
 --------------------------------------------------------------------------------
 
