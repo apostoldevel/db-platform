@@ -1143,3 +1143,16 @@ BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 92), pPath);
 END;
 $$ LANGUAGE plpgsql STRICT IMMUTABLE;
+
+--------------------------------------------------------------------------------
+
+SELECT CreateExceptionResource(GetExceptionUUID(400, 100), 'ru', 'SomethingWentWrong', 'Упс, что-то пошло не так. Наши инженеры уже работают над решением проблемы');
+SELECT CreateExceptionResource(GetExceptionUUID(400, 100), 'en', 'SomethingWentWrong', 'Oops, something went wrong. Our engineers are already working on fixing the error');
+
+CREATE OR REPLACE FUNCTION SomethingWentWrong (
+) RETURNS    void
+AS $$
+BEGIN
+  RAISE EXCEPTION '%', GetExceptionStr(400, 100);
+END;
+$$ LANGUAGE plpgsql STRICT IMMUTABLE;
