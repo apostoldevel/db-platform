@@ -1663,3 +1663,22 @@ BEGIN
   RETURN value;
 END;
 $$ LANGUAGE plpgsql;
+
+--------------------------------------------------------------------------------
+-- is_valid_email --------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION is_valid_email (
+  email             text
+) RETURNS           boolean
+AS $$
+DECLARE
+  email_pattern     text;
+BEGIN
+  -- Устанавливаем регулярное выражение для проверки адреса
+  email_pattern := '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$';
+
+  -- Проверяем соответствие регулярному выражению
+  RETURN email ~ email_pattern;
+END;
+$$ LANGUAGE plpgsql;
