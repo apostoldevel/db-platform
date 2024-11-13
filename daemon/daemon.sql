@@ -797,7 +797,7 @@ $$ LANGUAGE plpgsql
 -- daemon.session_open ---------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Открывает сесиию.
+ * Открывает сессию.
  * @param {text} pToken - Маркер доступа в формате JWT
  * @param {text} pAgent - Агент
  * @param {inet} pHost - IP адрес
@@ -850,7 +850,7 @@ $$ LANGUAGE plpgsql
 -- daemon.session_close --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Закрывает сесиию.
+ * Закрывает сессию.
  * @param {text} pToken - Маркер доступа в формате JWT
  * @param {boolean} pCloseAll - Закрыть все сессии
  * @param {text} pMessage - Сообщение
@@ -910,7 +910,7 @@ $$ LANGUAGE plpgsql
  * @return {SETOF json} - Записи в JSON
  */
 CREATE OR REPLACE FUNCTION daemon.unauthorized_fetch (
-  pMethod		text,
+  pMethod       text,
   pPath         text,
   pPayload      jsonb DEFAULT null,
   pAgent        text DEFAULT null,
@@ -932,6 +932,11 @@ BEGIN
 
   pPath := lower(pPath);
 
+  IF pPath = ANY (string_to_array(RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject\API\Route', 'Blacklist'), ',')) THEN
+    RETURN NEXT json_build_object('error', json_build_object('code', 401, 'message', 'Unauthorized'));
+    RETURN;
+  END IF;
+
   PERFORM SetCurrentSession(null);
   PERFORM SetCurrentUserId(null);
   PERFORM SetOAuth2ClientId(null);
@@ -944,7 +949,7 @@ BEGIN
 
   FOR r IN SELECT * FROM api.run(pMethod, pPath, pPayload)
   LOOP
-	RETURN NEXT r.run;
+    RETURN NEXT r.run;
   END LOOP;
 
   RETURN;
@@ -984,7 +989,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION daemon.authorized_fetch (
   pUsername     text,
   pPassword     text,
-  pMethod		text,
+  pMethod       text,
   pPath         text,
   pPayload      jsonb DEFAULT null,
   pAgent        text DEFAULT null,
@@ -1017,12 +1022,12 @@ BEGIN
   vSession := SignIn(CreateSystemOAuth2(), pUsername, pPassword, pAgent, pHost);
 
   IF vSession IS NULL THEN
-	PERFORM AuthenticateError(GetErrorMessage());
+    PERFORM AuthenticateError(GetErrorMessage());
   END IF;
 
   FOR r IN SELECT * FROM api.run(pMethod, pPath, pPayload)
   LOOP
-	RETURN NEXT r.run;
+    RETURN NEXT r.run;
   END LOOP;
 
   PERFORM SessionOut(vSession, false);
@@ -1064,7 +1069,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION daemon.session_fetch (
   pSession      varchar,
   pSecret       text,
-  pMethod		text,
+  pMethod       text,
   pPath         text,
   pPayload      jsonb DEFAULT null,
   pAgent        text DEFAULT null,
@@ -1097,12 +1102,12 @@ BEGIN
   vCode := Authenticate(pSession, pSecret, pAgent, pHost);
 
   IF vCode IS NULL THEN
-	PERFORM AuthenticateError(GetErrorMessage());
+    PERFORM AuthenticateError(GetErrorMessage());
   END IF;
 
   FOR r IN SELECT * FROM api.run(pMethod, pPath, pPayload)
   LOOP
-	RETURN NEXT r.run;
+    RETURN NEXT r.run;
   END LOOP;
 
   RETURN;
@@ -1142,7 +1147,7 @@ $$ LANGUAGE plpgsql
  * @return {SETOF json} - Записи в JSON
  */
 CREATE OR REPLACE FUNCTION daemon.signed_fetch (
-  pMethod		text,
+  pMethod       text,
   pPath         text,
   pJson         json DEFAULT null,
   pSession      varchar DEFAULT null,
@@ -1191,26 +1196,26 @@ BEGIN
 
   IF (dtTimeStamp < (Now() + INTERVAL '15 sec') AND (Now() - dtTimeStamp) <= pTimeWindow) THEN
 
-	SELECT (pSignature = GetSignature(pPath, pNonce, pJson, secret)) INTO passed
-	  FROM db.session
-	 WHERE code = pSession;
+    SELECT (pSignature = GetSignature(pPath, pNonce, pJson, secret)) INTO passed
+      FROM db.session
+     WHERE code = pSession;
 
-	IF NOT coalesce(passed, false) THEN
-	  PERFORM SignatureError();
-	END IF;
+    IF NOT coalesce(passed, false) THEN
+      PERFORM SignatureError();
+    END IF;
 
-	IF SessionIn(pSession, pAgent, pHost) IS NULL THEN
-	  PERFORM AuthenticateError(GetErrorMessage());
-	END IF;
+    IF SessionIn(pSession, pAgent, pHost) IS NULL THEN
+      PERFORM AuthenticateError(GetErrorMessage());
+    END IF;
 
-	FOR r IN SELECT * FROM api.run(pMethod, pPath, Payload)
-	LOOP
-	  RETURN NEXT r.run;
-	END LOOP;
+    FOR r IN SELECT * FROM api.run(pMethod, pPath, Payload)
+    LOOP
+      RETURN NEXT r.run;
+    END LOOP;
 
     PERFORM UpdateSessionStats(pSession, pAgent, pHost);
   ELSE
-	PERFORM NonceExpired();
+    PERFORM NonceExpired();
   END IF;
 
   RETURN;
@@ -1248,7 +1253,7 @@ $$ LANGUAGE plpgsql
  */
 CREATE OR REPLACE FUNCTION daemon.fetch (
   pToken        text,
-  pMethod		text,
+  pMethod       text,
   pPath         text,
   pPayload      jsonb DEFAULT null,
   pAgent        text DEFAULT null,
@@ -1284,12 +1289,12 @@ BEGIN
   vSession := token->>'sub';
 
   IF SessionIn(vSession, pAgent, pHost) IS NULL THEN
-	PERFORM AuthenticateError(GetErrorMessage());
+    PERFORM AuthenticateError(GetErrorMessage());
   END IF;
 
   FOR r IN SELECT * FROM api.run(pMethod, pPath, pPayload)
   LOOP
-	RETURN NEXT r.run;
+    RETURN NEXT r.run;
   END LOOP;
 
   PERFORM UpdateSessionStats(vSession, pAgent, pHost);
