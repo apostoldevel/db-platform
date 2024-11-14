@@ -121,16 +121,15 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION WriteDiagnostics (
   pMessage      text,
   pContext      text default null,
-  pObject       uuid default null
-) RETURNS       void
+  pObject       uuid default null,
+  errorCode     OUT int,
+  errorMessage  OUT text
+) RETURNS       record
 AS $$
-DECLARE
-  ErrorCode     int;
-  ErrorMessage  text;
 BEGIN
-  PERFORM SetErrorMessage(pMessage);
+  SELECT * INTO errorCode, errorMessage FROM ParseMessage(pMessage);
 
-  SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(pMessage);
+  PERFORM SetErrorMessage(pMessage);
 
   PERFORM WriteToEventLog('E', ErrorCode, 'exception', ErrorMessage, pObject);
 
