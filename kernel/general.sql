@@ -33,7 +33,7 @@ AS $$
   SELECT replace(replace(encode(gen_random_bytes(12), 'base64'), '+', 'p'), '/', 's');
 $$ LANGUAGE sql
    SECURITY DEFINER
-   SET search_path = public, pg_temp;
+   SET search_path = kernel, public, pg_temp;
 
 --------------------------------------------------------------------------------
 -- FUNCTION TrimPhone ----------------------------------------------------------
