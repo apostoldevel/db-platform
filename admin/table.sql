@@ -455,69 +455,69 @@ BEGIN
     RETURN NEW;
   END IF;
 
+  IF NEW.lc_ip IS NULL THEN
+    RETURN NEW;
+  END IF;
+
   nOnLine := 0;
   nLocal := 0;
   nTrust := 0;
 
   NEW.state := B'000';
 
-  FOR r IN SELECT area, host FROM db.session WHERE userid = uUserId GROUP BY area, host
+  FOR r IN SELECT area, host FROM db.session WHERE userid = uUserId AND host = NEW.lc_ip
   LOOP
-    r.host := coalesce(NEW.lc_ip, r.host);
 
-    IF r.host IS NOT NULL THEN
+	SELECT code INTO vCode FROM db.area WHERE id = r.area;
 
-      SELECT code INTO vCode FROM db.area WHERE id = r.area;
+	IF FOUND THEN
 
-      IF FOUND THEN
+	  vData := RegGetValue(RegOpenKey('CURRENT_CONFIG', 'CONFIG\Department' || E'\u005C' || vCode || E'\u005C' || 'IPTable'), 'LocalIP');
 
-        vData := RegGetValue(RegOpenKey('CURRENT_CONFIG', 'CONFIG\Department' || E'\u005C' || vCode || E'\u005C' || 'IPTable'), 'LocalIP');
+	  IF vData.vString IS NOT NULL THEN
+		arrIp := string_to_array_trim(vData.vString, ',');
+	  ELSE
+		arrIp := string_to_array_trim('127.0.0.1, ::1', ',');
+	  END IF;
 
-        IF vData.vString IS NOT NULL THEN
-          arrIp := string_to_array_trim(vData.vString, ',');
-        ELSE
-          arrIp := string_to_array_trim('127.0.0.1, ::1', ',');
-        END IF;
+	  bSuccess := false;
+	  FOR i IN 1..array_length(arrIp, 1)
+	  LOOP
+		SELECT host INTO lHost FROM str_to_inet(arrIp[i]);
 
-        bSuccess := false;
-        FOR i IN 1..array_length(arrIp, 1)
-        LOOP
-          SELECT host INTO lHost FROM str_to_inet(arrIp[i]);
+		bSuccess := r.host <<= lHost;
 
-          bSuccess := r.host <<= lHost;
+		EXIT WHEN coalesce(bSuccess, false);
+	  END LOOP;
 
-          EXIT WHEN coalesce(bSuccess, false);
-        END LOOP;
+	  IF bSuccess THEN
+		nLocal := nLocal + 1;
+	  END IF;
 
-        IF bSuccess THEN
-          nLocal := nLocal + 1;
-        END IF;
+	  vData := RegGetValue(RegOpenKey('CURRENT_CONFIG', 'CONFIG\Department' || E'\u005C' || vCode || E'\u005C' || 'IPTable'), 'EntrustedIP');
 
-        vData := RegGetValue(RegOpenKey('CURRENT_CONFIG', 'CONFIG\Department' || E'\u005C' || vCode || E'\u005C' || 'IPTable'), 'EntrustedIP');
+	  IF vData.vString IS NOT NULL THEN
+		arrIp := string_to_array_trim(vData.vString, ',');
 
-        IF vData.vString IS NOT NULL THEN
-          arrIp := string_to_array_trim(vData.vString, ',');
+		bSuccess := false;
+		FOR i IN 1..array_length(arrIp, 1)
+		LOOP
+		  SELECT host, range INTO lHost, nRange FROM str_to_inet(arrIp[i]);
 
-          bSuccess := false;
-          FOR i IN 1..array_length(arrIp, 1)
-          LOOP
-            SELECT host, range INTO lHost, nRange FROM str_to_inet(arrIp[i]);
+		  IF nRange IS NOT NULL THEN
+			bSuccess := (r.host >= lHost) AND (r.host <= lHost + (nRange - 1));
+		  ELSE
+			bSuccess := r.host <<= lHost;
+		  END IF;
 
-            IF nRange IS NOT NULL THEN
-              bSuccess := (r.host >= lHost) AND (r.host <= lHost + (nRange - 1));
-            ELSE
-              bSuccess := r.host <<= lHost;
-            END IF;
+		  EXIT WHEN coalesce(bSuccess, false);
+		END LOOP;
 
-            EXIT WHEN coalesce(bSuccess, false);
-          END LOOP;
+		IF bSuccess THEN
+		  nTrust := nTrust + 1;
+		END IF;
 
-          IF bSuccess THEN
-            nTrust := nTrust + 1;
-          END IF;
-
-        END IF;
-      END IF;
+	  END IF;
     END IF;
 
     nOnLine := nOnLine + 1;

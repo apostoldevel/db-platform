@@ -230,7 +230,7 @@ DECLARE
   bSystem   boolean;
 BEGIN
   IF lower(session_user) = 'kernel' THEN
-    SELECT AccessDeniedForUser(session_user);
+    PERFORM AccessDeniedForUser(session_user);
   END IF;
 
   IF OLD.suid IS DISTINCT FROM NEW.suid THEN
