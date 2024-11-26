@@ -2241,6 +2241,44 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- FUNCTION current_application ------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION current_application (
+  pSession      text DEFAULT current_session()
+) RETURNS       integer
+AS $$
+DECLARE
+  nOAuth2       bigint;
+  nAudience     integer;
+  nApplication  integer;
+BEGIN
+  SELECT oauth2 INTO nOAuth2 FROM db.session WHERE code = pSession;
+  SELECT audience INTO nAudience FROM db.oauth2 WHERE id = nOAuth2;
+  SELECT application INTO nApplication FROM oauth2.audience WHERE id = nAudience;
+
+  RETURN nApplication;
+END;
+$$ LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION current_application_code -------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION current_application_code (
+  pApplication  integer DEFAULT current_application()
+) RETURNS       text
+AS $$
+BEGIN
+  RETURN GetApplicationCode(pApplication);
+END;
+$$ LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- FUNCTION acl ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 

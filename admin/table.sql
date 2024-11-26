@@ -146,23 +146,22 @@ COMMENT ON COLUMN db.interface.description IS 'Описание';
 
 CREATE TABLE db.user (
     id                  uuid PRIMARY KEY,
-    type                char NOT NULL,
+    type                char NOT NULL CHECK (type IN ('G', 'U')),
     username            text NOT NULL,
     name                text NOT NULL,
     phone               text,
     email               text,
     description         text,
-    secret    			bytea NOT NULL,
-    hash				text NOT NULL,
-    status				bit(4) DEFAULT B'0001' NOT NULL,
+    secret              bytea NOT NULL,
+    hash                text NOT NULL,
+    status              bit(4) DEFAULT B'0001' NOT NULL,
     created             timestamp DEFAULT Now() NOT NULL,
     lock_date           timestamp DEFAULT NULL,
     expiry_date         timestamp DEFAULT NULL,
     pswhash             text DEFAULT NULL,
-    passwordchange		boolean DEFAULT true NOT NULL,
-    passwordnotchange	boolean DEFAULT false NOT NULL,
-    readonly            boolean DEFAULT false NOT NULL,
-    CONSTRAINT ch_user_type CHECK (type IN ('G', 'U'))
+    passwordchange      boolean DEFAULT true NOT NULL,
+    passwordnotchange   boolean DEFAULT false NOT NULL,
+    readonly            boolean DEFAULT false NOT NULL
 );
 
 COMMENT ON TABLE db.user IS 'Пользователи и группы системы.';
@@ -268,7 +267,7 @@ CREATE OR REPLACE FUNCTION db.ft_user_after_update()
 RETURNS trigger AS $$
 BEGIN
   IF OLD.email IS DISTINCT FROM NEW.email THEN
-	UPDATE db.profile SET email_verified = false WHERE userid = NEW.id;
+    UPDATE db.profile SET email_verified = false WHERE userid = NEW.id;
   END IF;
 
   IF NEW.phone IS NOT NULL THEN
@@ -276,7 +275,7 @@ BEGIN
   END IF;
 
   IF OLD.phone IS DISTINCT FROM NEW.phone THEN
-	UPDATE db.profile SET phone_verified = false WHERE userid = NEW.id;
+    UPDATE db.profile SET phone_verified = false WHERE userid = NEW.id;
   END IF;
 
   RETURN NEW;
@@ -386,9 +385,9 @@ BEGIN
 
   ELSE
 
-	IF NEW.locale IS NULL THEN
-	  SELECT id INTO NEW.locale FROM db.locale WHERE code = locale_code();
-	END IF;
+    IF NEW.locale IS NULL THEN
+      SELECT id INTO NEW.locale FROM db.locale WHERE code = locale_code();
+    END IF;
 
     IF NOT IsMemberArea(NEW.area, NEW.userid) THEN
       INSERT INTO db.member_area (area, member) VALUES (NEW.area, NEW.userid) ON CONFLICT DO NOTHING;
@@ -429,23 +428,23 @@ RETURNS trigger AS $$
 DECLARE
   i         int;
 
-  arrIp		text[];
+  arrIp     text[];
 
-  lHost		inet;
+  lHost     inet;
 
-  nRange	int;
+  nRange    int;
 
-  vCode		text;
+  vCode     text;
 
-  nOnLine	int;
-  nLocal	int;
-  nTrust	int;
+  nOnLine   int;
+  nLocal    int;
+  nTrust    int;
 
-  bSuccess	boolean;
+  bSuccess  boolean;
 
-  uUserId	uuid;
+  uUserId   uuid;
 
-  vData		Variant;
+  vData     Variant;
 
   r         record;
 BEGIN
@@ -468,56 +467,56 @@ BEGIN
   FOR r IN SELECT area, host FROM db.session WHERE userid = uUserId AND host = NEW.lc_ip
   LOOP
 
-	SELECT code INTO vCode FROM db.area WHERE id = r.area;
+    SELECT code INTO vCode FROM db.area WHERE id = r.area;
 
-	IF FOUND THEN
+    IF FOUND THEN
 
-	  vData := RegGetValue(RegOpenKey('CURRENT_CONFIG', 'CONFIG\Department' || E'\u005C' || vCode || E'\u005C' || 'IPTable'), 'LocalIP');
+      vData := RegGetValue(RegOpenKey('CURRENT_CONFIG', 'CONFIG\Department' || E'\u005C' || vCode || E'\u005C' || 'IPTable'), 'LocalIP');
 
-	  IF vData.vString IS NOT NULL THEN
-		arrIp := string_to_array_trim(vData.vString, ',');
-	  ELSE
-		arrIp := string_to_array_trim('127.0.0.1, ::1', ',');
-	  END IF;
+      IF vData.vString IS NOT NULL THEN
+        arrIp := string_to_array_trim(vData.vString, ',');
+      ELSE
+        arrIp := string_to_array_trim('127.0.0.1, ::1', ',');
+      END IF;
 
-	  bSuccess := false;
-	  FOR i IN 1..array_length(arrIp, 1)
-	  LOOP
-		SELECT host INTO lHost FROM str_to_inet(arrIp[i]);
+      bSuccess := false;
+      FOR i IN 1..array_length(arrIp, 1)
+      LOOP
+        SELECT host INTO lHost FROM str_to_inet(arrIp[i]);
 
-		bSuccess := r.host <<= lHost;
+        bSuccess := r.host <<= lHost;
 
-		EXIT WHEN coalesce(bSuccess, false);
-	  END LOOP;
+        EXIT WHEN coalesce(bSuccess, false);
+      END LOOP;
 
-	  IF bSuccess THEN
-		nLocal := nLocal + 1;
-	  END IF;
+      IF bSuccess THEN
+        nLocal := nLocal + 1;
+      END IF;
 
-	  vData := RegGetValue(RegOpenKey('CURRENT_CONFIG', 'CONFIG\Department' || E'\u005C' || vCode || E'\u005C' || 'IPTable'), 'EntrustedIP');
+      vData := RegGetValue(RegOpenKey('CURRENT_CONFIG', 'CONFIG\Department' || E'\u005C' || vCode || E'\u005C' || 'IPTable'), 'EntrustedIP');
 
-	  IF vData.vString IS NOT NULL THEN
-		arrIp := string_to_array_trim(vData.vString, ',');
+      IF vData.vString IS NOT NULL THEN
+        arrIp := string_to_array_trim(vData.vString, ',');
 
-		bSuccess := false;
-		FOR i IN 1..array_length(arrIp, 1)
-		LOOP
-		  SELECT host, range INTO lHost, nRange FROM str_to_inet(arrIp[i]);
+        bSuccess := false;
+        FOR i IN 1..array_length(arrIp, 1)
+        LOOP
+          SELECT host, range INTO lHost, nRange FROM str_to_inet(arrIp[i]);
 
-		  IF nRange IS NOT NULL THEN
-			bSuccess := (r.host >= lHost) AND (r.host <= lHost + (nRange - 1));
-		  ELSE
-			bSuccess := r.host <<= lHost;
-		  END IF;
+          IF nRange IS NOT NULL THEN
+            bSuccess := (r.host >= lHost) AND (r.host <= lHost + (nRange - 1));
+          ELSE
+            bSuccess := r.host <<= lHost;
+          END IF;
 
-		  EXIT WHEN coalesce(bSuccess, false);
-		END LOOP;
+          EXIT WHEN coalesce(bSuccess, false);
+        END LOOP;
 
-		IF bSuccess THEN
-		  nTrust := nTrust + 1;
-		END IF;
+        IF bSuccess THEN
+          nTrust := nTrust + 1;
+        END IF;
 
-	  END IF;
+      END IF;
     END IF;
 
     nOnLine := nOnLine + 1;
@@ -554,8 +553,8 @@ CREATE TRIGGER t_profile_login_state
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.member_group (
-    userid		uuid NOT NULL REFERENCES db.user(id),
-    member		uuid NOT NULL REFERENCES db.user(id),
+    userid        uuid NOT NULL REFERENCES db.user(id),
+    member        uuid NOT NULL REFERENCES db.user(id),
     PRIMARY KEY (userid, member)
 );
 
@@ -572,8 +571,8 @@ CREATE INDEX ON db.member_group (member);
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.member_area (
-    area		uuid NOT NULL REFERENCES db.area(id),
-    member		uuid NOT NULL REFERENCES db.user(id),
+    area        uuid NOT NULL REFERENCES db.area(id),
+    member      uuid NOT NULL REFERENCES db.user(id),
     PRIMARY KEY (area, member)
 );
 
@@ -612,9 +611,9 @@ CREATE INDEX ON db.member_interface (member);
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.recovery_ticket (
-    ticket			uuid PRIMARY KEY,
+    ticket          uuid PRIMARY KEY,
     userId          uuid NOT NULL,
-    securityAnswer	text NOT NULL,
+    securityAnswer  text NOT NULL,
     initiator       text NOT NULL,
     used            timestamptz,
     validFromDate   timestamptz NOT NULL,
@@ -705,13 +704,11 @@ CREATE INDEX ON db.auth (code);
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.iptable (
-    id			serial PRIMARY KEY,
-    type		char DEFAULT 'A' NOT NULL,
-    userid		uuid NOT NULL REFERENCES db.user(id),
-    addr		inet NOT NULL,
-    range		int,
-    CHECK (type IN ('A', 'D')),
-    CHECK (range BETWEEN 1 AND 255)
+    id          serial PRIMARY KEY,
+    type        char DEFAULT 'A' NOT NULL CHECK (type IN ('A', 'D')),
+    userid      uuid NOT NULL REFERENCES db.user(id),
+    addr        inet NOT NULL,
+    range       int CHECK (range BETWEEN 1 AND 255)
 );
 
 COMMENT ON TABLE db.iptable IS 'Таблица IP адресов.';
@@ -1143,10 +1140,10 @@ CREATE TRIGGER t_session_after
    i - login
  */
 CREATE TABLE db.acl (
-    userId		uuid REFERENCES db.user ON DELETE CASCADE,
-    deny		bit varying NOT NULL,
-    allow		bit varying NOT NULL,
-    mask		bit varying NOT NULL,
+    userId      uuid REFERENCES db.user ON DELETE CASCADE,
+    deny        bit varying NOT NULL,
+    allow       bit varying NOT NULL,
+    mask        bit varying NOT NULL,
     PRIMARY KEY (userId)
 );
 

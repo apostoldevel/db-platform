@@ -17,7 +17,7 @@ BEGIN
     message := pMessage;
   END IF;
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql STRICT;
 
 --------------------------------------------------------------------------------
 
@@ -29,7 +29,7 @@ AS $$
 BEGIN
   RETURN format('00000000-0000-4000-9%s-%s', coalesce(NULLIF(IntToStr(pErrGroup, 'FM000'), '###'), '400'), IntToStr(pErrCode, 'FM000000000000'));
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql STRICT;
 
 --------------------------------------------------------------------------------
 
@@ -84,7 +84,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(401, 1);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -148,7 +148,7 @@ AS $$
 BEGIN
   PERFORM AuthenticateError(format(GetResource(GetExceptionUUID(401, 5)), DateToStr(pDate)));
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -163,7 +163,7 @@ AS $$
 BEGIN
   PERFORM AuthenticateError(GetResource(GetExceptionUUID(401, 6)));
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -178,7 +178,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(401, 7);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -193,7 +193,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(403, 1);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -209,7 +209,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 1);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -226,7 +226,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 2), pUserName);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -243,7 +243,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 3), pMessage);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -258,7 +258,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 4);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -273,7 +273,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 5);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -288,7 +288,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 6);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -306,7 +306,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 7), array_to_string(pValid, ', '), array_to_string(pInvalid, ', '));
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -321,7 +321,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 8);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -336,7 +336,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 9);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -351,7 +351,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 10);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -366,7 +366,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 11);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -381,7 +381,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 12);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -396,7 +396,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 13);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -413,7 +413,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 14), pCode);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -428,7 +428,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 15);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -443,7 +443,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 16);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -460,7 +460,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 17), pCode);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -478,7 +478,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 18), pUser, pArea);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -493,7 +493,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 19);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -511,7 +511,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 20), pUser, pInterface);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -522,13 +522,13 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 21), 'fr', 'UnknownRoleName
 SELECT CreateExceptionResource(GetExceptionUUID(400, 21), 'it', 'UnknownRoleName', 'Nome ruolo sconosciuto: %s');
 
 CREATE OR REPLACE FUNCTION UnknownRoleName (
-  pRoleName  text
-) RETURNS    void
+  pRoleName     text
+) RETURNS       void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 21), pRoleName);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -539,13 +539,13 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 22), 'fr', 'RoleExists', 'L
 SELECT CreateExceptionResource(GetExceptionUUID(400, 22), 'it', 'RoleExists', 'Il ruolo "%s" esiste già');
 
 CREATE OR REPLACE FUNCTION RoleExists (
-  pRoleName    text
-) RETURNS    void
+  pRoleName     text
+) RETURNS       void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 22), pRoleName);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -556,13 +556,13 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 23), 'fr', 'UserNotFound', 
 SELECT CreateExceptionResource(GetExceptionUUID(400, 23), 'it', 'UserNotFound', 'L''utente "%s" non esiste');
 
 CREATE OR REPLACE FUNCTION UserNotFound (
-  pUserName    text
-) RETURNS    void
+  pUserName     text
+) RETURNS       void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 23), pUserName);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -573,13 +573,13 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 24), 'fr', 'UserIdNotFound'
 SELECT CreateExceptionResource(GetExceptionUUID(400, 24), 'it', 'UserIdNotFound', 'Utente con id "%s" non esiste');
 
 CREATE OR REPLACE FUNCTION UserNotFound (
-  pId        uuid
-) RETURNS    void
+  pId           uuid
+) RETURNS       void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 24), pId);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -594,7 +594,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 25);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -611,7 +611,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 26), pWho);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -628,7 +628,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 27), pCode);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -646,7 +646,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 28), array_to_string(pValid, ', '), array_to_string(pInvalid, ', '));
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -664,7 +664,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 29), pCode, pArray);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -728,7 +728,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 32), pObject, GetActionCode(pAction), pAction, GetObjectStateCode(pObject), GetObjectState(pObject));
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -746,7 +746,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 33), pMethod, pObject);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -758,13 +758,13 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 34), 'it', 'MethodByCodeNot
 
 CREATE OR REPLACE FUNCTION MethodByCodeNotFound (
   pObject    uuid,
-  pCode     text
+  pCode      text
 ) RETURNS    void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 34), pCode, pObject);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -781,7 +781,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 35), pObject);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -797,7 +797,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 36);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -815,7 +815,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 37), pCode, pObject);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -831,7 +831,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 38);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -847,7 +847,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 39);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -863,7 +863,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 40);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -879,7 +879,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 41);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -895,7 +895,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 42);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -911,7 +911,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 43);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -928,7 +928,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 44), host(pHost));
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -944,7 +944,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 45);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -962,7 +962,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 46), pScheme, pTable);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -979,7 +979,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 47), pType);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -996,7 +996,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 48), pPhone);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -1013,7 +1013,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 49);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -1030,7 +1030,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 50);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -1047,7 +1047,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 51);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -1063,7 +1063,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 52);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -1079,7 +1079,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 53);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -1095,7 +1095,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 60);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -1114,7 +1114,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 61), pRoute, pKey, pArray);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -1132,7 +1132,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 62), pRoute, pKey);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -1150,7 +1150,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 63), pType, pExpected);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -1169,7 +1169,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 64), pKey, pArrayName, pArray);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -1188,7 +1188,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 65), pValue, pArrayName, pArray);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -1205,7 +1205,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 66), pValue);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -1220,7 +1220,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 67);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 --- !!! Id: 68 занят. Смотреть ObjectNotFound
@@ -1234,12 +1234,12 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 70), 'it', 'IssuerNotFound'
 
 CREATE OR REPLACE FUNCTION IssuerNotFound (
   pCode     text
-) RETURNS void
+) RETURNS   void
 AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 70), pCode);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -1255,7 +1255,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 71);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -1270,7 +1270,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 72);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -1285,7 +1285,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 73);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -1300,7 +1300,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 74);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -1318,7 +1318,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 80), pKey, pArray);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -1335,7 +1335,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 81), pType);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -1351,7 +1351,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 90);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -1368,7 +1368,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 91), pRoute);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -1385,7 +1385,7 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', format(GetExceptionStr(400, 92), pPath);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -1401,4 +1401,4 @@ AS $$
 BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 100);
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;
