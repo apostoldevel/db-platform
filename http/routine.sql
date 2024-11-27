@@ -166,7 +166,7 @@ BEGIN
 
   ELSE
 
-    RETURN NEXT json_build_object('error', json_build_object('code', 404, 'message', format('Patch "%s" not found.', path)));
+    RETURN NEXT json_build_object('error', json_build_object('code', 404, 'message', format('Path "%s" not found.', path)));
 
   END CASE;
 
@@ -251,7 +251,7 @@ BEGIN
 
   ELSE
 
-    RAISE EXCEPTION 'Patch "%" not found.', path;
+    RAISE EXCEPTION 'Path "%" not found.', path;
 
   END CASE;
 

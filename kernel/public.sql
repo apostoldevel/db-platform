@@ -1518,7 +1518,7 @@ BEGIN
     IF regexp_match(c, '[A-Za-z0-9_~.-]') IS NOT NULL THEN
       result := result || c;
     ELSE
-      h := encode(c::bytea, 'hex');
+      h := encode(convert_to(c, 'utf8'), 'hex');
       FOR j IN 0..length(h) / 2 - 1
       LOOP
         result := concat(result, '%', substr(h, j * 2 + 1, 2));
