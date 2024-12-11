@@ -1104,7 +1104,7 @@ $$ LANGUAGE plpgsql
  * @param {uuid} pLinked - Идентификатор связанного объекта
  * @param {text} pKey - Ключ
  * @param {timestamptz} pDateFrom - Дата начала периода
- * @return {void}
+ * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION SetObjectLink (
   pObject       uuid,
@@ -1176,6 +1176,124 @@ BEGIN
      AND validToDate > pDate;
 
   RETURN uLinked;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION SetObjectReference -------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Устанавливает объектную ссылку.
+ * @param {uuid} pObject - Идентификатор объекта
+ * @param {text} pKey - Ключ
+ * @param {text} pReference - Ссылка
+ * @param {timestamptz} pDateFrom - Дата начала периода
+ * @return {uuid}
+ */
+CREATE OR REPLACE FUNCTION SetObjectReference (
+  pObject       uuid,
+  pKey          text,
+  pReference    text,
+  pDateFrom     timestamptz DEFAULT oper_date()
+) RETURNS       uuid
+AS $$
+DECLARE
+  uId           uuid;
+  vReference    text;
+
+  dtDateFrom    timestamptz;
+  dtDateTo      timestamptz;
+BEGIN
+  -- получим дату значения в текущем диапазоне дат
+  SELECT id, reference, validFromDate, validToDate INTO uId, vReference, dtDateFrom, dtDateTo
+    FROM db.object_reference
+   WHERE object = pObject
+     AND key = pKey
+     AND validFromDate <= pDateFrom
+     AND validToDate > pDateFrom;
+
+  IF vReference IS DISTINCT FROM pReference THEN
+    -- обновим дату значения в текущем диапазоне дат
+    UPDATE db.object_reference SET validToDate = pDateFrom
+     WHERE object = pObject
+       AND key = pKey
+       AND validFromDate <= pDateFrom
+       AND validToDate > pDateFrom;
+
+    IF pReference IS NOT NULL THEN
+      INSERT INTO db.object_reference (object, key, reference, validFromDate, validToDate)
+      VALUES (pObject, pKey, pReference, pDateFrom, coalesce(dtDateTo, MAXDATE()))
+      RETURNING id INTO uId;
+    END IF;
+  END IF;
+
+  RETURN uId;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION GetObjectReference -------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Возвращает объектную ссылку.
+ * @param {uuid} pObject - Идентификатор объекта
+ * @param {text} pKey - Ключ
+ * @param {timestamptz} pDate - Дата
+ * @return {uuid}
+ */
+CREATE OR REPLACE FUNCTION GetObjectReference (
+  pObject       uuid,
+  pKey          text,
+  pDate         timestamptz DEFAULT oper_date()
+) RETURNS       text
+AS $$
+DECLARE
+  vReference    text;
+BEGIN
+  SELECT reference INTO vReference
+    FROM db.object_reference
+   WHERE object = pObject
+     AND key = pKey
+     AND validFromDate <= pDate
+     AND validToDate > pDate;
+
+  RETURN vReference;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION GetReferenceObject -------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * Возвращает объект по ссылке.
+ * @param {text} pReference - Ссылка
+ * @param {text} pKey - Ключ
+ * @param {timestamptz} pDate - Дата
+ * @return {uuid}
+ */
+CREATE OR REPLACE FUNCTION GetReferenceObject (
+  pReference    text,
+  pKey          text,
+  pDate         timestamptz DEFAULT oper_date()
+) RETURNS       uuid
+AS $$
+DECLARE
+  uObject       uuid;
+BEGIN
+  SELECT object INTO uObject
+    FROM db.object_reference
+   WHERE reference = pReference
+     AND key = pKey
+     AND validFromDate <= pDate
+     AND validToDate > pDate;
+
+  RETURN uObject;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
