@@ -3,8 +3,8 @@
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetLocale (
-  pCode       text
-) RETURNS    uuid
+  pCode     text
+) RETURNS   uuid
 AS $$
   SELECT id FROM db.locale WHERE code = pCode;
 $$ LANGUAGE sql STABLE STRICT
@@ -16,8 +16,8 @@ $$ LANGUAGE sql STABLE STRICT
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetLocaleCode (
-  pId        uuid
-) RETURNS    text
+  pId       uuid
+) RETURNS   text
 AS $$
   SELECT code FROM db.locale WHERE id = pId;
 $$ LANGUAGE sql STABLE STRICT

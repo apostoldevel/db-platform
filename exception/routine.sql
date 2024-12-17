@@ -54,12 +54,20 @@ CREATE OR REPLACE FUNCTION CreateExceptionResource (
 ) RETURNS        uuid
 AS $$
 DECLARE
+  uLocale        uuid;
+  uResource      uuid;
+
   vCharSet       text;
 BEGIN
-  pRoot := NULLIF(coalesce(pRoot, GetExceptionUUID(0, 0)), null_uuid());
-  vCharSet := coalesce(nullif(pg_client_encoding(), 'UTF8'), 'UTF-8');
+  uLocale := GetLocale(pLocaleCode);
 
-  RETURN SetResource(pId, pRoot, pRoot, 'text/plain', pName, pDescription, vCharSet, pDescription, null, GetLocale(pLocaleCode));
+  IF uLocale IS NOT NULL THEN
+    pRoot := NULLIF(coalesce(pRoot, GetExceptionUUID(0, 0)), null_uuid());
+    vCharSet := coalesce(nullif(pg_client_encoding(), 'UTF8'), 'UTF-8');
+    uResource := SetResource(pId, pRoot, pRoot, 'text/plain', pName, pDescription, vCharSet, pDescription, null, uLocale);
+  END IF;
+
+  RETURN uResource;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -693,7 +701,7 @@ BEGIN
     RAISE EXCEPTION '%', format(GetExceptionStr(400, 30), pWho, pParam, pId);
   END IF;
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
@@ -710,7 +718,7 @@ BEGIN
     RAISE EXCEPTION '%', format(GetExceptionStr(400, 30), pWho, pParam, pCode);
   END IF;
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
