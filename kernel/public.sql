@@ -161,7 +161,7 @@ BEGIN
 
   RETURN i;
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 -- FUNCTION array_pos ----------------------------------------------------------
@@ -188,7 +188,7 @@ BEGIN
 
   RETURN i;
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 -- FUNCTION string_to_array_trim -----------------------------------------------
@@ -219,7 +219,7 @@ BEGIN
 
   RETURN arr;
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 -- FUNCTION path_to_array ------------------------------------------------------
@@ -258,7 +258,7 @@ BEGIN
 
   RETURN arPath;
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 -- FUNCTION str_to_inet --------------------------------------------------------
@@ -303,7 +303,7 @@ BEGIN
 
   host := replace(vHost, '*', '0') || '/' || nMask;
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 -- FUNCTION IntToStr -----------------------------------------------------------
@@ -317,7 +317,7 @@ AS $$
 BEGIN
   RETURN to_char(pValue, pFormat);
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 GRANT EXECUTE ON FUNCTION IntToStr(numeric, text) TO PUBLIC;
 
@@ -333,7 +333,7 @@ AS $$
 BEGIN
   RETURN to_number(pValue, pFormat);
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 GRANT EXECUTE ON FUNCTION IntToStr(numeric, text) TO PUBLIC;
 
@@ -349,7 +349,7 @@ AS $$
 BEGIN
   RETURN to_char(pValue, pFormat);
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 GRANT EXECUTE ON FUNCTION DateToStr(timestamptz, text) TO PUBLIC;
 
@@ -363,7 +363,7 @@ AS $$
 BEGIN
   RETURN to_char(pValue, pFormat);
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 GRANT EXECUTE ON FUNCTION DateToStr(timestamp, text) TO PUBLIC;
 
@@ -377,7 +377,7 @@ AS $$
 BEGIN
   RETURN to_char(pValue, pFormat);
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 GRANT EXECUTE ON FUNCTION DateToStr(date, text) TO PUBLIC;
 
@@ -393,7 +393,7 @@ AS $$
 BEGIN
   RETURN to_date(pValue, pFormat);
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 GRANT EXECUTE ON FUNCTION StrToDate(text, text) TO PUBLIC;
 
@@ -409,7 +409,7 @@ AS $$
 BEGIN
   RETURN to_timestamp(pValue, pFormat);
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 GRANT EXECUTE ON FUNCTION StrToTimeStamp(text, text) TO PUBLIC;
 
@@ -425,7 +425,7 @@ AS $$
 BEGIN
   RETURN to_timestamp(pValue, pFormat);
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 GRANT EXECUTE ON FUNCTION StrToTimeStampTZ(text, text) TO PUBLIC;
 
@@ -443,7 +443,7 @@ BEGIN
   EXECUTE 'SELECT time ' || quote_literal(pValue) INTO t;
   RETURN t;
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 GRANT EXECUTE ON FUNCTION StrToTime(text) TO PUBLIC;
 
@@ -461,7 +461,7 @@ BEGIN
   EXECUTE 'SELECT interval ' || quote_literal(pValue) INTO i;
   RETURN i;
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 GRANT EXECUTE ON FUNCTION StrToInterval(text) TO PUBLIC;
 
@@ -498,7 +498,7 @@ BEGIN
 
   RETURN r2[2:];
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql STRICT;
 
 GRANT EXECUTE ON FUNCTION IntervalArrayToStr(interval[][], text) TO PUBLIC;
 
@@ -539,7 +539,7 @@ AS $$
 BEGIN
   RETURN NULLIF(pValue, '00000000-0000-4000-8000-000000000000');
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 GRANT EXECUTE ON FUNCTION CheckNull(uuid) TO PUBLIC;
 
@@ -554,7 +554,7 @@ AS $$
 BEGIN
   RETURN NULLIF(pValue, '');
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 GRANT EXECUTE ON FUNCTION CheckNull(text) TO PUBLIC;
 
@@ -569,7 +569,7 @@ AS $$
 BEGIN
   RETURN NULLIF(pValue::jsonb, '{}'::jsonb);
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 GRANT EXECUTE ON FUNCTION CheckNull(json) TO PUBLIC;
 
@@ -584,7 +584,7 @@ AS $$
 BEGIN
   RETURN NULLIF(pValue, '{}'::jsonb);
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 GRANT EXECUTE ON FUNCTION CheckNull(jsonb) TO PUBLIC;
 
@@ -599,7 +599,7 @@ AS $$
 BEGIN
   RETURN NULLIF(pValue, 0);
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 GRANT EXECUTE ON FUNCTION CheckNull(numeric) TO PUBLIC;
 
@@ -614,7 +614,7 @@ AS $$
 BEGIN
   RETURN NULLIF(pValue, -1);
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 GRANT EXECUTE ON FUNCTION CheckNull(integer) TO PUBLIC;
 
@@ -629,7 +629,7 @@ AS $$
 BEGIN
   RETURN NULLIF(pValue, MINDATE());
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 GRANT EXECUTE ON FUNCTION CheckNull(timestamp) TO PUBLIC;
 
@@ -644,7 +644,7 @@ AS $$
 BEGIN
   RETURN NULLIF(pValue, MINDATE());
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 GRANT EXECUTE ON FUNCTION CheckNull(timestamptz) TO PUBLIC;
 
@@ -659,7 +659,7 @@ AS $$
 BEGIN
   RETURN NULLIF(pValue, interval '0');
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 GRANT EXECUTE ON FUNCTION CheckNull(interval) TO PUBLIC;
 
@@ -743,7 +743,7 @@ BEGIN
 
   RETURN arResult;
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 GRANT EXECUTE ON FUNCTION array_add_text(text[], text) TO PUBLIC;
 
@@ -782,7 +782,7 @@ EXCEPTION
 WHEN others THEN
   RETURN null;
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 GRANT EXECUTE ON FUNCTION min_array(anyarray, anyelement) TO PUBLIC;
 
@@ -821,7 +821,7 @@ EXCEPTION
 WHEN others THEN
   RETURN null;
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 GRANT EXECUTE ON FUNCTION max_array(anyarray, anyelement) TO PUBLIC;
 
@@ -855,7 +855,7 @@ BEGIN
 
   RETURN r;
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 GRANT EXECUTE ON FUNCTION inet_to_array(inet) TO PUBLIC;
 
@@ -869,7 +869,7 @@ AS $$
 BEGIN
   RETURN current_timestamp at time zone 'utc';
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 GRANT EXECUTE ON FUNCTION UTC() TO PUBLIC;
 
@@ -884,7 +884,7 @@ AS $$
 BEGIN
   RETURN replace(to_char(pTime, 'YYYY-MM-DD#HH24:MI:SS.MSZ'), '#', 'T');
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 GRANT EXECUTE ON FUNCTION GetISOTime(timestamp) TO PUBLIC;
 
@@ -899,7 +899,7 @@ AS $$
 BEGIN
   RETURN trunc(extract(EPOCH FROM pTime));
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 GRANT EXECUTE ON FUNCTION GetEpoch(timestamp) TO PUBLIC;
 
@@ -914,7 +914,7 @@ AS $$
 BEGIN
   RETURN trunc(extract(EPOCH FROM pTime) * 1000);
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 GRANT EXECUTE ON FUNCTION GetEpochMs(timestamp) TO PUBLIC;
 
@@ -937,7 +937,7 @@ BEGIN
 
   RETURN dow;
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 GRANT EXECUTE ON FUNCTION Dow(timestamptz) TO PUBLIC;
 
@@ -966,7 +966,7 @@ BEGIN
   END IF;
   RETURN pStr;
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 GRANT EXECUTE ON FUNCTION quote_literal_json(text) TO PUBLIC;
 
@@ -996,7 +996,7 @@ BEGIN
 
   RETURN pArray;
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 GRANT EXECUTE ON FUNCTION array_quote_literal_json(anyarray) TO PUBLIC;
 
@@ -1023,7 +1023,7 @@ BEGIN
 
   RETURN null;
 END;
-$$ LANGUAGE plpgsql IMMUTABLE STRICT;
+$$ LANGUAGE plpgsql STRICT;
 
 GRANT EXECUTE ON FUNCTION find_value_in_array(anyarray, text) TO PUBLIC;
 
@@ -1041,7 +1041,7 @@ BEGIN
   result := true;
   message := 'Success';
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 GRANT EXECUTE ON FUNCTION result_success() TO PUBLIC;
 
@@ -1059,7 +1059,7 @@ BEGIN
   result := 0;
   message := 'Success';
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 GRANT EXECUTE ON FUNCTION error_success() TO PUBLIC;
 
@@ -1104,7 +1104,7 @@ BEGIN
 
   RETURN N;
 END
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 -- FUNCTION dec_to_bin ---------------------------------------------------------
@@ -1132,7 +1132,7 @@ BEGIN
 
   RETURN lpad(S, greatest(length(S), L), F);
 END
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 -- FUNCTION bit_to_dec ---------------------------------------------------------
@@ -1146,7 +1146,7 @@ $$
 BEGIN
   RETURN bin_to_dec(B::text);
 END
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 -- FUNCTION hex_to_bit ---------------------------------------------------------
@@ -1201,7 +1201,7 @@ BEGIN
   EXECUTE 'SELECT x' || quote_literal(H) INTO B;
   RETURN bit_to_dec(B);
 END
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 -- FUNCTION dec_to_hex ---------------------------------------------------------
@@ -1242,7 +1242,7 @@ BEGIN
 
   RETURN H;
 END
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 -- FUNCTION hex_to_num64 -------------------------------------------------------
@@ -1286,7 +1286,7 @@ AS $$
     (get_byte(x,30)::int8<<(1*8)) |
     (get_byte(x,31)::int8)
   FROM (SELECT decode(lpad(H, 64, '0'), 'hex') AS x) AS a;
-$$ LANGUAGE SQL STRICT IMMUTABLE;
+$$ LANGUAGE SQL STRICT;
 
 --------------------------------------------------------------------------------
 -- FUNCTION bin_to_dec ---------------------------------------------------------
@@ -1306,7 +1306,7 @@ AS $$
     (get_byte(x,6)::int8<<(1*8)) |
     (get_byte(x,7)::int8)
   FROM (SELECT decode(lpad(H, 16, '0'), 'hex') AS x) AS a;
-$$ LANGUAGE SQL STRICT IMMUTABLE;
+$$ LANGUAGE SQL STRICT;
 
 --------------------------------------------------------------------------------
 -- FUNCTION bit_copy -----------------------------------------------------------
@@ -1330,7 +1330,7 @@ BEGIN
 
   RETURN bin_to_dec(SubStr(S, length(S) - (P + C - 1), C));
 END
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 -- FUNCTION to_little_endian ---------------------------------------------------
@@ -1354,7 +1354,7 @@ BEGIN
 
   RETURN R;
 END
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 -- FUNCTION to_little_endian ---------------------------------------------------
@@ -1373,7 +1373,7 @@ BEGIN
   R := to_little_endian(B);
   RETURN hex_to_dec(encode(R, 'hex'));
 END
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 -- FUNCTION to_little_endian ---------------------------------------------------
@@ -1386,7 +1386,7 @@ AS $$
 BEGIN
   RETURN encode(to_little_endian(decode(H, 'hex')), 'hex');
 END
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 -- IEEE754_32 ------------------------------------------------------------------
@@ -1411,7 +1411,7 @@ BEGIN
 
   RETURN F;
 END
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 GRANT EXECUTE ON FUNCTION IEEE754_32(numeric) TO PUBLIC;
 
@@ -1438,7 +1438,7 @@ BEGIN
 
   RETURN F;
 END
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 GRANT EXECUTE ON FUNCTION IEEE754_64(numeric) TO PUBLIC;
 
@@ -1491,7 +1491,7 @@ BEGIN
 
   RETURN arValid;
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 GRANT EXECUTE ON FUNCTION CheckCodes(text[], text[]) TO PUBLIC;
 
@@ -1528,7 +1528,7 @@ BEGIN
 
   RETURN result;
 END
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql;
 
 GRANT EXECUTE ON FUNCTION URLEncode(text) TO PUBLIC;
 
@@ -1618,7 +1618,7 @@ BEGIN
   SELECT SubString(uri FROM '^(?:https?://)?([^/?#]+)') INTO v_hostname;
   RETURN v_hostname;
 END;
-$$ LANGUAGE plpgsql IMMUTABLE STRICT;
+$$ LANGUAGE plpgsql STRICT;
 
 --------------------------------------------------------------------------------
 -- get_input_value -------------------------------------------------------------
