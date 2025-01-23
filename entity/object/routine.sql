@@ -796,6 +796,31 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- FUNCTION DoTryAction --------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION DoTryAction (
+  pObject   uuid,
+  pAction   text,
+  pParams   jsonb DEFAULT null
+) RETURNS   jsonb
+AS $$
+DECLARE
+  vMessage  text;
+  vContext  text;
+BEGIN
+  RETURN DoAction(pObject, pAction, pParams);
+EXCEPTION
+WHEN others THEN
+  GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
+  PERFORM WriteDiagnostics(vMessage, vContext, pObject);
+  RETURN null;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- FUNCTION DoSave -------------------------------------------------------------
 --------------------------------------------------------------------------------
 
