@@ -311,7 +311,7 @@ $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION IntToStr (
   pValue    numeric,
-  pFormat   text DEFAULT 'FM999999999990'
+  pFormat   text DEFAULT 'FM999999999999990'
 ) RETURNS   text
 AS $$
 BEGIN
@@ -327,7 +327,7 @@ GRANT EXECUTE ON FUNCTION IntToStr(numeric, text) TO PUBLIC;
 
 CREATE OR REPLACE FUNCTION StrToInt (
   pValue    text,
-  pFormat   text DEFAULT '999999999999'
+  pFormat   text DEFAULT '999999999999999'
 ) RETURNS   numeric
 AS $$
 BEGIN
