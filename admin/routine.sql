@@ -4976,6 +4976,8 @@ BEGIN
       PERFORM AccessDenied();
     END IF;
 
+    PERFORM DoLogout(uUserId);
+
     IF pCloseAll THEN
       DELETE FROM db.session WHERE userid = uUserId;
       message := message || ' (с закрытием всех активных сессий)';
@@ -4996,8 +4998,6 @@ BEGIN
     VALUES ('M', 1100, GetUserName(uUserId), pSession, 'logout', message);
 
     PERFORM SetErrorMessage(message);
-
-    PERFORM DoLogout(uUserId);
 
     PERFORM SetCurrentSession(null);
     PERFORM SetCurrentUserId(null);
