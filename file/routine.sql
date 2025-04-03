@@ -558,4 +558,4 @@ BEGIN
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
+   SET search_path = public, kernel, pg_temp;
