@@ -661,7 +661,7 @@ AS
          k.parent, k.id, k.key, k.level,
          v.vname, registry.get_reg_value(v.id)
     FROM registry.key k  LEFT JOIN registry.value v ON k.id = v.key
-                        INNER JOIN (SELECT * FROM registry.key) r ON k.root = r.id ;
+                        INNER JOIN registry.key   r ON k.root = r.id;
 
 --------------------------------------------------------------------------------
 -- registry.registry_ex --------------------------------------------------------
@@ -676,7 +676,7 @@ AS
          k.parent, k.id, k.key, k.level,
          v.vname, v.vtype, v.vinteger, v.vnumeric, v.vdatetime, v.vstring, v.vboolean
     FROM registry.key k  LEFT JOIN registry.value v ON v.key = k.id
-                        INNER JOIN (SELECT * FROM registry.key) r ON r.id = k.root;
+                        INNER JOIN registry.key   r ON r.id = k.root;
 
 --------------------------------------------------------------------------------
 -- registry.registry_key -------------------------------------------------------
