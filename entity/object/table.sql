@@ -193,8 +193,10 @@ RETURNS trigger AS $$
 DECLARE
   bSystem   boolean;
 BEGIN
-  IF NOT CheckObjectAccess(NEW.id, B'010') THEN
-    PERFORM AccessDenied();
+  IF session_user NOT IN ('kernel', 'postgres') THEN
+    IF NOT CheckObjectAccess(NEW.id, B'010') THEN
+      PERFORM AccessDenied();
+    END IF;
   END IF;
 
   IF OLD.type IS DISTINCT FROM NEW.type THEN
