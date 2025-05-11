@@ -522,7 +522,7 @@ BEGIN
     vHash := coalesce(vHash, encode(digest(f.data, 'sha256'), 'hex'));
   END IF;
 
-  headers := jsonb_build_object('Content-Type', f.mime, 'host', vHost, 'x-amz-content-sha256', vHash, 'x-amz-date', vDate, 'x-amz-storage-class', 'STANDARD');
+  headers := jsonb_build_object('Content-Type', coalesce(f.mime, 'image/png'), 'host', vHost, 'x-amz-content-sha256', vHash, 'x-amz-date', vDate, 'x-amz-storage-class', 'STANDARD');
 
   IF vRoot = 'public' THEN
     headers := headers || jsonb_build_object('x-amz-acl', 'public-read');
