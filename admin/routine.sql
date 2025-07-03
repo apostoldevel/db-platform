@@ -4306,7 +4306,7 @@ BEGIN
   FOR r IN
     SELECT code
       FROM Session
-     WHERE username IN ('web-plugme.ru', 'web-mosoblenergo.ru')
+     WHERE username LIKE 'web-%'
        AND code IS DISTINCT FROM current_session()
        AND input_last < Now() - INTERVAL '1 day'
      LIMIT 5000

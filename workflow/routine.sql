@@ -122,6 +122,7 @@ CREATE OR REPLACE FUNCTION GetEntity (
 AS $$
   SELECT id FROM db.entity WHERE code = pCode;
 $$ LANGUAGE sql
+   STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
