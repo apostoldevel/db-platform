@@ -2529,7 +2529,7 @@ $$ LANGUAGE plpgsql
  * @return {boolean}
  */
 CREATE OR REPLACE FUNCTION is_admin (
-  pMember       uuid DEFAULT immutable_current_userid()
+  pMember       uuid DEFAULT current_userid()
 ) RETURNS       boolean
 AS $$
 BEGIN
@@ -2541,7 +2541,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
-   IMMUTABLE
+   STABLE
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------

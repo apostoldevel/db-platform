@@ -846,7 +846,7 @@ GRANT SELECT ON api.object_file TO administrator;
 
 CREATE OR REPLACE VIEW api.object_file_data
 AS
-  SELECT f.* FROM ObjectFileData f INNER JOIN AccessObject o ON f.object = o.id;
+  SELECT * FROM ObjectFileData;
 
 GRANT SELECT ON api.object_file_data TO administrator;
 

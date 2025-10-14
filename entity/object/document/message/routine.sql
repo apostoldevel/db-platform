@@ -371,12 +371,20 @@ DECLARE
   address       text;
   subject       text;
 
+  headers       jsonb;
   content       jsonb;
 
   uMessageId    uuid;
 
+  vAPI          text;
+  vToken        text;
   vPhone        text;
+  vUserAgent    text;
 BEGIN
+  vUserAgent := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Name');
+  vAPI := coalesce(RegGetValueString('CURRENT_CONFIG', 'CONFIG\Service\MTS\API', 'URL'), 'https://omnichannel.mts.ru/http-api/v1');
+  vToken := RegGetValueString('CURRENT_CONFIG', 'CONFIG\Service\MTS\API', 'Token');
+
   SELECT phone INTO vPhone FROM db.user WHERE id = pUserId;
 
   IF vPhone IS NOT NULL THEN
@@ -385,7 +393,10 @@ BEGIN
     subject := vPhone;
     content := json_build_object('messages', jsonb_build_array(json_build_object('content', json_build_object('short_text', pMessage), 'to', jsonb_build_array(json_build_object('msisdn', vPhone)))), 'options', json_build_object('from',  json_build_object('sms_address', pProfile)));
 
-    uMessageId := SendMessage(pParent, GetAgent('mts.agent'), profile, address, subject, content::text, null, pMessage);
+    headers := jsonb_build_object('User-Agent', coalesce(vUserAgent, 'Apostol'), 'Accept', 'application/json', 'Content-Type', 'application/json');
+    headers := headers || jsonb_build_object('Authorization', 'Basic ' || vToken);
+
+    uMessageId := http."fetch"(vAPI || address, 'POST', headers, content, 'api.mts_done', 'api.mts_fail', 'mts', profile, address, pMessage, 'curl', jsonb_build_object('session', current_session(), 'user_id', current_userid()));
 
     PERFORM WriteToEventLog('M', 1001, 'sms', format('SMS передано на отправку: %s', uMessageId), uMessageId);
   ELSE
@@ -671,20 +682,33 @@ $$ LANGUAGE plpgsql
  * @return {uuid} - Талон регистрации (registration ticket)
  */
 CREATE OR REPLACE FUNCTION RegistrationCodeByPhone (
-  pPhone          text,
-  pHashCode       text DEFAULT null
-) RETURNS         uuid
+  pPhone        text,
+  pHashCode     text DEFAULT null
+) RETURNS       uuid
 AS $$
 DECLARE
-  uTicket         uuid;
-  uMessageId      uuid;
-  vCode           text;
-  vNaming         text;
-  vText           text;
-  vMessage        text;
-  jContent        json;
+  uTicket       uuid;
+  uMessageId    uuid;
+
+  vAPI          text;
+  vCode         text;
+  vToken        text;
+  vProfile      text;
+  vText         text;
+  vUserAgent    text;
+  vMessage      text;
+
+  profile       text;
+  address       text;
+  subject       text;
+
+  headers       jsonb;
+  content       jsonb;
 BEGIN
-  vNaming := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject\SMS', 'Address');
+  vUserAgent := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject', 'Name');
+  vAPI := coalesce(RegGetValueString('CURRENT_CONFIG', 'CONFIG\Service\MTS\API', 'URL'), 'https://omnichannel.mts.ru/http-api/v1');
+  vToken := RegGetValueString('CURRENT_CONFIG', 'CONFIG\Service\MTS\API', 'Token');
+  vProfile := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject\SMS', 'Address');
   vCode := random_between(100000, 999999)::text;
 
   IF locale_code() = 'ru' THEN
@@ -699,9 +723,16 @@ BEGIN
     vMessage := concat(vMessage, E'\n\n\n\n', pHashCode);
   END IF;
 
-  jContent := json_build_object('messages', jsonb_build_array(json_build_object('content', json_build_object('short_text', vMessage), 'to', jsonb_build_array(json_build_object('msisdn', pPhone)))), 'options', json_build_object('from',  json_build_object('sms_address', vNaming)));
+  profile := 'mts';
+  address := '/messages';
+  subject := pPhone;
 
-  uMessageId := SendMessage(null, GetAgent('mts.agent'), 'mts', '/messages', pPhone, jContent::text, null, vText);
+  content := jsonb_build_object('messages', jsonb_build_array(json_build_object('content', json_build_object('short_text', vMessage), 'to', jsonb_build_array(json_build_object('msisdn', pPhone)))), 'options', json_build_object('from',  json_build_object('sms_address', vProfile)));
+
+  headers := jsonb_build_object('User-Agent', coalesce(vUserAgent, 'Apostol'), 'Accept', 'application/json', 'Content-Type', 'application/json');
+  headers := headers || jsonb_build_object('Authorization', 'Basic ' || vToken);
+
+  uMessageId := http."fetch"(vAPI || '/messages', 'POST', headers, content, 'api.mts_done', 'api.mts_fail', 'mts', profile, address, vMessage, 'curl', jsonb_build_object('session', current_session(), 'user_id', current_userid()));
 
   PERFORM WriteToEventLog('M', 1001, 'sms', format('SMS передано на отправку: %s', uMessageId), uMessageId);
 
