@@ -289,6 +289,8 @@ BEGIN
       vSelect := vSelect || E'\n ORDER BY sequence';
     ELSIF 'created' = ANY (arColumns) THEN
       vSelect := vSelect || E'\n ORDER BY created DESC';
+    ELSIF 'date' = ANY(arColumns) THEN
+      vSelect := vSelect || E'\n ORDER BY date DESC';
     ELSIF 'datetime' = ANY(arColumns) THEN
       vSelect := vSelect || E'\n ORDER BY datetime DESC';
     ELSIF 'name' = ANY (arColumns) THEN

@@ -1570,7 +1570,7 @@ BEGIN
     SELECT *
       FROM ObjectFile
      WHERE object = pObject
-     ORDER BY text
+     ORDER BY path, name
   LOOP
     arResult := array_append(arResult, row_to_json(r));
   END LOOP;
