@@ -116,13 +116,13 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 /**
  * Возвращает дату операционного дня.
- * @return {timestamp} - Дата операционного дня
+ * @return {timestamptz} - Дата операционного дня
  */
 CREATE OR REPLACE FUNCTION api.oper_date()
-RETURNS         timestamp
+RETURNS         timestamptz
 AS $$
 BEGIN
-  RETURN oper_date();
+  RETURN GetOperDate();
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

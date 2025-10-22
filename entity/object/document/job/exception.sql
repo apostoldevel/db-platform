@@ -9,4 +9,4 @@ AS $$
 BEGIN
   RAISE EXCEPTION 'ERR-40000: Задание с кодом "%" уже существует.', pCode;
 END;
-$$ LANGUAGE plpgsql STRICT IMMUTABLE;
+$$ LANGUAGE plpgsql;

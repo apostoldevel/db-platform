@@ -41,15 +41,13 @@ GRANT SELECT ON Scheduler TO administrator;
 
 CREATE OR REPLACE VIEW AccessScheduler
 AS
-WITH _access AS (
-   WITH _membergroup AS (
-     SELECT current_userid() AS userid UNION SELECT userid FROM db.member_group WHERE member = current_userid()
-   ) SELECT object
-       FROM db.aou AS a INNER JOIN db.entity    e ON a.entity = e.id AND e.code = 'scheduler'
-                        INNER JOIN _membergroup m ON a.userid = m.userid
-      GROUP BY object
-      HAVING (bit_or(a.allow) & ~bit_or(a.deny)) & B'100' = B'100'
-) SELECT t.* FROM db.scheduler t INNER JOIN _access ac ON t.id = ac.object;
+WITH _membergroup AS (
+  SELECT current_userid() AS userid UNION SELECT userid FROM db.member_group WHERE member = current_userid()
+) SELECT object
+	FROM db.scheduler t INNER JOIN db.aou         a ON a.object = t.id
+                        INNER JOIN _membergroup   m ON a.userid = m.userid
+   WHERE a.mask = B'100'
+   GROUP BY object;
 
 GRANT SELECT ON AccessScheduler TO administrator;
 
@@ -83,7 +81,7 @@ AS
          o.owner, w.username, w.name,
          o.oper, u.username, u.name,
          o.scope, sc.code, sc.name, sc.description
-    FROM AccessScheduler t INNER JOIN db.reference         r ON t.reference = r.id AND r.scope = current_scope()
+    FROM db.Scheduler t INNER JOIN db.reference         r ON t.reference = r.id AND r.scope = current_scope()
                             LEFT JOIN db.reference_text   rt ON rt.reference = r.id AND rt.locale = current_locale()
 
                            INNER JOIN db.object            o ON t.reference = o.id

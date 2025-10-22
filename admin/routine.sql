@@ -519,7 +519,7 @@ $$ LANGUAGE plpgsql
 CREATE OR REPLACE FUNCTION StrPwKey (
   pUserId       uuid,
   pSecret       text,
-  pCreated      timestamp
+  pCreated      timestamptz
 ) RETURNS       text
 AS $$
 DECLARE
@@ -990,8 +990,8 @@ CREATE OR REPLACE FUNCTION AddToken (
 AS $$
 DECLARE
   nId           bigint;
-  dtDateFrom    timestamp;
-  dtDateTo      timestamp;
+  dtDateFrom    timestamptz;
+  dtDateTo      timestamptz;
 BEGIN
   -- получим дату значения в текущем диапазоне дат
   SELECT id, validFromDate, validToDate INTO nId, dtDateFrom, dtDateTo
@@ -1776,24 +1776,6 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- FUNCTION immutable_current_userid -------------------------------------------
---------------------------------------------------------------------------------
-/**
- * Возвращает идентификатор текущего пользователя.
- * @return {id} - Идентификатор пользователя: users.id
- */
-CREATE OR REPLACE FUNCTION immutable_current_userid()
-RETURNS         uuid
-AS $$
-BEGIN
-  RETURN current_userid();
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   IMMUTABLE
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
 -- FUNCTION session_username ---------------------------------------------------
 --------------------------------------------------------------------------------
 /**
@@ -1976,12 +1958,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Устанавливает дату операционного дня.
- * @param {timestamp} pOperDate - Дата операционного дня
+ * @param {timestamptz} pOperDate - Дата операционного дня
  * @param {varchar} pSession - Код сессии
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION SetOperDate (
-  pOperDate     timestamp,
+  pOperDate     timestamptz,
   pSession      varchar DEFAULT current_session()
 ) RETURNS       void
 AS $$
@@ -2019,15 +2001,15 @@ $$ LANGUAGE plpgsql
 /**
  * Возвращает дату операционного дня.
  * @param {varchar} pSession - Код сессии
- * @return {timestamp} - Дата операционного дня
+ * @return {timestamptz} - Дата операционного дня
  */
 CREATE OR REPLACE FUNCTION GetOperDate (
   pSession      varchar DEFAULT current_session()
 )
-RETURNS         timestamp
+RETURNS         timestamptz
 AS $$
 DECLARE
-  dtOperDate    timestamp;
+  dtOperDate    timestamptz;
 BEGIN
   IF pSession IS NOT NULL THEN
     SELECT oper_date INTO dtOperDate FROM db.session WHERE code = pSession;
@@ -2044,7 +2026,7 @@ $$ LANGUAGE plpgsql
 /**
  * Возвращает дату операционного дня.
  * @param {varchar} pSession - Код сессии
- * @return {timestamp} - Дата операционного дня
+ * @return {timestamptz} - Дата операционного дня
  */
 CREATE OR REPLACE FUNCTION oper_date (
   pSession      varchar DEFAULT current_session()
@@ -3553,8 +3535,8 @@ CREATE OR REPLACE FUNCTION EditArea (
   pName             text DEFAULT null,
   pDescription      text DEFAULT null,
   pSequence         integer DEFAULT null,
-  pValidFromDate    timestamp DEFAULT null,
-  pValidToDate      timestamp DEFAULT null
+  pValidFromDate    timestamptz DEFAULT null,
+  pValidToDate      timestamptz DEFAULT null
 ) RETURNS void
 AS $$
 DECLARE

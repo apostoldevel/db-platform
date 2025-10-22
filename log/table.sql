@@ -20,7 +20,8 @@ COMMENT ON TABLE db.log IS 'Журнал событий.';
 
 COMMENT ON COLUMN db.log.id IS 'Идентификатор';
 COMMENT ON COLUMN db.log.type IS 'Тип события';
-COMMENT ON COLUMN db.log.datetime IS 'Дата и время события';
+COMMENT ON COLUMN db.log.datetime IS 'Дата и время события (по часам)';
+COMMENT ON COLUMN db.log.timestamp IS 'Дата и время события (транзакции)';
 COMMENT ON COLUMN db.log.username IS 'Имя пользователя';
 COMMENT ON COLUMN db.log.session IS 'Сессия';
 COMMENT ON COLUMN db.log.code IS 'Код события';
@@ -31,6 +32,7 @@ COMMENT ON COLUMN db.log.object IS 'Идентификатор объекта';
 
 CREATE INDEX ON db.log (type);
 CREATE INDEX ON db.log (datetime);
+CREATE INDEX ON db.log (timestamp);
 CREATE INDEX ON db.log (username);
 CREATE INDEX ON db.log (code);
 CREATE INDEX ON db.log (event);

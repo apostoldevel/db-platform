@@ -29,6 +29,9 @@ BEGIN
   uMethod := AddMethod(null, pClass, null, GetAction('save'), null, 'Сохранить');
   PERFORM EditMethodText(uMethod, 'Save', uLocale);
 
+  uMethod := AddMethod(null, pClass, null, GetAction('update'), null, 'Обновить');
+  PERFORM EditMethodText(uMethod, 'Update', uLocale);
+
   uMethod := AddMethod(null, pClass, null, GetAction('enable'), null, 'Включить');
   PERFORM EditMethodText(uMethod, 'Enable', uLocale);
 

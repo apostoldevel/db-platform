@@ -43,7 +43,21 @@ BEGIN
   pNode := CheckNull(pNode);
 
   IF pNode IS NOT NULL THEN
+    IF GetTypeCode(pType) = 'root.report_tree' THEN
+      PERFORM InvalidReportType();
+    END IF;
+
+    IF GetTypeCode(pType) = 'node.report_tree' THEN
+      IF GetTypeCode(GetObjectType(pNode)) = 'report.report_tree' THEN
+        PERFORM InvalidReportType();
+      END IF;
+    END IF;
+
     SELECT root, level + 1 INTO uRoot, nLevel FROM db.report_tree WHERE id = pNode;
+  ELSE
+    IF GetTypeCode(pType) != 'root.report_tree' THEN
+      PERFORM InvalidReportType();
+    END IF;
   END IF;
 
   IF NULLIF(pSequence, 0) IS NULL THEN

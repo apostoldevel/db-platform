@@ -339,26 +339,99 @@ BEGIN
 	vHTML := E'<!DOCTYPE html>\n';
 
 	vHTML := vHTML || format(E'<html lang="%s">\n', l.code);
-	vHTML := vHTML || E'<head>\n';
-	vHTML := vHTML || E'  <meta charset="UTF-8">\n';
-	vHTML := vHTML || E'  <title>Familiarization</title>\n';
-	vHTML := vHTML || E'</head>\n';
+	vHTML := vHTML || ReportHeadHTML('Familiarization');
 
-	vHTML := vHTML || E'<body>\n';
-	vHTML := vHTML || E'<div>\n';
+	vHTML := vHTML || E'  <body>\n';
+	vHTML := vHTML || E'    <div>\n';
 
-	vHTML := vHTML || E'  <pre>';
+	vHTML := vHTML || E'      <pre>';
 	vHTML := vHTML || format(E'Exception (%s): %s', pCode, pMessage) || E'\n\n';
 	vHTML := vHTML || format(E'Context: %s', pContext);
-	vHTML := vHTML || E'</pre>\n';
+	vHTML := vHTML || E'      </pre>\n';
 
-	vHTML := vHTML || E'</div>\n';
-	vHTML := vHTML || E'</body>\n';
+	vHTML := vHTML || E'    </div>\n';
+	vHTML := vHTML || E'  </body>\n';
 	vHTML := vHTML || E'</html>\n';
   END LOOP;
 
   RETURN vHTML;
 END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- ReportStyleHTML -------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION ReportStyleHTML (
+) RETURNS   text
+AS $$
+DECLARE
+  vHTML      text;
+BEGIN
+  vHTML := E'  <style type="text/css">\n';
+  vHTML := vHTML || E'    @page {\n';
+  vHTML := vHTML || E'      size: A4 portrait;\n';
+  vHTML := vHTML || E'      margin: 0.5in;\n';
+  vHTML := vHTML || E'    }\n';
+  vHTML := vHTML || E'    @media print {\n';
+  vHTML := vHTML || E'      .pb-after { page-break-after: always; }\n';
+  vHTML := vHTML || E'      .pb-inside { page-break-inside: avoid; }\n';
+  vHTML := vHTML || E'      p {\n';
+  vHTML := vHTML || E'        orphans: 3;\n';
+  vHTML := vHTML || E'        widows: 3;\n';
+  vHTML := vHTML || E'      }\n';
+  vHTML := vHTML || E'      .report-font-size {\n';
+  vHTML := vHTML || E'        font-size: 0.65rem;\n';
+  vHTML := vHTML || E'      }\n';
+  vHTML := vHTML || E'      .report-text {\n';
+  vHTML := vHTML || E'        font-size: small;\n';
+  vHTML := vHTML || E'        padding: 10px;\n';
+  vHTML := vHTML || E'      }\n';
+  vHTML := vHTML || E'      .report-header {\n';
+  vHTML := vHTML || E'        font-size: small;\n';
+  vHTML := vHTML || E'        margin-top: 15px;\n';
+  vHTML := vHTML || E'        margin-left: 50%;\n';
+  vHTML := vHTML || E'      }\n';
+  vHTML := vHTML || E'      .report-header p {\n';
+  vHTML := vHTML || E'        margin: 0;\n';
+  vHTML := vHTML || E'        padding: 0;\n';
+  vHTML := vHTML || E'      }\n';
+  vHTML := vHTML || E'      .report-text p {\n';
+  vHTML := vHTML || E'        text-indent: 20px;\n';
+  vHTML := vHTML || E'      }\n';
+  vHTML := vHTML || E'      .report-li li {\n';
+  vHTML := vHTML || E'        margin-top: 5px;\n';
+  vHTML := vHTML || E'      }\n';
+  vHTML := vHTML || E'    }\n';
+  vHTML := vHTML || E'  </style>\n';
+
+  RETURN vHTML;
+END
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- ReportHeadHTML --------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION ReportHeadHTML (
+  pTitle    text
+) RETURNS   text
+AS $$
+DECLARE
+  vHTML      text;
+BEGIN
+  vHTML := E'<head>\n';
+  vHTML := vHTML || E'  <meta charset="UTF-8">\n';
+  vHTML := vHTML || format(E'  <title>%s</title>\n', pTitle);
+  vHTML := vHTML || ReportStyleHTML();
+  vHTML := vHTML || E'</head>\n';
+
+  RETURN vHTML;
+END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

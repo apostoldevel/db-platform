@@ -1350,6 +1350,7 @@ CREATE OR REPLACE FUNCTION GetAction (
 AS $$
   SELECT id FROM db.action WHERE code = pCode;
 $$ LANGUAGE sql
+   STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1363,6 +1364,7 @@ CREATE OR REPLACE FUNCTION GetActionCode (
 AS $$
   SELECT code FROM db.action WHERE id = pId;
 $$ LANGUAGE sql
+   STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 

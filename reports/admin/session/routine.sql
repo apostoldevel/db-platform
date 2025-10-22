@@ -190,13 +190,10 @@ BEGIN
     vHTML := E'<!DOCTYPE html>\n';
 
     vHTML := vHTML || format(E'<html lang="%s">\n', l.code);
-    vHTML := vHTML || E'<head>\n';
-    vHTML := vHTML || E'  <meta charset="UTF-8">\n';
-    vHTML := vHTML || format(E'  <title>%s</title>\n', Lines[1]);
-    vHTML := vHTML || E'</head>\n';
+    vHTML := vHTML || ReportHeadHTML(Lines[1]);
 
     vHTML := vHTML || E'<body>\n';
-    vHTML := vHTML || E'<div>\n';
+    vHTML := vHTML || E'<div class="report-header report-font-size">\n';
 
     vHTML := vHTML || E'  <div class="text-center">\n';
 
@@ -364,8 +361,8 @@ BEGIN
     vHTML := vHTML || E'</html>\n';
   END LOOP;
 
-  html_file := vHTML::bytea;
-  csv_file := vCSV::bytea;
+  html_file := convert_to(vHTML, 'utf8');
+  csv_file := convert_to(vCSV, 'utf8');
 
   PERFORM SetObjectFile(pReady, null, 'index.html', null, length(html_file), localtimestamp, html_file, encode(digest(html_file, 'md5'), 'hex'), Lines[1], 'data:text/html;base64,');
   PERFORM SetObjectFile(pReady, null, format('session_%s.csv', DateToStr(Now(), 'YYYYMMDD_HH24MISS')), null, length(csv_file), localtimestamp, csv_file, encode(digest(csv_file, 'md5'), 'hex'), Lines[1], 'data:text/plain;base64,');

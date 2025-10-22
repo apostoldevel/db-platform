@@ -1328,7 +1328,7 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, address uuid, datefrom timestamp)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, address uuid, datefrom timestamptz)
       LOOP
         FOR e IN SELECT * FROM api.set_object_address(r.id, r.address, coalesce(r.datefrom, oper_date()))
         LOOP
@@ -1338,7 +1338,7 @@ BEGIN
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, address uuid, datefrom timestamp)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, address uuid, datefrom timestamptz)
       LOOP
         FOR e IN SELECT * FROM api.set_object_address(r.id, r.address, coalesce(r.datefrom, oper_date()))
         LOOP

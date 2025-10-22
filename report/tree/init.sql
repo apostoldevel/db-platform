@@ -86,18 +86,27 @@ RETURNS         uuid
 AS $$
 DECLARE
   uClass        uuid;
+  uType         uuid;
 BEGIN
   -- Класс
   uClass := AddClass(pParent, pEntity, 'report_tree', 'Дерево отчётов', false);
+  PERFORM EditClassText(uClass, 'Report', GetLocale('en'));
 
   -- Тип
-  PERFORM AddType(uClass, 'none.report_tree', 'Без типа', 'Без типа.');
+  uType := AddType(uClass, 'root.report_tree', 'Корень', 'Корень дерева отчётов.');
+  PERFORM EditTypeText(uType, 'Section', 'The root of the report tree.', GetLocale('en'));
+
+  uType := AddType(uClass, 'node.report_tree', 'Узел', 'Узел дерева отчётов.');
+  PERFORM EditTypeText(uType, 'Node', 'Report tree node.', GetLocale('en'));
+
+  uType := AddType(uClass, 'report.report_tree', 'Отчёт', 'Отчёт.');
+  PERFORM EditTypeText(uType, 'report', 'Report.', GetLocale('en'));
 
   -- Событие
   PERFORM AddReportTreeEvents(uClass);
 
   -- Метод
-  PERFORM AddDefaultMethods(uClass, ARRAY['Создан', 'Открыт', 'Закрыт', 'Удалён', 'Открыть', 'Закрыть', 'Удалить']);
+  PERFORM AddDefaultMethods(uClass);
 
   RETURN uClass;
 END

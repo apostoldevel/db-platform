@@ -28,7 +28,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION gen_random_code()
-RETURNS           text
+RETURNS text
 AS $$
   SELECT replace(replace(encode(gen_random_bytes(12), 'base64'), '+', 'p'), '/', 's');
 $$ LANGUAGE sql
@@ -209,7 +209,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION GetErrorMessage (
-) RETURNS 	text
+) RETURNS     text
 AS $$
 BEGIN
   RETURN GetVar('kernel', 'error_message');
@@ -223,12 +223,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION InitContext (
-  pObject	uuid,
-  pClass	uuid,
-  pMethod	uuid,
-  pAction	uuid
+  pObject   uuid,
+  pClass    uuid,
+  pMethod   uuid,
+  pAction   uuid
 )
-RETURNS 	void
+RETURNS     void
 AS $$
 BEGIN
   PERFORM SetVar('context', 'object', pObject);
@@ -245,9 +245,9 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION InitParams (
-  pParams	jsonb
+  pParams   jsonb
 )
-RETURNS 	void
+RETURNS     void
 AS $$
 BEGIN
   PERFORM SetVar('context', 'params', pParams::text);
@@ -261,8 +261,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION SetContextMethod (
-  pMethod	uuid
-) RETURNS 	void
+  pMethod   uuid
+) RETURNS   void
 AS $$
 BEGIN
   PERFORM SetVar('context', 'method', pMethod);
@@ -276,7 +276,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION ClearContextMethod (
-) RETURNS 	void
+) RETURNS   void
 AS $$
 BEGIN
   PERFORM SetContextMethod(null_uuid());
@@ -290,10 +290,10 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION context_object()
-RETURNS 	uuid
+RETURNS     uuid
 AS $$
 DECLARE
-  vValue	text;
+  vValue    text;
 BEGIN
   SELECT INTO vValue GetVar('context', 'object');
   RETURN vValue;
@@ -307,10 +307,10 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION context_class()
-RETURNS 	uuid
+RETURNS     uuid
 AS $$
 DECLARE
-  vValue	text;
+  vValue    text;
 BEGIN
   SELECT INTO vValue GetVar('context', 'class');
   RETURN vValue;
@@ -324,10 +324,10 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION context_method()
-RETURNS 	uuid
+RETURNS     uuid
 AS $$
 DECLARE
-  vValue	text;
+  vValue    text;
 BEGIN
   SELECT INTO vValue GetVar('context', 'method');
   RETURN vValue;
@@ -341,10 +341,10 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION context_action()
-RETURNS 	uuid
+RETURNS     uuid
 AS $$
 DECLARE
-  vValue	text;
+  vValue    text;
 BEGIN
   SELECT INTO vValue GetVar('context', 'action');
   RETURN vValue;
@@ -358,10 +358,10 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION context_params()
-RETURNS 	jsonb
+RETURNS     jsonb
 AS $$
 DECLARE
-  vValue	text;
+  vValue    text;
 BEGIN
   SELECT INTO vValue GetVar('context', 'params');
   RETURN vValue;
@@ -379,12 +379,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION JsonToIntArray (
-  pJson		json
-) RETURNS	integer[]
+  pJson     json
+) RETURNS   integer[]
 AS $$
 DECLARE
-  r		    record;
-  result	integer[];
+  r         record;
+  result    integer[];
 BEGIN
   IF json_typeof(pJson) = 'array' THEN
 
@@ -413,12 +413,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION JsonbToIntArray (
-  pJson		jsonb
-) RETURNS	integer[]
+  pJson     jsonb
+) RETURNS   integer[]
 AS $$
 DECLARE
-  r		    record;
-  result	integer[];
+  r         record;
+  result    integer[];
 BEGIN
   IF jsonb_typeof(pJson) = 'array' THEN
 
@@ -447,12 +447,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION JsonToNumArray (
-  pJson		json
-) RETURNS	numeric[]
+  pJson     json
+) RETURNS   numeric[]
 AS $$
 DECLARE
-  r		    record;
-  result	numeric[];
+  r         record;
+  result    numeric[];
 BEGIN
   IF json_typeof(pJson) = 'array' THEN
 
@@ -481,12 +481,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION JsonbToNumArray (
-  pJson		jsonb
-) RETURNS	numeric[]
+  pJson     jsonb
+) RETURNS   numeric[]
 AS $$
 DECLARE
-  r		    record;
-  result	numeric[];
+  r         record;
+  result    numeric[];
 BEGIN
   IF jsonb_typeof(pJson) = 'array' THEN
 
@@ -515,12 +515,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION JsonToStrArray (
-  pJson		json
-) RETURNS	text[]
+  pJson     json
+) RETURNS   text[]
 AS $$
 DECLARE
-  r		    record;
-  result	text[];
+  r         record;
+  result    text[];
 BEGIN
   IF json_typeof(pJson) = 'array' THEN
 
@@ -549,12 +549,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION JsonbToStrArray (
-  pJson		jsonb
-) RETURNS	text[]
+  pJson     jsonb
+) RETURNS   text[]
 AS $$
 DECLARE
-  r		    record;
-  result	text[];
+  r         record;
+  result    text[];
 BEGIN
   IF jsonb_typeof(pJson) = 'array' THEN
 
@@ -583,12 +583,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION JsonToUUIDArray (
-  pJson		json
-) RETURNS	uuid[]
+  pJson     json
+) RETURNS   uuid[]
 AS $$
 DECLARE
-  r		    record;
-  result	uuid[];
+  r         record;
+  result    uuid[];
 BEGIN
   IF json_typeof(pJson) = 'array' THEN
 
@@ -617,12 +617,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION JsonbToUUIDArray (
-  pJson		jsonb
-) RETURNS	uuid[]
+  pJson     jsonb
+) RETURNS   uuid[]
 AS $$
 DECLARE
-  r		    record;
-  result	uuid[];
+  r         record;
+  result    uuid[];
 BEGIN
   IF jsonb_typeof(pJson) = 'array' THEN
 
@@ -651,12 +651,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION JsonToBoolArray (
-  pJson		json
-) RETURNS	boolean[]
+  pJson     json
+) RETURNS   boolean[]
 AS $$
 DECLARE
-  r		    record;
-  result	boolean[];
+  r         record;
+  result    boolean[];
 BEGIN
   IF json_typeof(pJson) = 'array' THEN
 
@@ -685,12 +685,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION JsonbToBoolArray (
-  pJson		jsonb
-) RETURNS	boolean[]
+  pJson     jsonb
+) RETURNS   boolean[]
 AS $$
 DECLARE
-  r		    record;
-  result	boolean[];
+  r         record;
+  result    boolean[];
 BEGIN
   IF jsonb_typeof(pJson) = 'array' THEN
 
@@ -719,12 +719,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION JsonToIntervalArray (
-  pJson		json
-) RETURNS	interval[]
+  pJson     json
+) RETURNS   interval[]
 AS $$
 DECLARE
-  r		    record;
-  result	interval[];
+  r         record;
+  result    interval[];
 BEGIN
   IF json_typeof(pJson) = 'array' THEN
 
@@ -753,12 +753,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION JsonbToIntervalArray (
-  pJson		jsonb
-) RETURNS	interval[]
+  pJson     jsonb
+) RETURNS   interval[]
 AS $$
 DECLARE
-  r		    record;
-  result	interval[];
+  r         record;
+  result    interval[];
 BEGIN
   IF jsonb_typeof(pJson) = 'array' THEN
 
@@ -787,13 +787,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION jsonb_array_to_string (
-  pJson		jsonb,
-  pSep		text
-) RETURNS	text
+  pJson     jsonb,
+  pSep      text
+) RETURNS   text
 AS $$
 DECLARE
-  r		    record;
-  arStr		text[];
+  r         record;
+  arStr     text[];
 BEGIN
   IF jsonb_typeof(pJson) = 'array' THEN
 
@@ -817,9 +817,9 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION jsonb_compare_value (
-  pOld		jsonb,
+  pOld      jsonb,
   pNew      jsonb
-) RETURNS 	jsonb
+) RETURNS   jsonb
 AS $$
 DECLARE
   r         record;
@@ -832,8 +832,8 @@ BEGIN
   LOOP
     j := jsonb_build_object(r.key, r.value);
     IF NOT pNew @> j THEN
-	  result := result || j;
-	END IF;
+      result := result || j;
+    END IF;
   END LOOP;
 
   RETURN result;
@@ -847,14 +847,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CheckJsonKeys (
-  pRoute	text,
-  pKeys		text[],
-  pJson		json
-) RETURNS	void
+  pRoute    text,
+  pKeys     text[],
+  pJson     json
+) RETURNS   void
 AS $$
 DECLARE
-  e		    record;
-  r		    record;
+  e         record;
+  r         record;
 BEGIN
   IF json_typeof(pJson) = 'array' THEN
 
@@ -888,14 +888,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CheckJsonbKeys (
-  pRoute	text,
-  pKeys		text[],
-  pJson		jsonb
-) RETURNS	void
+  pRoute    text,
+  pKeys     text[],
+  pJson     jsonb
+) RETURNS   void
 AS $$
 DECLARE
-  e		    record;
-  r		    record;
+  e         record;
+  r         record;
 BEGIN
   IF jsonb_typeof(pJson) = 'array' THEN
 
@@ -929,13 +929,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CheckJsonValues (
-  pArrayName	text,
-  pArray	anyarray,
-  pJson		json
-) RETURNS	void
+  pArrayName    text,
+  pArray        anyarray,
+  pJson         json
+) RETURNS       void
 AS $$
 DECLARE
-  r		record;
+  r             record;
 BEGIN
   IF json_typeof(pJson) = 'array' THEN
 
@@ -959,13 +959,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION CheckJsonbValues (
-  pArrayName	text,
-  pArray	anyarray,
-  pJson		jsonb
-) RETURNS	void
+  pArrayName    text,
+  pArray        anyarray,
+  pJson         jsonb
+) RETURNS       void
 AS $$
 DECLARE
-  r		record;
+  r             record;
 BEGIN
   IF jsonb_typeof(pJson) = 'array' THEN
 
@@ -989,9 +989,9 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION JsonToFields (
-  pJson		json,
-  pFields	text[]
-) RETURNS	text
+  pJson     json,
+  pFields   text[]
+) RETURNS   text
 AS $$
 BEGIN
   IF pJson IS NOT NULL THEN
@@ -1015,12 +1015,20 @@ CREATE OR REPLACE FUNCTION JsonbToFields (
   pFields	text[]
 ) RETURNS	text
 AS $$
+DECLARE
+  r         record;
 BEGIN
   pJson := NULLIF(pJson, '{}');
   pJson := NULLIF(pJson, '[]');
-  pFields := array_append(pFields, 'count(id)');
 
   IF pJson IS NOT NULL THEN
+    FOR r IN SELECT * FROM jsonb_array_elements_text(pJson)
+    LOOP
+      IF regexp_like(r.value, '\m(sum|count|max|min|avg)\s*\(\s*(\*|[A-Za-z_][A-Za-z0-9_]*)\s*\)', 'i') THEN
+        pFields := array_append(pFields, r.value);
+      END IF;
+    END LOOP;
+
     PERFORM CheckJsonbValues('fields', pFields, pJson);
     RETURN array_to_string(array_quote_literal_json(JsonbToStrArray(pJson)), ',');
   END IF;

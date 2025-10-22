@@ -1481,8 +1481,8 @@ $$ LANGUAGE plpgsql
  * @param {text} pName - Наименование
  * @param {text} pDescription - Описание
  * @param {integer} pSequence - Очерёдность
- * @param {timestamp} pValidFromDate - Дата открытия
- * @param {timestamp} pValidToDate - Дата закрытия
+ * @param {timestamptz} pValidFromDate - Дата открытия
+ * @param {timestamptz} pValidToDate - Дата закрытия
  * @return {void}
  */
 CREATE OR REPLACE FUNCTION api.update_area (
@@ -1494,8 +1494,8 @@ CREATE OR REPLACE FUNCTION api.update_area (
   pName             text DEFAULT null,
   pDescription      text DEFAULT null,
   pSequence         integer DEFAULT null,
-  pValidFromDate    timestamp DEFAULT null,
-  pValidToDate      timestamp DEFAULT null
+  pValidFromDate    timestamptz DEFAULT null,
+  pValidToDate      timestamptz DEFAULT null
 ) RETURNS           void
 AS $$
 BEGIN
@@ -1518,8 +1518,8 @@ CREATE OR REPLACE FUNCTION api.set_area (
   pName             text DEFAULT null,
   pDescription      text DEFAULT null,
   pSequence         integer DEFAULT null,
-  pValidFromDate    timestamp DEFAULT null,
-  pValidToDate      timestamp DEFAULT null
+  pValidFromDate    timestamptz DEFAULT null,
+  pValidToDate      timestamptz DEFAULT null
 ) RETURNS           SETOF api.area
 AS $$
 BEGIN

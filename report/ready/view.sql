@@ -18,10 +18,13 @@ GRANT SELECT ON ReportReady TO administrator;
 
 CREATE OR REPLACE VIEW AccessReportReady
 AS
-  WITH access AS (
-    SELECT * FROM AccessObjectUser(GetEntity('report_ready'), current_userid())
-  )
-  SELECT r.* FROM ReportReady r INNER JOIN access a ON r.id = a.object;
+WITH _membergroup AS (
+  SELECT current_userid() AS userid UNION SELECT userid FROM db.member_group WHERE member = current_userid()
+) SELECT object
+	FROM db.report_ready t INNER JOIN db.aou         a ON a.object = t.id
+                           INNER JOIN _membergroup   m ON a.userid = m.userid
+   WHERE a.mask = B'100'
+   GROUP BY object;
 
 GRANT SELECT ON AccessReportReady TO administrator;
 
@@ -56,7 +59,6 @@ CREATE OR REPLACE VIEW ObjectReportReady (Id, Object, Parent,
          o.scope, sc.code, sc.name, sc.description
     FROM db.report_ready t INNER JOIN db.document          d ON t.document = d.id
                             LEFT JOIN db.document_text    dt ON dt.document = d.id AND dt.locale = current_locale()
-                           INNER JOIN DocumentAreaTree     a ON d.area = a.id
 
                            INNER JOIN db.object            o ON d.object = o.id
                             LEFT JOIN db.object_text      ot ON ot.object = o.id AND ot.locale = current_locale()
@@ -81,6 +83,8 @@ CREATE OR REPLACE VIEW ObjectReportReady (Id, Object, Parent,
 
                            INNER JOIN db.user              w ON o.owner = w.id
                            INNER JOIN db.user              u ON o.oper = u.id
+
+                           INNER JOIN DocumentAreaTree     a ON d.area = a.id
 
                            INNER JOIN db.scope            sc ON o.scope = sc.id;
 

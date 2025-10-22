@@ -198,7 +198,8 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION AccessObjectUser (
   pEntity    uuid,
-  pUserId    uuid DEFAULT current_userid()
+  pUserId    uuid DEFAULT current_userid(),
+  pScope     uuid DEFAULT current_scope()
 ) RETURNS TABLE (
     object  uuid
 )
@@ -209,10 +210,10 @@ AS $$
   SELECT a.object
     FROM db.object o INNER JOIN db.aou       a ON a.object = o.id
                      INNER JOIN _membergroup m ON a.userid = m.userid
-   WHERE o.scope = current_scope()
+   WHERE o.scope = pScope
      AND o.entity = pEntity
+     AND a.mask = B'100'
    GROUP BY a.object
-  HAVING (bit_or(a.allow) & ~bit_or(a.deny)) & B'100' = B'100'
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

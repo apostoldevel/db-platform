@@ -15,16 +15,16 @@ GRANT SELECT ON api.event_log TO administrator;
  * Журнал событий пользователя.
  * @param {char} pType - Тип события: {M|W|E}
  * @param {integer} pCode - Код
- * @param {timestamp} pDateFrom - Дата начала периода
- * @param {timestamp} pDateTo - Дата окончания периода
+ * @param {timestamptz} pDateFrom - Дата начала периода
+ * @param {timestamptz} pDateTo - Дата окончания периода
  * @return {SETOF api.event_log} - Записи
  */
 CREATE OR REPLACE FUNCTION api.event_log (
   pUserName      text DEFAULT null,
   pType          char DEFAULT null,
   pCode          integer DEFAULT null,
-  pDateFrom      timestamp DEFAULT null,
-  pDateTo        timestamp DEFAULT null
+  pDateFrom      timestamptz DEFAULT null,
+  pDateTo        timestamptz DEFAULT null
 ) RETURNS        SETOF api.event_log
 AS $$
   SELECT *
@@ -124,15 +124,15 @@ GRANT SELECT ON api.user_log TO administrator;
  * Журнал событий пользователя.
  * @param {char} pType - Тип события: {M|W|E}
  * @param {integer} pCode - Код
- * @param {timestamp} pDateFrom - Дата начала периода
- * @param {timestamp} pDateTo - Дата окончания периода
+ * @param {timestamptz} pDateFrom - Дата начала периода
+ * @param {timestamptz} pDateTo - Дата окончания периода
  * @return {SETOF api.event_log} - Записи
  */
 CREATE OR REPLACE FUNCTION api.user_log (
   pType         char DEFAULT null,
   pCode         integer DEFAULT null,
-  pDateFrom     timestamp DEFAULT null,
-  pDateTo       timestamp DEFAULT null
+  pDateFrom     timestamptz DEFAULT null,
+  pDateTo       timestamptz DEFAULT null
 ) RETURNS       SETOF api.user_log
 AS $$
   SELECT *

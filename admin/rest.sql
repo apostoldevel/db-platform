@@ -138,7 +138,7 @@ BEGIN
       pPayload := '{}';
     END IF;
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(username text, type char, code integer, datefrom timestamp, dateto timestamp)
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(username text, type char, code integer, datefrom timestamptz, dateto timestamptz)
     LOOP
       FOR e IN SELECT * FROM api.event_log(r.username, r.type, r.code, r.datefrom, r.dateto)
       LOOP
@@ -251,7 +251,7 @@ BEGIN
       pPayload := '{}';
     END IF;
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(type char, code integer, datefrom timestamp, dateto timestamp)
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(type char, code integer, datefrom timestamptz, dateto timestamptz)
     LOOP
       FOR e IN SELECT * FROM api.log(r.type, r.code, r.datefrom, r.dateto)
       LOOP

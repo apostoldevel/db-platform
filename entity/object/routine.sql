@@ -1832,7 +1832,7 @@ CREATE OR REPLACE FUNCTION NewObjectCoordinates (
   pLabel        text DEFAULT null,
   pDescription  text DEFAULT null,
   pData         jsonb DEFAULT null,
-  pDateFrom     timestamptz DEFAULT Now()
+  pDateFrom     timestamptz DEFAULT oper_date()
 ) RETURNS       uuid
 AS $$
 DECLARE

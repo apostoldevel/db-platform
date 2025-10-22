@@ -68,8 +68,8 @@ CREATE TABLE db.area (
     description     text,
     level           integer NOT NULL,
     sequence        integer NOT NULL,
-    validFromDate   timestamp DEFAULT Now() NOT NULL,
-    validToDate     timestamp DEFAULT TO_DATE('4433-12-31', 'YYYY-MM-DD') NOT NULL
+    validFromDate   timestamptz DEFAULT Now() NOT NULL,
+    validToDate     timestamptz DEFAULT TO_DATE('4433-12-31', 'YYYY-MM-DD') NOT NULL
 );
 
 COMMENT ON TABLE db.area IS 'Область видимости документов.';
@@ -155,9 +155,9 @@ CREATE TABLE db.user (
     secret              bytea NOT NULL,
     hash                text NOT NULL,
     status              bit(4) DEFAULT B'0001' NOT NULL,
-    created             timestamp DEFAULT Now() NOT NULL,
-    lock_date           timestamp DEFAULT NULL,
-    expiry_date         timestamp DEFAULT NULL,
+    created             timestamptz DEFAULT Now() NOT NULL,
+    lock_date           timestamptz DEFAULT NULL,
+    expiry_date         timestamptz DEFAULT NULL,
     pswhash             text DEFAULT NULL,
     passwordchange      boolean DEFAULT true NOT NULL,
     passwordnotchange   boolean DEFAULT false NOT NULL,
@@ -322,9 +322,9 @@ CREATE TABLE db.profile (
     given_name          text,
     patronymic_name     text,
     input_count         integer DEFAULT 0 NOT NULL,
-    input_last          timestamp DEFAULT NULL,
+    input_last          timestamptz DEFAULT NULL,
     input_error         integer DEFAULT 0 NOT NULL,
-    input_error_last    timestamp DEFAULT NULL,
+    input_error_last    timestamptz DEFAULT NULL,
     input_error_all     integer DEFAULT 0 NOT NULL,
     lc_ip               inet,
     locale              uuid NOT NULL REFERENCES db.locale(id),
@@ -684,11 +684,11 @@ CREATE TABLE db.auth (
     userId      uuid NOT NULL REFERENCES db.user(id) ON DELETE CASCADE,
     audience    integer NOT NULL REFERENCES oauth2.audience(id) ON DELETE CASCADE,
     code        text NOT NULL,
-    created     timestamp DEFAULT Now() NOT NULL,
+    created     timestamptz DEFAULT Now() NOT NULL,
     PRIMARY KEY (userId, audience)
 );
 
-COMMENT ON TABLE db.auth IS 'Авторизаия пользователей из внешних систем.';
+COMMENT ON TABLE db.auth IS 'Авторизация пользователей из внешних систем.';
 
 COMMENT ON COLUMN db.auth.userId IS 'Пользователь';
 COMMENT ON COLUMN db.auth.audience IS 'Аудитория';
@@ -907,9 +907,9 @@ CREATE TABLE db.session (
     area        uuid NOT NULL REFERENCES db.area(id),
     interface   uuid NOT NULL REFERENCES db.interface(id),
     scope       uuid NOT NULL REFERENCES db.scope(id),
-    oper_date   timestamp DEFAULT NULL,
-    created     timestamp DEFAULT Now() NOT NULL,
-    updated     timestamp DEFAULT Now() NOT NULL,
+    oper_date   timestamptz DEFAULT NULL,
+    created     timestamptz DEFAULT Now() NOT NULL,
+    updated     timestamptz DEFAULT Now() NOT NULL,
     pwkey       text NOT NULL,
     secret      text NOT NULL,
     salt        text NOT NULL,

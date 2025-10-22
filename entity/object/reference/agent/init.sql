@@ -92,7 +92,7 @@ BEGIN
 
   -- Тип
   PERFORM AddType(uClass, 'system.agent', 'Системные сообщения', 'Агент для доставки системных сообщений.');
-  PERFORM AddType(uClass, 'api.agent', 'API', 'Агент для выполения API (REST/SOAP/RPC) запросов к внешним системам.');
+  PERFORM AddType(uClass, 'api.agent', 'API', 'Агент для выполнения API (REST/SOAP/RPC) запросов к внешним системам.');
   PERFORM AddType(uClass, 'email.agent', 'Электронная почта', 'Агент для обработки электронной почты.');
   PERFORM AddType(uClass, 'stream.agent', 'Потоковые данные', 'Агент для обработки потоковых данных.');
 

@@ -22,7 +22,7 @@ BEGIN
 
   RETURN pName;
 END;
-$$ LANGUAGE plpgsql IMMUTABLE
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -65,7 +65,7 @@ BEGIN
 
   RETURN pPath;
 END;
-$$ LANGUAGE plpgsql IMMUTABLE
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 

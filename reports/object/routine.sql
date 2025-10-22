@@ -49,13 +49,10 @@ BEGIN
     vHTML := E'<!DOCTYPE html>\n';
 
     vHTML := vHTML || format(E'<html lang="%s">\n', l.code);
-    vHTML := vHTML || E'<head>\n';
-    vHTML := vHTML || E'  <meta charset="UTF-8">\n';
-    vHTML := vHTML || format(E'  <title>%s</title>\n', Lines[1]);
-    vHTML := vHTML || E'</head>\n';
+    vHTML := vHTML || ReportHeadHTML(Lines[1]);
 
     vHTML := vHTML || E'<body>\n';
-    vHTML := vHTML || E'<div>\n';
+    vHTML := vHTML || E'<div class="report-header report-font-size">\n';
 
     vHTML := vHTML || E'  <div class="text-center">\n';
     vHTML := vHTML || E'    <h2 class="mb-3">' || Lines[1] || E'</h2>\n';

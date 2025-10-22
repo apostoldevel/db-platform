@@ -22,6 +22,26 @@ AS
 GRANT SELECT ON CurrentReference TO administrator;
 
 --------------------------------------------------------------------------------
+-- AccessReference -------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW AccessReference
+AS
+WITH _access AS (
+  WITH _membergroup AS (
+	SELECT current_userid() AS userid UNION SELECT userid FROM db.member_group WHERE member = current_userid()
+  )
+  SELECT a.object
+	FROM db.reference r INNER JOIN db.aou       a ON r.object = a.object
+						INNER JOIN _membergroup m ON a.userid = m.userid
+   WHERE r.scope = current_scope()
+     AND a.mask = B'100'
+   GROUP BY a.object
+) SELECT t.* FROM db.reference t INNER JOIN _access a ON t.object = a.object;
+
+GRANT SELECT ON AccessReference TO administrator;
+
+--------------------------------------------------------------------------------
 -- ObjectReference -------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -64,23 +84,3 @@ AS
                             INNER JOIN db.scope            sc ON o.scope = sc.id;
 
 GRANT SELECT ON ObjectReference TO administrator;
-
---------------------------------------------------------------------------------
--- SafeReference ---------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE VIEW SafeReference
-AS
-WITH _access AS (
-  WITH _membergroup AS (
-	SELECT current_userid() AS userid UNION SELECT userid FROM db.member_group WHERE member = current_userid()
-  )
-  SELECT a.object
-	FROM db.reference r INNER JOIN db.aou       a ON r.object = a.object
-						INNER JOIN _membergroup m ON a.userid = m.userid
-   GROUP BY a.object
-  HAVING (bit_or(a.allow) & ~bit_or(a.deny)) & B'100' = B'100'
-) SELECT t.* FROM ObjectReference t INNER JOIN _access a ON t.object = a.object;
-
-GRANT SELECT ON SafeReference TO administrator;
-

@@ -19,15 +19,15 @@ GRANT SELECT ON api.log TO administrator;
  * Журнал событий текущего пользователя.
  * @param {char} pType - Тип события: {M|W|E}
  * @param {integer} pCode - Код
- * @param {timestamp} pDateFrom - Дата начала периода
- * @param {timestamp} pDateTo - Дата окончания периода
+ * @param {timestamptz} pDateFrom - Дата начала периода
+ * @param {timestamptz} pDateTo - Дата окончания периода
  * @return {SETOF api.log} - Записи
  */
 CREATE OR REPLACE FUNCTION api.log (
   pUserName     text DEFAULT null,
   pPath         text DEFAULT null,
-  pDateFrom     timestamp DEFAULT null,
-  pDateTo       timestamp DEFAULT null
+  pDateFrom     timestamptz DEFAULT null,
+  pDateTo       timestamptz DEFAULT null
 ) RETURNS       SETOF api.log
 AS $$
   SELECT *
@@ -98,6 +98,8 @@ $$ LANGUAGE plpgsql
  * @param {integer} pLimit - Лимит по количеству строк
  * @param {integer} pOffSet - Пропустить указанное число строк
  * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
+ * @param {jsonb} pFields - Список полей
+ * @param {jsonb} pGroupBy - Группировать по указанным в массиве полям
  * @return {text} - SQL запрос
 
  Где сравнение (compare):
@@ -135,7 +137,8 @@ CREATE OR REPLACE FUNCTION api.sql (
   pLimit        integer DEFAULT null,
   pOffSet       integer DEFAULT null,
   pOrderBy      jsonb DEFAULT null,
-  pFields       jsonb DEFAULT null
+  pFields       jsonb DEFAULT null,
+  pGroupBy      jsonb DEFAULT null
 ) RETURNS       text
 AS $$
 DECLARE
@@ -160,8 +163,6 @@ DECLARE
   arValues      text[];
   arColumns     text[];
 BEGIN
---  pOrderBy := NULLIF(pOrderBy, '{}');
-  pOrderBy := NULLIF(pOrderBy, '[]');
 /*
   SELECT table_name INTO vTable
     FROM information_schema.tables
@@ -174,6 +175,10 @@ BEGIN
     PERFORM ViewNotFound(pScheme, pTable);
   END IF;
 */
+
+  pOrderBy := NULLIF(pOrderBy, '[]');
+  pGroupBy := NULLIF(pGroupBy, '[]');
+
   arColumns := GetColumns(pTable, pScheme);
 
   vSelect := coalesce(vWith, '') || 'SELECT ' || JsonbToFields(pFields, arColumns) || E'\n  FROM ' || pScheme || '.' || pTable || ' t ' || coalesce(vJoin, '');
@@ -276,6 +281,15 @@ BEGIN
   END IF;
 
   vSelect := vSelect || coalesce(vWhere, '');
+
+  IF pGroupBy IS NOT NULL THEN
+    PERFORM CheckJsonbValues('groupby', arColumns, pGroupBy);
+    IF jsonb_typeof(pGroupBy) = 'array' THEN
+      IF JsonbToStrArray(pGroupBy) IS NOT NULL THEN
+        vSelect := vSelect || E'\n GROUP BY ' || array_to_string(array_quote_literal_json(JsonbToStrArray(pGroupBy)), ',');
+      END IF;
+    END IF;
+  END IF;
 
   IF pOrderBy IS NOT NULL THEN
     --PERFORM CheckJsonbValues('orderby', array_cat(arColumns, array_add_text(arColumns, ' desc')), pOrderBy);

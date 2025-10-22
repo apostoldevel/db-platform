@@ -39,7 +39,7 @@ CREATE OR REPLACE FUNCTION api.add_report_tree (
 ) RETURNS       uuid
 AS $$
 BEGIN
-  RETURN CreateReportTree(pParent, coalesce(pType, GetType('none.report_tree')), pRoot, pNode, pCode, pName, pDescription, pSequence);
+  RETURN CreateReportTree(pParent, coalesce(pType, GetType('report.report_tree')), pRoot, pNode, pCode, pName, pDescription, pSequence);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
