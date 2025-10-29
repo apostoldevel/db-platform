@@ -1338,7 +1338,7 @@ CREATE OR REPLACE FUNCTION NewObjectFile (
   pData     bytea DEFAULT null,
   pHash     text DEFAULT null,
   pText     text DEFAULT null,
-  pType     text DEFAULT null,
+  pMime     text DEFAULT null,
   pDone     text DEFAULT null,
   pFail     text DEFAULT null
 ) RETURNS   uuid
@@ -1346,6 +1346,7 @@ AS $$
 DECLARE
   uRoot     uuid;
   uParent   uuid;
+  vType     char;
   vClass    text;
 BEGIN
   IF pFile IS NULL THEN
@@ -1365,9 +1366,24 @@ BEGIN
       uParent := uRoot;
     END IF;
 
+    vType := '-';
+
+    IF pData IS NOT NULL THEN
+      IF pMime = 'text/x-uri' THEN
+        vType := 'l';
+      ELSE
+        IF pHash IS NULL THEN
+          pHash := encode(digest(pData, 'sha256'), 'hex');
+        END IF;
+        IF pSize IS NULL THEN
+          pSize := length(pData);
+        END IF;
+      END IF;
+    END IF;
+
     pFile := GetFile(uParent, pName);
     IF pFile IS NULL THEN
-      pFile := NewFile(null, uRoot, uParent, pName, '-', null, null, null, pSize, pDate, pData, pType, pText, pHash, pDone, pFail);
+      pFile := NewFile(null, uRoot, uParent, pName, vType, GetObjectOwner(pObject), null, null, pSize, pDate, pData, pMime, pText, pHash, pDone, pFail);
     END IF;
   END IF;
 
@@ -1378,7 +1394,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
+   SET search_path = kernel, public, pg_temp;
 
 --------------------------------------------------------------------------------
 -- EditObjectFile --------------------------------------------------------------
@@ -1394,7 +1410,7 @@ CREATE OR REPLACE FUNCTION EditObjectFile (
   pData     bytea DEFAULT null,
   pHash     text DEFAULT null,
   pText     text DEFAULT null,
-  pType     text DEFAULT null
+  pMime     text DEFAULT null
 ) RETURNS   void
 AS $$
 DECLARE
@@ -1411,7 +1427,7 @@ BEGIN
     END IF;
   END IF;
 
-  PERFORM EditFile(pFile, null, null, pName, null, null, null, pSize, pDate, pData, pType, pText, pHash);
+  PERFORM EditFile(pFile, null, null, pName, null, null, null, pSize, pDate, pData, pMime, pText, pHash);
 
   UPDATE db.object_file
      SET updated = Now()
@@ -1494,7 +1510,9 @@ CREATE OR REPLACE FUNCTION SetObjectFile (
   pData     bytea DEFAULT null,
   pHash     text DEFAULT null,
   pText     text DEFAULT null,
-  pType     text DEFAULT null
+  pMime     text DEFAULT null,
+  pDone     text DEFAULT null,
+  pFail     text DEFAULT null
 ) RETURNS   uuid
 AS $$
 DECLARE
@@ -1511,9 +1529,9 @@ BEGIN
   IF coalesce(pSize, 0) >= 0 THEN
     PERFORM FROM db.object_file WHERE object = pObject AND file = pFile;
     IF NOT FOUND THEN
-      pFile := NewObjectFile(pObject, pFile, pName, pPath, pSize, pDate, pData, pHash, pText, pType);
+      pFile := NewObjectFile(pObject, pFile, pName, pPath, pSize, pDate, pData, pHash, pText, pMime, pDone, pFail);
     ELSE
-      PERFORM EditObjectFile(pObject, pFile, pName, pPath, pSize, pDate, pData, pHash, pText, pType);
+      PERFORM EditObjectFile(pObject, pFile, pName, pPath, pSize, pDate, pData, pHash, pText, pMime);
     END IF;
   ELSE
     PERFORM DeleteObjectFile(pObject, pFile, pName, pPath);

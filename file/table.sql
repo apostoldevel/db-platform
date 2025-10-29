@@ -34,7 +34,7 @@ COMMENT ON COLUMN db.file.id IS 'Идентификатор';
 COMMENT ON COLUMN db.file.root IS 'Идентификатор корневого узла';
 COMMENT ON COLUMN db.file.parent IS 'Идентификатор родительского узла';
 COMMENT ON COLUMN db.file.link IS 'Ссылка на файл (идентификатор узла)';
-COMMENT ON COLUMN db.file.owner IS 'Идентификатор владелеца';
+COMMENT ON COLUMN db.file.owner IS 'Идентификатор владельца';
 COMMENT ON COLUMN db.file.type IS 'Тип: "-" - file (файл), "d" - directory (каталог), "l" - link (ссылка), "s" - storage (хранилище)';
 COMMENT ON COLUMN db.file.mask IS 'Маска доступа. Девять бит ({u:rwe}{g:rwe}{o:rwe}), по три бита на действие r - read, w - write, e - execute, для: u - user (владелец) g - group (группа) o - other (остальные)';
 COMMENT ON COLUMN db.file.level IS 'Уровень вложенности';
