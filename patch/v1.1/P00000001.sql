@@ -21,23 +21,24 @@ AS $$
                      INNER JOIN _membergroup m ON a.userid = m.userid
    WHERE o.scope = pScope
      AND o.entity = pEntity
-     AND a.mask = B'100'
-   GROUP BY a.object
+   GROUP BY object
+  HAVING (bit_or(a.allow) & ~bit_or(a.deny)) & B'100' = B'100'
 $$ LANGUAGE SQL
+   STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
 --
 
-DROP VIEW api.reference CASCADE;
-DROP VIEW ObjectReference CASCADE;
-DROP VIEW AccessReference CASCADE;
+DROP VIEW IF EXISTS api.reference CASCADE;
+DROP VIEW IF EXISTS ObjectReference CASCADE;
+DROP VIEW IF EXISTS AccessReference CASCADE;
 
-DROP VIEW AccessForm CASCADE;
-DROP VIEW AccessVendor CASCADE;
-DROP VIEW AccessAgent CASCADE;
-DROP VIEW AccessProgram CASCADE;
-DROP VIEW AccessScheduler CASCADE;
-DROP VIEW AccessVersion CASCADE;
-DROP VIEW AccessJob CASCADE;
-DROP VIEW AccessMessage CASCADE;
+DROP VIEW IF EXISTS AccessForm CASCADE;
+DROP VIEW IF EXISTS AccessVendor CASCADE;
+DROP VIEW IF EXISTS AccessAgent CASCADE;
+DROP VIEW IF EXISTS AccessProgram CASCADE;
+DROP VIEW IF EXISTS AccessScheduler CASCADE;
+DROP VIEW IF EXISTS AccessVersion CASCADE;
+DROP VIEW IF EXISTS AccessJob CASCADE;
+DROP VIEW IF EXISTS AccessMessage CASCADE;

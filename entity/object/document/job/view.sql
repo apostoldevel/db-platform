@@ -52,8 +52,8 @@ WITH _membergroup AS (
 ) SELECT object
 	FROM db.job t INNER JOIN db.aou         a ON a.object = t.id
                   INNER JOIN _membergroup   m ON a.userid = m.userid
-   WHERE a.mask = B'100'
-   GROUP BY object;
+   GROUP BY object
+  HAVING (bit_or(a.allow) & ~bit_or(a.deny)) & B'100' = B'100';
 
 GRANT SELECT ON AccessJob TO administrator;
 

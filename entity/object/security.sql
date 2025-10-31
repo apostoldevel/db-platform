@@ -212,9 +212,10 @@ AS $$
                      INNER JOIN _membergroup m ON a.userid = m.userid
    WHERE o.scope = pScope
      AND o.entity = pEntity
-     AND a.mask = B'100'
-   GROUP BY a.object
+   GROUP BY object
+  HAVING (bit_or(a.allow) & ~bit_or(a.deny)) & B'100' = B'100'
 $$ LANGUAGE SQL
+   STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
