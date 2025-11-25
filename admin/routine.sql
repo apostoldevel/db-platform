@@ -4290,7 +4290,7 @@ BEGIN
       FROM Session
      WHERE username LIKE 'web-%'
        AND code IS DISTINCT FROM current_session()
-       AND input_last < Now() - INTERVAL '1 day'
+       AND input_last < Now() - INTERVAL '10 day'
      LIMIT 5000
   LOOP
     PERFORM SignOut(r.code);
@@ -4300,7 +4300,7 @@ BEGIN
     SELECT code
       FROM db.session
      WHERE code IS DISTINCT FROM current_session()
-       AND agent LIKE 'python-requests%'
+       AND agent LIKE 'python-%'
   LOOP
     PERFORM SignOut(r.code);
   END LOOP;
