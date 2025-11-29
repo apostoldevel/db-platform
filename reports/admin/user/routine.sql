@@ -386,7 +386,9 @@ WHEN others THEN
 
   vHTML := ReportErrorHTML(ErrorCode, ErrorMessage, vContext);
 
-  PERFORM SetObjectFile(pReady, null, 'index.html', null, length(vHTML), localtimestamp, vHTML::bytea, encode(digest(vHTML, 'md5'), 'hex'), 'exception', 'data:text/html;base64,');
+  html_file := convert_to(vHTML, 'utf8');
+
+  PERFORM SetObjectFile(pReady, null, 'index.html', null, length(html_file), localtimestamp, html_file, encode(digest(html_file, 'md5'), 'hex'), 'exception', 'data:text/html;base64,');
 END
 $$ LANGUAGE plpgsql
   SECURITY DEFINER
