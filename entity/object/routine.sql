@@ -1627,7 +1627,8 @@ CREATE OR REPLACE FUNCTION NewObjectData (
 AS $$
 BEGIN
   INSERT INTO db.object_data (object, type, code, data)
-  VALUES (pObject, pType, pCode, pData);
+  VALUES (pObject, pType, pCode, pData)
+  ON CONFLICT (object, type, code) DO UPDATE SET data = pData;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
