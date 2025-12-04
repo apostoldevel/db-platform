@@ -125,7 +125,7 @@ BEGIN
 
   PERFORM SetObjectFile(pReady, null, 'index.html', null, length(vHTML), localtimestamp, vHTML::bytea, encode(digest(vHTML, 'md5'), 'hex'), Lines[1], 'data:text/html;base64,');
 
-  PERFORM ExecuteObjectAction(pReady, GetAction('complete'));
+  PERFORM DoAction(pReady, 'complete');
 EXCEPTION
 WHEN others THEN
   GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
@@ -137,7 +137,7 @@ WHEN others THEN
   PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage, pReady);
   PERFORM WriteToEventLog('D', ErrorCode, vContext, pReady);
 
-  PERFORM ExecuteObjectAction(pReady, GetAction('fail'));
+  PERFORM DoAction(pReady, 'fail');
 
   vHTML := ReportErrorHTML(ErrorCode, ErrorMessage, vContext);
 

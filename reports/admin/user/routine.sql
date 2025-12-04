@@ -370,7 +370,7 @@ BEGIN
   PERFORM SetObjectFile(pReady, null, 'index.html', null, length(html_file), localtimestamp, html_file, encode(digest(html_file, 'md5'), 'hex'), Lines[1], 'data:text/html;base64,');
   PERFORM SetObjectFile(pReady, null, format('user_%s.csv', DateToStr(Now(), 'YYYYMMDD_HH24MISS')), null, length(csv_file), localtimestamp, csv_file, encode(digest(csv_file, 'md5'), 'hex'), Lines[1], 'data:text/plain;base64,');
 
-  PERFORM ExecuteObjectAction(pReady, GetAction('complete'));
+  PERFORM DoAction(pReady, 'complete');
 EXCEPTION
 WHEN others THEN
   GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
@@ -382,7 +382,7 @@ WHEN others THEN
   PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage, pReady);
   PERFORM WriteToEventLog('D', ErrorCode, vContext, pReady);
 
-  PERFORM ExecuteObjectAction(pReady, GetAction('fail'));
+  PERFORM DoAction(pReady, 'fail');
 
   vHTML := ReportErrorHTML(ErrorCode, ErrorMessage, vContext);
 

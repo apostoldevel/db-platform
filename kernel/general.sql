@@ -1024,7 +1024,7 @@ BEGIN
   IF pJson IS NOT NULL THEN
     FOR r IN SELECT * FROM jsonb_array_elements_text(pJson)
     LOOP
-      IF regexp_like(r.value, '\m(sum|count|max|min|avg)\s*\(\s*(\*|[A-Za-z_][A-Za-z0-9_]*)\s*\)', 'i') THEN
+      IF regexp_like(r.value, '\m(sum|count|max|min|avg)\s*\(\s*(?:DISTINCT\s+)?(\*|[A-Za-z_][A-Za-z0-9_]*|\([^)]*\))\s*\)', 'i') THEN
         pFields := array_append(pFields, r.value);
       END IF;
     END LOOP;
