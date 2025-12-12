@@ -69,8 +69,8 @@ $$ LANGUAGE plpgsql
  * @return {api.event_log}
  */
 CREATE OR REPLACE FUNCTION api.get_event_log (
-  pId        bigint
-) RETURNS    api.event_log
+  pId       bigint
+) RETURNS   SETOF api.event_log
 AS $$
   SELECT * FROM api.event_log WHERE id = pId
 $$ LANGUAGE SQL
@@ -156,8 +156,8 @@ $$ LANGUAGE SQL
  * @return {api.user_log}
  */
 CREATE OR REPLACE FUNCTION api.get_user_log (
-  pId        bigint
-) RETURNS    api.user_log
+  pId       bigint
+) RETURNS   SETOF api.user_log
 AS $$
   SELECT * FROM api.user_log WHERE id = pId
 $$ LANGUAGE SQL

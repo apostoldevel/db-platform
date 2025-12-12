@@ -111,10 +111,10 @@ $$ LANGUAGE plpgsql
  * @return {api.form}
  */
 CREATE OR REPLACE FUNCTION api.get_form (
-  pId        uuid
-) RETURNS    api.form
+  pId       uuid
+) RETURNS   SETOF api.form
 AS $$
-  SELECT * FROM api.form WHERE id = pId
+  SELECT * FROM api.form WHERE id = pId AND CheckObjectAccess(id, B'100')
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

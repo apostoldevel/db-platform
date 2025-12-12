@@ -22,8 +22,8 @@ GRANT SELECT ON api.entity TO administrator;
  * @return {SETOF api.entity} - Запись
  */
 CREATE OR REPLACE FUNCTION api.get_entity (
-  pId         uuid
-) RETURNS     SETOF api.entity
+  pId       uuid
+) RETURNS   SETOF api.entity
 AS $$
   SELECT * FROM api.entity WHERE id = pId
 $$ LANGUAGE SQL
@@ -182,11 +182,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает тип.
- * @return {Type} - Тип
+ * @return {api.type} - Тип
  */
 CREATE OR REPLACE FUNCTION api.get_type (
-  pId         uuid
-) RETURNS     SETOF api.type
+  pId       uuid
+) RETURNS   SETOF api.type
 AS $$
   SELECT * FROM api.type WHERE id = pId
 $$ LANGUAGE SQL
@@ -202,8 +202,8 @@ $$ LANGUAGE SQL
  * @return {uuid} - Тип объекта
  */
 CREATE OR REPLACE FUNCTION api.get_type_id (
-  pCode      text
-) RETURNS    uuid
+  pCode     text
+) RETURNS   uuid
 AS $$
 BEGIN
   IF length(pCode) = 36 AND SubStr(pCode, 15, 1) = '4' THEN
@@ -544,8 +544,8 @@ GRANT SELECT ON api.state_type TO administrator;
  * @return {record} - Запись
  */
 CREATE OR REPLACE FUNCTION api.get_state_type (
-  pId        uuid
-) RETURNS    SETOF api.state_type
+  pId       uuid
+) RETURNS   SETOF api.state_type
 AS $$
   SELECT * FROM api.state_type WHERE id = pId;
 $$ LANGUAGE SQL

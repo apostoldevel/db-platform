@@ -86,11 +86,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * Возвращает код верификации.
- * @return {record} - Данные интерфейса
+ * @return {api.verification_code} - Данные интерфейса
  */
 CREATE OR REPLACE FUNCTION api.get_verification_code (
-  pId        uuid
-) RETURNS    SETOF api.verification_code
+  pId       uuid
+) RETURNS   SETOF api.verification_code
 AS $$
   SELECT * FROM api.verification_code WHERE id = pId;
 $$ LANGUAGE SQL

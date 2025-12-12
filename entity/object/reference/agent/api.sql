@@ -115,10 +115,10 @@ $$ LANGUAGE plpgsql
  * @return {api.agent}
  */
 CREATE OR REPLACE FUNCTION api.get_agent (
-  pId        uuid
-) RETURNS    SETOF api.agent
+  pId       uuid
+) RETURNS   SETOF api.agent
 AS $$
-  SELECT * FROM api.agent WHERE id = pId
+  SELECT * FROM api.agent WHERE id = pId AND CheckObjectAccess(id, B'100')
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -159,8 +159,8 @@ $$ LANGUAGE plpgsql
  * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION api.get_agent_id (
-  pCode      text
-) RETURNS    uuid
+  pCode     text
+) RETURNS   uuid
 AS $$
 BEGIN
   IF length(pCode) = 36 AND SubStr(pCode, 15, 1) = '4' THEN

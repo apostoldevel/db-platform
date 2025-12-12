@@ -128,8 +128,8 @@ $$ LANGUAGE plpgsql
  * @return {api.notice}
  */
 CREATE OR REPLACE FUNCTION api.get_notice (
-  pId        uuid
-) RETURNS    SETOF api.notice
+  pId       uuid
+) RETURNS   SETOF api.notice
 AS $$
   SELECT * FROM api.notice WHERE id = pId
 $$ LANGUAGE SQL

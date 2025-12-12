@@ -134,7 +134,7 @@ CREATE OR REPLACE FUNCTION api.get_comment (
   pId		uuid
 ) RETURNS	SETOF api.comment
 AS $$
-  SELECT * FROM api.comment WHERE id = pId
+  SELECT * FROM api.comment WHERE id = pId AND CheckObjectAccess(id, B'100')
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

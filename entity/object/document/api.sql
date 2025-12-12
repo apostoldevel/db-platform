@@ -110,10 +110,10 @@ $$ LANGUAGE plpgsql
  * @return {api.document}
  */
 CREATE OR REPLACE FUNCTION api.get_document (
-  pId        uuid
-) RETURNS    api.document
+  pId       uuid
+) RETURNS   SETOF api.document
 AS $$
-  SELECT * FROM api.document WHERE id = pId
+  SELECT * FROM api.document WHERE id = pId AND CheckObjectAccess(id, B'100')
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

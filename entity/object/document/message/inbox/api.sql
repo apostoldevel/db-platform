@@ -79,10 +79,10 @@ $$ LANGUAGE plpgsql
  * @return {api.inbox}
  */
 CREATE OR REPLACE FUNCTION api.get_inbox (
-  pId        uuid
-) RETURNS    SETOF api.inbox
+  pId       uuid
+) RETURNS   SETOF api.inbox
 AS $$
-  SELECT * FROM api.inbox WHERE id = pId
+  SELECT * FROM api.inbox WHERE id = pId AND CheckObjectAccess(id, B'100')
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

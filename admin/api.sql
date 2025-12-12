@@ -330,8 +330,8 @@ $$ LANGUAGE SQL
  * @return {api.session}
  */
 CREATE OR REPLACE FUNCTION api.get_session (
-  pCode      varchar
-) RETURNS    SETOF api.session
+  pCode     varchar
+) RETURNS   SETOF api.session
 AS $$
   SELECT * FROM api.session WHERE code = pCode
 $$ LANGUAGE SQL
@@ -509,8 +509,8 @@ $$ LANGUAGE plpgsql
  * @return {SETOF api.user} - Учётная запись пользователя
  */
 CREATE OR REPLACE FUNCTION api.get_user (
-  pId         uuid DEFAULT current_userid()
-) RETURNS     SETOF api.user
+  pId       uuid DEFAULT current_userid()
+) RETURNS   SETOF api.user
 AS $$
   SELECT * FROM api.user WHERE id = pId;
 $$ LANGUAGE SQL
@@ -1162,8 +1162,8 @@ $$ LANGUAGE plpgsql
  * @return {SETOF api.group} - Группа
  */
 CREATE OR REPLACE FUNCTION api.get_group (
-  pId         uuid
-) RETURNS     SETOF api.group
+  pId       uuid
+) RETURNS   SETOF api.group
 AS $$
   SELECT * FROM api.group WHERE id = pId;
 $$ LANGUAGE SQL

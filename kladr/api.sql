@@ -16,13 +16,13 @@ GRANT SELECT ON api.address_tree TO administrator;
 -- api.get_address_tree --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает адрес из справачника адресов КЛАДР
+ * Возвращает адрес из справочника адресов КЛАДР
  * @param {integer} pId - Идентификатор
  * @return {api.address_tree}
  */
 CREATE OR REPLACE FUNCTION api.get_address_tree (
-  pId        integer
-) RETURNS    SETOF api.address_tree
+  pId       integer
+) RETURNS   SETOF api.address_tree
 AS $$
   SELECT * FROM api.address_tree WHERE id = pId
 $$ LANGUAGE SQL
@@ -33,7 +33,7 @@ $$ LANGUAGE SQL
 -- api.list_address_tree -------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает справачник адресов КЛАДР.
+ * Возвращает справочник адресов КЛАДР.
  * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
  * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
  * @param {integer} pLimit - Лимит по количеству строк
@@ -65,8 +65,8 @@ $$ LANGUAGE plpgsql
  * @return {SETOF api.address_tree}
  */
 CREATE OR REPLACE FUNCTION api.get_address_tree_history (
-  pId        integer
-) RETURNS    SETOF api.address_tree
+  pId       integer
+) RETURNS   SETOF api.address_tree
 AS $$
   WITH RECURSIVE addr_tree(id, parent, code, name, short, index, level) AS (
     SELECT id, parent, code, name, short, index, level FROM db.address_tree WHERE id = pId

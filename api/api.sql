@@ -51,8 +51,8 @@ $$ LANGUAGE SQL
  * @return {api.log}
  */
 CREATE OR REPLACE FUNCTION api.get_log (
-  pId        bigint
-) RETURNS    api.log
+  pId       bigint
+) RETURNS   SETOF api.log
 AS $$
   SELECT * FROM api.log WHERE id = pId
 $$ LANGUAGE SQL

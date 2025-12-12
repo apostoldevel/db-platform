@@ -50,9 +50,8 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.get_max_relay_id (
-  pSource       text
-)
-RETURNS         bigint
+  pSource   text
+) RETURNS   bigint
 AS $$
   SELECT max(id) FROM replication.relay WHERE source = pSource;
 $$ LANGUAGE SQL
@@ -87,8 +86,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.get_replication_log (
-  pId           bigint
-) RETURNS       SETOF api.replication_log
+  pId       bigint
+) RETURNS   SETOF api.replication_log
 AS $$
   SELECT * FROM api.replication_log WHERE id = pId;
 $$ LANGUAGE SQL

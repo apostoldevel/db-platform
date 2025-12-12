@@ -79,10 +79,10 @@ $$ LANGUAGE plpgsql
  * @return {api.outbox}
  */
 CREATE OR REPLACE FUNCTION api.get_outbox (
-  pId        uuid
-) RETURNS    SETOF api.outbox
+  pId       uuid
+) RETURNS   SETOF api.outbox
 AS $$
-  SELECT * FROM api.outbox WHERE id = pId
+  SELECT * FROM api.outbox WHERE id = pId AND CheckObjectAccess(id, B'100')
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

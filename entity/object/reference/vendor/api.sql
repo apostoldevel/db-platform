@@ -110,10 +110,10 @@ $$ LANGUAGE plpgsql
  * @return {api.vendor}
  */
 CREATE OR REPLACE FUNCTION api.get_vendor (
-  pId        uuid
-) RETURNS    SETOF api.vendor
+  pId       uuid
+) RETURNS   SETOF api.vendor
 AS $$
-  SELECT * FROM api.vendor WHERE id = pId
+  SELECT * FROM api.vendor WHERE id = pId AND CheckObjectAccess(id, B'100')
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -154,8 +154,8 @@ $$ LANGUAGE plpgsql
  * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION api.get_vendor_id (
-  pCode      text
-) RETURNS    uuid
+  pCode     text
+) RETURNS   uuid
 AS $$
 BEGIN
   IF length(pCode) = 36 AND SubStr(pCode, 15, 1) = '4' THEN

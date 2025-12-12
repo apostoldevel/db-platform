@@ -33,8 +33,8 @@ $$ LANGUAGE SQL
  * @return {record}
  */
 CREATE OR REPLACE FUNCTION api.get_publisher (
-  pCode         text
-) RETURNS       SETOF api.publisher
+  pCode     text
+) RETURNS   SETOF api.publisher
 AS $$
   SELECT * FROM api.publisher WHERE code = pCode;
 $$ LANGUAGE SQL

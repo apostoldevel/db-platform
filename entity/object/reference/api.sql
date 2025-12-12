@@ -110,10 +110,10 @@ $$ LANGUAGE plpgsql
  * @return {api.reference}
  */
 CREATE OR REPLACE FUNCTION api.get_reference (
-  pId        uuid
-) RETURNS    api.reference
+  pId       uuid
+) RETURNS   SETOF api.reference
 AS $$
-  SELECT * FROM api.reference WHERE id = pId
+  SELECT * FROM api.reference WHERE id = pId AND CheckObjectAccess(id, B'100')
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

@@ -34,8 +34,8 @@ $$ LANGUAGE SQL
  * @return {record}
  */
 CREATE OR REPLACE FUNCTION api.get_notification (
-  pId           uuid
-) RETURNS       SETOF api.notification
+  pId       uuid
+) RETURNS   SETOF api.notification
 AS $$
   SELECT * FROM api.notification WHERE id = pId;
 $$ LANGUAGE SQL
@@ -88,8 +88,8 @@ GRANT SELECT ON api.object_method_history TO administrator;
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.get_object_method_history (
-  pId         uuid
-) RETURNS     SETOF api.object_method_history
+  pId       uuid
+) RETURNS   SETOF api.object_method_history
 AS $$
   SELECT * FROM api.object_method_history WHERE id = pId;
 $$ LANGUAGE SQL

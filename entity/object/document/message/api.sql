@@ -189,10 +189,10 @@ $$ LANGUAGE plpgsql
  * @return {api.message}
  */
 CREATE OR REPLACE FUNCTION api.get_message (
-  pId        uuid
-) RETURNS    SETOF api.message
+  pId       uuid
+) RETURNS   SETOF api.message
 AS $$
-  SELECT * FROM api.message WHERE id = pId
+  SELECT * FROM api.message WHERE id = pId AND CheckObjectAccess(id, B'100')
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -206,10 +206,10 @@ $$ LANGUAGE SQL
  * @return {api.service_message}
  */
 CREATE OR REPLACE FUNCTION api.get_service_message (
-  pId        uuid
-) RETURNS    SETOF api.service_message
+  pId       uuid
+) RETURNS   SETOF api.service_message
 AS $$
-  SELECT * FROM api.service_message WHERE id = pId
+  SELECT * FROM api.service_message WHERE id = pId AND CheckObjectAccess(id, B'100')
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

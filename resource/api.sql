@@ -156,10 +156,10 @@ $$ LANGUAGE plpgsql
  * @return {api.resource}
  */
 CREATE OR REPLACE FUNCTION api.get_resource (
-  pId        uuid
-) RETURNS    SETOF api.resource
+  pId       uuid
+) RETURNS   SETOF api.resource
 AS $$
-  SELECT * FROM api.resource WHERE id = pId
+  SELECT * FROM api.resource WHERE id = pId AND CheckObjectAccess(id, B'100')
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

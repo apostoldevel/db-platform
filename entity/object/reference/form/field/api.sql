@@ -46,9 +46,9 @@ $$ LANGUAGE plpgsql
  * @return {api.form_field}
  */
 CREATE OR REPLACE FUNCTION api.get_form_field (
-  pForm         uuid,
-  pKey          text
-) RETURNS       api.form_field
+  pForm     uuid,
+  pKey      text
+) RETURNS   SETOF api.form_field
 AS $$
   SELECT * FROM api.form_field WHERE form = pForm AND key = pKey;
 $$ LANGUAGE SQL

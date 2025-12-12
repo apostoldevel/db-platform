@@ -1,0 +1,16 @@
+DROP FUNCTION api.get_event_log(bigint);
+DROP FUNCTION api.get_user_log(bigint);
+DROP FUNCTION api.get_log(bigint);
+DROP FUNCTION api.get_object(uuid);
+DROP FUNCTION api.get_reference(uuid);
+DROP FUNCTION api.get_form(uuid);
+DROP FUNCTION api.get_form_field(uuid,text);
+DROP FUNCTION api.get_scheduler(uuid);
+DROP FUNCTION api.get_version(uuid);
+DROP FUNCTION api.get_document(uuid);
+DROP FUNCTION api.get_job(uuid);
+DROP FUNCTION api.get_report_tree(uuid);
+DROP FUNCTION api.get_report_form(uuid);
+DROP FUNCTION api.get_report(uuid);
+DROP FUNCTION api.get_report_routine(uuid);
+DROP FUNCTION api.get_report_ready(uuid);

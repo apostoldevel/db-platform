@@ -115,10 +115,10 @@ $$ LANGUAGE plpgsql
  * @return {api.program}
  */
 CREATE OR REPLACE FUNCTION api.get_program (
-  pId        uuid
-) RETURNS    SETOF api.program
+  pId       uuid
+) RETURNS   SETOF api.program
 AS $$
-  SELECT * FROM api.program WHERE id = pId
+  SELECT * FROM api.program WHERE id = pId AND CheckObjectAccess(id, B'100')
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -159,8 +159,8 @@ $$ LANGUAGE plpgsql
  * @return {uuid}
  */
 CREATE OR REPLACE FUNCTION api.get_program_id (
-  pCode      text
-) RETURNS    uuid
+  pCode     text
+) RETURNS   uuid
 AS $$
 BEGIN
   IF length(pCode) = 36 AND SubStr(pCode, 15, 1) = '4' THEN

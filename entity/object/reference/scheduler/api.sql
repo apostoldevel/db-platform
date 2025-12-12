@@ -125,10 +125,10 @@ $$ LANGUAGE plpgsql
  * @return {api.scheduler}
  */
 CREATE OR REPLACE FUNCTION api.get_scheduler (
-  pId        uuid
-) RETURNS    api.scheduler
+  pId       uuid
+) RETURNS   SETOF api.scheduler
 AS $$
-  SELECT * FROM api.scheduler WHERE id = pId
+  SELECT * FROM api.scheduler WHERE id = pId AND CheckObjectAccess(id, B'100')
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

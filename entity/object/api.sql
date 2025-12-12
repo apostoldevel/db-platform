@@ -105,10 +105,10 @@ $$ LANGUAGE plpgsql
  * @return {api.object}
  */
 CREATE OR REPLACE FUNCTION api.get_object (
-  pId        uuid
-) RETURNS    api.object
+  pId       uuid
+) RETURNS   SETOF api.object
 AS $$
-  SELECT * FROM api.object WHERE id = pId
+  SELECT * FROM api.object WHERE id = pId AND CheckObjectAccess(id, B'100')
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -145,13 +145,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION api.get_object_label (
-  pObject       uuid
-) RETURNS       text
+  pObject   uuid
+) RETURNS   text
 AS $$
 DECLARE
-  uId           uuid;
+  uId       uuid;
 BEGIN
-  SELECT o.id INTO uId FROM db.object o WHERE o.id = pObject;
+  SELECT o.id INTO uId FROM db.object o WHERE o.id = pObject AND CheckObjectAccess(id, B'100');
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('object', 'id', pObject);
   END IF;
@@ -617,8 +617,8 @@ $$ LANGUAGE plpgsql
  * @return {SETOF api.object_group}
  */
 CREATE OR REPLACE FUNCTION api.get_object_group (
-  pId         uuid
-) RETURNS     SETOF api.object_group
+  pId       uuid
+) RETURNS   SETOF api.object_group
 AS $$
   SELECT * FROM api.object_group WHERE id = pId;
 $$ LANGUAGE SQL
