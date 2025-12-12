@@ -1,8 +1,8 @@
 [![en](https://img.shields.io/badge/lang-en-green.svg)](https://github.com/apostoldevel/db-platform/blob/master/README.md)
 
-# The PostgreSQL Framework for the backend development.
+# PostgreSQL Framework for backend development.
 
-Программная платформа (framework) поверх PostgreSQL для разработки серверной части автоматизированных информационных систем.
+Программная платформа (фреймворк), построенная на основе PostgreSQL, для разработки серверной части автоматизированных информационных систем.
 
 Описание
 -
