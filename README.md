@@ -1,59 +1,23 @@
-# База данных программной платформы **Апостол CRM**.
+[![ru](https://img.shields.io/badge/lang-ru-green.svg)](https://github.com/apostoldevel/db-platform/blob/master/README.ru-RU.md)
 
-**Апостол CRM** - программная платформа (framework) для разработки серверной части коммерческих информационных систем (КИС).
+# The PostgreSQL Framework for Backend Development
 
-ОПИСАНИЕ
+A software platform (framework) built on top of PostgreSQL for developing the backend of automated information systems.
+
+Description
 -
 
-**Система** состоит из двух частей - **платформы** и **конфигурации**.
+A detailed description is available in the [Wiki](https://github.com/apostoldevel/db-platform/wiki).
 
-- Платформа - это технологии и протоколы, встроенные службы и модули.
-- Конфигурация - это бизнес логика конкретного проекта.
-
-**Платформа** построена на базе фреймворка [Апостол](https://github.com/ufocomp/apostol), имеет модульную конструкцию и включает в себя встроенную поддержку СУБД PostgreSQL.
-
-Подробное описание доступно в [Wiki](https://github.com/apostoldevel/db-platform/wiki).
-
-УСТАНОВКА
+Implemented Projects
 -
 
-### PostgreSQL
+Projects implemented on this platform:
 
-Для того чтобы установить PostgreSQL, воспользуйтесь инструкцией по [этой](https://www.postgresql.org/download/) ссылке.
-
-### База данных
-
-Для того чтобы установить базу данных, необходимо выполнить:
-
-1. Прописать наименование базы данных в файле `db/sql/sets.psql`;
-1. Прописать пароли для пользователей СУБД [libpq-pgpass](https://postgrespro.ru/docs/postgrespro/14/libpq-pgpass):
-   ~~~
-   $ sudo -iu postgres -H vim .pgpass
-   ~~~
-   ~~~
-   *:*:*:kernel:kernel
-   *:*:*:admin:admin
-   *:*:*:daemon:daemon
-   ~~~
-1. Указать в файле настроек `/etc/postgresql/{version}/main/postgresql.conf` пути поиска схемы kernel:
-   ~~~
-   search_path = '"$user", kernel, public'	# schema names
-   ~~~
-1. Указать в файле настроек `/etc/postgresql/{version}/main/pg_hba.conf`:
-   ~~~
-   # TYPE  DATABASE        USER            ADDRESS                 METHOD
-   local	all		kernel					md5
-   local	all		admin					md5
-   local	all		daemon					md5
-
-   host	all		kernel		127.0.0.1/32		md5
-   host	all		admin		127.0.0.1/32		md5
-   host	all		daemon		127.0.0.1/32		md5
-   ~~~
-1. Выполнить:
-   ~~~
-   $ cd db/
-   $ ./runme.sh --make
-   ~~~
-
-###### Параметр `--make` необходим для установки базы данных на сервер в первый раз. Для переустановки базы данных установочный скрипт можно запускать с параметром `--install`.
+* [Ship Safety ERP](https://ship-safety.ru) – An automated ERP safety management system for shipping companies;
+* [CopyFrog](https://copyfrog.ai) – An AI-powered platform for generating unique images, ad copy, video creatives, and marketing descriptions for products and services;
+* [Talking to AI](https://t.me/TalkingToAIBot) – A Telegram chatbot for interacting with artificial intelligence;
+* [OCPP CSS](http://ocpp-css.ru) – A cloud-based SaaS platform for managing EV charging stations;
+* [PlugMe](https://plugme.ru) – A Charging Station Management System (CSMS);
+* [DEBT-Master](https://debt-master.ru) – A system for automating work with consumer accounts receivable and debt for utility services;
+* [BitDeals](https://testnet.bitdeals.org/info/about) – An arbitration platform for executing deals using BTC cryptocurrency.
