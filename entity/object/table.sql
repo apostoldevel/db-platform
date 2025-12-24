@@ -389,8 +389,8 @@ COMMENT ON TABLE db.object_state IS 'Состояние объекта.';
 COMMENT ON COLUMN db.object_state.id IS 'Идентификатор';
 COMMENT ON COLUMN db.object_state.object IS 'Объект';
 COMMENT ON COLUMN db.object_state.state IS 'Ссылка на состояние объекта';
-COMMENT ON COLUMN db.object_state.validFromDate IS 'Дата начала периода действия';
-COMMENT ON COLUMN db.object_state.validToDate IS 'Дата окончания периода действия';
+COMMENT ON COLUMN db.object_state.validFromDate IS 'Дата начала действия периода';
+COMMENT ON COLUMN db.object_state.validToDate IS 'Дата окончания действия периода';
 
 CREATE INDEX ON db.object_state (object);
 CREATE INDEX ON db.object_state (state);
@@ -546,8 +546,8 @@ COMMENT ON TABLE db.object_link IS 'Связанные с объектом об�
 COMMENT ON COLUMN db.object_link.object IS 'Идентификатор объекта';
 COMMENT ON COLUMN db.object_link.linked IS 'Идентификатор связанного объекта';
 COMMENT ON COLUMN db.object_link.key IS 'Ключ';
-COMMENT ON COLUMN db.object_link.validFromDate IS 'Дата начала периода действия';
-COMMENT ON COLUMN db.object_link.validToDate IS 'Дата окончания периода действия';
+COMMENT ON COLUMN db.object_link.validFromDate IS 'Дата начала действия периода';
+COMMENT ON COLUMN db.object_link.validToDate IS 'Дата окончания действия периода';
 
 --------------------------------------------------------------------------------
 
@@ -574,8 +574,8 @@ COMMENT ON TABLE db.object_reference IS 'Объектная ссылка.';
 COMMENT ON COLUMN db.object_reference.object IS 'Идентификатор объекта';
 COMMENT ON COLUMN db.object_reference.key IS 'Ключ';
 COMMENT ON COLUMN db.object_reference.reference IS 'Ссылка';
-COMMENT ON COLUMN db.object_reference.validFromDate IS 'Дата начала периода действия';
-COMMENT ON COLUMN db.object_reference.validToDate IS 'Дата окончания периода действия';
+COMMENT ON COLUMN db.object_reference.validFromDate IS 'Дата начала действия периода';
+COMMENT ON COLUMN db.object_reference.validToDate IS 'Дата окончания действия периода';
 
 --------------------------------------------------------------------------------
 
@@ -656,8 +656,8 @@ COMMENT ON COLUMN db.object_coordinates.accuracy IS 'Точность (высо�
 COMMENT ON COLUMN db.object_coordinates.label IS 'Метка';
 COMMENT ON COLUMN db.object_coordinates.description IS 'Описание';
 COMMENT ON COLUMN db.object_coordinates.data IS 'Данные в произвольном формате';
-COMMENT ON COLUMN db.object_coordinates.validFromDate IS 'Дата начала периода действия';
-COMMENT ON COLUMN db.object_coordinates.validToDate IS 'Дата окончания периода действия';
+COMMENT ON COLUMN db.object_coordinates.validFromDate IS 'Дата начала действия периода';
+COMMENT ON COLUMN db.object_coordinates.validToDate IS 'Дата окончания действия периода';
 
 CREATE UNIQUE INDEX ON db.object_coordinates (object, code, validFromDate, validToDate);
 CREATE INDEX ON db.object_coordinates (object);
