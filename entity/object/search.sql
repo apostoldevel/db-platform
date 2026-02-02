@@ -7,7 +7,7 @@ CREATE OR REPLACE FUNCTION api.search_en (
 ) RETURNS    SETOF api.object
 AS $$
   WITH access AS (
-    SELECT object FROM aou(current_userid())
+    SELECT object FROM aou(current_userid()) WHERE mask & B'100' = B'100'
   ), search AS (
   SELECT o.object
     FROM db.object_text o INNER JOIN access a ON o.object = a.object
@@ -29,7 +29,7 @@ CREATE OR REPLACE FUNCTION api.search_ru (
 ) RETURNS    SETOF api.object
 AS $$
   WITH access AS (
-    SELECT object FROM aou(current_userid())
+    SELECT object FROM aou(current_userid()) WHERE mask & B'100' = B'100'
   ), search AS (
   SELECT o.object
     FROM db.object_text o INNER JOIN access a ON o.object = a.object
