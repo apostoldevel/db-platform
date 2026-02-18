@@ -538,6 +538,10 @@ CREATE OR REPLACE FUNCTION api.list_user (
 ) RETURNS   SETOF api.user
 AS $$
 BEGIN
+  IF NOT IsAdmin() THEN
+    pFilter := coalesce(pFilter, '{}'::jsonb) || jsonb_build_object('id', current_userid());
+  END IF;
+
   RETURN QUERY EXECUTE api.sql('api', 'user', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
 END;
 $$ LANGUAGE plpgsql
