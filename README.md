@@ -1,6 +1,6 @@
 [![ru](https://img.shields.io/badge/lang-ru-green.svg)](https://github.com/apostoldevel/db-platform/blob/master/README.ru-RU.md)
 
-# db-platform
+# PostgreSQL Framework for Backend Development
 
 A PostgreSQL framework for backend development of automated information systems. Turns PostgreSQL into a full-fledged application server with built-in REST API, authentication, workflow engine, file storage, and business logic — all in PL/pgSQL.
 

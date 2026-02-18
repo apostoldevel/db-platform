@@ -1,6 +1,6 @@
 [![en](https://img.shields.io/badge/lang-en-green.svg)](https://github.com/apostoldevel/db-platform/blob/master/README.md)
 
-# db-platform
+# PostgreSQL Framework for Backend Development
 
 Программная платформа (фреймворк), построенная на основе PostgreSQL, для разработки серверной части автоматизированных информационных систем. Превращает PostgreSQL в полноценный сервер приложений со встроенным REST API, аутентификацией, механизмом рабочих процессов, файловым хранилищем и бизнес-логикой — всё на PL/pgSQL.
 
