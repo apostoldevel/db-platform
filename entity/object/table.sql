@@ -154,7 +154,7 @@ DECLARE
   vEntity   text;
 BEGIN
   INSERT INTO db.aom SELECT NEW.id;
-  INSERT INTO db.aou (object, userid, deny, allow) SELECT NEW.id, userid, SubString(deny FROM 3 FOR 3), SubString(allow FROM 3 FOR 3) FROM db.acu WHERE class = NEW.class;
+  INSERT INTO db.aou (object, userid, deny, allow) SELECT NEW.id, userid, SubString(deny FROM 3 FOR 3), SubString(allow FROM 3 FOR 3) FROM db.acu WHERE class = NEW.class AND (SubString(allow FROM 3 FOR 3) & ~SubString(deny FROM 3 FOR 3)) <> B'000';
 
   INSERT INTO db.aou (object, userid, deny, allow) SELECT NEW.id, NEW.owner, B'000', B'111'
     ON CONFLICT (object, userid) DO UPDATE SET deny = B'000', allow = B'111';
