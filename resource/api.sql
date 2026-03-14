@@ -26,18 +26,21 @@ GRANT SELECT ON api.resource_tree TO administrator;
 -- api.create_resource ---------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Создаёт ресурс
- * @param {uuid} pId - Идентификатор
- * @param {uuid} pRoot - Идентификатор корневого узла (Передать null для создания корневого узла)
- * @param {uuid} pNode - Идентификатор узла родителя
- * @param {text} pType - MIME тип
- * @param {text} pName - Наименование
- * @param {text} pDescription - Описание
- * @param {text} pEncoding - Кодировка
- * @param {text} pData - Данные
- * @param {integer} pSequence - Очерёдность
- * @param {text} pLocaleCode - Код локали
- * @return {uuid}
+ * @brief Create a new resource node via the public API.
+ * @param {uuid} pId - Explicit UUID or NULL to auto-generate
+ * @param {uuid} pRoot - Root node of the tree (NULL to start a new tree)
+ * @param {uuid} pNode - Parent node in the hierarchy
+ * @param {text} pType - MIME type of the content
+ * @param {text} pName - Human-readable name / key
+ * @param {text} pDescription - Longer description or label
+ * @param {text} pEncoding - Character encoding of the data payload
+ * @param {text} pData - Actual content payload
+ * @param {integer} pSequence - Sort position among siblings
+ * @param {text} pLocaleCode - ISO locale code (e.g. 'en', 'ru')
+ * @return {uuid} - ID of the newly created resource
+ * @throws IncorrectLocaleCode - When pLocaleCode does not match any known locale
+ * @see CreateResource
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.create_resource (
   pId           uuid,
@@ -71,18 +74,21 @@ $$ LANGUAGE plpgsql
 -- api.update_resource ---------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Обновляет ресурс
- * @param {uuid} pId - Идентификатор
- * @param {uuid} pRoot - Идентификатор корневого узла
- * @param {uuid} pNode - Идентификатор узла родителя
- * @param {text} pType - MIME тип
- * @param {text} pName - Наименование
- * @param {text} pDescription - Описание
- * @param {text} pEncoding - Кодировка
- * @param {text} pData - Данные
- * @param {integer} pSequence - Очерёдность
- * @param {text} pLocaleCode - Код локали
+ * @brief Update an existing resource node via the public API.
+ * @param {uuid} pId - Resource to update
+ * @param {uuid} pRoot - New root node (NULL to keep current)
+ * @param {uuid} pNode - New parent node (NULL to keep current)
+ * @param {text} pType - New MIME type (NULL to keep current)
+ * @param {text} pName - New name (NULL to keep current)
+ * @param {text} pDescription - New description (NULL to keep current)
+ * @param {text} pEncoding - New encoding (NULL to keep current)
+ * @param {text} pData - New content payload (NULL to keep current)
+ * @param {integer} pSequence - New sort position (NULL to keep current)
+ * @param {text} pLocaleCode - ISO locale code (e.g. 'en', 'ru')
  * @return {void}
+ * @throws IncorrectLocaleCode - When pLocaleCode does not match any known locale
+ * @see UpdateResource
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.update_resource (
   pId           uuid,
@@ -115,7 +121,23 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.set_resource ------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Create or update a resource node (upsert) and return the full row.
+ * @param {uuid} pId - Resource ID (NULL to create new)
+ * @param {uuid} pRoot - Root node of the tree
+ * @param {uuid} pNode - Parent node in the hierarchy
+ * @param {text} pType - MIME type of the content
+ * @param {text} pName - Human-readable name / key
+ * @param {text} pDescription - Longer description or label
+ * @param {text} pEncoding - Character encoding of the data payload
+ * @param {text} pData - Actual content payload
+ * @param {integer} pSequence - Sort position among siblings
+ * @param {text} pLocaleCode - ISO locale code (e.g. 'en', 'ru')
+ * @return {SETOF api.resource} - The created or updated resource row
+ * @throws IncorrectLocaleCode - When pLocaleCode does not match any known locale
+ * @see SetResource
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.set_resource (
   pId           uuid,
   pRoot         uuid DEFAULT null,
@@ -151,9 +173,10 @@ $$ LANGUAGE plpgsql
 -- api.get_resource ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает ресурс
- * @param {uuid} pId - Идентификатор
- * @return {api.resource}
+ * @brief Fetch a single resource by ID.
+ * @param {uuid} pId - Resource to retrieve
+ * @return {SETOF api.resource} - Matching resource row
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_resource (
   pId       uuid
@@ -168,9 +191,11 @@ $$ LANGUAGE SQL
 -- api.delete_resource ---------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Удаляет ресурс.
- * @param {uuid} pId - Идентификатор
+ * @brief Delete a resource node by ID.
+ * @param {uuid} pId - Resource to delete
  * @return {void}
+ * @see DeleteResource
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.delete_resource (
   pId       uuid
@@ -187,13 +212,14 @@ $$ LANGUAGE plpgsql
 -- api.list_resource -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список ресурсов.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.resource}
+ * @brief List resources with optional search, filter, pagination, and sorting.
+ * @param {jsonb} pSearch - Search conditions: '[{"condition": "AND|OR", "field": "<col>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<val>"}, ...]'
+ * @param {jsonb} pFilter - Equality filter: '{"<col>": "<val>"}'
+ * @param {integer} pLimit - Maximum number of rows to return
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Columns to sort by (JSON array)
+ * @return {SETOF api.resource} - Matching resource rows
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_resource (
   pSearch   jsonb default null,

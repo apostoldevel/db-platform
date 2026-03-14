@@ -1,7 +1,15 @@
 --------------------------------------------------------------------------------
 -- FUNCTION SetResourceSequence ------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Reassign the sort position of a resource, shifting siblings recursively.
+ * @param {uuid} pId - Resource whose position is being changed
+ * @param {integer} pSequence - Target sequence number
+ * @param {integer} pDelta - Shift direction (+1 / -1) for colliding siblings; 0 to set without shifting
+ * @return {void}
+ * @see SortResource
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION SetResourceSequence (
   pId           uuid,
   pSequence     integer,
@@ -34,7 +42,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION SortResource -------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Re-number all children of a parent node into a contiguous sequence.
+ * @param {uuid} pNode - Parent node whose children are re-sorted
+ * @return {void}
+ * @see SetResourceSequence
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION SortResource (
   pNode         uuid
 ) RETURNS       void
@@ -57,7 +71,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION SetResourceData ----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Upsert locale-specific content for a resource node.
+ * @param {uuid} pResource - Target resource
+ * @param {uuid} pLocale - Locale for the content
+ * @param {text} pName - Human-readable name / key
+ * @param {text} pDescription - Longer description or label
+ * @param {text} pEncoding - Character encoding of the data payload
+ * @param {text} pData - Actual content payload
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION SetResourceData (
   pResource     uuid,
   pLocale       uuid,
@@ -84,18 +108,20 @@ $$ LANGUAGE plpgsql
 -- CreateResource --------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Создаёт ресурс
- * @param {uuid} pId - Идентификатор
- * @param {uuid} pRoot - Идентификатор корневого узла (Передать null для создания корневого узла)
- * @param {uuid} pNode - Идентификатор узла родителя
- * @param {text} pType - MIME тип
- * @param {text} pName - Наименование
- * @param {text} pDescription - Описание
- * @param {text} pEncoding - Кодировка
- * @param {text} pData - Данные
- * @param {integer} pSequence - Очерёдность
- * @param {uuid} pLocale - Локаль
- * @return {uuid}
+ * @brief Create a new resource node in the tree with locale-specific content.
+ * @param {uuid} pId - Explicit UUID or NULL to auto-generate
+ * @param {uuid} pRoot - Root node of the tree (NULL to start a new tree)
+ * @param {uuid} pNode - Parent node in the hierarchy
+ * @param {text} pType - MIME type of the content
+ * @param {text} pName - Human-readable name / key
+ * @param {text} pDescription - Longer description or label
+ * @param {text} pEncoding - Character encoding of the data payload
+ * @param {text} pData - Actual content payload
+ * @param {integer} pSequence - Sort position among siblings (auto-appended when NULL)
+ * @param {uuid} pLocale - Locale for the content
+ * @return {uuid} - ID of the newly created resource
+ * @see SetResourceData, SetResourceSequence
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION CreateResource (
   pId           uuid,
@@ -143,18 +169,20 @@ $$ LANGUAGE plpgsql
 -- UpdateResource --------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Обновляет ресурс
- * @param {uuid} pId - Идентификатор
- * @param {uuid} pRoot - Идентификатор корневого узла
- * @param {uuid} pNode - Идентификатор узла родителя
- * @param {text} pType - MIME тип
- * @param {text} pName - Наименование
- * @param {text} pDescription - Описание
- * @param {text} pEncoding - Кодировка
- * @param {text} pData - Данные
- * @param {integer} pSequence - Очерёдность
- * @param {uuid} pLocale - Локаль
+ * @brief Update an existing resource node and its locale-specific content.
+ * @param {uuid} pId - Resource to update
+ * @param {uuid} pRoot - New root node (NULL to keep current)
+ * @param {uuid} pNode - New parent node (NULL to keep current)
+ * @param {text} pType - New MIME type (NULL to keep current)
+ * @param {text} pName - New name (NULL to keep current)
+ * @param {text} pDescription - New description (NULL to keep current)
+ * @param {text} pEncoding - New encoding (NULL to keep current)
+ * @param {text} pData - New content payload (NULL to keep current)
+ * @param {integer} pSequence - New sort position (NULL to keep current)
+ * @param {uuid} pLocale - Locale for the content
  * @return {void}
+ * @see SetResourceData, SortResource
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION UpdateResource (
   pId           uuid,
@@ -215,18 +243,20 @@ $$ LANGUAGE plpgsql
 -- SetResource -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Устанавливает ресурс
- * @param {uuid} pId - Идентификатор
- * @param {uuid} pRoot - Идентификатор корневого узла
- * @param {uuid} pNode - Идентификатор узла родителя
- * @param {text} pType - MIME тип
- * @param {text} pName - Наименование
- * @param {text} pDescription - Описание
- * @param {text} pEncoding - Кодировка
- * @param {text} pData - Данные
- * @param {integer} pSequence - Очерёдность
- * @param {uuid} pLocale - Локаль
- * @return {void}
+ * @brief Create or update a resource node (upsert by ID).
+ * @param {uuid} pId - Resource ID (NULL to create new)
+ * @param {uuid} pRoot - Root node of the tree
+ * @param {uuid} pNode - Parent node in the hierarchy
+ * @param {text} pType - MIME type of the content
+ * @param {text} pName - Human-readable name / key
+ * @param {text} pDescription - Longer description or label
+ * @param {text} pEncoding - Character encoding of the data payload
+ * @param {text} pData - Actual content payload
+ * @param {integer} pSequence - Sort position among siblings
+ * @param {uuid} pLocale - Locale for the content
+ * @return {uuid} - ID of the created or existing resource
+ * @see CreateResource, UpdateResource
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION SetResource (
   pId           uuid,
@@ -264,7 +294,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION GetResource --------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Fetch the data payload of a resource for a given locale.
+ * @param {uuid} pResource - Resource to look up
+ * @param {uuid} pLocale - Locale (defaults to session locale)
+ * @return {text} - Content payload or NULL if not found
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetResource (
   pResource     uuid,
   pLocale       uuid DEFAULT current_locale()
@@ -278,7 +314,13 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 -- DeleteResource --------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Delete a resource node and its locale data from the tree.
+ * @param {uuid} pId - Resource to delete
+ * @return {void}
+ * @throws NotFound - When no resource exists with the given ID
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION DeleteResource (
   pId           uuid
 ) RETURNS       void

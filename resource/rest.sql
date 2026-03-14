@@ -2,10 +2,14 @@
 -- REST RESOURCE ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Запрос данных в формате REST JSON API (Ресурс).
- * @param {text} pPath - Путь
- * @param {jsonb} pPayload - JSON
- * @return {SETOF json} - Записи в JSON
+ * @brief Dispatch REST JSON API requests for the resource endpoint.
+ * @param {text} pPath - Route path (e.g. '/resource/get', '/resource/list')
+ * @param {jsonb} pPayload - Request payload as JSON object or array
+ * @return {SETOF json} - Result rows serialised as JSON
+ * @throws RouteIsEmpty - When pPath is NULL
+ * @throws RouteNotFound - When pPath does not match any known route
+ * @throws JsonIsEmpty - When a required payload is NULL
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION rest.resource (
   pPath       text,

@@ -15,20 +15,24 @@ CREATE TABLE db.resource (
     sequence        integer NOT NULL
 );
 
-COMMENT ON TABLE db.resource IS 'Ресурс.';
+COMMENT ON TABLE db.resource IS 'Hierarchical resource tree node.';
 
-COMMENT ON COLUMN db.resource.id IS 'Идентификатор.';
-COMMENT ON COLUMN db.resource.root IS 'Корневой узел.';
-COMMENT ON COLUMN db.resource.node IS 'Родительский узел.';
-COMMENT ON COLUMN db.resource.type IS 'Multipurpose Internet Mail Extensions (MIME) тип.';
-COMMENT ON COLUMN db.resource.level IS 'Уровень вложенности.';
-COMMENT ON COLUMN db.resource.sequence IS 'Очерёдность';
+COMMENT ON COLUMN db.resource.id IS 'Primary key (UUID).';
+COMMENT ON COLUMN db.resource.root IS 'Root node of the tree this resource belongs to.';
+COMMENT ON COLUMN db.resource.node IS 'Parent node (NULL for root nodes).';
+COMMENT ON COLUMN db.resource.type IS 'MIME type of the resource content.';
+COMMENT ON COLUMN db.resource.level IS 'Nesting depth (0 = root).';
+COMMENT ON COLUMN db.resource.sequence IS 'Sort order among siblings.';
 
 CREATE INDEX ON db.resource (root);
 CREATE INDEX ON db.resource (node);
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Assign default values for new resource tree nodes.
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_resource_before()
 RETURNS trigger AS $$
 BEGIN
@@ -84,15 +88,15 @@ CREATE TABLE db.resource_data (
 
 --------------------------------------------------------------------------------
 
-COMMENT ON TABLE db.resource_data IS 'Данные ресурса.';
+COMMENT ON TABLE db.resource_data IS 'Locale-specific content for a resource node.';
 
-COMMENT ON COLUMN db.resource_data.resource IS 'Идентификатор ресурса';
-COMMENT ON COLUMN db.resource_data.locale IS 'Идентификатор локали';
-COMMENT ON COLUMN db.resource_data.name IS 'Наименование.';
-COMMENT ON COLUMN db.resource_data.description IS 'Описание.';
-COMMENT ON COLUMN db.resource_data.encoding IS 'Кодировка.';
-COMMENT ON COLUMN db.resource_data.data IS 'Данные.';
-COMMENT ON COLUMN db.resource_data.updated IS 'Дата обновления.';
+COMMENT ON COLUMN db.resource_data.resource IS 'FK to db.resource(id).';
+COMMENT ON COLUMN db.resource_data.locale IS 'FK to db.locale(id) — target language.';
+COMMENT ON COLUMN db.resource_data.name IS 'Human-readable name / key for the resource.';
+COMMENT ON COLUMN db.resource_data.description IS 'Longer description or label text.';
+COMMENT ON COLUMN db.resource_data.encoding IS 'Character encoding of the data payload (e.g. UTF-8, base64).';
+COMMENT ON COLUMN db.resource_data.data IS 'Actual content payload (text, HTML, etc.).';
+COMMENT ON COLUMN db.resource_data.updated IS 'Timestamp of last modification.';
 
 --------------------------------------------------------------------------------
 
@@ -105,6 +109,10 @@ CREATE INDEX ON db.resource_data (name text_pattern_ops);
 CREATE UNIQUE INDEX ON db.resource_data (name, locale);
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Apply default locale and preserve non-NULL values on INSERT/UPDATE.
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_resource_data_before()
 RETURNS trigger AS $$
 BEGIN
