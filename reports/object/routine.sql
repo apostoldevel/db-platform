@@ -6,10 +6,12 @@
 -- rpc_object_info -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Отчёт: Информация об объекте
- * @param {uuid} pReady - Идентификатор готового отчёта
- * @param {jsonb} pForm - Форма
- * @return {uuid} - Идентификатор готового отчёта
+ * @brief Generate an HTML report displaying all columns of a single object.
+ * @param {uuid} pReady - Ready-report identifier (receives the output file)
+ * @param {jsonb} pForm - Form data containing the "identifier" UUID of the target object
+ * @return {void}
+ * @see rfc_identifier_form
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION report.rpc_object_info (
   pReady        uuid,

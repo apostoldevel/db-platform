@@ -6,10 +6,12 @@
 -- rfc_identifier_form ---------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Форма идентификатора объекта
- * @param {uuid} pForm - Идентификатор формы
- * @param {jsonb} pParams - Параметры
- * @return {SETOF json} - Записи в JSON
+ * @brief Build the object identifier input form definition.
+ * @param {uuid} pForm - Report form identifier
+ * @param {json} pParams - Optional parameters (unused)
+ * @return {json} - Form descriptor with a single UUID identifier field
+ * @see rfc_import_file, rfc_import_files
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION report.rfc_identifier_form (
   pForm         uuid,
@@ -39,10 +41,12 @@ $$ LANGUAGE plpgsql
 -- rfc_import_file -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Форма импорта файла
- * @param {uuid} pForm - Идентификатор формы
- * @param {jsonb} pParams - Параметры
- * @return {SETOF json} - Записи в JSON
+ * @brief Build the single-file import form definition.
+ * @param {uuid} pForm - Report form identifier
+ * @param {json} pParams - Optional parameters (unused)
+ * @return {json} - Form descriptor with a single JSON file upload field
+ * @see rfc_identifier_form, rfc_import_files
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION report.rfc_import_file (
   pForm         uuid,
@@ -72,10 +76,12 @@ $$ LANGUAGE plpgsql
 -- rfc_import_files ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Форма импорта файлов
- * @param {uuid} pForm - Идентификатор формы
- * @param {jsonb} pParams - Параметры
- * @return {SETOF json} - Записи в JSON
+ * @brief Build the multi-file import form definition.
+ * @param {uuid} pForm - Report form identifier
+ * @param {json} pParams - Optional parameters (unused)
+ * @return {json} - Form descriptor with a multiple JSON file upload field
+ * @see rfc_identifier_form, rfc_import_file
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION report.rfc_import_files (
   pForm         uuid,

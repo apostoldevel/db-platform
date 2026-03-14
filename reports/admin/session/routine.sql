@@ -6,10 +6,12 @@
 -- rfc_session_list ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Форма отчёта: Список сессий
- * @param {uuid} pForm - Идентификатор формы
- * @param {jsonb} pParams - Параметры
- * @return {SETOF json} - Записи в JSON
+ * @brief Build the session-list report filter form with group, user, and status selectors.
+ * @param {uuid} pForm - Report form identifier
+ * @param {json} pParams - Optional preset filters (groupid, status)
+ * @return {json} - Form descriptor with group, user, and status select fields
+ * @see rpc_session_list
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION report.rfc_session_list (
   pForm         uuid,
@@ -107,10 +109,12 @@ $$ LANGUAGE plpgsql
 -- rpc_session_list ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Отчёт: Список сессий
- * @param {uuid} pReady - Идентификатор готового отчёта
- * @param {jsonb} pForm - Форма
- * @return {uuid} - Идентификатор готового отчёта
+ * @brief Generate an HTML and CSV session-list report filtered by group, user, and status.
+ * @param {uuid} pReady - Ready-report identifier (receives the output files)
+ * @param {jsonb} pForm - Form data with optional groupid, userid, and status bitmask
+ * @return {void}
+ * @see rfc_session_list
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION report.rpc_session_list (
   pReady        uuid,
