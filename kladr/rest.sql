@@ -2,10 +2,14 @@
 -- REST KLADR ------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Запрос данных в формате REST JSON API (КЛАДР).
- * @param {text} pPath - Путь
- * @param {jsonb} pPayload - JSON
- * @return {SETOF json} - Записи в JSON
+ * @brief Route REST JSON API requests for the KLADR address module.
+ * @param {text} pPath - REST endpoint path (/kladr/get, /kladr/list, /kladr/history, /kladr/string)
+ * @param {jsonb} pPayload - JSON request body with endpoint-specific parameters
+ * @return {SETOF json} - Result rows serialized as JSON
+ * @throws RouteIsEmpty - When pPath is NULL
+ * @throws JsonIsEmpty - When required pPayload is NULL
+ * @throws RouteNotFound - When pPath does not match any known endpoint
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION rest.kladr (
   pPath       text,

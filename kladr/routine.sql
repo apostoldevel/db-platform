@@ -1,7 +1,17 @@
 --------------------------------------------------------------------------------
 -- AddAddressTree --------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Insert a node into the hierarchical address tree.
+ * @param {integer} pParent - Parent node ID (NULL for root)
+ * @param {varchar} pCode - Composite KLADR address code (17 chars)
+ * @param {varchar} pName - Display name of the address object
+ * @param {varchar} pShort - Abbreviated type (e.g. "г", "ул")
+ * @param {varchar} pIndex - Postal code
+ * @param {integer} pLevel - Depth level in the tree hierarchy
+ * @return {integer} - ID of the newly inserted node, or NULL on conflict
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION AddAddressTree (
   pParent   integer,
   pCode     varchar,
@@ -28,7 +38,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- AddKladrToTree --------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Look up a KLADR entry by code and add it to the address tree.
+ * @param {integer} pParent - Parent node ID in the address tree
+ * @param {varchar} pCode - 11-char KLADR code (without actuality suffix)
+ * @param {integer} pLevel - Depth level to assign in the tree
+ * @return {integer} - ID of the inserted address tree node
+ * @see AddAddressTree
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION AddKladrToTree (
   pParent   integer,
   pCode     varchar,
@@ -51,7 +69,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- AddStreetToTree -------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Look up a street entry by code and add it to the address tree.
+ * @param {integer} pParent - Parent node ID in the address tree
+ * @param {varchar} pCode - 15-char street code (without actuality suffix)
+ * @param {integer} pLevel - Depth level to assign in the tree
+ * @return {integer} - ID of the inserted address tree node
+ * @see AddAddressTree
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION AddStreetToTree (
   pParent   integer,
   pCode     varchar,
@@ -74,7 +100,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- CopyFromKladr ---------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Copy all KLADR and street entries for one region into the address tree.
+ * @param {integer} pParent - Root node ID to attach the region subtree to
+ * @param {varchar} pCode - Two-character region code (SS part of the KLADR code)
+ * @return {void}
+ * @see AddKladrToTree, AddStreetToTree
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CopyFromKladr (
   pParent   integer,
   pCode     varchar
@@ -151,7 +184,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- LoadFromKladr ---------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Build the full address tree from KLADR data for selected or all regions.
+ * @param {text[]} pCodes - Array of two-character region codes to load; NULL loads all regions
+ * @return {void}
+ * @see CopyFromKladr
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION LoadFromKladr (
   pCodes    text[]
 ) RETURNS   void
@@ -169,7 +208,7 @@ BEGIN
       PERFORM CopyFromKladr(nId, pCodes[i]);
     END LOOP;
   ELSE
-    -- Для всех регионов РФ
+    -- All RF regions
     FOR Rec IN (
       SELECT SubStr(code, 1, 2) as SS
         FROM db.kladr
@@ -190,7 +229,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- GetAddressTreeId ------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Resolve an address tree node ID by its composite address code.
+ * @param {varchar} pCode - Composite KLADR address code (17 chars)
+ * @return {integer} - Address tree node ID, or NULL if not found
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetAddressTreeId (
   pCode     varchar
 ) RETURNS   integer
@@ -209,7 +253,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- GetAddressTree --------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve the full address hierarchy as a text array by walking up from a given code.
+ * @param {varchar} pCode - Composite KLADR address code (17 chars)
+ * @return {text[]} - Array of address names indexed by level (0 = country, 1 = region, ...)
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetAddressTree (
   pCode     varchar
 ) RETURNS   text[]
@@ -241,11 +290,18 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- GetAddressTreeString --------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Format the full address path as a comma-separated string with optional abbreviations.
+ * @param {varchar} pCode - Composite KLADR address code (17 chars)
+ * @param {int} pShort - Abbreviation mode: 0 = none, 1 = prefix ("г. Москва"), 2 = suffix ("Москва г.")
+ * @param {int} pLevel - Minimum tree level to include; 0 = start from country
+ * @return {text} - Formatted address string, optionally prefixed with postal code
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetAddressTreeString (
-  pCode     varchar,       -- Код из справочника адресов
-  pShort    int DEFAULT 0, -- Сокращение: 0 - нет; 1 - слева; 2 - справа
-  pLevel    int DEFAULT 0  -- Ограничение уровня вложенности
+  pCode     varchar,
+  pShort    int DEFAULT 0,
+  pLevel    int DEFAULT 0
 ) RETURNS   text
 AS $$
 DECLARE

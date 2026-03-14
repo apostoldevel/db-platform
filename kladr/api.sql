@@ -16,9 +16,10 @@ GRANT SELECT ON api.address_tree TO administrator;
 -- api.get_address_tree --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает адрес из справочника адресов КЛАДР
- * @param {integer} pId - Идентификатор
- * @return {api.address_tree}
+ * @brief Fetch a single address tree node by its ID.
+ * @param {integer} pId - Address tree node identifier
+ * @return {SETOF api.address_tree} - One row matching the given ID
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_address_tree (
   pId       integer
@@ -33,13 +34,14 @@ $$ LANGUAGE SQL
 -- api.list_address_tree -------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает справочник адресов КЛАДР.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.address_tree} - Дерево адресов
+ * @brief List address tree nodes with optional search, filtering, and pagination.
+ * @param {jsonb} pSearch - Search conditions: [{"condition": "AND|OR", "field": "<col>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<val>"}]
+ * @param {jsonb} pFilter - Column-level equality filter: {"<col>": "<val>"}
+ * @param {integer} pLimit - Maximum number of rows to return
+ * @param {integer} pOffSet - Number of rows to skip before returning results
+ * @param {jsonb} pOrderBy - Array of column names to sort by
+ * @return {SETOF api.address_tree} - Matching address tree rows
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_address_tree (
   pSearch   jsonb DEFAULT null,
@@ -60,9 +62,10 @@ $$ LANGUAGE plpgsql
 -- api.get_address_tree_history ------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает историю из справочника адресов
- * @param {integer} pId - Идентификатор
- * @return {SETOF api.address_tree}
+ * @brief Retrieve the full ancestor chain for an address node (recursive walk to root).
+ * @param {integer} pId - Address tree node identifier to start from
+ * @return {SETOF api.address_tree} - All ancestor rows from the node up to the root
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_address_tree_history (
   pId       integer
@@ -84,11 +87,13 @@ $$ LANGUAGE SQL
 -- api.get_address_tree_string -------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает адрес из справочника адресов по коду в виде строки
- * @param {varchar} pCode - Код из справочника адресов: ФФ СС РРР ГГГ ППП УУУУ. Где: ФФ - код страны; СС - код субъекта РФ; РРР - код района; ГГГ - код города; ППП - код населенного пункта; УУУУ - код улицы.
- * @param {integer} pShort - Сокращение: 0 - нет; 1 - слева; 2 - справа
- * @param {integer} pLevel - Ограничение уровня вложенности
- * @return {text}
+ * @brief Format an address as a human-readable string by its KLADR code.
+ * @param {varchar} pCode - Composite address code: FF SS RRR GGG PPP UUUU (FF = country, SS = subject, RRR = district, GGG = city, PPP = settlement, UUUU = street)
+ * @param {integer} pShort - Abbreviation mode: 0 = none, 1 = prefix, 2 = suffix
+ * @param {integer} pLevel - Minimum tree depth to include in the output
+ * @return {text} - Formatted address string
+ * @see GetAddressTreeString
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_address_tree_string (
   pCode         varchar,

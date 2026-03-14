@@ -13,16 +13,16 @@ CREATE TABLE db.kladr (
     status      varchar(1)
 );
 
-COMMENT ON TABLE db.kladr IS 'Классификаторы адресов Российской Федерации.';
+COMMENT ON TABLE db.kladr IS 'KLADR address classifier of the Russian Federation. Stores regions, districts, cities, and settlements.';
 
-COMMENT ON COLUMN db.kladr.code IS 'Код: СС РРР ГГГ ППП АА. Где: СС - код субъекта РФ; РРР - код района; ГГГ - код города; ППП - код населенного пункта; АА - признак актуальности.';
-COMMENT ON COLUMN db.kladr.name IS 'Наименование объекта';
-COMMENT ON COLUMN db.kladr.socr IS 'Сокращённое наименование типа объекта';
-COMMENT ON COLUMN db.kladr.index IS 'Почтовый индекс';
-COMMENT ON COLUMN db.kladr.gninmb IS 'Код ИФНС';
-COMMENT ON COLUMN db.kladr.uno IS 'Код территориального участка ИФНС';
-COMMENT ON COLUMN db.kladr.ocatd IS 'Код ОКАТО';
-COMMENT ON COLUMN db.kladr.status IS 'Статус объекта (признак центр)';
+COMMENT ON COLUMN db.kladr.code IS 'Address code: SS RRR GGG PPP AA. SS = subject (region) of the RF; RRR = district; GGG = city; PPP = settlement; AA = actuality flag.';
+COMMENT ON COLUMN db.kladr.name IS 'Name of the address object (region, district, city, or settlement).';
+COMMENT ON COLUMN db.kladr.socr IS 'Abbreviated type of the address object (e.g. "г" for city, "обл" for region).';
+COMMENT ON COLUMN db.kladr.index IS 'Postal code (6-digit Russian ZIP).';
+COMMENT ON COLUMN db.kladr.gninmb IS 'Federal Tax Service (FTS/IFNS) inspection code.';
+COMMENT ON COLUMN db.kladr.uno IS 'FTS territorial division code.';
+COMMENT ON COLUMN db.kladr.ocatd IS 'OKATO code (national territory classification).';
+COMMENT ON COLUMN db.kladr.status IS 'Object status: administrative centre indicator (0 = not a centre).';
 
 CREATE UNIQUE INDEX ON db.kladr (code);
 
@@ -42,15 +42,15 @@ CREATE TABLE db.street (
     ocatd       varchar(11)
 );
 
-COMMENT ON TABLE db.street IS 'Классификаторы адресов Российской Федерации (Улицы).';
+COMMENT ON TABLE db.street IS 'KLADR street-level address classifier. Extends the main KLADR table with street codes.';
 
-COMMENT ON COLUMN db.street.code IS 'Код: СС РРР ГГГ ППП УУУУ АА. Где: СС - код субъекта РФ; РРР - код района; ГГГ - код города; ППП - код населенного пункта; УУУУ - код улицы; АА - признак актуальности.';
-COMMENT ON COLUMN db.street.name IS 'Наименование объекта';
-COMMENT ON COLUMN db.street.socr IS 'Сокращённое наименование типа объекта';
-COMMENT ON COLUMN db.street.index IS 'Почтовый индекс';
-COMMENT ON COLUMN db.street.gninmb IS 'Код ИФНС';
-COMMENT ON COLUMN db.street.uno IS 'Код территориального участка ИФНС';
-COMMENT ON COLUMN db.street.ocatd IS 'Код ОКАТО';
+COMMENT ON COLUMN db.street.code IS 'Street code: SS RRR GGG PPP UUUU AA. SS = subject; RRR = district; GGG = city; PPP = settlement; UUUU = street; AA = actuality flag.';
+COMMENT ON COLUMN db.street.name IS 'Street name.';
+COMMENT ON COLUMN db.street.socr IS 'Abbreviated street type (e.g. "ул" for street, "пер" for lane).';
+COMMENT ON COLUMN db.street.index IS 'Postal code (6-digit Russian ZIP).';
+COMMENT ON COLUMN db.street.gninmb IS 'Federal Tax Service (FTS/IFNS) inspection code.';
+COMMENT ON COLUMN db.street.uno IS 'FTS territorial division code.';
+COMMENT ON COLUMN db.street.ocatd IS 'OKATO code (national territory classification).';
 
 CREATE UNIQUE INDEX ON db.street (code);
 
@@ -70,15 +70,15 @@ CREATE TABLE db.address_tree (
     level       integer NOT NULL
 );
 
-COMMENT ON TABLE db.address_tree IS 'Справочник адресов в виде дерева.';
+COMMENT ON TABLE db.address_tree IS 'Hierarchical address tree built from KLADR data. Each row is a node: country > region > district > city > settlement > street.';
 
-COMMENT ON COLUMN db.address_tree.id IS 'Идентификатор';
-COMMENT ON COLUMN db.address_tree.parent IS 'Родительский узел';
-COMMENT ON COLUMN db.address_tree.code IS 'Код: ФФ СС РРР ГГГ ППП УУУУ. Где: ФФ - код страны; СС - код субъекта РФ; РРР - код района; ГГГ - код города; ППП - код населенного пункта; УУУУ - код улицы.';
-COMMENT ON COLUMN db.address_tree.name IS 'Наименование';
-COMMENT ON COLUMN db.address_tree.short IS 'Сокращение';
-COMMENT ON COLUMN db.address_tree.index IS 'Почтовый индекс';
-COMMENT ON COLUMN db.address_tree.level IS 'Уровень';
+COMMENT ON COLUMN db.address_tree.id IS 'Surrogate primary key.';
+COMMENT ON COLUMN db.address_tree.parent IS 'Parent node reference (NULL for the root country node).';
+COMMENT ON COLUMN db.address_tree.code IS 'Composite address code: FF SS RRR GGG PPP UUUU. FF = country; SS = subject; RRR = district; GGG = city; PPP = settlement; UUUU = street.';
+COMMENT ON COLUMN db.address_tree.name IS 'Display name of the address object.';
+COMMENT ON COLUMN db.address_tree.short IS 'Abbreviated type prefix/suffix (e.g. "г", "ул").';
+COMMENT ON COLUMN db.address_tree.index IS 'Postal code (6-digit Russian ZIP).';
+COMMENT ON COLUMN db.address_tree.level IS 'Depth level in the tree: 0 = country, 1 = region, 2 = district, 3 = city, 4 = settlement, 5 = street.';
 
 CREATE INDEX ON db.address_tree (parent);
 CREATE UNIQUE INDEX ON db.address_tree (code);
