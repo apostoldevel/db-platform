@@ -5,7 +5,13 @@
 --------------------------------------------------------------------------------
 -- EventReportMethodForAllChild ------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Propagate a workflow action to all direct children of a tree node.
+ * @param {uuid} pNode - Parent tree node identifier
+ * @param {uuid} pAction - Workflow action to execute on each child
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventReportMethodForAllChild (
   pNode     uuid default context_object(),
   pAction   uuid default context_action()
@@ -32,7 +38,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventReportTreeCreate -------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the 'create' workflow event for a report tree node.
+ * @param {uuid} pObject - Tree node object identifier
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventReportTreeCreate (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -45,7 +56,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventReportTreeOpen ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the 'open' workflow event for a report tree node.
+ * @param {uuid} pObject - Tree node object identifier
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventReportTreeOpen (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -58,7 +74,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventReportTreeEdit ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the 'edit' workflow event for a report tree node.
+ * @param {uuid} pObject - Tree node object identifier
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventReportTreeEdit (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -71,7 +92,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventReportTreeSave ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the 'save' workflow event for a report tree node.
+ * @param {uuid} pObject - Tree node object identifier
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventReportTreeSave (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -84,7 +110,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventReportTreeEnable -------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the 'enable' workflow event for a report tree node and propagate to children.
+ * @param {uuid} pObject - Tree node object identifier
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventReportTreeEnable (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -98,7 +129,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventReportTreeDisable ------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the 'disable' workflow event for a report tree node and propagate to children.
+ * @param {uuid} pObject - Tree node object identifier
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventReportTreeDisable (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -112,7 +148,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventReportTreeDelete -------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the 'delete' workflow event for a report tree node and propagate to children.
+ * @param {uuid} pObject - Tree node object identifier
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventReportTreeDelete (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -126,7 +167,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventReportTreeRestore ------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the 'restore' workflow event for a report tree node and propagate to children.
+ * @param {uuid} pObject - Tree node object identifier
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventReportTreeRestore (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -140,7 +186,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventReportTreeDrop ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the 'drop' workflow event — permanently destroy a tree node and propagate to children.
+ * @param {uuid} pObject - Tree node object identifier
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventReportTreeDrop (
   pObject    uuid default context_object()
 ) RETURNS    void

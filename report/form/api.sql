@@ -16,14 +16,15 @@ GRANT SELECT ON api.report_form TO administrator;
 -- api.add_report_form ---------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Добавляет форму отчёта.
- * @param {uuid} pParent - Идентификатор объекта родителя
- * @param {uuid} pType - Идентификатор типа
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {text} pDefinition - PL/pgSQL код
- * @param {text} pDescription - Описание
- * @return {uuid}
+ * @brief Add a new report input form via the API layer.
+ * @param {uuid} pParent - Parent object identifier
+ * @param {uuid} pType - Type identifier (defaults to 'json.report_form')
+ * @param {text} pCode - Unique string code
+ * @param {text} pName - Human-readable name
+ * @param {text} pDefinition - PL/pgSQL function name that builds the form
+ * @param {text} pDescription - Detailed description
+ * @return {uuid} - Identifier of the created form
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.add_report_form (
   pParent       uuid,
@@ -45,15 +46,17 @@ $$ LANGUAGE plpgsql
 -- api.update_report_form ------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Редактирует форму отчёта.
- * @param {uuid} pId - Идентификатор
- * @param {uuid} pParent - Идентификатор объекта родителя
- * @param {uuid} pType - Идентификатор типа
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {text} pDefinition - PL/pgSQL код
- * @param {text} pDescription - Описание
+ * @brief Update an existing report input form via the API layer.
+ * @param {uuid} pId - Form identifier
+ * @param {uuid} pParent - New parent object or NULL to keep
+ * @param {uuid} pType - New type or NULL to keep
+ * @param {text} pCode - New code or NULL to keep
+ * @param {text} pName - New name or NULL to keep
+ * @param {text} pDefinition - New function name or NULL to keep
+ * @param {text} pDescription - New description or NULL to keep
  * @return {void}
+ * @throws ObjectNotFound - When no report form exists with the given id
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.update_report_form (
   pId           uuid,
@@ -83,7 +86,18 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.set_report_form ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Upsert a report form — create if pId is NULL, otherwise update.
+ * @param {uuid} pId - Form identifier (NULL to create)
+ * @param {uuid} pParent - Parent object identifier
+ * @param {uuid} pType - Type identifier
+ * @param {text} pCode - Unique code
+ * @param {text} pName - Name
+ * @param {text} pDefinition - Function name
+ * @param {text} pDescription - Description
+ * @return {SETOF api.report_form} - The created or updated form row
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.set_report_form (
   pId           uuid,
   pParent       uuid default null,
@@ -111,9 +125,10 @@ $$ LANGUAGE plpgsql
 -- api.get_report_form ---------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает форму отчёта
- * @param {uuid} pId - Идентификатор
- * @return {api.report_form}
+ * @brief Retrieve a single report form by identifier (access-checked).
+ * @param {uuid} pId - Form identifier
+ * @return {SETOF api.report_form} - Form row if accessible
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_report_form (
   pId       uuid
@@ -128,13 +143,14 @@ $$ LANGUAGE SQL
 -- api.list_report_form --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список форм отчётов.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.report_form}
+ * @brief List report forms with optional search, filter, pagination, and sorting.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Field-level filter object
+ * @param {integer} pLimit - Maximum rows to return
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Sort specification array
+ * @return {SETOF api.report_form} - Matching form rows
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_report_form (
   pSearch   jsonb default null,
@@ -155,9 +171,12 @@ $$ LANGUAGE plpgsql
 -- api.build_report_form -------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Создаёт форму отчёта
- * @param {uuid} pId - Идентификатор отчёта
- * @return {SETOF json}
+ * @brief Build a report form by executing its definition function, resolving from form or report id.
+ * @param {uuid} pId - Report form or report identifier
+ * @param {json} pParams - Input parameters passed to the form builder
+ * @return {json} - Generated form definition as JSON
+ * @throws NotFound - When neither a form nor a report exists with the given id
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.build_report_form (
   pId       uuid,

@@ -1,7 +1,11 @@
 --------------------------------------------------------------------------------
 -- FUNCTION InvalidReportType  -------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Raise an exception indicating an invalid report type was supplied.
+ * @return {void}
+ * @since 1.0.0
+ */
 SELECT CreateExceptionResource('e467b6e4-9989-4521-8c7a-f5368c035657', 'ru', 'InvalidReportType', 'Неверный тип отчёта');
 SELECT CreateExceptionResource('e467b6e4-9989-4521-8c7a-f5368c035657', 'en', 'InvalidReportType', 'Invalid report type');
 

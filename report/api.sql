@@ -15,7 +15,12 @@ GRANT SELECT ON api.report TO administrator;
 --------------------------------------------------------------------------------
 -- FUNCTION api.report_object --------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Fetch all reports bound to a class and its ancestors in the class hierarchy.
+ * @param {uuid} pClass - Class identifier to resolve reports for
+ * @return {SETOF api.report} - Matching report rows ordered by hierarchy depth (most specific first)
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.report_object (
   pClass    uuid
 ) RETURNS   SETOF api.report
@@ -37,17 +42,18 @@ $$ LANGUAGE sql
 -- FUNCTION api.add_report -----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Добавляет отчёт.
- * @param {uuid} pParent - Идентификатор родителя | null
- * @param {uuid} pType - Идентификатор типа
- * @param {uuid} pTree - Идентификатор дерева отчётов.
- * @param {uuid} pForm - Идентификатор формы отчёта.
- * @param {uuid} pBinding - Идентификатор класса объекта. Связь с классом объекта (для отчётов объекта).
- * @param {text} pCode - Строковый идентификатор (код)
- * @param {text} pName - Наименование
- * @param {text} pDescription - Описание
- * @param {jsonb} pInfo - Дополнительная информация
- * @return {uuid}
+ * @brief Add a new report via the API layer.
+ * @param {uuid} pParent - Parent object identifier or NULL
+ * @param {uuid} pType - Type identifier (defaults to 'report.report')
+ * @param {uuid} pTree - Report tree node
+ * @param {uuid} pForm - Input form for report parameters
+ * @param {uuid} pBinding - Class binding for object-scoped reports
+ * @param {text} pCode - Unique string code
+ * @param {text} pName - Human-readable name
+ * @param {text} pDescription - Detailed description
+ * @param {jsonb} pInfo - Extra metadata (JSON)
+ * @return {uuid} - Identifier of the created report
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.add_report (
   pParent       uuid,
@@ -72,18 +78,20 @@ $$ LANGUAGE plpgsql
 -- FUNCTION api.update_report --------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Редактирует отчёт.
- * @param {uuid} pId - Идентификатор (api.get_report)
- * @param {uuid} pParent - Идентификатор родителя | null
- * @param {uuid} pType - Идентификатор типа
- * @param {uuid} pTree - Идентификатор дерева отчётов.
- * @param {uuid} pForm - Идентификатор формы отчёта.
- * @param {uuid} pBinding - Идентификатор класса объекта. Связь с классом объекта (для отчётов объекта).
- * @param {text} pCode - Строковый идентификатор (код)
- * @param {text} pName - Наименование
- * @param {text} pDescription - Описание
- * @param {jsonb} pInfo - Дополнительная информация
+ * @brief Update an existing report via the API layer.
+ * @param {uuid} pId - Report identifier
+ * @param {uuid} pParent - New parent or NULL to keep
+ * @param {uuid} pType - New type or NULL to keep
+ * @param {uuid} pTree - New tree node or NULL to keep
+ * @param {uuid} pForm - New input form or NULL to keep
+ * @param {uuid} pBinding - New class binding or NULL to keep
+ * @param {text} pCode - New code or NULL to keep
+ * @param {text} pName - New name or NULL to keep
+ * @param {text} pDescription - New description or NULL to keep
+ * @param {jsonb} pInfo - New metadata or NULL to keep
  * @return {void}
+ * @throws ObjectNotFound - When no report exists with the given id
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.update_report (
   pId           uuid,
@@ -116,7 +124,21 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION api.set_report -----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Upsert a report — create if pId is NULL, otherwise update.
+ * @param {uuid} pId - Report identifier (NULL to create)
+ * @param {uuid} pParent - Parent object identifier
+ * @param {uuid} pType - Type identifier
+ * @param {uuid} pTree - Report tree node
+ * @param {uuid} pForm - Input form
+ * @param {uuid} pBinding - Class binding
+ * @param {text} pCode - Unique code
+ * @param {text} pName - Name
+ * @param {text} pDescription - Description
+ * @param {jsonb} pInfo - Extra metadata
+ * @return {SETOF api.report} - The created or updated report row
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.set_report (
   pId           uuid,
   pParent       uuid default null,
@@ -147,9 +169,10 @@ $$ LANGUAGE plpgsql
 -- api.get_report --------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает отчёт по идентификатору
- * @param {uuid} pId - Идентификатор
- * @return {api.report}
+ * @brief Retrieve a single report by identifier (access-checked).
+ * @param {uuid} pId - Report identifier
+ * @return {SETOF api.report} - Report row if accessible
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_report (
   pId       uuid
@@ -164,13 +187,14 @@ $$ LANGUAGE SQL
 -- api.list_report -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список отчётов.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.report}
+ * @brief List reports with optional search, filter, pagination, and sorting.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Field-level filter object
+ * @param {integer} pLimit - Maximum rows to return
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Sort specification array
+ * @return {SETOF api.report} - Matching report rows
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_report (
   pSearch       jsonb default null,
@@ -191,9 +215,15 @@ $$ LANGUAGE plpgsql
 -- api.list_report_object ------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список отчётов объекта.
- * @param {uuid} pClass - Идентификатор класса объекта.
- * @return {SETOF api.report}
+ * @brief List reports bound to a specific object class with optional search/filter/pagination.
+ * @param {uuid} pClass - Object class identifier
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Field-level filter object
+ * @param {integer} pLimit - Maximum rows to return
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Sort specification array
+ * @return {SETOF api.report} - Matching report rows
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_report_object (
   pClass        uuid,
@@ -215,9 +245,11 @@ $$ LANGUAGE plpgsql
 -- api.get_report_form_files ---------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает файлы отчетной формы
- * @param {uuid} pReport - Идентификатор отчета
- * @return {SETOF json}
+ * @brief Retrieve files attached to a report's input form.
+ * @param {uuid} pReport - Report identifier
+ * @return {SETOF api.object_file} - File records belonging to the report form
+ * @throws NotFound - When the report does not exist
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_report_form_files (
   pReport   uuid

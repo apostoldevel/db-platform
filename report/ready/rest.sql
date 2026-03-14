@@ -2,10 +2,11 @@
 -- REST REPORT -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Запрос данных в формате REST JSON API (Готовый отчёт).
- * @param {text} pPath - Путь
- * @param {jsonb} pPayload - JSON
- * @return {SETOF json} - Записи в JSON
+ * @brief Dispatch REST JSON API requests for the Report Ready entity.
+ * @param {text} pPath - REST route path
+ * @param {jsonb} pPayload - Request payload (JSON)
+ * @return {SETOF json} - Response rows as JSON
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION rest.report_ready (
   pPath       text,

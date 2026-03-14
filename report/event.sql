@@ -5,7 +5,12 @@
 --------------------------------------------------------------------------------
 -- EventReportCreate -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the 'create' workflow event for a report.
+ * @param {uuid} pObject - Report object identifier
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventReportCreate (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -18,7 +23,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventReportOpen -------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the 'open' workflow event for a report.
+ * @param {uuid} pObject - Report object identifier
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventReportOpen (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -31,7 +41,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventReportEdit -------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the 'edit' workflow event for a report.
+ * @param {uuid} pObject - Report object identifier
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventReportEdit (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -44,7 +59,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventReportSave -------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the 'save' workflow event for a report.
+ * @param {uuid} pObject - Report object identifier
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventReportSave (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -57,7 +77,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventReportEnable -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the 'enable' workflow event for a report.
+ * @param {uuid} pObject - Report object identifier
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventReportEnable (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -70,7 +95,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventReportDisable ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the 'disable' workflow event for a report.
+ * @param {uuid} pObject - Report object identifier
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventReportDisable (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -83,7 +113,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventReportDelete -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the 'delete' workflow event for a report.
+ * @param {uuid} pObject - Report object identifier
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventReportDelete (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -96,7 +131,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventReportRestore ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the 'restore' workflow event for a report.
+ * @param {uuid} pObject - Report object identifier
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventReportRestore (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -109,7 +149,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventReportDrop -------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the 'drop' workflow event — permanently destroy a report and cascade to child entities.
+ * @param {uuid} pObject - Report object identifier
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventReportDrop (
   pObject    uuid default context_object()
 ) RETURNS    void

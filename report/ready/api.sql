@@ -15,7 +15,12 @@ GRANT SELECT ON api.report_ready TO administrator;
 --------------------------------------------------------------------------------
 -- FUNCTION api.report_ready ---------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief List generated reports filtered by workflow state type (uuid overload).
+ * @param {uuid} pStateType - State type identifier to filter by
+ * @return {SETOF record} - Rows with id, typecode, statecode, created
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.report_ready (
   pStateType    uuid,
   OUT id        uuid,
@@ -37,7 +42,12 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- FUNCTION api.report_ready ---------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief List generated reports filtered by workflow state type name (text overload).
+ * @param {text} pStateType - State type code (default 'enabled')
+ * @return {SETOF record} - Rows with id, typecode, statecode, created
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.report_ready (
   pStateType    text DEFAULT 'enabled',
   OUT id        uuid,
@@ -55,14 +65,15 @@ $$ LANGUAGE SQL
 -- api.add_report_ready --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Добавляет готовый отчёт.
- * @param {uuid} pParent - Ссылка на родительский объект: api.document | null
- * @param {uuid} pType - Идентификатор типа
- * @param {uuid} pReport - Отчёт
- * @param {jsonb} pForm - Форма
- * @param {text} pLabel - Метка
- * @param {text} pDescription - Описание
- * @return {uuid}
+ * @brief Add a new generated report document via the API layer.
+ * @param {uuid} pParent - Parent object identifier or NULL
+ * @param {uuid} pType - Type identifier (defaults to 'sync.report_ready')
+ * @param {uuid} pReport - Source report definition
+ * @param {jsonb} pForm - Input parameters snapshot (JSON)
+ * @param {text} pLabel - Display label
+ * @param {text} pDescription - Detailed description
+ * @return {uuid} - Identifier of the created report_ready document
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.add_report_ready (
   pParent       uuid,
@@ -84,14 +95,17 @@ $$ LANGUAGE plpgsql
 -- api.update_report_ready -----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Редактирует готовый отчёт.
- * @param {uuid} pParent - Ссылка на родительский объект: Object.Parent | null
- * @param {uuid} pType - Идентификатор типа
- * @param {uuid} pReport - Отчёт
- * @param {jsonb} pForm - Форма
- * @param {text} pLabel - Метка
- * @param {text} pDescription - Описание
+ * @brief Update an existing generated report document via the API layer.
+ * @param {uuid} pId - Report ready document identifier
+ * @param {uuid} pParent - New parent object or NULL to keep
+ * @param {uuid} pType - New type or NULL to keep
+ * @param {uuid} pReport - New source report or NULL to keep
+ * @param {jsonb} pForm - New input parameters or NULL to keep
+ * @param {text} pLabel - New display label or NULL to keep
+ * @param {text} pDescription - New description or NULL to keep
  * @return {void}
+ * @throws ObjectNotFound - When no report_ready document exists with the given id
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.update_report_ready (
   pId           uuid,
@@ -121,7 +135,18 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.set_report_ready --------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Upsert a generated report — create if pId is NULL, otherwise update.
+ * @param {uuid} pId - Report ready identifier (NULL to create)
+ * @param {uuid} pParent - Parent object identifier
+ * @param {uuid} pType - Type identifier
+ * @param {uuid} pReport - Source report definition
+ * @param {jsonb} pForm - Input parameters
+ * @param {text} pLabel - Display label
+ * @param {text} pDescription - Description
+ * @return {SETOF api.report_ready} - The created or updated row
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.set_report_ready (
   pId           uuid,
   pParent       uuid default null,
@@ -149,9 +174,10 @@ $$ LANGUAGE plpgsql
 -- api.get_report_ready --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает готовый отчёт
- * @param {uuid} pId - Идентификатор
- * @return {api.report_ready} - Ордер
+ * @brief Retrieve a single generated report by identifier (access-checked).
+ * @param {uuid} pId - Report ready document identifier
+ * @return {SETOF api.report_ready} - Report ready row if accessible
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_report_ready (
   pId       uuid
@@ -166,13 +192,14 @@ $$ LANGUAGE SQL
 -- api.list_report_ready -------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список готовых отчётов.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.report_ready}
+ * @brief List generated reports with optional search, filter, pagination, and sorting.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Field-level filter object
+ * @param {integer} pLimit - Maximum rows to return
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Sort specification array
+ * @return {SETOF api.report_ready} - Matching report ready rows
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_report_ready (
   pSearch   jsonb default null,
@@ -193,10 +220,12 @@ $$ LANGUAGE plpgsql
 -- api.build_report ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Построить отчёт
- * @param {uuid} pReport - Идентификатор отчёта
- * @param {jsonb} pForm - Форма отчёта
- * @return {uuid} - Идентификатор готового отчёта (api.report_ready)
+ * @brief Build a report — create and return a report_ready document from a report definition.
+ * @param {uuid} pReport - Report definition identifier
+ * @param {jsonb} pForm - Input form parameters (JSON)
+ * @return {SETOF api.report_ready} - The newly generated report_ready row
+ * @see BuildReport
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.build_report (
   pReport   uuid,
@@ -217,9 +246,11 @@ $$ LANGUAGE plpgsql
 -- api.execute_report_ready ----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Выполнить готовый отчёт
- * @param {uuid} pId - Идентификатор готового отчёта
+ * @brief Execute all generation routines for an existing report_ready document.
+ * @param {uuid} pId - Report ready document identifier
  * @return {void}
+ * @see ExecuteReportReady
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.execute_report_ready (
   pId       uuid

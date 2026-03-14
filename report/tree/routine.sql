@@ -2,16 +2,20 @@
 -- CreateReportTree ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Создаёт дерево отчётов
- * @param {uuid} pParent - Идентификатор объекта родителя
- * @param {uuid} pType - Идентификатор типа
- * @param {uuid} pRoot - Идентификатор корневого узла (Передать null или null_uuid() для создания корневого узла)
- * @param {uuid} pNode - Идентификатор узла родителя
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {text} pDescription - Описание
- * @param {integer} pSequence - Очерёдность
- * @return {uuid}
+ * @brief Create a new report tree node and trigger the 'create' workflow method.
+ * @param {uuid} pParent - Parent object identifier
+ * @param {uuid} pType - Type identifier (root, node, or report)
+ * @param {uuid} pRoot - Root node identifier (pass NULL or null_uuid() to create a root node)
+ * @param {uuid} pNode - Parent node in the hierarchy (NULL for root nodes)
+ * @param {text} pCode - Unique string code
+ * @param {text} pName - Human-readable name
+ * @param {text} pDescription - Detailed description
+ * @param {integer} pSequence - Display order among siblings (auto-assigned if NULL)
+ * @return {uuid} - Identifier of the newly created tree node
+ * @throws IncorrectClassType - When pType does not belong to the 'report_tree' entity
+ * @throws InvalidReportType - When node type violates hierarchy rules
+ * @see EditReportTree, GetReportTree
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION CreateReportTree (
   pParent       uuid,
@@ -90,17 +94,19 @@ $$ LANGUAGE plpgsql
 -- EditReportTree --------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Редактирует дерево отчётов
- * @param {uuid} pId - Идентификатор
- * @param {uuid} pParent - Идентификатор объекта родителя
- * @param {uuid} pType - Идентификатор типа
- * @param {uuid} pRoot - Идентификатор корневого узла
- * @param {uuid} pNode - Идентификатор узла родителя
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {text} pDescription - Описание
- * @param {integer} pSequence - Очерёдность
+ * @brief Update an existing report tree node (NULL parameters keep current values).
+ * @param {uuid} pId - Tree node identifier
+ * @param {uuid} pParent - New parent object or NULL to keep
+ * @param {uuid} pType - New type or NULL to keep
+ * @param {uuid} pRoot - New root node or NULL to keep
+ * @param {uuid} pNode - New parent node or NULL to keep
+ * @param {text} pCode - New code or NULL to keep
+ * @param {text} pName - New name or NULL to keep
+ * @param {text} pDescription - New description or NULL to keep
+ * @param {integer} pSequence - New display order or NULL to keep
  * @return {void}
+ * @see CreateReportTree, SortReportTree
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION EditReportTree (
   pId           uuid,
@@ -179,7 +185,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION GetReportTree ------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Look up a report tree node identifier by its unique code.
+ * @param {text} pCode - Unique tree node code
+ * @return {uuid} - Tree node identifier or NULL if not found
+ * @see CreateReportTree
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetReportTree (
   pCode       text
 ) RETURNS     uuid
@@ -194,7 +206,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION SetReportTreeSequence ----------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Set the display order for a tree node, recursively shifting siblings to avoid collisions.
+ * @param {uuid} pId - Tree node identifier
+ * @param {integer} pSequence - Target sequence number
+ * @param {integer} pDelta - Shift direction (+1 or -1) for displaced siblings; 0 = direct set
+ * @return {void}
+ * @see SortReportTree
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION SetReportTreeSequence (
   pId       uuid,
   pSequence integer,
@@ -227,7 +247,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION SortReportTree -----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Re-number all children of a given parent node with consecutive sequence values.
+ * @param {uuid} pNode - Parent node whose children to re-sort (NULL for root-level)
+ * @return {void}
+ * @see SetReportTreeSequence
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION SortReportTree (
   pNode     uuid
 ) RETURNS   void

@@ -16,16 +16,17 @@ GRANT SELECT ON api.report_routine TO administrator;
 -- api.add_report_routine ------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Добавляет функцию отчёта.
- * @param {uuid} pParent - Идентификатор объекта родителя
- * @param {uuid} pType - Идентификатор типа
- * @param {uuid} pReport - Идентификатор отчёта
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {text} pDefinition - Определение
- * @param {text} pDescription - Описание
- * @param {integer} pSequence - Очерёдность
- * @return {uuid}
+ * @brief Add a new report generation routine via the API layer.
+ * @param {uuid} pParent - Parent object identifier
+ * @param {uuid} pType - Type identifier (defaults to 'plpgsql.report_routine')
+ * @param {uuid} pReport - Report this routine belongs to
+ * @param {text} pCode - Unique string code
+ * @param {text} pName - Human-readable name
+ * @param {text} pDefinition - PL/pgSQL function name for report generation
+ * @param {text} pDescription - Detailed description
+ * @param {integer} pSequence - Execution order
+ * @return {uuid} - Identifier of the created routine
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.add_report_routine (
   pParent       uuid,
@@ -49,17 +50,19 @@ $$ LANGUAGE plpgsql
 -- api.update_report_routine ---------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Редактирует функцию отчёта.
- * @param {uuid} pId - Идентификатор
- * @param {uuid} pParent - Идентификатор объекта родителя
- * @param {uuid} pType - Идентификатор типа
- * @param {uuid} pReport - Идентификатор отчёта
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {text} pDefinition - Определение
- * @param {text} pDescription - Описание
- * @param {integer} pSequence - Очерёдность
+ * @brief Update an existing report generation routine via the API layer.
+ * @param {uuid} pId - Routine identifier
+ * @param {uuid} pParent - New parent object or NULL to keep
+ * @param {uuid} pType - New type or NULL to keep
+ * @param {uuid} pReport - New report association or NULL to keep
+ * @param {text} pCode - New code or NULL to keep
+ * @param {text} pName - New name or NULL to keep
+ * @param {text} pDefinition - New function name or NULL to keep
+ * @param {text} pDescription - New description or NULL to keep
+ * @param {integer} pSequence - New execution order or NULL to keep
  * @return {void}
+ * @throws ObjectNotFound - When no report routine exists with the given id
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.update_report_routine (
   pId           uuid,
@@ -91,7 +94,20 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.set_report_routine ------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Upsert a report routine — create if pId is NULL, otherwise update.
+ * @param {uuid} pId - Routine identifier (NULL to create)
+ * @param {uuid} pParent - Parent object identifier
+ * @param {uuid} pType - Type identifier
+ * @param {uuid} pReport - Report association
+ * @param {text} pCode - Unique code
+ * @param {text} pName - Name
+ * @param {text} pDefinition - Function name
+ * @param {text} pDescription - Description
+ * @param {integer} pSequence - Execution order
+ * @return {SETOF api.report_routine} - The created or updated routine row
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.set_report_routine (
   pId           uuid,
   pParent       uuid default null,
@@ -121,9 +137,10 @@ $$ LANGUAGE plpgsql
 -- api.get_report_routine ------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает функцию отчёта
- * @param {uuid} pId - Идентификатор
- * @return {api.report_routine}
+ * @brief Retrieve a single report routine by identifier (access-checked).
+ * @param {uuid} pId - Routine identifier
+ * @return {SETOF api.report_routine} - Routine row if accessible
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_report_routine (
   pId       uuid
@@ -138,13 +155,14 @@ $$ LANGUAGE SQL
 -- api.list_report_routine -----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список функций отчётов.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.report_routine}
+ * @brief List report routines with optional search, filter, pagination, and sorting.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Field-level filter object
+ * @param {integer} pLimit - Maximum rows to return
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Sort specification array
+ * @return {SETOF api.report_routine} - Matching routine rows
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_report_routine (
   pSearch   jsonb default null,
@@ -165,10 +183,11 @@ $$ LANGUAGE plpgsql
 -- api.call_report_routine -----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Вызывает функцию отчёта
- * @param {uuid} pId - Идентификатор функции отчёта
- * @param {json} pForm - Форма отчёта
- * @return {SETOF json}
+ * @brief Invoke a report generation routine directly with the given form data.
+ * @param {uuid} pId - Report routine identifier
+ * @param {json} pForm - Input form parameters (JSON)
+ * @return {SETOF json} - Generated report data as JSON
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.call_report_routine (
   pId       uuid,

@@ -1,7 +1,22 @@
 --------------------------------------------------------------------------------
 -- CreateReport ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Create a new report definition and trigger the 'create' workflow method.
+ * @param {uuid} pParent - Parent object identifier
+ * @param {uuid} pType - Type identifier (must belong to entity 'report')
+ * @param {uuid} pTree - Report tree node to attach the report to
+ * @param {uuid} pForm - Input form for report parameters (NULL if none)
+ * @param {uuid} pBinding - Class tree binding for object-scoped reports (NULL for global)
+ * @param {text} pCode - Unique string code
+ * @param {text} pName - Human-readable name
+ * @param {text} pDescription - Detailed description
+ * @param {jsonb} pInfo - Extra metadata (JSON)
+ * @return {uuid} - Identifier of the newly created report
+ * @throws IncorrectClassType - When pType does not belong to the 'report' entity
+ * @see EditReport, GetReport
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CreateReport (
   pParent       uuid,
   pType         uuid,
@@ -42,7 +57,22 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- EditReport ------------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Update an existing report definition (NULL parameters keep current values).
+ * @param {uuid} pId - Report identifier
+ * @param {uuid} pParent - New parent object or NULL to keep
+ * @param {uuid} pType - New type or NULL to keep
+ * @param {uuid} pTree - New tree node or NULL to keep
+ * @param {uuid} pForm - New input form or NULL to keep
+ * @param {uuid} pBinding - New class binding or NULL to keep
+ * @param {text} pCode - New code or NULL to keep
+ * @param {text} pName - New name or NULL to keep
+ * @param {text} pDescription - New description or NULL to keep
+ * @param {jsonb} pInfo - New metadata or NULL to keep
+ * @return {void}
+ * @see CreateReport, GetReport
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EditReport (
   pId           uuid,
   pParent       uuid default null,
@@ -81,7 +111,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- GetReport -------------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Look up a report identifier by its unique code.
+ * @param {text} pCode - Unique report code
+ * @return {uuid} - Report identifier or NULL if not found
+ * @see CreateReport
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetReport (
   pCode      text
 ) RETURNS    uuid
@@ -96,7 +132,18 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- InitReport ------------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Initialise a complete report with its input form and generation routine in one step.
+ * @param {uuid} pParent - Parent object identifier
+ * @param {uuid} pType - Type identifier for the report
+ * @param {uuid} pTree - Report tree node
+ * @param {text} pCode - Unique report code
+ * @param {text} pName - Human-readable name
+ * @param {text} pDescription - Detailed description
+ * @return {uuid} - Identifier of the created report
+ * @see CreateReport, CreateReportForm, CreateReportRoutine
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION InitReport (
   pParent       uuid,
   pType         uuid,
@@ -124,7 +171,19 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- InitObjectReport ------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Initialise an object-scoped report with its generation routine (form supplied externally).
+ * @param {uuid} pParent - Parent object identifier
+ * @param {uuid} pTree - Report tree node
+ * @param {uuid} pForm - Pre-existing input form identifier
+ * @param {uuid} pBinding - Class tree binding for object scope
+ * @param {text} pCode - Unique report code
+ * @param {text} pName - Human-readable name
+ * @param {text} pDescription - Detailed description
+ * @return {uuid} - Identifier of the created report
+ * @see InitReport, CreateReport
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION InitObjectReport (
   pParent       uuid,
   pTree         uuid,
@@ -151,7 +210,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- BuildReport -----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Build a report — create a report_ready document from a report definition with form data.
+ * @param {uuid} pReport - Report definition identifier
+ * @param {uuid} pType - Type for the report_ready document (defaults to 'sync.report_ready')
+ * @param {jsonb} pForm - Input form parameters (JSON)
+ * @return {uuid} - Identifier of the newly created report_ready document
+ * @see CreateReportReady, ExecuteReportReady
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION BuildReport (
   pReport   uuid,
   pType     uuid default null,
@@ -174,7 +241,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- GetForReportDocumentJson ----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Fetch active documents of a given entity as a JSON array of {value, label} pairs for report form selectors.
+ * @param {uuid} pEntity - Entity identifier to filter documents by
+ * @param {uuid[]} pClasses - Optional class filter array (NULL = all classes)
+ * @param {integer} pLimit - Maximum number of rows (default 500)
+ * @return {json} - JSON array of {value: uuid, label: text} objects
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetForReportDocumentJson (
   pEntity   uuid,
   pClasses  uuid[] DEFAULT null,
@@ -219,7 +293,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- GetForReportReferenceJson ---------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Fetch active reference objects of a given entity as a JSON array of {value, label} pairs for report form selectors.
+ * @param {uuid} pEntity - Entity identifier to filter references by
+ * @param {uuid[]} pClasses - Optional class filter array (NULL = all classes)
+ * @param {integer} pLimit - Maximum number of rows (default 500)
+ * @return {json} - JSON array of {value: uuid, label: text} objects
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetForReportReferenceJson (
   pEntity   uuid,
   pClasses  uuid[] DEFAULT null,
@@ -264,7 +345,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- GetForReportTypeJson --------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Fetch all types for a given entity as a JSON array of {value, label} pairs for report form selectors.
+ * @param {uuid} pEntity - Entity identifier to list types for
+ * @param {integer} pLimit - Maximum number of rows (default 500)
+ * @return {json} - JSON array of {value: uuid, label: text} objects
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetForReportTypeJson (
   pEntity   uuid,
   pLimit    integer DEFAULT 500
@@ -293,7 +380,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- GetForReportStateJson -------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Fetch all states for a given class as a JSON array of {value, label} pairs for report form selectors.
+ * @param {uuid} pClass - Class identifier to list states for
+ * @param {integer} pLimit - Maximum number of rows (default 500)
+ * @return {json} - JSON array of {value: uuid, label: text} objects
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetForReportStateJson (
   pClass    uuid,
   pLimit    integer DEFAULT 500
@@ -322,7 +415,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION ReportErrorHTML ----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Generate an HTML error page for a failed report rendering.
+ * @param {integer} pCode - Exception error code
+ * @param {text} pMessage - Error message text
+ * @param {text} pContext - PL/pgSQL context / stack trace
+ * @param {uuid} pLocale - Locale for the HTML lang attribute (defaults to current)
+ * @return {text} - Complete HTML document string
+ * @see ReportHeadHTML
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION ReportErrorHTML (
   pCode 	integer,
   pMessage 	text,
@@ -363,7 +465,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- ReportStyleHTML -------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Generate the CSS style block for printed A4 report pages.
+ * @return {text} - HTML <style> element string
+ * @see ReportHeadHTML
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION ReportStyleHTML (
 ) RETURNS   text
 AS $$
@@ -416,7 +523,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- ReportHeadHTML --------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Generate the HTML <head> section with charset, title, and print styles.
+ * @param {text} pTitle - Page title
+ * @return {text} - HTML <head> element string
+ * @see ReportStyleHTML, ReportErrorHTML
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION ReportHeadHTML (
   pTitle    text
 ) RETURNS   text

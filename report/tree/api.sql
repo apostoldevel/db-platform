@@ -16,16 +16,17 @@ GRANT SELECT ON api.report_tree TO administrator;
 -- api.add_report_tree ---------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Добавляет дерево отчётов.
- * @param {uuid} pParent - Ссылка на родительский объект: api.document | null
- * @param {uuid} pType - Идентификатор типа
- * @param {uuid} pRoot - Идентификатор корневого узла (Передать null_uuid для создания корневого узла)
- * @param {uuid} pNode - Идентификатор узла родителя
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {text} pDescription - Описание
- * @param {integer} pSequence - Очерёдность
- * @return {uuid}
+ * @brief Add a new report tree node via the API layer.
+ * @param {uuid} pParent - Parent object identifier or NULL
+ * @param {uuid} pType - Type identifier (defaults to 'report.report_tree')
+ * @param {uuid} pRoot - Root node (pass null_uuid() to create a root node)
+ * @param {uuid} pNode - Parent node in the hierarchy
+ * @param {text} pCode - Unique string code
+ * @param {text} pName - Human-readable name
+ * @param {text} pDescription - Detailed description
+ * @param {integer} pSequence - Display order among siblings
+ * @return {uuid} - Identifier of the created tree node
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.add_report_tree (
   pParent       uuid,
@@ -49,16 +50,19 @@ $$ LANGUAGE plpgsql
 -- api.update_report_tree ------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Редактирует дерево отчётов.
- * @param {uuid} pParent - Ссылка на родительский объект: Object.Parent | null
- * @param {uuid} pType - Идентификатор типа
- * @param {uuid} pRoot - Идентификатор корневого узла
- * @param {uuid} pNode - Идентификатор узла родителя
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {text} pDescription - Описание
- * @param {integer} pSequence - Очерёдность
+ * @brief Update an existing report tree node via the API layer.
+ * @param {uuid} pId - Tree node identifier
+ * @param {uuid} pParent - New parent object or NULL to keep
+ * @param {uuid} pType - New type or NULL to keep
+ * @param {uuid} pRoot - New root node or NULL to keep
+ * @param {uuid} pNode - New parent node or NULL to keep
+ * @param {text} pCode - New code or NULL to keep
+ * @param {text} pName - New name or NULL to keep
+ * @param {text} pDescription - New description or NULL to keep
+ * @param {integer} pSequence - New display order or NULL to keep
  * @return {void}
+ * @throws ObjectNotFound - When no report tree node exists with the given id
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.update_report_tree (
   pId           uuid,
@@ -90,7 +94,20 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.set_report_tree ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Upsert a report tree node — create if pId is NULL, otherwise update.
+ * @param {uuid} pId - Tree node identifier (NULL to create)
+ * @param {uuid} pParent - Parent object identifier
+ * @param {uuid} pType - Type identifier
+ * @param {uuid} pRoot - Root node identifier
+ * @param {uuid} pNode - Parent node in the hierarchy
+ * @param {text} pCode - Unique code
+ * @param {text} pName - Name
+ * @param {text} pDescription - Description
+ * @param {integer} pSequence - Display order
+ * @return {SETOF api.report_tree} - The created or updated tree node row
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.set_report_tree (
   pId           uuid,
   pParent       uuid default null,
@@ -120,9 +137,10 @@ $$ LANGUAGE plpgsql
 -- api.get_report_tree ---------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает дерево отчётов
- * @param {uuid} pId - Идентификатор
- * @return {api.report_tree}
+ * @brief Retrieve a single report tree node by identifier (access-checked).
+ * @param {uuid} pId - Tree node identifier
+ * @return {SETOF api.report_tree} - Tree node row if accessible
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_report_tree (
   pId       uuid
@@ -137,13 +155,14 @@ $$ LANGUAGE SQL
 -- api.list_report_tree --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает дерево отчётов в виде списка.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.report_tree}
+ * @brief List report tree nodes with optional search, filter, pagination, and sorting.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Field-level filter object
+ * @param {integer} pLimit - Maximum rows to return
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Sort specification array
+ * @return {SETOF api.report_tree} - Matching tree node rows
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_report_tree (
   pSearch   jsonb default null,

@@ -15,11 +15,12 @@ CREATE TABLE db.report_ready (
 
 --------------------------------------------------------------------------------
 
-COMMENT ON TABLE db.report_ready IS 'Готовый отчёт.';
+COMMENT ON TABLE db.report_ready IS 'Generated report (output document) — stores a completed report result with its input parameters.';
 
-COMMENT ON COLUMN db.report_ready.id IS 'Идентификатор';
-COMMENT ON COLUMN db.report_ready.document IS 'Документ';
-COMMENT ON COLUMN db.report_ready.form IS 'Форма';
+COMMENT ON COLUMN db.report_ready.id IS 'Primary key (matches document.id).';
+COMMENT ON COLUMN db.report_ready.document IS 'Parent document entity (lifecycle record).';
+COMMENT ON COLUMN db.report_ready.report IS 'Source report definition that produced this output.';
+COMMENT ON COLUMN db.report_ready.form IS 'Input parameters snapshot (JSON) used for this generation run.';
 
 --------------------------------------------------------------------------------
 

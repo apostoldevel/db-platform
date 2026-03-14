@@ -15,14 +15,14 @@ CREATE TABLE db.report_tree (
     sequence        integer NOT NULL
 );
 
-COMMENT ON TABLE db.report_tree IS 'Дерево отчётов.';
+COMMENT ON TABLE db.report_tree IS 'Report tree — hierarchical structure that organises reports into navigable groups.';
 
-COMMENT ON COLUMN db.report_tree.id IS 'Идентификатор.';
-COMMENT ON COLUMN db.report_tree.reference IS 'Справочник.';
-COMMENT ON COLUMN db.report_tree.root IS 'Корневой узел.';
-COMMENT ON COLUMN db.report_tree.node IS 'Родительский узел.';
-COMMENT ON COLUMN db.report_tree.level IS 'Уровень вложенности.';
-COMMENT ON COLUMN db.report_tree.sequence IS 'Очерёдность';
+COMMENT ON COLUMN db.report_tree.id IS 'Primary key (matches reference.id).';
+COMMENT ON COLUMN db.report_tree.reference IS 'Parent reference entity (catalog record).';
+COMMENT ON COLUMN db.report_tree.root IS 'Root node of this tree (self-referencing for root nodes).';
+COMMENT ON COLUMN db.report_tree.node IS 'Parent node in the hierarchy (NULL for root nodes).';
+COMMENT ON COLUMN db.report_tree.level IS 'Nesting depth (0 = root).';
+COMMENT ON COLUMN db.report_tree.sequence IS 'Display order among siblings.';
 
 CREATE INDEX ON db.report_tree (reference);
 CREATE INDEX ON db.report_tree (root);

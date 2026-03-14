@@ -12,11 +12,11 @@ CREATE TABLE db.report_form (
     definition   text
 );
 
-COMMENT ON TABLE db.report_form IS 'Форма.';
+COMMENT ON TABLE db.report_form IS 'Report input form — defines a PL/pgSQL function that builds the parameter form for a report.';
 
-COMMENT ON COLUMN db.report_form.id IS 'Идентификатор.';
-COMMENT ON COLUMN db.report_form.reference IS 'Справочник.';
-COMMENT ON COLUMN db.report_form.definition IS 'Функция создания формы.';
+COMMENT ON COLUMN db.report_form.id IS 'Primary key (matches reference.id).';
+COMMENT ON COLUMN db.report_form.reference IS 'Parent reference entity (catalog record).';
+COMMENT ON COLUMN db.report_form.definition IS 'PL/pgSQL function name that generates the form JSON.';
 
 CREATE INDEX ON db.report_form (reference);
 

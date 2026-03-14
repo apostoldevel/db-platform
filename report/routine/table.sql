@@ -14,13 +14,13 @@ CREATE TABLE db.report_routine (
     sequence    integer NOT NULL
 );
 
-COMMENT ON TABLE db.report_routine IS 'Функция создания отчёта.';
+COMMENT ON TABLE db.report_routine IS 'Report generation routine — PL/pgSQL function that produces report output data.';
 
-COMMENT ON COLUMN db.report_routine.id IS 'Идентификатор.';
-COMMENT ON COLUMN db.report_routine.reference IS 'Справочник.';
-COMMENT ON COLUMN db.report_routine.report IS 'Отчёт.';
-COMMENT ON COLUMN db.report_routine.definition IS 'Функция создания отчета.';
-COMMENT ON COLUMN db.report_routine.sequence IS 'Очерёдность.';
+COMMENT ON COLUMN db.report_routine.id IS 'Primary key (matches reference.id).';
+COMMENT ON COLUMN db.report_routine.reference IS 'Parent reference entity (catalog record).';
+COMMENT ON COLUMN db.report_routine.report IS 'Report this routine belongs to.';
+COMMENT ON COLUMN db.report_routine.definition IS 'PL/pgSQL function name executed to generate the report.';
+COMMENT ON COLUMN db.report_routine.sequence IS 'Execution order when a report has multiple routines.';
 
 CREATE UNIQUE INDEX ON db.report_routine (report, definition);
 

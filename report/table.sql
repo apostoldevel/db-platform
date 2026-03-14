@@ -13,14 +13,14 @@ CREATE TABLE db.report (
 
 --------------------------------------------------------------------------------
 
-COMMENT ON TABLE db.report IS 'Отчёт.';
+COMMENT ON TABLE db.report IS 'Report definition — links a reference entity to a tree node, input form, and optional class binding.';
 
-COMMENT ON COLUMN db.report.id IS 'Идентификатор.';
-COMMENT ON COLUMN db.report.reference IS 'Документ.';
-COMMENT ON COLUMN db.report.tree IS 'Дерево отчётов.';
-COMMENT ON COLUMN db.report.form IS 'Форма отчёта.';
-COMMENT ON COLUMN db.report.binding IS 'Связь с классом объекта (для отчётов объекта).';
-COMMENT ON COLUMN db.report.info IS 'Дополнительная информация.';
+COMMENT ON COLUMN db.report.id IS 'Primary key (matches reference.id).';
+COMMENT ON COLUMN db.report.reference IS 'Parent reference entity (catalog record).';
+COMMENT ON COLUMN db.report.tree IS 'Report tree node this report belongs to.';
+COMMENT ON COLUMN db.report.form IS 'Input form used to collect report parameters (NULL = no parameters).';
+COMMENT ON COLUMN db.report.binding IS 'Class tree binding for object-scoped reports (NULL = global report).';
+COMMENT ON COLUMN db.report.info IS 'Arbitrary extra metadata (JSON).';
 
 --------------------------------------------------------------------------------
 

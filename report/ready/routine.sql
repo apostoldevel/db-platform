@@ -6,14 +6,18 @@
 -- CreateReportReady -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Создаёт готовый отчёт
- * @param {uuid} pParent - Ссылка на родительский объект: Object.Parent | null
- * @param {uuid} pType - Идентификатор типа
- * @param {uuid} pReport - Отчёт
- * @param {jsonb} pForm - Форма
- * @param {text} pLabel - Метка
- * @param {text} pDescription - Описание
- * @return {uuid} - Id
+ * @brief Create a new generated report document and trigger the 'create' workflow method.
+ * @param {uuid} pParent - Parent object identifier or NULL
+ * @param {uuid} pType - Type identifier (must belong to entity 'report_ready')
+ * @param {uuid} pReport - Source report definition that produces this output
+ * @param {jsonb} pForm - Input parameters snapshot (JSON)
+ * @param {text} pLabel - Display label for the document
+ * @param {text} pDescription - Detailed description
+ * @return {uuid} - Identifier of the newly created report_ready document
+ * @throws IncorrectClassType - When pType does not belong to the 'report_ready' entity
+ * @throws ObjectNotFound - When pReport does not reference an existing report
+ * @see EditReportReady, ExecuteReportReady
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION CreateReportReady (
   pParent       uuid,
@@ -62,14 +66,18 @@ $$ LANGUAGE plpgsql
 -- EditReportReady -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Редактирует готовый отчёт.
- * @param {uuid} pParent - Ссылка на родительский объект: Object.Parent | null
- * @param {uuid} pType - Идентификатор типа
- * @param {uuid} pReport - Отчёт
- * @param {text} pForm - Код
- * @param {text} pLabel - Метка
- * @param {text} pDescription - Описание
+ * @brief Update an existing generated report document (NULL parameters keep current values).
+ * @param {uuid} pId - Report ready document identifier
+ * @param {uuid} pParent - New parent object or NULL to keep
+ * @param {uuid} pType - New type or NULL to keep
+ * @param {uuid} pReport - New source report or NULL to keep
+ * @param {text} pForm - New input parameters or NULL to keep
+ * @param {text} pLabel - New display label or NULL to keep
+ * @param {text} pDescription - New description or NULL to keep
  * @return {void}
+ * @throws ObjectNotFound - When pReport does not reference an existing report
+ * @see CreateReportReady
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION EditReportReady (
   pId           uuid,
@@ -112,7 +120,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- GetReportReadyForm ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve the input parameters snapshot for a generated report.
+ * @param {uuid} pId - Report ready document identifier
+ * @return {jsonb} - Input form parameters (JSON) or NULL
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetReportReadyForm (
   pId       uuid
 ) RETURNS   jsonb
@@ -125,7 +138,13 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 -- ExecuteReportReady ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Execute all generation routines for a report_ready document in sequence order.
+ * @param {uuid} pId - Report ready document identifier
+ * @return {void}
+ * @see BuildReport, CreateReportReady
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION ExecuteReportReady (
   pId       uuid
 ) RETURNS   void

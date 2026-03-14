@@ -2,16 +2,19 @@
 -- CreateReportRoutine ---------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Создаёт функцию отчёта
- * @param {uuid} pParent - Идентификатор объекта родителя
- * @param {uuid} pType - Идентификатор типа
- * @param {uuid} pReport - Идентификатор отчёта
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {text} pDefinition - Определение
- * @param {text} pDescription - Описание
- * @param {integer} pSequence - Очерёдность
- * @return {uuid}
+ * @brief Create a new report generation routine and trigger the 'create' workflow method.
+ * @param {uuid} pParent - Parent object identifier
+ * @param {uuid} pType - Type identifier (must belong to entity 'report_routine')
+ * @param {uuid} pReport - Report this routine belongs to
+ * @param {text} pCode - Unique string code
+ * @param {text} pName - Human-readable name
+ * @param {text} pDefinition - PL/pgSQL function name to execute for report generation
+ * @param {text} pDescription - Detailed description
+ * @param {integer} pSequence - Execution order (auto-assigned if NULL)
+ * @return {uuid} - Identifier of the newly created routine
+ * @throws IncorrectClassType - When pType does not belong to the 'report_routine' entity
+ * @see EditReportRoutine, GetReportRoutine
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION CreateReportRoutine (
   pParent       uuid,
@@ -59,17 +62,19 @@ $$ LANGUAGE plpgsql
 -- EditReportRoutine -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Редактирует функцию отчёта
- * @param {uuid} pId - Идентификатор
- * @param {uuid} pParent - Идентификатор объекта родителя
- * @param {uuid} pType - Идентификатор типа
- * @param {uuid} pReport - Идентификатор отчёта
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {text} pDefinition - Определение
- * @param {text} pDescription - Описание
- * @param {integer} pSequence - Очерёдность
+ * @brief Update an existing report generation routine (NULL parameters keep current values).
+ * @param {uuid} pId - Routine identifier
+ * @param {uuid} pParent - New parent object or NULL to keep
+ * @param {uuid} pType - New type or NULL to keep
+ * @param {uuid} pReport - New report association or NULL to keep
+ * @param {text} pCode - New code or NULL to keep
+ * @param {text} pName - New name or NULL to keep
+ * @param {text} pDefinition - New function name or NULL to keep
+ * @param {text} pDescription - New description or NULL to keep
+ * @param {integer} pSequence - New execution order or NULL to keep
  * @return {void}
+ * @see CreateReportRoutine
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION EditReportRoutine (
   pId           uuid,
@@ -121,7 +126,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION GetReportRoutine ---------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Look up a report routine identifier by its unique code.
+ * @param {text} pCode - Unique routine code
+ * @return {uuid} - Routine identifier or NULL if not found
+ * @see CreateReportRoutine
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetReportRoutine (
   pCode       text
 ) RETURNS     uuid
@@ -136,7 +147,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION GetReportRoutineDefinition -----------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve the PL/pgSQL function name stored for a report routine.
+ * @param {uuid} pId - Routine identifier
+ * @return {text} - Function name from the definition column
+ * @see ExecuteReportReady
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetReportRoutineDefinition (
   pId        uuid
 ) RETURNS    text
@@ -149,7 +166,15 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- FUNCTION SetReportRoutineSequence -------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Set the execution order for a routine, recursively shifting siblings to avoid collisions.
+ * @param {uuid} pId - Routine identifier
+ * @param {integer} pSequence - Target sequence number
+ * @param {integer} pDelta - Shift direction (+1 or -1) for displaced siblings; 0 = direct set
+ * @return {void}
+ * @see SortReportRoutine
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION SetReportRoutineSequence (
   pId       uuid,
   pSequence integer,
@@ -182,7 +207,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION SortReportRoutine --------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Re-number all routines of a given report with consecutive sequence values.
+ * @param {uuid} pReport - Report whose routines to re-sort
+ * @return {void}
+ * @see SetReportRoutineSequence
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION SortReportRoutine (
   pReport   uuid
 ) RETURNS   void

@@ -2,14 +2,17 @@
 -- CreateReportForm ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Создаёт форму отчёта
- * @param {uuid} pParent - Идентификатор объекта родителя
- * @param {uuid} pType - Идентификатор типа
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {text} pDefinition - PL/pgSQL код
- * @param {text} pDescription - Описание
- * @return {uuid}
+ * @brief Create a new report input form and trigger the 'create' workflow method.
+ * @param {uuid} pParent - Parent object identifier
+ * @param {uuid} pType - Type identifier (must belong to entity 'report_form')
+ * @param {text} pCode - Unique string code
+ * @param {text} pName - Human-readable name
+ * @param {text} pDefinition - PL/pgSQL function name that builds the form JSON
+ * @param {text} pDescription - Detailed description
+ * @return {uuid} - Identifier of the newly created form
+ * @throws IncorrectClassType - When pType does not belong to the 'report_form' entity
+ * @see EditReportForm, GetReportForm
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION CreateReportForm (
   pParent       uuid,
@@ -49,15 +52,17 @@ $$ LANGUAGE plpgsql
 -- EditReportForm --------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Редактирует форму отчёта
- * @param {uuid} pId - Идентификатор
- * @param {uuid} pParent - Идентификатор объекта родителя
- * @param {uuid} pType - Идентификатор типа
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {text} pDefinition - PL/pgSQL код
- * @param {text} pDescription - Описание
+ * @brief Update an existing report input form (NULL parameters keep current values).
+ * @param {uuid} pId - Form identifier
+ * @param {uuid} pParent - New parent object or NULL to keep
+ * @param {uuid} pType - New type or NULL to keep
+ * @param {text} pCode - New code or NULL to keep
+ * @param {text} pName - New name or NULL to keep
+ * @param {text} pDefinition - New function name or NULL to keep
+ * @param {text} pDescription - New description or NULL to keep
  * @return {void}
+ * @see CreateReportForm
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION EditReportForm (
   pId           uuid,
@@ -91,7 +96,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION GetReportForm ------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Look up a report form identifier by its unique code.
+ * @param {text} pCode - Unique form code
+ * @return {uuid} - Form identifier or NULL if not found
+ * @see CreateReportForm
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetReportForm (
   pCode       text
 ) RETURNS     uuid
@@ -106,7 +117,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION GetReportFormDefinition --------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve the PL/pgSQL function name that generates a report form.
+ * @param {uuid} pId - Form identifier
+ * @return {text} - Function name stored in the definition column
+ * @see BuildReportForm
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetReportFormDefinition (
   pId        uuid
 ) RETURNS    text
@@ -119,7 +136,14 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- FUNCTION BuildReportForm ----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Execute the form-building function to generate report parameter JSON.
+ * @param {uuid} pForm - Form identifier
+ * @param {json} pParams - Input parameters passed to the form builder
+ * @return {SETOF json} - Generated form definition as JSON
+ * @see GetReportFormDefinition
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION BuildReportForm (
   pForm     uuid,
   pParams   json
