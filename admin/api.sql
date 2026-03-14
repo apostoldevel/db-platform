@@ -213,7 +213,7 @@ $$ LANGUAGE plpgsql
 -- api.get_session -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns or creates a session for the specified user.
+ * @brief Retrieve or create a session for the specified user.
  * @param {text} pUserName - User name (login)
  * @param {text} pAgent - User agent string
  * @param {inet} pHost - Client IP address
@@ -244,7 +244,7 @@ $$ LANGUAGE plpgsql
 -- api.get_sessions ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns a session for the specified user in each available scope.
+ * @brief Fetch a session for the specified user in each available scope.
  * @param {text} pUserName - User name (login)
  * @param {text} pAgent - User agent string
  * @param {inet} pHost - Client IP address
@@ -316,7 +316,7 @@ GRANT SELECT ON api.session TO administrator;
 -- api.session -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns active sessions, optionally filtered by user.
+ * @brief List active sessions, optionally filtered by user.
  * @param {uuid} pUserId - User identifier
  * @param {text} pUsername - User name (login)
  * @return {SETOF api.session} - Session records
@@ -341,7 +341,7 @@ $$ LANGUAGE SQL
 -- api.get_session -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns a single session by its code.
+ * @brief Retrieve a single session by its code.
  * @param {varchar} pCode - Session code
  * @return {SETOF api.session}
  * @since 1.0.0
@@ -359,7 +359,7 @@ $$ LANGUAGE SQL
 -- api.list_session ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns a filtered list of sessions.
+ * @brief List sessions with optional filters.
  * @param {jsonb} pSearch - Search conditions: '[{"condition": "AND|OR", "field": "<field>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<value>"}, ...]'
  * @param {jsonb} pFilter - Filter: '{"<field>": "<value>"}'
  * @param {integer} pLimit - Maximum number of rows to return
@@ -543,7 +543,7 @@ $$ LANGUAGE plpgsql
 -- api.get_user ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns a user account record.
+ * @brief Retrieve a user account record.
  * @param {uuid} pId - User identifier (defaults to current user)
  * @return {SETOF api.user} - User account record
  * @since 1.0.0
@@ -561,7 +561,7 @@ $$ LANGUAGE SQL
 -- api.list_user ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns a filtered list of users. Non-admins see only their own record.
+ * @brief List users with optional filters. Non-admins see only their own record.
  * @param {jsonb} pSearch - Search conditions: '[{"condition": "AND|OR", "field": "<field>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<value>"}, ...]'
  * @param {jsonb} pFilter - Filter: '{"<field>": "<value>"}'
  * @param {integer} pLimit - Maximum number of rows to return
@@ -1036,7 +1036,7 @@ $$ LANGUAGE plpgsql
 -- api.user_member -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the list of groups the specified user belongs to.
+ * @brief List the groups the specified user belongs to.
  * @param {uuid} pUserId - User identifier (defaults to current user)
  * @return {TABLE} - Group records (id, username, name, description)
  * @since 1.0.0
@@ -1117,7 +1117,7 @@ $$ LANGUAGE plpgsql
 -- api.get_user_iptable --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the IP address table for a user as a single string.
+ * @brief Retrieve the IP address table for a user as a single string.
  * @param {uuid} pId - User account identifier
  * @param {char} pType - Type: 'A' = allow, 'D' = deny
  * @return {TABLE} - (id, type, iptable) where iptable is a comma-separated IP list
@@ -1279,7 +1279,7 @@ $$ LANGUAGE plpgsql
 -- api.get_group ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns a single group record by identifier.
+ * @brief Retrieve a single group record by identifier.
  * @param {uuid} pId - Group identifier
  * @return {SETOF api.group}
  * @since 1.0.0
@@ -1297,7 +1297,7 @@ $$ LANGUAGE SQL
 -- api.list_group --------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns a filtered list of groups.
+ * @brief List groups with optional filters.
  * @param {jsonb} pSearch - Search conditions: '[{"condition": "AND|OR", "field": "<field>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<value>"}, ...]'
  * @param {jsonb} pFilter - Filter: '{"<field>": "<value>"}'
  * @param {integer} pLimit - Maximum number of rows to return
@@ -1427,7 +1427,7 @@ GRANT SELECT ON api.member_group TO administrator;
 -- api.group_member ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the list of users belonging to the specified group.
+ * @brief List the users belonging to the specified group.
  * @param {uuid} pGroupId - Group identifier
  * @return {TABLE} - User records (id, username, name, email, phone, description)
  * @since 1.0.0
@@ -1454,7 +1454,7 @@ $$ LANGUAGE SQL
 -- api.member_group ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the list of groups the specified user belongs to.
+ * @brief List the groups the specified user belongs to.
  * @param {uuid} pUserId - User identifier (defaults to current user)
  * @return {TABLE} - Group records (id, username, name, description)
  * @see api.member_user
@@ -1478,7 +1478,7 @@ $$ LANGUAGE SQL
 -- api.get_groups_json ---------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the groups of a member as a JSON array.
+ * @brief Fetch the groups of a member as a JSON array.
  * @param {uuid} pMember - User identifier
  * @return {json} - JSON array of group records
  * @see api.member_user
@@ -1563,7 +1563,7 @@ GRANT SELECT ON api.area_type TO administrator;
 -- api.get_area_type -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns an area type record by identifier.
+ * @brief Retrieve an area type record by identifier.
  * @param {uuid} pId - Area type identifier
  * @return {SETOF api.area_type}
  * @since 1.0.0
@@ -1791,7 +1791,7 @@ $$ LANGUAGE plpgsql
 -- api.get_area ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns an area record by identifier.
+ * @brief Retrieve an area record by identifier.
  * @param {uuid} pId - Area identifier
  * @return {SETOF api.area}
  * @since 1.0.0
@@ -1809,7 +1809,7 @@ $$ LANGUAGE SQL
 -- api.get_area_id -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns an area identifier by code. Accepts both UUID strings and area codes.
+ * @brief Resolve an area identifier by code. Accepts both UUID strings and area codes.
  * @param {text} pCode - Area code or UUID
  * @return {uuid} - Area identifier
  * @see GetArea
@@ -1834,7 +1834,7 @@ $$ LANGUAGE plpgsql
 -- api.list_area ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns a filtered list of areas.
+ * @brief List areas with optional filters.
  * @param {jsonb} pSearch - Search conditions: '[{"condition": "AND|OR", "field": "<field>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<value>"}, ...]'
  * @param {jsonb} pFilter - Filter: '{"<field>": "<value>"}'
  * @param {integer} pLimit - Maximum number of rows to return
@@ -1964,7 +1964,7 @@ GRANT SELECT ON api.member_area TO administrator;
 -- api.area_member -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the list of members (users/groups) of the specified area.
+ * @brief List the members (users/groups) of the specified area.
  * @param {uuid} pAreaId - Area identifier
  * @return {TABLE} - Member records (id, type, username, name, description)
  * @since 1.0.0
@@ -1990,7 +1990,7 @@ $$ LANGUAGE SQL
 -- api.member_area -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns areas accessible to the specified user (including inherited via groups and child areas).
+ * @brief Fetch areas accessible to the specified user (including inherited via groups and child areas).
  * @param {uuid} pUserId - User identifier (defaults to current user)
  * @return {SETOF api.area}
  * @since 1.0.0
@@ -2136,7 +2136,7 @@ $$ LANGUAGE plpgsql
 -- api.get_interface -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns an interface record by identifier.
+ * @brief Retrieve an interface record by identifier.
  * @param {uuid} pId - Interface identifier
  * @return {SETOF api.interface}
  * @since 1.0.0
@@ -2154,7 +2154,7 @@ $$ LANGUAGE SQL
 -- api.list_interface ----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns a filtered list of interfaces.
+ * @brief List interfaces with optional filters.
  * @param {jsonb} pSearch - Search conditions: '[{"condition": "AND|OR", "field": "<field>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<value>"}, ...]'
  * @param {jsonb} pFilter - Filter: '{"<field>": "<value>"}'
  * @param {integer} pLimit - Maximum number of rows to return
@@ -2284,7 +2284,7 @@ GRANT SELECT ON api.member_interface TO administrator;
 -- api.interface_member --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the list of members (users/groups) of the specified interface.
+ * @brief List the members (users/groups) of the specified interface.
  * @param {uuid} pInterfaceId - Interface identifier
  * @return {TABLE} - Member records (id, type, username, name, description)
  * @since 1.0.0
@@ -2310,7 +2310,7 @@ $$ LANGUAGE SQL
 -- api.member_interface --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns interfaces accessible to the specified user (including inherited via groups).
+ * @brief Fetch interfaces accessible to the specified user (including inherited via groups).
  * @param {uuid} pUserId - User identifier (defaults to current user)
  * @return {SETOF api.interface}
  * @since 1.0.0

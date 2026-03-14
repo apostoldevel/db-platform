@@ -6,7 +6,7 @@
 -- GetAreaType -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the area type identifier by its code.
+ * @brief Resolve an area type code to its identifier.
  * @param {text} pCode - Area type code
  * @return {uuid} Area type identifier
  * @since 1.0.0
@@ -25,7 +25,7 @@ $$ LANGUAGE sql
 -- GetAreaTypeCode -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the area type code by its identifier.
+ * @brief Retrieve the area type code by its identifier.
  * @param {uuid} pId - Area type identifier
  * @return {text} Area type code
  * @since 1.0.0
@@ -44,7 +44,7 @@ $$ LANGUAGE sql
 -- GetAreaTypeName -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the area type name by its identifier.
+ * @brief Retrieve the area type name by its identifier.
  * @param {uuid} pId - Area type identifier
  * @return {text} Area type name
  * @since 1.0.0
@@ -419,7 +419,7 @@ $$ LANGUAGE plpgsql
 -- GetIPTableStr ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the IP access list for a user as a comma-separated string.
+ * @brief Retrieve the IP access list for a user as a comma-separated string.
  *        Formats CIDR, range, and wildcard notations for display.
  * @param {uuid} pUserId - User identifier
  * @param {char} pType - List type: 'A' = allow, 'D' = deny (defaults to 'A')
@@ -780,7 +780,7 @@ $$ LANGUAGE plpgsql
 -- FUNCTION CreateIdToken ------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Overload: creates a signed JWT ID token by resolving the user from a session code.
+ * @brief Create a signed JWT ID token by resolving the user from a session code.
  * @param {integer} pAudience - OAuth 2.0 audience identifier
  * @param {varchar} pSession - Session code to resolve the user
  * @param {text[]} pScopes - Requested OAuth 2.0 scopes
@@ -832,7 +832,7 @@ $$ LANGUAGE plpgsql
 -- FUNCTION DoubleSHA256 -------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Overload: computes a double SHA-256 on text data, returning hex.
+ * @brief Compute a double SHA-256 on text data, returning hex.
  * @param {text} pData - Text data to hash
  * @return {text} Hex-encoded double SHA-256 digest
  * @since 1.0.0
@@ -1149,7 +1149,7 @@ $$ LANGUAGE plpgsql
 -- CreateOAuth2 ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Overload: creates an OAuth 2.0 session from a space-separated scope string.
+ * @brief Create an OAuth 2.0 session from a space-separated scope string.
  * @param {integer} pAudience - OAuth 2.0 audience identifier
  * @param {text} pScope - Space-separated scope codes
  * @param {text} pAccessType - 'online' or 'offline' (defaults to 'online')
@@ -1523,7 +1523,7 @@ $$ LANGUAGE plpgsql
 -- GetToken --------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns a token string by its record identifier.
+ * @brief Retrieve a token string by its record identifier.
  * @param {bigint} pId - Token record identifier
  * @return {text} Token string value
  * @since 1.0.0
@@ -1635,7 +1635,7 @@ $$ LANGUAGE plpgsql
 -- FUNCTION GetSecretKey -------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the secret key from session variables, falling back to a default key.
+ * @brief Retrieve the secret key from session variables, falling back to a default key.
  * @param {text} pName - Variable name (defaults to 'key')
  * @return {text} Secret key string
  * @since 1.0.0
@@ -1659,7 +1659,7 @@ $$ LANGUAGE plpgsql
 -- FUNCTION oauth2_system_client_id --------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the system OAuth 2.0 client identifier (equals the current database name).
+ * @brief Retrieve the system OAuth 2.0 client identifier (equals the current database name).
  * @return {text} OAuth 2.0 client_id
  * @since 1.0.0
  */
@@ -1697,7 +1697,7 @@ $$ LANGUAGE plpgsql
 -- FUNCTION GetOAuth2ClientId --------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the OAuth 2.0 client_id stored in the session variable.
+ * @brief Retrieve the OAuth 2.0 client_id stored in the session variable.
  * @return {text} OAuth 2.0 client_id
  * @since 1.0.0
  */
@@ -1715,7 +1715,7 @@ $$ LANGUAGE plpgsql
 -- FUNCTION oauth2_current_client_id -------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the current OAuth 2.0 client identifier from the session.
+ * @brief Retrieve the current OAuth 2.0 client identifier from the session.
  * @return {text} OAuth 2.0 client_id
  * @since 1.0.0
  */
@@ -1753,7 +1753,7 @@ $$ LANGUAGE plpgsql
 -- FUNCTION GetLogMode ---------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the current logging mode (defaults to true).
+ * @brief Retrieve the current logging mode (defaults to true).
  * @return {boolean} true if logging is enabled
  * @since 1.0.0
  */
@@ -1791,7 +1791,7 @@ $$ LANGUAGE plpgsql
 -- FUNCTION GetDebugMode -------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the current debug mode (defaults to false).
+ * @brief Retrieve the current debug mode (defaults to false).
  * @return {boolean} true if debug mode is enabled
  * @since 1.0.0
  */
@@ -1829,7 +1829,7 @@ $$ LANGUAGE plpgsql
 -- FUNCTION GetCurrentSession --------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the current session code from the session variable.
+ * @brief Retrieve the current session code from the session variable.
  * @return {text} Session code, or NULL
  * @since 1.0.0
  */
@@ -1867,7 +1867,7 @@ $$ LANGUAGE plpgsql
 -- FUNCTION GetCurrentUserId ---------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the current user identifier from the session variable.
+ * @brief Retrieve the current user identifier from the session variable.
  * @return {uuid} User identifier, or NULL
  * @since 1.0.0
  */
@@ -1885,7 +1885,7 @@ $$ LANGUAGE plpgsql
 -- FUNCTION current_session ----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the current session code, validated against the session table.
+ * @brief Retrieve the current session code, validated against the session table.
  * @return {text} Session code, or NULL if no valid session exists
  * @since 1.0.0
  */
@@ -1914,7 +1914,7 @@ $$ LANGUAGE plpgsql
 -- FUNCTION session_secret -----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the secret key for a session.
+ * @brief Retrieve the secret key for a session.
  * @param {varchar} pSession - Session code (defaults to current session)
  * @return {text} Session secret key
  * @since 1.0.0
@@ -1940,7 +1940,7 @@ $$ LANGUAGE plpgsql
 -- FUNCTION current_scope ------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the scope identifier for the current session's area.
+ * @brief Resolve the scope identifier for the current session's area.
  *        Falls back to the default scope if no session is active.
  * @param {varchar} pSession - Session code (defaults to current session)
  * @return {uuid} Scope identifier
@@ -1974,7 +1974,7 @@ $$ LANGUAGE plpgsql
 -- FUNCTION current_scope_code -------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the scope code for the current session.
+ * @brief Resolve the scope code for the current session.
  * @param {varchar} pSession - Session code (defaults to current session)
  * @return {text} Scope code
  * @since 1.0.0
@@ -2036,7 +2036,7 @@ $$ LANGUAGE plpgsql
 -- FUNCTION current_scopes -----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns all scope identifiers for the current session's OAuth 2.0 parameters.
+ * @brief Fetch all scope identifiers for the current session's OAuth 2.0 parameters.
  * @param {varchar} pSession - Session code (defaults to current session)
  * @return {SETOF uuid} Set of scope identifiers
  * @since 1.0.0
@@ -2061,7 +2061,7 @@ $$ LANGUAGE plpgsql
 -- FUNCTION session_area -------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the area identifier for the given session.
+ * @brief Retrieve the area identifier for the given session.
  * @param {varchar} pSession - Session code (defaults to current session)
  * @return {text} Area identifier
  * @since 1.0.0
@@ -2087,7 +2087,7 @@ $$ LANGUAGE plpgsql
 -- FUNCTION session_agent ------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the User-Agent string for the given session.
+ * @brief Retrieve the User-Agent string for the given session.
  * @param {varchar} pSession - Session code (defaults to current session)
  * @return {text} User-Agent string
  * @since 1.0.0
@@ -2113,7 +2113,7 @@ $$ LANGUAGE plpgsql
 -- FUNCTION session_host -------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the client IP address for the given session.
+ * @brief Retrieve the client IP address for the given session.
  * @param {varchar} pSession - Session code (defaults to current session)
  * @return {text} IP address as text
  * @since 1.0.0
@@ -2139,7 +2139,7 @@ $$ LANGUAGE plpgsql
 -- FUNCTION session_userid -----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the original (substitute-aware) user identifier for the session.
+ * @brief Retrieve the original (substitute-aware) user identifier for the session.
  * @param {varchar} pSession - Session code (defaults to current session)
  * @return {uuid} User identifier (suid field)
  * @since 1.0.0
@@ -2166,7 +2166,7 @@ $$ LANGUAGE plpgsql
 -- FUNCTION current_userid -----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the current user identifier, resolving from session if not cached.
+ * @brief Resolve the current user identifier from session if not cached.
  * @return {uuid} Current user identifier
  * @since 1.0.0
  */
@@ -2196,7 +2196,7 @@ $$ LANGUAGE plpgsql
 -- FUNCTION session_username ---------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the username for the given session's user.
+ * @brief Retrieve the username for the given session's user.
  * @param {varchar} pSession - Session code (defaults to current session)
  * @return {text} Username
  * @since 1.0.0
@@ -2216,7 +2216,7 @@ $$ LANGUAGE sql
 -- FUNCTION current_username ---------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the username of the currently authenticated user.
+ * @brief Retrieve the username of the currently authenticated user.
  * @return {text} Username
  * @since 1.0.0
  */
@@ -2233,7 +2233,7 @@ $$ LANGUAGE sql
 -- FUNCTION oauth2_current_code ------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the current valid OAuth 2.0 authorization code for the session.
+ * @brief Retrieve the current valid OAuth 2.0 authorization code for the session.
  * @param {varchar} pSession - Session code (defaults to current session)
  * @return {text} Authorization code token, or NULL if expired/absent
  * @since 1.0.0
@@ -2284,7 +2284,7 @@ $$ LANGUAGE plpgsql
 -- FUNCTION GetSessionArea -----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the area identifier for the given session.
+ * @brief Retrieve the area identifier for the given session.
  * @param {varchar} pSession - Session code (defaults to current session)
  * @return {uuid} Area identifier
  * @since 1.0.0
@@ -2304,7 +2304,7 @@ $$ LANGUAGE sql
 -- FUNCTION current_area_type --------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the area type for the current session's area.
+ * @brief Resolve the area type for the current session's area.
  * @param {varchar} pSession - Session code (defaults to current session)
  * @return {uuid} Area type identifier
  * @since 1.0.0
@@ -2323,7 +2323,7 @@ $$ LANGUAGE sql
 -- FUNCTION current_area -------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the current area, falling back to the default guest area.
+ * @brief Resolve the current area, falling back to the default guest area.
  * @param {varchar} pSession - Session code (defaults to current session)
  * @return {uuid} Area identifier
  * @since 1.0.0
@@ -2367,7 +2367,7 @@ $$ LANGUAGE plpgsql
 -- FUNCTION GetSessionInterface ------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the interface identifier for the given session.
+ * @brief Retrieve the interface identifier for the given session.
  * @param {varchar} pSession - Session code (defaults to current session)
  * @return {uuid} Interface identifier
  * @since 1.0.0
@@ -2393,7 +2393,7 @@ $$ LANGUAGE plpgsql
 -- FUNCTION current_interface --------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the current interface, falling back to the default guest interface.
+ * @brief Resolve the current interface, falling back to the default guest interface.
  * @param {varchar} pSession - Session code (defaults to current session)
  * @return {uuid} Interface identifier
  * @since 1.0.0
@@ -2437,7 +2437,7 @@ $$ LANGUAGE plpgsql
 -- FUNCTION GetOperDate --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the operational date for the given session.
+ * @brief Retrieve the operational date for the given session.
  * @param {varchar} pSession - Session code (defaults to current session)
  * @return {timestamptz} Operational date, or NULL if not set
  * @since 1.0.0
@@ -2463,7 +2463,7 @@ $$ LANGUAGE plpgsql
 -- FUNCTION oper_date ----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the operational date, falling back to now() if not set.
+ * @brief Resolve the operational date, falling back to now() if not set.
  * @param {varchar} pSession - Session code (defaults to current session)
  * @return {timestamptz} Operational date
  * @since 1.0.0
@@ -2517,7 +2517,7 @@ $$ LANGUAGE plpgsql
 -- FUNCTION SetSessionLocale ---------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Overload: sets the session locale by language code (e.g. 'en', 'ru').
+ * @brief Set the session locale by language code (e.g. 'en', 'ru').
  * @param {text} pCode - Locale code (defaults to 'ru')
  * @param {varchar} pSession - Session code (defaults to current session)
  * @return {void}
@@ -2544,7 +2544,7 @@ $$ LANGUAGE plpgsql
 -- FUNCTION GetSessionLocale ---------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the locale identifier for the given session.
+ * @brief Retrieve the locale identifier for the given session.
  * @param {varchar} pSession - Session code (defaults to current session)
  * @return {uuid} Locale identifier
  * @since 1.0.0
@@ -2563,7 +2563,7 @@ $$ LANGUAGE sql
 -- FUNCTION locale_code --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the locale code for the current session, falling back to system config then 'ru'.
+ * @brief Resolve the locale code for the current session, falling back to system config then 'ru'.
  * @param {varchar} pSession - Session code (defaults to current session)
  * @return {text} Locale code (e.g. 'en', 'ru')
  * @since 1.0.0
@@ -2592,7 +2592,7 @@ $$ LANGUAGE plpgsql
 -- FUNCTION current_locale -----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the current locale identifier, falling back to the default Russian locale.
+ * @brief Resolve the current locale identifier, falling back to the default Russian locale.
  * @param {varchar} pSession - Session code (defaults to current session)
  * @return {uuid} Locale identifier
  * @since 1.0.0
@@ -2636,7 +2636,7 @@ $$ LANGUAGE plpgsql
 -- GetDefaultLocale ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the user's default locale from the current scope profile.
+ * @brief Retrieve the user's default locale from the current scope profile.
  * @param {uuid} pUserId - User identifier (defaults to current user)
  * @return {uuid} Locale identifier
  * @since 1.0.0
@@ -2689,7 +2689,7 @@ $$ LANGUAGE plpgsql
 -- FUNCTION current_application ------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the application identifier for the current session's OAuth 2.0 audience.
+ * @brief Resolve the application identifier for the current session's OAuth 2.0 audience.
  * @param {text} pSession - Session code (defaults to current session)
  * @return {integer} Application identifier
  * @since 1.0.0
@@ -2717,7 +2717,7 @@ $$ LANGUAGE plpgsql
 -- FUNCTION current_application_code -------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the application code for the current session.
+ * @brief Resolve the application code for the current session.
  * @param {integer} pApplication - Application identifier (defaults to current application)
  * @return {text} Application code
  * @since 1.0.0
@@ -2766,7 +2766,7 @@ $$ LANGUAGE SQL
 -- GetAccessControlListMask ----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the effective ACL bitmask for the given user.
+ * @brief Retrieve the effective ACL bitmask for the given user.
  * @param {uuid} pUserId - User identifier (defaults to current user)
  * @return {bit varying} Effective permission mask
  * @since 1.0.0
@@ -2912,7 +2912,7 @@ $$ LANGUAGE plpgsql
 -- FUNCTION SubstituteUser -----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Overload: substitutes the active user by username.
+ * @brief Substitute the active user by username.
  * @param {text} pRoleName - Target username to switch to
  * @param {text} pPassword - Current user's password for verification
  * @param {varchar} pSession - Session code (defaults to current session)
@@ -2963,7 +2963,7 @@ $$ LANGUAGE plpgsql
 -- IsUserRole ------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Overload: checks role membership by username strings.
+ * @brief Check role membership by username strings.
  * @param {text} pRole - Role (group) username
  * @param {text} pUser - User username (defaults to current username)
  * @return {boolean} true if the user is a member of the role
@@ -3363,7 +3363,7 @@ $$ LANGUAGE plpgsql
 -- DeleteUser ------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Overload: deletes a user account by username.
+ * @brief Delete a user account by username.
  * @param {text} pRoleName - Username (login)
  * @return {void}
  * @see DeleteUser(uuid)
@@ -3432,7 +3432,7 @@ $$ LANGUAGE plpgsql
 -- DeleteGroup -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Overload: deletes a group by username.
+ * @brief Delete a group by username.
  * @param {text} pRoleName - Group username
  * @return {void}
  * @see DeleteGroup(uuid)
@@ -3453,7 +3453,7 @@ $$ LANGUAGE plpgsql
 -- GetUser ---------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the user identifier by username. Raises an error if not found.
+ * @brief Look up the user identifier by username. Raises an error if not found.
  * @param {text} pRoleName - Username (login)
  * @return {uuid} User identifier
  * @throws UserNotFound if the user does not exist
@@ -3483,7 +3483,7 @@ $$ LANGUAGE plpgsql
 -- GetGroup --------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the group identifier by group name. Raises an error if not found.
+ * @brief Look up the group identifier by group name. Raises an error if not found.
  * @param {text} pRoleName - Group username
  * @return {uuid} Group identifier
  * @throws UnknownRoleName if the group does not exist
@@ -3788,7 +3788,7 @@ $$ LANGUAGE plpgsql
 -- GetUsername -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns a user's username by identifier.
+ * @brief Retrieve a user's username by identifier.
  * @param {uuid} pId - User identifier
  * @return {text} Username, or NULL if not found
  * @since 1.0.0
@@ -3806,7 +3806,7 @@ $$ LANGUAGE sql
 -- GetUserFullName -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns a user's full display name by identifier.
+ * @brief Retrieve a user's full display name by identifier.
  * @param {uuid} pId - User identifier
  * @return {text} Full name, or NULL if not found
  * @since 1.0.0
@@ -3824,7 +3824,7 @@ $$ LANGUAGE sql
 -- GetGroupUsername ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns a group's username by identifier.
+ * @brief Retrieve a group's username by identifier.
  * @param {uuid} pId - Group identifier
  * @return {text} Group username, or NULL if not found
  * @since 1.0.0
@@ -3842,7 +3842,7 @@ $$ LANGUAGE sql
 -- GetGroupName ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns a group's display name by identifier.
+ * @brief Retrieve a group's display name by identifier.
  * @param {uuid} pId - Group identifier
  * @return {text} Group name, or NULL if not found
  * @since 1.0.0
@@ -3990,7 +3990,7 @@ $$ LANGUAGE plpgsql
 -- GetScope --------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns a scope identifier by its code.
+ * @brief Resolve a scope code to its identifier.
  * @param {text} pCode - Scope code
  * @return {uuid} Scope identifier, or NULL if not found
  * @since 1.0.0
@@ -4009,7 +4009,7 @@ $$ LANGUAGE sql
 -- GetScopeName ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns a scope name by its identifier.
+ * @brief Retrieve a scope name by its identifier.
  * @param {uuid} pId - Scope identifier
  * @return {text} Scope name
  * @since 1.0.0
@@ -4298,7 +4298,7 @@ $$ LANGUAGE plpgsql
 -- GetAreaScope ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the scope for the given area.
+ * @brief Resolve the scope for the given area.
  * @param {uuid} pArea - Area identifier
  * @return {uuid} Scope identifier
  * @since 1.0.0
@@ -4317,7 +4317,7 @@ $$ LANGUAGE sql
 -- GetArea ---------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns an area identifier by code within a scope.
+ * @brief Look up an area identifier by code within a scope.
  * @param {text} pCode - Area code
  * @param {uuid} pScope - Scope identifier (defaults to current scope)
  * @return {uuid} Area identifier, or NULL if not found
@@ -4338,7 +4338,7 @@ $$ LANGUAGE sql
 -- GetAreaRoot -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the root area for the given scope.
+ * @brief Retrieve the root area for the given scope.
  * @param {uuid} pScope - Scope identifier (defaults to current scope)
  * @return {uuid} Root area identifier
  * @since 1.0.0
@@ -4357,7 +4357,7 @@ $$ LANGUAGE sql
 -- GetAreaSystem ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the system area for the given scope.
+ * @brief Retrieve the system area for the given scope.
  * @param {uuid} pScope - Scope identifier (defaults to current scope)
  * @return {uuid} System area identifier
  * @since 1.0.0
@@ -4376,7 +4376,7 @@ $$ LANGUAGE sql
 -- GetAreaGuest ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the guest area for the given scope.
+ * @brief Retrieve the guest area for the given scope.
  * @param {uuid} pScope - Scope identifier (defaults to current scope)
  * @return {uuid} Guest area identifier
  * @since 1.0.0
@@ -4395,7 +4395,7 @@ $$ LANGUAGE sql
 -- GetAreaDefault --------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the default area for the given scope.
+ * @brief Retrieve the default area for the given scope.
  * @param {uuid} pScope - Scope identifier (defaults to current scope)
  * @return {uuid} Default area identifier
  * @since 1.0.0
@@ -4414,7 +4414,7 @@ $$ LANGUAGE sql
 -- GetAreaCode -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns an area code by its identifier.
+ * @brief Retrieve an area code by its identifier.
  * @param {uuid} pId - Area identifier
  * @return {text} Area code
  * @since 1.0.0
@@ -4433,7 +4433,7 @@ $$ LANGUAGE sql
 -- GetAreaName -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns an area name by its identifier.
+ * @brief Retrieve an area name by its identifier.
  * @param {uuid} pId - Area identifier
  * @return {text} Area name
  * @since 1.0.0
@@ -4452,7 +4452,7 @@ $$ LANGUAGE sql
 -- AreaTree --------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns a recursive area tree starting from the given area, filtered by current scopes.
+ * @brief Fetch a recursive area tree starting from the given area, filtered by current scopes.
  * @param {uuid} pArea - Root area identifier
  * @return {SETOF AreaTree} Sorted hierarchical area records
  * @since 1.0.0
@@ -4675,7 +4675,7 @@ $$ LANGUAGE plpgsql
 -- GetDefaultArea --------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the user's default area from the current scope profile.
+ * @brief Retrieve the user's default area from the current scope profile.
  *        Falls back to the guest area if no profile is found.
  * @param {uuid} pMember - User identifier (defaults to current user)
  * @return {uuid} Default area identifier
@@ -4888,7 +4888,7 @@ $$ LANGUAGE plpgsql
 -- GetInterface ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns an interface identifier by its code.
+ * @brief Resolve an interface code to its identifier.
  * @param {text} pCode - Interface code
  * @return {uuid} Interface identifier, or NULL if not found
  * @since 1.0.0
@@ -4906,7 +4906,7 @@ $$ LANGUAGE sql
 -- GetInterfaceName ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns an interface name by its identifier.
+ * @brief Retrieve an interface name by its identifier.
  * @param {uuid} pId - Interface identifier
  * @return {text} Interface name
  * @since 1.0.0
@@ -5026,7 +5026,7 @@ $$ LANGUAGE plpgsql
 -- GetDefaultInterface ---------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Returns the user's default interface from the current scope profile.
+ * @brief Retrieve the user's default interface from the current scope profile.
  *        Falls back to the guest interface if no profile is found.
  * @param {uuid} pMember - User identifier (defaults to current user)
  * @return {uuid} Default interface identifier
@@ -5181,7 +5181,7 @@ $$ LANGUAGE plpgsql
 -- CheckPassword ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Overload: verifies a password by username.
+ * @brief Verify a password by username.
  * @param {text} pRoleName - Username
  * @param {text} pPassword - Password to verify
  * @return {boolean} true if the password matches

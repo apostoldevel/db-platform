@@ -2,7 +2,7 @@
 -- FUNCTION DoLogin ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Hook called after a successful user login. Override to add custom post-login logic.
+ * @brief Execute custom logic after a successful user login.
  * @param {uuid} pUserId - Authenticated user identifier
  * @return {void}
  * @since 1.0.0
@@ -22,7 +22,7 @@ $$ LANGUAGE plpgsql
 -- FUNCTION DoLogout -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Hook called before a user logout. Override to add custom pre-logout logic.
+ * @brief Execute custom logic before a user logout.
  * @param {uuid} pUserId - User identifier being logged out
  * @return {void}
  * @since 1.0.0
@@ -42,7 +42,7 @@ $$ LANGUAGE plpgsql
 -- FUNCTION DoCreateArea -------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Hook called after a new area is created. Override to add custom post-create logic.
+ * @brief Execute custom logic after a new area is created.
  * @param {uuid} pArea - Newly created area identifier
  * @return {void}
  * @since 1.0.0
@@ -62,7 +62,7 @@ $$ LANGUAGE plpgsql
 -- FUNCTION DoUpdateArea -------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Hook called after an area is updated. Override to add custom post-update logic.
+ * @brief Execute custom logic after an area is updated.
  * @param {uuid} pArea - Updated area identifier
  * @return {void}
  * @since 1.0.0
@@ -82,7 +82,7 @@ $$ LANGUAGE plpgsql
 -- FUNCTION DoDeleteArea -------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Hook called before an area is deleted. Override to add custom pre-delete logic.
+ * @brief Execute custom logic before an area is deleted.
  * @param {uuid} pArea - Area identifier being deleted
  * @return {void}
  * @since 1.0.0
@@ -102,7 +102,7 @@ $$ LANGUAGE plpgsql
 -- FUNCTION DoCreateRole -------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Hook called after a new role is created. Override to add custom post-create logic.
+ * @brief Execute custom logic after a new role is created.
  * @param {uuid} pRole - Newly created role identifier
  * @return {void}
  * @since 1.0.0
@@ -122,7 +122,7 @@ $$ LANGUAGE plpgsql
 -- FUNCTION DoUpdateRole -------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Hook called after a role is updated. Override to add custom post-update logic.
+ * @brief Execute custom logic after a role is updated.
  * @param {uuid} pRole - Updated role identifier
  * @return {void}
  * @since 1.0.0
@@ -142,7 +142,7 @@ $$ LANGUAGE plpgsql
 -- FUNCTION DoDeleteRole -------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Hook called before a role is deleted. Override to add custom pre-delete logic.
+ * @brief Execute custom logic before a role is deleted.
  * @param {uuid} pRole - Role identifier being deleted
  * @return {void}
  * @since 1.0.0
