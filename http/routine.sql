@@ -2,6 +2,18 @@
 -- HTTP LOG --------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Write an incoming HTTP request into the audit log.
+ * @param {text} pPath - Request path (e.g. /api/v1/ping)
+ * @param {jsonb} pHeaders - HTTP headers of the incoming request
+ * @param {jsonb} pParams - Query-string parameters (optional)
+ * @param {jsonb} pBody - Request body payload (optional, POST/PUT/PATCH)
+ * @param {text} pMethod - HTTP method, defaults to GET
+ * @param {text} pMessage - Exception message text if logging an error
+ * @param {text} pContext - PL/pgSQL call-stack trace if logging an error
+ * @return {bigint} - Auto-generated log entry ID
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION http.write_to_log (
   pPath         text,
   pHeaders      jsonb,
@@ -29,6 +41,24 @@ $$ LANGUAGE plpgsql
 -- HTTP REQUEST ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Create an outbound HTTP request row and trigger PGFetch via NOTIFY.
+ * @param {text} pResource - Target URL or resource path
+ * @param {text} pType - Transport type: native or curl
+ * @param {text} pMethod - HTTP method, defaults to GET
+ * @param {jsonb} pHeaders - HTTP headers to send
+ * @param {bytea} pContent - Request body as raw bytes
+ * @param {text} pDone - Callback function name on success
+ * @param {text} pFail - Callback function name on failure
+ * @param {text} pStream - Callback function name for SSE streaming data
+ * @param {text} pAgent - Logical agent identifier
+ * @param {text} pProfile - Agent configuration profile name
+ * @param {text} pCommand - Application-level command tag
+ * @param {text} pMessage - Free-form message attached to the request
+ * @param {jsonb} pData - Arbitrary JSON metadata
+ * @return {uuid} - ID of the newly created request
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION http.create_request (
   pResource     text,
   pType         text DEFAULT null,
@@ -62,6 +92,17 @@ $$ LANGUAGE plpgsql
 -- HTTP RESPONSE ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Store the HTTP response, compute runtime, and mark the request as done.
+ * @param {uuid} pRequest - ID of the originating http.request row
+ * @param {integer} pStatus - HTTP status code from the remote server
+ * @param {text} pStatusText - HTTP reason phrase (e.g. OK, Not Found)
+ * @param {jsonb} pHeaders - Response headers from the remote server
+ * @param {bytea} pContent - Response body as raw bytes
+ * @return {uuid} - ID of the newly created response row
+ * @see http.done
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION http.create_response (
   pRequest      uuid,
   pStatus       integer,
@@ -92,6 +133,12 @@ $$ LANGUAGE plpgsql
 -- HTTP REQUEST ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Fetch a single HTTP request row by its ID.
+ * @param {uuid} pId - Request identifier
+ * @return {SETOF http.request} - Matching request row (0 or 1)
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION http.request (
   pId       uuid
 ) RETURNS   SETOF http.request
@@ -104,12 +151,14 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- HTTP GET --------------------------------------------------------------------
 --------------------------------------------------------------------------------
+
 /**
- * Обрабатывает GET запрос.
- * @param {text} path - Путь
- * @param {jsonb} headers - HTTP заголовки
- * @param {jsonb} params - Параметры запроса
- * @return {SETOF json}
+ * @brief Handle an incoming HTTP GET request and route it to the appropriate endpoint.
+ * @param {text} path - URL path (e.g. /api/v1/ping)
+ * @param {jsonb} headers - HTTP request headers
+ * @param {jsonb} params - Query-string parameters
+ * @return {SETOF json} - JSON response payload(s)
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION http.get (
   path      text,
@@ -190,13 +239,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- HTTP POST -------------------------------------------------------------------
 --------------------------------------------------------------------------------
+
 /**
- * Обрабатывает POST запрос.
- * @param {text} path - Путь
- * @param {jsonb} headers - HTTP заголовки
- * @param {jsonb} params - Параметры запроса
- * @param {jsonb} body - Тело запроса
- * @return {SETOF json}
+ * @brief Handle an incoming HTTP POST request and route it to the appropriate endpoint.
+ * @param {text} path - URL path (e.g. /api/v1/ping)
+ * @param {jsonb} headers - HTTP request headers
+ * @param {jsonb} params - Query-string parameters
+ * @param {jsonb} body - Request body payload
+ * @return {SETOF json} - JSON response payload(s)
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION http.post (
   path      text,
@@ -275,22 +326,25 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- HTTP FETCH ------------------------------------------------------------------
 --------------------------------------------------------------------------------
+
 /**
- * Выполняет HTTP запрос.
- * @param {text} resource - Ресурс
- * @param {text} method - Метод
- * @param {jsonb} headers - HTTP заголовки
- * @param {bytea} content - Содержимое запроса
- * @param {text} done - Имя функции обратного вызова в случае успешного ответа
- * @param {text} fail - Имя функции обратного вызова в случае сбоя
- * @param {text} agent - Агент
- * @param {text} profile - Профиль
- * @param {text} command - Команда
- * @param {text} message - Сообщение
- * @param {text} type - Способ отправки: native - родной; curl - через библиотеку cURL
- * @param {jsonb} data - Произвольные данные в формате JSON
- * @param {text} stream - Имя функции обратного вызова для потоковых данных (SSE)
- * @return {uuid}
+ * @brief Enqueue an outbound HTTP request with callback validation (bytea content).
+ * @param {text} resource - Target URL or resource path
+ * @param {text} method - HTTP method, defaults to GET
+ * @param {jsonb} headers - HTTP headers to send
+ * @param {bytea} content - Request body as raw bytes
+ * @param {text} done - Callback function name invoked on success (schema.func format)
+ * @param {text} fail - Callback function name invoked on failure (schema.func format)
+ * @param {text} agent - Logical agent identifier
+ * @param {text} profile - Agent configuration profile name
+ * @param {text} command - Application-level command tag
+ * @param {text} message - Free-form message attached to the request
+ * @param {text} type - Transport type: native or curl
+ * @param {jsonb} data - Arbitrary JSON metadata
+ * @param {text} stream - Callback function name for SSE streaming data
+ * @return {uuid} - ID of the created request
+ * @see http.create_request
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION http.fetch (
   resource      text,
@@ -337,24 +391,27 @@ $$ LANGUAGE plpgsql
   SET search_path = http, pg_temp;
 
 --------------------------------------------------------------------------------
--- HTTP FETCH JSON -------------------------------------------------------------
+-- HTTP FETCH TEXT -------------------------------------------------------------
 --------------------------------------------------------------------------------
+
 /**
- * Выполняет HTTP запрос.
- * @param {text} resource - Ресурс
- * @param {text} method - Метод
- * @param {jsonb} headers - HTTP заголовки
- * @param {text} content - Содержимое запроса в текстовом формате
- * @param {text} done - Имя функции обратного вызова в случае успешного ответа
- * @param {text} fail - Имя функции обратного вызова в случае сбоя
- * @param {text} agent - Агент
- * @param {text} profile - Профиль
- * @param {text} command - Команда
- * @param {text} message - Сообщение
- * @param {text} type - Способ отправки: native - родной; curl - через библиотеку cURL
- * @param {jsonb} data - Произвольные данные в формате JSON
- * @param {text} stream - Имя функции обратного вызова для потоковых данных (SSE)
- * @return {uuid}
+ * @brief Enqueue an outbound HTTP request with text content (auto-converted to UTF-8 bytes).
+ * @param {text} resource - Target URL or resource path
+ * @param {text} method - HTTP method, defaults to POST
+ * @param {jsonb} headers - HTTP headers to send
+ * @param {text} content - Request body as plain text (converted to bytea internally)
+ * @param {text} done - Callback function name invoked on success
+ * @param {text} fail - Callback function name invoked on failure
+ * @param {text} agent - Logical agent identifier
+ * @param {text} profile - Agent configuration profile name
+ * @param {text} command - Application-level command tag
+ * @param {text} message - Free-form message attached to the request
+ * @param {text} type - Transport type: native or curl
+ * @param {jsonb} data - Arbitrary JSON metadata
+ * @param {text} stream - Callback function name for SSE streaming data
+ * @return {uuid} - ID of the created request
+ * @see http.create_request
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION http.fetch (
   resource      text,
@@ -382,22 +439,25 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- HTTP FETCH JSON -------------------------------------------------------------
 --------------------------------------------------------------------------------
+
 /**
- * Выполняет HTTP запрос.
- * @param {text} resource - Ресурс
- * @param {text} method - Метод
- * @param {jsonb} headers - HTTP заголовки
- * @param {jsonb} content - Содержимое запроса в формате JSON
- * @param {text} done - Имя функции обратного вызова в случае успешного ответа
- * @param {text} fail - Имя функции обратного вызова в случае сбоя
- * @param {text} agent - Агент
- * @param {text} profile - Профиль
- * @param {text} command - Команда
- * @param {text} message - Сообщение
- * @param {text} type - Способ отправки: native - родной; curl - через библиотеку cURL
- * @param {jsonb} data - Произвольные данные в формате JSON
- * @param {text} stream - Имя функции обратного вызова для потоковых данных (SSE)
- * @return {uuid}
+ * @brief Enqueue an outbound HTTP request with JSON content (auto-sets Content-Type headers).
+ * @param {text} resource - Target URL or resource path
+ * @param {text} method - HTTP method, defaults to POST
+ * @param {jsonb} headers - HTTP headers to send (defaults to application/json if NULL)
+ * @param {jsonb} content - Request body as a JSON object (converted to bytea internally)
+ * @param {text} done - Callback function name invoked on success
+ * @param {text} fail - Callback function name invoked on failure
+ * @param {text} agent - Logical agent identifier
+ * @param {text} profile - Agent configuration profile name
+ * @param {text} command - Application-level command tag
+ * @param {text} message - Free-form message attached to the request
+ * @param {text} type - Transport type: native or curl
+ * @param {jsonb} data - Arbitrary JSON metadata
+ * @param {text} stream - Callback function name for SSE streaming data
+ * @return {uuid} - ID of the created request
+ * @see http.create_request
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION http.fetch (
   resource      text,
@@ -430,6 +490,13 @@ $$ LANGUAGE plpgsql
 -- http.done -------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Mark an HTTP request as successfully completed (state = 2).
+ * @param {uuid} pRequest - ID of the request to mark as done
+ * @return {void}
+ * @see http.fail
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION http.done (
   pRequest  uuid
 ) RETURNS   void
@@ -445,6 +512,14 @@ $$ LANGUAGE plpgsql
 -- http.fail -------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Mark an HTTP request as failed (state = 3) and record the error message.
+ * @param {uuid} pRequest - ID of the request to mark as failed
+ * @param {text} pError - Error description text
+ * @return {void}
+ * @see http.done
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION http.fail (
   pRequest  uuid,
   pError    text

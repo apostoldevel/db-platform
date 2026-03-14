@@ -1,3 +1,4 @@
+-- Joined view of outbound HTTP requests and their responses for monitoring and debugging.
 CREATE OR REPLACE VIEW http.fetch
 AS
   SELECT t1.id, t1.agent, t1.profile, t1.command, t1.state, t1.method, t1.resource,

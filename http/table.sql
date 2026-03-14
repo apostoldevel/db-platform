@@ -16,19 +16,19 @@ CREATE TABLE http.log (
   runtime       interval
 );
 
-COMMENT ON TABLE http.log IS 'Журнал входящих HTTP запросов.';
+COMMENT ON TABLE http.log IS 'Audit log for incoming HTTP requests processed by the platform.';
 
-COMMENT ON COLUMN http.log.id IS 'Идентификатор';
-COMMENT ON COLUMN http.log.datetime IS 'Дата и время';
-COMMENT ON COLUMN http.log.username IS 'Пользователь СУБД';
-COMMENT ON COLUMN http.log.method IS 'Метод';
-COMMENT ON COLUMN http.log.path IS 'Путь';
-COMMENT ON COLUMN http.log.headers IS 'Заголовки';
-COMMENT ON COLUMN http.log.params IS 'Параметры';
-COMMENT ON COLUMN http.log.body IS 'Тело';
-COMMENT ON COLUMN http.log.message IS 'Текст основного сообщения исключения';
-COMMENT ON COLUMN http.log.context IS 'Строки текста, описывающие стек вызовов в момент исключения';
-COMMENT ON COLUMN http.log.runtime IS 'Время выполнения запроса';
+COMMENT ON COLUMN http.log.id IS 'Auto-incremented log entry identifier.';
+COMMENT ON COLUMN http.log.datetime IS 'Timestamp when the request was received (wall-clock precision).';
+COMMENT ON COLUMN http.log.username IS 'Database session user who executed the request.';
+COMMENT ON COLUMN http.log.method IS 'HTTP method (GET, POST, PUT, DELETE, HEAD, OPTIONS, PATCH, TRACE).';
+COMMENT ON COLUMN http.log.path IS 'Request path (e.g. /api/v1/ping).';
+COMMENT ON COLUMN http.log.headers IS 'HTTP request headers as a JSON object.';
+COMMENT ON COLUMN http.log.params IS 'Query-string parameters as a JSON object.';
+COMMENT ON COLUMN http.log.body IS 'Request body payload as JSON (POST/PUT/PATCH only).';
+COMMENT ON COLUMN http.log.message IS 'Primary exception message text if the request failed.';
+COMMENT ON COLUMN http.log.context IS 'PL/pgSQL call-stack trace captured at the point of exception.';
+COMMENT ON COLUMN http.log.runtime IS 'Wall-clock execution time of the request handler.';
 
 CREATE INDEX ON http.log (method);
 CREATE INDEX ON http.log (path);
@@ -57,25 +57,25 @@ CREATE TABLE http.request (
   data          jsonb
 );
 
-COMMENT ON TABLE http.request IS 'HTTP запрос.';
+COMMENT ON TABLE http.request IS 'Outbound HTTP request queue. PGFetch listens via NOTIFY and executes queued rows.';
 
-COMMENT ON COLUMN http.request.id IS 'Идентификатор';
-COMMENT ON COLUMN http.request.datetime IS 'Дата и время';
-COMMENT ON COLUMN http.request.state IS 'Состояние: 0 - создан, 1 - выполняется, 2 - выполнен, 3 - неудача';
-COMMENT ON COLUMN http.request.type IS 'Способ отправки: native - родной; curl - через библиотеку cURL';
-COMMENT ON COLUMN http.request.method IS 'Метод';
-COMMENT ON COLUMN http.request.resource IS 'Ресурс';
-COMMENT ON COLUMN http.request.headers IS 'Заголовки';
-COMMENT ON COLUMN http.request.content IS 'Содержание запроса';
-COMMENT ON COLUMN http.request.done IS 'Имя функции обратного вызова в случае успешного ответа';
-COMMENT ON COLUMN http.request.fail IS 'Имя функции обратного вызова в случае сбоя';
-COMMENT ON COLUMN http.request.stream IS 'Имя функции обратного вызова для потоковых данных (SSE)';
-COMMENT ON COLUMN http.request.agent IS 'Агент (при наличии)';
-COMMENT ON COLUMN http.request.profile IS 'Профиль настроек агента (при наличии)';
-COMMENT ON COLUMN http.request.command IS 'Команда (при наличии)';
-COMMENT ON COLUMN http.request.message IS 'Сообщение (при наличии)';
-COMMENT ON COLUMN http.request.error IS 'Текст описания ошибки (при наличии)';
-COMMENT ON COLUMN http.request.data IS 'Произвольные данные в формате JSON';
+COMMENT ON COLUMN http.request.id IS 'Unique request identifier (UUID v4, auto-generated).';
+COMMENT ON COLUMN http.request.datetime IS 'Timestamp when the request was created.';
+COMMENT ON COLUMN http.request.state IS 'Lifecycle state: 0 = created, 1 = executing, 2 = completed, 3 = failed.';
+COMMENT ON COLUMN http.request.type IS 'Transport type: native (built-in) or curl (via libcurl).';
+COMMENT ON COLUMN http.request.method IS 'HTTP method (GET, POST, PUT, DELETE, HEAD, OPTIONS, PATCH, TRACE).';
+COMMENT ON COLUMN http.request.resource IS 'Target URL or resource path for the outbound request.';
+COMMENT ON COLUMN http.request.headers IS 'HTTP headers to send, stored as a JSON object.';
+COMMENT ON COLUMN http.request.content IS 'Request body as raw bytes.';
+COMMENT ON COLUMN http.request.done IS 'Fully-qualified callback function name invoked on successful response.';
+COMMENT ON COLUMN http.request.fail IS 'Fully-qualified callback function name invoked on failure.';
+COMMENT ON COLUMN http.request.stream IS 'Fully-qualified callback function name for Server-Sent Events (SSE) streaming data.';
+COMMENT ON COLUMN http.request.agent IS 'Logical agent identifier associated with this request.';
+COMMENT ON COLUMN http.request.profile IS 'Agent configuration profile name.';
+COMMENT ON COLUMN http.request.command IS 'Application-level command tag associated with the request.';
+COMMENT ON COLUMN http.request.message IS 'Free-form message or description attached to the request.';
+COMMENT ON COLUMN http.request.error IS 'Error description text populated when the request fails (state = 3).';
+COMMENT ON COLUMN http.request.data IS 'Arbitrary JSON payload for caller-defined metadata.';
 
 CREATE INDEX ON http.request (state);
 CREATE INDEX ON http.request (method);
@@ -85,6 +85,11 @@ CREATE INDEX ON http.request (command);
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Fire a NOTIFY event after a new HTTP request is inserted.
+ * @return {trigger} - After-insert trigger return
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION http.ft_request_after_insert()
 RETURNS     trigger
 AS $$
@@ -118,15 +123,16 @@ CREATE TABLE http.response (
   runtime       interval
 );
 
-COMMENT ON TABLE http.response IS 'HTTP ответ.';
+COMMENT ON TABLE http.response IS 'Stored responses for completed outbound HTTP requests.';
 
-COMMENT ON COLUMN http.response.id IS 'Идентификатор';
-COMMENT ON COLUMN http.response.datetime IS 'Дата и время';
-COMMENT ON COLUMN http.response.status IS 'Статус ответа на запрос';
-COMMENT ON COLUMN http.response.status_text IS 'Статус ответа на запрос';
-COMMENT ON COLUMN http.response.headers IS 'Заголовки';
-COMMENT ON COLUMN http.response.content IS 'Содержание ответа';
-COMMENT ON COLUMN http.response.runtime IS 'Время выполнения запроса';
+COMMENT ON COLUMN http.response.id IS 'Response identifier (matches the originating request UUID).';
+COMMENT ON COLUMN http.response.request IS 'Foreign key to the originating http.request row.';
+COMMENT ON COLUMN http.response.datetime IS 'Timestamp when the response was recorded.';
+COMMENT ON COLUMN http.response.status IS 'HTTP status code returned by the remote server (e.g. 200, 404).';
+COMMENT ON COLUMN http.response.status_text IS 'HTTP reason phrase accompanying the status code (e.g. OK, Not Found).';
+COMMENT ON COLUMN http.response.headers IS 'Response headers returned by the remote server, stored as JSON.';
+COMMENT ON COLUMN http.response.content IS 'Response body as raw bytes.';
+COMMENT ON COLUMN http.response.runtime IS 'Wall-clock time elapsed from request creation to response receipt.';
 
 CREATE INDEX ON http.response (request);
 CREATE INDEX ON http.response (status);
