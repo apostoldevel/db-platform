@@ -2,14 +2,17 @@
 -- CreateAgent -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Создаёт агента
- * @param {uuid} pParent - Идентификатор объекта родителя
- * @param {uuid} pType - Идентификатор типа
- * @param {uuid} pVendor - Производитель
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {text} pDescription - Описание
- * @return {uuid}
+ * @brief Create a new delivery agent and trigger the 'create' workflow method.
+ * @param {uuid} pParent - Parent object or NULL
+ * @param {uuid} pType - Type (must belong to 'agent' entity)
+ * @param {uuid} pVendor - Vendor that provides this agent
+ * @param {text} pCode - Unique business code
+ * @param {text} pName - Display name
+ * @param {text} pDescription - Optional description
+ * @return {uuid} - ID of the created agent
+ * @throws IncorrectClassType - When pType does not belong to agent entity
+ * @see EditAgent
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION CreateAgent (
   pParent       uuid,
@@ -49,15 +52,17 @@ $$ LANGUAGE plpgsql
 -- EditAgent -------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Редактирует агента
- * @param {uuid} pId - Идентификатор
- * @param {uuid} pParent - Идентификатор объекта родителя
- * @param {uuid} pType - Идентификатор типа
- * @param {uuid} pVendor - Производитель
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {text} pDescription - Описание
+ * @brief Update an existing delivery agent (NULL params keep current values).
+ * @param {uuid} pId - Agent to update
+ * @param {uuid} pParent - New parent (NULL keeps current)
+ * @param {uuid} pType - New type (NULL keeps current)
+ * @param {uuid} pVendor - New vendor (NULL keeps current)
+ * @param {text} pCode - New code (NULL keeps current)
+ * @param {text} pName - New name (NULL keeps current)
+ * @param {text} pDescription - New description (NULL keeps current)
  * @return {void}
+ * @see CreateAgent
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION EditAgent (
   pId           uuid,
@@ -91,7 +96,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION GetAgent -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Look up an agent ID by its business code.
+ * @param {text} pCode - Agent code
+ * @return {uuid} - Agent ID or NULL
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetAgent (
   pCode       text
 ) RETURNS     uuid
@@ -107,7 +117,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION GetAgentCode -------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve the business code of an agent.
+ * @param {uuid} pId - Agent ID
+ * @return {text} - Agent code
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetAgentCode (
   pId        uuid
 ) RETURNS    text
@@ -123,7 +138,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION GetAgentVendor -----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve the vendor ID assigned to an agent.
+ * @param {uuid} pId - Agent ID
+ * @return {uuid} - Vendor ID
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetAgentVendor (
   pId       uuid
 ) RETURNS   uuid

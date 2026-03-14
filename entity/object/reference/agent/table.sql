@@ -12,11 +12,11 @@ CREATE TABLE db.agent (
     vendor      uuid NOT NULL REFERENCES db.vendor(id) ON DELETE RESTRICT
 );
 
-COMMENT ON TABLE db.agent IS 'Агент.';
+COMMENT ON TABLE db.agent IS 'Delivery agent — a message transport channel (smtp, fcm, pop3, imap, m2m, sba).';
 
-COMMENT ON COLUMN db.agent.id IS 'Идентификатор.';
-COMMENT ON COLUMN db.agent.reference IS 'Справочник.';
-COMMENT ON COLUMN db.agent.vendor IS 'Производитель (поставщик).';
+COMMENT ON COLUMN db.agent.id IS 'Primary key (same as reference.id).';
+COMMENT ON COLUMN db.agent.reference IS 'Parent reference catalog entry.';
+COMMENT ON COLUMN db.agent.vendor IS 'Vendor that provides this agent (e.g., google, mts).';
 
 CREATE INDEX ON db.agent (reference);
 CREATE INDEX ON db.agent (vendor);

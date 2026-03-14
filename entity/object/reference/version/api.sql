@@ -16,13 +16,14 @@ GRANT SELECT ON api.version TO administrator;
 -- api.add_version -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Добавляет версию.
- * @param {uuid} pParent - Ссылка на родительский объект: api.document | null
- * @param {uuid} pType - Идентификатор типа
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {text} pDescription - Описание
- * @return {uuid}
+ * @brief Create a new version record via the API (defaults to 'api.version' type).
+ * @param {uuid} pParent - Parent object or NULL
+ * @param {uuid} pType - Version type (NULL = api.version)
+ * @param {text} pCode - Unique business code
+ * @param {text} pName - Version string
+ * @param {text} pDescription - Optional description
+ * @return {uuid} - ID of the created version
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.add_version (
   pParent       uuid,
@@ -43,13 +44,16 @@ $$ LANGUAGE plpgsql
 -- api.update_version ----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Редактирует версию.
- * @param {uuid} pParent - Ссылка на родительский объект: Object.Parent | null
- * @param {uuid} pType - Идентификатор типа
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {text} pDescription - Описание
+ * @brief Update an existing version record via the API.
+ * @param {uuid} pId - Version to update
+ * @param {uuid} pParent - New parent (NULL keeps current)
+ * @param {uuid} pType - New type (NULL keeps current)
+ * @param {text} pCode - New code (NULL keeps current)
+ * @param {text} pName - New name (NULL keeps current)
+ * @param {text} pDescription - New description (NULL keeps current)
  * @return {void}
+ * @throws ObjectNotFound - When version with given ID does not exist
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.update_version (
   pId           uuid,
@@ -78,7 +82,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.set_version -------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Upsert a version: create when pId is NULL, otherwise update. Return the row.
+ * @param {uuid} pId - Version ID (NULL = create new)
+ * @param {uuid} pParent - Parent object or NULL
+ * @param {uuid} pType - Version type
+ * @param {text} pCode - Business code
+ * @param {text} pName - Version string
+ * @param {text} pDescription - Optional description
+ * @return {SETOF api.version} - The created or updated version row
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.set_version (
   pId           uuid,
   pParent       uuid default null,
@@ -105,9 +119,10 @@ $$ LANGUAGE plpgsql
 -- api.get_version -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает версию
- * @param {uuid} pId - Идентификатор
- * @return {api.version}
+ * @brief Retrieve a single version by ID (with access check).
+ * @param {uuid} pId - Version ID
+ * @return {SETOF api.version} - Matching row or empty set
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_version (
   pId       uuid
@@ -122,13 +137,14 @@ $$ LANGUAGE SQL
 -- api.list_version ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает версию в виде списка.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.version}
+ * @brief List versions with optional search, filter, and pagination.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Exact-match filter object
+ * @param {integer} pLimit - Maximum rows to return
+ * @param {integer} pOffSet - Rows to skip
+ * @param {jsonb} pOrderBy - Sort fields array
+ * @return {SETOF api.version} - Matching rows
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_version (
   pSearch   jsonb default null,
@@ -149,9 +165,10 @@ $$ LANGUAGE plpgsql
 -- api.get_version_id ----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает uuid по коду.
- * @param {text} pCode - Код версии
- * @return {uuid}
+ * @brief Resolve a version ID from a code or UUID string.
+ * @param {text} pCode - Version code or UUID
+ * @return {uuid} - Version ID
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_version_id (
   pCode     text

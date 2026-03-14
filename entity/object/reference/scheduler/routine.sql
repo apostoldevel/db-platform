@@ -2,16 +2,19 @@
 -- CreateScheduler -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Создаёт планировщик
- * @param {uuid} pParent - Идентификатор объекта родителя
- * @param {uuid} pType - Идентификатор типа
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {interval} pPeriod - Период выполнения
- * @param {timestamptz} pDateStart - Дата начала выполнения
- * @param {timestamptz} pDateStop - Дата окончания выполнения
- * @param {text} pDescription - Описание
- * @return {uuid}
+ * @brief Create a new job scheduler and trigger the 'create' workflow method.
+ * @param {uuid} pParent - Parent object or NULL
+ * @param {uuid} pType - Type (must belong to 'scheduler' entity)
+ * @param {text} pCode - Unique business code
+ * @param {text} pName - Display name
+ * @param {interval} pPeriod - Execution interval (e.g., '1 hour')
+ * @param {timestamptz} pDateStart - Start of active window (NULL = now)
+ * @param {timestamptz} pDateStop - End of active window (NULL = far future)
+ * @param {text} pDescription - Optional description
+ * @return {uuid} - ID of the created scheduler
+ * @throws IncorrectClassType - When pType does not belong to scheduler entity
+ * @see EditScheduler
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION CreateScheduler (
   pParent       uuid,
@@ -53,17 +56,19 @@ $$ LANGUAGE plpgsql
 -- EditScheduler ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Редактирует планировщик
- * @param {uuid} pId - Идентификатор
- * @param {uuid} pParent - Идентификатор объекта родителя
- * @param {uuid} pType - Идентификатор типа
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {interval} pPeriod - Период выполнения
- * @param {timestamptz} pDateStart - Дата начала выполнения
- * @param {timestamptz} pDateStop - Дата окончания выполнения
- * @param {text} pDescription - Описание
+ * @brief Update an existing scheduler (NULL params keep current values).
+ * @param {uuid} pId - Scheduler to update
+ * @param {uuid} pParent - New parent (NULL keeps current)
+ * @param {uuid} pType - New type (NULL keeps current)
+ * @param {text} pCode - New code (NULL keeps current)
+ * @param {text} pName - New name (NULL keeps current)
+ * @param {interval} pPeriod - New execution interval (NULL keeps current)
+ * @param {timestamptz} pDateStart - New start date (NULL keeps current)
+ * @param {timestamptz} pDateStop - New stop date (NULL keeps current)
+ * @param {text} pDescription - New description (NULL keeps current)
  * @return {void}
+ * @see CreateScheduler
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION EditScheduler (
   pId           uuid,
@@ -101,7 +106,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION GetScheduler -------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Look up a scheduler ID by its business code.
+ * @param {text} pCode - Scheduler code
+ * @return {uuid} - Scheduler ID or NULL
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetScheduler (
   pCode        text
 ) RETURNS     uuid

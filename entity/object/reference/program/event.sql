@@ -6,6 +6,12 @@
 -- EventProgramCreate ----------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Handle the 'create' event for a program.
+ * @param {uuid} pObject - Program object ID
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventProgramCreate (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -19,6 +25,12 @@ $$ LANGUAGE plpgsql;
 -- EventProgramOpen ------------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Handle the 'open' event for a program.
+ * @param {uuid} pObject - Program object ID
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventProgramOpen (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -32,6 +44,12 @@ $$ LANGUAGE plpgsql;
 -- EventProgramEdit ------------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Handle the 'edit' event for a program.
+ * @param {uuid} pObject - Program object ID
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventProgramEdit (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -45,6 +63,12 @@ $$ LANGUAGE plpgsql;
 -- EventProgramSave ------------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Handle the 'save' event for a program.
+ * @param {uuid} pObject - Program object ID
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventProgramSave (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -58,6 +82,12 @@ $$ LANGUAGE plpgsql;
 -- EventProgramEnable ----------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Handle the 'enable' event for a program.
+ * @param {uuid} pObject - Program object ID
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventProgramEnable (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -71,6 +101,12 @@ $$ LANGUAGE plpgsql;
 -- EventProgramDisable ---------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Handle the 'disable' event for a program.
+ * @param {uuid} pObject - Program object ID
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventProgramDisable (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -84,6 +120,12 @@ $$ LANGUAGE plpgsql;
 -- EventProgramDelete ----------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Handle the 'delete' (soft) event for a program.
+ * @param {uuid} pObject - Program object ID
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventProgramDelete (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -97,6 +139,12 @@ $$ LANGUAGE plpgsql;
 -- EventProgramRestore ---------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Handle the 'restore' event for a program.
+ * @param {uuid} pObject - Program object ID
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventProgramRestore (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -110,6 +158,12 @@ $$ LANGUAGE plpgsql;
 -- EventProgramDrop ------------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Handle the 'drop' event: permanently delete program data from db.program.
+ * @param {uuid} pObject - Program object ID
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventProgramDrop (
   pObject    uuid default context_object()
 ) RETURNS    void

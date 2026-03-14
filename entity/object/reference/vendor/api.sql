@@ -16,13 +16,14 @@ GRANT SELECT ON api.vendor TO administrator;
 -- api.add_vendor --------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Добавляет производителя.
- * @param {uuid} pParent - Ссылка на родительский объект: api.document | null
- * @param {uuid} pType - Идентификатор типа
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {text} pDescription - Описание
- * @return {uuid}
+ * @brief Create a new vendor via the API (defaults to 'device.vendor' type).
+ * @param {uuid} pParent - Parent object or NULL
+ * @param {uuid} pType - Vendor type (NULL = device.vendor)
+ * @param {text} pCode - Unique business code
+ * @param {text} pName - Display name
+ * @param {text} pDescription - Optional description
+ * @return {uuid} - ID of the created vendor
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.add_vendor (
   pParent       uuid,
@@ -43,13 +44,16 @@ $$ LANGUAGE plpgsql
 -- api.update_vendor -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Редактирует производителя.
- * @param {uuid} pParent - Ссылка на родительский объект: Object.Parent | null
- * @param {uuid} pType - Идентификатор типа
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {text} pDescription - Описание
+ * @brief Update an existing vendor via the API.
+ * @param {uuid} pId - Vendor to update
+ * @param {uuid} pParent - New parent (NULL keeps current)
+ * @param {uuid} pType - New type (NULL keeps current)
+ * @param {text} pCode - New code (NULL keeps current)
+ * @param {text} pName - New name (NULL keeps current)
+ * @param {text} pDescription - New description (NULL keeps current)
  * @return {void}
+ * @throws ObjectNotFound - When vendor with given ID does not exist
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.update_vendor (
   pId           uuid,
@@ -78,7 +82,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.set_vendor --------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Upsert a vendor: create when pId is NULL, otherwise update. Return the row.
+ * @param {uuid} pId - Vendor ID (NULL = create new)
+ * @param {uuid} pParent - Parent object or NULL
+ * @param {uuid} pType - Vendor type
+ * @param {text} pCode - Business code
+ * @param {text} pName - Display name
+ * @param {text} pDescription - Optional description
+ * @return {SETOF api.vendor} - The created or updated vendor row
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.set_vendor (
   pId           uuid,
   pParent       uuid default null,
@@ -105,9 +119,10 @@ $$ LANGUAGE plpgsql
 -- api.get_vendor --------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает производителя
- * @param {uuid} pId - Идентификатор
- * @return {api.vendor}
+ * @brief Retrieve a single vendor by ID (with access check).
+ * @param {uuid} pId - Vendor ID
+ * @return {SETOF api.vendor} - Matching row or empty set
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_vendor (
   pId       uuid
@@ -122,13 +137,14 @@ $$ LANGUAGE SQL
 -- api.list_vendor -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список производителей.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.vendor}
+ * @brief List vendors with optional search, filter, and pagination.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Exact-match filter object
+ * @param {integer} pLimit - Maximum rows to return
+ * @param {integer} pOffSet - Rows to skip
+ * @param {jsonb} pOrderBy - Sort fields array
+ * @return {SETOF api.vendor} - Matching rows
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_vendor (
   pSearch   jsonb default null,
@@ -149,9 +165,10 @@ $$ LANGUAGE plpgsql
 -- api.get_vendor_id -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает uuid по коду.
- * @param {text} pCode - Код производителя
- * @return {uuid}
+ * @brief Resolve a vendor ID from a code or UUID string.
+ * @param {text} pCode - Vendor code or UUID
+ * @return {uuid} - Vendor ID
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_vendor_id (
   pCode     text

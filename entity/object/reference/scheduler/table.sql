@@ -14,13 +14,13 @@ CREATE TABLE db.scheduler (
     dateStop        timestamptz NOT NULL DEFAULT TO_DATE('4433-12-31', 'YYYY-MM-DD')
 );
 
-COMMENT ON TABLE db.scheduler IS 'Планировщик.';
+COMMENT ON TABLE db.scheduler IS 'Job scheduler — defines execution interval and active date range for recurring tasks.';
 
-COMMENT ON COLUMN db.scheduler.id IS 'Идентификатор.';
-COMMENT ON COLUMN db.scheduler.reference IS 'Справочник.';
-COMMENT ON COLUMN db.scheduler.period IS 'Период выполнения.';
-COMMENT ON COLUMN db.scheduler.dateStart IS 'Дата начала выполнения.';
-COMMENT ON COLUMN db.scheduler.dateStop IS 'Дата окончания выполнения.';
+COMMENT ON COLUMN db.scheduler.id IS 'Primary key (same as reference.id).';
+COMMENT ON COLUMN db.scheduler.reference IS 'Parent reference catalog entry.';
+COMMENT ON COLUMN db.scheduler.period IS 'Execution interval (e.g., ''1 hour'', ''5 minutes'').';
+COMMENT ON COLUMN db.scheduler.dateStart IS 'Start of the active window (defaults to now).';
+COMMENT ON COLUMN db.scheduler.dateStop IS 'End of the active window (defaults to far future).';
 
 CREATE INDEX ON db.scheduler (reference);
 

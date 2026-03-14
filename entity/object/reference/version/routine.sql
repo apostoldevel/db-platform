@@ -2,13 +2,16 @@
 -- CreateVersion ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Создаёт версию
- * @param {uuid} pParent - Идентификатор объекта родителя
- * @param {uuid} pType - Идентификатор типа
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {text} pDescription - Описание
- * @return {uuid}
+ * @brief Create a new version record and trigger the 'create' workflow method.
+ * @param {uuid} pParent - Parent object or NULL
+ * @param {uuid} pType - Type (must belong to 'version' entity)
+ * @param {text} pCode - Unique business code
+ * @param {text} pName - Display name (version string)
+ * @param {text} pDescription - Optional description
+ * @return {uuid} - ID of the created version
+ * @throws IncorrectClassType - When pType does not belong to version entity
+ * @see EditVersion
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION CreateVersion (
   pParent       uuid,
@@ -47,14 +50,16 @@ $$ LANGUAGE plpgsql
 -- EditVersion -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Редактирует версию
- * @param {uuid} pId - Идентификатор
- * @param {uuid} pParent - Идентификатор объекта родителя
- * @param {uuid} pType - Идентификатор типа
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {text} pDescription - Описание
+ * @brief Update an existing version record (NULL params keep current values).
+ * @param {uuid} pId - Version to update
+ * @param {uuid} pParent - New parent (NULL keeps current)
+ * @param {uuid} pType - New type (NULL keeps current)
+ * @param {text} pCode - New code (NULL keeps current)
+ * @param {text} pName - New name (NULL keeps current)
+ * @param {text} pDescription - New description (NULL keeps current)
  * @return {void}
+ * @see CreateVersion
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION EditVersion (
   pId           uuid,
@@ -83,7 +88,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION GetVersion ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Look up a version ID by its business code.
+ * @param {text} pCode - Version code
+ * @return {uuid} - Version ID or NULL
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetVersion (
   pCode       text
 ) RETURNS     uuid

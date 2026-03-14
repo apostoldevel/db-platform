@@ -11,10 +11,10 @@ CREATE TABLE db.form (
     reference    uuid NOT NULL REFERENCES db.reference(id) ON DELETE CASCADE
 );
 
-COMMENT ON TABLE db.form IS 'Форма.';
+COMMENT ON TABLE db.form IS 'Dynamic form definition — used as input form for reports and UI builders.';
 
-COMMENT ON COLUMN db.form.id IS 'Идентификатор.';
-COMMENT ON COLUMN db.form.reference IS 'Справочник.';
+COMMENT ON COLUMN db.form.id IS 'Primary key (same as reference.id).';
+COMMENT ON COLUMN db.form.reference IS 'Parent reference catalog entry.';
 
 CREATE INDEX ON db.form (reference);
 

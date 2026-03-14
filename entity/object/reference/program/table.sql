@@ -12,11 +12,11 @@ CREATE TABLE db.program (
     body            text NOT NULL
 );
 
-COMMENT ON TABLE db.program IS 'Программа.';
+COMMENT ON TABLE db.program IS 'Executable program — stores an SQL function body for scheduled jobs.';
 
-COMMENT ON COLUMN db.program.id IS 'Идентификатор.';
-COMMENT ON COLUMN db.program.reference IS 'Справочник.';
-COMMENT ON COLUMN db.program.body IS 'Тело.';
+COMMENT ON COLUMN db.program.id IS 'Primary key (same as reference.id).';
+COMMENT ON COLUMN db.program.reference IS 'Parent reference catalog entry.';
+COMMENT ON COLUMN db.program.body IS 'SQL/PL/pgSQL source code to execute.';
 
 CREATE INDEX ON db.program (reference);
 

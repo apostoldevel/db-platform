@@ -16,13 +16,14 @@ GRANT SELECT ON api.form TO administrator;
 -- api.add_form ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Добавляет форму.
- * @param {uuid} pParent - Идентификатор объекта родителя
- * @param {uuid} pType - Идентификатор типа
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {text} pDescription - Описание
- * @return {uuid}
+ * @brief Create a new dynamic form via the API (defaults to 'none.form' type).
+ * @param {uuid} pParent - Parent object or NULL
+ * @param {uuid} pType - Form type (NULL = none.form)
+ * @param {text} pCode - Unique business code
+ * @param {text} pName - Display name
+ * @param {text} pDescription - Optional description
+ * @return {uuid} - ID of the created form
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.add_form (
   pParent       uuid,
@@ -43,14 +44,16 @@ $$ LANGUAGE plpgsql
 -- api.update_form -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Редактирует форму.
- * @param {uuid} pId - Идентификатор
- * @param {uuid} pParent - Идентификатор объекта родителя
- * @param {uuid} pType - Идентификатор типа
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {text} pDescription - Описание
+ * @brief Update an existing form definition via the API.
+ * @param {uuid} pId - Form to update
+ * @param {uuid} pParent - New parent (NULL keeps current)
+ * @param {uuid} pType - New type (NULL keeps current)
+ * @param {text} pCode - New code (NULL keeps current)
+ * @param {text} pName - New name (NULL keeps current)
+ * @param {text} pDescription - New description (NULL keeps current)
  * @return {void}
+ * @throws ObjectNotFound - When form with given ID does not exist
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.update_form (
   pId           uuid,
@@ -79,7 +82,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.set_form ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Upsert a form: create when pId is NULL, otherwise update. Return the row.
+ * @param {uuid} pId - Form ID (NULL = create new)
+ * @param {uuid} pParent - Parent object or NULL
+ * @param {uuid} pType - Form type
+ * @param {text} pCode - Business code
+ * @param {text} pName - Display name
+ * @param {text} pDescription - Optional description
+ * @return {SETOF api.form} - The created or updated form row
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.set_form (
   pId           uuid,
   pParent       uuid default null,
@@ -106,9 +119,10 @@ $$ LANGUAGE plpgsql
 -- api.get_form ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает форму
- * @param {uuid} pId - Идентификатор
- * @return {api.form}
+ * @brief Retrieve a single form by ID (with access check).
+ * @param {uuid} pId - Form ID
+ * @return {SETOF api.form} - Matching row or empty set
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_form (
   pId       uuid
@@ -123,13 +137,14 @@ $$ LANGUAGE SQL
 -- api.list_form ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список форм отчётов.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.form}
+ * @brief List forms with optional search, filter, and pagination.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Exact-match filter object
+ * @param {integer} pLimit - Maximum rows to return
+ * @param {integer} pOffSet - Rows to skip
+ * @param {jsonb} pOrderBy - Sort fields array
+ * @return {SETOF api.form} - Matching rows
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_form (
   pSearch   jsonb default null,
@@ -150,9 +165,12 @@ $$ LANGUAGE plpgsql
 -- api.build_form --------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Создаёт форму
- * @param {uuid} pId - Идентификатор
- * @return {SETOF json}
+ * @brief Build a form's field layout as a JSON object with form ID and fields array.
+ * @param {uuid} pId - Form ID
+ * @param {json} pParams - Runtime parameters
+ * @return {json} - JSON object {form, fields}
+ * @throws NotFound - When form with given ID does not exist
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.build_form (
   pId       uuid,

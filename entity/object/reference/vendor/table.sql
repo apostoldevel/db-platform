@@ -11,10 +11,10 @@ CREATE TABLE db.vendor (
     reference        uuid NOT NULL REFERENCES db.reference(id) ON DELETE CASCADE
 );
 
-COMMENT ON TABLE db.vendor IS 'Производитель (поставщик).';
+COMMENT ON TABLE db.vendor IS 'External service vendor — e.g., system, google, sberbank, mts.';
 
-COMMENT ON COLUMN db.vendor.id IS 'Идентификатор.';
-COMMENT ON COLUMN db.vendor.reference IS 'Справочник.';
+COMMENT ON COLUMN db.vendor.id IS 'Primary key (same as reference.id).';
+COMMENT ON COLUMN db.vendor.reference IS 'Parent reference catalog entry.';
 
 CREATE INDEX ON db.vendor (reference);
 

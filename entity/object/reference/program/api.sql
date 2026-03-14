@@ -16,14 +16,15 @@ GRANT SELECT ON api.program TO administrator;
 -- api.add_program -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Добавляет программу.
- * @param {uuid} pParent - Ссылка на родительский объект: api.document | null
- * @param {uuid} pType - Идентификатор типа
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {text} pBody - Тело
- * @param {text} pDescription - Описание
- * @return {uuid}
+ * @brief Create a new executable program via the API (defaults to 'plpgsql.program' type).
+ * @param {uuid} pParent - Parent object or NULL
+ * @param {uuid} pType - Program type (NULL = plpgsql.program)
+ * @param {text} pCode - Unique business code
+ * @param {text} pName - Display name
+ * @param {text} pBody - SQL/PL/pgSQL source code
+ * @param {text} pDescription - Optional description
+ * @return {uuid} - ID of the created program
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.add_program (
   pParent       uuid,
@@ -45,14 +46,17 @@ $$ LANGUAGE plpgsql
 -- api.update_program ----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Редактирует программу.
- * @param {uuid} pParent - Ссылка на родительский объект: Object.Parent | null
- * @param {uuid} pType - Идентификатор типа
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {text} pBody - Тело
- * @param {text} pDescription - Описание
+ * @brief Update an existing program via the API.
+ * @param {uuid} pId - Program to update
+ * @param {uuid} pParent - New parent (NULL keeps current)
+ * @param {uuid} pType - New type (NULL keeps current)
+ * @param {text} pCode - New code (NULL keeps current)
+ * @param {text} pName - New name (NULL keeps current)
+ * @param {text} pBody - New source code (NULL keeps current)
+ * @param {text} pDescription - New description (NULL keeps current)
  * @return {void}
+ * @throws ObjectNotFound - When program with given ID does not exist
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.update_program (
   pId           uuid,
@@ -82,7 +86,18 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.set_program -------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Upsert a program: create when pId is NULL, otherwise update. Return the row.
+ * @param {uuid} pId - Program ID (NULL = create new)
+ * @param {uuid} pParent - Parent object or NULL
+ * @param {uuid} pType - Program type
+ * @param {text} pCode - Business code
+ * @param {text} pName - Display name
+ * @param {text} pBody - Source code
+ * @param {text} pDescription - Optional description
+ * @return {SETOF api.program} - The created or updated program row
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.set_program (
   pId           uuid,
   pParent       uuid default null,
@@ -110,9 +125,10 @@ $$ LANGUAGE plpgsql
 -- api.get_program -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает программу
- * @param {uuid} pId - Идентификатор
- * @return {api.program}
+ * @brief Retrieve a single program by ID (with access check).
+ * @param {uuid} pId - Program ID
+ * @return {SETOF api.program} - Matching row or empty set
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_program (
   pId       uuid
@@ -127,13 +143,14 @@ $$ LANGUAGE SQL
 -- api.list_program ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список программ.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.program}
+ * @brief List programs with optional search, filter, and pagination.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Exact-match filter object
+ * @param {integer} pLimit - Maximum rows to return
+ * @param {integer} pOffSet - Rows to skip
+ * @param {jsonb} pOrderBy - Sort fields array
+ * @return {SETOF api.program} - Matching rows
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_program (
   pSearch   jsonb default null,
@@ -154,9 +171,10 @@ $$ LANGUAGE plpgsql
 -- api.get_program_id ----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает uuid по коду.
- * @param {text} pCode - Код программы
- * @return {uuid}
+ * @brief Resolve a program ID from a code or UUID string.
+ * @param {text} pCode - Program code or UUID
+ * @return {uuid} - Program ID
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_program_id (
   pCode     text

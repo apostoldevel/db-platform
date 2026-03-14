@@ -6,6 +6,12 @@
 -- EventVendorCreate -----------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Handle the 'create' event for a vendor.
+ * @param {uuid} pObject - Vendor object ID
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventVendorCreate (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -19,6 +25,12 @@ $$ LANGUAGE plpgsql;
 -- EventVendorOpen -------------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Handle the 'open' event for a vendor.
+ * @param {uuid} pObject - Vendor object ID
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventVendorOpen (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -32,6 +44,12 @@ $$ LANGUAGE plpgsql;
 -- EventVendorEdit -------------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Handle the 'edit' event for a vendor.
+ * @param {uuid} pObject - Vendor object ID
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventVendorEdit (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -45,6 +63,12 @@ $$ LANGUAGE plpgsql;
 -- EventVendorSave -------------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Handle the 'save' event for a vendor.
+ * @param {uuid} pObject - Vendor object ID
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventVendorSave (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -58,6 +82,12 @@ $$ LANGUAGE plpgsql;
 -- EventVendorEnable -----------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Handle the 'enable' event for a vendor.
+ * @param {uuid} pObject - Vendor object ID
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventVendorEnable (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -71,6 +101,12 @@ $$ LANGUAGE plpgsql;
 -- EventVendorDisable ----------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Handle the 'disable' event for a vendor.
+ * @param {uuid} pObject - Vendor object ID
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventVendorDisable (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -84,6 +120,12 @@ $$ LANGUAGE plpgsql;
 -- EventVendorDelete -----------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Handle the 'delete' (soft) event for a vendor.
+ * @param {uuid} pObject - Vendor object ID
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventVendorDelete (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -97,6 +139,12 @@ $$ LANGUAGE plpgsql;
 -- EventVendorRestore ----------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Handle the 'restore' event for a vendor.
+ * @param {uuid} pObject - Vendor object ID
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventVendorRestore (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -110,6 +158,12 @@ $$ LANGUAGE plpgsql;
 -- EventVendorDrop -------------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Handle the 'drop' event: permanently delete vendor data from db.vendor.
+ * @param {uuid} pObject - Vendor object ID
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventVendorDrop (
   pObject    uuid default context_object()
 ) RETURNS    void

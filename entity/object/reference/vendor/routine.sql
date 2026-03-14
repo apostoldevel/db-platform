@@ -2,13 +2,16 @@
 -- CreateVendor ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Создаёт производителя
- * @param {uuid} pParent - Идентификатор объекта родителя
- * @param {uuid} pType - Идентификатор типа
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {text} pDescription - Описание
- * @return {uuid}
+ * @brief Create a new vendor record and trigger the 'create' workflow method.
+ * @param {uuid} pParent - Parent object or NULL
+ * @param {uuid} pType - Type (must belong to 'vendor' entity)
+ * @param {text} pCode - Unique business code
+ * @param {text} pName - Display name
+ * @param {text} pDescription - Optional description
+ * @return {uuid} - ID of the created vendor
+ * @throws IncorrectClassType - When pType does not belong to vendor entity
+ * @see EditVendor
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION CreateVendor (
   pParent       uuid,
@@ -47,14 +50,16 @@ $$ LANGUAGE plpgsql
 -- EditVendor ------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Редактирует производителя
- * @param {uuid} pId - Идентификатор
- * @param {uuid} pParent - Идентификатор объекта родителя
- * @param {uuid} pType - Идентификатор типа
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {text} pDescription - Описание
+ * @brief Update an existing vendor (NULL params keep current values).
+ * @param {uuid} pId - Vendor to update
+ * @param {uuid} pParent - New parent (NULL keeps current)
+ * @param {uuid} pType - New type (NULL keeps current)
+ * @param {text} pCode - New code (NULL keeps current)
+ * @param {text} pName - New name (NULL keeps current)
+ * @param {text} pDescription - New description (NULL keeps current)
  * @return {void}
+ * @see CreateVendor
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION EditVendor (
   pId           uuid,
@@ -83,7 +88,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION GetVendor ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Look up a vendor ID by its business code.
+ * @param {text} pCode - Vendor code
+ * @return {uuid} - Vendor ID or NULL
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetVendor (
   pCode       text
 ) RETURNS     uuid

@@ -16,14 +16,15 @@ GRANT SELECT ON api.agent TO administrator;
 -- api.add_agent ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Добавляет агента.
- * @param {uuid} pParent - Ссылка на родительский объект: api.document | null
- * @param {uuid} pType - Идентификатор типа
- * @param {uuid} pVendor - Производитель
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {text} pDescription - Описание
- * @return {uuid}
+ * @brief Create a new delivery agent via the API (defaults to 'system.agent' type).
+ * @param {uuid} pParent - Parent object or NULL
+ * @param {uuid} pType - Agent type (NULL = system.agent)
+ * @param {uuid} pVendor - Vendor that provides this agent
+ * @param {text} pCode - Unique business code
+ * @param {text} pName - Display name
+ * @param {text} pDescription - Optional description
+ * @return {uuid} - ID of the created agent
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.add_agent (
   pParent       uuid,
@@ -45,14 +46,17 @@ $$ LANGUAGE plpgsql
 -- api.update_agent ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Редактирует агента.
- * @param {uuid} pParent - Ссылка на родительский объект: Object.Parent | null
- * @param {uuid} pType - Идентификатор типа
- * @param {uuid} pVendor - Производитель
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {text} pDescription - Описание
+ * @brief Update an existing delivery agent via the API.
+ * @param {uuid} pId - Agent to update
+ * @param {uuid} pParent - New parent (NULL keeps current)
+ * @param {uuid} pType - New type (NULL keeps current)
+ * @param {uuid} pVendor - New vendor (NULL keeps current)
+ * @param {text} pCode - New code (NULL keeps current)
+ * @param {text} pName - New name (NULL keeps current)
+ * @param {text} pDescription - New description (NULL keeps current)
  * @return {void}
+ * @throws ObjectNotFound - When agent with given ID does not exist
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.update_agent (
   pId           uuid,
@@ -82,7 +86,18 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.set_agent ---------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Upsert an agent: create when pId is NULL, otherwise update. Return the row.
+ * @param {uuid} pId - Agent ID (NULL = create new)
+ * @param {uuid} pParent - Parent object or NULL
+ * @param {uuid} pType - Agent type
+ * @param {uuid} pVendor - Vendor
+ * @param {text} pCode - Business code
+ * @param {text} pName - Display name
+ * @param {text} pDescription - Optional description
+ * @return {SETOF api.agent} - The created or updated agent row
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.set_agent (
   pId           uuid,
   pParent       uuid default null,
@@ -110,9 +125,10 @@ $$ LANGUAGE plpgsql
 -- api.get_agent ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает агента
- * @param {uuid} pId - Идентификатор
- * @return {api.agent}
+ * @brief Retrieve a single agent by ID (with access check).
+ * @param {uuid} pId - Agent ID
+ * @return {SETOF api.agent} - Matching row or empty set
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_agent (
   pId       uuid
@@ -127,13 +143,14 @@ $$ LANGUAGE SQL
 -- api.list_agent --------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список агентов.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.agent}
+ * @brief List agents with optional search, filter, and pagination.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Exact-match filter object
+ * @param {integer} pLimit - Maximum rows to return
+ * @param {integer} pOffSet - Rows to skip
+ * @param {jsonb} pOrderBy - Sort fields array
+ * @return {SETOF api.agent} - Matching rows
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_agent (
   pSearch   jsonb default null,
@@ -154,9 +171,10 @@ $$ LANGUAGE plpgsql
 -- api.get_agent_id ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает uuid по коду.
- * @param {text} pCode - Код агента
- * @return {uuid}
+ * @brief Resolve an agent ID from a code or UUID string.
+ * @param {text} pCode - Agent code or UUID
+ * @return {uuid} - Agent ID
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_agent_id (
   pCode     text

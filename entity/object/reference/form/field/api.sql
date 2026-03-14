@@ -15,7 +15,20 @@ GRANT SELECT ON api.form_field TO administrator;
 --------------------------------------------------------------------------------
 -- api.set_form_field ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Create or update a form field and return the resulting row.
+ * @param {uuid} pForm - Owning form
+ * @param {text} pKey - Field key
+ * @param {text} pType - Data type
+ * @param {text} pLabel - UI label
+ * @param {text} pFormat - Display format hint
+ * @param {text} pValue - Default value
+ * @param {jsonb} pData - Extra metadata
+ * @param {boolean} pMutable - Mutability flag
+ * @param {integer} pSequence - Display order
+ * @return {SETOF api.form_field} - The upserted field row
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.set_form_field (
   pForm         uuid,
   pKey          text,
@@ -41,9 +54,11 @@ $$ LANGUAGE plpgsql
 -- api.get_form_field ----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает форму
- * @param {uuid} pId - Идентификатор
- * @return {api.form_field}
+ * @brief Retrieve a single form field by form ID and key.
+ * @param {uuid} pForm - Form ID
+ * @param {text} pKey - Field key
+ * @return {SETOF api.form_field} - Matching row or empty set
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_form_field (
   pForm     uuid,
@@ -58,7 +73,13 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- api.delete_form_field -------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Delete a form field by form ID and key.
+ * @param {uuid} pForm - Form owning the field
+ * @param {text} pKey - Field key to delete
+ * @return {boolean} - true if deleted
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.delete_form_field (
   pForm         uuid,
   pKey          text
@@ -75,13 +96,14 @@ $$ LANGUAGE plpgsql
 -- api.list_form_field ---------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список форм.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.form_field}
+ * @brief List form fields with optional search, filter, and pagination.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Exact-match filter object
+ * @param {integer} pLimit - Maximum rows to return
+ * @param {integer} pOffSet - Rows to skip
+ * @param {jsonb} pOrderBy - Sort fields array
+ * @return {SETOF api.form_field} - Matching rows
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_form_field (
   pSearch   jsonb default null,
@@ -101,7 +123,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.clear_form_field --------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Delete all fields from a form.
+ * @param {uuid} pForm - Form to clear
+ * @return {boolean} - true if any fields were deleted
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.clear_form_field (
   pForm     uuid
 ) RETURNS   boolean
@@ -116,7 +143,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.set_form_field_json -----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Replace all fields of a form from a JSON array (clears existing, then inserts).
+ * @param {uuid} pForm - Form to populate
+ * @param {json} pFields - JSON array of field objects
+ * @return {SETOF api.form_field} - The inserted field rows
+ * @throws ObjectNotFound - When form does not exist
+ * @throws JsonIsEmpty - When pFields is NULL
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.set_form_field_json (
   pForm        uuid,
   pFields      json
@@ -156,7 +191,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.set_form_field_jsonb ----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Replace all fields of a form from a JSONB array (delegates to json variant).
+ * @param {uuid} pForm - Form to populate
+ * @param {jsonb} pFields - JSONB array of field objects
+ * @return {SETOF api.form_field} - The inserted field rows
+ * @see api.set_form_field_json
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.set_form_field_jsonb (
   pForm     uuid,
   pFields   jsonb
@@ -172,7 +214,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.get_form_field_json -----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve all fields of a form as a JSON array, ordered by sequence.
+ * @param {uuid} pForm - Form to read
+ * @return {json} - JSON array of field objects
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.get_form_field_json (
   pForm     uuid
 ) RETURNS   json
@@ -187,7 +234,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.get_form_field_jsonb ----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve all fields of a form as a JSONB array (delegates to json variant).
+ * @param {uuid} pForm - Form to read
+ * @return {jsonb} - JSONB array of field objects
+ * @see api.get_form_field_json
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.get_form_field_jsonb (
   pForm     uuid
 ) RETURNS   jsonb

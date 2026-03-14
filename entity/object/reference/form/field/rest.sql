@@ -2,10 +2,13 @@
 -- REST FORM FIELD -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Запрос данных в формате REST JSON API (Поля формы).
- * @param {text} pPath - Путь
- * @param {jsonb} pPayload - JSON
- * @return {SETOF json} - Записи в JSON
+ * @brief Dispatch REST JSON API requests for Form Field sub-entity.
+ * @param {text} pPath - Route path (e.g., /form/field/set, /form/field/get)
+ * @param {jsonb} pPayload - Request payload
+ * @return {SETOF json} - Response rows as JSON
+ * @throws RouteIsEmpty - When pPath is NULL
+ * @throws LoginFailed - When no active session exists
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION rest.form_field (
   pPath       text,

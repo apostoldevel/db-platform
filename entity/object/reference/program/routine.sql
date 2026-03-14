@@ -2,14 +2,17 @@
 -- CreateProgram ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Создаёт программу
- * @param {uuid} pParent - Идентификатор объекта родителя
- * @param {uuid} pType - Идентификатор типа
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {text} pBody - Тело
- * @param {text} pDescription - Описание
- * @return {uuid}
+ * @brief Create a new executable program and trigger the 'create' workflow method.
+ * @param {uuid} pParent - Parent object or NULL
+ * @param {uuid} pType - Type (must belong to 'program' entity)
+ * @param {text} pCode - Unique business code
+ * @param {text} pName - Display name
+ * @param {text} pBody - SQL/PL/pgSQL source code to execute
+ * @param {text} pDescription - Optional description
+ * @return {uuid} - ID of the created program
+ * @throws IncorrectClassType - When pType does not belong to program entity
+ * @see EditProgram
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION CreateProgram (
   pParent       uuid,
@@ -49,15 +52,17 @@ $$ LANGUAGE plpgsql
 -- EditProgram -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Редактирует агента
- * @param {uuid} pId - Идентификатор
- * @param {uuid} pParent - Идентификатор объекта родителя
- * @param {uuid} pType - Идентификатор типа
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {text} pBody - Тело
- * @param {text} pDescription - Описание
+ * @brief Update an existing program (NULL params keep current values).
+ * @param {uuid} pId - Program to update
+ * @param {uuid} pParent - New parent (NULL keeps current)
+ * @param {uuid} pType - New type (NULL keeps current)
+ * @param {text} pCode - New code (NULL keeps current)
+ * @param {text} pName - New name (NULL keeps current)
+ * @param {text} pBody - New source code (NULL keeps current)
+ * @param {text} pDescription - New description (NULL keeps current)
  * @return {void}
+ * @see CreateProgram
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION EditProgram (
   pId           uuid,
@@ -91,7 +96,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION GetProgram ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Look up a program ID by its business code.
+ * @param {text} pCode - Program code
+ * @return {uuid} - Program ID or NULL
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetProgram (
   pCode        text
 ) RETURNS     uuid
@@ -106,7 +116,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION GetProgramBody -----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve the SQL source body of a program.
+ * @param {uuid} pId - Program ID
+ * @return {text} - Source code body
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetProgramBody (
   pId       uuid
 ) RETURNS     text

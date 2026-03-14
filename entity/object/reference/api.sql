@@ -16,13 +16,14 @@ GRANT SELECT ON api.reference TO administrator;
 -- api.add_reference -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Добавляет справочник.
- * @param {uuid} pParent - Ссылка на родительский объект: api.reference | null
- * @param {uuid} pType - Идентификатор типа
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {text} pDescription - Описание
- * @return {uuid}
+ * @brief Create a new reference catalog entry via the API.
+ * @param {uuid} pParent - Parent reference or NULL
+ * @param {uuid} pType - Reference type
+ * @param {text} pCode - Unique business code
+ * @param {text} pName - Display name
+ * @param {text} pDescription - Optional description
+ * @return {uuid} - ID of the created reference
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.add_reference (
   pParent       uuid,
@@ -43,13 +44,16 @@ $$ LANGUAGE plpgsql
 -- api.update_reference --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Редактирует справочник.
- * @param {uuid} pParent - Ссылка на родительский объект: Reference.Parent | null
- * @param {uuid} pType - Идентификатор типа
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {text} pDescription - Описание
+ * @brief Update an existing reference catalog entry via the API.
+ * @param {uuid} pId - Reference to update
+ * @param {uuid} pParent - New parent (NULL keeps current)
+ * @param {uuid} pType - New type (NULL keeps current)
+ * @param {text} pCode - New code (NULL keeps current)
+ * @param {text} pName - New name (NULL keeps current)
+ * @param {text} pDescription - New description (NULL keeps current)
  * @return {void}
+ * @throws ObjectNotFound - When reference with given ID does not exist
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.update_reference (
   pId           uuid,
@@ -78,7 +82,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.set_reference -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Upsert a reference: create when pId is NULL, otherwise update. Return the row.
+ * @param {uuid} pId - Reference ID (NULL = create new)
+ * @param {uuid} pParent - Parent reference or NULL
+ * @param {uuid} pType - Reference type
+ * @param {text} pCode - Unique business code
+ * @param {text} pName - Display name
+ * @param {text} pDescription - Optional description
+ * @return {SETOF api.reference} - The created or updated reference row
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.set_reference (
   pId           uuid,
   pParent       uuid DEFAULT null,
@@ -105,9 +119,10 @@ $$ LANGUAGE plpgsql
 -- api.get_reference -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает справочник
- * @param {uuid} pId - Идентификатор
- * @return {api.reference}
+ * @brief Retrieve a single reference entry by ID (with access check).
+ * @param {uuid} pId - Reference ID
+ * @return {SETOF api.reference} - Matching row or empty set
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_reference (
   pId       uuid
@@ -122,13 +137,14 @@ $$ LANGUAGE SQL
 -- api.list_reference ----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список справочников.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.reference}
+ * @brief List reference entries with optional search, filter, and pagination.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Exact-match filter object
+ * @param {integer} pLimit - Maximum rows to return
+ * @param {integer} pOffSet - Rows to skip
+ * @param {jsonb} pOrderBy - Sort fields array
+ * @return {SETOF api.reference} - Matching rows
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_reference (
   pSearch    jsonb DEFAULT null,

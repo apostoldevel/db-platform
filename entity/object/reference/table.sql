@@ -12,15 +12,15 @@ CREATE TABLE db.reference (
     code            text NOT NULL
 );
 
-COMMENT ON TABLE db.reference IS 'Справочник.';
+COMMENT ON TABLE db.reference IS 'Reference catalog — abstract base for code + name entities (agents, vendors, versions, etc.).';
 
-COMMENT ON COLUMN db.reference.id IS 'Идентификатор';
-COMMENT ON COLUMN db.reference.object IS 'Объект';
-COMMENT ON COLUMN db.reference.scope IS 'Область видимости';
-COMMENT ON COLUMN db.reference.entity IS 'Сущность';
-COMMENT ON COLUMN db.reference.class IS 'Класс';
-COMMENT ON COLUMN db.reference.type IS 'Тип';
-COMMENT ON COLUMN db.reference.code IS 'Код';
+COMMENT ON COLUMN db.reference.id IS 'Primary key (same as object.id).';
+COMMENT ON COLUMN db.reference.object IS 'Link to the parent db.object row.';
+COMMENT ON COLUMN db.reference.scope IS 'Scope that owns this reference.';
+COMMENT ON COLUMN db.reference.entity IS 'Entity type this reference belongs to.';
+COMMENT ON COLUMN db.reference.class IS 'Class within the entity hierarchy.';
+COMMENT ON COLUMN db.reference.type IS 'Concrete type of this reference.';
+COMMENT ON COLUMN db.reference.code IS 'Unique business code within scope + entity.';
 
 CREATE INDEX ON db.reference (object);
 CREATE INDEX ON db.reference (scope);
@@ -114,12 +114,12 @@ CREATE TABLE db.reference_text (
 
 --------------------------------------------------------------------------------
 
-COMMENT ON TABLE db.reference_text IS 'Текст справочника.';
+COMMENT ON TABLE db.reference_text IS 'Localized text (name, description) for a reference catalog entry.';
 
-COMMENT ON COLUMN db.reference_text.reference IS 'Идентификатор';
-COMMENT ON COLUMN db.reference_text.locale IS 'Идентификатор локали';
-COMMENT ON COLUMN db.reference_text.name IS 'Наименование';
-COMMENT ON COLUMN db.reference_text.description IS 'Описание';
+COMMENT ON COLUMN db.reference_text.reference IS 'Reference this text belongs to.';
+COMMENT ON COLUMN db.reference_text.locale IS 'Locale of the translation.';
+COMMENT ON COLUMN db.reference_text.name IS 'Display name in the given locale.';
+COMMENT ON COLUMN db.reference_text.description IS 'Optional description in the given locale.';
 
 --------------------------------------------------------------------------------
 

@@ -1,7 +1,15 @@
 --------------------------------------------------------------------------------
 -- FUNCTION SetFormFieldSequence -----------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Reorder form fields by shifting conflicting sequences recursively.
+ * @param {uuid} pForm - Form owning the fields
+ * @param {text} pKey - Field key being repositioned
+ * @param {integer} pSequence - Target sequence position
+ * @param {integer} pDelta - Shift direction (+1 or -1; 0 = no shift)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION SetFormFieldSequence (
   pForm     uuid,
   pKey      text,
@@ -33,7 +41,21 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- CreateFormField -------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Insert a new field into a dynamic form.
+ * @param {uuid} pForm - Form to add the field to
+ * @param {text} pKey - Unique field key (parameter name)
+ * @param {text} pType - Data type (text, integer, date, etc.)
+ * @param {text} pLabel - UI label
+ * @param {text} pFormat - Display format hint
+ * @param {text} pValue - Default value
+ * @param {jsonb} pData - Extra metadata or lookup data
+ * @param {boolean} pMutable - Whether user can edit at runtime
+ * @param {integer} pSequence - Display order (auto-assigned if NULL)
+ * @return {void}
+ * @see EditFormField
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CreateFormField (
   pForm         uuid,
   pKey          text,
@@ -63,7 +85,21 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- EditFormField ---------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Update an existing form field (NULL params keep current values).
+ * @param {uuid} pForm - Form owning the field
+ * @param {text} pKey - Field key to update
+ * @param {text} pType - New data type (NULL keeps current)
+ * @param {text} pLabel - New label (NULL keeps current)
+ * @param {text} pFormat - New format (NULL keeps current)
+ * @param {text} pValue - New default value (NULL keeps current)
+ * @param {jsonb} pData - New metadata (NULL keeps current)
+ * @param {boolean} pMutable - New mutability flag (NULL keeps current)
+ * @param {integer} pSequence - New display order (NULL keeps current)
+ * @return {void}
+ * @see CreateFormField
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EditFormField (
   pForm         uuid,
   pKey          text,
@@ -108,7 +144,21 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- SetFormField ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Create or update a form field (upsert) and trigger the 'edit' workflow method.
+ * @param {uuid} pForm - Form owning the field
+ * @param {text} pKey - Field key
+ * @param {text} pType - Data type
+ * @param {text} pLabel - UI label
+ * @param {text} pFormat - Display format hint
+ * @param {text} pValue - Default value
+ * @param {jsonb} pData - Extra metadata
+ * @param {boolean} pMutable - Whether user can edit at runtime
+ * @param {integer} pSequence - Display order
+ * @return {void}
+ * @see CreateFormField, EditFormField
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION SetFormField (
   pForm         uuid,
   pKey          text,
@@ -142,7 +192,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- DeleteFormField -------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Remove a form field, or all fields when pKey is NULL. Triggers 'edit' workflow.
+ * @param {uuid} pForm - Form to delete fields from
+ * @param {text} pKey - Field key to delete (NULL = delete all fields)
+ * @return {boolean} - true if any rows were deleted
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION DeleteFormField (
   pForm         uuid,
   pKey          text
@@ -173,7 +229,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- GetFormFieldJson ------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve all fields of a form as a JSON array, ordered by sequence.
+ * @param {uuid} pForm - Form to read
+ * @return {json} - JSON array of field rows
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetFormFieldJson (
   pForm     uuid
 ) RETURNS   json

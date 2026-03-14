@@ -5,7 +5,12 @@
 --------------------------------------------------------------------------------
 -- EventReferenceCreate --------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the 'create' event for a reference: log creation and enable.
+ * @param {uuid} pObject - Reference object ID (defaults to context)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventReferenceCreate (
   pObject        uuid default context_object()
 ) RETURNS        void
@@ -19,7 +24,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventReferenceOpen ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the 'open' event for a reference.
+ * @param {uuid} pObject - Reference object ID
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventReferenceOpen (
   pObject        uuid default context_object()
 ) RETURNS        void
@@ -32,7 +42,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventReferenceEdit ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the 'edit' event for a reference.
+ * @param {uuid} pObject - Reference object ID
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventReferenceEdit (
   pObject        uuid default context_object()
 ) RETURNS        void
@@ -45,7 +60,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventReferenceSave ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the 'save' event for a reference.
+ * @param {uuid} pObject - Reference object ID
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventReferenceSave (
   pObject        uuid default context_object()
 ) RETURNS        void
@@ -58,7 +78,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventReferenceEnable --------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the 'enable' event for a reference.
+ * @param {uuid} pObject - Reference object ID
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventReferenceEnable (
   pObject        uuid default context_object()
 ) RETURNS        void
@@ -71,7 +96,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventReferenceDisable -------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the 'disable' event for a reference.
+ * @param {uuid} pObject - Reference object ID
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventReferenceDisable (
   pObject        uuid default context_object()
 ) RETURNS        void
@@ -84,7 +114,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventReferenceDelete --------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the 'delete' (soft) event for a reference.
+ * @param {uuid} pObject - Reference object ID
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventReferenceDelete (
   pObject        uuid default context_object()
 ) RETURNS        void
@@ -97,7 +132,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventReferenceRestore -------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the 'restore' event for a reference.
+ * @param {uuid} pObject - Reference object ID
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventReferenceRestore (
   pObject        uuid default context_object()
 ) RETURNS        void
@@ -110,7 +150,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventReferenceDrop ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the 'drop' event: permanently delete reference data from db.reference.
+ * @param {uuid} pObject - Reference object ID
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventReferenceDrop (
   pObject    uuid default context_object()
 ) RETURNS    void

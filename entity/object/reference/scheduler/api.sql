@@ -16,16 +16,17 @@ GRANT SELECT ON api.scheduler TO administrator;
 -- api.add_scheduler -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Добавляет планировщик.
- * @param {uuid} pParent - Ссылка на родительский объект: api.document | null
- * @param {uuid} pType - Идентификатор типа
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {interval} pPeriod - Период выполнения
- * @param {timestamptz} pDateStart - Дата начала выполнения
- * @param {timestamptz} pDateStop - Дата окончания выполнения
- * @param {text} pDescription - Описание
- * @return {uuid}
+ * @brief Create a new job scheduler via the API (defaults to 'job.scheduler' type).
+ * @param {uuid} pParent - Parent object or NULL
+ * @param {uuid} pType - Scheduler type (NULL = job.scheduler)
+ * @param {text} pCode - Unique business code
+ * @param {text} pName - Display name
+ * @param {interval} pPeriod - Execution interval
+ * @param {timestamptz} pDateStart - Start of active window
+ * @param {timestamptz} pDateStop - End of active window
+ * @param {text} pDescription - Optional description
+ * @return {uuid} - ID of the created scheduler
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.add_scheduler (
   pParent       uuid,
@@ -49,16 +50,19 @@ $$ LANGUAGE plpgsql
 -- api.update_scheduler --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Редактирует планировщик.
- * @param {uuid} pParent - Ссылка на родительский объект: Object.Parent | null
- * @param {uuid} pType - Идентификатор типа
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {interval} pPeriod - Период выполнения
- * @param {timestamptz} pDateStart - Дата начала выполнения
- * @param {timestamptz} pDateStop - Дата окончания выполнения
- * @param {text} pDescription - Описание
+ * @brief Update an existing scheduler via the API.
+ * @param {uuid} pId - Scheduler to update
+ * @param {uuid} pParent - New parent (NULL keeps current)
+ * @param {uuid} pType - New type (NULL keeps current)
+ * @param {text} pCode - New code (NULL keeps current)
+ * @param {text} pName - New name (NULL keeps current)
+ * @param {interval} pPeriod - New interval (NULL keeps current)
+ * @param {timestamptz} pDateStart - New start date (NULL keeps current)
+ * @param {timestamptz} pDateStop - New stop date (NULL keeps current)
+ * @param {text} pDescription - New description (NULL keeps current)
  * @return {void}
+ * @throws ObjectNotFound - When scheduler with given ID does not exist
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.update_scheduler (
   pId           uuid,
@@ -90,7 +94,20 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.set_scheduler -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Upsert a scheduler: create when pId is NULL, otherwise update. Return the row.
+ * @param {uuid} pId - Scheduler ID (NULL = create new)
+ * @param {uuid} pParent - Parent object or NULL
+ * @param {uuid} pType - Scheduler type
+ * @param {text} pCode - Business code
+ * @param {text} pName - Display name
+ * @param {interval} pPeriod - Execution interval
+ * @param {timestamptz} pDateStart - Start of active window
+ * @param {timestamptz} pDateStop - End of active window
+ * @param {text} pDescription - Optional description
+ * @return {SETOF api.scheduler} - The created or updated scheduler row
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.set_scheduler (
   pId           uuid,
   pParent       uuid default null,
@@ -120,9 +137,10 @@ $$ LANGUAGE plpgsql
 -- api.get_scheduler -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает планировщик
- * @param {uuid} pId - Идентификатор
- * @return {api.scheduler}
+ * @brief Retrieve a single scheduler by ID (with access check).
+ * @param {uuid} pId - Scheduler ID
+ * @return {SETOF api.scheduler} - Matching row or empty set
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_scheduler (
   pId       uuid
@@ -137,13 +155,14 @@ $$ LANGUAGE SQL
 -- api.list_scheduler ----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список планировщиков.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.scheduler}
+ * @brief List schedulers with optional search, filter, and pagination.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Exact-match filter object
+ * @param {integer} pLimit - Maximum rows to return
+ * @param {integer} pOffSet - Rows to skip
+ * @param {jsonb} pOrderBy - Sort fields array
+ * @return {SETOF api.scheduler} - Matching rows
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_scheduler (
   pSearch   jsonb default null,
@@ -164,9 +183,10 @@ $$ LANGUAGE plpgsql
 -- api.get_scheduler_id --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает uuid по коду.
- * @param {text} pCode - Код планировщика
- * @return {uuid}
+ * @brief Resolve a scheduler ID from a code or UUID string.
+ * @param {text} pCode - Scheduler code or UUID
+ * @return {uuid} - Scheduler ID
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_scheduler_id (
   pCode      text

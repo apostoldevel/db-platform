@@ -11,10 +11,10 @@ CREATE TABLE db.version (
     reference        uuid NOT NULL REFERENCES db.reference(id) ON DELETE CASCADE
 );
 
-COMMENT ON TABLE db.version IS 'Версия.';
+COMMENT ON TABLE db.version IS 'Software/API version record — tracks released versions.';
 
-COMMENT ON COLUMN db.version.id IS 'Идентификатор.';
-COMMENT ON COLUMN db.version.reference IS 'Справочник.';
+COMMENT ON COLUMN db.version.id IS 'Primary key (same as reference.id).';
+COMMENT ON COLUMN db.version.reference IS 'Parent reference catalog entry.';
 
 CREATE INDEX ON db.version (reference);
 
