@@ -2,6 +2,13 @@
 -- Notification ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Retrieve notifications since a given date, filtered by object-level access control.
+ * @param {timestamptz} pDateFrom - Start timestamp (inclusive)
+ * @param {uuid} pUserId - User whose permissions are checked; defaults to current session user
+ * @return {SETOF Notification} - Accessible notification rows
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION Notification (
   pDateFrom     timestamptz,
   pUserId       uuid DEFAULT current_userid()
@@ -26,7 +33,20 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- FUNCTION CreateNotification -------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Insert a new notification record into the audit trail.
+ * @param {uuid} pEntity - Entity type identifier
+ * @param {uuid} pClass - Class identifier
+ * @param {uuid} pAction - Workflow action identifier
+ * @param {uuid} pMethod - Workflow method identifier
+ * @param {uuid} pStateOld - Previous state identifier (nullable)
+ * @param {uuid} pStateNew - New state identifier (nullable)
+ * @param {uuid} pObject - Affected object identifier
+ * @param {uuid} pUserId - User who triggered the action; defaults to current session user
+ * @param {timestamptz} pDateTime - Event timestamp; defaults to now
+ * @return {uuid} - New notification identifier
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CreateNotification (
   pEntity       uuid,
   pClass        uuid,
@@ -55,7 +75,21 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION EditNotification ---------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Update an existing notification record (NULL parameters keep current values).
+ * @param {uuid} pId - Notification identifier
+ * @param {uuid} pEntity - Entity type identifier
+ * @param {uuid} pClass - Class identifier
+ * @param {uuid} pAction - Workflow action identifier
+ * @param {uuid} pMethod - Workflow method identifier
+ * @param {uuid} pStateOld - Previous state identifier
+ * @param {uuid} pStateNew - New state identifier
+ * @param {uuid} pObject - Affected object identifier
+ * @param {uuid} pUserId - User identifier
+ * @param {timestamptz} pDateTime - Event timestamp
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EditNotification (
   pId           uuid,
   pEntity       uuid DEFAULT null,
@@ -89,7 +123,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION DeleteNotification -------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Delete a notification record by identifier.
+ * @param {uuid} pId - Notification identifier
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION DeleteNotification (
   pId            uuid
 ) RETURNS        void
@@ -104,7 +143,20 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION AddNotification ----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Add a notification, resolving the entity from the class tree automatically.
+ * @param {uuid} pClass - Class identifier (entity is derived from it)
+ * @param {uuid} pAction - Workflow action identifier
+ * @param {uuid} pMethod - Workflow method identifier
+ * @param {uuid} pStateOld - Previous state identifier (nullable)
+ * @param {uuid} pStateNew - New state identifier (nullable)
+ * @param {uuid} pObject - Affected object identifier
+ * @param {uuid} pUserId - User who triggered the action; defaults to current session user
+ * @param {timestamptz} pDateTime - Event timestamp; defaults to now
+ * @return {void}
+ * @see CreateNotification
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION AddNotification (
   pClass        uuid,
   pAction       uuid,

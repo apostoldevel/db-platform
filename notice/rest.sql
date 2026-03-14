@@ -2,10 +2,14 @@
 -- REST NOTICE -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Запрос данных в формате REST JSON API (Извещение).
- * @param {text} pPath - Путь
- * @param {jsonb} pPayload - JSON
- * @return {SETOF json} - Записи в JSON
+ * @brief Dispatch REST requests for the /notice resource.
+ * @param {text} pPath - Route path (e.g. /notice/list, /notice/set, /notice/mark)
+ * @param {jsonb} pPayload - Request payload as JSON
+ * @return {SETOF json} - Result rows as JSON objects
+ * @throws RouteIsEmpty - When pPath is NULL
+ * @throws LoginFailed - When no active session exists
+ * @throws RouteNotFound - When pPath does not match any known route
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION rest.notice (
   pPath       text,

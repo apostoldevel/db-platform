@@ -2,14 +2,15 @@
 -- CreateComment ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Создаёт новый комментарий
- * @param {uuid} pParent - Идентификатор комментария родителя
- * @param {uuid} pObject - Идентификатор объекта
- * @param {uuid} pOwner - Идентификатор владельца (пользователя)
- * @param {text} pPriority - Приоритет
- * @param {text} pText - Текст извещения
- * @param {json} pData - Данные в произвольном формате
- * @return {uuid} - Идентификатор комментария
+ * @brief Create a new threaded comment on an object.
+ * @param {uuid} pParent - Parent comment identifier (NULL for top-level)
+ * @param {uuid} pObject - Target object identifier
+ * @param {uuid} pOwner - Author user identifier
+ * @param {integer} pPriority - Sort priority (defaults to 0)
+ * @param {text} pText - Comment body text
+ * @param {jsonb} pData - Arbitrary JSON payload
+ * @return {uuid} - New comment identifier
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION CreateComment (
   pParent       uuid,
@@ -37,12 +38,13 @@ $$ LANGUAGE plpgsql
 -- EditComment -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Меняет комментарий.
- * @param {uuid} pId - Идентификатор комментария
- * @param {text} pPriority - Приоритет
- * @param {text} pText - Текст извещения
- * @param {json} pData - Данные в произвольном формате
+ * @brief Update an existing comment (NULL parameters keep current values).
+ * @param {uuid} pId - Comment identifier
+ * @param {integer} pPriority - Sort priority
+ * @param {text} pText - Comment body text
+ * @param {jsonb} pData - Arbitrary JSON payload
  * @return {void}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION EditComment (
   pId           uuid,
@@ -66,9 +68,10 @@ $$ LANGUAGE plpgsql
 -- DeleteComment ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Удаляет комментарий.
- * @param {uuid} pId - Идентификатор комментария
- * @return {boolean}
+ * @brief Delete a comment by identifier.
+ * @param {uuid} pId - Comment identifier
+ * @return {boolean} - TRUE if a row was deleted
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION DeleteComment (
   pId           uuid

@@ -15,7 +15,14 @@ GRANT SELECT ON api.notification TO administrator;
 --------------------------------------------------------------------------------
 -- api.notification ------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve notifications since a given timestamp with access control.
+ * @param {timestamptz} pDateFrom - Start timestamp (inclusive)
+ * @param {uuid} pUserId - User whose permissions are checked; defaults to current session user
+ * @return {SETOF api.notification} - Accessible notification rows
+ * @see Notification
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.notification (
   pDateFrom     timestamptz,
   pUserId       uuid DEFAULT current_userid()
@@ -30,8 +37,10 @@ $$ LANGUAGE SQL
 -- api.get_notification --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает уведомление.
- * @return {record}
+ * @brief Retrieve a single notification by identifier.
+ * @param {uuid} pId - Notification identifier
+ * @return {SETOF api.notification} - Matching notification row
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_notification (
   pId       uuid
@@ -46,13 +55,14 @@ $$ LANGUAGE SQL
 -- api.list_notification -------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает уведомления в виде списка.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.notification}
+ * @brief List notifications with dynamic search, filter, and pagination.
+ * @param {jsonb} pSearch - Search conditions: '[{"condition": "AND|OR", "field": "<col>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<val>"}]'
+ * @param {jsonb} pFilter - Simple key-value filter: '{"<col>": "<val>"}'
+ * @param {integer} pLimit - Maximum number of rows to return
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Array of column names to sort by
+ * @return {SETOF api.notification} - Matching notification rows
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_notification (
   pSearch        jsonb DEFAULT null,
@@ -86,7 +96,12 @@ GRANT SELECT ON api.object_method_history TO administrator;
 --------------------------------------------------------------------------------
 -- api.get_object_method_history -----------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve the method execution history for a specific object.
+ * @param {uuid} pId - Object identifier
+ * @return {SETOF api.object_method_history} - History rows for the object
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.get_object_method_history (
   pId       uuid
 ) RETURNS   SETOF api.object_method_history
@@ -99,7 +114,16 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- api.list_object_method_history ----------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief List method execution history with dynamic search, filter, and pagination.
+ * @param {jsonb} pSearch - Search conditions
+ * @param {jsonb} pFilter - Simple key-value filter
+ * @param {integer} pLimit - Maximum number of rows to return
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Array of column names to sort by
+ * @return {SETOF api.object_method_history} - Matching history rows
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.list_object_method_history (
   pSearch   jsonb DEFAULT null,
   pFilter   jsonb DEFAULT null,

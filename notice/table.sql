@@ -18,17 +18,17 @@ CREATE TABLE db.notice (
     data        jsonb
 );
 
-COMMENT ON TABLE db.notice IS 'Извещение.';
+COMMENT ON TABLE db.notice IS 'User notice (alert/notification sent to a specific user).';
 
-COMMENT ON COLUMN db.notice.id IS 'Идентификатор';
-COMMENT ON COLUMN db.notice.userid IS 'Идентификатор пользователя';
-COMMENT ON COLUMN db.notice.object IS 'Идентификатор объекта';
-COMMENT ON COLUMN db.notice.text IS 'Текст извещения';
-COMMENT ON COLUMN db.notice.category IS 'Категория извещения';
-COMMENT ON COLUMN db.notice.status IS 'Статус: 0 - создано; 1 - доставлено; 2 - прочитано; 3 - принято; 4 - отказано.';
-COMMENT ON COLUMN db.notice.created IS 'Дата создания';
-COMMENT ON COLUMN db.notice.updated IS 'Дата обновления';
-COMMENT ON COLUMN db.notice.data IS 'Данные в произвольном формате.';
+COMMENT ON COLUMN db.notice.id IS 'Notice identifier (UUID).';
+COMMENT ON COLUMN db.notice.userid IS 'Recipient user identifier.';
+COMMENT ON COLUMN db.notice.object IS 'Related object identifier (nullable).';
+COMMENT ON COLUMN db.notice.text IS 'Notice message text.';
+COMMENT ON COLUMN db.notice.category IS 'Notice category tag (e.g. notice, warning, error).';
+COMMENT ON COLUMN db.notice.status IS 'Delivery status: 0=created, 1=delivered, 2=read, 3=accepted, 4=refused.';
+COMMENT ON COLUMN db.notice.created IS 'Timestamp when the notice was created.';
+COMMENT ON COLUMN db.notice.updated IS 'Timestamp of the last update.';
+COMMENT ON COLUMN db.notice.data IS 'Arbitrary JSON payload attached to the notice.';
 
 CREATE INDEX ON db.notice (userid);
 CREATE INDEX ON db.notice (object);
@@ -37,6 +37,10 @@ CREATE INDEX ON db.notice (status);
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Fire a pg_notify on the 'notice' channel after a new notice is inserted.
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_notice_after_insert()
 RETURNS trigger AS $$
 BEGIN

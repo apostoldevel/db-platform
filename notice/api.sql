@@ -15,7 +15,11 @@ GRANT SELECT ON api.notice TO administrator;
 --------------------------------------------------------------------------------
 -- FUNCTION api.notice ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve all notices for the current user.
+ * @return {SETOF api.notice} - All notice rows
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.notice (
 ) RETURNS        SETOF api.notice
 AS $$
@@ -27,7 +31,12 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- FUNCTION api.notice ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve notices filtered by category for the current user.
+ * @param {text} pCategory - Category tag to filter on
+ * @return {SETOF api.notice} - Matching notice rows
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.notice (
   pCategory      text
 ) RETURNS        SETOF api.notice
@@ -41,14 +50,16 @@ $$ LANGUAGE SQL
 -- api.add_notice --------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Добавляет извещение.
- * @param {uuid} pUserId - Идентификатор пользователя
- * @param {uuid} pObject - Идентификатор объекта
- * @param {text} pText - Текст извещения
- * @param {text} pCategory - Категория извещения
- * @param {integer} pStatus - Статус: 0 - создано; 1 - доставлено; 2 - прочитано; 3 - принято; 4 - отказано
- * @param {jsonb} pData - Данные в произвольном формате
- * @return {uuid} - Идентификатор извещения
+ * @brief Create a new notice via the API layer.
+ * @param {uuid} pUserId - Recipient user identifier
+ * @param {uuid} pObject - Related object identifier
+ * @param {text} pText - Notice message text
+ * @param {text} pCategory - Category tag (defaults to 'notice')
+ * @param {integer} pStatus - Delivery status: 0=created, 1=delivered, 2=read, 3=accepted, 4=refused
+ * @param {jsonb} pData - Arbitrary JSON payload
+ * @return {uuid} - New notice identifier
+ * @see CreateNotice
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.add_notice (
   pUserId        uuid,
@@ -70,15 +81,17 @@ $$ LANGUAGE plpgsql
 -- api.update_notice -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Редактирует извещение.
- * @param {uuid} pId - Идентификатор извещения
- * @param {uuid} pUserId - Идентификатор пользователя
- * @param {uuid} pObject - Идентификатор объекта
- * @param {text} pText - Текст извещения
- * @param {text} pCategory - Категория извещения
- * @param {integer} pStatus - Статус: 0 - создано; 1 - доставлено; 2 - прочитано; 3 - принято; 4 - отказано
- * @param {jsonb} pData - Данные в произвольном формате
+ * @brief Update an existing notice via the API layer.
+ * @param {uuid} pId - Notice identifier
+ * @param {uuid} pUserId - Owner user identifier
+ * @param {uuid} pObject - Related object identifier
+ * @param {text} pText - Notice message text
+ * @param {text} pCategory - Category tag
+ * @param {integer} pStatus - Delivery status: 0=created, 1=delivered, 2=read, 3=accepted, 4=refused
+ * @param {jsonb} pData - Arbitrary JSON payload
  * @return {void}
+ * @see EditNotice
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.update_notice (
   pId            uuid,
@@ -100,7 +113,19 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.set_notice --------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Upsert a notice and return the resulting row.
+ * @param {uuid} pId - Notice identifier (NULL to create)
+ * @param {uuid} pUserId - Recipient user identifier
+ * @param {uuid} pObject - Related object identifier
+ * @param {text} pText - Notice message text
+ * @param {text} pCategory - Category tag
+ * @param {integer} pStatus - Delivery status
+ * @param {jsonb} pData - Arbitrary JSON payload
+ * @return {SETOF api.notice} - The created or updated notice row
+ * @see SetNotice
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.set_notice (
   pId            uuid,
   pUserId        uuid default null,
@@ -123,9 +148,10 @@ $$ LANGUAGE plpgsql
 -- api.get_notice --------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает извещение
- * @param {uuid} pId - Идентификатор
- * @return {api.notice}
+ * @brief Retrieve a single notice by identifier.
+ * @param {uuid} pId - Notice identifier
+ * @return {SETOF api.notice} - Matching notice row
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_notice (
   pId       uuid
@@ -139,7 +165,13 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- api.delete_notice -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Delete a notice owned by the current user.
+ * @param {uuid} pId - Notice identifier
+ * @return {boolean} - TRUE if a row was deleted
+ * @see DeleteNotice
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.delete_notice (
   pId        	uuid
 ) RETURNS		boolean
@@ -155,13 +187,14 @@ $$ LANGUAGE plpgsql
 -- api.list_notice -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает извещение в виде списка.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.notice}
+ * @brief List notices with dynamic search, filter, and pagination.
+ * @param {jsonb} pSearch - Search conditions: '[{"condition": "AND|OR", "field": "<col>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<val>"}]'
+ * @param {jsonb} pFilter - Simple key-value filter: '{"<col>": "<val>"}'
+ * @param {integer} pLimit - Maximum number of rows to return
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Array of column names to sort by
+ * @return {SETOF api.notice} - Matching notice rows
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_notice (
   pSearch	jsonb default null,
@@ -181,7 +214,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.mark_notice -------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Mark one or all notices as read for the current user.
+ * @param {uuid} pId - Notice identifier; NULL marks all unread notices
+ * @return {boolean} - TRUE if any rows were updated
+ * @see MarkNotice
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.mark_notice (
   pId			uuid
 ) RETURNS		boolean

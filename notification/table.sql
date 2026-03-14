@@ -19,18 +19,18 @@ CREATE TABLE db.notification (
     datetime    timestamptz NOT NULL DEFAULT Now()
 );
 
-COMMENT ON TABLE db.notification IS 'Уведомления.';
+COMMENT ON TABLE db.notification IS 'Event audit trail: records every workflow state transition for pub/sub dispatch.';
 
-COMMENT ON COLUMN db.notification.id IS 'Идентификатор';
-COMMENT ON COLUMN db.notification.entity IS 'Сущность';
-COMMENT ON COLUMN db.notification.class IS 'Класс';
-COMMENT ON COLUMN db.notification.action IS 'Действие';
-COMMENT ON COLUMN db.notification.method IS 'Метод';
-COMMENT ON COLUMN db.notification.state_old IS 'Состояние (старое)';
-COMMENT ON COLUMN db.notification.state_new IS 'Состояние (новое)';
-COMMENT ON COLUMN db.notification.object IS 'Объект';
-COMMENT ON COLUMN db.notification.userid IS 'Учётная запись пользователя';
-COMMENT ON COLUMN db.notification.datetime IS 'Дата и время';
+COMMENT ON COLUMN db.notification.id IS 'Notification identifier (UUID).';
+COMMENT ON COLUMN db.notification.entity IS 'Entity type that changed (FK to db.entity).';
+COMMENT ON COLUMN db.notification.class IS 'Class of the affected object (FK to db.class_tree).';
+COMMENT ON COLUMN db.notification.action IS 'Workflow action that was performed (FK to db.action).';
+COMMENT ON COLUMN db.notification.method IS 'Workflow method that was executed (FK to db.method).';
+COMMENT ON COLUMN db.notification.state_old IS 'Previous workflow state before the transition (nullable).';
+COMMENT ON COLUMN db.notification.state_new IS 'New workflow state after the transition (nullable).';
+COMMENT ON COLUMN db.notification.object IS 'Affected object identifier (FK to db.object).';
+COMMENT ON COLUMN db.notification.userid IS 'User who triggered the action.';
+COMMENT ON COLUMN db.notification.datetime IS 'Timestamp when the event occurred.';
 
 CREATE INDEX ON db.notification (entity);
 CREATE INDEX ON db.notification (class);
@@ -42,6 +42,10 @@ CREATE INDEX ON db.notification (datetime);
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Dispatch pg_notify signals after a notification insert (notify, inbox, outbox, report channels).
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_notification_after_insert()
 RETURNS     trigger
 AS $$

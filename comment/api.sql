@@ -20,7 +20,12 @@ GRANT SELECT ON api.comment TO administrator;
 --------------------------------------------------------------------------------
 -- FUNCTION api.comment --------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve all comments for a given object, sorted by priority and creation date.
+ * @param {uuid} pObject - Target object identifier
+ * @return {SETOF api.comment} - Threaded comment rows
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.comment (
   pObject   uuid
 ) RETURNS   SETOF api.comment
@@ -34,13 +39,15 @@ $$ LANGUAGE SQL
 -- api.add_comment -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Добавляет комментарий.
- * @param {uuid} pParent - Идентификатор комментария родителя
- * @param {uuid} pObject - Идентификатор объекта
- * @param {text} pPriority - Приоритет
- * @param {text} pText - Текст извещения
- * @param {json} pData - Данные в произвольном формате
- * @return {uuid} - Идентификатор комментария
+ * @brief Add a new comment as the current user.
+ * @param {uuid} pParent - Parent comment identifier (NULL for top-level)
+ * @param {uuid} pObject - Target object identifier
+ * @param {integer} pPriority - Sort priority (defaults to 0)
+ * @param {text} pText - Comment body text
+ * @param {jsonb} pData - Arbitrary JSON payload
+ * @return {uuid} - New comment identifier
+ * @see CreateComment
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.add_comment (
   pParent       uuid,
@@ -61,12 +68,16 @@ $$ LANGUAGE plpgsql
 -- api.update_comment ----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Обновляет комментарий.
- * @param {uuid} pId - Идентификатор комментария
- * @param {text} pPriority - Приоритет
- * @param {text} pText - Текст извещения
- * @param {json} pData - Данные в произвольном формате
+ * @brief Update a comment (owner or administrator only).
+ * @param {uuid} pId - Comment identifier
+ * @param {integer} pPriority - Sort priority
+ * @param {text} pText - Comment body text
+ * @param {jsonb} pData - Arbitrary JSON payload
  * @return {void}
+ * @throws NotFound - When the comment does not exist
+ * @throws AccessDenied - When the caller is neither the owner nor an administrator
+ * @see EditComment
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.update_comment (
   pId           uuid,
@@ -99,7 +110,18 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.set_comment -------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Upsert a comment and return the resulting row.
+ * @param {uuid} pId - Comment identifier (NULL to create)
+ * @param {uuid} pParent - Parent comment identifier
+ * @param {uuid} pObject - Target object identifier
+ * @param {integer} pPriority - Sort priority
+ * @param {text} pText - Comment body text
+ * @param {jsonb} pData - Arbitrary JSON payload
+ * @return {SETOF api.comment} - The created or updated comment row
+ * @see api.add_comment, api.update_comment
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.set_comment (
   pId        	uuid,
   pParent		uuid default null,
@@ -126,9 +148,10 @@ $$ LANGUAGE plpgsql
 -- api.get_comment -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает комментарий
- * @param {uuid} pId - Идентификатор
- * @return {api.comment}
+ * @brief Retrieve a single comment by identifier (with access check).
+ * @param {uuid} pId - Comment identifier
+ * @return {SETOF api.comment} - Matching comment row
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_comment (
   pId		uuid
@@ -142,7 +165,15 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- api.delete_comment ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Delete a comment (owner or administrator only).
+ * @param {uuid} pId - Comment identifier
+ * @return {boolean} - TRUE if deleted
+ * @throws NotFound - When the comment does not exist
+ * @throws AccessDenied - When the caller is neither the owner nor an administrator
+ * @see DeleteComment
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.delete_comment (
   pId			uuid
 ) RETURNS		boolean
@@ -172,13 +203,14 @@ $$ LANGUAGE plpgsql
 -- api.list_comment ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает комментарий в виде списка.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.comment}
+ * @brief List comments with dynamic search, filter, and pagination.
+ * @param {jsonb} pSearch - Search conditions: '[{"condition": "AND|OR", "field": "<col>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<val>"}]'
+ * @param {jsonb} pFilter - Simple key-value filter: '{"<col>": "<val>"}'
+ * @param {integer} pLimit - Maximum number of rows to return
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Array of column names to sort by
+ * @return {SETOF api.comment} - Matching comment rows
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_comment (
   pSearch	jsonb default null,

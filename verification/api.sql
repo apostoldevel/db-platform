@@ -16,11 +16,13 @@ GRANT SELECT ON api.verification_code TO administrator;
 -- api.new_verification_code ---------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Создает новый код верификации.
- * @param {char} pType - Тип: [M]ail - Почта; [P]hone - Телефон;
- * @param {text} pCode - Код: Если не указать то буде создан автоматически.
- * @param {uuid} pUserId - Идентификатор учётной записи.
- * @return {SETOF api.verification_code}
+ * @brief Generate a new verification code and return the record.
+ * @param {char} pType - Channel type: M = email, P = phone
+ * @param {text} pCode - Explicit code value (NULL to auto-generate)
+ * @param {uuid} pUserId - User account identifier; defaults to current session user
+ * @return {SETOF api.verification_code} - The newly created verification code row
+ * @see NewVerificationCode
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.new_verification_code (
   pType         char,
@@ -42,11 +44,14 @@ $$ LANGUAGE plpgsql
 -- api.confirm_verification_code -----------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Подтверждает код верификации.
- * @param {char} pType - Тип: [M]ail - Почта; [P]hone - Телефон;
- * @out param {bool} result - Результат
- * @out param {text} message - Текст ошибки
- * @return {record}
+ * @brief Confirm a verification code and mark email/phone as verified.
+ * @param {char} pType - Channel type: M = email, P = phone
+ * @param {text} pCode - Code value to confirm
+ * @param {bool} result - (OUT) TRUE on successful confirmation
+ * @param {text} message - (OUT) Human-readable result message
+ * @return {record} - {result, message}
+ * @see ConfirmVerificationCode
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.confirm_verification_code (
   pType         char,
@@ -85,8 +90,10 @@ $$ LANGUAGE plpgsql
 -- api.get_verification_code ---------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает код верификации.
- * @return {api.verification_code} - Данные интерфейса
+ * @brief Retrieve a single verification code by identifier.
+ * @param {uuid} pId - Verification code identifier
+ * @return {SETOF api.verification_code} - Matching verification code row
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_verification_code (
   pId       uuid
@@ -101,13 +108,14 @@ $$ LANGUAGE SQL
 -- api.list_verification_code --------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает коды верификации.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.verification_code}
+ * @brief List verification codes with dynamic search, filter, and pagination.
+ * @param {jsonb} pSearch - Search conditions: '[{"condition": "AND|OR", "field": "<col>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<val>"}]'
+ * @param {jsonb} pFilter - Simple key-value filter: '{"<col>": "<val>"}'
+ * @param {integer} pLimit - Maximum number of rows to return
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Array of column names to sort by
+ * @return {SETOF api.verification_code} - Matching verification code rows
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_verification_code (
   pSearch   jsonb DEFAULT null,

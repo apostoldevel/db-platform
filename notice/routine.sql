@@ -2,14 +2,15 @@
 -- CreateNotice ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Создаёт новое извещение
- * @param {uuid} pUserId - Идентификатор пользователя
- * @param {uuid} pObject - Идентификатор объекта
- * @param {text} pText - Текст извещения
- * @param {text} pCategory - Категория извещения
- * @param {integer} pStatus - Статус: 0 - создано; 1 - доставлено; 2 - прочитано; 3 - принято; 4 - отказано
- * @param {jsonb} pData - Данные в произвольном формате
- * @return {uuid} - Идентификатор извещения
+ * @brief Create a new user notice.
+ * @param {uuid} pUserId - Recipient user; defaults to current session user
+ * @param {uuid} pObject - Related object identifier (nullable)
+ * @param {text} pText - Notice message text
+ * @param {text} pCategory - Category tag (defaults to 'notice')
+ * @param {integer} pStatus - Delivery status: 0=created, 1=delivered, 2=read, 3=accepted, 4=refused
+ * @param {jsonb} pData - Arbitrary JSON payload
+ * @return {uuid} - New notice identifier
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION CreateNotice (
   pUserId       uuid,
@@ -37,15 +38,16 @@ $$ LANGUAGE plpgsql
 -- EditNotice ------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Меняет извещение.
- * @param {uuid} pId - Идентификатор извещения
- * @param {uuid} pUserId - Идентификатор пользователя
- * @param {uuid} pObject - Идентификатор объекта
- * @param {text} pText - Текст извещения
- * @param {text} pCategory - Категория извещения
- * @param {integer} pStatus - Статус: 0 - создано; 1 - доставлено; 2 - прочитано; 3 - принято; 4 - отказано
- * @param {jsonb} pData - Данные в произвольном формате
+ * @brief Update an existing notice (NULL parameters keep current values).
+ * @param {uuid} pId - Notice identifier
+ * @param {uuid} pUserId - Owner user; defaults to current session user
+ * @param {uuid} pObject - Related object identifier
+ * @param {text} pText - Notice message text
+ * @param {text} pCategory - Category tag
+ * @param {integer} pStatus - Delivery status: 0=created, 1=delivered, 2=read, 3=accepted, 4=refused
+ * @param {jsonb} pData - Arbitrary JSON payload
  * @return {void}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION EditNotice (
   pId           uuid,
@@ -77,7 +79,19 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- SetNotice -------------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Upsert a notice: create when pId is NULL, otherwise update.
+ * @param {uuid} pId - Notice identifier (NULL to create)
+ * @param {uuid} pUserId - Recipient user
+ * @param {uuid} pObject - Related object identifier
+ * @param {text} pText - Notice message text
+ * @param {text} pCategory - Category tag
+ * @param {integer} pStatus - Delivery status
+ * @param {jsonb} pData - Arbitrary JSON payload
+ * @return {uuid} - Notice identifier
+ * @see CreateNotice, EditNotice
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION SetNotice (
   pId           uuid,
   pUserId       uuid default null,
@@ -105,9 +119,10 @@ $$ LANGUAGE plpgsql
 -- DeleteNotice ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Удаляет извещение.
- * @param {uuid} pId - Идентификатор извещения
- * @return {boolean}
+ * @brief Delete a notice owned by the current user.
+ * @param {uuid} pId - Notice identifier
+ * @return {boolean} - TRUE if a row was deleted
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION DeleteNotice (
   pId    		uuid
@@ -125,9 +140,10 @@ $$ LANGUAGE plpgsql
 -- MarkNotice ------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Помечает извещения как прочитанные.
- * @param {uuid} pId - Идентификатор извещения, если null, то для всех не прочитанных.
- * @return {boolean}
+ * @brief Mark notices as read (status=2) for the current user.
+ * @param {uuid} pId - Notice identifier; NULL marks all unread notices
+ * @return {boolean} - TRUE if any rows were updated
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION MarkNotice (
   pId			uuid

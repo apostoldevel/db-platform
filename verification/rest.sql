@@ -2,10 +2,15 @@
 -- REST VERIFICATION -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Запрос данных в формате REST JSON API (Код подтверждения).
- * @param {text} pPath - Путь
- * @param {jsonb} pPayload - JSON
- * @return {SETOF json} - Записи в JSON
+ * @brief Dispatch REST requests for the /verification resource.
+ * @param {text} pPath - Route path (e.g. /verification/email/code, /verification/phone/confirm)
+ * @param {jsonb} pPayload - Request payload as JSON
+ * @return {SETOF json} - Result rows as JSON objects
+ * @throws RouteIsEmpty - When pPath is NULL
+ * @throws LoginFailed - When no active session exists
+ * @throws AccessDenied - When /verification/code/list is called by a non-administrator
+ * @throws RouteNotFound - When pPath does not match any known route
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION rest.verification (
   pPath       text,

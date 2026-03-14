@@ -17,15 +17,15 @@ CREATE TABLE db.verification_code (
     CHECK (type IN ('M', 'P'))
 );
 
-COMMENT ON TABLE db.verification_code IS 'Код подтверждения.';
+COMMENT ON TABLE db.verification_code IS 'One-time verification code for email/phone confirmation.';
 
-COMMENT ON COLUMN db.verification_code.id IS 'Идентификатор';
-COMMENT ON COLUMN db.verification_code.userId IS 'Идентификатор учётной записи';
-COMMENT ON COLUMN db.verification_code.type IS 'Тип: [M]ail - Почта; [P]hone - Телефон;';
-COMMENT ON COLUMN db.verification_code.code IS 'Код';
-COMMENT ON COLUMN db.verification_code.used IS 'Использован';
-COMMENT ON COLUMN db.verification_code.validFromDate IS 'Дата начала действия';
-COMMENT ON COLUMN db.verification_code.validToDate IS 'Дата окончания действия';
+COMMENT ON COLUMN db.verification_code.id IS 'Verification code identifier (UUID).';
+COMMENT ON COLUMN db.verification_code.userId IS 'User account this code belongs to.';
+COMMENT ON COLUMN db.verification_code.type IS 'Channel type: M = email, P = phone.';
+COMMENT ON COLUMN db.verification_code.code IS 'The verification code value (UUID for email, 6-digit number for phone).';
+COMMENT ON COLUMN db.verification_code.used IS 'Timestamp when the code was consumed (NULL if unused).';
+COMMENT ON COLUMN db.verification_code.validFromDate IS 'Start of the validity window.';
+COMMENT ON COLUMN db.verification_code.validToDate IS 'End of the validity window (email: +1 day, phone: +5 min).';
 
 --------------------------------------------------------------------------------
 
@@ -34,6 +34,11 @@ CREATE INDEX ON db.verification_code (type, code, validFromDate, validToDate);
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Enforce immutability of type/code on UPDATE, auto-generate code and TTL on INSERT.
+ * @throws InvalidVerificationCodeType - When the type is not M or P
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_verification_code_before()
 RETURNS TRIGGER
 AS $$

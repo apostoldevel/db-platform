@@ -2,10 +2,14 @@
 -- REST COMMENT ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Запрос данных в формате REST JSON API (Комментарий).
- * @param {text} pPath - Путь
- * @param {jsonb} pPayload - JSON
- * @return {SETOF json} - Записи в JSON
+ * @brief Dispatch REST requests for the /comment resource.
+ * @param {text} pPath - Route path (e.g. /comment/list, /comment/set, /comment/delete)
+ * @param {jsonb} pPayload - Request payload as JSON
+ * @return {SETOF json} - Result rows as JSON objects
+ * @throws RouteIsEmpty - When pPath is NULL
+ * @throws LoginFailed - When no active session exists
+ * @throws RouteNotFound - When pPath does not match any known route
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION rest.comment (
   pPath       text,

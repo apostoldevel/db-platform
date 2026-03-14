@@ -1,7 +1,16 @@
 --------------------------------------------------------------------------------
 -- AddVerificationCode ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Add or replace a verification code within the current validity window.
+ * @param {uuid} pUserId - User account identifier
+ * @param {char} pType - Channel type: M = email, P = phone
+ * @param {text} pCode - Verification code value
+ * @param {timestamptz} pDateFrom - Validity start; defaults to now
+ * @param {timestamptz} pDateTo - Validity end; defaults to type-specific TTL
+ * @return {uuid} - Verification code identifier
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION AddVerificationCode (
   pUserId       uuid,
   pType         char,
@@ -15,7 +24,6 @@ DECLARE
   dtDateFrom    timestamptz;
   dtDateTo      timestamptz;
 BEGIN
-  -- получим дату значения в текущем диапазоне дат
   SELECT id, validFromDate, validToDate INTO uId, dtDateFrom, dtDateTo
     FROM db.verification_code
    WHERE type = pType
@@ -24,14 +32,13 @@ BEGIN
      AND validToDate > pDateFrom;
 
   IF coalesce(dtDateFrom, MINDATE()) = pDateFrom THEN
-    -- обновим значение в текущем диапазоне дат
     UPDATE db.verification_code SET code = pCode
      WHERE type = pType
        AND userid = pUserId
        AND validFromDate <= pDateFrom
        AND validToDate > pDateFrom;
   ELSE
-    -- обновим дату значения в текущем диапазоне дат
+    -- Expire the previous code and insert a new one
     UPDATE db.verification_code SET used = Now(), validToDate = pDateFrom
      WHERE type = pType
        AND userid = pUserId
@@ -52,7 +59,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- NewVerificationCode ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Generate a new verification code (auto-creates code if not supplied).
+ * @param {uuid} pUserId - User account identifier
+ * @param {char} pType - Channel type: M = email (UUID code), P = phone (6-digit code)
+ * @param {text} pCode - Explicit code value (NULL to auto-generate)
+ * @return {uuid} - Verification code identifier
+ * @throws InvalidVerificationCodeType - When pType is not M or P
+ * @see AddVerificationCode
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION NewVerificationCode (
   pUserId       uuid,
   pType         char DEFAULT 'M',
@@ -78,7 +94,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- GetVerificationCode ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Look up the code value for a verification record.
+ * @param {uuid} pId - Verification code identifier
+ * @return {text} - The code string, or NULL if not found
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetVerificationCode (
   pId           uuid
 ) RETURNS       text
@@ -91,7 +112,13 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 -- FUNCTION CheckVerificationCode ----------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Validate a verification code: mark it as used if valid and unused.
+ * @param {text} pType - Channel type: M or P
+ * @param {text} pCode - Code value to validate
+ * @return {uuid} - User identifier on success, NULL on failure (message set via SetErrorMessage)
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CheckVerificationCode (
   pType         text,
   pCode         text
@@ -130,7 +157,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION ConfirmVerificationCode --------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Confirm a verification code and mark the user's email or phone as verified.
+ * @param {text} pType - Channel type: M = email, P = phone
+ * @param {text} pCode - Code value to confirm
+ * @return {uuid} - User identifier on success, NULL on failure
+ * @throws InvalidVerificationCodeType - When pType is not M or P
+ * @see CheckVerificationCode
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION ConfirmVerificationCode (
   pType         text,
   pCode         text
