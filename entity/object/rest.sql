@@ -2,10 +2,14 @@
 -- REST OBJECT -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Запрос данных в формате REST JSON API (Объект).
- * @param {text} pPath - Путь
- * @param {jsonb} pPayload - JSON
- * @return {SETOF json} - Записи в JSON
+ * @brief Dispatch REST JSON API requests for the object module.
+ * @param {text} pPath - REST route path (e.g. '/object/get', '/object/file/set')
+ * @param {jsonb} pPayload - Request payload (JSON object or array)
+ * @return {SETOF json} - Response records as JSON
+ * @throws RouteIsEmpty - When pPath is NULL
+ * @throws LoginFailed - When no active session exists
+ * @throws RouteNotFound - When pPath does not match any known route
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION rest.object (
   pPath       text,
@@ -701,7 +705,7 @@ BEGIN
       END LOOP;
     END LOOP;
 
-  WHEN '/object/group/member/add' THEN -- Добавляет объект в группу
+  WHEN '/object/group/member/add' THEN
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
@@ -728,7 +732,7 @@ BEGIN
 
     END IF;
 
-  WHEN '/object/group/member/delete' THEN -- Удалить объект из группы
+  WHEN '/object/group/member/delete' THEN
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();

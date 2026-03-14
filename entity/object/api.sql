@@ -16,12 +16,13 @@ GRANT SELECT ON api.object TO administrator;
 -- api.add_object --------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Добавляет объект.
- * @param {uuid} pParent - Ссылка на родительский объект: api.object | null
- * @param {uuid} pType - Идентификатор типа
- * @param {text} pLabel - Метка
- * @param {text} pData - Данные
- * @return {uuid}
+ * @brief Create a new object.
+ * @param {uuid} pParent - Parent object identifier (NULL for root)
+ * @param {uuid} pType - Object type identifier
+ * @param {text} pLabel - Display label
+ * @param {text} pData - Description text
+ * @return {uuid} - Newly created object identifier
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.add_object (
   pParent       uuid,
@@ -41,12 +42,15 @@ $$ LANGUAGE plpgsql
 -- api.update_object -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Редактирует объект.
- * @param {uuid} pParent - Ссылка на родительский объект: Object.Parent | null
- * @param {uuid} pType - Идентификатор типа
- * @param {text} pLabel - Метка
- * @param {text} pData - Данные
+ * @brief Update an existing object's type, parent, and label.
+ * @param {uuid} pId - Object identifier
+ * @param {uuid} pParent - New parent (NULL preserves existing)
+ * @param {uuid} pType - New type (NULL preserves existing)
+ * @param {text} pLabel - New label
+ * @param {text} pData - New description
  * @return {void}
+ * @throws ObjectNotFound - When the object does not exist
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.update_object (
   pId           uuid,
@@ -74,7 +78,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.set_object --------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Upsert an object: create if pId is NULL, otherwise update.
+ * @param {uuid} pId - Object identifier (NULL = create)
+ * @param {uuid} pParent - Parent object identifier
+ * @param {uuid} pType - Object type identifier
+ * @param {text} pLabel - Display label
+ * @param {text} pData - Description text
+ * @return {SETOF api.object} - The created or updated object
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.set_object (
   pId           uuid,
   pParent       uuid default null,
@@ -100,9 +113,10 @@ $$ LANGUAGE plpgsql
 -- api.get_object --------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает объект
- * @param {uuid} pId - Идентификатор
- * @return {api.object}
+ * @brief Fetch a single object by identifier (with access check).
+ * @param {uuid} pId - Object identifier
+ * @return {SETOF api.object} - Object record
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_object (
   pId       uuid
@@ -117,13 +131,14 @@ $$ LANGUAGE SQL
 -- api.list_object -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список объектов.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.object}
+ * @brief List objects with search, filter, pagination, and sorting.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Field-value filter object
+ * @param {integer} pLimit - Maximum number of rows
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Array of fields to sort by
+ * @return {SETOF api.object} - Matching object records
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_object (
   pSearch   jsonb default null,
@@ -143,7 +158,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.get_object_label --------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Fetch the display label of an object (with access check).
+ * @param {uuid} pObject - Object identifier
+ * @return {text} - Label text
+ * @throws ObjectNotFound - When the object does not exist or is inaccessible
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.get_object_label (
   pObject   uuid
 ) RETURNS   text
@@ -165,7 +186,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.set_object_label --------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Set the display label of an object for all locales.
+ * @param {uuid} pObject - Object identifier
+ * @param {text} pLabel - New label text
+ * @return {record} - (id, result, message) tuple
+ * @throws ObjectNotFound - When the object does not exist
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.set_object_label (
   pObject       uuid,
   pLabel        text,
@@ -201,10 +229,12 @@ $$ LANGUAGE plpgsql
 -- api.object_force_delete -----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Принудительно "удаляет" документ (минуя события документооборота).
- * @param {uuid} pId - Идентификатор объекта
- * @out param {uuid} id - Идентификатор
+ * @brief Force-delete an object by setting its state to 'deleted' (bypasses workflow).
+ * @param {uuid} pId - Object identifier
  * @return {void}
+ * @throws ObjectNotFound - When the object does not exist
+ * @throws StateByCodeNotFound - When 'deleted' state is not defined for the class
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.object_force_delete (
   pId           uuid
@@ -236,8 +266,11 @@ $$ LANGUAGE plpgsql
 -- api.decode_object_access ----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Расшифровка маски прав доступа для объекта.
- * @return {SETOF record} - Запись
+ * @brief Decode the access mask for an object into boolean flags (select, update, delete).
+ * @param {uuid} pId - Object identifier
+ * @param {uuid} pUserId - User identifier (defaults to current)
+ * @return {record} - (s: select, u: update, d: delete) booleans
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.decode_object_access (
   pId       uuid,
@@ -266,8 +299,10 @@ GRANT SELECT ON api.object_access TO administrator;
 -- api.object_access -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает участников и права доступа для объекта.
- * @return {SETOF api.object_access} - Запись
+ * @brief List users/groups and their access permissions for a given object.
+ * @param {uuid} pId - Object identifier
+ * @return {SETOF api.object_access} - Access entries with user details
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.object_access (
   pId       uuid
@@ -286,11 +321,14 @@ $$ LANGUAGE SQL
 -- api.execute_object_action ---------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Выполняет действие над объектом.
- * @param {uuid} pObject - Идентификатор объекта
- * @param {uuid} pAction - Идентификатор действия
- * @param {jsonb} pParams - Параметры в формате JSON
- * @return {jsonb}
+ * @brief Execute a workflow action on an object by action UUID.
+ * @param {uuid} pObject - Object identifier
+ * @param {uuid} pAction - Action identifier
+ * @param {jsonb} pParams - Optional JSON parameters
+ * @return {jsonb} - Execution result
+ * @throws NotFound - When the object does not exist
+ * @throws ActionIsEmpty - When pAction is NULL
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.execute_object_action (
   pObject        uuid,
@@ -319,11 +357,13 @@ $$ LANGUAGE plpgsql
 -- api.execute_object_action ---------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Выполняет действие над объектом по коду.
- * @param {uuid} pObject - Идентификатор объекта
- * @param {text} pCode - Код действия
- * @param {jsonb} pParams - Параметры в формате JSON
- * @return {jsonb}
+ * @brief Execute a workflow action on an object by action code string.
+ * @param {uuid} pObject - Object identifier
+ * @param {text} pCode - Action code (e.g. 'enable', 'delete')
+ * @param {jsonb} pParams - Optional JSON parameters
+ * @return {jsonb} - Execution result
+ * @throws IncorrectCode - When the action code is invalid
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.execute_object_action (
   pObject       uuid,
@@ -354,11 +394,12 @@ $$ LANGUAGE plpgsql
 -- api.execute_object_action_try -----------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Выполняет действие над объектом не вызывая ошибки.
- * @param {uuid} pObject - Идентификатор объекта
- * @param {uuid} pAction - Идентификатор действия
- * @param {jsonb} pParams - Параметры в формате JSON
- * @return {jsonb}
+ * @brief Execute a workflow action on an object by UUID, suppressing exceptions.
+ * @param {uuid} pObject - Object identifier
+ * @param {uuid} pAction - Action identifier
+ * @param {jsonb} pParams - Optional JSON parameters
+ * @return {jsonb} - Execution result or error JSON on failure
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.execute_object_action_try (
   pObject        uuid,
@@ -395,11 +436,12 @@ $$ LANGUAGE plpgsql
 -- api.execute_object_action_try -----------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Выполняет действие над объектом по коду не вызывая ошибки.
- * @param {uuid} pObject - Идентификатор объекта
- * @param {text} pCode - Код действия
- * @param {jsonb} pParams - Параметры в формате JSON
- * @return {jsonb}
+ * @brief Execute a workflow action on an object by code, suppressing exceptions.
+ * @param {uuid} pObject - Object identifier
+ * @param {text} pCode - Action code
+ * @param {jsonb} pParams - Optional JSON parameters
+ * @return {jsonb} - Execution result or error JSON on failure
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.execute_object_action_try (
   pObject       uuid,
@@ -440,11 +482,15 @@ $$ LANGUAGE plpgsql
 -- api.execute_method ----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Выполняет метод объекта.
- * @param {uuid} pObject - Идентификатор объекта
- * @param {uuid} pMethod - Идентификатор метода
- * @param {jsonb} pParams - Параметры в формате JSON
- * @return {jsonb}
+ * @brief Execute a workflow method on an object by method UUID.
+ * @param {uuid} pObject - Object identifier
+ * @param {uuid} pMethod - Method identifier
+ * @param {jsonb} pParams - Optional JSON parameters
+ * @return {jsonb} - Method execution result
+ * @throws ObjectNotFound - When the object does not exist
+ * @throws MethodIsEmpty - When pMethod is NULL
+ * @throws MethodNotFound - When the method does not exist
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.execute_method (
   pObject       uuid,
@@ -482,11 +528,15 @@ $$ LANGUAGE plpgsql
 -- api.execute_method ----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Выполняет метод объекта.
- * @param {uuid} pObject - Идентификатор объекта
- * @param {text} pCode - Код метода
- * @param {jsonb} pParams - Параметры в формате JSON
- * @return {jsonb}
+ * @brief Execute a workflow method on an object by method code string.
+ * @param {uuid} pObject - Object identifier
+ * @param {text} pCode - Method code
+ * @param {jsonb} pParams - Optional JSON parameters
+ * @return {jsonb} - Method execution result
+ * @throws ObjectNotFound - When the object does not exist
+ * @throws MethodIsEmpty - When pCode is NULL
+ * @throws MethodByCodeNotFound - When the method code is invalid for the class
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.execute_method (
   pObject       uuid,
@@ -541,11 +591,12 @@ GRANT SELECT ON api.object_group TO administrator;
 -- api.add_object_group --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Создаёт группу объектов.
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {text} pDescription - Описание
- * @return {uuid}
+ * @brief Create a named object group for the current user.
+ * @param {text} pCode - Unique group code
+ * @param {text} pName - Display name
+ * @param {text} pDescription - Optional description
+ * @return {uuid} - Newly created group identifier
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.add_object_group (
   pCode         text,
@@ -564,12 +615,13 @@ $$ LANGUAGE plpgsql
 -- api.update_object_group -----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Обновляет группу объектов.
- * @param {uuid} pId - Идентификатор группы объектов
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {text} pDescription - Описание
+ * @brief Update an existing object group's attributes.
+ * @param {uuid} pId - Group identifier
+ * @param {text} pCode - New code (NULL preserves existing)
+ * @param {text} pName - New name (NULL preserves existing)
+ * @param {text} pDescription - New description (NULL preserves existing)
  * @return {void}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.update_object_group (
   pId               uuid,
@@ -588,7 +640,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.set_object_group --------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Upsert an object group: create if pId is NULL, otherwise update.
+ * @param {uuid} pId - Group identifier (NULL = create)
+ * @param {text} pCode - Group code
+ * @param {text} pName - Display name
+ * @param {text} pDescription - Description
+ * @return {SETOF api.object_group} - The created or updated group
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.set_object_group (
   pId               uuid,
   pCode             text DEFAULT null,
@@ -613,8 +673,10 @@ $$ LANGUAGE plpgsql
 -- api.get_object_group --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает данные группы объектов.
- * @return {SETOF api.object_group}
+ * @brief Fetch a single object group by identifier.
+ * @param {uuid} pId - Group identifier
+ * @return {SETOF api.object_group} - Group record
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_object_group (
   pId       uuid
@@ -629,13 +691,14 @@ $$ LANGUAGE SQL
 -- api.list_object_group -------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список групп объектов.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.object_group}
+ * @brief List object groups with search, filter, pagination, and sorting.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Field-value filter object
+ * @param {integer} pLimit - Maximum number of rows
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Array of fields to sort by
+ * @return {SETOF api.object_group} - Matching group records
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_object_group (
   pSearch   jsonb DEFAULT null,
@@ -656,10 +719,12 @@ $$ LANGUAGE plpgsql
 -- api.add_object_to_group -----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Добавляет объект в группу.
- * @param {uuid} pGroup - Идентификатор группы объектов
- * @param {uuid} pObject - Идентификатор объекта
+ * @brief Add an object to a group (requires select access).
+ * @param {uuid} pGroup - Group identifier
+ * @param {uuid} pObject - Object identifier
  * @return {void}
+ * @throws AccessDenied - When the user lacks select access to the object
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.add_object_to_group (
   pGroup    uuid,
@@ -681,10 +746,12 @@ $$ LANGUAGE plpgsql
 -- api.delete_object_from_group ------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Удаляет объект из группы.
- * @param {uuid} pGroup - Идентификатор группы объектов
- * @param {uuid} pObject - Идентификатор объекта
+ * @brief Remove an object from a group (requires select access).
+ * @param {uuid} pGroup - Group identifier
+ * @param {uuid} pObject - Object identifier
  * @return {void}
+ * @throws AccessDenied - When the user lacks select access to the object
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.delete_object_from_group (
   pGroup    uuid,
@@ -716,8 +783,10 @@ GRANT SELECT ON api.object_group_member TO administrator;
 -- api.object_group_member -----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список объектов группы.
- * @return {SETOF api.object}
+ * @brief List all objects in a group as full object records.
+ * @param {uuid} pGroupId - Group identifier
+ * @return {SETOF api.object} - Objects belonging to the group
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.object_group_member (
   pGroupId      uuid
@@ -753,12 +822,14 @@ GRANT SELECT ON api.object_link TO administrator;
 -- api.set_object_link ---------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Устанавливает связь с объектом
- * @param {uuid} pObject - Идентификатор объекта
- * @param {uuid} pLinked - Идентификатор адреса
- * @param {text} pKey - Ключ
- * @param {timestamptz} pDateFrom - Дата операции
- * @return {SETOF api.object_link}
+ * @brief Create or update a temporal link between two objects.
+ * @param {uuid} pObject - Source object identifier
+ * @param {uuid} pLinked - Target object identifier
+ * @param {text} pKey - Relationship key
+ * @param {timestamptz} pDateFrom - Effective date
+ * @return {SETOF api.object_link} - The created or updated link record
+ * @throws AccessDenied - When the user lacks update access to the source object
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.set_object_link (
   pObject     uuid,
@@ -786,9 +857,10 @@ $$ LANGUAGE plpgsql
 -- api.get_object_link ---------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает связь с объектом
- * @param {uuid} pId - Идентификатор
- * @return {api.object_link}
+ * @brief Fetch a single object link by identifier.
+ * @param {uuid} pId - Link record identifier
+ * @return {SETOF api.object_link} - Link record
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_object_link (
   pId       uuid
@@ -803,13 +875,14 @@ $$ LANGUAGE SQL
 -- api.list_object_link --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список связей с объектом.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.object_link}
+ * @brief List object links with search, filter, pagination, and sorting.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Field-value filter object
+ * @param {integer} pLimit - Maximum number of rows
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Array of fields to sort by
+ * @return {SETOF api.object_link} - Matching link records
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_object_link (
   pSearch   jsonb DEFAULT null,
@@ -854,9 +927,20 @@ GRANT SELECT ON api.object_file_data TO administrator;
 -- api.set_object_file ---------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Связывает файл с объектом
- * @param {uuid} pId - Идентификатор объекта
- * @return {SETOF api.object_file}
+ * @brief Upsert a file attachment for an object (base64-encoded data).
+ * @param {uuid} pObject - Object identifier
+ * @param {uuid} pFile - File identifier (NULL to create)
+ * @param {text} pName - File name
+ * @param {text} pPath - File path
+ * @param {integer} pSize - File size in bytes
+ * @param {timestamptz} pDate - File date
+ * @param {text} pData - Base64-encoded file content
+ * @param {text} pHash - SHA-256 hash
+ * @param {text} pText - Text content
+ * @param {text} pType - MIME type
+ * @return {SETOF api.object_file} - The attached file record
+ * @throws AccessDenied - When the user lacks update access
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.set_object_file (
   pObject   uuid,
@@ -887,7 +971,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.set_object_files_json ---------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Batch upsert file attachments from a JSON array.
+ * @param {uuid} pId - Object identifier
+ * @param {json} pFiles - JSON array of file records
+ * @return {SETOF api.object_file} - Attached file records
+ * @throws ObjectNotFound - When the object does not exist
+ * @throws JsonIsEmpty - When pFiles is NULL
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.set_object_files_json (
   pId       uuid,
   pFiles    json
@@ -923,7 +1015,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.set_object_files_jsonb --------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Batch upsert file attachments from a JSONB array.
+ * @param {uuid} pId - Object identifier
+ * @param {jsonb} pFiles - JSONB array of file records
+ * @return {SETOF api.object_file} - Attached file records
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.set_object_files_jsonb (
   pId           uuid,
   pFiles        jsonb
@@ -939,7 +1037,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.get_object_files_json ---------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Fetch all file attachments for an object as JSON (with access check).
+ * @param {uuid} pId - Object identifier
+ * @return {json} - JSON array of file records
+ * @throws AccessDenied - When the user lacks select access
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.get_object_files_json (
   pId        uuid
 ) RETURNS    json
@@ -958,7 +1062,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.get_object_files_jsonb --------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Fetch all file attachments for an object as JSONB (with access check).
+ * @param {uuid} pId - Object identifier
+ * @return {jsonb} - JSONB array of file records
+ * @throws AccessDenied - When the user lacks select access
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.get_object_files_jsonb (
   pId        uuid
 ) RETURNS    jsonb
@@ -978,12 +1088,14 @@ $$ LANGUAGE plpgsql
 -- api.get_object_file ---------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает файлы объекта
- * @param {uuid} pObject - Идентификатор объекта
- * @param {uuid} pFile - Идентификатор файла
- * @param {text} pName - Наименование файла
- * @param {text} pPath - Путь к файлу
- * @return {api.object_file_data}
+ * @brief Fetch a specific file with binary data for an object.
+ * @param {uuid} pObject - Object identifier
+ * @param {uuid} pFile - File identifier (NULL to resolve by path+name)
+ * @param {text} pName - File name
+ * @param {text} pPath - File path
+ * @return {SETOF api.object_file_data} - File record with base64-encoded data
+ * @throws AccessDenied - When the user lacks select access
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_object_file (
   pObject   uuid,
@@ -1024,12 +1136,14 @@ $$ LANGUAGE plpgsql
 -- api.delete_object_file ------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Удаляет файл объекта
- * @param {uuid} pId - Идентификатор объекта
- * @param {uuid} pFile - Идентификатор файла
- * @param {text} pName - Наименование файла
- * @param {text} pPath - Путь к файлу
- * @return {api.object_file}
+ * @brief Delete a file attachment from an object.
+ * @param {uuid} pObject - Object identifier
+ * @param {uuid} pFile - File identifier (NULL to resolve by path+name)
+ * @param {text} pName - File name
+ * @param {text} pPath - File path
+ * @return {boolean} - TRUE if the file was removed
+ * @throws AccessDenied - When the user lacks delete access
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.delete_object_file (
   pObject   uuid,
@@ -1053,13 +1167,14 @@ $$ LANGUAGE plpgsql
 -- api.list_object_file --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список файлов объекта.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.object_file}
+ * @brief List object file attachments with search, filter, pagination, and sorting.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Field-value filter object
+ * @param {integer} pLimit - Maximum number of rows
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Array of fields to sort by
+ * @return {SETOF api.object_file} - Matching file records
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_object_file (
   pSearch   jsonb DEFAULT null,
@@ -1080,9 +1195,11 @@ $$ LANGUAGE plpgsql
 -- api.clear_object_files ------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Удаляет все файлы объекта
- * @param {uuid} pId - Идентификатор объекта
+ * @brief Remove all file attachments from an object.
+ * @param {uuid} pId - Object identifier
  * @return {void}
+ * @throws AccessDenied - When the user lacks delete access
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.clear_object_files (
   pId       uuid
@@ -1117,12 +1234,15 @@ GRANT SELECT ON api.object_data TO administrator;
 -- api.set_object_data ---------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Устанавливает данные объекта
- * @param {uuid} pId - Идентификатор объекта
- * @param {uuid} pType - Идентификатор типа
- * @param {text} pCode - Код
- * @param {text} pData - Данные
- * @return {uuid}
+ * @brief Set a key-value data entry for an object.
+ * @param {uuid} pId - Object identifier
+ * @param {uuid} pType - Data format (text, json, xml, base64)
+ * @param {text} pCode - Data key
+ * @param {text} pData - Data value
+ * @return {SETOF api.object_data} - Updated data record
+ * @throws AccessDenied - When the user lacks update access
+ * @throws IncorrectCode - When the data type is invalid
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.set_object_data (
   pId           uuid,
@@ -1162,7 +1282,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.set_object_data_json ----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Batch set key-value data entries from a JSON array.
+ * @param {uuid} pId - Object identifier
+ * @param {json} pData - JSON array of {type, code, data} records
+ * @return {SETOF api.object_data} - Updated data records
+ * @throws ObjectNotFound - When the object does not exist
+ * @throws JsonIsEmpty - When pData is NULL
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.set_object_data_json (
   pId           uuid,
   pData         json
@@ -1200,7 +1328,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.set_object_data_jsonb ---------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Batch set key-value data entries from a JSONB array.
+ * @param {uuid} pId - Object identifier
+ * @param {jsonb} pData - JSONB array of {type, code, data} records
+ * @return {SETOF api.object_data} - Updated data records
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.set_object_data_jsonb (
   pId       uuid,
   pData     jsonb
@@ -1216,7 +1350,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.get_object_data_json ----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Fetch all key-value data entries for an object as JSON (with access check).
+ * @param {uuid} pId - Object identifier
+ * @return {json} - JSON array of data records
+ * @throws AccessDenied - When the user lacks select access
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.get_object_data_json (
   pId        uuid
 ) RETURNS    json
@@ -1235,7 +1375,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.get_object_data_jsonb ---------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Fetch all key-value data entries for an object as JSONB (with access check).
+ * @param {uuid} pId - Object identifier
+ * @return {jsonb} - JSONB array of data records
+ * @throws AccessDenied - When the user lacks select access
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.get_object_data_jsonb (
   pId        uuid
 ) RETURNS    jsonb
@@ -1255,9 +1401,13 @@ $$ LANGUAGE plpgsql
 -- api.get_object_data ---------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает данные объекта
- * @param {uuid} pId - Идентификатор объекта
- * @return {api.object_data}
+ * @brief Fetch a specific key-value data entry for an object.
+ * @param {uuid} pId - Object identifier
+ * @param {text} pType - Data format
+ * @param {text} pCode - Data key
+ * @return {SETOF api.object_data} - Matching data record
+ * @throws AccessDenied - When the user lacks select access
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_object_data (
   pId        uuid,
@@ -1280,13 +1430,14 @@ $$ LANGUAGE plpgsql
 -- api.list_object_data --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список данных объекта.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.object_data}
+ * @brief List object data entries with search, filter, pagination, and sorting.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Field-value filter object
+ * @param {integer} pLimit - Maximum number of rows
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Array of fields to sort by
+ * @return {SETOF api.object_data} - Matching data records
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_object_data (
   pSearch   jsonb DEFAULT null,
@@ -1320,7 +1471,12 @@ GRANT SELECT ON api.object_coordinates TO administrator;
 --------------------------------------------------------------------------------
 -- api.object_coordinates ------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief List object coordinates valid at a given date.
+ * @param {timestamptz} pDateFrom - Point-in-time date
+ * @return {SETOF api.object_coordinates} - Coordinate records
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.object_coordinates (
   pDateFrom     timestamptz
 ) RETURNS       SETOF api.object_coordinates
@@ -1334,16 +1490,19 @@ $$ LANGUAGE SQL
 -- api.set_object_coordinates --------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Устанавливает координаты объекта
- * @param {uuid} pId - Идентификатор объекта
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {numeric} pLatitude - Широта
- * @param {numeric} pLongitude - Долгота
- * @param {numeric} pAccuracy - Точность (высота над уровнем моря)
- * @param {text} pDescription - Описание
- * @param {jsonb} pData - Данные в произвольном формате
- * @return {SETOF api.object_coordinates}
+ * @brief Set GPS coordinates for an object (with device enrichment).
+ * @param {uuid} pId - Object identifier
+ * @param {text} pCode - Coordinate set code (defaults to 'default')
+ * @param {numeric} pLatitude - Latitude in decimal degrees
+ * @param {numeric} pLongitude - Longitude in decimal degrees
+ * @param {numeric} pAccuracy - Accuracy / altitude in meters
+ * @param {text} pLabel - Short display label
+ * @param {text} pDescription - Optional description
+ * @param {jsonb} pData - Additional JSON data (may include device info)
+ * @param {timestamptz} pDateFrom - Effective date
+ * @return {SETOF api.object_coordinates} - Updated coordinate record
+ * @throws AccessDenied - When the user lacks update access
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.set_object_coordinates (
   pId           uuid,
@@ -1390,7 +1549,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.set_object_coordinates_json ---------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Batch set GPS coordinates from a JSON array.
+ * @param {uuid} pId - Object identifier
+ * @param {json} pCoordinates - JSON array of coordinate records
+ * @return {SETOF api.object_coordinates} - Updated coordinate records
+ * @throws ObjectNotFound - When the object does not exist
+ * @throws JsonIsEmpty - When pCoordinates is NULL
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.set_object_coordinates_json (
   pId           uuid,
   pCoordinates  json
@@ -1428,7 +1595,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.set_object_coordinates_jsonb --------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Batch set GPS coordinates from a JSONB array.
+ * @param {uuid} pId - Object identifier
+ * @param {jsonb} pCoordinates - JSONB array of coordinate records
+ * @return {SETOF api.object_coordinates} - Updated coordinate records
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.set_object_coordinates_jsonb (
   pId           uuid,
   pCoordinates  jsonb
@@ -1444,7 +1617,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.get_object_coordinates_json ---------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Fetch all coordinates for an object as JSON (with access check).
+ * @param {uuid} pId - Object identifier
+ * @return {json} - JSON array of coordinate records
+ * @throws AccessDenied - When the user lacks select access
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.get_object_coordinates_json (
   pId        uuid
 ) RETURNS    json
@@ -1463,7 +1642,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.get_object_coordinates_jsonb --------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Fetch all coordinates for an object as JSONB (with access check).
+ * @param {uuid} pId - Object identifier
+ * @return {jsonb} - JSONB array of coordinate records
+ * @throws AccessDenied - When the user lacks select access
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.get_object_coordinates_jsonb (
   pId        uuid
 ) RETURNS    jsonb
@@ -1483,9 +1668,13 @@ $$ LANGUAGE plpgsql
 -- api.get_object_coordinates --------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает данные объекта
- * @param {uuid} pId - Идентификатор объекта
- * @return {api.object_coordinates}
+ * @brief Fetch coordinates for an object by code and date (with access check).
+ * @param {uuid} pId - Object identifier
+ * @param {text} pCode - Coordinate set code
+ * @param {timestamptz} pDateFrom - Point-in-time date
+ * @return {SETOF api.object_coordinates} - Matching coordinate records
+ * @throws AccessDenied - When the user lacks select access
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_object_coordinates (
   pId           uuid,
@@ -1521,13 +1710,14 @@ $$ LANGUAGE plpgsql
 -- api.list_object_coordinates -------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список данных объекта.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.object_coordinates}
+ * @brief List object coordinates with search, filter, pagination, and sorting.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Field-value filter object
+ * @param {integer} pLimit - Maximum number of rows
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Array of fields to sort by
+ * @return {SETOF api.object_coordinates} - Matching coordinate records
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_object_coordinates (
   pSearch   jsonb DEFAULT null,
@@ -1561,7 +1751,12 @@ GRANT SELECT ON api.object_state_history TO administrator;
 --------------------------------------------------------------------------------
 -- api.get_object_state_history ------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Fetch a single object state history record by identifier.
+ * @param {uuid} pId - State history record identifier
+ * @return {SETOF api.object_state_history} - State history record
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.get_object_state_history (
   pId         uuid
 ) RETURNS     SETOF api.object_state_history
@@ -1574,7 +1769,16 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- api.list_object_state_history -----------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief List object state history with search, filter, pagination, and sorting.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Field-value filter object
+ * @param {integer} pLimit - Maximum number of rows
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Array of fields to sort by
+ * @return {SETOF api.object_state_history} - Matching state history records
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.list_object_state_history (
   pSearch   jsonb DEFAULT null,
   pFilter   jsonb DEFAULT null,

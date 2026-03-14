@@ -5,7 +5,12 @@
 --------------------------------------------------------------------------------
 -- EventObjectCreate -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Log the 'create' event for an object.
+ * @param {uuid} pObject - Object identifier (defaults to context_object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventObjectCreate (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -18,7 +23,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventObjectOpen -------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Log the 'open' event for an object.
+ * @param {uuid} pObject - Object identifier (defaults to context_object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventObjectOpen (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -31,7 +41,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventObjectEdit -------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Log the 'edit' event for an object.
+ * @param {uuid} pObject - Object identifier (defaults to context_object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventObjectEdit (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -44,7 +59,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventObjectSave -------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Log the 'save' event for an object.
+ * @param {uuid} pObject - Object identifier (defaults to context_object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventObjectSave (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -57,7 +77,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventObjectEnable -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Log the 'enable' event for an object.
+ * @param {uuid} pObject - Object identifier (defaults to context_object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventObjectEnable (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -70,7 +95,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventObjectDisable ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Log the 'disable' event for an object.
+ * @param {uuid} pObject - Object identifier (defaults to context_object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventObjectDisable (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -83,7 +113,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventObjectDelete -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Log the 'delete' event for an object.
+ * @param {uuid} pObject - Object identifier (defaults to context_object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventObjectDelete (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -96,7 +131,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventObjectRestore ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Log the 'restore' event for an object.
+ * @param {uuid} pObject - Object identifier (defaults to context_object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventObjectRestore (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -109,7 +149,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventObjectDrop -------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Permanently destroy an object and all related data (cascade cleanup).
+ * @param {uuid} pObject - Object identifier (defaults to context_object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventObjectDrop (
   pObject    uuid default context_object()
 ) RETURNS    void

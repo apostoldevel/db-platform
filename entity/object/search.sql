@@ -1,7 +1,12 @@
 --------------------------------------------------------------------------------
 -- api.search ------------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Perform full-text search across objects using the English locale index.
+ * @param {text} pText - Search query string
+ * @return {SETOF api.object} - Matching objects (access-filtered)
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.search_en (
   pText      text
 ) RETURNS    SETOF api.object
@@ -23,7 +28,12 @@ $$ LANGUAGE SQL
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Perform full-text search across objects using the Russian locale index.
+ * @param {text} pText - Search query string
+ * @return {SETOF api.object} - Matching objects (access-filtered)
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.search_ru (
   pText      text
 ) RETURNS    SETOF api.object
@@ -45,7 +55,14 @@ $$ LANGUAGE SQL
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Perform full-text search with locale auto-detection and entity filtering.
+ * @param {text} pText - Search query string
+ * @param {jsonb} pEntities - JSON array of entity codes to filter by (NULL = all)
+ * @param {text} pLocaleCode - Locale code ('ru' or 'en', defaults to session locale)
+ * @return {SETOF api.object} - Matching objects filtered by entity and access
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.search (
   pText         text,
   pEntities     jsonb DEFAULT null,

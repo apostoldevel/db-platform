@@ -19,22 +19,22 @@ CREATE TABLE db.object (
     udate       timestamptz NOT NULL DEFAULT Now()
 );
 
-COMMENT ON TABLE db.object IS 'Список объектов.';
+COMMENT ON TABLE db.object IS 'Root entity table. Every entity (reference, document) inherits from object.';
 
-COMMENT ON COLUMN db.object.id IS 'Идентификатор';
-COMMENT ON COLUMN db.object.parent IS 'Родитель';
-COMMENT ON COLUMN db.object.scope IS 'Область видимости базы данных';
-COMMENT ON COLUMN db.object.entity IS 'Сущность';
-COMMENT ON COLUMN db.object.class IS 'Класс';
-COMMENT ON COLUMN db.object.type IS 'Тип';
-COMMENT ON COLUMN db.object.state_type IS 'Тип состояния';
-COMMENT ON COLUMN db.object.state IS 'Состояние';
-COMMENT ON COLUMN db.object.suid IS 'Системный пользователь';
-COMMENT ON COLUMN db.object.owner IS 'Владелец (пользователь)';
-COMMENT ON COLUMN db.object.oper IS 'Пользователь совершивший последнюю операцию';
-COMMENT ON COLUMN db.object.pdate IS 'Физическая дата';
-COMMENT ON COLUMN db.object.ldate IS 'Логическая дата';
-COMMENT ON COLUMN db.object.udate IS 'Дата последнего изменения';
+COMMENT ON COLUMN db.object.id IS 'Object identifier (UUID).';
+COMMENT ON COLUMN db.object.parent IS 'Parent object (self-referencing hierarchy).';
+COMMENT ON COLUMN db.object.scope IS 'Database scope (tenant/visibility boundary).';
+COMMENT ON COLUMN db.object.entity IS 'Entity kind (e.g. reference, document, message).';
+COMMENT ON COLUMN db.object.class IS 'Class within the class tree hierarchy.';
+COMMENT ON COLUMN db.object.type IS 'Concrete type within the class.';
+COMMENT ON COLUMN db.object.state_type IS 'Current state type (created, enabled, disabled, deleted).';
+COMMENT ON COLUMN db.object.state IS 'Current workflow state.';
+COMMENT ON COLUMN db.object.suid IS 'System user who created the session.';
+COMMENT ON COLUMN db.object.owner IS 'Owner (user who owns this object).';
+COMMENT ON COLUMN db.object.oper IS 'User who performed the last operation.';
+COMMENT ON COLUMN db.object.pdate IS 'Physical creation timestamp.';
+COMMENT ON COLUMN db.object.ldate IS 'Logical (business) date of last operation.';
+COMMENT ON COLUMN db.object.udate IS 'Last modification timestamp.';
 
 CREATE INDEX ON db.object (parent);
 CREATE INDEX ON db.object (scope);
@@ -66,12 +66,12 @@ CREATE TABLE db.object_text (
 
 --------------------------------------------------------------------------------
 
-COMMENT ON TABLE db.object_text IS 'Текст объекта.';
+COMMENT ON TABLE db.object_text IS 'Localized text (label and description) for an object.';
 
-COMMENT ON COLUMN db.object_text.object IS 'Идентификатор объекта';
-COMMENT ON COLUMN db.object_text.locale IS 'Идентификатор локали';
-COMMENT ON COLUMN db.object_text.label IS 'Метка.';
-COMMENT ON COLUMN db.object_text.text IS 'Текст.';
+COMMENT ON COLUMN db.object_text.object IS 'Object identifier.';
+COMMENT ON COLUMN db.object_text.locale IS 'Locale identifier.';
+COMMENT ON COLUMN db.object_text.label IS 'Short display label.';
+COMMENT ON COLUMN db.object_text.text IS 'Extended description or body text.';
 
 --------------------------------------------------------------------------------
 
@@ -89,14 +89,21 @@ ALTER TABLE db.object_text
     ADD COLUMN searchable_ru tsvector
     GENERATED ALWAYS AS (to_tsvector('russian', coalesce(label, '') || ' ' || coalesce(text, ''))) STORED;
 
-COMMENT ON COLUMN db.object_text.searchable_en IS 'Полнотекстовый поиск (en)';
-COMMENT ON COLUMN db.object_text.searchable_ru IS 'Полнотекстовый поиск (ru)';
+COMMENT ON COLUMN db.object_text.searchable_en IS 'Full-text search index (English).';
+COMMENT ON COLUMN db.object_text.searchable_ru IS 'Full-text search index (Russian).';
 
 CREATE INDEX ON db.object_text USING GIN (searchable_en);
 CREATE INDEX ON db.object_text USING GIN (searchable_ru);
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Populate computed fields and validate before inserting an object.
+ * @param {trigger} NEW - Incoming object row
+ * @return {trigger} - Modified NEW row with resolved class, entity, scope, and timestamps
+ * @throws AbstractError - When the resolved class is abstract
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_object_before_insert()
 RETURNS trigger AS $$
 DECLARE
@@ -147,6 +154,12 @@ CREATE TRIGGER t_object_before_insert
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Initialize access control entries after inserting an object.
+ * @param {trigger} NEW - Newly inserted object row
+ * @return {trigger} - NEW (unchanged)
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_object_after_insert()
 RETURNS trigger AS $$
 DECLARE
@@ -188,6 +201,14 @@ CREATE TRIGGER t_object_after_insert
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Validate access, recalculate class/state/owner ACL before updating an object.
+ * @param {trigger} NEW - Updated object row
+ * @return {trigger} - Modified NEW row
+ * @throws AccessDenied - When the current user lacks update permission
+ * @throws IncorrectEntity - When a type change would alter the entity
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_object_before_update()
 RETURNS trigger AS $$
 DECLARE
@@ -262,6 +283,13 @@ CREATE TRIGGER t_object_before_update
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Verify delete permission and remove ACL entries before deleting an object.
+ * @param {trigger} OLD - Object row being deleted
+ * @return {trigger} - OLD row (allows deletion to proceed)
+ * @throws AccessDenied - When the current user lacks delete permission
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_object_before_delete()
 RETURNS trigger AS $$
 BEGIN
@@ -295,10 +323,10 @@ CREATE TABLE db.aom (
     PRIMARY KEY (object)
 );
 
-COMMENT ON TABLE db.aom IS 'Маска доступа к объекту.';
+COMMENT ON TABLE db.aom IS 'Access Object Mask. Default POSIX-style bitmask per object.';
 
-COMMENT ON COLUMN db.aom.object IS 'Объект';
-COMMENT ON COLUMN db.aom.mask IS 'Маска доступа. Девять бит (a:{u:sud}{g:sud}{o:sud}), по три бита на действие s - select, u - update, d - delete, для: a - all (все) = u - user (владелец) g - group (группа) o - other (остальные)';
+COMMENT ON COLUMN db.aom.object IS 'Object identifier.';
+COMMENT ON COLUMN db.aom.mask IS 'Nine-bit access mask: {u:sud}{g:sud}{o:sud} where s=select, u=update, d=delete for u=owner, g=group, o=others.';
 
 --------------------------------------------------------------------------------
 -- TABLE db.aou ----------------------------------------------------------------
@@ -314,14 +342,14 @@ CREATE TABLE db.aou (
     PRIMARY KEY (object, userid)
 );
 
-COMMENT ON TABLE db.aou IS 'Доступ пользователя и групп пользователей к объекту.';
+COMMENT ON TABLE db.aou IS 'Access Object User. Per-user/group deny+allow bits for each object.';
 
-COMMENT ON COLUMN db.aou.object IS 'Объект';
-COMMENT ON COLUMN db.aou.userid IS 'Пользователь';
-COMMENT ON COLUMN db.aou.deny IS 'Запрещающие биты: {sud}. Где: {s - select; u - update; d - delete}';
-COMMENT ON COLUMN db.aou.allow IS 'Разрешающие биты: {sud}. Где: {s - select; u - update; d - delete}';
-COMMENT ON COLUMN db.aou.mask IS 'Маска доступа: {sud}. Где: {s - select; u - update; d - delete}';
-COMMENT ON COLUMN db.aou.entity IS 'Сущность';
+COMMENT ON COLUMN db.aou.object IS 'Object identifier.';
+COMMENT ON COLUMN db.aou.userid IS 'User or group identifier.';
+COMMENT ON COLUMN db.aou.deny IS 'Deny bits: {sud} where s=select, u=update, d=delete.';
+COMMENT ON COLUMN db.aou.allow IS 'Allow bits: {sud} where s=select, u=update, d=delete.';
+COMMENT ON COLUMN db.aou.mask IS 'Effective mask: allow AND NOT deny.';
+COMMENT ON COLUMN db.aou.entity IS 'Entity (denormalized from object for fast filtering).';
 
 CREATE INDEX ON db.aou (object);
 CREATE INDEX ON db.aou (userid);
@@ -330,6 +358,12 @@ CREATE INDEX ON db.aou (entity, userid, mask);
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Compute effective mask and populate entity before inserting/updating AOU rows.
+ * @param {trigger} NEW - AOU row being inserted or updated
+ * @return {trigger} - Modified NEW row with computed mask and entity
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_aou_before()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -361,12 +395,12 @@ CREATE TABLE db.oma (
     PRIMARY KEY (object, method, userid)
 );
 
-COMMENT ON TABLE db.oma IS 'Доступ пользователя к методам объекта.';
+COMMENT ON TABLE db.oma IS 'Object Method Access. Per-user permission cache for object methods.';
 
-COMMENT ON COLUMN db.oma.object IS 'Объект';
-COMMENT ON COLUMN db.oma.method IS 'Метод';
-COMMENT ON COLUMN db.amu.userid IS 'Пользователь';
-COMMENT ON COLUMN db.oma.mask IS 'Маска доступа: {xve}. Где: {x - execute, v - visible, e - enable}';
+COMMENT ON COLUMN db.oma.object IS 'Object identifier.';
+COMMENT ON COLUMN db.oma.method IS 'Method identifier.';
+COMMENT ON COLUMN db.oma.userid IS 'User or group identifier.';
+COMMENT ON COLUMN db.oma.mask IS 'Method access mask: {xve} where x=execute, v=visible, e=enable.';
 
 CREATE INDEX ON db.oma (object);
 CREATE INDEX ON db.oma (method);
@@ -384,13 +418,13 @@ CREATE TABLE db.object_state (
     validToDate      timestamptz DEFAULT TO_DATE('4433-12-31', 'YYYY-MM-DD') NOT NULL
 );
 
-COMMENT ON TABLE db.object_state IS 'Состояние объекта.';
+COMMENT ON TABLE db.object_state IS 'Object state history. Tracks temporal validity periods per state.';
 
-COMMENT ON COLUMN db.object_state.id IS 'Идентификатор';
-COMMENT ON COLUMN db.object_state.object IS 'Объект';
-COMMENT ON COLUMN db.object_state.state IS 'Ссылка на состояние объекта';
-COMMENT ON COLUMN db.object_state.validFromDate IS 'Дата начала действия периода';
-COMMENT ON COLUMN db.object_state.validToDate IS 'Дата окончания действия периода';
+COMMENT ON COLUMN db.object_state.id IS 'Record identifier.';
+COMMENT ON COLUMN db.object_state.object IS 'Object identifier.';
+COMMENT ON COLUMN db.object_state.state IS 'State identifier.';
+COMMENT ON COLUMN db.object_state.validFromDate IS 'Start of the validity period.';
+COMMENT ON COLUMN db.object_state.validToDate IS 'End of the validity period.';
 
 CREATE INDEX ON db.object_state (object);
 CREATE INDEX ON db.object_state (state);
@@ -400,6 +434,13 @@ CREATE UNIQUE INDEX ON db.object_state (object, state, validFromDate, validToDat
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Enforce date constraints and clear object state on deletion of active period.
+ * @param {trigger} NEW/OLD - Object state row being inserted, updated, or deleted
+ * @return {trigger} - NEW or OLD depending on operation
+ * @throws DateValidityPeriod - When validFromDate exceeds validToDate
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_object_state_change()
 RETURNS TRIGGER AS
 $$
@@ -448,11 +489,11 @@ CREATE TABLE db.method_stack (
     PRIMARY KEY (object, method)
 );
 
-COMMENT ON TABLE db.method_stack IS 'Стек выполнения метода.';
+COMMENT ON TABLE db.method_stack IS 'Method execution stack. Accumulates results during method execution.';
 
-COMMENT ON COLUMN db.method_stack.object IS 'Объект';
-COMMENT ON COLUMN db.method_stack.method IS 'Метод';
-COMMENT ON COLUMN db.method_stack.result IS 'Результат выполения (при наличии)';
+COMMENT ON COLUMN db.method_stack.object IS 'Object identifier.';
+COMMENT ON COLUMN db.method_stack.method IS 'Method identifier.';
+COMMENT ON COLUMN db.method_stack.result IS 'Execution result (JSON), if any.';
 
 --------------------------------------------------------------------------------
 -- db.object_group -------------------------------------------------------------
@@ -466,13 +507,13 @@ CREATE TABLE db.object_group (
     description text
 );
 
-COMMENT ON TABLE db.object_group IS 'Группа объектов.';
+COMMENT ON TABLE db.object_group IS 'Named groups for organizing objects (per-user).';
 
-COMMENT ON COLUMN db.object_group.id IS 'Идентификатор';
-COMMENT ON COLUMN db.object_group.owner IS 'Владелец';
-COMMENT ON COLUMN db.object_group.code IS 'Код';
-COMMENT ON COLUMN db.object_group.name IS 'Наименование';
-COMMENT ON COLUMN db.object_group.description IS 'Описание';
+COMMENT ON COLUMN db.object_group.id IS 'Group identifier.';
+COMMENT ON COLUMN db.object_group.owner IS 'Owner (user who created the group).';
+COMMENT ON COLUMN db.object_group.code IS 'Unique code within owner scope.';
+COMMENT ON COLUMN db.object_group.name IS 'Display name.';
+COMMENT ON COLUMN db.object_group.description IS 'Optional description.';
 
 CREATE UNIQUE INDEX ON db.object_group (owner, code);
 
@@ -480,6 +521,12 @@ CREATE INDEX ON db.object_group (owner);
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Auto-generate id, owner, and code defaults before inserting an object group.
+ * @param {trigger} NEW - Object group row being inserted
+ * @return {trigger} - Modified NEW row
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_object_group_insert()
 RETURNS trigger AS $$
 BEGIN
@@ -518,10 +565,10 @@ CREATE TABLE db.object_group_member (
     PRIMARY KEY (gid, object)
 );
 
-COMMENT ON TABLE db.object_group_member IS 'Члены группы объектов.';
+COMMENT ON TABLE db.object_group_member IS 'Membership of objects in groups (many-to-many).';
 
-COMMENT ON COLUMN db.object_group_member.gid IS 'Группа';
-COMMENT ON COLUMN db.object_group_member.object IS 'Объект';
+COMMENT ON COLUMN db.object_group_member.gid IS 'Group identifier.';
+COMMENT ON COLUMN db.object_group_member.object IS 'Object identifier.';
 
 CREATE INDEX ON db.object_group_member (gid);
 CREATE INDEX ON db.object_group_member (object);
@@ -541,13 +588,13 @@ CREATE TABLE db.object_link (
 
 --------------------------------------------------------------------------------
 
-COMMENT ON TABLE db.object_link IS 'Связанные с объектом объекты.';
+COMMENT ON TABLE db.object_link IS 'Temporal many-to-many links between objects.';
 
-COMMENT ON COLUMN db.object_link.object IS 'Идентификатор объекта';
-COMMENT ON COLUMN db.object_link.linked IS 'Идентификатор связанного объекта';
-COMMENT ON COLUMN db.object_link.key IS 'Ключ';
-COMMENT ON COLUMN db.object_link.validFromDate IS 'Дата начала действия периода';
-COMMENT ON COLUMN db.object_link.validToDate IS 'Дата окончания действия периода';
+COMMENT ON COLUMN db.object_link.object IS 'Source object identifier.';
+COMMENT ON COLUMN db.object_link.linked IS 'Target (linked) object identifier.';
+COMMENT ON COLUMN db.object_link.key IS 'Link key (relationship discriminator).';
+COMMENT ON COLUMN db.object_link.validFromDate IS 'Start of the validity period.';
+COMMENT ON COLUMN db.object_link.validToDate IS 'End of the validity period.';
 
 --------------------------------------------------------------------------------
 
@@ -569,13 +616,13 @@ CREATE TABLE db.object_reference (
 
 --------------------------------------------------------------------------------
 
-COMMENT ON TABLE db.object_reference IS 'Объектная ссылка.';
+COMMENT ON TABLE db.object_reference IS 'Temporal external reference (URI/string) attached to an object.';
 
-COMMENT ON COLUMN db.object_reference.object IS 'Идентификатор объекта';
-COMMENT ON COLUMN db.object_reference.key IS 'Ключ';
-COMMENT ON COLUMN db.object_reference.reference IS 'Ссылка';
-COMMENT ON COLUMN db.object_reference.validFromDate IS 'Дата начала действия периода';
-COMMENT ON COLUMN db.object_reference.validToDate IS 'Дата окончания действия периода';
+COMMENT ON COLUMN db.object_reference.object IS 'Object identifier.';
+COMMENT ON COLUMN db.object_reference.key IS 'Reference key (discriminator).';
+COMMENT ON COLUMN db.object_reference.reference IS 'External reference string (URI, code, etc.).';
+COMMENT ON COLUMN db.object_reference.validFromDate IS 'Start of the validity period.';
+COMMENT ON COLUMN db.object_reference.validToDate IS 'End of the validity period.';
 
 --------------------------------------------------------------------------------
 
@@ -593,11 +640,11 @@ CREATE TABLE db.object_file (
     PRIMARY KEY (object, file)
 );
 
-COMMENT ON TABLE db.object_file IS 'Файлы объекта.';
+COMMENT ON TABLE db.object_file IS 'File attachments associated with an object.';
 
-COMMENT ON COLUMN db.object_file.object IS 'Объект';
-COMMENT ON COLUMN db.object_file.file IS 'Файл';
-COMMENT ON COLUMN db.object_file.updated IS 'Дата обновления';
+COMMENT ON COLUMN db.object_file.object IS 'Object identifier.';
+COMMENT ON COLUMN db.object_file.file IS 'File identifier (references db.file).';
+COMMENT ON COLUMN db.object_file.updated IS 'Timestamp of the last update to the attachment.';
 
 CREATE INDEX ON db.object_file (object);
 CREATE INDEX ON db.object_file (file);
@@ -615,12 +662,12 @@ CREATE TABLE db.object_data (
     CHECK (type IN ('text', 'json', 'xml', 'base64'))
 );
 
-COMMENT ON TABLE db.object_data IS 'Произвольные данные объекта.';
+COMMENT ON TABLE db.object_data IS 'Arbitrary key-value data attached to an object.';
 
-COMMENT ON COLUMN db.object_data.object IS 'Объект';
-COMMENT ON COLUMN db.object_data.type IS 'Тип произвольных данных объекта';
-COMMENT ON COLUMN db.object_data.code IS 'Код';
-COMMENT ON COLUMN db.object_data.data IS 'Данные';
+COMMENT ON COLUMN db.object_data.object IS 'Object identifier.';
+COMMENT ON COLUMN db.object_data.type IS 'Data format: text, json, xml, or base64.';
+COMMENT ON COLUMN db.object_data.code IS 'Data key (unique per object+type).';
+COMMENT ON COLUMN db.object_data.data IS 'Stored value (text representation).';
 
 CREATE INDEX ON db.object_data (object);
 CREATE INDEX ON db.object_data (type);
@@ -645,25 +692,31 @@ CREATE TABLE db.object_coordinates (
     validToDate     timestamptz DEFAULT TO_DATE('4433-12-31', 'YYYY-MM-DD') NOT NULL
 );
 
-COMMENT ON TABLE db.object_coordinates IS 'Произвольные данные объекта.';
+COMMENT ON TABLE db.object_coordinates IS 'Temporal GPS coordinates attached to an object.';
 
-COMMENT ON COLUMN db.object_coordinates.id IS 'Идентификатор';
-COMMENT ON COLUMN db.object_coordinates.object IS 'Объект';
-COMMENT ON COLUMN db.object_coordinates.code IS 'Код';
-COMMENT ON COLUMN db.object_coordinates.latitude IS 'Широта';
-COMMENT ON COLUMN db.object_coordinates.longitude IS 'Долгота';
-COMMENT ON COLUMN db.object_coordinates.accuracy IS 'Точность (высота над уровнем моря)';
-COMMENT ON COLUMN db.object_coordinates.label IS 'Метка';
-COMMENT ON COLUMN db.object_coordinates.description IS 'Описание';
-COMMENT ON COLUMN db.object_coordinates.data IS 'Данные в произвольном формате';
-COMMENT ON COLUMN db.object_coordinates.validFromDate IS 'Дата начала действия периода';
-COMMENT ON COLUMN db.object_coordinates.validToDate IS 'Дата окончания действия периода';
+COMMENT ON COLUMN db.object_coordinates.id IS 'Record identifier.';
+COMMENT ON COLUMN db.object_coordinates.object IS 'Object identifier.';
+COMMENT ON COLUMN db.object_coordinates.code IS 'Coordinate set code (e.g. "default").';
+COMMENT ON COLUMN db.object_coordinates.latitude IS 'Latitude in decimal degrees.';
+COMMENT ON COLUMN db.object_coordinates.longitude IS 'Longitude in decimal degrees.';
+COMMENT ON COLUMN db.object_coordinates.accuracy IS 'Accuracy / altitude in meters.';
+COMMENT ON COLUMN db.object_coordinates.label IS 'Short display label.';
+COMMENT ON COLUMN db.object_coordinates.description IS 'Optional description.';
+COMMENT ON COLUMN db.object_coordinates.data IS 'Additional data in free-form JSON.';
+COMMENT ON COLUMN db.object_coordinates.validFromDate IS 'Start of the validity period.';
+COMMENT ON COLUMN db.object_coordinates.validToDate IS 'End of the validity period.';
 
 CREATE UNIQUE INDEX ON db.object_coordinates (object, code, validFromDate, validToDate);
 CREATE INDEX ON db.object_coordinates (object);
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Send a pg_notify geo event when a current-period coordinate is inserted.
+ * @param {trigger} NEW - Newly inserted coordinate row
+ * @return {trigger} - NEW (unchanged)
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_object_coordinates_after_insert()
 RETURNS trigger AS $$
 BEGIN

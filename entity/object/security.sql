@@ -1,7 +1,12 @@
 --------------------------------------------------------------------------------
 -- FUNCTION aou ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Compute aggregated access masks for all objects accessible by a user.
+ * @param {uuid} pUserId - User identifier
+ * @return {SETOF record} - (object, deny, allow, mask) per accessible object
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION aou (
   pUserId       uuid,
   OUT object    uuid,
@@ -24,7 +29,13 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- FUNCTION aou ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Compute aggregated access mask for a specific object and user.
+ * @param {uuid} pUserId - User identifier
+ * @param {uuid} pObject - Object identifier
+ * @return {SETOF record} - (object, deny, allow, mask) for the given object
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION aou (
   pUserId       uuid,
   pObject       uuid,
@@ -49,7 +60,13 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- FUNCTION access_entity ------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Compute aggregated access masks for all objects of a given entity.
+ * @param {uuid} pUserId - User identifier
+ * @param {uuid} pEntity - Entity identifier to filter by
+ * @return {SETOF record} - (object, deny, allow, mask) per accessible object
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION access_entity (
   pUserId       uuid,
   pEntity       uuid,
@@ -74,7 +91,13 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- GetObjectMask ---------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Fetch the POSIX-style access mask segment for an object based on user role.
+ * @param {uuid} pObject - Object identifier
+ * @param {uuid} pUserId - User identifier (defaults to current)
+ * @return {bit} - 3-bit mask (owner/group/other segment from aom)
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetObjectMask (
   pObject    uuid,
   pUserId    uuid DEFAULT current_userid()
@@ -94,7 +117,13 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- GetObjectAccessMask ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Fetch the effective per-user access mask for an object (from AOU).
+ * @param {uuid} pObject - Object identifier
+ * @param {uuid} pUserId - User identifier (defaults to current)
+ * @return {bit} - 3-bit effective mask (allow & ~deny)
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetObjectAccessMask (
   pObject    uuid,
   pUserId    uuid DEFAULT current_userid()
@@ -108,7 +137,14 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- CheckObjectAccess -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Check whether a user has a specific access permission on an object.
+ * @param {uuid} pObject - Object identifier
+ * @param {bit} pMask - Required permission bits (e.g. B'100' for select)
+ * @param {uuid} pUserId - User identifier (defaults to current)
+ * @return {boolean} - TRUE if the user has the required permission
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CheckObjectAccess (
   pObject    uuid,
   pMask      bit,
@@ -125,7 +161,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- DecodeObjectAccess ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Decode the access mask for an object into boolean flags.
+ * @param {uuid} pObject - Object identifier
+ * @param {uuid} pUserId - User identifier (defaults to current)
+ * @return {record} - (s: select, u: update, d: delete) booleans
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION DecodeObjectAccess (
   pObject    uuid,
   pUserId    uuid DEFAULT current_userid(),
@@ -150,7 +192,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- GetObjectMethodAccessMask ---------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Fetch the cached method access mask for an object+method+user triple.
+ * @param {uuid} pObject - Object identifier
+ * @param {uuid} pMethod - Method identifier
+ * @param {uuid} pUserId - User identifier (defaults to current)
+ * @return {bit} - 3-bit method mask (x=execute, v=visible, e=enable)
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetObjectMethodAccessMask (
   pObject    uuid,
   pMethod    uuid,
@@ -165,7 +214,15 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- CheckObjectMethodAccess -----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Check whether a user has method-level access on an object (with cache population).
+ * @param {uuid} pObject - Object identifier
+ * @param {uuid} pMethod - Method identifier
+ * @param {bit} pMask - Required method permission bits
+ * @param {uuid} pUserId - User identifier (defaults to current)
+ * @return {boolean} - TRUE if the user has the required method permission
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CheckObjectMethodAccess (
   pObject    uuid,
   pMethod    uuid,
@@ -195,7 +252,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- AccessObjectUser ------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief List all objects of a given entity accessible (select) to a user in a scope.
+ * @param {uuid} pEntity - Entity identifier
+ * @param {uuid} pUserId - User identifier (defaults to current)
+ * @param {uuid} pScope - Scope identifier (defaults to current)
+ * @return {TABLE(object uuid)} - Accessible object identifiers
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION AccessObjectUser (
   pEntity    uuid,
   pUserId    uuid DEFAULT current_userid(),
@@ -222,13 +286,15 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- chmodo ----------------------------------------------------------------------
 --------------------------------------------------------------------------------
-/*
- * Устанавливает битовую маску доступа для объекта и пользователя.
- * @param {uuid} pObject - Идентификатор объекта
- * @param {bit} pMask - Маска доступа. Шесть бит (d:{sud}a:{sud}) где: d - запрещающие биты; a - разрешающие биты: {s - select, u - update, d - delete}
- * @param {uuid} pUserId - Идентификатор пользователя/группы
+/**
+ * @brief Set the access bitmask (deny+allow) for an object and user pair.
+ * @param {uuid} pObject - Object identifier
+ * @param {bit} pMask - 6-bit mask: {deny:sud}{allow:sud} (NULL or B'000000' to remove)
+ * @param {uuid} pUserId - User or group identifier (defaults to current)
  * @return {void}
-*/
+ * @throws AccessDenied - When the caller is not an administrator
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION chmodo (
   pObject       uuid,
   pMask         bit,
