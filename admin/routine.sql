@@ -5,7 +5,12 @@
 --------------------------------------------------------------------------------
 -- GetAreaType -----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Returns the area type identifier by its code.
+ * @param {text} pCode - Area type code
+ * @return {uuid} Area type identifier
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetAreaType (
   pCode       text
 ) RETURNS     uuid
@@ -19,7 +24,12 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 -- GetAreaTypeCode -------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Returns the area type code by its identifier.
+ * @param {uuid} pId - Area type identifier
+ * @return {text} Area type code
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetAreaTypeCode (
   pId       uuid
 ) RETURNS   text
@@ -33,7 +43,12 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 -- GetAreaTypeName -------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Returns the area type name by its identifier.
+ * @param {uuid} pId - Area type identifier
+ * @return {text} Area type name
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetAreaTypeName (
   pId       uuid
 ) RETURNS   text
@@ -47,7 +62,22 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 -- CreateProfile ---------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Creates a user profile record for the given scope.
+ * @param {uuid} pUserId - User identifier
+ * @param {uuid} pScope - Scope identifier
+ * @param {text} pFamilyName - Family (last) name
+ * @param {text} pGivenName - Given (first) name
+ * @param {text} pPatronymicName - Patronymic (middle) name
+ * @param {uuid} pLocale - Locale identifier
+ * @param {uuid} pArea - Area identifier
+ * @param {uuid} pInterface - Interface identifier
+ * @param {bool} pEmailVerified - Whether the email is verified
+ * @param {bool} pPhoneVerified - Whether the phone is verified
+ * @param {text} pPicture - URL to user avatar/picture
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CreateProfile (
   pUserId           uuid,
   pScope            uuid,
@@ -73,7 +103,22 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- UpdateProfile ---------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Updates an existing user profile. NULL parameters are left unchanged.
+ * @param {uuid} pUserId - User identifier
+ * @param {uuid} pScope - Scope identifier
+ * @param {text} pFamilyName - Family (last) name
+ * @param {text} pGivenName - Given (first) name
+ * @param {text} pPatronymicName - Patronymic (middle) name
+ * @param {uuid} pLocale - Locale identifier
+ * @param {uuid} pArea - Area identifier
+ * @param {uuid} pInterface - Interface identifier
+ * @param {bool} pEmailVerified - Whether the email is verified
+ * @param {bool} pPhoneVerified - Whether the phone is verified
+ * @param {text} pPicture - URL to user avatar/picture
+ * @return {boolean} true if a row was updated
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION UpdateProfile (
   pUserId           uuid,
   pScope            uuid,
@@ -110,7 +155,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- CheckUserProfile ------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Ensures the user has a profile in one of the OAuth 2.0 scopes.
+ *        If no profile exists, creates an area, interface membership, and profile.
+ * @param {bigint} pOAuth2 - OAuth 2.0 session parameters identifier
+ * @param {uuid} pUserId - User identifier
+ * @return {uuid} Scope identifier for the matched or newly created profile
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CheckUserProfile (
   pOAuth2       bigint,
   pUserId       uuid
@@ -178,7 +230,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- AddRecoveryTicket -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Inserts a new password recovery ticket for a user.
+ * @param {uuid} pUserId - User identifier
+ * @param {text} pSecurityAnswer - Hashed security answer
+ * @param {text} pInitiator - Who initiated the recovery (e.g. 'system', 'user')
+ * @param {timestamptz} pDateFrom - Validity start (defaults to now)
+ * @param {timestamptz} pDateTo - Validity end (defaults to max date)
+ * @return {uuid} Newly created ticket identifier
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION AddRecoveryTicket (
   pUserId           uuid,
   pSecurityAnswer   text,
@@ -204,7 +265,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- NewRecoveryTicket -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Creates a recovery ticket with a bcrypt-hashed security answer and 1-hour validity.
+ * @param {uuid} pUserId - User identifier
+ * @param {text} pSecurityAnswer - Plain-text security answer (will be hashed)
+ * @param {text} pInitiator - Who initiated the recovery
+ * @param {timestamptz} pDateFrom - Validity start (defaults to now)
+ * @param {timestamptz} pDateTo - Validity end (defaults to now + 1 hour)
+ * @return {uuid} Newly created ticket identifier
+ * @see AddRecoveryTicket
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION NewRecoveryTicket (
   pUserId           uuid,
   pSecurityAnswer   text,
@@ -223,7 +294,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- GetRecoveryTicket -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieves a valid recovery ticket for the given user at the specified time.
+ * @param {uuid} pUserId - User identifier
+ * @param {timestamptz} pDateFrom - Point in time to check validity (defaults to now)
+ * @return {uuid} Ticket identifier, or NULL if none found
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetRecoveryTicket (
   pUserId           uuid,
   pDateFrom         timestamptz DEFAULT Now()
@@ -247,7 +324,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- CheckRecoveryTicket ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Validates a recovery ticket against a security answer.
+ *        Returns the user id on success, NULL on failure. Sets an error message.
+ * @param {uuid} pTicket - Recovery ticket identifier
+ * @param {text} pSecurityAnswer - Plain-text security answer to verify
+ * @return {uuid} User identifier on success, NULL on failure
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CheckRecoveryTicket (
   pTicket           uuid,
   pSecurityAnswer   text
@@ -301,7 +385,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- CreateAuth ------------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Creates an authorization record binding a user to an OAuth 2.0 audience.
+ *        Requires administrator role unless called by the kernel.
+ * @param {uuid} pUserId - User identifier
+ * @param {integer} pAudience - OAuth 2.0 audience identifier
+ * @param {text} pCode - Authorization code
+ * @return {void}
+ * @throws ACCESS_DENIED if caller lacks administrator role
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CreateAuth (
   pUserId           uuid,
   pAudience         integer,
@@ -325,7 +418,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- GetIPTableStr ---------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Returns the IP access list for a user as a comma-separated string.
+ *        Formats CIDR, range, and wildcard notations for display.
+ * @param {uuid} pUserId - User identifier
+ * @param {char} pType - List type: 'A' = allow, 'D' = deny (defaults to 'A')
+ * @return {text} Comma-separated IP addresses/ranges, or NULL if empty
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetIPTableStr (
   pUserId       uuid,
   pType         char DEFAULT 'A'
@@ -377,7 +477,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- SetIPTableStr ---------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Replaces the IP access list for a user from a comma-separated string.
+ *        Deletes all existing entries of the given type, then parses and inserts new ones.
+ * @param {uuid} pUserId - User identifier
+ * @param {char} pType - List type: 'A' = allow, 'D' = deny
+ * @param {text} pIpTable - Comma-separated IP addresses/ranges/CIDRs
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION SetIPTableStr (
   pUserId       uuid,
   pType         char,
@@ -418,7 +526,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- CheckIPTable ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Checks whether a host IP matches any entry in the user's IP table of the given type.
+ * @param {uuid} pUserId - User identifier
+ * @param {char} pType - List type: 'A' = allow, 'D' = deny
+ * @param {inet} pHost - IP address to check
+ * @return {boolean} true if the host matches at least one entry
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CheckIPTable (
   pUserId       uuid,
   pType         char,
@@ -449,7 +564,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- CheckIPTable ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Checks IP access for a user: deny list takes precedence over allow list.
+ *        Sets an error message if access is restricted.
+ * @param {uuid} pUserId - User identifier
+ * @param {inet} pHost - IP address to check
+ * @return {boolean} true if access is allowed
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CheckIPTable (
   pUserId       uuid,
   pHost         inet
@@ -480,7 +602,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- CheckSessionLimit -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Enforces the per-user session limit by closing the oldest sessions that exceed the threshold.
+ * @param {uuid} pUserId - User identifier
+ * @return {void}
+ * @see SessionOut
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CheckSessionLimit (
   pUserId       uuid
 ) RETURNS       void
@@ -515,7 +643,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION StrPwKey -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Builds a password key string from user hash, secret, database name, and timestamp,
+ *        then returns its SHA-1 digest as a hex string.
+ * @param {uuid} pUserId - User identifier
+ * @param {text} pSecret - Session secret
+ * @param {timestamptz} pCreated - Session creation timestamp
+ * @return {text} SHA-1 hex digest of the password key
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION StrPwKey (
   pUserId       uuid,
   pSecret       text,
@@ -541,7 +677,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION CreateAccessToken --------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Creates a signed JWT access token for the given audience and subject.
+ * @param {integer} pAudience - OAuth 2.0 audience identifier
+ * @param {text} pSubject - Token subject (typically the session code)
+ * @param {timestamptz} pDateFrom - Token validity start (defaults to now)
+ * @param {timestamptz} pDateTo - Token validity end (defaults to now + 60 min)
+ * @return {text} Signed JWT access token
+ * @throws IssuerNotFound if the issuer for the audience is not configured
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CreateAccessToken (
   pAudience     integer,
   pSubject      text,
@@ -574,7 +719,18 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION CreateIdToken ------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Creates a signed JWT ID token containing user profile claims.
+ *        Includes profile data when the 'profile' scope is requested.
+ * @param {integer} pAudience - OAuth 2.0 audience identifier
+ * @param {uuid} pUserId - User identifier
+ * @param {text[]} pScopes - Requested OAuth 2.0 scopes
+ * @param {timestamptz} pDateFrom - Token validity start (defaults to now)
+ * @param {timestamptz} pDateTo - Token validity end (defaults to now + 60 min)
+ * @return {text} Signed JWT ID token
+ * @throws UserNotFound if the user is not found in the requested scopes
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CreateIdToken (
   pAudience     integer,
   pUserId       uuid,
@@ -623,7 +779,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION CreateIdToken ------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Overload: creates a signed JWT ID token by resolving the user from a session code.
+ * @param {integer} pAudience - OAuth 2.0 audience identifier
+ * @param {varchar} pSession - Session code to resolve the user
+ * @param {text[]} pScopes - Requested OAuth 2.0 scopes
+ * @param {timestamptz} pDateFrom - Token validity start (defaults to now)
+ * @param {timestamptz} pDateTo - Token validity end (defaults to now + 1 hour)
+ * @return {text} Signed JWT ID token
+ * @see CreateIdToken(integer, uuid, text[], timestamptz, timestamptz)
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CreateIdToken (
   pAudience     integer,
   pSession      varchar,
@@ -645,7 +811,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION DoubleSHA256 -------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Computes a double SHA-256 hash (SHA-256 of SHA-256) on binary data.
+ * @param {bytea} pData - Binary data to hash
+ * @return {bytea} Double SHA-256 digest
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION DoubleSHA256 (
   pData         bytea
 ) RETURNS       bytea
@@ -660,7 +831,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION DoubleSHA256 -------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Overload: computes a double SHA-256 on text data, returning hex.
+ * @param {text} pData - Text data to hash
+ * @return {text} Hex-encoded double SHA-256 digest
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION DoubleSHA256 (
   pData         text
 ) RETURNS       text
@@ -675,7 +851,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION GetHashCash --------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Computes a HashCash proof-of-work digest (double SHA-256 in little-endian byte order).
+ * @param {bytea} pData - Binary data to hash
+ * @return {bytea} Little-endian double SHA-256 digest
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetHashCash (
   pData         bytea
 ) RETURNS       bytea
@@ -690,7 +871,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION HashCash -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Performs a HashCash proof-of-work search: increments a nonce until the hash
+ *        meets the difficulty target defined by pBits.
+ * @param {bytea} pData - Base data to hash
+ * @param {integer} pBits - Compact difficulty target (exponent + mantissa)
+ * @param {integer} pNonce - Starting nonce value
+ * @param {text} hash - (OUT) Hex-encoded hash that meets the target
+ * @param {integer} nonce - (OUT) Nonce value that produced the valid hash
+ * @return {record} (hash text, nonce integer)
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION HashCash (
   pData         bytea,
   pBits         integer,
@@ -726,7 +917,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION SessionKey ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Derives a session key using HMAC-SHA1 from a password key and a pass key.
+ * @param {text} pPwKey - Password key (output of StrPwKey)
+ * @param {text} pPassKey - Encryption pass key (salt)
+ * @return {text} Hex-encoded HMAC-SHA1 session key, or NULL if pPwKey is NULL
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION SessionKey (
   pPwKey        text,
   pPassKey      text
@@ -748,7 +945,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION GetTokenHash -------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Computes the HMAC-SHA1 hash of a token using the given pass key.
+ *        Used for token lookup by hash instead of raw token value.
+ * @param {text} pToken - Token string to hash
+ * @param {text} pPassKey - Secret key for HMAC
+ * @return {text} Hex-encoded HMAC-SHA1 digest
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetTokenHash (
   pToken        text,
   pPassKey      text
@@ -764,7 +968,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION GenSecretKey -------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Generates a cryptographically random secret key encoded in base64.
+ * @param {integer} pSize - Number of random bytes (defaults to 48)
+ * @return {text} Base64-encoded random key
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GenSecretKey (
   pSize         integer DEFAULT 48
 )
@@ -780,7 +989,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION GenTokenKey --------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Generates a token key by HMAC-SHA256 signing a random secret with the pass key.
+ * @param {text} pPassKey - Secret key for HMAC-SHA256
+ * @return {text} Hex-encoded HMAC-SHA256 token key
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GenTokenKey (
   pPassKey      text
 ) RETURNS       text
@@ -795,12 +1009,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- GetSignature ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-/*
- * @param {text} pPath - Путь
- * @param {double precision} pNonce - Время в миллисекундах
- * @param {json} pJson - Данные
- * @param {text} pSecret - Секретный ключ
- * @return {text}
+/**
+ * @brief Computes an HMAC-SHA256 request signature from path, nonce, JSON body, and secret.
+ * @param {text} pPath - Request path
+ * @param {double precision} pNonce - Timestamp in milliseconds (replay protection)
+ * @param {json} pJson - Request body (or NULL)
+ * @param {text} pSecret - Secret key for HMAC
+ * @return {text} Hex-encoded HMAC-SHA256 signature
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION GetSignature (
   pPath         text,
@@ -819,7 +1035,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- ScopeToArray ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Parses a space-separated scope string into a validated array of scope codes.
+ *        Includes scope aliases. Raises InvalidScope if any scope is unrecognized.
+ *        If pScope is empty/NULL, returns all available scopes.
+ * @param {text} pScope - Space-separated scope codes (e.g. 'openid profile')
+ * @return {text[]} Array of valid scope codes
+ * @throws InvalidScope if any requested scope is not recognized
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION ScopeToArray (
   pScope        text
 ) RETURNS       text[]
@@ -888,7 +1112,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- CreateOAuth2 ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Creates an OAuth 2.0 session record with the given audience, scopes, and parameters.
+ * @param {integer} pAudience - OAuth 2.0 audience identifier
+ * @param {text[]} pScopes - Array of scope codes
+ * @param {text} pAccessType - 'online' or 'offline' (defaults to 'online')
+ * @param {text} pRedirectURI - OAuth 2.0 redirect URI
+ * @param {text} pState - OAuth 2.0 state parameter for CSRF protection
+ * @return {bigint} Newly created OAuth 2.0 session identifier
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CreateOAuth2 (
   pAudience     integer,
   pScopes       text[],
@@ -915,7 +1148,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- CreateOAuth2 ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Overload: creates an OAuth 2.0 session from a space-separated scope string.
+ * @param {integer} pAudience - OAuth 2.0 audience identifier
+ * @param {text} pScope - Space-separated scope codes
+ * @param {text} pAccessType - 'online' or 'offline' (defaults to 'online')
+ * @param {text} pRedirectURI - OAuth 2.0 redirect URI
+ * @param {text} pState - OAuth 2.0 state parameter
+ * @return {bigint} Newly created OAuth 2.0 session identifier
+ * @see ScopeToArray
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CreateOAuth2 (
   pAudience     integer,
   pScope        text,
@@ -935,7 +1178,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- CreateSystemOAuth2 ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Creates an OAuth 2.0 session using the system client ID and default scope.
+ * @param {text} pScope - Scope code (defaults to the primary scope or database name)
+ * @return {bigint} Newly created OAuth 2.0 session identifier
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CreateSystemOAuth2 (
   pScope        text DEFAULT null
 ) RETURNS       bigint
@@ -954,7 +1202,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- CreateTokenHeader -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Creates a token header record linking an OAuth 2.0 session to a client session.
+ * @param {bigint} pOAuth2 - OAuth 2.0 session identifier
+ * @param {varchar} pSession - Client session code
+ * @param {text} pSalt - Authentication salt
+ * @param {text} pAgent - User-Agent string
+ * @param {inet} pHost - Client IP address
+ * @return {bigint} Newly created token header identifier
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CreateTokenHeader (
   pOAuth2       bigint,
   pSession      varchar,
@@ -979,7 +1236,18 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- AddToken --------------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Adds or updates a token in the temporal token store.
+ *        If the current date range matches, updates the token value in place;
+ *        otherwise closes the old range and inserts a new record.
+ * @param {bigint} pHeader - Token header identifier
+ * @param {char} pType - Token type: 'C' = authorization code, 'A' = access, 'R' = refresh, 'I' = id
+ * @param {text} pToken - Token string value
+ * @param {timestamptz} pDateFrom - Validity start
+ * @param {timestamptz} pDateTo - Validity end
+ * @return {bigint} Token record identifier
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION AddToken (
   pHeader       bigint,
   pType         char,
@@ -993,7 +1261,7 @@ DECLARE
   dtDateFrom    timestamptz;
   dtDateTo      timestamptz;
 BEGIN
-  -- получим дату значения в текущем диапазоне дат
+  -- Find the existing token record in the current date range
   SELECT id, validFromDate, validToDate INTO nId, dtDateFrom, dtDateTo
     FROM db.token
    WHERE header = pHeader
@@ -1002,14 +1270,14 @@ BEGIN
      AND validToDate > pDateFrom;
 
   IF coalesce(dtDateFrom, MINDATE()) = pDateFrom THEN
-    -- обновим значение в текущем диапазоне дат
+    -- Update the token value within the current date range
     UPDATE db.token SET token = pToken
      WHERE header = pHeader
        AND type = pType
        AND validFromDate <= pDateFrom
        AND validToDate > pDateFrom;
   ELSE
-    -- обновим дату значения в текущем диапазоне дат
+    -- Close the current date range and insert a new record
     UPDATE db.token SET validToDate = pDateFrom
      WHERE header = pHeader
        AND type = pType
@@ -1030,7 +1298,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- NewTokenCode ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Creates a new authorization code token with a header and random 48-byte secret.
+ * @param {bigint} pOAuth2 - OAuth 2.0 session identifier
+ * @param {varchar} pSession - Client session code
+ * @param {text} pSalt - Authentication salt
+ * @param {text} pAgent - User-Agent string
+ * @param {inet} pHost - Client IP address
+ * @param {timestamptz} pCreated - Token creation timestamp
+ * @return {bigint} Token header identifier
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION NewTokenCode (
   pOAuth2       bigint,
   pSession      varchar,
@@ -1053,7 +1331,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- NewToken --------------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Issues a full OAuth 2.0 token set (access, optional refresh, optional id_token)
+ *        for the given token header and audience.
+ * @param {integer} pAudience - OAuth 2.0 audience identifier
+ * @param {bigint} pHeader - Token header identifier
+ * @param {timestamptz} pDateFrom - Token validity start (defaults to now)
+ * @param {timestamptz} pDateTo - Token validity end (defaults to now + 1 hour)
+ * @return {jsonb} JSON object with session, secret, access_token, token_type, expires_in, scope,
+ *                 and optionally refresh_token, id_token, state
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION NewToken (
   pAudience     integer,
   pHeader       bigint,
@@ -1123,7 +1411,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- ExchangeToken ---------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Exchanges an authorization code or refresh token for a new token set.
+ *        Marks single-use tokens (code, refresh) as used.
+ * @param {integer} pAudience - OAuth 2.0 audience identifier
+ * @param {text} pToken - Token string to exchange
+ * @param {interval} pInterval - Validity duration for new tokens (defaults to '1 hour')
+ * @param {char} pType - Token type to exchange: 'A', 'C', 'R', or 'I' (defaults to 'A')
+ * @return {json} New token set or error JSON object
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION ExchangeToken (
   pAudience     integer,
   pToken        text,
@@ -1175,7 +1472,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- CreateToken -----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Exchanges an authorization code for a full token set.
+ * @param {integer} pAudience - OAuth 2.0 audience identifier
+ * @param {text} pCode - Authorization code to exchange
+ * @param {interval} pInterval - Token validity duration (defaults to '1 hour')
+ * @return {jsonb} Token set JSON
+ * @see ExchangeToken
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CreateToken (
   pAudience     integer,
   pCode         text,
@@ -1192,7 +1497,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- UpdateToken -----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Exchanges a refresh token for a new token set.
+ * @param {integer} pAudience - OAuth 2.0 audience identifier
+ * @param {text} pRefresh - Refresh token to exchange
+ * @param {interval} pInterval - Token validity duration (defaults to '1 hour')
+ * @return {json} New token set JSON
+ * @see ExchangeToken
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION UpdateToken (
   pAudience     integer,
   pRefresh      text,
@@ -1209,7 +1522,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- GetToken --------------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Returns a token string by its record identifier.
+ * @param {bigint} pId - Token record identifier
+ * @return {text} Token string value
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetToken (
   pId       bigint
 ) RETURNS   text
@@ -1222,7 +1540,14 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 -- GetAccessToken --------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieves a valid access token for the user, or creates a new one via SignIn
+ *        if no active token exists and the user has an OAuth 2.0 audience configured.
+ * @param {text} pUserName - Username (login)
+ * @param {text} pPassword - Password
+ * @return {text} JWT access token, or NULL on failure
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetAccessToken (
   pUserName     text,
   pPassword     text
@@ -1263,7 +1588,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION SafeSetVar ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Safely sets a session-level configuration variable under the 'current.' namespace.
+ * @param {text} pName - Variable name (without 'current.' prefix)
+ * @param {text} pValue - Value to set
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION SafeSetVar (
   pName         text,
   pValue        text
@@ -1279,7 +1610,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION SafeGetVar ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Safely retrieves a session-level configuration variable from the 'current.' namespace.
+ *        Returns NULL if the variable does not exist or is empty.
+ * @param {text} pName - Variable name (without 'current.' prefix)
+ * @return {text} Variable value, or NULL
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION SafeGetVar (
   pName     text
 ) RETURNS   text
@@ -1297,7 +1634,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION GetSecretKey -------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Returns the secret key from session variables, falling back to a default key.
+ * @param {text} pName - Variable name (defaults to 'key')
+ * @return {text} Secret key string
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetSecretKey (
   pName         text DEFAULT 'key'
 ) RETURNS       text
@@ -1317,8 +1659,9 @@ $$ LANGUAGE plpgsql
 -- FUNCTION oauth2_system_client_id --------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Системный клиент OAuth 2.0.
- * @return {text} - OAuth 2.0 Client Id
+ * @brief Returns the system OAuth 2.0 client identifier (equals the current database name).
+ * @return {text} OAuth 2.0 client_id
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION oauth2_system_client_id()
 RETURNS         text
@@ -1333,7 +1676,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION SetOAuth2ClientId --------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Stores the OAuth 2.0 client_id in the session variable.
+ * @param {text} pClientId - OAuth 2.0 client_id
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION SetOAuth2ClientId (
   pClientId     text
 ) RETURNS       void
@@ -1348,7 +1696,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION GetOAuth2ClientId --------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Returns the OAuth 2.0 client_id stored in the session variable.
+ * @return {text} OAuth 2.0 client_id
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetOAuth2ClientId()
 RETURNS         text
 AS $$
@@ -1363,8 +1715,9 @@ $$ LANGUAGE plpgsql
 -- FUNCTION oauth2_current_client_id -------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Текущий клиент OAuth 2.0.
- * @return {text} - OAuth 2.0 Client Id
+ * @brief Returns the current OAuth 2.0 client identifier from the session.
+ * @return {text} OAuth 2.0 client_id
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION oauth2_current_client_id()
 RETURNS         text
@@ -1379,7 +1732,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION SetLogMode ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Enables or disables logging mode for the current session.
+ * @param {boolean} pValue - true to enable, false to disable
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION SetLogMode (
   pValue        boolean
 ) RETURNS       void
@@ -1394,7 +1752,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION GetLogMode ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Returns the current logging mode (defaults to true).
+ * @return {boolean} true if logging is enabled
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetLogMode()
 RETURNS         boolean
 AS $$
@@ -1408,7 +1770,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION SetDebugMode -------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Enables or disables debug mode for the current session.
+ * @param {boolean} pValue - true to enable, false to disable
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION SetDebugMode (
   pValue        boolean
 ) RETURNS       void
@@ -1423,7 +1790,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION GetDebugMode -------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Returns the current debug mode (defaults to false).
+ * @return {boolean} true if debug mode is enabled
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetDebugMode()
 RETURNS         boolean
 AS $$
@@ -1437,7 +1808,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION SetCurrentSession --------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Stores the current session code in a session variable.
+ * @param {text} pValue - Session code
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION SetCurrentSession (
   pValue        text
 ) RETURNS       void
@@ -1452,7 +1828,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION GetCurrentSession --------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Returns the current session code from the session variable.
+ * @return {text} Session code, or NULL
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetCurrentSession()
 RETURNS         text
 AS $$
@@ -1466,7 +1846,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION SetCurrentUserId ---------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Stores the current user identifier in a session variable.
+ * @param {uuid} pValue - User identifier
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION SetCurrentUserId (
   pValue        uuid
 ) RETURNS       void
@@ -1481,7 +1866,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION GetCurrentUserId ---------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Returns the current user identifier from the session variable.
+ * @return {uuid} User identifier, or NULL
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetCurrentUserId()
 RETURNS         uuid
 AS $$
@@ -1496,8 +1885,9 @@ $$ LANGUAGE plpgsql
 -- FUNCTION current_session ----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает ключ текущей сессии.
- * @return {text} - Код сессии
+ * @brief Returns the current session code, validated against the session table.
+ * @return {text} Session code, or NULL if no valid session exists
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION current_session()
 RETURNS         text
@@ -1524,9 +1914,10 @@ $$ LANGUAGE plpgsql
 -- FUNCTION session_secret -----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает секретный ключ сессии (тсс... никому не говорить 😉 !!!).
- * @param {varchar} pSession - Код сессии
- * @return {text}
+ * @brief Returns the secret key for a session.
+ * @param {varchar} pSession - Session code (defaults to current session)
+ * @return {text} Session secret key
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION session_secret (
   pSession      varchar DEFAULT current_session()
@@ -1548,7 +1939,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION current_scope ------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Returns the scope identifier for the current session's area.
+ *        Falls back to the default scope if no session is active.
+ * @param {varchar} pSession - Session code (defaults to current session)
+ * @return {uuid} Scope identifier
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION current_scope (
   pSession      varchar DEFAULT current_session()
 )
@@ -1576,7 +1973,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION current_scope_code -------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Returns the scope code for the current session.
+ * @param {varchar} pSession - Session code (defaults to current session)
+ * @return {text} Scope code
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION current_scope_code (
   pSession      varchar DEFAULT current_session()
 )
@@ -1591,7 +1993,12 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 -- FUNCTION GetOAuth2Scopes ----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Resolves OAuth 2.0 scope codes to scope UUIDs, including aliases.
+ * @param {bigint} pOAuth2 - OAuth 2.0 session identifier
+ * @return {SETOF uuid} Set of scope identifiers
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetOAuth2Scopes (
   pOAuth2       bigint
 )
@@ -1628,7 +2035,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION current_scopes -----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Returns all scope identifiers for the current session's OAuth 2.0 parameters.
+ * @param {varchar} pSession - Session code (defaults to current session)
+ * @return {SETOF uuid} Set of scope identifiers
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION current_scopes (
   pSession      varchar DEFAULT current_session()
 )
@@ -1649,9 +2061,10 @@ $$ LANGUAGE plpgsql
 -- FUNCTION session_area -------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает зону сессии.
- * @param {varchar} pSession - Код сессии
- * @return {text}
+ * @brief Returns the area identifier for the given session.
+ * @param {varchar} pSession - Session code (defaults to current session)
+ * @return {text} Area identifier
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION session_area (
   pSession      varchar DEFAULT current_session()
@@ -1674,9 +2087,10 @@ $$ LANGUAGE plpgsql
 -- FUNCTION session_agent ------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает агента сессии.
- * @param {varchar} pSession - Код сессии
- * @return {text}
+ * @brief Returns the User-Agent string for the given session.
+ * @param {varchar} pSession - Session code (defaults to current session)
+ * @return {text} User-Agent string
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION session_agent (
   pSession      varchar DEFAULT current_session()
@@ -1699,9 +2113,10 @@ $$ LANGUAGE plpgsql
 -- FUNCTION session_host -------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает IP адрес подключения.
- * @param {varchar} pSession - Код сессии
- * @return {text} - IP адрес
+ * @brief Returns the client IP address for the given session.
+ * @param {varchar} pSession - Session code (defaults to current session)
+ * @return {text} IP address as text
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION session_host (
   pSession      varchar DEFAULT current_session()
@@ -1724,9 +2139,10 @@ $$ LANGUAGE plpgsql
 -- FUNCTION session_userid -----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает идентификатор пользователя сеанса.
- * @param {varchar} pSession - Код сессии
- * @return {id} - Идентификатор пользователя: users.id
+ * @brief Returns the original (substitute-aware) user identifier for the session.
+ * @param {varchar} pSession - Session code (defaults to current session)
+ * @return {uuid} User identifier (suid field)
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION session_userid (
   pSession      varchar DEFAULT current_session()
@@ -1750,8 +2166,9 @@ $$ LANGUAGE plpgsql
 -- FUNCTION current_userid -----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает идентификатор текущего пользователя.
- * @return {id} - Идентификатор пользователя: users.id
+ * @brief Returns the current user identifier, resolving from session if not cached.
+ * @return {uuid} Current user identifier
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION current_userid()
 RETURNS         uuid
@@ -1779,9 +2196,10 @@ $$ LANGUAGE plpgsql
 -- FUNCTION session_username ---------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает имя пользователя сеанса.
- * @param {varchar} pSession - Код сессии
- * @return {text} - Имя (username) пользователя: users.username
+ * @brief Returns the username for the given session's user.
+ * @param {varchar} pSession - Session code (defaults to current session)
+ * @return {text} Username
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION session_username (
   pSession      varchar DEFAULT current_session()
@@ -1798,8 +2216,9 @@ $$ LANGUAGE sql
 -- FUNCTION current_username ---------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает имя текущего пользователя.
- * @return {text} - Имя (username) пользователя: users.username
+ * @brief Returns the username of the currently authenticated user.
+ * @return {text} Username
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION current_username ()
 RETURNS         text
@@ -1814,8 +2233,10 @@ $$ LANGUAGE sql
 -- FUNCTION oauth2_current_code ------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает текущий код авторизации (OAuth 2.0).
- * @return {text} - Код авторизации
+ * @brief Returns the current valid OAuth 2.0 authorization code for the session.
+ * @param {varchar} pSession - Session code (defaults to current session)
+ * @return {text} Authorization code token, or NULL if expired/absent
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION oauth2_current_code (
   pSession      varchar DEFAULT current_session()
@@ -1840,7 +2261,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION SetSessionArea -----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Updates the area for the given session.
+ * @param {uuid} pArea - Area identifier
+ * @param {varchar} pSession - Session code (defaults to current session)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION SetSessionArea (
   pArea         uuid,
   pSession      varchar DEFAULT current_session()
@@ -1856,7 +2283,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION GetSessionArea -----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Returns the area identifier for the given session.
+ * @param {varchar} pSession - Session code (defaults to current session)
+ * @return {uuid} Area identifier
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetSessionArea (
   pSession      varchar DEFAULT current_session()
 )
@@ -1871,7 +2303,12 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 -- FUNCTION current_area_type --------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Returns the area type for the current session's area.
+ * @param {varchar} pSession - Session code (defaults to current session)
+ * @return {uuid} Area type identifier
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION current_area_type (
   pSession      varchar DEFAULT current_session()
 )
@@ -1885,7 +2322,12 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 -- FUNCTION current_area -------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Returns the current area, falling back to the default guest area.
+ * @param {varchar} pSession - Session code (defaults to current session)
+ * @return {uuid} Area identifier
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION current_area (
   pSession      varchar DEFAULT current_session()
 )
@@ -1902,7 +2344,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION SetSessionInterface ------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Updates the interface for the given session.
+ * @param {uuid} pInterface - Interface identifier
+ * @param {varchar} pSession - Session code (defaults to current session)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION SetSessionInterface (
   pInterface    uuid,
   pSession      varchar DEFAULT current_session()
@@ -1918,7 +2366,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION GetSessionInterface ------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Returns the interface identifier for the given session.
+ * @param {varchar} pSession - Session code (defaults to current session)
+ * @return {uuid} Interface identifier
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetSessionInterface (
   pSession      varchar DEFAULT current_session()
 )
@@ -1939,7 +2392,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION current_interface --------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Returns the current interface, falling back to the default guest interface.
+ * @param {varchar} pSession - Session code (defaults to current session)
+ * @return {uuid} Interface identifier
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION current_interface (
   pSession      varchar DEFAULT current_session()
 )
@@ -1957,31 +2415,11 @@ $$ LANGUAGE plpgsql
 -- FUNCTION SetOperDate --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Устанавливает дату операционного дня.
- * @param {timestamptz} pOperDate - Дата операционного дня
- * @param {varchar} pSession - Код сессии
+ * @brief Sets the operational date for the given session.
+ * @param {timestamptz} pOperDate - Operational (business) date
+ * @param {varchar} pSession - Session code (defaults to current session)
  * @return {void}
- */
-CREATE OR REPLACE FUNCTION SetOperDate (
-  pOperDate     timestamptz,
-  pSession      varchar DEFAULT current_session()
-) RETURNS       void
-AS $$
-BEGIN
-  UPDATE db.session SET oper_date = pOperDate WHERE code = pSession;
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- FUNCTION SetOperDate --------------------------------------------------------
---------------------------------------------------------------------------------
-/**
- * Устанавливает дату операционного дня.
- * @param {timestamptz} pOperDate - Дата операционного дня
- * @param {varchar} pSession - Код сессии
- * @return {void}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION SetOperDate (
   pOperDate     timestamptz,
@@ -1999,9 +2437,10 @@ $$ LANGUAGE plpgsql
 -- FUNCTION GetOperDate --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает дату операционного дня.
- * @param {varchar} pSession - Код сессии
- * @return {timestamptz} - Дата операционного дня
+ * @brief Returns the operational date for the given session.
+ * @param {varchar} pSession - Session code (defaults to current session)
+ * @return {timestamptz} Operational date, or NULL if not set
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION GetOperDate (
   pSession      varchar DEFAULT current_session()
@@ -2024,9 +2463,10 @@ $$ LANGUAGE plpgsql
 -- FUNCTION oper_date ----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает дату операционного дня.
- * @param {varchar} pSession - Код сессии
- * @return {timestamptz} - Дата операционного дня
+ * @brief Returns the operational date, falling back to now() if not set.
+ * @param {varchar} pSession - Session code (defaults to current session)
+ * @return {timestamptz} Operational date
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION oper_date (
   pSession      varchar DEFAULT current_session()
@@ -2051,10 +2491,11 @@ $$ LANGUAGE plpgsql
 -- FUNCTION SetSessionLocale ---------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Устанавливает по идентификатору текущий язык.
- * @param {id} pLocale - Идентификатор языка
- * @param {varchar} pSession - Код сессии
+ * @brief Sets the session locale by identifier and persists it as the user's default.
+ * @param {uuid} pLocale - Locale identifier
+ * @param {varchar} pSession - Session code (defaults to current session)
  * @return {void}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION SetSessionLocale (
   pLocale       uuid,
@@ -2076,10 +2517,11 @@ $$ LANGUAGE plpgsql
 -- FUNCTION SetSessionLocale ---------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Устанавливает по коду текущий язык.
- * @param {text} pCode - Код языка
- * @param {varchar} pSession - Код сессии
+ * @brief Overload: sets the session locale by language code (e.g. 'en', 'ru').
+ * @param {text} pCode - Locale code (defaults to 'ru')
+ * @param {varchar} pSession - Session code (defaults to current session)
  * @return {void}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION SetSessionLocale (
   pCode         text DEFAULT 'ru',
@@ -2102,9 +2544,10 @@ $$ LANGUAGE plpgsql
 -- FUNCTION GetSessionLocale ---------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает идентификатор текущего языка.
- * @param {varchar} pSession - Код сессии
- * @return {uuid} - Идентификатор языка.
+ * @brief Returns the locale identifier for the given session.
+ * @param {varchar} pSession - Session code (defaults to current session)
+ * @return {uuid} Locale identifier
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION GetSessionLocale (
   pSession      varchar DEFAULT current_session()
@@ -2120,9 +2563,10 @@ $$ LANGUAGE sql
 -- FUNCTION locale_code --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает код текущего языка.
- * @param {varchar} pSession - Код сессии
- * @return {text} - Код языка
+ * @brief Returns the locale code for the current session, falling back to system config then 'ru'.
+ * @param {varchar} pSession - Session code (defaults to current session)
+ * @return {text} Locale code (e.g. 'en', 'ru')
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION locale_code (
   pSession      varchar DEFAULT current_session()
@@ -2148,9 +2592,10 @@ $$ LANGUAGE plpgsql
 -- FUNCTION current_locale -----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает идентификатор текущего языка.
- * @param {varchar} pSession - Код сессии
- * @return {uuid} - Идентификатор языка.
+ * @brief Returns the current locale identifier, falling back to the default Russian locale.
+ * @param {varchar} pSession - Session code (defaults to current session)
+ * @return {uuid} Locale identifier
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION current_locale (
   pSession      varchar DEFAULT current_session()
@@ -2168,7 +2613,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- SetDefaultLocale ------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Persists the locale as the user's default in the current scope profile.
+ * @param {uuid} pLocale - Locale identifier (defaults to current locale)
+ * @param {uuid} pUserId - User identifier (defaults to current user)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION SetDefaultLocale (
   pLocale       uuid DEFAULT current_locale(),
   pUserId       uuid DEFAULT current_userid()
@@ -2184,7 +2635,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- GetDefaultLocale ------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Returns the user's default locale from the current scope profile.
+ * @param {uuid} pUserId - User identifier (defaults to current user)
+ * @return {uuid} Locale identifier
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetDefaultLocale (
   pUserId       uuid DEFAULT current_userid()
 ) RETURNS       uuid
@@ -2207,7 +2663,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- SetLocale -------------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Sets the locale for both the session and the user's profile in the current scope.
+ * @param {uuid} pLocale - Locale identifier
+ * @param {uuid} pUserId - User identifier (defaults to current user)
+ * @param {varchar} pSession - Session code (defaults to current session)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION SetLocale (
   pLocale       uuid,
   pUserId       uuid DEFAULT current_userid(),
@@ -2225,7 +2688,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION current_application ------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Returns the application identifier for the current session's OAuth 2.0 audience.
+ * @param {text} pSession - Session code (defaults to current session)
+ * @return {integer} Application identifier
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION current_application (
   pSession      text DEFAULT current_session()
 ) RETURNS       integer
@@ -2248,7 +2716,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION current_application_code -------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Returns the application code for the current session.
+ * @param {integer} pApplication - Application identifier (defaults to current application)
+ * @return {text} Application code
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION current_application_code (
   pApplication  integer DEFAULT current_application()
 ) RETURNS       text
@@ -2263,7 +2736,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION acl ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Computes the aggregated ACL bitmask for a user, including inherited group permissions.
+ *        Returns deny, allow, and effective mask (allow AND NOT deny).
+ * @param {uuid} pUserId - User identifier
+ * @param {bit varying} deny - (OUT) Aggregated deny bits
+ * @param {bit varying} allow - (OUT) Aggregated allow bits
+ * @param {bit varying} mask - (OUT) Effective permission mask
+ * @return {SETOF record} Single row with (deny, allow, mask)
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION acl (
   pUserId       uuid,
   OUT deny      bit varying,
@@ -2283,7 +2765,12 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- GetAccessControlListMask ----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Returns the effective ACL bitmask for the given user.
+ * @param {uuid} pUserId - User identifier (defaults to current user)
+ * @return {bit varying} Effective permission mask
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetAccessControlListMask (
   pUserId       uuid DEFAULT current_userid()
 ) RETURNS       bit varying
@@ -2296,7 +2783,13 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- CheckAccessControlList ------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Checks whether the user has the required ACL permission bits set.
+ * @param {bit} pMask - Required permission bits
+ * @param {uuid} pUserId - User identifier (defaults to current user)
+ * @return {boolean} true if all required bits are present in the effective mask
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CheckAccessControlList (
   pMask         bit,
   pUserId       uuid DEFAULT current_userid()
@@ -2312,27 +2805,31 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- chmod -----------------------------------------------------------------------
 --------------------------------------------------------------------------------
-/*
- * Устанавливает битовую маску доступа для пользователя.
- * @param {bit varying} pMask - Маска доступа. (d:{sLlEIDUCpducoi}a:{sLlEIDUCpducoi})
- Где: d - запрещающие биты; a - разрешающие биты:
-  13:   s - substitute user;
-  12:   L - unlock user;
-  11:   l - lock user;
-  10:   E - exclude user from group;
-  08:   I - include user to group;
-  08:   D - delete group;
-  07:   U - update group;
-  06:   C - create group;
-  05:   p - set user password;
-  04:   d - delete user;
-  03:   u - update user;
-  02:   c - create user;
-  01:   o - logout;
-  00:   i - login
- * @param {uuid} pUserId - Идентификатор пользователя/группы
+/**
+ * @brief Sets the ACL bitmask for a user or group.
+ *        Requires administrator role unless called by the kernel.
+ *        Passing an all-zero mask deletes the ACL entry.
+ * @param {bit varying} pMask - Access mask (d:{sLlEIDUCpducoi}a:{sLlEIDUCpducoi})
+ *   where d = deny bits, a = allow bits:
+ *   13: s - substitute user
+ *   12: L - unlock user
+ *   11: l - lock user
+ *   10: E - exclude user from group
+ *   09: I - include user to group
+ *   08: D - delete group
+ *   07: U - update group
+ *   06: C - create group
+ *   05: p - set user password
+ *   04: d - delete user
+ *   03: u - update user
+ *   02: c - create user
+ *   01: o - logout
+ *   00: i - login
+ * @param {uuid} pUserId - User or group identifier (defaults to current user)
  * @return {void}
-*/
+ * @throws ACCESS_DENIED if caller lacks administrator role
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION chmod (
   pMask         bit varying,
   pUserId       uuid DEFAULT current_userid()
@@ -2371,11 +2868,15 @@ $$ LANGUAGE plpgsql
 -- FUNCTION SubstituteUser -----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Меняет идентификатор текущего пользователя в активном сеансе
- * @param {uuid} pUserId - Идентификатор нового пользователя
- * @param {text} pPassword - Пароль текущего пользователя
- * @param {varchar} pSession - Код сессии
+ * @brief Substitutes the active user in the current session with another user.
+ *        Requires the 'substitute user' ACL bit and the current user's password.
+ * @param {uuid} pUserId - Target user identifier to switch to
+ * @param {text} pPassword - Current user's password for verification
+ * @param {varchar} pSession - Session code (defaults to current session)
  * @return {void}
+ * @throws ACCESS_DENIED if caller lacks substitute permission
+ * @throws ERR-40300 if password verification fails
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION SubstituteUser (
   pUserId       uuid,
@@ -2411,11 +2912,13 @@ $$ LANGUAGE plpgsql
 -- FUNCTION SubstituteUser -----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Меняет текущего пользователя в активном сеансе на указанного пользователя
- * @param {text} pRoleName - Имя пользователь для подстановки
- * @param {text} pPassword - Пароль текущего пользователя
- * @param {varchar} pSession - Код сессии
+ * @brief Overload: substitutes the active user by username.
+ * @param {text} pRoleName - Target username to switch to
+ * @param {text} pPassword - Current user's password for verification
+ * @param {varchar} pSession - Session code (defaults to current session)
  * @return {void}
+ * @see SubstituteUser(uuid, text, varchar)
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION SubstituteUser (
   pRoleName     text,
@@ -2434,10 +2937,11 @@ $$ LANGUAGE plpgsql
 -- IsUserRole ------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Проверяет роль пользователя.
- * @param {uuid} pRoleId - Идентификатор роли (группы)
- * @param {uuid} pUserId - Идентификатор пользователя (учётной записи)
- * @return {boolean}
+ * @brief Checks whether a user belongs to a given role (group).
+ * @param {uuid} pRoleId - Role (group) identifier
+ * @param {uuid} pUserId - User identifier (defaults to current user)
+ * @return {boolean} true if the user is a member of the role
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION IsUserRole (
   pRoleId       uuid,
@@ -2459,10 +2963,11 @@ $$ LANGUAGE plpgsql
 -- IsUserRole ------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Проверяет роль пользователя.
- * @param {text} pRole - Код роли (группы)
- * @param {text} pUser - Код пользователя (учётной записи)
- * @return {boolean}
+ * @brief Overload: checks role membership by username strings.
+ * @param {text} pRole - Role (group) username
+ * @param {text} pUser - User username (defaults to current username)
+ * @return {boolean} true if the user is a member of the role
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION IsUserRole (
   pRole         text,
@@ -2487,8 +2992,10 @@ $$ LANGUAGE plpgsql
 -- IsAdmin ---------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Проверяет пользователя на вхождение в группу "Администраторы".
- * @return {boolean}
+ * @brief Checks whether the user is a member of the 'administrator' group.
+ * @param {uuid} pMember - User identifier (defaults to current user)
+ * @return {boolean} true if the user is an administrator
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION IsAdmin (
   pMember       uuid DEFAULT current_userid()
@@ -2507,8 +3014,10 @@ $$ LANGUAGE plpgsql
 -- is_admin --------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Проверяет пользователя на вхождение в группу "Администраторы" или если это apibot.
- * @return {boolean}
+ * @brief Checks whether the user is an administrator or the apibot service account.
+ * @param {uuid} pMember - User identifier (defaults to current user)
+ * @return {boolean} true if admin or apibot
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION is_admin (
   pMember       uuid DEFAULT current_userid()
@@ -2530,18 +3039,21 @@ $$ LANGUAGE plpgsql
 -- CreateUser ------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Создаёт учётную запись пользователя.
- * @param {text} pRoleName - Пользователь
- * @param {text} pPassword - Пароль
- * @param {text} pName - Полное имя
- * @param {text} pPhone - Телефон
- * @param {text} pEmail - Электронный адрес
- * @param {text} pDescription - Описание
- * @param {boolean} pPasswordChange - Сменить пароль при следующем входе в систему
- * @param {boolean} pPasswordNotChange - Установить запрет на смену пароля самим пользователем
- * @param {uuid} pArea - Область видимости
- * @param {uuid} pId - Идентификатор
- * @return {uuid} - Id учётной записи или ошибку
+ * @brief Creates a new user account with profile, default interface memberships, and password.
+ *        Requires the 'create user' ACL bit.
+ * @param {text} pRoleName - Username (login)
+ * @param {text} pPassword - Password (if NULL, an auto-generated password is used)
+ * @param {text} pName - Full display name
+ * @param {text} pPhone - Phone number
+ * @param {text} pEmail - Email address
+ * @param {text} pDescription - Description
+ * @param {boolean} pPasswordChange - Force password change on next login
+ * @param {boolean} pPasswordNotChange - Prevent user from changing own password
+ * @param {uuid} pId - User identifier (defaults to auto-generated)
+ * @return {uuid} Newly created user identifier
+ * @throws ACCESS_DENIED if caller lacks create user permission
+ * @throws RoleExists if username already exists
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION CreateUser (
   pRoleName             text,
@@ -2602,13 +3114,16 @@ $$ LANGUAGE plpgsql
 -- CreateGroup -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Создаёт группу.
- * @param {text} pRoleName - Группа
- * @param {text} pName - Полное имя
- * @param {text} pDescription - Описание
- * @return {uuid} - Id группы или ошибку
- * @param {uuid} pId - Идентификатор
-*/
+ * @brief Creates a new group. Requires the 'create group' ACL bit.
+ * @param {text} pRoleName - Group username
+ * @param {text} pName - Group display name
+ * @param {text} pDescription - Description
+ * @param {uuid} pId - Group identifier (defaults to auto-generated)
+ * @return {uuid} Newly created group identifier
+ * @throws ACCESS_DENIED if caller lacks create group permission
+ * @throws RoleExists if group name already exists
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CreateGroup (
   pRoleName     text,
   pName         text,
@@ -2646,17 +3161,21 @@ $$ LANGUAGE plpgsql
 -- UpdateUser ------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Обновляет учётную запись пользователя.
- * @param {uuid} pId - Идентификатор учетной записи пользователя
- * @param {text} pRoleName - Пользователь
- * @param {text} pPassword - Пароль
- * @param {text} pName - Полное имя
- * @param {text} pPhone - Телефон
- * @param {text} pEmail - Электронный адрес
- * @param {text} pDescription - Описание
- * @param {boolean} pPasswordChange - Сменить пароль при следующем входе в систему
- * @param {boolean} pPasswordNotChange - Установить запрет на смену пароля самим пользователем
+ * @brief Updates a user account. NULL parameters are left unchanged.
+ *        Requires the 'update user' ACL bit when updating another user.
+ * @param {uuid} pId - User identifier
+ * @param {text} pRoleName - New username
+ * @param {text} pPassword - New password
+ * @param {text} pName - Full display name
+ * @param {text} pPhone - Phone number
+ * @param {text} pEmail - Email address
+ * @param {text} pDescription - Description
+ * @param {boolean} pPasswordChange - Force password change on next login
+ * @param {boolean} pPasswordNotChange - Prevent user from changing own password
  * @return {void}
+ * @throws UserNotFound if user does not exist
+ * @throws ACCESS_DENIED if caller lacks update permission
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION UpdateUser (
   pId                   uuid,
@@ -2727,12 +3246,15 @@ $$ LANGUAGE plpgsql
 -- UpdateGroup -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Обновляет учётные данные группы.
- * @param {id} pId - Идентификатор группы
- * @param {text} pRoleName - Группа
- * @param {text} pName - Полное имя
- * @param {text} pDescription - Описание
+ * @brief Updates a group record. Requires the 'update group' ACL bit.
+ * @param {uuid} pId - Group identifier
+ * @param {text} pRoleName - New group username
+ * @param {text} pName - New display name
+ * @param {text} pDescription - New description
  * @return {void}
+ * @throws UserNotFound if group does not exist
+ * @throws ACCESS_DENIED if caller lacks update group permission
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION UpdateGroup (
   pId           uuid,
@@ -2777,9 +3299,14 @@ $$ LANGUAGE plpgsql
 -- DeleteUser ------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Удаляет учётную запись пользователя.
- * @param {id} pId - Идентификатор учётной записи пользователя
+ * @brief Deletes a user account and all related data (sessions, profiles, memberships, ACL).
+ *        Reassigns owned objects to the administrator. Requires the 'delete user' ACL bit.
+ * @param {uuid} pId - User identifier
  * @return {void}
+ * @throws ACCESS_DENIED if caller lacks delete user permission
+ * @throws DeleteUserError if trying to delete the current user
+ * @throws SystemRoleError if user corresponds to a PostgreSQL system role
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION DeleteUser (
   pId           uuid
@@ -2836,9 +3363,11 @@ $$ LANGUAGE plpgsql
 -- DeleteUser ------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Удаляет учётную запись пользователя.
- * @param {text} pRoleName - Пользователь (login)
+ * @brief Overload: deletes a user account by username.
+ * @param {text} pRoleName - Username (login)
  * @return {void}
+ * @see DeleteUser(uuid)
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION DeleteUser (
   pRoleName     text
@@ -2863,9 +3392,12 @@ $$ LANGUAGE plpgsql
 -- DeleteGroup -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Удаляет группу.
- * @param {id} pId - Идентификатор группы
+ * @brief Deletes a group and all its memberships. Requires the 'delete group' ACL bit.
+ * @param {uuid} pId - Group identifier
  * @return {void}
+ * @throws ACCESS_DENIED if caller lacks delete group permission
+ * @throws SystemRoleError if group corresponds to a PostgreSQL system role
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION DeleteGroup (
   pId           uuid
@@ -2900,9 +3432,11 @@ $$ LANGUAGE plpgsql
 -- DeleteGroup -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Удаляет группу.
- * @param {text} pRoleName - Группа
+ * @brief Overload: deletes a group by username.
+ * @param {text} pRoleName - Group username
  * @return {void}
+ * @see DeleteGroup(uuid)
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION DeleteGroup (
   pRoleName     text
@@ -2919,9 +3453,11 @@ $$ LANGUAGE plpgsql
 -- GetUser ---------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает идентификатор пользователя по имени пользователя.
- * @param {text} pRoleName - Пользователь
- * @return {id}
+ * @brief Returns the user identifier by username. Raises an error if not found.
+ * @param {text} pRoleName - Username (login)
+ * @return {uuid} User identifier
+ * @throws UserNotFound if the user does not exist
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION GetUser (
   pRoleName     text
@@ -2947,9 +3483,11 @@ $$ LANGUAGE plpgsql
 -- GetGroup --------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает идентификатор группы по наименованию.
- * @param {text} pRoleName - Группа
- * @return {id}
+ * @brief Returns the group identifier by group name. Raises an error if not found.
+ * @param {text} pRoleName - Group username
+ * @return {uuid} Group identifier
+ * @throws UnknownRoleName if the group does not exist
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION GetGroup (
   pRoleName     text
@@ -2975,10 +3513,15 @@ $$ LANGUAGE plpgsql
 -- SetPassword -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Устанавливает пароль пользователя.
- * @param {id} pId - Идентификатор пользователя
- * @param {text} pPassword - Пароль
+ * @brief Sets the password for a user (bcrypt hash with md5 salt).
+ *        Requires 'set password' ACL bit when setting another user's password.
+ *        Logs the password change event.
+ * @param {uuid} pId - User identifier
+ * @param {text} pPassword - New password in plain text
  * @return {void}
+ * @throws ACCESS_DENIED if caller lacks set password permission
+ * @throws UserPasswordChange if user is not allowed to change own password
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION SetPassword (
   pId               uuid,
@@ -3040,11 +3583,13 @@ $$ LANGUAGE plpgsql
 -- ChangePassword --------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Меняет пароль пользователя.
- * @param {uuid} pId - Идентификатор учетной записи
- * @param {text} pOldPass - Старый пароль
- * @param {text} pNewPass - Новый пароль
- * @return {void}
+ * @brief Changes a user's password after verifying the old password.
+ *        Also updates the PostgreSQL role password if the user has a system role.
+ * @param {uuid} pId - User identifier
+ * @param {text} pOldPass - Current password for verification
+ * @param {text} pNewPass - New password
+ * @return {boolean} true on success, false if verification failed
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION ChangePassword (
   pId           uuid,
@@ -3080,9 +3625,12 @@ $$ LANGUAGE plpgsql;
 -- UserLock --------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Блокирует учётную запись пользователя.
- * @param {id} pId - Идентификатор учётной записи пользователя
+ * @brief Locks a user account by setting the locked status bit.
+ *        Requires the 'lock user' ACL bit when locking another user.
+ * @param {uuid} pId - User identifier
  * @return {void}
+ * @throws ACCESS_DENIED if caller lacks lock user permission
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION UserLock (
   pId           uuid
@@ -3115,9 +3663,12 @@ $$ LANGUAGE plpgsql
 -- UserUnLock ------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Снимает блокировку с учётной записи пользователя.
- * @param {id} pId - Идентификатор учётной записи пользователя
+ * @brief Unlocks a user account by resetting the status to 'open'.
+ *        Requires the 'unlock user' ACL bit.
+ * @param {uuid} pId - User identifier
  * @return {void}
+ * @throws ACCESS_DENIED if caller lacks unlock user permission
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION UserUnLock (
   pId           uuid
@@ -3148,10 +3699,12 @@ $$ LANGUAGE plpgsql
 -- AddMemberToGroup ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Добавляет пользователя в группу.
- * @param {uuid} pMember - Идентификатор пользователя
- * @param {uuid} pGroup - Идентификатор группы
+ * @brief Adds a user to a group. Requires the 'include user to group' ACL bit.
+ * @param {uuid} pMember - User identifier
+ * @param {uuid} pGroup - Group identifier
  * @return {void}
+ * @throws ACCESS_DENIED if caller lacks membership permission
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION AddMemberToGroup (
   pMember       uuid,
@@ -3175,10 +3728,13 @@ $$ LANGUAGE plpgsql
 -- DeleteGroupForMember --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Удаляет группу для пользователя.
- * @param {uuid} pMember - Идентификатор пользователя
- * @param {uuid} pGroup - Идентификатор группы, при null удаляет все группы для указанного пользователя
+ * @brief Removes a user from a group, or from all groups if pGroup is NULL.
+ *        Requires the 'exclude user from group' ACL bit.
+ * @param {uuid} pMember - User identifier
+ * @param {uuid} pGroup - Group identifier (NULL = remove from all groups)
  * @return {void}
+ * @throws ACCESS_DENIED if caller lacks membership permission
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION DeleteGroupForMember (
   pMember       uuid,
@@ -3202,10 +3758,13 @@ $$ LANGUAGE plpgsql
 -- DeleteMemberFromGroup -------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Удаляет пользователя из группу.
- * @param {uuid} pGroup - Идентификатор группы
- * @param {uuid} pMember - Идентификатор пользователя, при null удаляет всех пользователей из указанной группы
+ * @brief Removes a member from a group, or all members if pMember is NULL.
+ *        Requires the 'exclude user from group' ACL bit.
+ * @param {uuid} pGroup - Group identifier
+ * @param {uuid} pMember - User identifier (NULL = remove all members)
  * @return {void}
+ * @throws ACCESS_DENIED if caller lacks membership permission
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION DeleteMemberFromGroup (
   pGroup        uuid,
@@ -3228,7 +3787,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- GetUsername -----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Returns a user's username by identifier.
+ * @param {uuid} pId - User identifier
+ * @return {text} Username, or NULL if not found
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetUsername (
   pId           uuid
 ) RETURNS       text
@@ -3241,7 +3805,12 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 -- GetUserFullName -------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Returns a user's full display name by identifier.
+ * @param {uuid} pId - User identifier
+ * @return {text} Full name, or NULL if not found
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetUserFullName (
   pId           uuid
 ) RETURNS       text
@@ -3254,7 +3823,12 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 -- GetGroupUsername ------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Returns a group's username by identifier.
+ * @param {uuid} pId - Group identifier
+ * @return {text} Group username, or NULL if not found
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetGroupUsername (
   pId           uuid
 ) RETURNS       text
@@ -3267,7 +3841,12 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 -- GetGroupName ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Returns a group's display name by identifier.
+ * @param {uuid} pId - Group identifier
+ * @return {text} Group name, or NULL if not found
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetGroupName (
   pId           uuid
 ) RETURNS       text
@@ -3280,7 +3859,17 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 -- CreateScope -----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Creates a new scope. Requires administrator role.
+ * @param {text} pCode - Unique scope code
+ * @param {text} pName - Scope display name
+ * @param {text} pDescription - Description
+ * @param {uuid} pId - Scope identifier (defaults to auto-generated)
+ * @return {uuid} Newly created scope identifier
+ * @throws ACCESS_DENIED if caller is not an administrator
+ * @throws RecordExists if scope code already exists
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CreateScope (
   pCode         text,
   pName         text,
@@ -3314,7 +3903,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- EditScope -------------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Updates a scope record. Requires administrator role. NULL params are left unchanged.
+ * @param {uuid} pId - Scope identifier
+ * @param {text} pCode - New scope code
+ * @param {text} pName - New display name
+ * @param {text} pDescription - New description
+ * @return {void}
+ * @throws ACCESS_DENIED if caller is not an administrator
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EditScope (
   pId           uuid,
   pCode         text DEFAULT null,
@@ -3357,7 +3955,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- DeleteScope -----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Deletes a scope. Requires administrator role.
+ * @param {uuid} pId - Scope identifier
+ * @return {void}
+ * @throws ACCESS_DENIED if caller is not an administrator
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION DeleteScope (
   pId           uuid
 ) RETURNS       void
@@ -3385,7 +3989,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- GetScope --------------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Returns a scope identifier by its code.
+ * @param {text} pCode - Scope code
+ * @return {uuid} Scope identifier, or NULL if not found
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetScope (
   pCode         text
 ) RETURNS       uuid
@@ -3399,7 +4008,12 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 -- GetScopeName ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Returns a scope name by its identifier.
+ * @param {uuid} pId - Scope identifier
+ * @return {text} Scope name
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetScopeName (
   pId           uuid
 ) RETURNS       text
@@ -3413,7 +4027,14 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 -- FUNCTION SetAreaSequence ----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Recursively sets the display sequence of an area, shifting siblings as needed.
+ * @param {uuid} pId - Area identifier
+ * @param {integer} pSequence - Target sequence number
+ * @param {integer} pDelta - Shift direction for colliding siblings (+1 or -1; 0 = no shift)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION SetAreaSequence (
   pId           uuid,
   pSequence     integer,
@@ -3446,7 +4067,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION SortArea -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Re-numbers the sequence of all child areas under the given parent.
+ * @param {uuid} pParent - Parent area identifier (NULL for root-level areas)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION SortArea (
   pParent       uuid
 ) RETURNS       void
@@ -3469,7 +4095,21 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- CreateArea ------------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Creates a new area in the hierarchy. Requires administrator role.
+ * @param {uuid} pId - Area identifier (defaults to auto-generated)
+ * @param {uuid} pParent - Parent area identifier (NULL for root children)
+ * @param {uuid} pType - Area type identifier
+ * @param {uuid} pScope - Scope identifier (defaults to current scope)
+ * @param {text} pCode - Unique area code within the scope
+ * @param {text} pName - Area display name
+ * @param {text} pDescription - Description
+ * @param {integer} pSequence - Display sequence (auto-assigned if NULL/0)
+ * @return {uuid} Newly created area identifier
+ * @throws ACCESS_DENIED if caller is not an administrator
+ * @throws RecordExists if area code already exists in the scope
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CreateArea (
   pId           uuid,
   pParent       uuid,
@@ -3525,7 +4165,23 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- EditArea --------------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Updates an area record. Requires administrator role. NULL params are left unchanged.
+ *        Re-sorts sibling areas when parent or sequence changes.
+ * @param {uuid} pId - Area identifier
+ * @param {uuid} pParent - New parent area
+ * @param {uuid} pType - New area type
+ * @param {uuid} pScope - New scope
+ * @param {text} pCode - New area code
+ * @param {text} pName - New display name
+ * @param {text} pDescription - New description
+ * @param {integer} pSequence - New display sequence
+ * @param {timestamptz} pValidFromDate - Validity start
+ * @param {timestamptz} pValidToDate - Validity end
+ * @return {void}
+ * @throws ACCESS_DENIED if caller is not an administrator
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EditArea (
   pId               uuid,
   pParent           uuid DEFAULT null,
@@ -3605,7 +4261,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- DeleteArea ------------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Deletes an area. Requires administrator role.
+ * @param {uuid} pId - Area identifier
+ * @return {void}
+ * @throws ACCESS_DENIED if caller is not an administrator
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION DeleteArea (
   pId           uuid
 ) RETURNS       void
@@ -3635,7 +4297,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- GetAreaScope ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Returns the scope for the given area.
+ * @param {uuid} pArea - Area identifier
+ * @return {uuid} Scope identifier
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetAreaScope (
   pArea         uuid
 ) RETURNS       uuid
@@ -3649,7 +4316,13 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 -- GetArea ---------------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Returns an area identifier by code within a scope.
+ * @param {text} pCode - Area code
+ * @param {uuid} pScope - Scope identifier (defaults to current scope)
+ * @return {uuid} Area identifier, or NULL if not found
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetArea (
   pCode         text,
   pScope        uuid default current_scope()
@@ -3664,7 +4337,12 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 -- GetAreaRoot -----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Returns the root area for the given scope.
+ * @param {uuid} pScope - Scope identifier (defaults to current scope)
+ * @return {uuid} Root area identifier
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetAreaRoot (
   pScope        uuid default current_scope()
 ) RETURNS       uuid
@@ -3678,7 +4356,12 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 -- GetAreaSystem ---------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Returns the system area for the given scope.
+ * @param {uuid} pScope - Scope identifier (defaults to current scope)
+ * @return {uuid} System area identifier
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetAreaSystem (
   pScope        uuid default current_scope()
 ) RETURNS       uuid
@@ -3692,7 +4375,12 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 -- GetAreaGuest ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Returns the guest area for the given scope.
+ * @param {uuid} pScope - Scope identifier (defaults to current scope)
+ * @return {uuid} Guest area identifier
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetAreaGuest (
   pScope        uuid default current_scope()
 ) RETURNS       uuid
@@ -3706,7 +4394,12 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 -- GetAreaDefault --------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Returns the default area for the given scope.
+ * @param {uuid} pScope - Scope identifier (defaults to current scope)
+ * @return {uuid} Default area identifier
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetAreaDefault (
   pScope        uuid default current_scope()
 ) RETURNS       uuid
@@ -3720,7 +4413,12 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 -- GetAreaCode -----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Returns an area code by its identifier.
+ * @param {uuid} pId - Area identifier
+ * @return {text} Area code
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetAreaCode (
   pId           uuid
 ) RETURNS       text
@@ -3734,7 +4432,12 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 -- GetAreaName -----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Returns an area name by its identifier.
+ * @param {uuid} pId - Area identifier
+ * @return {text} Area name
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetAreaName (
   pId           uuid
 ) RETURNS       text
@@ -3748,7 +4451,12 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 -- AreaTree --------------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Returns a recursive area tree starting from the given area, filtered by current scopes.
+ * @param {uuid} pArea - Root area identifier
+ * @return {SETOF AreaTree} Sorted hierarchical area records
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION AreaTree (
   pArea         uuid
 ) RETURNS       SETOF AreaTree
@@ -3770,7 +4478,13 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 -- AddMemberToArea -------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Adds a user to an area membership. Requires the 'include to group' ACL bit.
+ * @param {uuid} pMember - User identifier
+ * @param {uuid} pArea - Area identifier
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION AddMemberToArea (
   pMember       uuid,
   pArea         uuid
@@ -3793,10 +4507,12 @@ $$ LANGUAGE plpgsql
 -- DeleteAreaForMember ---------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Удаляет подразделение для пользователя.
- * @param {id} pMember - Идентификатор пользователя
- * @param {id} pArea - Идентификатор подразделения, при null удаляет все подразделения для указанного пользователя
+ * @brief Removes an area membership for a user, or all areas if pArea is NULL.
+ *        Requires the 'exclude from group' ACL bit.
+ * @param {uuid} pMember - User identifier
+ * @param {uuid} pArea - Area identifier (NULL = remove from all areas)
  * @return {void}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION DeleteAreaForMember (
   pMember       uuid,
@@ -3820,10 +4536,12 @@ $$ LANGUAGE plpgsql
 -- DeleteMemberFromArea --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Удаляет пользователя из подразделения.
- * @param {id} pArea - Идентификатор подразделения
- * @param {id} pMember - Идентификатор пользователя, при null удаляет всех пользователей из указанного подразделения
+ * @brief Removes a member from an area, or all members if pMember is NULL.
+ *        Requires the 'exclude from group' ACL bit.
+ * @param {uuid} pArea - Area identifier
+ * @param {uuid} pMember - User identifier (NULL = remove all members)
  * @return {void}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION DeleteMemberFromArea (
   pArea         uuid,
@@ -3846,7 +4564,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- SetArea ---------------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Switches the active area for a session and persists it as the user's default.
+ *        Validates that the user is a member of the target area.
+ * @param {uuid} pArea - Target area identifier
+ * @param {uuid} pMember - User identifier (defaults to current user)
+ * @param {varchar} pSession - Session code (defaults to current session)
+ * @return {void}
+ * @throws AreaError if area does not exist
+ * @throws UserNotMemberArea if user is not a member of the area
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION SetArea (
   pArea         uuid,
   pMember       uuid DEFAULT current_userid(),
@@ -3882,10 +4610,12 @@ $$ LANGUAGE plpgsql
 -- IsMemberArea ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Проверяет доступ к зоне.
- * @param {uuid} pArea - Идентификатор зоны
- * @param {uuid} pMember - Идентификатор роли (группы/учётной записи)
- * @return {boolean}
+ * @brief Checks whether a user has access to an area (including inherited parent areas
+ *        and group memberships).
+ * @param {uuid} pArea - Area identifier
+ * @param {uuid} pMember - User or group identifier (defaults to current user)
+ * @return {boolean} true if the user has area access
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION IsMemberArea (
   pArea         uuid,
@@ -3922,7 +4652,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- SetDefaultArea --------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Persists the area as the user's default in the current scope profile.
+ * @param {uuid} pArea - Area identifier (defaults to current area)
+ * @param {uuid} pMember - User identifier (defaults to current user)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION SetDefaultArea (
   pArea         uuid DEFAULT current_area(),
   pMember       uuid DEFAULT current_userid()
@@ -3938,7 +4674,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- GetDefaultArea --------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Returns the user's default area from the current scope profile.
+ *        Falls back to the guest area if no profile is found.
+ * @param {uuid} pMember - User identifier (defaults to current user)
+ * @return {uuid} Default area identifier
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetDefaultArea (
   pMember       uuid DEFAULT current_userid()
 ) RETURNS       uuid
@@ -3961,7 +4703,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- CreateInterface -------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Creates a new interface. Requires administrator role.
+ * @param {text} pCode - Unique interface code
+ * @param {text} pName - Interface display name
+ * @param {text} pDescription - Description
+ * @param {uuid} pId - Interface identifier (defaults to auto-generated)
+ * @return {uuid} Newly created interface identifier
+ * @throws ACCESS_DENIED if caller is not an administrator
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CreateInterface (
   pCode         text,
   pName         text,
@@ -3990,7 +4741,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- UpdateInterface -------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Updates an interface record. Requires administrator role.
+ * @param {uuid} pId - Interface identifier
+ * @param {text} pCode - New interface code
+ * @param {text} pName - New display name
+ * @param {text} pDescription - New description
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION UpdateInterface (
   pId           uuid,
   pCode         text DEFAULT null,
@@ -4018,7 +4777,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- DeleteInterface -------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Deletes an interface. Requires administrator role.
+ * @param {uuid} pId - Interface identifier
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION DeleteInterface (
   pId           uuid
 ) RETURNS       void
@@ -4039,7 +4803,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- AddMemberToInterface --------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Adds a user to an interface membership. Requires the 'include to group' ACL bit.
+ * @param {uuid} pMember - User identifier
+ * @param {uuid} pInterface - Interface identifier
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION AddMemberToInterface (
   pMember       uuid,
   pInterface    uuid
@@ -4061,7 +4831,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- DeleteInterfaceForMember ----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Removes interface membership for a user, or all interfaces if pInterface is NULL.
+ * @param {uuid} pMember - User identifier
+ * @param {uuid} pInterface - Interface identifier (NULL = remove from all interfaces)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION DeleteInterfaceForMember (
   pMember       uuid,
   pInterface    uuid DEFAULT null
@@ -4083,7 +4859,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- DeleteMemberFromInterface ---------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Removes a member from an interface, or all members if pMember is NULL.
+ * @param {uuid} pInterface - Interface identifier
+ * @param {uuid} pMember - User identifier (NULL = remove all members)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION DeleteMemberFromInterface (
   pInterface    uuid,
   pMember       uuid DEFAULT null
@@ -4105,7 +4887,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- GetInterface ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Returns an interface identifier by its code.
+ * @param {text} pCode - Interface code
+ * @return {uuid} Interface identifier, or NULL if not found
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetInterface (
   pCode         text
 ) RETURNS       uuid
@@ -4118,7 +4905,12 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 -- GetInterfaceName ------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Returns an interface name by its identifier.
+ * @param {uuid} pId - Interface identifier
+ * @return {text} Interface name
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetInterfaceName (
   pId           uuid
 ) RETURNS       text
@@ -4131,7 +4923,16 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 -- SetInterface ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Switches the active interface for a session. Validates user membership.
+ * @param {uuid} pInterface - Target interface identifier
+ * @param {uuid} pMember - User identifier (defaults to current user)
+ * @param {varchar} pSession - Session code (defaults to current session)
+ * @return {void}
+ * @throws InterfaceError if interface does not exist
+ * @throws UserNotMemberInterface if user is not a member of the interface
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION SetInterface (
   pInterface    uuid,
   pMember       uuid DEFAULT current_userid(),
@@ -4166,10 +4967,11 @@ $$ LANGUAGE plpgsql
 -- IsMemberInterface -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Проверяет доступ к интерфейсу.
- * @param {uuid} pInterface - Идентификатор интерфейса
- * @param {uuid} pMember - Идентификатор роли (группы/учётной записи)
- * @return {boolean}
+ * @brief Checks whether a user has access to an interface (including group memberships).
+ * @param {uuid} pInterface - Interface identifier
+ * @param {uuid} pMember - User or group identifier (defaults to current user)
+ * @return {boolean} true if the user has interface access
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION IsMemberInterface (
   pInterface    uuid,
@@ -4201,7 +5003,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- SetDefaultInterface ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Persists the interface as the user's default in the current scope profile.
+ * @param {uuid} pInterface - Interface identifier (defaults to current interface)
+ * @param {uuid} pMember - User identifier (defaults to current user)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION SetDefaultInterface (
   pInterface    uuid DEFAULT current_interface(),
   pMember       uuid DEFAULT current_userid()
@@ -4217,7 +5025,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- GetDefaultInterface ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Returns the user's default interface from the current scope profile.
+ *        Falls back to the guest interface if no profile is found.
+ * @param {uuid} pMember - User identifier (defaults to current user)
+ * @return {uuid} Default interface identifier
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetDefaultInterface (
   pMember       uuid DEFAULT current_userid()
 ) RETURNS       uuid
@@ -4240,7 +5054,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- CheckOffline ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Marks users as offline if their sessions have not been updated within the given interval.
+ * @param {interval} pOffTime - Inactivity threshold (defaults to '5 minute')
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CheckOffline (
   pOffTime      interval DEFAULT '5 minute'
 ) RETURNS       void
@@ -4267,7 +5086,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- CheckSession ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Cleans up stale sessions: signs out sessions older than pOffTime,
+ *        web-* sessions older than 10 days, and all python-* agent sessions.
+ * @param {interval} pOffTime - Inactivity threshold (defaults to '3 month')
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CheckSession (
   pOffTime      interval DEFAULT '3 month'
 ) RETURNS       void
@@ -4316,7 +5141,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- CheckPassword ---------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Verifies a user's password against the stored bcrypt hash.
+ *        Sets an error message with the result.
+ * @param {uuid} pUserId - User identifier
+ * @param {text} pPassword - Password to verify
+ * @return {boolean} true if the password matches
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CheckPassword (
   pUserId       uuid,
   pPassword     text
@@ -4348,7 +5180,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- CheckPassword ---------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Overload: verifies a password by username.
+ * @param {text} pRoleName - Username
+ * @param {text} pPassword - Password to verify
+ * @return {boolean} true if the password matches
+ * @see CheckPassword(uuid, text)
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CheckPassword (
   pRoleName     text,
   pPassword     text
@@ -4364,7 +5203,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- TokenValidation -------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Validates a JWT token: verifies signature, checks expiry, and confirms audience ownership.
+ * @param {text} pToken - JWT token string to validate
+ * @return {jsonb} Decoded JWT payload on success
+ * @throws IssuerNotFound if the issuer is not configured
+ * @throws AudienceNotFound if the audience is not found
+ * @throws TokenError if the signature is invalid
+ * @throws TokenExpired if the token has expired
+ * @throws TokenBelong if the token does not belong to the expected audience
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION TokenValidation (
   pToken        text
 ) RETURNS       jsonb
@@ -4437,7 +5286,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- RefreshToken ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Refreshes an access token: if still valid returns it, otherwise exchanges the refresh token.
+ * @param {text} pToken - Current JWT access token
+ * @param {text} pRefresh - Refresh token
+ * @return {json} Token set JSON or error object
+ * @throws IssuerNotFound, AudienceNotFound, TokenError, TokenExpired, TokenBelong on validation failure
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION RefreshToken (
   pToken        text,
   pRefresh      text
@@ -4530,7 +5386,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- ValidSession ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Validates a session by checking its password key hash.
+ *        Sets an error message with the result.
+ * @param {varchar} pSession - Session code (defaults to current session)
+ * @return {boolean} true if the session is valid
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION ValidSession (
   pSession      varchar DEFAULT current_session()
 ) RETURNS       boolean
@@ -4561,7 +5423,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- ValidSecret -----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Validates a session secret by comparing it with the stored secret.
+ *        Sets an error message with the result.
+ * @param {text} pSecret - Secret to validate
+ * @param {varchar} pSession - Session code (defaults to current session)
+ * @return {boolean} true if the secret matches
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION ValidSecret (
   pSecret       text,
   pSession      varchar DEFAULT current_session()
@@ -4594,11 +5463,12 @@ $$ LANGUAGE plpgsql
 -- FUNCTION UpdateSessionStats -------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Обновляет статистику сессии.
- * @param {varchar} pSession - Сессия
- * @param {text} pAgent - Агент
- * @param {inet} pHost - IP адрес
+ * @brief Updates session activity statistics: marks user as online, updates last input time and IP.
+ * @param {varchar} pSession - Session code
+ * @param {text} pAgent - User-Agent string
+ * @param {inet} pHost - Client IP address
  * @return {void}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION UpdateSessionStats (
   pSession      varchar,
@@ -4638,12 +5508,14 @@ $$ LANGUAGE plpgsql
 -- FUNCTION SessionIn ----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Вход в систему по ключу сессии.
- * @param {varchar} pSession - Сессия
- * @param {text} pAgent - Агент
- * @param {inet} pHost - IP адрес
- * @param {text} pSalt - Случайное значение соли для ключа аутентификации
- * @return {text} - Код авторизации. Если вернёт null вызвать GetErrorMessage для просмотра сообщения об ошибке.
+ * @brief Resumes a session by session key. Validates the session, checks user status and IP,
+ *        updates session stats, and returns the current authorization token.
+ * @param {varchar} pSession - Session code
+ * @param {text} pAgent - User-Agent string
+ * @param {inet} pHost - Client IP address
+ * @param {text} pSalt - New authentication salt (if provided, refreshes the session)
+ * @return {text} Authorization token, or NULL on failure (call GetErrorMessage for details)
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION SessionIn (
   pSession      varchar,
@@ -4732,13 +5604,15 @@ $$ LANGUAGE plpgsql
 -- Login -----------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Вход в систему по паре имя пользователя и пароль.
- * @param {bigint} pOAuth2 - Параметры авторизации через OAuth 2.0
- * @param {text} pRoleName - Пользователь (login)
- * @param {text} pPassword - Пароль
- * @param {text} pAgent - Агент
- * @param {inet} pHost - IP адрес
- * @return {text} - Сессия. Если вернёт null вызвать GetErrorMessage для просмотра сообщения об ошибке.
+ * @brief Authenticates a user by username and password. Creates a new session,
+ *        checks all pre-conditions (lock, expiry, IP), and logs the event.
+ * @param {bigint} pOAuth2 - OAuth 2.0 session parameters identifier
+ * @param {text} pRoleName - Username (login)
+ * @param {text} pPassword - Password
+ * @param {text} pAgent - User-Agent string
+ * @param {inet} pHost - Client IP address
+ * @return {text} Session code, or NULL on failure (call GetErrorMessage for details)
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION Login (
   pOAuth2       bigint,
@@ -4857,13 +5731,16 @@ $$ LANGUAGE plpgsql
 -- SignIn ----------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Вход в систему по имени и паролю пользователя.
- * @param {bigint} pOAuth2 - Параметры авторизации через OAuth 2.0
- * @param {text} pRoleName - Пользователь (login)
- * @param {text} pPassword - Пароль
- * @param {text} pAgent - Агент
- * @param {inet} pHost - IP адрес
- * @return {text} - Сессия. Если вернёт null вызвать GetErrorMessage для просмотра сообщения об ошибке.
+ * @brief Safe login wrapper: calls Login and catches exceptions.
+ *        On failure, increments error counters and temporarily locks after 5 failed attempts.
+ * @param {bigint} pOAuth2 - OAuth 2.0 session parameters identifier
+ * @param {text} pRoleName - Username (login)
+ * @param {text} pPassword - Password
+ * @param {text} pAgent - User-Agent string
+ * @param {inet} pHost - Client IP address
+ * @return {text} Session code, or NULL on failure (call GetErrorMessage for details)
+ * @see Login
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION SignIn (
   pOAuth2       bigint,
@@ -4930,11 +5807,14 @@ $$ LANGUAGE plpgsql
 -- SessionOut ------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Выход из системы по ключу сессии.
- * @param {varchar} pSession - Сессия
- * @param {boolean} pCloseAll - Закрыть все сессии
- * @param {text} pMessage - Сообщение
- * @return {void}
+ * @brief Signs out by session key. Optionally closes all user sessions.
+ *        Requires the 'logout' ACL bit. Marks the user as offline when no sessions remain.
+ * @param {varchar} pSession - Session code
+ * @param {boolean} pCloseAll - true to close all sessions for the user
+ * @param {text} pMessage - Optional log message
+ * @return {boolean} true on success
+ * @throws ACCESS_DENIED if caller lacks logout permission
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION SessionOut (
   pSession      varchar,
@@ -4998,10 +5878,11 @@ $$ LANGUAGE plpgsql
 -- SignOut ---------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Выход из системы по ключу сессии.
- * @param {varchar} pSession - Сессия
- * @param {boolean} pCloseAll - Закрыть все сессии
- * @return {void}
+ * @brief Safe sign-out wrapper: calls SessionOut and catches exceptions. Logs errors.
+ * @param {varchar} pSession - Session code (defaults to current session)
+ * @param {boolean} pCloseAll - true to close all sessions (defaults to false)
+ * @return {boolean} true on success, false on failure
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION SignOut (
   pSession      varchar DEFAULT current_session(),
@@ -5045,12 +5926,14 @@ $$ LANGUAGE plpgsql
 -- FUNCTION Authenticate -------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Аутентификация.
- * @param {varchar} pSession - Сессия
- * @param {text} pSecret - Секретный код
- * @param {text} pAgent - Агент
- * @param {inet} pHost - IP адрес
- * @return {text} - Новый код аутентификации. Если вернёт null вызвать GetErrorMessage для просмотра сообщения об ошибке.
+ * @brief Authenticates a session using its secret key. On success, refreshes the session
+ *        with a new salt and returns a new authorization token. On failure, terminates the session.
+ * @param {varchar} pSession - Session code
+ * @param {text} pSecret - Session secret for verification
+ * @param {text} pAgent - User-Agent string
+ * @param {inet} pHost - Client IP address
+ * @return {text} New authorization token, or NULL on failure
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION Authenticate (
   pSession      varchar,
@@ -5079,11 +5962,12 @@ $$ LANGUAGE plpgsql
 -- FUNCTION Authorize ----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Авторизовать.
- * @param {varchar} pSession - Сессия
- * @param {text} pAgent - Агент
- * @param {inet} pHost - IP адрес
- * @return {boolean} Если вернёт false вызвать GetErrorMessage для просмотра сообщения об ошибке.
+ * @brief Authorizes a session (validates it and resumes). Returns boolean indicating success.
+ * @param {varchar} pSession - Session code
+ * @param {text} pAgent - User-Agent string
+ * @param {inet} pHost - Client IP address
+ * @return {boolean} true if authorization succeeded
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION Authorize (
   pSession      varchar,
@@ -5102,7 +5986,19 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- GetSession ------------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Creates or reuses a session for the given user programmatically (e.g. for service accounts).
+ *        Requires the 'substitute user' ACL bit unless called by the kernel or apibot.
+ * @param {uuid} pUserId - User identifier
+ * @param {bigint} pOAuth2 - OAuth 2.0 session parameters (defaults to system OAuth2)
+ * @param {text} pAgent - User-Agent string
+ * @param {inet} pHost - Client IP address
+ * @param {bool} pNew - Force create a new session (defaults to false)
+ * @param {bool} pLogin - Set session context after creation (defaults to true)
+ * @return {text} Session code
+ * @throws ACCESS_DENIED if caller lacks substitute permission
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetSession (
   pUserId       uuid,
   pOAuth2       bigint DEFAULT null,

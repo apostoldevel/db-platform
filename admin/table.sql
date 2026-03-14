@@ -9,12 +9,12 @@ CREATE TABLE db.scope (
     description     text
 );
 
-COMMENT ON TABLE db.scope IS 'Область видимости базы данных.';
+COMMENT ON TABLE db.scope IS 'Database visibility scope for multi-tenant isolation.';
 
-COMMENT ON COLUMN db.scope.id IS 'Идентификатор';
-COMMENT ON COLUMN db.scope.code IS 'Код';
-COMMENT ON COLUMN db.scope.name IS 'Наименование';
-COMMENT ON COLUMN db.scope.description IS 'Описание';
+COMMENT ON COLUMN db.scope.id IS 'Unique identifier.';
+COMMENT ON COLUMN db.scope.code IS 'Short unique code used in lookups and URLs.';
+COMMENT ON COLUMN db.scope.name IS 'Human-readable display name.';
+COMMENT ON COLUMN db.scope.description IS 'Free-text description of the scope purpose.';
 
 CREATE UNIQUE INDEX ON db.scope (code);
 
@@ -28,10 +28,10 @@ CREATE TABLE db.scope_alias (
     PRIMARY KEY (scope, code)
 );
 
-COMMENT ON TABLE db.scope_alias IS 'Псевдоним области видимости базы данных.';
+COMMENT ON TABLE db.scope_alias IS 'Alternative code names that resolve to a given scope.';
 
-COMMENT ON COLUMN db.scope_alias.scope IS 'Идентификатор области видимости базы данных';
-COMMENT ON COLUMN db.scope_alias.code IS 'Код области видимости базы данных';
+COMMENT ON COLUMN db.scope_alias.scope IS 'Reference to the parent scope.';
+COMMENT ON COLUMN db.scope_alias.code IS 'Alias code that maps to the scope.';
 
 CREATE INDEX ON db.scope_alias (scope);
 CREATE INDEX ON db.scope_alias (code);
@@ -46,11 +46,11 @@ CREATE TABLE db.area_type (
     name      text
 );
 
-COMMENT ON TABLE db.area_type IS 'Тип области видимости.';
+COMMENT ON TABLE db.area_type IS 'Classifies functional areas (root, system, guest, default, etc.).';
 
-COMMENT ON COLUMN db.area_type.id IS 'Идентификатор';
-COMMENT ON COLUMN db.area_type.code IS 'Код';
-COMMENT ON COLUMN db.area_type.name IS 'Наименование';
+COMMENT ON COLUMN db.area_type.id IS 'Unique identifier (well-known UUID).';
+COMMENT ON COLUMN db.area_type.code IS 'Short unique code (e.g. root, system, guest).';
+COMMENT ON COLUMN db.area_type.name IS 'Human-readable display name.';
 
 CREATE UNIQUE INDEX ON db.area_type (code);
 
@@ -72,19 +72,19 @@ CREATE TABLE db.area (
     validToDate     timestamptz DEFAULT TO_DATE('4433-12-31', 'YYYY-MM-DD') NOT NULL
 );
 
-COMMENT ON TABLE db.area IS 'Область видимости документов.';
+COMMENT ON TABLE db.area IS 'Functional area within a scope; forms a tree hierarchy for document visibility.';
 
-COMMENT ON COLUMN db.area.id IS 'Идентификатор';
-COMMENT ON COLUMN db.area.parent IS 'Ссылка на родительский узел';
-COMMENT ON COLUMN db.area.type IS 'Тип';
-COMMENT ON COLUMN db.area.scope IS 'Область видимости базы данных';
-COMMENT ON COLUMN db.area.code IS 'Код';
-COMMENT ON COLUMN db.area.name IS 'Наименование';
-COMMENT ON COLUMN db.area.description IS 'Описание';
-COMMENT ON COLUMN db.area.level IS 'Уровень вложенности.';
-COMMENT ON COLUMN db.area.sequence IS 'Очерёдность';
-COMMENT ON COLUMN db.area.validFromDate IS 'Дата начала действия';
-COMMENT ON COLUMN db.area.validToDate IS 'Дата окончания действия';
+COMMENT ON COLUMN db.area.id IS 'Unique identifier.';
+COMMENT ON COLUMN db.area.parent IS 'Parent area forming the tree hierarchy; NULL for root nodes.';
+COMMENT ON COLUMN db.area.type IS 'Area type (root, system, guest, default, etc.).';
+COMMENT ON COLUMN db.area.scope IS 'Owning database scope.';
+COMMENT ON COLUMN db.area.code IS 'Short unique code within the scope.';
+COMMENT ON COLUMN db.area.name IS 'Human-readable display name.';
+COMMENT ON COLUMN db.area.description IS 'Free-text description.';
+COMMENT ON COLUMN db.area.level IS 'Nesting depth in the tree (0 = root).';
+COMMENT ON COLUMN db.area.sequence IS 'Sort order among siblings.';
+COMMENT ON COLUMN db.area.validFromDate IS 'Date from which the area is active.';
+COMMENT ON COLUMN db.area.validToDate IS 'Date after which the area is inactive.';
 
 CREATE INDEX ON db.area (parent);
 CREATE INDEX ON db.area (type);
@@ -94,6 +94,10 @@ CREATE UNIQUE INDEX ON db.area (scope, code);
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Populate defaults for a new area row before insert.
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_area_before_insert()
 RETURNS    trigger AS $$
 BEGIN
@@ -133,12 +137,12 @@ CREATE TABLE db.interface (
     description     text
 );
 
-COMMENT ON TABLE db.interface IS 'Интерфейс.';
+COMMENT ON TABLE db.interface IS 'UI / workspace interface that users can be assigned to.';
 
-COMMENT ON COLUMN db.interface.id IS 'Идентификатор';
-COMMENT ON COLUMN db.interface.code IS 'Код';
-COMMENT ON COLUMN db.interface.name IS 'Наименование';
-COMMENT ON COLUMN db.interface.description IS 'Описание';
+COMMENT ON COLUMN db.interface.id IS 'Unique identifier.';
+COMMENT ON COLUMN db.interface.code IS 'Short unique code (e.g. administrator, operator, guest).';
+COMMENT ON COLUMN db.interface.name IS 'Human-readable display name.';
+COMMENT ON COLUMN db.interface.description IS 'Free-text description.';
 
 --------------------------------------------------------------------------------
 -- db.user ---------------------------------------------------------------------
@@ -164,25 +168,25 @@ CREATE TABLE db.user (
     readonly            boolean DEFAULT false NOT NULL
 );
 
-COMMENT ON TABLE db.user IS 'Пользователи и группы системы.';
+COMMENT ON TABLE db.user IS 'User accounts and groups; type distinguishes individual users from groups.';
 
-COMMENT ON COLUMN db.user.id IS 'Идентификатор';
-COMMENT ON COLUMN db.user.type IS 'Тип пользователя: "U" - пользователь; "G" - группа';
-COMMENT ON COLUMN db.user.username IS 'Наименование пользователя (login)';
-COMMENT ON COLUMN db.user.name IS 'Полное имя';
-COMMENT ON COLUMN db.user.phone IS 'Телефон';
-COMMENT ON COLUMN db.user.email IS 'Электронный адрес';
-COMMENT ON COLUMN db.user.description IS 'Описание пользователя';
-COMMENT ON COLUMN db.user.secret IS 'Секрет пользователя';
-COMMENT ON COLUMN db.user.hash IS 'Хеш секрета пользователя';
-COMMENT ON COLUMN db.user.status IS 'Статус пользователя';
-COMMENT ON COLUMN db.user.created IS 'Дата создания пользователя';
-COMMENT ON COLUMN db.user.lock_date IS 'Дата блокировки пользователя';
-COMMENT ON COLUMN db.user.expiry_date IS 'Дата окончания срока действия пароля';
-COMMENT ON COLUMN db.user.pswhash IS 'Хеш пароля';
-COMMENT ON COLUMN db.user.passwordchange IS 'Сменить пароль при следующем входе в систему (да/нет)';
-COMMENT ON COLUMN db.user.passwordnotchange IS 'Установлен запрет на смену пароля самим пользователем (да/нет)';
-COMMENT ON COLUMN db.user.readonly IS 'Только чтение (запрешено изменение)';
+COMMENT ON COLUMN db.user.id IS 'Unique identifier.';
+COMMENT ON COLUMN db.user.type IS 'Account type: U = user, G = group.';
+COMMENT ON COLUMN db.user.username IS 'Login name (unique per type).';
+COMMENT ON COLUMN db.user.name IS 'Full display name.';
+COMMENT ON COLUMN db.user.phone IS 'Phone number (unique, E.164 recommended).';
+COMMENT ON COLUMN db.user.email IS 'Email address (unique).';
+COMMENT ON COLUMN db.user.description IS 'Free-text description of the account.';
+COMMENT ON COLUMN db.user.secret IS 'Random 64-byte secret used for HMAC-based hashing.';
+COMMENT ON COLUMN db.user.hash IS 'SHA-1 fingerprint derived from the secret; used for token signing.';
+COMMENT ON COLUMN db.user.status IS 'Bitmask: bit 0 = password expired, bit 1 = locked, bit 2 = active, bit 3 = open.';
+COMMENT ON COLUMN db.user.created IS 'Timestamp when the account was created.';
+COMMENT ON COLUMN db.user.lock_date IS 'Timestamp when the account was locked (NULL = not locked).';
+COMMENT ON COLUMN db.user.expiry_date IS 'Password expiration date (NULL = never expires).';
+COMMENT ON COLUMN db.user.pswhash IS 'Bcrypt hash of the password.';
+COMMENT ON COLUMN db.user.passwordchange IS 'Force password change on next login.';
+COMMENT ON COLUMN db.user.passwordnotchange IS 'Prohibit the user from changing their own password.';
+COMMENT ON COLUMN db.user.readonly IS 'Read-only flag; prevents modification of system accounts.';
 
 CREATE UNIQUE INDEX ON db.user (type, username);
 CREATE UNIQUE INDEX ON db.user (hash);
@@ -197,6 +201,10 @@ CREATE INDEX ON db.user (email text_pattern_ops);
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Generate defaults for a new user row (id, secret, hash, phone, readonly).
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_user_before_insert()
 RETURNS trigger AS $$
 BEGIN
@@ -232,6 +240,10 @@ CREATE TRIGGER t_user_before_insert
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Assign default ACL permissions based on the well-known username after insert.
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_user_after_insert()
 RETURNS trigger AS $$
 BEGIN
@@ -263,6 +275,10 @@ CREATE TRIGGER t_user_after_insert
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Reset verification flags when email or phone changes.
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_user_after_update()
 RETURNS trigger AS $$
 BEGIN
@@ -293,6 +309,10 @@ CREATE TRIGGER t_user_after_update
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Cascade-delete IP table and profile rows before removing a user.
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_user_before_delete()
 RETURNS trigger AS $$
 BEGIN
@@ -338,30 +358,34 @@ CREATE TABLE db.profile (
     PRIMARY KEY (userid, scope)
 );
 
-COMMENT ON TABLE db.profile IS 'Дополнительная информация о пользователе системы.';
+COMMENT ON TABLE db.profile IS 'Per-scope profile extending the user account with preferences and login statistics.';
 
-COMMENT ON COLUMN db.profile.userid IS 'Пользователь';
-COMMENT ON COLUMN db.profile.scope IS 'Область видимости базы данных';
-COMMENT ON COLUMN db.profile.family_name IS 'Фамилия';
-COMMENT ON COLUMN db.profile.given_name IS 'Имя';
-COMMENT ON COLUMN db.profile.patronymic_name IS 'Отчество';
-COMMENT ON COLUMN db.profile.input_count IS 'Счетчик входов';
-COMMENT ON COLUMN db.profile.input_last IS 'Последний вход';
-COMMENT ON COLUMN db.profile.input_error IS 'Текущие неудавшиеся входы';
-COMMENT ON COLUMN db.profile.input_error_last IS 'Последний неудавшийся вход в систему';
-COMMENT ON COLUMN db.profile.input_error_all IS 'Общее количество неудачных входов';
-COMMENT ON COLUMN db.profile.lc_ip IS 'IP адрес последнего подключения';
-COMMENT ON COLUMN db.profile.locale IS 'Идентификатор локали по умолчанию';
-COMMENT ON COLUMN db.profile.area IS 'Идентификатор подразделения по умолчанию';
-COMMENT ON COLUMN db.profile.interface IS 'Идентификатор рабочего места по умолчанию';
-COMMENT ON COLUMN db.profile.state IS 'Состояние: 000 - Отключен; 001 - Подключен; 010 - локальный IP; 100 - доверительный IP';
-COMMENT ON COLUMN db.profile.session_limit IS 'Максимально допустимое количество одновременно открытых сессий.';
-COMMENT ON COLUMN db.profile.email_verified IS 'Электронный адрес подтверждён.';
-COMMENT ON COLUMN db.profile.phone_verified IS 'Телефон подтверждён.';
-COMMENT ON COLUMN db.profile.picture IS 'Логотип.';
+COMMENT ON COLUMN db.profile.userid IS 'Owning user account.';
+COMMENT ON COLUMN db.profile.scope IS 'Database scope this profile belongs to.';
+COMMENT ON COLUMN db.profile.family_name IS 'Family (last) name.';
+COMMENT ON COLUMN db.profile.given_name IS 'Given (first) name.';
+COMMENT ON COLUMN db.profile.patronymic_name IS 'Patronymic (middle) name.';
+COMMENT ON COLUMN db.profile.input_count IS 'Total successful login count.';
+COMMENT ON COLUMN db.profile.input_last IS 'Timestamp of the last successful login.';
+COMMENT ON COLUMN db.profile.input_error IS 'Consecutive failed login attempts (resets on success).';
+COMMENT ON COLUMN db.profile.input_error_last IS 'Timestamp of the last failed login attempt.';
+COMMENT ON COLUMN db.profile.input_error_all IS 'Cumulative failed login count (never resets).';
+COMMENT ON COLUMN db.profile.lc_ip IS 'IP address of the last connection.';
+COMMENT ON COLUMN db.profile.locale IS 'Default locale for this profile.';
+COMMENT ON COLUMN db.profile.area IS 'Default functional area for this profile.';
+COMMENT ON COLUMN db.profile.interface IS 'Default workspace interface for this profile.';
+COMMENT ON COLUMN db.profile.state IS 'Connection state bitmask: bit 0 = trusted IP, bit 1 = local IP, bit 2 = external IP.';
+COMMENT ON COLUMN db.profile.session_limit IS 'Maximum concurrent sessions allowed (0 = unlimited).';
+COMMENT ON COLUMN db.profile.email_verified IS 'Whether the email address has been verified.';
+COMMENT ON COLUMN db.profile.phone_verified IS 'Whether the phone number has been verified.';
+COMMENT ON COLUMN db.profile.picture IS 'URL or path to the user avatar image.';
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Validate area/interface membership and auto-assign scope on profile insert/update.
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_profile_before()
 RETURNS trigger AS $$
 BEGIN
@@ -423,6 +447,10 @@ CREATE TRIGGER t_profile_before
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Compute the connection state bitmask (trusted/local/external IP) after login timestamp changes.
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_profile_login_state()
 RETURNS trigger AS $$
 DECLARE
@@ -558,10 +586,10 @@ CREATE TABLE db.member_group (
     PRIMARY KEY (userid, member)
 );
 
-COMMENT ON TABLE db.member_group IS 'Членство в группах.';
+COMMENT ON TABLE db.member_group IS 'Many-to-many membership of users/groups in groups (role assignment).';
 
-COMMENT ON COLUMN db.member_group.userid IS 'Группа';
-COMMENT ON COLUMN db.member_group.member IS 'Участник';
+COMMENT ON COLUMN db.member_group.userid IS 'Group that the member belongs to.';
+COMMENT ON COLUMN db.member_group.member IS 'User or group that is a member.';
 
 CREATE INDEX ON db.member_group (userid);
 CREATE INDEX ON db.member_group (member);
@@ -576,10 +604,10 @@ CREATE TABLE db.member_area (
     PRIMARY KEY (area, member)
 );
 
-COMMENT ON TABLE db.member_area IS 'Участники области видимости документов.';
+COMMENT ON TABLE db.member_area IS 'Many-to-many membership granting users/groups access to functional areas.';
 
-COMMENT ON COLUMN db.member_area.area IS 'Область видимости документов';
-COMMENT ON COLUMN db.member_area.member IS 'Учётная запись пользователя';
+COMMENT ON COLUMN db.member_area.area IS 'Functional area being granted.';
+COMMENT ON COLUMN db.member_area.member IS 'User or group receiving access.';
 
 CREATE INDEX ON db.member_area (area);
 CREATE INDEX ON db.member_area (member);
@@ -594,10 +622,10 @@ CREATE TABLE db.member_interface (
     PRIMARY KEY (interface, member)
 );
 
-COMMENT ON TABLE db.member_interface IS 'Участники интерфеса.';
+COMMENT ON TABLE db.member_interface IS 'Many-to-many membership granting users/groups access to interfaces.';
 
-COMMENT ON COLUMN db.member_interface.interface IS 'Интерфейс';
-COMMENT ON COLUMN db.member_interface.member IS 'Участник';
+COMMENT ON COLUMN db.member_interface.interface IS 'Interface being granted.';
+COMMENT ON COLUMN db.member_interface.member IS 'User or group receiving access.';
 
 CREATE INDEX ON db.member_interface (interface);
 CREATE INDEX ON db.member_interface (member);
@@ -620,15 +648,15 @@ CREATE TABLE db.recovery_ticket (
     validToDate     timestamptz NOT NULL
 );
 
-COMMENT ON TABLE db.recovery_ticket IS 'Талон восстановления пароля.';
+COMMENT ON TABLE db.recovery_ticket IS 'Time-limited ticket for password recovery or registration verification.';
 
-COMMENT ON COLUMN db.recovery_ticket.ticket IS 'Талон';
-COMMENT ON COLUMN db.recovery_ticket.userId IS 'Идентификатор учётной записи';
-COMMENT ON COLUMN db.recovery_ticket.securityAnswer IS 'Секретный ответ';
-COMMENT ON COLUMN db.recovery_ticket.initiator IS 'Инициатор';
-COMMENT ON COLUMN db.recovery_ticket.used IS 'Использован';
-COMMENT ON COLUMN db.recovery_ticket.validFromDate IS 'Дата начала действия';
-COMMENT ON COLUMN db.recovery_ticket.validToDate IS 'Дата окончания действия';
+COMMENT ON COLUMN db.recovery_ticket.ticket IS 'Unique ticket identifier (UUID).';
+COMMENT ON COLUMN db.recovery_ticket.userId IS 'User account the ticket was issued for.';
+COMMENT ON COLUMN db.recovery_ticket.securityAnswer IS 'Hashed security answer or verification code.';
+COMMENT ON COLUMN db.recovery_ticket.initiator IS 'SHA-1 hash of the initiator identifier (email or phone).';
+COMMENT ON COLUMN db.recovery_ticket.used IS 'Timestamp when the ticket was consumed (NULL = unused).';
+COMMENT ON COLUMN db.recovery_ticket.validFromDate IS 'Start of the ticket validity period.';
+COMMENT ON COLUMN db.recovery_ticket.validToDate IS 'End of the ticket validity period.';
 
 --------------------------------------------------------------------------------
 
@@ -637,6 +665,10 @@ CREATE INDEX ON db.recovery_ticket (initiator, validFromDate, validToDate);
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Enforce immutability of securityAnswer on update; auto-generate ticket UUID and validity dates on insert.
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_recovery_ticket_before()
 RETURNS TRIGGER
 AS $$
@@ -688,12 +720,12 @@ CREATE TABLE db.auth (
     PRIMARY KEY (userId, audience)
 );
 
-COMMENT ON TABLE db.auth IS 'Авторизация пользователей из внешних систем.';
+COMMENT ON TABLE db.auth IS 'External identity provider links (OAuth 2.0 federated login).';
 
-COMMENT ON COLUMN db.auth.userId IS 'Пользователь';
-COMMENT ON COLUMN db.auth.audience IS 'Аудитория';
-COMMENT ON COLUMN db.auth.code IS 'Идентификатор внешнего пользователя';
-COMMENT ON COLUMN db.auth.created IS 'Дата создания';
+COMMENT ON COLUMN db.auth.userId IS 'Local user account.';
+COMMENT ON COLUMN db.auth.audience IS 'OAuth 2.0 audience (client application).';
+COMMENT ON COLUMN db.auth.code IS 'External user identifier from the identity provider.';
+COMMENT ON COLUMN db.auth.created IS 'Timestamp when the link was created.';
 
 CREATE INDEX ON db.auth (userId);
 CREATE INDEX ON db.auth (audience);
@@ -711,13 +743,13 @@ CREATE TABLE db.iptable (
     range       int CHECK (range BETWEEN 1 AND 255)
 );
 
-COMMENT ON TABLE db.iptable IS 'Таблица IP адресов.';
+COMMENT ON TABLE db.iptable IS 'Per-user IP allow/deny list for login access control.';
 
-COMMENT ON COLUMN db.iptable.id IS 'Идентификатор';
-COMMENT ON COLUMN db.iptable.type IS 'Тип: A - allow; D - denied';
-COMMENT ON COLUMN db.iptable.userid IS 'Пользователь';
-COMMENT ON COLUMN db.iptable.addr IS 'IP-адрес';
-COMMENT ON COLUMN db.iptable.range IS 'Диапазон. Количество адресов.';
+COMMENT ON COLUMN db.iptable.id IS 'Auto-increment identifier.';
+COMMENT ON COLUMN db.iptable.type IS 'Rule type: A = allow, D = deny.';
+COMMENT ON COLUMN db.iptable.userid IS 'User account this rule applies to.';
+COMMENT ON COLUMN db.iptable.addr IS 'IP address or network (CIDR notation).';
+COMMENT ON COLUMN db.iptable.range IS 'Address range size (1-255); NULL means single host or CIDR mask.';
 
 CREATE INDEX ON db.iptable (type);
 CREATE INDEX ON db.iptable (userid);
@@ -736,14 +768,14 @@ CREATE TABLE db.oauth2 (
     CHECK (access_type IN ('online', 'offline'))
 );
 
-COMMENT ON TABLE db.oauth2 IS 'Параметры арторизации через OAuth 2.0.';
+COMMENT ON TABLE db.oauth2 IS 'OAuth 2.0 authorization parameters for a login session.';
 
-COMMENT ON COLUMN db.oauth2.id IS 'Идентификатор';
-COMMENT ON COLUMN db.oauth2.audience IS 'Идентификатор клиента OAuth 2.0 (audience)';
-COMMENT ON COLUMN db.oauth2.scopes IS 'Список областей';
-COMMENT ON COLUMN db.oauth2.access_type IS 'Тип доступа: online, offline';
-COMMENT ON COLUMN db.oauth2.redirect_uri IS 'URL перенаправления';
-COMMENT ON COLUMN db.oauth2.state IS 'Строковое значение пользователя';
+COMMENT ON COLUMN db.oauth2.id IS 'Auto-increment identifier.';
+COMMENT ON COLUMN db.oauth2.audience IS 'OAuth 2.0 client (audience) reference.';
+COMMENT ON COLUMN db.oauth2.scopes IS 'Requested scope codes array.';
+COMMENT ON COLUMN db.oauth2.access_type IS 'Access type: online (no refresh token) or offline (with refresh token).';
+COMMENT ON COLUMN db.oauth2.redirect_uri IS 'OAuth 2.0 redirect URI for the authorization flow.';
+COMMENT ON COLUMN db.oauth2.state IS 'Opaque state parameter passed through the authorization flow.';
 
 CREATE INDEX ON db.oauth2 (audience);
 
@@ -762,16 +794,16 @@ CREATE TABLE db.token_header (
     updated         timestamptz NOT NULL DEFAULT Now()
 );
 
-COMMENT ON TABLE db.token_header IS 'Заголовок маркера.';
+COMMENT ON TABLE db.token_header IS 'Groups related tokens (code, access, refresh, id) under one header per session.';
 
-COMMENT ON COLUMN db.token_header.id IS 'Идентификатор';
-COMMENT ON COLUMN db.token_header.oauth2 IS 'Параметры авторизации через OAuth 2.0';
-COMMENT ON COLUMN db.token_header.session IS 'Сессия';
-COMMENT ON COLUMN db.token_header.salt IS 'Случайное значение соли для ключа';
-COMMENT ON COLUMN db.token_header.agent IS 'Клиентское приложение';
-COMMENT ON COLUMN db.token_header.host IS 'IP адрес подключения';
-COMMENT ON COLUMN db.token_header.created IS 'Создан';
-COMMENT ON COLUMN db.token_header.updated IS 'Обновлён';
+COMMENT ON COLUMN db.token_header.id IS 'Auto-increment identifier.';
+COMMENT ON COLUMN db.token_header.oauth2 IS 'OAuth 2.0 authorization parameters reference.';
+COMMENT ON COLUMN db.token_header.session IS 'Session code this token set belongs to.';
+COMMENT ON COLUMN db.token_header.salt IS 'Random salt used for key derivation.';
+COMMENT ON COLUMN db.token_header.agent IS 'Client application (User-Agent).';
+COMMENT ON COLUMN db.token_header.host IS 'Client IP address at token creation.';
+COMMENT ON COLUMN db.token_header.created IS 'Timestamp when the header was created.';
+COMMENT ON COLUMN db.token_header.updated IS 'Timestamp of the last token refresh.';
 
 CREATE INDEX ON db.token_header (oauth2);
 CREATE INDEX ON db.token_header (session);
@@ -780,6 +812,10 @@ CREATE INDEX ON db.token_header (session);
 -- FUNCTION ft_token_header_before_delete --------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Cascade-delete all tokens before removing a token header.
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_token_header_before_delete()
 RETURNS TRIGGER
 AS $$
@@ -812,16 +848,16 @@ CREATE TABLE db.token (
     validToDate     timestamptz DEFAULT TO_DATE('4433-12-31', 'YYYY-MM-DD') NOT NULL
 );
 
-COMMENT ON TABLE db.token IS 'Токены.';
+COMMENT ON TABLE db.token IS 'OAuth 2.0 tokens with temporal validity ranges.';
 
-COMMENT ON COLUMN db.token.id IS 'Идентификатор';
-COMMENT ON COLUMN db.token.header IS 'Заголовок';
-COMMENT ON COLUMN db.token.type IS 'Тип: [С]ode - Код авторизации; [A]ccess - Маркер доступа; [R]efresh - Маркер обновления; [I]d - Маркер пользователя;';
-COMMENT ON COLUMN db.token.token IS 'Маркер';
-COMMENT ON COLUMN db.token.hash IS 'Хеш маркера';
-COMMENT ON COLUMN db.token.used IS 'Использован';
-COMMENT ON COLUMN db.token.validFromDate IS 'Дата начала действия';
-COMMENT ON COLUMN db.token.validToDate IS 'Дата окончания действия';
+COMMENT ON COLUMN db.token.id IS 'Auto-increment identifier.';
+COMMENT ON COLUMN db.token.header IS 'Parent token header grouping related tokens.';
+COMMENT ON COLUMN db.token.type IS 'Token type: C = authorization code, A = access token, R = refresh token, I = id token.';
+COMMENT ON COLUMN db.token.token IS 'Token value (JWT or opaque string).';
+COMMENT ON COLUMN db.token.hash IS 'HMAC-SHA1 hash of the token for secure lookup.';
+COMMENT ON COLUMN db.token.used IS 'Timestamp when a one-time token was consumed (NULL = unused).';
+COMMENT ON COLUMN db.token.validFromDate IS 'Start of the token validity period.';
+COMMENT ON COLUMN db.token.validToDate IS 'End of the token validity period.';
 
 CREATE UNIQUE INDEX ON db.token (hash, validFromDate, validToDate);
 CREATE UNIQUE INDEX ON db.token (header, type, validFromDate, validToDate);
@@ -835,6 +871,10 @@ CREATE INDEX ON db.token (used);
 -- FUNCTION ft_token_before ----------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Enforce immutability of header/type on update; compute hash and default validity on insert.
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_token_before()
 RETURNS TRIGGER
 AS $$
@@ -917,24 +957,24 @@ CREATE TABLE db.session (
     host        inet
 );
 
-COMMENT ON TABLE db.session IS 'Сессии пользователей.';
+COMMENT ON TABLE db.session IS 'Active user sessions with authentication keys and current context.';
 
-COMMENT ON COLUMN db.session.code IS 'Код сессии (хеш ключа сессии)';
-COMMENT ON COLUMN db.session.oauth2 IS 'Параметры авторизации через OAuth 2.0';
-COMMENT ON COLUMN db.session.token IS 'Идентификатор маркера';
-COMMENT ON COLUMN db.session.suid IS 'Пользователь сессии';
-COMMENT ON COLUMN db.session.userid IS 'Пользователь';
-COMMENT ON COLUMN db.session.locale IS 'Язык';
-COMMENT ON COLUMN db.session.area IS 'Область видимости документов';
-COMMENT ON COLUMN db.session.interface IS 'Рабочие место';
-COMMENT ON COLUMN db.session.scope IS 'Область видимости базы данных';
-COMMENT ON COLUMN db.session.oper_date IS 'Дата операционного дня';
-COMMENT ON COLUMN db.session.created IS 'Дата и время создания сессии';
-COMMENT ON COLUMN db.session.updated IS 'Дата и время последнего обновления сессии';
-COMMENT ON COLUMN db.session.pwkey IS 'Ключ сессии';
-COMMENT ON COLUMN db.session.salt IS 'Случайное значение соли для ключа аутентификации';
-COMMENT ON COLUMN db.session.agent IS 'Клиентское приложение';
-COMMENT ON COLUMN db.session.host IS 'IP адрес подключения';
+COMMENT ON COLUMN db.session.code IS 'Session key (HMAC-SHA1 hash); serves as primary identifier.';
+COMMENT ON COLUMN db.session.oauth2 IS 'OAuth 2.0 authorization parameters for this session.';
+COMMENT ON COLUMN db.session.token IS 'Current authorization code token id.';
+COMMENT ON COLUMN db.session.suid IS 'Original (session-owner) user id; unchanged by substitute-user.';
+COMMENT ON COLUMN db.session.userid IS 'Effective user id (may differ from suid after substitute-user).';
+COMMENT ON COLUMN db.session.locale IS 'Active locale for this session.';
+COMMENT ON COLUMN db.session.area IS 'Active functional area for this session.';
+COMMENT ON COLUMN db.session.interface IS 'Active workspace interface for this session.';
+COMMENT ON COLUMN db.session.scope IS 'Active database scope for this session.';
+COMMENT ON COLUMN db.session.oper_date IS 'Business operation date override (NULL = use current timestamp).';
+COMMENT ON COLUMN db.session.created IS 'Timestamp when the session was created.';
+COMMENT ON COLUMN db.session.updated IS 'Timestamp of the last session activity.';
+COMMENT ON COLUMN db.session.pwkey IS 'Bcrypt hash of the session key material for validation.';
+COMMENT ON COLUMN db.session.salt IS 'Random salt for authentication key rotation.';
+COMMENT ON COLUMN db.session.agent IS 'Client application (User-Agent or application_name).';
+COMMENT ON COLUMN db.session.host IS 'Client IP address.';
 
 CREATE UNIQUE INDEX ON db.session (token);
 CREATE UNIQUE INDEX ON db.session (oauth2);
@@ -950,6 +990,10 @@ CREATE INDEX ON db.session (agent);
 -- FUNCTION ft_session_before --------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Manage session lifecycle: generate keys on insert, validate changes on update, clean up on delete.
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_session_before()
 RETURNS TRIGGER
 AS $$
@@ -989,6 +1033,7 @@ BEGIN
       NEW.salt := OLD.salt;
     END IF;
 
+    -- Rotate salt when session idle for more than 1 hour
     IF (NEW.updated - OLD.updated) > INTERVAL '1 hour' THEN
       NEW.salt := gen_salt('md5');
     END IF;
@@ -1091,6 +1136,10 @@ CREATE TRIGGER t_session_before
 -- FUNCTION ft_session_after ---------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Clean up token headers on delete; update current user id on userid change.
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_session_after()
 RETURNS TRIGGER
 AS $$
@@ -1123,21 +1172,21 @@ CREATE TRIGGER t_session_after
 -- db.acl ----------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /*
- Маска доступа:
-   s - substitute user;
-   L - unlock user;
-   l - lock user;
-   E - exclude user from group;
-   I - include user to group;
-   D - delete group;
-   U - update group;
-   C - create group;
-   p - set user password;
-   d - delete user;
-   u - update user;
-   c - create user;
-   o - logout;
-   i - login
+ Access control bitmask (14 bits, MSB first):
+   13: s - substitute user
+   12: L - unlock user
+   11: l - lock user
+   10: E - exclude user from group
+   09: I - include user to group
+   08: D - delete group
+   07: U - update group
+   06: C - create group
+   05: p - set user password
+   04: d - delete user
+   03: u - update user
+   02: c - create user
+   01: o - logout
+   00: i - login
  */
 CREATE TABLE db.acl (
     userId      uuid REFERENCES db.user ON DELETE CASCADE,
@@ -1147,15 +1196,19 @@ CREATE TABLE db.acl (
     PRIMARY KEY (userId)
 );
 
-COMMENT ON TABLE db.acl IS 'Список контроля доступа.';
+COMMENT ON TABLE db.acl IS 'Access control list defining per-user administrative privilege bitmasks.';
 
-COMMENT ON COLUMN db.acl.userid IS 'Пользователь';
-COMMENT ON COLUMN db.acl.deny IS 'Запрещающие биты';
-COMMENT ON COLUMN db.acl.allow IS 'Разрешающие биты';
-COMMENT ON COLUMN db.acl.mask IS 'Маска доступа: {sLlEIDUCpducoi}.';
+COMMENT ON COLUMN db.acl.userid IS 'User or group this ACL entry applies to.';
+COMMENT ON COLUMN db.acl.deny IS 'Deny bitmask (14 bits); set bits revoke the corresponding privilege.';
+COMMENT ON COLUMN db.acl.allow IS 'Allow bitmask (14 bits); set bits grant the corresponding privilege.';
+COMMENT ON COLUMN db.acl.mask IS 'Effective bitmask computed as (allow AND NOT deny).';
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Compute the effective access mask as (allow AND NOT deny) before insert or update.
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_acl_before()
 RETURNS TRIGGER AS $$
 BEGIN

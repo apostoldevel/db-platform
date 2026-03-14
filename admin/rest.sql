@@ -2,10 +2,11 @@
 -- REST ADMIN ------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Запрос данных в формате REST JSON API (администратор).
- * @param {text} pPath - Путь
- * @param {jsonb} pPayload - JSON
- * @return {SETOF json} - Записи в JSON
+ * @brief REST JSON API dispatcher for administration endpoints.
+ * @param {text} pPath - REST route path (e.g., '/admin/session', '/admin/user/set')
+ * @param {jsonb} pPayload - Request payload as JSON
+ * @return {SETOF json} - Result records as JSON
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION rest.admin (
   pPath       text,
@@ -781,7 +782,7 @@ BEGIN
 
     END IF;
 
-  WHEN '/admin/group/member' THEN -- Пользователи группы
+  WHEN '/admin/group/member' THEN -- Group members
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
@@ -798,7 +799,7 @@ BEGIN
       END LOOP;
     END LOOP;
 
-  WHEN '/admin/group/member/add' THEN -- Добавляет пользователя в группу
+  WHEN '/admin/group/member/add' THEN -- Add a user to a group
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
@@ -825,7 +826,7 @@ BEGIN
 
     END IF;
 
-  WHEN '/admin/group/member/delete' THEN -- Удаляет пользователя из группу
+  WHEN '/admin/group/member/delete' THEN -- Remove a user from a group
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
@@ -966,7 +967,7 @@ BEGIN
       END LOOP;
     END LOOP;
 
-  WHEN '/admin/area/delete' THEN -- Удаляет зону
+  WHEN '/admin/area/delete' THEN -- Delete an area
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
@@ -1042,7 +1043,7 @@ BEGIN
       END LOOP;
     END LOOP;
 
-  WHEN '/admin/area/member/add' THEN -- Добавляет пользователя или группу в зону
+  WHEN '/admin/area/member/add' THEN -- Add a user or group to an area
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
@@ -1069,7 +1070,7 @@ BEGIN
 
     END IF;
 
-  WHEN '/admin/area/member/delete' THEN -- Удаляет пользователя или группу из зоны
+  WHEN '/admin/area/member/delete' THEN -- Remove a user or group from an area
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
@@ -1200,7 +1201,7 @@ BEGIN
       END LOOP;
     END LOOP;
 
-  WHEN '/admin/interface/delete' THEN -- Удаляет интерфейс
+  WHEN '/admin/interface/delete' THEN -- Delete an interface
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
@@ -1227,7 +1228,7 @@ BEGIN
 
     END IF;
 
-  WHEN '/admin/interface/member' THEN -- Участники интерфейса
+  WHEN '/admin/interface/member' THEN -- Interface members
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
@@ -1244,7 +1245,7 @@ BEGIN
       END LOOP;
     END LOOP;
 
-  WHEN '/admin/interface/member/add' THEN -- Добавляет пользователя или группу к интерфейсу
+  WHEN '/admin/interface/member/add' THEN -- Add a user or group to an interface
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
@@ -1271,7 +1272,7 @@ BEGIN
 
     END IF;
 
-  WHEN '/admin/interface/member/delete' THEN -- Удаляет пользователя или группу из интерфейса
+  WHEN '/admin/interface/member/delete' THEN -- Remove a user or group from an interface
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
@@ -1298,7 +1299,7 @@ BEGIN
 
     END IF;
 
-  WHEN '/admin/member/user' THEN -- Участники (пользователи) группы
+  WHEN '/admin/member/user' THEN -- Group members (users)
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
@@ -1315,7 +1316,7 @@ BEGIN
       END LOOP;
     END LOOP;
 
-  WHEN '/admin/member/group' THEN -- Группы участника (пользователя)
+  WHEN '/admin/member/group' THEN -- Groups of a member (user)
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
@@ -1332,7 +1333,7 @@ BEGIN
       END LOOP;
     END LOOP;
 
-  WHEN '/admin/member/group/add' THEN -- Добавляет пользователя в группу
+  WHEN '/admin/member/group/add' THEN -- Add a user to a group
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
@@ -1359,7 +1360,7 @@ BEGIN
 
     END IF;
 
-  WHEN '/admin/member/group/delete' THEN -- Удаляет группу для пользователя
+  WHEN '/admin/member/group/delete' THEN -- Remove a group from a user
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
@@ -1386,7 +1387,7 @@ BEGIN
 
     END IF;
 
-  WHEN '/admin/member/area' THEN -- Зоны участника (пользователя или группы)
+  WHEN '/admin/member/area' THEN -- Areas of a member (user or group)
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
@@ -1403,7 +1404,7 @@ BEGIN
       END LOOP;
     END LOOP;
 
-  WHEN '/admin/member/area/add' THEN -- Добавляет пользователя или группу в зону
+  WHEN '/admin/member/area/add' THEN -- Add a user or group to an area
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
@@ -1430,7 +1431,7 @@ BEGIN
 
     END IF;
 
-  WHEN '/admin/member/area/delete' THEN -- Удаляет зону для пользователя или группы
+  WHEN '/admin/member/area/delete' THEN -- Remove an area from a user or group
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
@@ -1457,7 +1458,7 @@ BEGIN
 
     END IF;
 
-  WHEN '/admin/member/interface' THEN -- Интерфейсы участника (пользователя или группы)
+  WHEN '/admin/member/interface' THEN -- Interfaces of a member (user or group)
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
@@ -1474,7 +1475,7 @@ BEGIN
       END LOOP;
     END LOOP;
 
-  WHEN '/admin/member/interface/add' THEN -- Добавляет пользователя или группу к интерфейсу
+  WHEN '/admin/member/interface/add' THEN -- Add a user or group to an interface
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
@@ -1501,7 +1502,7 @@ BEGIN
 
     END IF;
 
-  WHEN '/admin/member/interface/delete' THEN -- Удаляет интерфейс для пользователя или группы
+  WHEN '/admin/member/interface/delete' THEN -- Remove an interface from a user or group
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();

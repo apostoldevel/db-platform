@@ -6,16 +6,18 @@
 -- api.login -------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Вход в систему по имени и паролю виртуального пользователя.
- * @param {text} pUserName - Имя пользователь
- * @param {text} pPassword - Пароль пользователя
- * @param {text} pAgent - Агент
- * @param {inet} pHost - IP адрес
- * @param {text} pScope - Область видимости базы данных
- * @out param {text} session - Сессия
- * @out param {text} secret - Секретный ключ для подписи методом HMAC-256
- * @out param {text} code - Одноразовый код авторизации для получения маркера см. OAuth 2.0
- * @return {record} - Возвращает сессию указанного пользователя
+ * @brief Log in by virtual user name and password.
+ * @param {text} pUserName - User name (login)
+ * @param {text} pPassword - User password
+ * @param {text} pAgent - User agent string
+ * @param {inet} pHost - Client IP address
+ * @param {text} pScope - Database scope code
+ * @out param {text} session - Session key
+ * @out param {text} secret - HMAC-256 signing secret
+ * @out param {text} code - One-time authorization code for obtaining a token (OAuth 2.0)
+ * @return {record} - Session record for the authenticated user
+ * @see SignIn, CreateSystemOAuth2
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.login (
   pUserName     text,
@@ -46,16 +48,17 @@ $$ LANGUAGE plpgsql
 -- api.signin ------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Вход в систему по имени и паролю виртуального пользователя.
- * Требуется предварительная авторизация OAuth 2.0 клиента.
- * @param {text} pUserName - Пользователь (login)
- * @param {text} pPassword - Пароль
- * @param {text} pAgent - Агент
- * @param {inet} pHost - IP адрес
- * @out param {text} session - Сессия
- * @out param {text} secret - Секретный ключ для подписи методом HMAC-256
- * @out param {text} code - Одноразовый код авторизации для получения маркера см. OAuth 2.0
+ * @brief Sign in by user name and password. Requires prior OAuth 2.0 client authorization.
+ * @param {text} pUserName - User name (login)
+ * @param {text} pPassword - Password
+ * @param {text} pAgent - User agent string
+ * @param {inet} pHost - Client IP address
+ * @out param {text} session - Session key
+ * @out param {text} secret - HMAC-256 signing secret
+ * @out param {text} code - One-time authorization code for obtaining a token (OAuth 2.0)
  * @return {record}
+ * @see SignIn, CreateOAuth2
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.signin (
   pUserName     text,
@@ -93,12 +96,12 @@ $$ LANGUAGE plpgsql
 -- api.signout -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Выход из системы.
- * @param {varchar} pSession - Сессия
- * @param {boolean} pCloseAll - Закрыть все сессии
- * @out param {boolean} result - Результат
- * @out param {text} message - Текст ошибки
- * @return {record}
+ * @brief Sign out of the system.
+ * @param {varchar} pSession - Session key
+ * @param {boolean} pCloseAll - Close all sessions for this user
+ * @return {boolean} - TRUE on success
+ * @see SignOut
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.signout (
   pSession      varchar DEFAULT current_session(),
@@ -116,16 +119,18 @@ $$ LANGUAGE plpgsql
 -- api.authenticate ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Аутентификация.
- * @param {varchar} pSession - Сессия
- * @param {text} pSecret - Секретный код
- * @param {text} pAgent - Агент
- * @param {inet} pHost - IP адрес
- * @out param {boolean} authorized - Результат авторизации
- * @out param {uuid} userid - Идентификатор учётной записи
- * @out param {text} code - Код авторизации (разрешение на авторизацию для OAuth2)
- * @out param {text} message - Сообщение
+ * @brief Authenticate a session using a secret key.
+ * @param {varchar} pSession - Session key
+ * @param {text} pSecret - Session secret
+ * @param {text} pAgent - User agent string
+ * @param {inet} pHost - Client IP address
+ * @out param {boolean} authorized - Authentication result
+ * @out param {uuid} userid - Authenticated user identifier
+ * @out param {text} code - Authorization code (OAuth 2.0 authorization grant)
+ * @out param {text} message - Error or status message
  * @return {record}
+ * @see Authenticate
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.authenticate (
   pSession          varchar,
@@ -152,14 +157,16 @@ $$ LANGUAGE plpgsql
 -- api.authorize ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Авторизация.
- * @param {varchar} pSession - Сессия
- * @param {text} pAgent - Агент
- * @param {inet} pHost - IP адрес
- * @out param {boolean} authorized - Результат авторизации
- * @out param {uuid} userid - Идентификатор учётной записи
- * @out param {text} message - Сообщение
+ * @brief Authorize an existing session.
+ * @param {varchar} pSession - Session key
+ * @param {text} pAgent - User agent string
+ * @param {inet} pHost - Client IP address
+ * @out param {boolean} authorized - Authorization result
+ * @out param {uuid} userid - Authorized user identifier
+ * @out param {text} message - Error or status message
  * @return {record}
+ * @see Authorize
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.authorize (
   pSession          varchar,
@@ -183,11 +190,12 @@ $$ LANGUAGE plpgsql
 -- api.su ----------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Substitute user.
- * Меняет текущего пользователя в активном сеансе на указанного пользователя
- * @param {text} pUserName - Имя пользователь для подстановки
- * @param {text} pPassword - Пароль текущего пользователя
+ * @brief Substitute user. Switches the current user in the active session to the specified user.
+ * @param {text} pUserName - User name to substitute
+ * @param {text} pPassword - Current user password
  * @return {void}
+ * @see SubstituteUser
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.su (
   pUserName     text,
@@ -205,14 +213,16 @@ $$ LANGUAGE plpgsql
 -- api.get_session -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает сессию пользователя.
- * @param {text} pUserName - Имя пользователь
- * @param {text} pAgent - Агент
- * @param {inet} pHost - IP адрес
- * @param {text} pScope - Область видимости базы данных
- * @param {bool} pNew - Создать новую сессию
- * @param {bool} pLogin - Авторизоваться в системе
- * @return {text} - Сессия
+ * @brief Returns or creates a session for the specified user.
+ * @param {text} pUserName - User name (login)
+ * @param {text} pAgent - User agent string
+ * @param {inet} pHost - Client IP address
+ * @param {text} pScope - Database scope code
+ * @param {bool} pNew - Create a new session
+ * @param {bool} pLogin - Log the user in
+ * @return {text} - Session key
+ * @see GetSession
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_session (
   pUserName     text,
@@ -234,11 +244,15 @@ $$ LANGUAGE plpgsql
 -- api.get_sessions ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает сессию пользователей для каждой зоны.
- * @param {text} pUserName - Имя пользователь
- * @param {text} pAgent - Агент
- * @param {inet} pHost - IP адрес
- * @return {text} - Сессия
+ * @brief Returns a session for the specified user in each available scope.
+ * @param {text} pUserName - User name (login)
+ * @param {text} pAgent - User agent string
+ * @param {inet} pHost - Client IP address
+ * @param {bool} pNew - Create new sessions
+ * @param {bool} pLogin - Log the user in
+ * @return {SETOF text} - Session keys, one per scope
+ * @see GetSession
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_sessions (
   pUserName     text,
@@ -273,7 +287,8 @@ $$ LANGUAGE plpgsql
 -- api.locale ------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Язык
+ * @brief Locale (language) reference view.
+ * @since 1.0.0
  */
 CREATE OR REPLACE VIEW api.locale
 AS
@@ -301,10 +316,11 @@ GRANT SELECT ON api.session TO administrator;
 -- api.session -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Активные сессии.
- * @param {uuid} pUserId - Идентификатор пользователя
- * @param {text} pUsername - Наименование пользователя (login)
- * @return {SETOF api.session} - Записи
+ * @brief Returns active sessions, optionally filtered by user.
+ * @param {uuid} pUserId - User identifier
+ * @param {text} pUsername - User name (login)
+ * @return {SETOF api.session} - Session records
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.session (
   pUserId       uuid DEFAULT null,
@@ -325,9 +341,10 @@ $$ LANGUAGE SQL
 -- api.get_session -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает сессию
- * @param {varchar} pCode - Идентификатор
- * @return {api.session}
+ * @brief Returns a single session by its code.
+ * @param {varchar} pCode - Session code
+ * @return {SETOF api.session}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_session (
   pCode     varchar
@@ -342,13 +359,14 @@ $$ LANGUAGE SQL
 -- api.list_session ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список сессий.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
+ * @brief Returns a filtered list of sessions.
+ * @param {jsonb} pSearch - Search conditions: '[{"condition": "AND|OR", "field": "<field>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<value>"}, ...]'
+ * @param {jsonb} pFilter - Filter: '{"<field>": "<value>"}'
+ * @param {integer} pLimit - Maximum number of rows to return
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Sort by the fields specified in the array
  * @return {SETOF api.session}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_session (
   pSearch   jsonb default null,
@@ -389,16 +407,18 @@ GRANT SELECT ON api.user TO administrator;
 -- api.add_user ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Создаёт учётную запись пользователя.
- * @param {text} pUserName - Пользователь
- * @param {text} pPassword - Пароль
- * @param {text} pName - Полное имя
- * @param {text} pPhone - Телефон
- * @param {text} pEmail - Электронный адрес
- * @param {text} pDescription - Описание
- * @param {boolean} pPasswordChange - Сменить пароль при следующем входе в систему
- * @param {boolean} pPasswordNotChange - Установить запрет на смену пароля самим пользователем
- * @return {uuid}
+ * @brief Creates a new user account.
+ * @param {text} pUserName - User name (login)
+ * @param {text} pPassword - Password
+ * @param {text} pName - Full name
+ * @param {text} pPhone - Phone number
+ * @param {text} pEmail - Email address
+ * @param {text} pDescription - Description
+ * @param {boolean} pPasswordChange - Require password change on next login
+ * @param {boolean} pPasswordNotChange - Prohibit the user from changing their own password
+ * @return {uuid} - New user identifier
+ * @see CreateUser
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.add_user (
   pUserName             text,
@@ -422,17 +442,19 @@ $$ LANGUAGE plpgsql
 -- api.update_user -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Обновляет учётную запись пользователя.
- * @param {uuid} pId - Идентификатор учетной записи
- * @param {text} pUserName - Пользователь
- * @param {text} pPassword - Пароль
- * @param {text} pName - Полное имя
- * @param {text} pPhone - Телефон
- * @param {text} pEmail - Электронный адрес
- * @param {text} pDescription - Описание
- * @param {boolean} pPasswordChange - Сменить пароль при следующем входе в систему
- * @param {boolean} pPasswordNotChange - Установить запрет на смену пароля самим пользователем
+ * @brief Updates an existing user account.
+ * @param {uuid} pId - User account identifier
+ * @param {text} pUserName - User name (login)
+ * @param {text} pPassword - Password
+ * @param {text} pName - Full name
+ * @param {text} pPhone - Phone number
+ * @param {text} pEmail - Email address
+ * @param {text} pDescription - Description
+ * @param {boolean} pPasswordChange - Require password change on next login
+ * @param {boolean} pPasswordNotChange - Prohibit the user from changing their own password
  * @return {void}
+ * @see UpdateUser
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.update_user (
   pId                   uuid,
@@ -456,7 +478,21 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.set_user ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Creates or updates a user account (upsert). Returns the resulting record.
+ * @param {uuid} pId - User identifier (NULL to create)
+ * @param {text} pUserName - User name (login)
+ * @param {text} pPassword - Password
+ * @param {text} pName - Full name
+ * @param {text} pPhone - Phone number
+ * @param {text} pEmail - Email address
+ * @param {text} pDescription - Description
+ * @param {boolean} pPasswordChange - Require password change on next login
+ * @param {boolean} pPasswordNotChange - Prohibit the user from changing their own password
+ * @return {SETOF api.user}
+ * @see api.add_user, api.update_user
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.set_user (
   pId                   uuid,
   pUserName             text DEFAULT null,
@@ -486,9 +522,11 @@ $$ LANGUAGE plpgsql
 -- api.delete_user -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Удаляет учётную запись пользователя.
- * @param {uuid} pId - Идентификатор учётной записи пользователя
+ * @brief Deletes a user account.
+ * @param {uuid} pId - User account identifier
  * @return {void}
+ * @see DeleteUser
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.delete_user (
   pId         uuid
@@ -505,8 +543,10 @@ $$ LANGUAGE plpgsql
 -- api.get_user ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает учётную запись пользователя.
- * @return {SETOF api.user} - Учётная запись пользователя
+ * @brief Returns a user account record.
+ * @param {uuid} pId - User identifier (defaults to current user)
+ * @return {SETOF api.user} - User account record
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_user (
   pId       uuid DEFAULT current_userid()
@@ -521,13 +561,14 @@ $$ LANGUAGE SQL
 -- api.list_user ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список пользователей.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
+ * @brief Returns a filtered list of users. Non-admins see only their own record.
+ * @param {jsonb} pSearch - Search conditions: '[{"condition": "AND|OR", "field": "<field>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<value>"}, ...]'
+ * @param {jsonb} pFilter - Filter: '{"<field>": "<value>"}'
+ * @param {integer} pLimit - Maximum number of rows to return
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Sort by the fields specified in the array
  * @return {SETOF api.user}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_user (
   pSearch   jsonb DEFAULT null,
@@ -551,7 +592,22 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.update_profile ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Updates user profile fields (name parts, locale, area, interface, verification flags, picture).
+ * @param {uuid} pUserId - User identifier
+ * @param {text} pFamilyName - Family name (surname)
+ * @param {text} pGivenName - Given name (first name)
+ * @param {text} pPatronymicName - Patronymic name
+ * @param {uuid} pLocale - Locale identifier
+ * @param {uuid} pArea - Area identifier
+ * @param {uuid} pInterface - Interface identifier
+ * @param {bool} pEmailVerified - Email verified flag
+ * @param {bool} pPhoneVerified - Phone verified flag
+ * @param {text} pPicture - Profile picture URL
+ * @return {void}
+ * @see UpdateProfile
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.update_profile (
   pUserId           uuid,
   pFamilyName       text DEFAULT null,
@@ -575,7 +631,20 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.set_user_profile --------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Updates user profile by code-based lookups and returns the updated user record.
+ * @param {uuid} pUserId - User identifier (defaults to current user)
+ * @param {text} pFamilyName - Family name (surname)
+ * @param {text} pGivenName - Given name (first name)
+ * @param {text} pPatronymicName - Patronymic name
+ * @param {text} pLocale - Locale code
+ * @param {text} pArea - Area code
+ * @param {text} pInterface - Interface code
+ * @param {text} pPicture - Profile picture URL
+ * @return {SETOF api.user}
+ * @see api.update_profile
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.set_user_profile (
   pUserId           uuid,
   pFamilyName       text DEFAULT null,
@@ -602,11 +671,14 @@ $$ LANGUAGE plpgsql
 -- api.change_password ---------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Меняет пароль пользователя.
- * @param {uuid} pId - Идентификатор учетной записи
- * @param {text} pOldPass - Старый пароль
- * @param {text} pNewPass - Новый пароль
+ * @brief Changes the user password after verifying the old one.
+ * @param {uuid} pId - User account identifier
+ * @param {text} pOldPass - Current (old) password
+ * @param {text} pNewPass - New password
  * @return {void}
+ * @throws ERR-40000 if the old password is incorrect
+ * @see CheckPassword, SetPassword
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.change_password (
   pId           uuid,
@@ -641,10 +713,12 @@ $$ LANGUAGE plpgsql
 -- api.recovery_password -------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Запускает процедуру восстановления пароля пользователя.
- * @param {text} pIdentifier - Идентификатор пользователя (username, email, phone).
- * @param {text} pHashCode - Хэш-код.
- * @return {uuid} - Талон восстановления (recovery ticket)
+ * @brief Initiates the password recovery procedure for a user identified by email or phone.
+ * @param {text} pIdentifier - User identifier (username, email, or phone)
+ * @param {text} pHashCode - HashCash proof-of-work code
+ * @return {uuid} - Recovery ticket (returns a random UUID if user not found, to prevent enumeration)
+ * @see RecoveryPasswordByEmail, RecoveryPasswordByPhone
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.recovery_password (
   pIdentifier       text,
@@ -710,10 +784,14 @@ $$ LANGUAGE plpgsql
 -- api.check_recovery_ticket ---------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Сверяет секретный ответ.
- * @param {uuid} pTicket -  Талон восстановления (recovery ticket)
- * @param {text} vSecurityAnswer - Секретный ответ
- * @return {void}
+ * @brief Validates the security answer for a password recovery ticket.
+ * @param {uuid} pTicket - Recovery ticket identifier
+ * @param {text} vSecurityAnswer - Security answer (verification code)
+ * @out param {bool} result - TRUE if the answer is correct
+ * @out param {text} message - Error or status message
+ * @return {record}
+ * @see CheckRecoveryTicket
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.check_recovery_ticket (
   pTicket           uuid,
@@ -738,11 +816,15 @@ $$ LANGUAGE plpgsql
 -- api.reset_password ----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Сбрасывает пароль пользователя.
- * @param {uuid} pTicket - Талон восстановления (recovery ticket)
- * @param {text} vSecurityAnswer - Секретный ответ
- * @param {text} pPassword - Новый пароль
- * @return {void}
+ * @brief Resets the user password after verifying the recovery ticket and security answer.
+ * @param {uuid} pTicket - Recovery ticket identifier
+ * @param {text} vSecurityAnswer - Security answer (verification code)
+ * @param {text} pPassword - New password
+ * @out param {bool} result - TRUE on success
+ * @out param {text} message - Error or status message
+ * @return {record}
+ * @see CheckRecoveryTicket, SetPassword
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.reset_password (
   pTicket           uuid,
@@ -783,9 +865,11 @@ $$ LANGUAGE plpgsql
 -- api.registration_code_by_email ----------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Запускает процедуру подтверждения почтового адреса пользователя при регистрации.
- * @param {text} pEmail - Почтовый адрес.
- * @return {uuid} - Талон регистрации (registration ticket)
+ * @brief Initiates email address verification during user registration.
+ * @param {text} pEmail - Email address
+ * @return {uuid} - Registration ticket (returns a random UUID if not initiated, to prevent enumeration)
+ * @see RegistrationCodeByEmail
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.registration_code_by_email (
   pEmail            text
@@ -816,10 +900,12 @@ $$ LANGUAGE plpgsql
 -- api.registration_code_by_phone ----------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Запускает процедуру подтверждения номера телефона пользователя при регистрации.
- * @param {text} pPhone - Номер телефона.
- * @param {text} pHashCode - Хэш-код.
- * @return {uuid} - Талон регистрации (registration ticket)
+ * @brief Initiates phone number verification during user registration. Includes rate-limiting and anti-abuse checks.
+ * @param {text} pPhone - Phone number
+ * @param {text} pHashCode - HashCash proof-of-work code
+ * @return {uuid} - Registration ticket (returns a random UUID if rate-limited, to prevent enumeration)
+ * @see RegistrationCodeByPhone
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.registration_code_by_phone (
   pPhone            text,
@@ -890,10 +976,12 @@ $$ LANGUAGE plpgsql
 -- api.registration_code -------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Запускает процедуру подтверждения номера телефона пользователя при регистрации.
- * @param {text} pPhone - Номер телефона.
- * @param {text} pHashCode - Хэш-код.
- * @return {uuid} - Талон регистрации (registration ticket)
+ * @brief Alias for api.registration_code_by_phone. Initiates phone number verification during registration.
+ * @param {text} pPhone - Phone number
+ * @param {text} pHashCode - HashCash proof-of-work code
+ * @return {uuid} - Registration ticket
+ * @see api.registration_code_by_phone
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.registration_code (
   pPhone            text,
@@ -911,10 +999,14 @@ $$ LANGUAGE plpgsql
 -- api.check_registration_code -------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Сверяет регистрационный код.
- * @param {uuid} pTicket - Талон регистрации (registration ticket)
- * @param {text} vCode - Регистрационный код
- * @return {void}
+ * @brief Validates a registration code against its ticket. On success, stores a verification code.
+ * @param {uuid} pTicket - Registration ticket identifier
+ * @param {text} vCode - Registration code to verify
+ * @out param {bool} result - TRUE if the code is correct
+ * @out param {text} message - Error or status message
+ * @return {record}
+ * @see CheckRecoveryTicket, AddVerificationCode
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.check_registration_code (
   pTicket           uuid,
@@ -944,8 +1036,10 @@ $$ LANGUAGE plpgsql
 -- api.user_member -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список групп пользователя.
- * @return {record} - Группы
+ * @brief Returns the list of groups the specified user belongs to.
+ * @param {uuid} pUserId - User identifier (defaults to current user)
+ * @return {TABLE} - Group records (id, username, name, description)
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.user_member (
   pUserId uuid DEFAULT current_userid()
@@ -962,8 +1056,11 @@ $$ LANGUAGE SQL
 -- api.member_user -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список групп пользователя.
- * @return {record} - Группы
+ * @brief Alias for api.user_member. Returns the list of groups the specified user belongs to.
+ * @param {uuid} pUserId - User identifier (defaults to current user)
+ * @return {TABLE} - Group records (id, username, name, description)
+ * @see api.user_member
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.member_user (
   pUserId uuid DEFAULT current_userid()
@@ -978,9 +1075,11 @@ $$ LANGUAGE SQL
 -- api.user_lock ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Блокирует учётную запись пользователя.
- * @param {uuid} pId - Идентификатор учётной записи пользователя
+ * @brief Locks a user account.
+ * @param {uuid} pId - User account identifier
  * @return {void}
+ * @see UserLock
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.user_lock (
   pId           uuid
@@ -997,9 +1096,11 @@ $$ LANGUAGE plpgsql
 -- api.user_unlock -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Снимает блокировку с учётной записи пользователя.
- * @param {uuid} pId - Идентификатор учётной записи пользователя
+ * @brief Unlocks a user account.
+ * @param {uuid} pId - User account identifier
  * @return {void}
+ * @see UserUnlock
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.user_unlock (
   pId       uuid
@@ -1016,13 +1117,12 @@ $$ LANGUAGE plpgsql
 -- api.get_user_iptable --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает таблицу IP-адресов в виде одной строки.
- * @param {uuid} pId - Идентификатор учётной записи пользователя
- * @param {char} pType - Тип: A - allow; D - denied'
- * @out param {uuid} id - Идентификатор учётной записи пользователя
- * @out param {char} type - Тип: A - allow; D - denied'
- * @out param {text} iptable - IP-адреса в виде одной строки
- * @return {text}
+ * @brief Returns the IP address table for a user as a single string.
+ * @param {uuid} pId - User account identifier
+ * @param {char} pType - Type: 'A' = allow, 'D' = deny
+ * @return {TABLE} - (id, type, iptable) where iptable is a comma-separated IP list
+ * @see GetIPTableStr
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_user_iptable (
   pId       uuid,
@@ -1038,11 +1138,13 @@ $$ LANGUAGE SQL
 -- api.set_user_iptable --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Устанавливает таблицу IP-адресов из строки.
- * @param {uuid} pId - Идентификатор учётной записи пользователя
- * @param {char} pType - Тип: A - allow; D - denied'
- * @param {text} pIpTable - IP-адреса в виде одной строки
+ * @brief Sets the IP address table for a user from a string.
+ * @param {uuid} pId - User account identifier
+ * @param {char} pType - Type: 'A' = allow, 'D' = deny
+ * @param {text} pIpTable - Comma-separated IP addresses
  * @return {void}
+ * @see SetIPTableStr
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.set_user_iptable (
   pId           uuid,
@@ -1071,11 +1173,13 @@ GRANT SELECT ON api.group TO administrator;
 -- api.add_group ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Создаёт группу учётных записей пользователя.
- * @param {text} pUserName - Группа
- * @param {text} pName - Полное имя
- * @param {text} pDescription - Описание
- * @return {uuid}
+ * @brief Creates a new user group.
+ * @param {text} pUserName - Group code (login name)
+ * @param {text} pName - Full display name
+ * @param {text} pDescription - Description
+ * @return {uuid} - New group identifier
+ * @see CreateGroup
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.add_group (
   pUserName     text,
@@ -1094,12 +1198,14 @@ $$ LANGUAGE plpgsql
 -- api.update_group ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Обновляет учётные данные группы.
- * @param {uuid} pId - Идентификатор группы
- * @param {text} pUserName - Группа
- * @param {text} pName - Полное имя
- * @param {text} pDescription - Описание
+ * @brief Updates an existing user group.
+ * @param {uuid} pId - Group identifier
+ * @param {text} pUserName - Group code (login name)
+ * @param {text} pName - Full display name
+ * @param {text} pDescription - Description
  * @return {void}
+ * @see UpdateGroup
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.update_group (
   pId           uuid,
@@ -1118,7 +1224,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.set_group ---------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Creates or updates a user group (upsert). Returns the resulting record.
+ * @param {uuid} pId - Group identifier (NULL to create)
+ * @param {text} pUserName - Group code (login name)
+ * @param {text} pName - Full display name
+ * @param {text} pDescription - Description
+ * @return {SETOF api.group}
+ * @see api.add_group, api.update_group
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.set_group (
   pId           uuid,
   pUserName     text,
@@ -1143,9 +1258,11 @@ $$ LANGUAGE plpgsql
 -- api.delete_group ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Удаляет группу.
- * @param {uuid} pId - Идентификатор группы
+ * @brief Deletes a user group.
+ * @param {uuid} pId - Group identifier
  * @return {void}
+ * @see DeleteGroup
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.delete_group (
   pId           uuid
@@ -1162,8 +1279,10 @@ $$ LANGUAGE plpgsql
 -- api.get_group ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает группу.
- * @return {SETOF api.group} - Группа
+ * @brief Returns a single group record by identifier.
+ * @param {uuid} pId - Group identifier
+ * @return {SETOF api.group}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_group (
   pId       uuid
@@ -1178,13 +1297,14 @@ $$ LANGUAGE SQL
 -- api.list_group --------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список групп.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
+ * @brief Returns a filtered list of groups.
+ * @param {jsonb} pSearch - Search conditions: '[{"condition": "AND|OR", "field": "<field>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<value>"}, ...]'
+ * @param {jsonb} pFilter - Filter: '{"<field>": "<value>"}'
+ * @param {integer} pLimit - Maximum number of rows to return
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Sort by the fields specified in the array
  * @return {SETOF api.group}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_group (
   pSearch   jsonb DEFAULT null,
@@ -1205,10 +1325,12 @@ $$ LANGUAGE plpgsql
 -- api.group_member_add --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Добавляет пользователя в группу.
- * @param {uuid} pGroup - Идентификатор группы
- * @param {uuid} pMember - Идентификатор пользователя
+ * @brief Adds a user to a group (group-first parameter order).
+ * @param {uuid} pGroup - Group identifier
+ * @param {uuid} pMember - User identifier
  * @return {void}
+ * @see AddMemberToGroup
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.group_member_add (
   pGroup        uuid,
@@ -1226,10 +1348,12 @@ $$ LANGUAGE plpgsql
 -- api.member_group_add --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Добавляет пользователя в группу.
- * @param {uuid} pMember - Идентификатор пользователя
- * @param {uuid} pGroup - Идентификатор группы
+ * @brief Adds a user to a group (member-first parameter order).
+ * @param {uuid} pMember - User identifier
+ * @param {uuid} pGroup - Group identifier
  * @return {void}
+ * @see AddMemberToGroup
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.member_group_add (
   pMember       uuid,
@@ -1247,10 +1371,12 @@ $$ LANGUAGE plpgsql
 -- api.group_member_delete -----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Удаляет пользователя из группу.
- * @param {uuid} pGroup - Идентификатор группы
- * @param {uuid} pMember - Идентификатор пользователя, при null удаляет всех пользователей из указанной группы
+ * @brief Removes a user from a group. If pMember is NULL, removes all members from the group.
+ * @param {uuid} pGroup - Group identifier
+ * @param {uuid} pMember - User identifier (NULL to remove all members)
  * @return {void}
+ * @see DeleteMemberFromGroup
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.group_member_delete (
   pGroup        uuid,
@@ -1268,10 +1394,12 @@ $$ LANGUAGE plpgsql
 -- api.member_group_delete -----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Удаляет группу для пользователя.
- * @param {uuid} pMember - Идентификатор пользователя
- * @param {uuid} pGroup - Идентификатор группы, при null удаляет все группы для указанного пользователя
+ * @brief Removes a group from a user. If pGroup is NULL, removes all groups for the user.
+ * @param {uuid} pMember - User identifier
+ * @param {uuid} pGroup - Group identifier (NULL to remove all groups)
  * @return {void}
+ * @see DeleteGroupForMember
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.member_group_delete (
   pMember       uuid,
@@ -1299,8 +1427,10 @@ GRANT SELECT ON api.member_group TO administrator;
 -- api.group_member ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список пользователей группы.
- * @return {TABLE} - Группы
+ * @brief Returns the list of users belonging to the specified group.
+ * @param {uuid} pGroupId - Group identifier
+ * @return {TABLE} - User records (id, username, name, email, phone, description)
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.group_member (
   pGroupId    uuid
@@ -1324,8 +1454,11 @@ $$ LANGUAGE SQL
 -- api.member_group ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список групп пользователя.
- * @return {TABLE} - Группы
+ * @brief Returns the list of groups the specified user belongs to.
+ * @param {uuid} pUserId - User identifier (defaults to current user)
+ * @return {TABLE} - Group records (id, username, name, description)
+ * @see api.member_user
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.member_group (
   pUserId     uuid DEFAULT current_userid()
@@ -1344,7 +1477,13 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- api.get_groups_json ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Returns the groups of a member as a JSON array.
+ * @param {uuid} pMember - User identifier
+ * @return {json} - JSON array of group records
+ * @see api.member_user
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.get_groups_json (
   pMember       uuid
 ) RETURNS       json
@@ -1368,10 +1507,12 @@ $$ LANGUAGE plpgsql
 -- api.is_user_role ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Проверяет роль пользователя.
- * @param {uuid} pRole - Идентификатор роли (группы)
- * @param {uuid} pUser - Идентификатор пользователя (учётной записи)
- * @return {boolean}
+ * @brief Checks whether a user belongs to a role (group) by UUID.
+ * @param {uuid} pRole - Role (group) identifier
+ * @param {uuid} pUser - User account identifier (defaults to current user)
+ * @return {boolean} - TRUE if the user belongs to the role
+ * @see IsUserRole
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.is_user_role (
   pRole         uuid,
@@ -1389,10 +1530,12 @@ $$ LANGUAGE plpgsql
 -- api.is_user_role ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Проверяет роль пользователя.
- * @param {text} pRole - Код роли (группы)
- * @param {text} pUser - Код пользователя (учётной записи)
- * @return {boolean}
+ * @brief Checks whether a user belongs to a role (group) by code.
+ * @param {text} pRole - Role (group) code
+ * @param {text} pUser - User name (defaults to session user)
+ * @return {boolean} - TRUE if the user belongs to the role
+ * @see IsUserRole
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.is_user_role (
   pRole         text,
@@ -1420,9 +1563,10 @@ GRANT SELECT ON api.area_type TO administrator;
 -- api.get_area_type -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает тип зоны.
- * @param {uuid} pId - Идентификатор типа области видимости
- * @return {record} - Запись
+ * @brief Returns an area type record by identifier.
+ * @param {uuid} pId - Area type identifier
+ * @return {SETOF api.area_type}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_area_type (
   pId        uuid
@@ -1445,15 +1589,17 @@ GRANT SELECT ON api.area TO administrator;
 -- api.add_area ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Создаёт область видимости.
- * @param {uuid} pParent - Идентификатор "родителя"
- * @param {uuid} pType - Идентификатор типа
- * @param {uuid} pScope - Область видимости
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {text} pDescription - Описание
- * @param {integer} pSequence - Очерёдность
- * @return {uuid}
+ * @brief Creates a new area.
+ * @param {uuid} pParent - Parent area identifier
+ * @param {uuid} pType - Area type identifier
+ * @param {uuid} pScope - Scope identifier
+ * @param {text} pCode - Code
+ * @param {text} pName - Name
+ * @param {text} pDescription - Description
+ * @param {integer} pSequence - Sort order
+ * @return {uuid} - New area identifier
+ * @see CreateArea
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.add_area (
   pParent       uuid,
@@ -1476,18 +1622,20 @@ $$ LANGUAGE plpgsql
 -- api.update_area -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Обновляет область видимости.
- * @param {uuid} pId - Идентификатор области видимости
- * @param {uuid} pParent - Идентификатор "родителя"
- * @param {uuid} pType - Идентификатор типа
- * @param {uuid} pScope - Область видимости
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {text} pDescription - Описание
- * @param {integer} pSequence - Очерёдность
- * @param {timestamptz} pValidFromDate - Дата открытия
- * @param {timestamptz} pValidToDate - Дата закрытия
+ * @brief Updates an existing area.
+ * @param {uuid} pId - Area identifier
+ * @param {uuid} pParent - Parent area identifier
+ * @param {uuid} pType - Area type identifier
+ * @param {uuid} pScope - Scope identifier
+ * @param {text} pCode - Code
+ * @param {text} pName - Name
+ * @param {text} pDescription - Description
+ * @param {integer} pSequence - Sort order
+ * @param {timestamptz} pValidFromDate - Valid from date
+ * @param {timestamptz} pValidToDate - Valid to date
  * @return {void}
+ * @see EditArea
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.update_area (
   pId               uuid,
@@ -1512,7 +1660,22 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.set_area ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Creates or updates an area (upsert). Returns the resulting record.
+ * @param {uuid} pId - Area identifier (NULL to create)
+ * @param {uuid} pParent - Parent area identifier
+ * @param {uuid} pType - Area type identifier
+ * @param {uuid} pScope - Scope identifier
+ * @param {text} pCode - Code
+ * @param {text} pName - Name
+ * @param {text} pDescription - Description
+ * @param {integer} pSequence - Sort order
+ * @param {timestamptz} pValidFromDate - Valid from date
+ * @param {timestamptz} pValidToDate - Valid to date
+ * @return {SETOF api.area}
+ * @see api.add_area, api.update_area
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.set_area (
   pId               uuid,
   pParent           uuid DEFAULT null,
@@ -1543,9 +1706,11 @@ $$ LANGUAGE plpgsql
 -- api.delete_area -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Удаляет область видимости.
- * @param {uuid} pId - Идентификатор
+ * @brief Deletes an area.
+ * @param {uuid} pId - Area identifier
  * @return {void}
+ * @see DeleteArea
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.delete_area (
   pId       uuid
@@ -1562,9 +1727,11 @@ $$ LANGUAGE plpgsql
 -- api.safely_delete_area ------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Безопасно удаляет область видимости.
- * @param {uuid} pId - Идентификатор
- * @return {void}
+ * @brief Safely deletes an area, catching and reporting errors instead of raising them.
+ * @param {uuid} pId - Area identifier
+ * @return {bool} - TRUE if deleted, FALSE on error
+ * @see api.delete_area
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.safely_delete_area (
   pId       uuid
@@ -1590,8 +1757,10 @@ $$ LANGUAGE plpgsql
 -- api.clear_area --------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Удаляет области видимости без документов.
- * @return {void}
+ * @brief Deletes all expired areas that have no associated documents.
+ * @return {int} - Number of areas deleted
+ * @see api.safely_delete_area
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.clear_area (
 ) RETURNS   int
@@ -1622,9 +1791,10 @@ $$ LANGUAGE plpgsql
 -- api.get_area ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает данные области видимости.
- * @param {uuid} pId - Идентификатор
+ * @brief Returns an area record by identifier.
+ * @param {uuid} pId - Area identifier
  * @return {SETOF api.area}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_area (
   pId         uuid
@@ -1639,9 +1809,11 @@ $$ LANGUAGE SQL
 -- api.get_area_id -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает идентификатор по коду.
- * @param {text} pCode - Код
- * @return {uuid}
+ * @brief Returns an area identifier by code. Accepts both UUID strings and area codes.
+ * @param {text} pCode - Area code or UUID
+ * @return {uuid} - Area identifier
+ * @see GetArea
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_area_id (
   pCode     text
@@ -1662,13 +1834,14 @@ $$ LANGUAGE plpgsql
 -- api.list_area ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список зон.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
+ * @brief Returns a filtered list of areas.
+ * @param {jsonb} pSearch - Search conditions: '[{"condition": "AND|OR", "field": "<field>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<value>"}, ...]'
+ * @param {jsonb} pFilter - Filter: '{"<field>": "<value>"}'
+ * @param {integer} pLimit - Maximum number of rows to return
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Sort by the fields specified in the array
  * @return {SETOF api.area}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_area (
   pSearch   jsonb DEFAULT null,
@@ -1689,10 +1862,12 @@ $$ LANGUAGE plpgsql
 -- api.area_member_add ---------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Добавляет пользователя или группу в область видимости.
- * @param {uuid} pArea - Идентификатор области видимости
- * @param {uuid} pMember - Идентификатор пользователя/группы
+ * @brief Adds a user or group to an area (area-first parameter order).
+ * @param {uuid} pArea - Area identifier
+ * @param {uuid} pMember - User or group identifier
  * @return {void}
+ * @see AddMemberToArea
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.area_member_add (
   pArea       uuid,
@@ -1710,10 +1885,12 @@ $$ LANGUAGE plpgsql
 -- api.member_area_add ---------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Добавляет пользователя или группу в область видимости.
- * @param {uuid} pMember - Идентификатор пользователя/группы
- * @param {uuid} pArea - Идентификатор области видимости
+ * @brief Adds a user or group to an area (member-first parameter order).
+ * @param {uuid} pMember - User or group identifier
+ * @param {uuid} pArea - Area identifier
  * @return {void}
+ * @see AddMemberToArea
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.member_area_add (
   pMember     uuid,
@@ -1731,10 +1908,12 @@ $$ LANGUAGE plpgsql
 -- api.area_member_delete ------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Удаляет пользователя из области видимости.
- * @param {uuid} pArea - Идентификатор области видимости
- * @param {uuid} pMember - Идентификатор пользователя, при null удаляет всех пользователей из указанной области видимости
+ * @brief Removes a member from an area. If pMember is NULL, removes all members from the area.
+ * @param {uuid} pArea - Area identifier
+ * @param {uuid} pMember - User or group identifier (NULL to remove all)
  * @return {void}
+ * @see DeleteMemberFromArea
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.area_member_delete (
   pArea       uuid,
@@ -1752,10 +1931,12 @@ $$ LANGUAGE plpgsql
 -- api.member_area_delete ------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Удаляет область видимости для пользователя.
- * @param {uuid} pMember - Идентификатор пользователя
- * @param {uuid} pArea - Идентификатор области видимости, при null удаляет все области видимости для указанного пользователя
+ * @brief Removes an area from a member. If pArea is NULL, removes all areas for the member.
+ * @param {uuid} pMember - User or group identifier
+ * @param {uuid} pArea - Area identifier (NULL to remove all)
  * @return {void}
+ * @see DeleteAreaForMember
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.member_area_delete (
   pMember     uuid,
@@ -1783,8 +1964,10 @@ GRANT SELECT ON api.member_area TO administrator;
 -- api.area_member -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список участников области видимости.
- * @return {SETOF record} - Запись
+ * @brief Returns the list of members (users/groups) of the specified area.
+ * @param {uuid} pAreaId - Area identifier
+ * @return {TABLE} - Member records (id, type, username, name, description)
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.area_member (
   pAreaId     uuid
@@ -1807,8 +1990,10 @@ $$ LANGUAGE SQL
 -- api.member_area -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает доступные области видимости.
- * @return {record} - Данные области видимости
+ * @brief Returns areas accessible to the specified user (including inherited via groups and child areas).
+ * @param {uuid} pUserId - User identifier (defaults to current user)
+ * @return {SETOF api.area}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.member_area (
   pUserId   uuid DEFAULT current_userid()
@@ -1845,11 +2030,13 @@ GRANT SELECT ON api.interface TO administrator;
 -- api.add_interface -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Создаёт интерфейс.
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {text} pDescription - Описание
- * @return {uuid}
+ * @brief Creates a new interface.
+ * @param {text} pCode - Code
+ * @param {text} pName - Name
+ * @param {text} pDescription - Description
+ * @return {uuid} - New interface identifier
+ * @see CreateInterface
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.add_interface (
   pCode         text,
@@ -1868,12 +2055,14 @@ $$ LANGUAGE plpgsql
 -- api.update_interface --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Обновляет интерфейс.
- * @param {uuid} pId - Идентификатор интерфейса
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {text} pDescription - Описание
+ * @brief Updates an existing interface.
+ * @param {uuid} pId - Interface identifier
+ * @param {text} pCode - Code
+ * @param {text} pName - Name
+ * @param {text} pDescription - Description
  * @return {void}
+ * @see UpdateInterface
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.update_interface (
   pId           uuid,
@@ -1892,7 +2081,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.set_interface -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Creates or updates an interface (upsert). Returns the resulting record.
+ * @param {uuid} pId - Interface identifier (NULL to create)
+ * @param {text} pCode - Code
+ * @param {text} pName - Name
+ * @param {text} pDescription - Description
+ * @return {SETOF api.interface}
+ * @see api.add_interface, api.update_interface
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.set_interface (
   pId           uuid,
   pCode         text,
@@ -1917,9 +2115,11 @@ $$ LANGUAGE plpgsql
 -- api.delete_interface --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Удаляет интерфейс.
- * @param {uuid} pId - Идентификатор интерфейса
+ * @brief Deletes an interface.
+ * @param {uuid} pId - Interface identifier
  * @return {void}
+ * @see DeleteInterface
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.delete_interface (
   pId         uuid
@@ -1936,8 +2136,10 @@ $$ LANGUAGE plpgsql
 -- api.get_interface -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает данные интерфейса.
- * @return {record} - Данные интерфейса
+ * @brief Returns an interface record by identifier.
+ * @param {uuid} pId - Interface identifier
+ * @return {SETOF api.interface}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_interface (
   pId        uuid
@@ -1952,13 +2154,14 @@ $$ LANGUAGE SQL
 -- api.list_interface ----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список интерфейсов.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.area}
+ * @brief Returns a filtered list of interfaces.
+ * @param {jsonb} pSearch - Search conditions: '[{"condition": "AND|OR", "field": "<field>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<value>"}, ...]'
+ * @param {jsonb} pFilter - Filter: '{"<field>": "<value>"}'
+ * @param {integer} pLimit - Maximum number of rows to return
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Sort by the fields specified in the array
+ * @return {SETOF api.interface}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_interface (
   pSearch   jsonb DEFAULT null,
@@ -1979,10 +2182,12 @@ $$ LANGUAGE plpgsql
 -- api.interface_member_add ----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Добавляет пользователя или группу к интерфейсу.
- * @param {uuid} pMember - Идентификатор пользователя/группы
- * @param {uuid} pInterface - Идентификатор интерфейса
+ * @brief Adds a user or group to an interface.
+ * @param {uuid} pMember - User or group identifier
+ * @param {uuid} pInterface - Interface identifier
  * @return {void}
+ * @see AddMemberToInterface
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.interface_member_add (
   pMember       uuid,
@@ -2000,10 +2205,12 @@ $$ LANGUAGE plpgsql
 -- api.member_interface_add ----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Добавляет пользователя или группу к интерфейсу.
- * @param {uuid} pMember - Идентификатор пользователя/группы
- * @param {uuid} pInterface - Идентификатор интерфейса
+ * @brief Adds a user or group to an interface (alias with same parameter order).
+ * @param {uuid} pMember - User or group identifier
+ * @param {uuid} pInterface - Interface identifier
  * @return {void}
+ * @see AddMemberToInterface
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.member_interface_add (
   pMember       uuid,
@@ -2021,10 +2228,12 @@ $$ LANGUAGE plpgsql
 -- api.interface_member_delete -------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Удаляет пользователя или группу из интерфейса.
- * @param {uuid} pInterface - Идентификатор интерфейса
- * @param {uuid} pMember - Идентификатор пользователя/группы, при null удаляет всех пользователей из указанного интерфейса
+ * @brief Removes a member from an interface. If pMember is NULL, removes all members.
+ * @param {uuid} pInterface - Interface identifier
+ * @param {uuid} pMember - User or group identifier (NULL to remove all)
  * @return {void}
+ * @see DeleteMemberFromInterface
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.interface_member_delete (
   pInterface    uuid,
@@ -2042,10 +2251,12 @@ $$ LANGUAGE plpgsql
 -- api.member_interface_delete -------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Удаляет интерфейс для пользователя или группу.
- * @param {uuid} pMember - Идентификатор пользователя/группы
- * @param {uuid} pInterface - Идентификатор интерфейса, при null удаляет все рабочие места для указанного пользователя
+ * @brief Removes an interface from a member. If pInterface is NULL, removes all interfaces for the member.
+ * @param {uuid} pMember - User or group identifier
+ * @param {uuid} pInterface - Interface identifier (NULL to remove all)
  * @return {void}
+ * @see DeleteInterfaceForMember
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.member_interface_delete (
   pMember       uuid,
@@ -2073,8 +2284,10 @@ GRANT SELECT ON api.member_interface TO administrator;
 -- api.interface_member --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список участников интерфейса.
- * @return {SETOF record} - Запись
+ * @brief Returns the list of members (users/groups) of the specified interface.
+ * @param {uuid} pInterfaceId - Interface identifier
+ * @return {TABLE} - Member records (id, type, username, name, description)
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.interface_member (
   pInterfaceId  uuid
@@ -2097,8 +2310,10 @@ $$ LANGUAGE SQL
 -- api.member_interface --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает интерфейсы доступные участнику.
- * @return {record} - Данные интерфейса
+ * @brief Returns interfaces accessible to the specified user (including inherited via groups).
+ * @param {uuid} pUserId - User identifier (defaults to current user)
+ * @return {SETOF api.interface}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.member_interface (
   pUserId   uuid DEFAULT current_userid()
@@ -2120,15 +2335,17 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- api.chmodc ------------------------------------------------------------------
 --------------------------------------------------------------------------------
-/*
- * Устанавливает битовую маску доступа для класса и пользователя.
- * @param {uuid} pClass - Идентификатор класса
- * @param {int} pMask - Маска доступа. Десять бит (d:{acsud}a:{acsud}) где: d - запрещающие биты; a - разрешающие биты: {a - access; c - create; s - select, u - update, d - delete}
- * @param {uuid} pUserId - Идентификатор пользователя/группы
- * @param {boolean} pRecursive - Рекурсивно установить права для всех нижестоящих классов.
- * @param {boolean} pObjectSet - Установить права на объектах (документах) принадлежащих указанному классу.
+/**
+ * @brief Sets the access bitmask for a class and user/group.
+ * @param {uuid} pClass - Class identifier
+ * @param {int} pMask - Access mask. Ten bits (d:{acsud}a:{acsud}) where: d = deny bits, a = allow bits: {a=access, c=create, s=select, u=update, d=delete}
+ * @param {uuid} pUserId - User or group identifier (defaults to current user)
+ * @param {boolean} pRecursive - Recursively set permissions for all child classes
+ * @param {boolean} pObjectSet - Set permissions on objects (documents) belonging to the class
  * @return {void}
-*/
+ * @see kernel.chmodc
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.chmodc (
   pClass        uuid,
   pMask         int,
@@ -2147,13 +2364,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.chmodm ------------------------------------------------------------------
 --------------------------------------------------------------------------------
-/*
- * Устанавливает битовую маску доступа для методов и пользователя.
- * @param {uuid} pMethod - Идентификатор метода
- * @param {int} pMask - Маска доступа. Три бита (xve) где: x - execute, v - visible, e - enable
- * @param {uuid} pUserId - Идентификатор пользователя/группы
+/**
+ * @brief Sets the access bitmask for a method and user/group.
+ * @param {uuid} pMethod - Method identifier
+ * @param {int} pMask - Access mask. Six bits where: x=execute, v=visible, e=enable
+ * @param {uuid} pUserId - User or group identifier (defaults to current user)
  * @return {void}
-*/
+ * @see kernel.chmodm
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.chmodm (
   pMethod   uuid,
   pMask     int,
@@ -2170,13 +2389,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.chmodo ------------------------------------------------------------------
 --------------------------------------------------------------------------------
-/*
- * Устанавливает битовую маску доступа для объекта и пользователя.
- * @param {uuid} pObject - Идентификатор объекта
- * @param {int} pMask - Маска доступа. Три бита (sud) где: s - select, u - update, d - delete
- * @param {uuid} pUserId - Идентификатор пользователя/группы
+/**
+ * @brief Sets the access bitmask for an object and user/group.
+ * @param {uuid} pObject - Object identifier
+ * @param {int} pMask - Access mask. Six bits where: s=select, u=update, d=delete
+ * @param {uuid} pUserId - User or group identifier (defaults to current user)
  * @return {void}
-*/
+ * @see kernel.chmodo
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.chmodo (
   pObject   uuid,
   pMask     int,
@@ -2193,7 +2414,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.check_offline -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Marks users as offline if their last activity exceeds the specified interval.
+ * @param {interval} pOffTime - Inactivity threshold (default '5 minute')
+ * @return {void}
+ * @see CheckOffline
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.check_offline (
   pOffTime      interval DEFAULT '5 minute'
 ) RETURNS       void
@@ -2224,7 +2451,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.check_session -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Closes sessions that have been inactive for longer than the specified interval.
+ * @param {interval} pOffTime - Inactivity threshold (default '3 month')
+ * @return {void}
+ * @see CheckSession
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.check_session (
   pOffTime      interval DEFAULT '3 month'
 ) RETURNS       void
