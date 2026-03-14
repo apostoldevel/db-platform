@@ -6,9 +6,10 @@
 -- DoConfirmEmail --------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * DO: Подтверждает адрес электронной почты.
- * @param {uuid} pUserId - Идентификатор пользователя
+ * @brief Confirm a user's email address by enabling and confirming their client record.
+ * @param {uuid} pUserId - User identifier
  * @return {void}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION DoConfirmEmail (
   pUserId       uuid
@@ -47,9 +48,10 @@ $$ LANGUAGE plpgsql
 -- DoConfirmPhone --------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * DO: Подтверждает номер телефона.
- * @param {uuid} pUserId - Идентификатор пользователя
+ * @brief Confirm a user's phone number by enabling and confirming their client record.
+ * @param {uuid} pUserId - User identifier
  * @return {void}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION DoConfirmPhone (
   pUserId       uuid
@@ -88,9 +90,10 @@ $$ LANGUAGE plpgsql
 -- DoFCMTokens -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * DO: Возвращает токены FCM.
- * @param {uuid} pUserId - Идентификатор пользователя
+ * @brief Return Firebase Cloud Messaging tokens for a user from their devices or registry.
+ * @param {uuid} pUserId - User identifier
  * @return {text[]}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION DoFCMTokens (
   pUserId       uuid

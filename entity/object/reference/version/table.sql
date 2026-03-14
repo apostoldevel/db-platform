@@ -20,6 +20,11 @@ CREATE INDEX ON db.version (reference);
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Auto-set primary key from parent reference id on new version rows.
+ * @return {trigger}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_version_insert()
 RETURNS trigger AS $$
 DECLARE

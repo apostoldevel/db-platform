@@ -40,6 +40,11 @@ CREATE INDEX ON db.job (dateRun);
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Auto-set id, generate code, compute next run date from scheduler period, and default scope on new job rows.
+ * @return {trigger}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_job_insert()
 RETURNS trigger AS $$
 DECLARE

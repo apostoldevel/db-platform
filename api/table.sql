@@ -32,6 +32,11 @@ CREATE INDEX ON db.path (name);
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Auto-set root to own id when no explicit root is provided on new path rows.
+ * @return {trigger}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_path_insert()
 RETURNS trigger AS $$
 BEGIN

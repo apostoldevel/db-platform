@@ -20,6 +20,11 @@ CREATE INDEX ON db.form (reference);
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Auto-set primary key from parent reference id on new form rows.
+ * @return {trigger}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_form_insert()
 RETURNS trigger AS $$
 DECLARE

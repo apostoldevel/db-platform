@@ -118,6 +118,12 @@ GRANT SELECT ON CurrentDocument TO administrator;
 -- AccessDocumentUser ----------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Return document ids the given user has explicit read access to via AOU permissions.
+ * @param {uuid} pUserId - User identifier (defaults to current session user)
+ * @return {TABLE(object uuid)}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION AccessDocumentUser (
   pUserId    uuid DEFAULT current_userid()
 ) RETURNS TABLE (

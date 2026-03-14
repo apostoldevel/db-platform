@@ -47,6 +47,12 @@ GRANT SELECT ON ClassTree TO administrator;
 -- FUNCTION ClassTree ----------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Return the full class hierarchy as a sorted tree starting from a given parent.
+ * @param {uuid} pParent - Parent class id (NULL for all root classes)
+ * @return {SETOF ClassTree}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION ClassTree (
   pParent   uuid
 ) RETURNS   SETOF ClassTree

@@ -32,6 +32,11 @@ CREATE UNIQUE INDEX ON db.reference (scope, entity, code);
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Auto-set id, validate area, default scope, and generate code for new reference rows.
+ * @return {trigger}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_reference_before_insert()
 RETURNS trigger AS $$
 DECLARE
@@ -76,6 +81,11 @@ CREATE TRIGGER t_reference_before_insert
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Recalculate class and entity from the new type and reject cross-entity type changes.
+ * @return {trigger}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_reference_before_update_type()
 RETURNS trigger AS $$
 BEGIN
@@ -131,6 +141,11 @@ CREATE INDEX ON db.reference_text (name text_pattern_ops);
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Propagate reference name changes to the corresponding object_text label.
+ * @return {trigger}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_reference_text_update_name()
 RETURNS trigger AS $$
 BEGIN

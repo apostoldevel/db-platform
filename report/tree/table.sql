@@ -30,6 +30,11 @@ CREATE INDEX ON db.report_tree (node);
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Auto-set primary key from parent reference id on new report tree rows.
+ * @return {trigger}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_report_tree_insert()
 RETURNS trigger AS $$
 DECLARE

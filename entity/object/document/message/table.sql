@@ -39,6 +39,11 @@ CREATE INDEX ON db.message (subject text_pattern_ops);
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Auto-set id from parent document and generate a random hex code for new message rows.
+ * @return {trigger}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_message_before_insert()
 RETURNS trigger AS $$
 BEGIN
@@ -63,6 +68,11 @@ CREATE TRIGGER t_message_before_insert
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Emit pg_notify on the message channel with class, type, agent, and address details after insert.
+ * @return {trigger}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_message_after_insert()
 RETURNS trigger AS $$
 DECLARE
@@ -94,6 +104,11 @@ CREATE TRIGGER t_message_after_insert
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Prevent modification of the message code after creation.
+ * @return {trigger}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_message_before_update()
 RETURNS trigger AS $$
 BEGIN

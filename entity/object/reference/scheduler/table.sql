@@ -26,6 +26,11 @@ CREATE INDEX ON db.scheduler (reference);
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Auto-set primary key from parent reference id and default date range on new scheduler rows.
+ * @return {trigger}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_scheduler_insert()
 RETURNS trigger AS $$
 DECLARE

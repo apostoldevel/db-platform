@@ -38,6 +38,11 @@ CREATE INDEX ON db.document (scope);
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Auto-set id, validate area, default priority, area, and scope on new document rows.
+ * @return {trigger}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_document_insert()
 RETURNS trigger AS $$
 BEGIN
@@ -74,6 +79,11 @@ CREATE TRIGGER t_document_insert
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Recalculate class and entity from the new type and reject cross-entity type changes.
+ * @return {trigger}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_document_before_update_type()
 RETURNS trigger AS $$
 BEGIN
@@ -100,6 +110,11 @@ CREATE TRIGGER t_document_before_update_type
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Validate that the new area belongs to the same scope before allowing area updates.
+ * @return {trigger}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_document_update_area()
 RETURNS trigger AS $$
 BEGIN

@@ -94,6 +94,11 @@ CREATE INDEX ON db.class_text (locale);
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Cascade-insert default ACU permission entries for new class tree nodes.
+ * @return {trigger}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_class_tree_after_insert()
 RETURNS trigger AS $$
 BEGIN
@@ -129,6 +134,11 @@ CREATE TRIGGER t_class_tree_insert
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Remove all ACU entries for a class before deleting the class tree node.
+ * @return {trigger}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_class_tree_before_delete()
 RETURNS trigger AS $$
 BEGIN
@@ -173,6 +183,11 @@ CREATE INDEX ON db.acu (userid);
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Compute effective ACU bitmask (allow & ~deny) on insert or update.
+ * @return {trigger}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_acu_before()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -435,6 +450,11 @@ CREATE INDEX ON db.method_text (locale);
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Auto-generate method code as "state_code:action_code" when not provided.
+ * @return {trigger}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_method_before_insert()
 RETURNS trigger AS $$
 BEGIN
@@ -457,6 +477,11 @@ CREATE TRIGGER t_method_before_insert
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Cascade-insert default AMU permission entries for a newly created method.
+ * @return {trigger}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_method_after_insert()
 RETURNS trigger AS $$
 DECLARE
@@ -485,6 +510,11 @@ CREATE TRIGGER t_method_after_insert
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Remove related transitions and AMU entries before deleting a method.
+ * @return {trigger}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_method_before_delete()
 RETURNS trigger AS $$
 BEGIN
@@ -530,6 +560,11 @@ CREATE INDEX ON db.amu (userid);
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Compute effective AMU bitmask (allow & ~deny) on insert or update.
+ * @return {trigger}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_amu_before()
 RETURNS TRIGGER AS $$
 BEGIN

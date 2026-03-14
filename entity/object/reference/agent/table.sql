@@ -23,6 +23,11 @@ CREATE INDEX ON db.agent (vendor);
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Auto-set primary key from parent reference id on new agent rows.
+ * @return {trigger}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_agent_before_insert()
 RETURNS trigger AS $$
 DECLARE
@@ -46,6 +51,11 @@ CREATE TRIGGER t_agent_before_insert
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Grant mailbot read access (AOU) to newly inserted agent records.
+ * @return {trigger}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_agent_after_insert()
 RETURNS trigger AS $$
 BEGIN

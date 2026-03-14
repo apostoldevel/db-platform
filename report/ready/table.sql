@@ -28,6 +28,11 @@ CREATE INDEX ON db.report_ready (document);
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Auto-set primary key from parent document id on new report ready rows.
+ * @return {trigger}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_report_ready_insert()
 RETURNS trigger AS $$
 BEGIN

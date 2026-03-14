@@ -20,6 +20,11 @@ CREATE INDEX ON db.vendor (reference);
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Auto-set primary key from parent reference id on new vendor rows.
+ * @return {trigger}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_vendor_insert()
 RETURNS trigger AS $$
 DECLARE

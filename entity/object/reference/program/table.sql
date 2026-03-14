@@ -22,6 +22,11 @@ CREATE INDEX ON db.program (reference);
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Auto-set primary key from parent reference id on new program rows.
+ * @return {trigger}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_program_insert()
 RETURNS trigger AS $$
 DECLARE

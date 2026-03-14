@@ -35,6 +35,11 @@ CREATE INDEX ON replication.log (source);
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Emit pg_notify on the replication channel after a new log entry is inserted.
+ * @return {trigger}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION replication.ft_log_after_insert()
 RETURNS trigger AS $$
 BEGIN

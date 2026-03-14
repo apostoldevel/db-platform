@@ -31,6 +31,11 @@ CREATE INDEX ON db.report (binding);
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Auto-set primary key from parent reference id on new report rows.
+ * @return {trigger}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_report_before_insert()
 RETURNS trigger AS $$
 DECLARE
