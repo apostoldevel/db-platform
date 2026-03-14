@@ -2,10 +2,14 @@
 -- REST REGISTRY ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Запрос данных в формате REST JSON API (реестр).
- * @param {text} pPath - Путь
- * @param {jsonb} pPayload - JSON
- * @return {SETOF json} - Записи в JSON
+ * @brief Dispatch REST JSON API requests for the registry module.
+ * @param {text} pPath - REST route path (e.g. '/registry/list', '/registry/write/integer')
+ * @param {jsonb} pPayload - JSON request body with route-specific parameters
+ * @return {SETOF json} - Result rows serialized as JSON objects
+ * @throws RouteIsEmpty - When pPath is NULL
+ * @throws LoginFailed - When there is no active session
+ * @throws RouteNotFound - When pPath does not match any known route
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION rest.registry (
   pPath       text,

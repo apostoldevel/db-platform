@@ -1,7 +1,12 @@
 --------------------------------------------------------------------------------
 -- FUNCTION reg_key_to_array ---------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Split a backslash-delimited registry path into an array of key segments.
+ * @param {text} pKey - Full registry subkey path (e.g. 'Settings\Locale\Language')
+ * @return {text[]} - Array of individual key name segments
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION registry.reg_key_to_array (
   pKey        text
 ) RETURNS     text[]
@@ -42,7 +47,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION get_reg_key --------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Reconstruct the full backslash-delimited path for a registry key by walking up the tree.
+ * @param {uuid} pId - Registry key identifier to resolve
+ * @return {text} - Full key path (e.g. 'Settings\Locale\Language')
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION registry.get_reg_key (
   pId        uuid
 ) RETURNS    text
@@ -77,7 +87,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- get_reg_value ---------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve the typed Variant value for a registry value row by its identifier.
+ * @param {uuid} pId - Registry value identifier
+ * @return {Variant} - Composite (vtype, vinteger, vnumeric, vdatetime, vstring, vboolean)
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION registry.get_reg_value (
   pId        uuid
 ) RETURNS    Variant
@@ -92,7 +107,13 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- RegEnumKey ------------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Enumerate immediate child keys of the given parent key.
+ * @param {uuid} pId - Parent registry key identifier
+ * @return {SETOF registry.key} - Set of child key rows
+ * @see RegEnumValue
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION RegEnumKey (
   pId        uuid
 ) RETURNS    SETOF registry.key
@@ -105,7 +126,13 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- RegEnumValue ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Enumerate all values attached to a registry key, returning Variant data.
+ * @param {uuid} pKey - Registry key identifier whose values to list
+ * @return {SETOF record} - (id, key, vname, value::Variant) for each value
+ * @see RegEnumValueEx, RegEnumKey
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION RegEnumValue (
   pKey       uuid,
   OUT id     uuid,
@@ -122,7 +149,13 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- RegEnumValueEx --------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Enumerate all values attached to a registry key with raw typed columns.
+ * @param {uuid} pKey - Registry key identifier whose values to list
+ * @return {SETOF registry.value} - Full value rows including all typed payload columns
+ * @see RegEnumValue
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION RegEnumValueEx (
   pKey       uuid
 ) RETURNS    SETOF registry.value
@@ -135,7 +168,13 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- RegQueryValue ---------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Look up a single registry value as a Variant by value identifier.
+ * @param {uuid} pId - Registry value identifier
+ * @return {Variant} - Typed composite value
+ * @see RegQueryValueEx
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION RegQueryValue (
   pId        uuid
 ) RETURNS    Variant
@@ -148,7 +187,13 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- RegQueryValueEx -------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve the full registry value row by its identifier.
+ * @param {uuid} pId - Registry value identifier
+ * @return {registry.value} - Complete value row with all typed columns
+ * @see RegQueryValue
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION RegQueryValueEx (
   pId        uuid
 ) RETURNS    registry.value
@@ -161,7 +206,14 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- RegGetValue -----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Look up a named value under a registry key and return it as a Variant.
+ * @param {uuid} pKey - Registry key identifier
+ * @param {text} pValueName - Name of the value to retrieve
+ * @return {Variant} - Typed composite value, or NULL if not found
+ * @see RegGetValueEx
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION RegGetValue (
   pKey          uuid,
   pValueName    text
@@ -175,7 +227,14 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- RegGetValueEx ---------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Look up a named value under a registry key and return the full row.
+ * @param {uuid} pKey - Registry key identifier
+ * @param {text} pValueName - Name of the value to retrieve
+ * @return {registry.value} - Complete value row, or NULL if not found
+ * @see RegGetValue
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION RegGetValueEx (
   pKey          uuid,
   pValueName    text
@@ -189,7 +248,15 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- RegSetValue -----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Create or update a registry value using a Variant composite (upsert).
+ * @param {uuid} pKey - Registry key identifier (or existing value id for direct update)
+ * @param {text} pValueName - Name of the value to set
+ * @param {Variant} pData - Typed data composite to store
+ * @return {uuid} - Identifier of the created or updated value row
+ * @see RegSetValueEx
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION RegSetValue (
   pKey           uuid,
   pValueName     text,
@@ -247,7 +314,20 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- RegSetValueEx ---------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Create or update a registry value using explicit typed parameters (upsert).
+ * @param {uuid} pKey - Registry key identifier (or existing value id for direct update)
+ * @param {text} pValueName - Name of the value to set
+ * @param {integer} pType - Data type discriminator: 0=integer, 1=numeric, 2=datetime, 3=text, 4=boolean
+ * @param {integer} pInteger - Integer payload (when pType = 0)
+ * @param {numeric} pNumeric - Numeric payload (when pType = 1)
+ * @param {timestamp} pDateTime - Timestamp payload (when pType = 2)
+ * @param {text} pString - Text payload (when pType = 3)
+ * @param {boolean} pBoolean - Boolean payload (when pType = 4)
+ * @return {uuid} - Identifier of the created or updated value row
+ * @see RegSetValue
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION RegSetValueEx (
   pKey          uuid,
   pValueName    text,
@@ -310,7 +390,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION AddRegKey ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Insert a new registry key node into the tree.
+ * @param {uuid} pRoot - Root key of the tree (NULL when creating a root key)
+ * @param {uuid} pParent - Direct parent key (falls back to pRoot if NULL)
+ * @param {text} pKey - Key name segment to create
+ * @return {uuid} - Identifier of the newly created key
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION AddRegKey (
   pRoot     uuid,
   pParent   uuid,
@@ -341,7 +428,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION GetRegRoot ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Resolve a top-level root key by its name (e.g. 'kernel' or a username).
+ * @param {text} pKey - Root key name to look up
+ * @return {uuid} - Root key identifier, or NULL if not found
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetRegRoot (
   pKey       text
 ) RETURNS    uuid
@@ -359,7 +451,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION GetRegKey ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Find a child key by parent and name segment.
+ * @param {uuid} pParent - Parent key identifier
+ * @param {text} pKey - Child key name to look up
+ * @return {uuid} - Child key identifier, or NULL if not found
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetRegKey (
   pParent    uuid,
   pKey       text
@@ -378,7 +476,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION GetRegKeyValue -----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Look up a value identifier by key and value name.
+ * @param {uuid} pKey - Registry key identifier
+ * @param {text} pValueName - Name of the value
+ * @return {uuid} - Value identifier, or NULL if not found
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetRegKeyValue (
   pKey          uuid,
   pValueName    text
@@ -397,7 +501,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION DelRegKey ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Delete a registry key and all its directly attached values.
+ * @param {uuid} pKey - Registry key identifier to delete
+ * @return {void}
+ * @see DelTreeRegKey
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION DelRegKey (
   pKey       uuid
 ) RETURNS    void
@@ -413,7 +523,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION DelRegKeyValue -----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Delete a single registry value by its identifier.
+ * @param {uuid} pId - Registry value identifier to delete
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION DelRegKeyValue (
   pId        uuid
 ) RETURNS    void
@@ -428,7 +543,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION DelTreeRegKey ------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Recursively delete a registry key, all its child keys, and their values.
+ * @param {uuid} pKey - Root key identifier of the subtree to remove
+ * @return {void}
+ * @see DelRegKey
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION DelTreeRegKey (
   pKey       uuid
 ) RETURNS    void
@@ -450,7 +571,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION RegCreateKey -------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Create a registry key path, building any missing intermediate keys along the way.
+ * @param {text} pKey - Root key alias: 'CURRENT_CONFIG' (global) or 'CURRENT_USER' (per-user)
+ * @param {text} pSubKey - Backslash-delimited subkey path to create (e.g. 'Settings\Locale')
+ * @param {uuid} pUserId - User identifier (used when pKey = 'CURRENT_USER')
+ * @return {uuid} - Identifier of the deepest (leaf) key in the path
+ * @throws IncorrectRegistryKey - When pKey is not CURRENT_CONFIG or CURRENT_USER
+ * @see RegOpenKey, RegDeleteKey
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION RegCreateKey (
   pKey      text,
   pSubKey   text,
@@ -506,7 +636,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION RegOpenKey ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Open (navigate to) an existing registry key by its path without creating missing segments.
+ * @param {text} pKey - Root key alias: 'CURRENT_CONFIG' or 'CURRENT_USER'
+ * @param {text} pSubKey - Backslash-delimited subkey path to open
+ * @param {uuid} pUserId - User identifier (used when pKey = 'CURRENT_USER')
+ * @return {uuid} - Key identifier if found, NULL otherwise
+ * @throws IncorrectRegistryKey - When pKey is not CURRENT_CONFIG or CURRENT_USER
+ * @see RegCreateKey
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION RegOpenKey (
   pKey      text,
   pSubKey   text,
@@ -552,7 +691,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION RegDeleteKey -------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Delete a registry subkey and its values (non-recursive).
+ * @param {text} pKey - Root key alias: 'CURRENT_CONFIG' or 'CURRENT_USER'
+ * @param {text} pSubKey - Backslash-delimited subkey path to delete
+ * @param {uuid} pUserId - User identifier (used when pKey = 'CURRENT_USER')
+ * @return {boolean} - TRUE on success, FALSE if the subkey was not found
+ * @see RegDeleteTree
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION RegDeleteKey (
   pKey      text,
   pSubKey   text,
@@ -569,7 +716,7 @@ BEGIN
 
     RETURN true;
   ELSE
-    PERFORM SetErrorMessage('Указанный подключ не найден.');
+    PERFORM SetErrorMessage('Specified subkey not found.');
   END IF;
 
   RETURN false;
@@ -581,7 +728,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION RegDeleteKeyValue --------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Delete a named value from a registry subkey.
+ * @param {text} pKey - Root key alias: 'CURRENT_CONFIG' or 'CURRENT_USER'
+ * @param {text} pSubKey - Backslash-delimited subkey path
+ * @param {text} pValueName - Name of the value to delete
+ * @param {uuid} pUserId - User identifier (used when pKey = 'CURRENT_USER')
+ * @return {boolean} - TRUE on success, FALSE if the subkey or value was not found
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION RegDeleteKeyValue (
   pKey          text,
   pSubKey       text,
@@ -603,10 +758,10 @@ BEGIN
 
       RETURN true;
     ELSE
-      PERFORM SetErrorMessage('Указанное значение не найдено.');
+      PERFORM SetErrorMessage('Specified value not found.');
     END IF;
   ELSE
-    PERFORM SetErrorMessage('Указанный подключ не найден.');
+    PERFORM SetErrorMessage('Specified subkey not found.');
   END IF;
 
   RETURN false;
@@ -618,7 +773,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION RegDeleteTree  -----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Recursively delete a subkey, all its descendant keys, and their values.
+ * @param {text} pKey - Root key alias: 'CURRENT_CONFIG' or 'CURRENT_USER'
+ * @param {text} pSubKey - Backslash-delimited subkey path to delete recursively
+ * @param {uuid} pUserId - User identifier (used when pKey = 'CURRENT_USER')
+ * @return {boolean} - TRUE on success, FALSE if the subkey was not found
+ * @see RegDeleteKey
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION RegDeleteTree (
   pKey       text,
   pSubKey    text,
@@ -635,7 +798,7 @@ BEGIN
 
     RETURN true;
   ELSE
-    PERFORM SetErrorMessage('Указанный подключ не найден.');
+    PERFORM SetErrorMessage('Specified subkey not found.');
   END IF;
 
   RETURN false;
@@ -719,7 +882,12 @@ AS
 --------------------------------------------------------------------------------
 -- registry --------------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Filter the registry view by root key identifier.
+ * @param {uuid} pKey - Root key identifier to filter on
+ * @return {SETOF registry.registry} - Matching registry entries with Variant values
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION registry.registry (
   pKey       uuid
 ) RETURNS    SETOF registry.registry
@@ -732,7 +900,13 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- registry_ex -----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Filter the extended registry view by root key identifier.
+ * @param {uuid} pKey - Root key identifier to filter on
+ * @return {SETOF registry.registry_ex} - Matching entries with raw typed columns
+ * @see registry.registry
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION registry.registry_ex (
   pKey       uuid
 ) RETURNS    SETOF registry.registry_ex
@@ -745,7 +919,12 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- FUNCTION registry_key -------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Filter the registry key view by root key identifier.
+ * @param {uuid} pKey - Root key identifier to filter on
+ * @return {SETOF registry.registry_key} - All keys belonging to the specified root
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION registry.registry_key (
   pKey       uuid
 ) RETURNS    SETOF registry.registry_key
@@ -758,7 +937,12 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- FUNCTION registry_value -----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Filter the registry value view by root key identifier.
+ * @param {uuid} pKey - Root key identifier to filter on
+ * @return {SETOF registry.registry_value} - Values under the specified root with Variant data
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION registry.registry_value (
   pKey       uuid
 ) RETURNS    SETOF registry.registry_value
@@ -771,7 +955,13 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- FUNCTION registry_value_ex --------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Filter the extended registry value view by root key identifier.
+ * @param {uuid} pKey - Root key identifier to filter on
+ * @return {SETOF registry.registry_value_ex} - Values with raw typed columns
+ * @see registry.registry_value
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION registry.registry_value_ex (
   pKey       uuid
 ) RETURNS    SETOF registry.registry_value_ex
@@ -784,7 +974,17 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- RegSetValueInteger ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Store an integer value in the registry, creating the key path if needed.
+ * @param {text} pKey - Root key alias: 'CURRENT_CONFIG' or 'CURRENT_USER'
+ * @param {text} pSubKey - Backslash-delimited subkey path
+ * @param {text} pValueName - Name of the value to set
+ * @param {integer} pValue - Integer data to store
+ * @param {uuid} pUserId - User identifier (used when pKey = 'CURRENT_USER')
+ * @return {uuid} - Identifier of the created or updated value row
+ * @see RegGetValueInteger
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION RegSetValueInteger (
   pKey          text,
   pSubKey       text,
@@ -803,7 +1003,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- RegSetValueNumeric ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Store a numeric value in the registry, creating the key path if needed.
+ * @param {text} pKey - Root key alias: 'CURRENT_CONFIG' or 'CURRENT_USER'
+ * @param {text} pSubKey - Backslash-delimited subkey path
+ * @param {text} pValueName - Name of the value to set
+ * @param {numeric} pValue - Numeric data to store
+ * @param {uuid} pUserId - User identifier (used when pKey = 'CURRENT_USER')
+ * @return {uuid} - Identifier of the created or updated value row
+ * @see RegGetValueNumeric
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION RegSetValueNumeric (
   pKey          text,
   pSubKey       text,
@@ -822,7 +1032,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- RegSetValueDate -------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Store a timestamp value in the registry, creating the key path if needed.
+ * @param {text} pKey - Root key alias: 'CURRENT_CONFIG' or 'CURRENT_USER'
+ * @param {text} pSubKey - Backslash-delimited subkey path
+ * @param {text} pValueName - Name of the value to set
+ * @param {timestamp} pValue - Timestamp data to store
+ * @param {uuid} pUserId - User identifier (used when pKey = 'CURRENT_USER')
+ * @return {timestamp} - The stored timestamp value
+ * @see RegGetValueDate
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION RegSetValueDate (
   pKey          text,
   pSubKey       text,
@@ -841,7 +1061,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- RegSetValueString -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Store a text value in the registry, creating the key path if needed.
+ * @param {text} pKey - Root key alias: 'CURRENT_CONFIG' or 'CURRENT_USER'
+ * @param {text} pSubKey - Backslash-delimited subkey path
+ * @param {text} pValueName - Name of the value to set
+ * @param {text} pValue - Text data to store
+ * @param {uuid} pUserId - User identifier (used when pKey = 'CURRENT_USER')
+ * @return {text} - The stored text value
+ * @see RegGetValueString
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION RegSetValueString (
   pKey          text,
   pSubKey       text,
@@ -860,7 +1090,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- RegSetValueBoolean ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Store a boolean value in the registry, creating the key path if needed.
+ * @param {text} pKey - Root key alias: 'CURRENT_CONFIG' or 'CURRENT_USER'
+ * @param {text} pSubKey - Backslash-delimited subkey path
+ * @param {text} pValueName - Name of the value to set
+ * @param {boolean} pValue - Boolean data to store
+ * @param {uuid} pUserId - User identifier (used when pKey = 'CURRENT_USER')
+ * @return {boolean} - The stored boolean value
+ * @see RegGetValueBoolean
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION RegSetValueBoolean (
   pKey          text,
   pSubKey       text,
@@ -879,7 +1119,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- RegGetValueType -------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve the data type discriminator for a named registry value.
+ * @param {text} pKey - Root key alias: 'CURRENT_CONFIG' or 'CURRENT_USER'
+ * @param {text} pSubKey - Backslash-delimited subkey path
+ * @param {text} pValueName - Name of the value to inspect
+ * @param {uuid} pUserId - User identifier (used when pKey = 'CURRENT_USER')
+ * @return {integer} - Type code: 0=integer, 1=numeric, 2=datetime, 3=text, 4=boolean
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION RegGetValueType (
   pKey          text,
   pSubKey       text,
@@ -897,7 +1145,16 @@ $$ LANGUAGE plpgsql STABLE
 --------------------------------------------------------------------------------
 -- RegGetValueInteger ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve an integer value from the registry by key path and value name.
+ * @param {text} pKey - Root key alias: 'CURRENT_CONFIG' or 'CURRENT_USER'
+ * @param {text} pSubKey - Backslash-delimited subkey path
+ * @param {text} pValueName - Name of the value to read
+ * @param {uuid} pUserId - User identifier (used when pKey = 'CURRENT_USER')
+ * @return {integer} - Stored integer, or NULL if not found
+ * @see RegSetValueInteger
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION RegGetValueInteger (
   pKey          text,
   pSubKey       text,
@@ -915,7 +1172,16 @@ $$ LANGUAGE plpgsql STABLE
 --------------------------------------------------------------------------------
 -- RegGetValueNumeric ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve a numeric value from the registry by key path and value name.
+ * @param {text} pKey - Root key alias: 'CURRENT_CONFIG' or 'CURRENT_USER'
+ * @param {text} pSubKey - Backslash-delimited subkey path
+ * @param {text} pValueName - Name of the value to read
+ * @param {uuid} pUserId - User identifier (used when pKey = 'CURRENT_USER')
+ * @return {numeric} - Stored numeric, or NULL if not found
+ * @see RegSetValueNumeric
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION RegGetValueNumeric (
   pKey          text,
   pSubKey       text,
@@ -933,7 +1199,16 @@ $$ LANGUAGE plpgsql STABLE
 --------------------------------------------------------------------------------
 -- RegGetValueDate -------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve a timestamp value from the registry by key path and value name.
+ * @param {text} pKey - Root key alias: 'CURRENT_CONFIG' or 'CURRENT_USER'
+ * @param {text} pSubKey - Backslash-delimited subkey path
+ * @param {text} pValueName - Name of the value to read
+ * @param {uuid} pUserId - User identifier (used when pKey = 'CURRENT_USER')
+ * @return {timestamp} - Stored timestamp, or NULL if not found
+ * @see RegSetValueDate
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION RegGetValueDate (
   pKey          text,
   pSubKey       text,
@@ -951,7 +1226,16 @@ $$ LANGUAGE plpgsql STABLE
 --------------------------------------------------------------------------------
 -- RegGetValueString -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve a text value from the registry by key path and value name.
+ * @param {text} pKey - Root key alias: 'CURRENT_CONFIG' or 'CURRENT_USER'
+ * @param {text} pSubKey - Backslash-delimited subkey path
+ * @param {text} pValueName - Name of the value to read
+ * @param {uuid} pUserId - User identifier (used when pKey = 'CURRENT_USER')
+ * @return {text} - Stored text, or NULL if not found
+ * @see RegSetValueString
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION RegGetValueString (
   pKey          text,
   pSubKey       text,
@@ -969,7 +1253,16 @@ $$ LANGUAGE plpgsql STABLE
 --------------------------------------------------------------------------------
 -- RegGetValueBoolean ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve a boolean value from the registry by key path and value name.
+ * @param {text} pKey - Root key alias: 'CURRENT_CONFIG' or 'CURRENT_USER'
+ * @param {text} pSubKey - Backslash-delimited subkey path
+ * @param {text} pValueName - Name of the value to read
+ * @param {uuid} pUserId - User identifier (used when pKey = 'CURRENT_USER')
+ * @return {boolean} - Stored boolean, or NULL if not found
+ * @see RegSetValueBoolean
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION RegGetValueBoolean (
   pKey          text,
   pSubKey       text,
@@ -983,4 +1276,3 @@ END
 $$ LANGUAGE plpgsql STABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
-

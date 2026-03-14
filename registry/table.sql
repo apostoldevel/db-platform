@@ -10,13 +10,13 @@ CREATE TABLE registry.key (
     level       integer NOT NULL
 );
 
-COMMENT ON TABLE registry.key IS 'Реестр (ключ).';
+COMMENT ON TABLE registry.key IS 'Registry key: hierarchical tree node in the configuration store.';
 
-COMMENT ON COLUMN registry.key.id IS 'Идентификатор';
-COMMENT ON COLUMN registry.key.root IS 'Идентификатор корневого узла';
-COMMENT ON COLUMN registry.key.parent IS 'Идентификатор родительского узла';
-COMMENT ON COLUMN registry.key.key IS 'Ключ';
-COMMENT ON COLUMN registry.key.level IS 'Уровень вложенности';
+COMMENT ON COLUMN registry.key.id IS 'Primary key (UUID).';
+COMMENT ON COLUMN registry.key.root IS 'Root node of the tree this key belongs to (NULL for root keys themselves).';
+COMMENT ON COLUMN registry.key.parent IS 'Immediate parent key (NULL for root keys).';
+COMMENT ON COLUMN registry.key.key IS 'Key name segment (e.g. "kernel", "Settings").';
+COMMENT ON COLUMN registry.key.level IS 'Nesting depth: 0 = root, 1 = first child, etc.';
 
 CREATE INDEX ON registry.key (root);
 CREATE INDEX ON registry.key (parent);
@@ -41,17 +41,17 @@ CREATE TABLE registry.value (
     CHECK (vtype BETWEEN 0 AND 4)
 );
 
-COMMENT ON TABLE registry.value IS 'Реестр (значение).';
+COMMENT ON TABLE registry.value IS 'Registry value: typed datum attached to a registry key.';
 
-COMMENT ON COLUMN registry.value.id IS 'Идентификатор';
-COMMENT ON COLUMN registry.value.key IS 'Идентификатор ключа';
-COMMENT ON COLUMN registry.value.vname IS 'Имя значения';
-COMMENT ON COLUMN registry.value.vtype IS 'Тип данных';
-COMMENT ON COLUMN registry.value.vinteger IS 'Целое число: vtype = 0';
-COMMENT ON COLUMN registry.value.vnumeric IS 'Число с произвольной точностью: vtype = 1';
-COMMENT ON COLUMN registry.value.vdatetime IS 'Дата и время: vtype = 2';
-COMMENT ON COLUMN registry.value.vstring IS 'Строка: vtype = 3';
-COMMENT ON COLUMN registry.value.vboolean IS 'Логический: vtype = 4';
+COMMENT ON COLUMN registry.value.id IS 'Primary key (UUID).';
+COMMENT ON COLUMN registry.value.key IS 'Parent registry key this value belongs to.';
+COMMENT ON COLUMN registry.value.vname IS 'Value name (unique per key; "default" is the unnamed value).';
+COMMENT ON COLUMN registry.value.vtype IS 'Data type discriminator: 0=integer, 1=numeric, 2=datetime, 3=text, 4=boolean.';
+COMMENT ON COLUMN registry.value.vinteger IS 'Integer payload (used when vtype = 0).';
+COMMENT ON COLUMN registry.value.vnumeric IS 'Arbitrary-precision numeric payload (used when vtype = 1).';
+COMMENT ON COLUMN registry.value.vdatetime IS 'Timestamp payload (used when vtype = 2).';
+COMMENT ON COLUMN registry.value.vstring IS 'Text payload (used when vtype = 3).';
+COMMENT ON COLUMN registry.value.vboolean IS 'Boolean payload (used when vtype = 4).';
 
 --------------------------------------------------------------------------------
 
