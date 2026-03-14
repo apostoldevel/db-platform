@@ -5,7 +5,12 @@
 --------------------------------------------------------------------------------
 -- EventMessageCreate ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the "create" workflow event for a message.
+ * @param {uuid} pObject - Message identifier (defaults to context object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventMessageCreate (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -18,7 +23,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventMessageOpen ------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the "open" workflow event for a message.
+ * @param {uuid} pObject - Message identifier (defaults to context object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventMessageOpen (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -31,7 +41,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventMessageEdit ------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the "edit" workflow event for a message.
+ * @param {uuid} pObject - Message identifier (defaults to context object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventMessageEdit (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -44,7 +59,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventMessageSave ------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the "save" workflow event for a message.
+ * @param {uuid} pObject - Message identifier (defaults to context object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventMessageSave (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -57,7 +77,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventMessageEnable ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the "enable" workflow event for a message.
+ * @param {uuid} pObject - Message identifier (defaults to context object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventMessageEnable (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -70,7 +95,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventMessageDisable ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the "disable" workflow event for a message.
+ * @param {uuid} pObject - Message identifier (defaults to context object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventMessageDisable (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -83,7 +113,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventMessageDelete ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the "delete" (soft) workflow event for a message.
+ * @param {uuid} pObject - Message identifier (defaults to context object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventMessageDelete (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -96,7 +131,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventMessageRestore ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the "restore" workflow event for a message.
+ * @param {uuid} pObject - Message identifier (defaults to context object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventMessageRestore (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -109,7 +149,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventMessageDrop ------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the "drop" workflow event: permanently delete a message from db.message.
+ * @param {uuid} pObject - Message identifier (defaults to context object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventMessageDrop (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -129,7 +174,13 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventMessageConfirmEmail ----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Send an email confirmation message to a client's unverified email address.
+ * @param {uuid} pObject - Client object identifier (defaults to context object)
+ * @param {jsonb} pParams - Workflow parameters (defaults to context params)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventMessageConfirmEmail (
   pObject        uuid default context_object(),
   pParams        jsonb default context_params()
@@ -198,7 +249,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventMessageAccountInfo -----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Send account information email to a client's verified email address.
+ * @param {uuid} pObject - Client object identifier (defaults to context object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventMessageAccountInfo (
   pObject        uuid default context_object()
 ) RETURNS        void

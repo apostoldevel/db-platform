@@ -2,10 +2,14 @@
 -- REST DOCUMENT ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Запрос данных в формате REST JSON API (Документ).
- * @param {text} pPath - Путь
- * @param {jsonb} pPayload - JSON
- * @return {SETOF json} - Записи в JSON
+ * @brief Dispatch REST JSON API requests for the Document entity.
+ * @param {text} pPath - REST route path (e.g., /document/get, /document/list)
+ * @param {jsonb} pPayload - Request payload
+ * @return {SETOF json} - JSON result set
+ * @throws RouteIsEmpty - When pPath is NULL
+ * @throws LoginFailed - When no active session exists
+ * @throws RouteNotFound - When pPath does not match any known route
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION rest.document (
   pPath       text,

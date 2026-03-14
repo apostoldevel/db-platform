@@ -17,16 +17,16 @@ CREATE TABLE db.document (
     scope           uuid NOT NULL REFERENCES db.scope(id)
 );
 
-COMMENT ON TABLE db.document IS 'Документ.';
+COMMENT ON TABLE db.document IS 'Abstract base for all business documents (jobs, messages, etc.).';
 
-COMMENT ON COLUMN db.document.id IS 'Идентификатор';
-COMMENT ON COLUMN db.document.object IS 'Объект';
-COMMENT ON COLUMN db.document.entity IS 'Сущность';
-COMMENT ON COLUMN db.document.class IS 'Класс';
-COMMENT ON COLUMN db.document.type IS 'Тип';
-COMMENT ON COLUMN db.document.priority IS 'Приоритет';
-COMMENT ON COLUMN db.document.area IS 'Область видимости документа';
-COMMENT ON COLUMN db.document.scope IS 'Область видимости базы данных';
+COMMENT ON COLUMN db.document.id IS 'Primary key (same as object.id).';
+COMMENT ON COLUMN db.document.object IS 'Reference to the parent object record.';
+COMMENT ON COLUMN db.document.entity IS 'Entity this document belongs to.';
+COMMENT ON COLUMN db.document.class IS 'Class within the entity hierarchy.';
+COMMENT ON COLUMN db.document.type IS 'Document type (subclass discriminator).';
+COMMENT ON COLUMN db.document.priority IS 'Document priority level.';
+COMMENT ON COLUMN db.document.area IS 'Visibility area (organizational scope of the document).';
+COMMENT ON COLUMN db.document.scope IS 'Database scope (tenant partition).';
 
 CREATE INDEX ON db.document (object);
 CREATE INDEX ON db.document (entity);
@@ -136,11 +136,11 @@ CREATE TABLE db.document_text (
 
 --------------------------------------------------------------------------------
 
-COMMENT ON TABLE db.document_text IS 'Текст документа.';
+COMMENT ON TABLE db.document_text IS 'Locale-specific text content for documents.';
 
-COMMENT ON COLUMN db.document_text.document IS 'Идентификатор';
-COMMENT ON COLUMN db.document_text.locale IS 'Идентификатор локали';
-COMMENT ON COLUMN db.document_text.description IS 'Описание';
+COMMENT ON COLUMN db.document_text.document IS 'Reference to the owning document.';
+COMMENT ON COLUMN db.document_text.locale IS 'Locale identifier for this translation.';
+COMMENT ON COLUMN db.document_text.description IS 'Localized description text.';
 
 --------------------------------------------------------------------------------
 

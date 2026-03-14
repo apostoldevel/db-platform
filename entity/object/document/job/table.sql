@@ -18,15 +18,15 @@ CREATE TABLE db.job (
 
 --------------------------------------------------------------------------------
 
-COMMENT ON TABLE db.job IS 'Задание.';
+COMMENT ON TABLE db.job IS 'Scheduled or one-time task executed by the TaskScheduler process.';
 
-COMMENT ON COLUMN db.job.id IS 'Идентификатор';
-COMMENT ON COLUMN db.job.document IS 'Документ';
-COMMENT ON COLUMN db.job.scope IS 'Область видимости базы данных';
-COMMENT ON COLUMN db.job.code IS 'Код';
-COMMENT ON COLUMN db.job.scheduler IS 'Планировщик';
-COMMENT ON COLUMN db.job.program IS 'Программа';
-COMMENT ON COLUMN db.job.dateRun IS 'Дата запуска.';
+COMMENT ON COLUMN db.job.id IS 'Primary key (same as document.id).';
+COMMENT ON COLUMN db.job.document IS 'Reference to the parent document record.';
+COMMENT ON COLUMN db.job.scope IS 'Database scope (tenant partition).';
+COMMENT ON COLUMN db.job.code IS 'Unique job code within the scope.';
+COMMENT ON COLUMN db.job.scheduler IS 'Scheduler that owns this job (defines recurrence period).';
+COMMENT ON COLUMN db.job.program IS 'Program to execute when the job runs.';
+COMMENT ON COLUMN db.job.dateRun IS 'Next scheduled execution timestamp.';
 
 --------------------------------------------------------------------------------
 

@@ -5,7 +5,12 @@
 --------------------------------------------------------------------------------
 -- EventDocumentCreate ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the "create" workflow event for a document.
+ * @param {uuid} pObject - Document identifier (defaults to context object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventDocumentCreate (
   pObject    uuid DEFAULT context_object()
 ) RETURNS    void
@@ -18,7 +23,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventDocumentOpen -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the "open" workflow event for a document.
+ * @param {uuid} pObject - Document identifier (defaults to context object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventDocumentOpen (
   pObject    uuid DEFAULT context_object()
 ) RETURNS    void
@@ -31,23 +41,17 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventDocumentEdit -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the "edit" workflow event for a document.
+ * @param {uuid} pObject - Document identifier (defaults to context object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventDocumentEdit (
   pObject    uuid DEFAULT context_object()
 ) RETURNS    void
 AS $$
--- DECLARE
---   uArea     uuid;
---   uAreaType uuid;
 BEGIN
---   SELECT area INTO uArea FROM db.document WHERE id = pObject;
---   SELECT type INTO uAreaType FROM db.area WHERE id = uArea;
---   IF uAreaType IS NOT DISTINCT FROM '00000000-0000-4002-a001-000000000000' THEN -- equally default area type
---     IF uAreaType IS DISTINCT FROM current_area_type() THEN
---       PERFORM DefaultAreaDocumentError();
---     END IF;
---   END IF;
-
   PERFORM WriteToEventLog('M', 1000, 'edit', 'Документ изменён.', pObject);
 END;
 $$ LANGUAGE plpgsql;
@@ -55,7 +59,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventDocumentSave -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the "save" workflow event for a document.
+ * @param {uuid} pObject - Document identifier (defaults to context object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventDocumentSave (
   pObject    uuid DEFAULT context_object()
 ) RETURNS    void
@@ -68,7 +77,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventDocumentEnable ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the "enable" workflow event for a document.
+ * @param {uuid} pObject - Document identifier (defaults to context object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventDocumentEnable (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -81,7 +95,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventDocumentDisable --------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the "disable" workflow event for a document.
+ * @param {uuid} pObject - Document identifier (defaults to context object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventDocumentDisable (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -94,7 +113,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventDocumentDelete ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the "delete" (soft) workflow event for a document.
+ * @param {uuid} pObject - Document identifier (defaults to context object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventDocumentDelete (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -107,7 +131,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventDocumentRestore --------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the "restore" workflow event for a document.
+ * @param {uuid} pObject - Document identifier (defaults to context object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventDocumentRestore (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -120,7 +149,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventDocumentDrop -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the "drop" workflow event: permanently delete a document from db.document.
+ * @param {uuid} pObject - Document identifier (defaults to context object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventDocumentDrop (
   pObject    uuid default context_object()
 ) RETURNS    void

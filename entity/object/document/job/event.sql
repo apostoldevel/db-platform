@@ -5,7 +5,12 @@
 --------------------------------------------------------------------------------
 -- EventJobCreate --------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the "create" workflow event for a job; auto-enables the job.
+ * @param {uuid} pObject - Job identifier (defaults to context object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventJobCreate (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -19,7 +24,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventJobOpen ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the "open" workflow event for a job.
+ * @param {uuid} pObject - Job identifier (defaults to context object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventJobOpen (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -32,7 +42,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventJobEdit ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the "edit" workflow event for a job.
+ * @param {uuid} pObject - Job identifier (defaults to context object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventJobEdit (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -45,7 +60,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventJobSave ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the "save" workflow event for a job.
+ * @param {uuid} pObject - Job identifier (defaults to context object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventJobSave (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -58,7 +78,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventJobEnable --------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the "enable" workflow event for a job (marks it as active).
+ * @param {uuid} pObject - Job identifier (defaults to context object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventJobEnable (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -71,7 +96,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventJobDisable -------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the "disable" workflow event for a job (marks it as inactive).
+ * @param {uuid} pObject - Job identifier (defaults to context object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventJobDisable (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -84,7 +114,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventJobDelete --------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the "delete" (soft) workflow event for a job.
+ * @param {uuid} pObject - Job identifier (defaults to context object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventJobDelete (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -97,7 +132,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventJobRestore -------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the "restore" workflow event for a job.
+ * @param {uuid} pObject - Job identifier (defaults to context object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventJobRestore (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -110,7 +150,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventJobExecute -------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the "execute" workflow event when a job begins running.
+ * @param {uuid} pObject - Job identifier (defaults to context object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventJobExecute (
   pObject        uuid default context_object()
 ) RETURNS        void
@@ -123,7 +168,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventJobComplete ------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the "complete" workflow event when a job finishes successfully.
+ * @param {uuid} pObject - Job identifier (defaults to context object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventJobComplete (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -136,7 +186,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventJobDone ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the "done" workflow event: reschedule the job based on scheduler period.
+ * @param {uuid} pObject - Job identifier (defaults to context object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventJobDone (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -171,7 +226,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventJobFail ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the "fail" workflow event when a job execution fails.
+ * @param {uuid} pObject - Job identifier (defaults to context object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventJobFail (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -184,7 +244,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventJobAbort ---------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the "abort" workflow event when a job is forcefully stopped.
+ * @param {uuid} pObject - Job identifier (defaults to context object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventJobAbort (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -197,7 +262,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventJobCancel --------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the "cancel" workflow event when a job is cancelled.
+ * @param {uuid} pObject - Job identifier (defaults to context object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventJobCancel (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -210,7 +280,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventJobDrop ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the "drop" workflow event: permanently delete a job from db.job.
+ * @param {uuid} pObject - Job identifier (defaults to context object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventJobDrop (
   pObject    uuid default context_object()
 ) RETURNS    void

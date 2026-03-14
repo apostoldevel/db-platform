@@ -1,7 +1,22 @@
 --------------------------------------------------------------------------------
 -- CreateJob -------------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Create a new scheduled job linked to a scheduler and program.
+ * @param {uuid} pParent - Parent object reference
+ * @param {uuid} pType - Job type identifier (must belong to entity 'job')
+ * @param {uuid} pScheduler - Scheduler that owns this job
+ * @param {uuid} pProgram - Program to execute
+ * @param {timestamptz} pDateRun - First execution timestamp (NULL defaults via scheduler period)
+ * @param {text} pCode - Unique job code within scope (auto-generated if NULL)
+ * @param {text} pLabel - Display label
+ * @param {text} pDescription - Job description
+ * @return {uuid} - Identifier of the created job
+ * @throws IncorrectClassType - When pType does not belong to the 'job' entity
+ * @throws JobExists - When a job with the same code already exists in this scope
+ * @see EditJob
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CreateJob (
   pParent           uuid,
   pType             uuid,
@@ -47,7 +62,22 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- EditJob ---------------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Update an existing job and trigger the "edit" workflow method.
+ * @param {uuid} pId - Job identifier
+ * @param {uuid} pParent - New parent object (NULL keeps current)
+ * @param {uuid} pType - New job type (NULL keeps current)
+ * @param {uuid} pScheduler - New scheduler (NULL keeps current)
+ * @param {uuid} pProgram - New program (NULL keeps current)
+ * @param {timestamptz} pDateRun - New execution timestamp (NULL keeps current)
+ * @param {text} pCode - New job code (NULL keeps current)
+ * @param {text} pLabel - New display label (NULL keeps current)
+ * @param {text} pDescription - New description (NULL keeps current)
+ * @return {void}
+ * @throws JobExists - When the new code conflicts with an existing job in this scope
+ * @see CreateJob
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EditJob (
   pId               uuid,
   pParent           uuid default null,
@@ -104,7 +134,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- GetJob ----------------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Look up a job identifier by its unique code.
+ * @param {text} pCode - Job code
+ * @return {uuid} - Job identifier, or NULL if not found
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetJob (
   pCode     text
 ) RETURNS   uuid

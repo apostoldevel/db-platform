@@ -17,16 +17,16 @@ CREATE TABLE db.message (
     content         text
 );
 
-COMMENT ON TABLE db.message IS 'Сообщение.';
+COMMENT ON TABLE db.message IS 'Message record dispatched via SMTP, FCM, SMS, or API agents.';
 
-COMMENT ON COLUMN db.message.id IS 'Идентификатор';
-COMMENT ON COLUMN db.message.document IS 'Документ';
-COMMENT ON COLUMN db.message.agent IS 'Идентификатор агента';
-COMMENT ON COLUMN db.message.code IS 'Код';
-COMMENT ON COLUMN db.message.profile IS 'Профиль отправителя';
-COMMENT ON COLUMN db.message.address IS 'Адрес получателя';
-COMMENT ON COLUMN db.message.subject IS 'Тема';
-COMMENT ON COLUMN db.message.content IS 'Содержимое';
+COMMENT ON COLUMN db.message.id IS 'Primary key (same as document.id).';
+COMMENT ON COLUMN db.message.document IS 'Reference to the parent document record.';
+COMMENT ON COLUMN db.message.agent IS 'Delivery agent (SMTP, FCM, M2M, etc.).';
+COMMENT ON COLUMN db.message.code IS 'Unique message code (MsgId), auto-generated if empty.';
+COMMENT ON COLUMN db.message.profile IS 'Sender identity / profile name.';
+COMMENT ON COLUMN db.message.address IS 'Recipient address (email, phone, device token, etc.).';
+COMMENT ON COLUMN db.message.subject IS 'Message subject line.';
+COMMENT ON COLUMN db.message.content IS 'Message body content.';
 
 CREATE INDEX ON db.message (document);
 CREATE INDEX ON db.message (agent);

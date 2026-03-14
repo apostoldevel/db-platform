@@ -16,13 +16,14 @@ GRANT SELECT ON api.document TO administrator;
 -- api.add_document ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Добавляет документ.
- * @param {uuid} pParent - Ссылка на родительский объект: api.document | null
- * @param {uuid} pType - Идентификатор типа
- * @param {text} pLabel - Метка
- * @param {text} pDescription - Описание
- * @param {text} pData - Данные
- * @return {uuid}
+ * @brief Create a new document record.
+ * @param {uuid} pParent - Parent object reference (or NULL for root)
+ * @param {uuid} pType - Document type identifier
+ * @param {text} pLabel - Display label
+ * @param {text} pDescription - Localized description
+ * @param {text} pData - Full-text content
+ * @return {uuid} - Identifier of the created document
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.add_document (
   pParent       uuid,
@@ -43,13 +44,16 @@ $$ LANGUAGE plpgsql
 -- api.update_document ---------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Редактирует документ.
- * @param {uuid} pParent - Ссылка на родительский объект: Document.Parent | null
- * @param {uuid} pType - Идентификатор типа
- * @param {text} pLabel - Метка
- * @param {text} pDescription - Описание
- * @param {text} pData - Данные
+ * @brief Update an existing document record.
+ * @param {uuid} pId - Document identifier
+ * @param {uuid} pParent - New parent object (NULL keeps current)
+ * @param {uuid} pType - New document type (NULL keeps current)
+ * @param {text} pLabel - New display label (NULL keeps current)
+ * @param {text} pDescription - New description (NULL keeps current)
+ * @param {text} pData - New full-text content (NULL keeps current)
  * @return {void}
+ * @throws ObjectNotFound - When no document matches pId
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.update_document (
   pId           uuid,
@@ -78,7 +82,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.set_document ------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Create or update a document (upsert). Routes to add or update based on pId.
+ * @param {uuid} pId - Document identifier (NULL to create)
+ * @param {uuid} pParent - Parent object reference
+ * @param {uuid} pType - Document type identifier
+ * @param {text} pLabel - Display label
+ * @param {text} pDescription - Localized description
+ * @param {text} pData - Full-text content
+ * @return {SETOF api.document} - The created or updated document
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.set_document (
   pId           uuid,
   pParent       uuid default null,
@@ -105,9 +119,10 @@ $$ LANGUAGE plpgsql
 -- api.get_document ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает документ
- * @param {uuid} pId - Идентификатор
- * @return {api.document}
+ * @brief Retrieve a single document by identifier with access check.
+ * @param {uuid} pId - Document identifier
+ * @return {SETOF api.document} - Matching document record
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_document (
   pId       uuid
@@ -122,13 +137,14 @@ $$ LANGUAGE SQL
 -- api.list_document -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список документов.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.document}
+ * @brief List documents matching search, filter, and sort criteria.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Field-level equality filter
+ * @param {integer} pLimit - Maximum number of rows to return
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Array of fields to sort by
+ * @return {SETOF api.document} - Matching document records
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_document (
   pSearch    jsonb default null,
@@ -148,7 +164,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.change_document_area ----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Reassign a document (and children) to a different visibility area.
+ * @param {uuid} pId - Document identifier
+ * @param {uuid} pArea - Target area identifier
+ * @return {SETOF api.document}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.change_document_area (
   pId           uuid,
   pArea         uuid

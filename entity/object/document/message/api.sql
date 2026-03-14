@@ -26,7 +26,12 @@ GRANT SELECT ON api.service_message TO apibot;
 --------------------------------------------------------------------------------
 -- FUNCTION api.service_message ------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve service messages filtered by class within the current scope.
+ * @param {uuid} pClass - Class identifier (e.g., inbox or outbox)
+ * @return {SETOF api.service_message} - Matching service message records
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.service_message (
   pClass    uuid
 ) RETURNS   SETOF api.service_message
@@ -39,7 +44,14 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- FUNCTION api.message --------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve messages filtered by type, agent, and state (UUID overload).
+ * @param {uuid} pType - Message type identifier
+ * @param {uuid} pAgent - Delivery agent identifier
+ * @param {uuid} pState - State identifier
+ * @return {SETOF api.message} - Matching message records
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.message (
   pType     uuid,
   pAgent    uuid,
@@ -54,7 +66,14 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- FUNCTION api.message --------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve messages filtered by type, agent, and state (text code overload).
+ * @param {text} pType - Message type code (e.g., 'message.outbox')
+ * @param {text} pAgent - Agent code (e.g., 'smtp.agent')
+ * @param {text} pState - State code (e.g., 'enabled')
+ * @return {SETOF api.message} - Matching message records
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.message (
   pType     text,
   pAgent    text,
@@ -70,18 +89,19 @@ $$ LANGUAGE SQL
 -- api.add_message -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Добавляет сообщение.
- * @param {uuid} pParent - Родительский объект
- * @param {uuid} pType - Идентификатор типа
- * @param {uuid} pAgent - Агент
- * @param {text} pCode - Код (MsgId)
- * @param {text} pProfile - Профиль отправителя
- * @param {text} pAddress - Адрес получателя
- * @param {text} pSubject - Тема
- * @param {text} pContent - Содержимое
- * @param {text} pLabel - Метка
- * @param {text} pDescription - Описание
- * @return {uuid}
+ * @brief Create a new message via the API layer.
+ * @param {uuid} pParent - Parent object reference
+ * @param {uuid} pType - Message type identifier
+ * @param {uuid} pAgent - Delivery agent
+ * @param {text} pCode - Unique message code (MsgId)
+ * @param {text} pProfile - Sender profile
+ * @param {text} pAddress - Recipient address
+ * @param {text} pSubject - Subject line
+ * @param {text} pContent - Message body
+ * @param {text} pLabel - Display label
+ * @param {text} pDescription - Description
+ * @return {uuid} - Identifier of the created message
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.add_message (
   pParent       uuid,
@@ -107,19 +127,21 @@ $$ LANGUAGE plpgsql
 -- api.update_message ----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Обновляет сообщение.
- * @param {uuid} pId - Идентификатор
- * @param {uuid} pParent - Родительский объект
- * @param {uuid} pType - Идентификатор типа
- * @param {uuid} pAgent - Агент
- * @param {text} pCode - Код (MsgId)
- * @param {text} pProfile - Профиль отправителя
- * @param {text} pAddress - Адрес получателя
- * @param {text} pSubject - Тема
- * @param {text} pContent - Содержимое
- * @param {text} pLabel - Метка
- * @param {text} pDescription - Описание
+ * @brief Update an existing message via the API layer.
+ * @param {uuid} pId - Message identifier
+ * @param {uuid} pParent - New parent object (NULL keeps current)
+ * @param {uuid} pType - New message type (NULL keeps current)
+ * @param {uuid} pAgent - New delivery agent (NULL keeps current)
+ * @param {text} pCode - New message code (NULL keeps current)
+ * @param {text} pProfile - New sender profile (NULL keeps current)
+ * @param {text} pAddress - New recipient address (NULL keeps current)
+ * @param {text} pSubject - New subject line (NULL keeps current)
+ * @param {text} pContent - New message body (NULL keeps current)
+ * @param {text} pLabel - New display label (NULL keeps current)
+ * @param {text} pDescription - New description (NULL keeps current)
  * @return {void}
+ * @throws ObjectNotFound - When no message matches pId
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.update_message (
   pId           uuid,
@@ -152,7 +174,22 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.set_message -------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Create or update a message (upsert). Routes to add or update based on pId.
+ * @param {uuid} pId - Message identifier (NULL to create)
+ * @param {uuid} pParent - Parent object reference
+ * @param {uuid} pType - Message type identifier
+ * @param {uuid} pAgent - Delivery agent
+ * @param {text} pCode - Message code
+ * @param {text} pProfile - Sender profile
+ * @param {text} pAddress - Recipient address
+ * @param {text} pSubject - Subject line
+ * @param {text} pContent - Message body
+ * @param {text} pLabel - Display label
+ * @param {text} pDescription - Description
+ * @return {SETOF api.message} - The created or updated message
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.set_message (
   pId           uuid,
   pParent       uuid default null,
@@ -184,9 +221,10 @@ $$ LANGUAGE plpgsql
 -- api.get_message -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает сообщение
- * @param {uuid} pId - Идентификатор
- * @return {api.message}
+ * @brief Retrieve a single message by identifier with access check.
+ * @param {uuid} pId - Message identifier
+ * @return {SETOF api.message} - Matching message record
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_message (
   pId       uuid
@@ -201,9 +239,10 @@ $$ LANGUAGE SQL
 -- api.get_service_message -----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает сервисное сообщение
- * @param {uuid} pId - Идентификатор
- * @return {api.service_message}
+ * @brief Retrieve a single service message by identifier with access check.
+ * @param {uuid} pId - Message identifier
+ * @return {SETOF api.service_message} - Matching service message record
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_service_message (
   pId       uuid
@@ -218,13 +257,14 @@ $$ LANGUAGE SQL
 -- api.list_message ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список сообщений.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.message}
+ * @brief List messages matching search, filter, and sort criteria.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Field-level equality filter
+ * @param {integer} pLimit - Maximum number of rows to return
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Array of fields to sort by
+ * @return {SETOF api.message} - Matching message records
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_message (
   pSearch   jsonb DEFAULT null,
@@ -244,7 +284,19 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.send_message ------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Create and immediately submit a message for delivery via the specified agent.
+ * @param {uuid} pParent - Parent object reference
+ * @param {uuid} pAgent - Delivery agent
+ * @param {text} pProfile - Sender profile
+ * @param {text} pAddress - Recipient address
+ * @param {text} pSubject - Subject line
+ * @param {text} pContent - Message body
+ * @param {text} pLabel - Display label
+ * @param {text} pDescription - Description
+ * @return {SETOF api.message} - The sent message record
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.send_message (
   pParent       uuid,
   pAgent        uuid,
@@ -269,7 +321,18 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.send_mail ---------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Send an email to the current user's verified email address.
+ * @param {text} pSubject - Email subject
+ * @param {text} pText - Plain-text body
+ * @param {text} pHTML - HTML body
+ * @param {text} pDescription - Description for logging
+ * @param {uuid} pUserId - Target user (defaults to current user)
+ * @return {SETOF api.message} - The sent email message record
+ * @throws EmailAddressNotSet - When the user has no email
+ * @throws EmailAddressNotVerified - When the email is not verified
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.send_mail (
   pSubject      text,
   pText         text,
@@ -330,7 +393,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.send_sms ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Send an SMS to the current user's verified phone number.
+ * @param {text} pProfile - SMS sender address / profile
+ * @param {text} pMessage - SMS text content
+ * @param {uuid} pUserId - Target user (defaults to current user)
+ * @return {SETOF api.message} - The sent SMS message record
+ * @throws PhoneNumberNotSet - When the user has no phone number
+ * @throws PhoneNumberNotVerified - When the phone is not verified
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.send_sms (
   pProfile      text,
   pMessage      text,
@@ -373,7 +445,18 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.send_push ---------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Send a push notification to a user via FCM.
+ * @param {uuid} pObject - Context object for event logging
+ * @param {text} pTitle - Notification title
+ * @param {text} pBody - Notification body text
+ * @param {uuid} pUserId - Target user (defaults to current user)
+ * @param {jsonb} pData - Custom data payload
+ * @param {jsonb} pAndroid - Android-specific options
+ * @param {jsonb} pApns - APNs-specific options
+ * @return {SETOF api.message} - The sent push message record
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.send_push (
   pObject       uuid,
   pTitle        text,
@@ -404,7 +487,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.send_push_data ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Send a data-only push notification via FCM (no visible notification).
+ * @param {uuid} pObject - Context object for event logging
+ * @param {text} pSubject - Subject for logging
+ * @param {json} pData - Data payload
+ * @param {uuid} pUserId - Target user (defaults to current user)
+ * @param {text} pPriority - Android priority ('normal' or 'high')
+ * @param {text} pCollapse - Collapse key for grouping
+ * @return {SETOF api.message} - The sent push message record
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.send_push_data (
   pObject       uuid,
   pSubject      text,
@@ -434,7 +527,18 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.send_push_to_role -------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Send a push notification to all members of a role/group.
+ * @param {text} pRoleName - Username or group name
+ * @param {text} pTitle - Notification title
+ * @param {text} pBody - Notification body text
+ * @param {jsonb} pData - Custom data payload
+ * @param {jsonb} pAndroid - Android-specific options
+ * @param {jsonb} pApns - APNs-specific options
+ * @return {integer} - Number of users notified
+ * @throws AccessDenied - When the caller lacks the 'message' role
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.send_push_to_role (
   pRoleName     text,
   pTitle        text,
@@ -484,7 +588,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.send_push_all -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Broadcast a push notification to all registered users.
+ * @param {text} pTitle - Notification title
+ * @param {text} pBody - Notification body text
+ * @return {integer} - Number of users notified
+ * @throws AccessDenied - When the caller lacks the 'message' role
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.send_push_all (
   pTitle        text,
   pBody         text

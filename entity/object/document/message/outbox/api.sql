@@ -12,7 +12,12 @@ GRANT SELECT ON api.outbox TO apibot;
 --------------------------------------------------------------------------------
 -- FUNCTION api.outbox ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve outbox messages filtered by state (UUID overload).
+ * @param {uuid} pState - State identifier
+ * @return {SETOF api.outbox} - Matching outbox message records
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.outbox (
   pState    uuid
 ) RETURNS   SETOF api.outbox
@@ -25,7 +30,12 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- FUNCTION api.outbox ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve outbox messages filtered by state (text code overload).
+ * @param {text} pState - State code (e.g., 'enabled', 'sending')
+ * @return {SETOF api.outbox} - Matching outbox message records
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.outbox (
   pState    text
 ) RETURNS   SETOF api.outbox
@@ -39,17 +49,18 @@ $$ LANGUAGE SQL
 -- api.add_outbox --------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Добавляет исходящее сообщение.
- * @param {uuid} pParent - Родительский объект
- * @param {uuid} pAgent - Агент
- * @param {text} pCode - Код (MsgId)
- * @param {text} pProfile - Профиль отправителя
- * @param {text} pAddress - Адрес получателя
- * @param {text} pSubject - Тема
- * @param {text} pContent - Содержимое
- * @param {text} pLabel - Метка
- * @param {text} pDescription - Описание
- * @return {uuid}
+ * @brief Create a new outgoing message (outbox) via the API layer.
+ * @param {uuid} pParent - Parent object reference
+ * @param {uuid} pAgent - Delivery agent
+ * @param {text} pCode - Unique message code (MsgId)
+ * @param {text} pProfile - Sender profile
+ * @param {text} pAddress - Recipient address
+ * @param {text} pSubject - Subject line
+ * @param {text} pContent - Message body
+ * @param {text} pLabel - Display label
+ * @param {text} pDescription - Description
+ * @return {uuid} - Identifier of the created outbox message
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.add_outbox (
   pParent       uuid,
@@ -74,9 +85,10 @@ $$ LANGUAGE plpgsql
 -- api.get_outbox --------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает исходящее сообщение
- * @param {uuid} pId - Идентификатор
- * @return {api.outbox}
+ * @brief Retrieve a single outbox message by identifier with access check.
+ * @param {uuid} pId - Message identifier
+ * @return {SETOF api.outbox} - Matching outbox message record
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_outbox (
   pId       uuid
@@ -91,13 +103,14 @@ $$ LANGUAGE SQL
 -- api.list_outbox -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список исходящих сообщений.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.outbox}
+ * @brief List outbox messages matching search, filter, and sort criteria.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Field-level equality filter
+ * @param {integer} pLimit - Maximum number of rows to return
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Array of fields to sort by
+ * @return {SETOF api.outbox} - Matching outbox message records
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_outbox (
   pSearch    jsonb DEFAULT null,
@@ -113,4 +126,3 @@ END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
-

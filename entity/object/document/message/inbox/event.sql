@@ -5,7 +5,12 @@
 --------------------------------------------------------------------------------
 -- EventInboxCreate ------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the "create" workflow event for an inbox message.
+ * @param {uuid} pObject - Message identifier (defaults to context object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventInboxCreate (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -18,7 +23,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventInboxOpen --------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the "open" workflow event for an inbox message.
+ * @param {uuid} pObject - Message identifier (defaults to context object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventInboxOpen (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -31,7 +41,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventInboxEdit --------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the "edit" workflow event for an inbox message.
+ * @param {uuid} pObject - Message identifier (defaults to context object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventInboxEdit (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -44,7 +59,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventInboxSave --------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the "save" workflow event for an inbox message.
+ * @param {uuid} pObject - Message identifier (defaults to context object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventInboxSave (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -57,7 +77,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventInboxEnable ------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the "enable" workflow event for an inbox message (marks as reviewed).
+ * @param {uuid} pObject - Message identifier (defaults to context object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventInboxEnable (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -70,7 +95,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventInboxDisable -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the "disable" workflow event for an inbox message (marks as read).
+ * @param {uuid} pObject - Message identifier (defaults to context object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventInboxDisable (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -83,7 +113,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventInboxDelete ------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the "delete" (soft) workflow event for an inbox message.
+ * @param {uuid} pObject - Message identifier (defaults to context object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventInboxDelete (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -96,7 +131,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventInboxRestore -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the "restore" workflow event for an inbox message.
+ * @param {uuid} pObject - Message identifier (defaults to context object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventInboxRestore (
   pObject    uuid default context_object()
 ) RETURNS    void
@@ -109,7 +149,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- EventInboxDrop --------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Handle the "drop" workflow event: log permanent destruction of an inbox message.
+ * @param {uuid} pObject - Message identifier (defaults to context object)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventInboxDrop (
   pObject    uuid default context_object()
 ) RETURNS    void

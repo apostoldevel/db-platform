@@ -2,18 +2,21 @@
 -- CreateMessage ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Создаёт новое сообщение
- * @param {uuid} pParent - Родительский объект
- * @param {uuid} pType - Идентификатор типа
- * @param {uuid} pAgent - Агент
- * @param {text} pCode - Код (MsgId)
- * @param {text} pProfile - Профиль отправителя
- * @param {text} pAddress - Адрес получателя
- * @param {text} pSubject - Тема
- * @param {text} pContent - Содержимое
- * @param {text} pLabel - Метка
- * @param {text} pDescription - Описание
- * @return {(id|exception)} - Id сообщения или ошибку
+ * @brief Create a new message record and trigger the "create" workflow method.
+ * @param {uuid} pParent - Parent object reference
+ * @param {uuid} pType - Message type identifier (must belong to entity 'message')
+ * @param {uuid} pAgent - Delivery agent (SMTP, FCM, M2M, etc.)
+ * @param {text} pCode - Unique message code (MsgId)
+ * @param {text} pProfile - Sender identity / profile name
+ * @param {text} pAddress - Recipient address
+ * @param {text} pSubject - Message subject line
+ * @param {text} pContent - Message body content
+ * @param {text} pLabel - Display label
+ * @param {text} pDescription - Message description
+ * @return {uuid} - Identifier of the created message
+ * @throws IncorrectClassType - When pType does not belong to the 'message' entity
+ * @see EditMessage
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION CreateMessage (
   pParent       uuid,
@@ -60,19 +63,21 @@ $$ LANGUAGE plpgsql
 -- EditMessage -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Редактирует сообщение.
- * @param {uuid} pId - Идентификатор
- * @param {uuid} pParent - Родительский объект
- * @param {uuid} pType - Идентификатор типа
- * @param {uuid} pAgent - Агент
- * @param {text} pCode - Код (MsgId)
- * @param {text} pProfile - Профиль отправителя
- * @param {text} pAddress - Адрес получателя
- * @param {text} pSubject - Тема
- * @param {text} pContent - Содержимое
- * @param {text} pLabel - Метка
- * @param {text} pDescription - Описание
+ * @brief Update an existing message and trigger the "edit" workflow method.
+ * @param {uuid} pId - Message identifier
+ * @param {uuid} pParent - New parent object (NULL keeps current)
+ * @param {uuid} pType - New message type (NULL keeps current)
+ * @param {uuid} pAgent - New delivery agent (NULL keeps current)
+ * @param {text} pCode - New message code (NULL keeps current)
+ * @param {text} pProfile - New sender profile (NULL keeps current)
+ * @param {text} pAddress - New recipient address (NULL keeps current)
+ * @param {text} pSubject - New subject line (NULL keeps current)
+ * @param {text} pContent - New body content (NULL keeps current)
+ * @param {text} pLabel - New display label (NULL keeps current)
+ * @param {text} pDescription - New description (NULL keeps current)
  * @return {void}
+ * @see CreateMessage
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION EditMessage (
   pId           uuid,
@@ -114,7 +119,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- GetMessageCode --------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Look up the unique code (MsgId) of a message.
+ * @param {uuid} pId - Message identifier
+ * @return {text} - Message code
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetMessageCode (
   pId      uuid
 ) RETURNS  text
@@ -127,7 +137,12 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 -- GetMessageState -------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Resolve a state code to its identifier for the message entity.
+ * @param {text} pCode - State code (e.g., 'created', 'enabled')
+ * @return {uuid} - State identifier
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetMessageState (
   pCode    text
 ) RETURNS  uuid
@@ -142,7 +157,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- GetEncodedTextRFC1342 -------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Encode text as an RFC 1342 MIME encoded-word (Base64).
+ * @param {text} pText - Plain text to encode
+ * @param {text} pCharSet - Character set label (e.g., 'UTF-8')
+ * @return {text} - RFC 1342 encoded string
+ * @see EncodingSubject
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetEncodedTextRFC1342 (
   pText     text,
   pCharSet  text
@@ -158,7 +180,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- EncodingSubject -------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Encode an email subject line into RFC 1342 folded encoded-words.
+ * @param {text} pSubject - Plain subject text
+ * @param {text} pCharSet - Character set label
+ * @return {text} - Folded encoded subject suitable for MIME headers
+ * @see GetEncodedTextRFC1342
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EncodingSubject (
   pSubject  text,
   pCharSet  text
@@ -199,7 +228,18 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- CreateMailBody --------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Build a complete MIME multipart email body with plain-text and HTML parts.
+ * @param {text} pFromName - Sender display name (NULL for address-only)
+ * @param {text} pFrom - Sender email address
+ * @param {text} pToName - Recipient display name (NULL for address-only)
+ * @param {text} pTo - Recipient email address
+ * @param {text} pSubject - Email subject line
+ * @param {text} pText - Plain-text body part
+ * @param {text} pHTML - HTML body part
+ * @return {text} - Complete MIME-encoded email body
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CreateMailBody (
   pFromName text,
   pFrom     text,
@@ -265,7 +305,21 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- SendMessage -----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Create an outbound message and immediately submit it for delivery.
+ * @param {uuid} pParent - Parent object reference
+ * @param {uuid} pAgent - Delivery agent
+ * @param {text} pProfile - Sender profile
+ * @param {text} pAddress - Recipient address
+ * @param {text} pSubject - Subject line
+ * @param {text} pContent - Message body
+ * @param {text} pLabel - Display label
+ * @param {text} pDescription - Description
+ * @param {uuid} pType - Message type (defaults to outbox)
+ * @return {uuid} - Identifier of the created message
+ * @see CreateMessage
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION SendMessage (
   pParent       uuid,
   pAgent        uuid,
@@ -292,7 +346,20 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- SendMail --------------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Send a message via the SMTP agent.
+ * @param {uuid} pParent - Parent object reference
+ * @param {text} pProfile - Sender email address
+ * @param {text} pAddress - Recipient email address
+ * @param {text} pSubject - Email subject
+ * @param {text} pContent - Email body (MIME-encoded)
+ * @param {text} pLabel - Display label
+ * @param {text} pDescription - Description
+ * @param {uuid} pAgent - Agent identifier (defaults to smtp.agent)
+ * @return {uuid} - Identifier of the created message
+ * @see SendMessage
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION SendMail (
   pParent       uuid,
   pProfile      text,
@@ -314,7 +381,20 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- SendM2M ---------------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Send a message via the M2M (machine-to-machine) agent.
+ * @param {uuid} pParent - Parent object reference
+ * @param {text} pProfile - Sender profile
+ * @param {text} pAddress - Recipient address
+ * @param {text} pSubject - Subject line
+ * @param {text} pContent - Message content
+ * @param {text} pLabel - Display label
+ * @param {text} pDescription - Description
+ * @param {uuid} pAgent - Agent identifier (defaults to m2m.agent)
+ * @return {uuid} - Identifier of the created message
+ * @see SendMessage
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION SendM2M (
   pParent       uuid,
   pProfile      text,
@@ -336,7 +416,20 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- SendFCM ---------------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Send a message via the FCM (Firebase Cloud Messaging) agent.
+ * @param {uuid} pParent - Parent object reference
+ * @param {text} pProfile - Firebase project ID or sender profile
+ * @param {text} pAddress - Recipient identifier (username)
+ * @param {text} pSubject - Notification title
+ * @param {text} pContent - FCM message payload (JSON string)
+ * @param {text} pLabel - Display label
+ * @param {text} pDescription - Description
+ * @param {uuid} pAgent - Agent identifier (defaults to fcm.agent)
+ * @return {uuid} - Identifier of the created message
+ * @see SendMessage
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION SendFCM (
   pParent       uuid,
   pProfile      text,
@@ -358,7 +451,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- SendSMS ---------------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Send an SMS message via the MTS Omnichannel API.
+ * @param {uuid} pParent - Parent object reference
+ * @param {text} pProfile - SMS sender address
+ * @param {text} pMessage - SMS text content
+ * @param {uuid} pUserId - Target user (phone number taken from db.user)
+ * @return {uuid} - HTTP fetch message identifier, or NULL on failure
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION SendSMS (
   pParent       uuid,
   pProfile      text,
@@ -412,7 +513,19 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- SendPush --------------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Send a push notification via FCM to all device tokens of a user.
+ * @param {uuid} pObject - Context object for event logging
+ * @param {text} pTitle - Notification title
+ * @param {text} pBody - Notification body text
+ * @param {uuid} pUserId - Target user
+ * @param {jsonb} pData - Custom data payload
+ * @param {jsonb} pAndroid - Android-specific options
+ * @param {jsonb} pApns - APNs-specific options
+ * @return {uuid} - Identifier of the last created FCM message, or NULL
+ * @see SendFCM
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION SendPush (
   pObject       uuid,
   pTitle        text,
@@ -472,7 +585,18 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- SendPushData ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Send a data-only push notification via FCM (no visible notification).
+ * @param {uuid} pObject - Context object for event logging
+ * @param {text} pSubject - Subject for logging
+ * @param {json} pData - Data payload
+ * @param {uuid} pUserId - Target user
+ * @param {text} pPriority - Android priority ('normal' or 'high')
+ * @param {text} pCollapse - Collapse key for grouping notifications
+ * @return {uuid} - Identifier of the last created FCM message, or NULL
+ * @see SendFCM
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION SendPushData (
   pObject       uuid,
   pSubject      text,
@@ -526,9 +650,12 @@ $$ LANGUAGE plpgsql
 -- RecoveryPasswordByEmail -----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Запускает процедуру восстановления пароля пользователя по адресу электронной почты.
- * @param {text} pEmail - Адрес электронной почты пользователя.
- * @return {uuid} - Талон восстановления (recovery ticket)
+ * @brief Initiate password recovery by sending a reset link to the user's email.
+ * @param {uuid} pUserId - User identifier
+ * @return {uuid} - Recovery ticket identifier, or NULL on error
+ * @throws EmailAddressNotSet - When the user has no email configured
+ * @throws EmailAddressNotVerified - When the email is not verified
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION RecoveryPasswordByEmail (
   pUserId         uuid
@@ -627,10 +754,12 @@ $$ LANGUAGE plpgsql
 -- RecoveryPasswordByPhone -----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Запускает процедуру восстановления пароля пользователя по номеру телефона.
- * @param {uuid} pUserId - Идентификатор пользователя.
- * @param {text} pHashCode - Хэш-код.
- * @return {uuid} - Талон восстановления (recovery ticket)
+ * @brief Initiate password recovery by sending a code via SMS to the user's phone.
+ * @param {uuid} pUserId - User identifier
+ * @param {text} pInitiator - Initiator identifier for the recovery ticket
+ * @param {text} pHashCode - Optional hash code appended to the SMS
+ * @return {uuid} - Recovery ticket identifier, or NULL on failure
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION RecoveryPasswordByPhone (
   pUserId         uuid,
@@ -676,10 +805,11 @@ $$ LANGUAGE plpgsql
 -- RegistrationCodeByPhone -----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Запускает процедуру регистрации пользователя по номеру телефона.
- * @param {text} pPhone - Номер телефона.
- * @param {text} pHashCode - Хэш-код.
- * @return {uuid} - Талон регистрации (registration ticket)
+ * @brief Send a registration verification code via SMS to a phone number.
+ * @param {text} pPhone - Phone number to send the code to
+ * @param {text} pHashCode - Optional hash code appended to the SMS
+ * @return {uuid} - Recovery ticket identifier, or NULL on failure
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION RegistrationCodeByPhone (
   pPhone        text,
@@ -750,9 +880,10 @@ $$ LANGUAGE plpgsql
 -- RegistrationCodeByEmail -----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Запускает процедуру регистрации пользователя по email.
- * @param {text} pEmail - Почтовый адрес.
- * @return {uuid} - Талон регистрации (registration ticket)
+ * @brief Send a registration verification code via email.
+ * @param {text} pEmail - Email address to send the code to
+ * @return {uuid} - Recovery ticket identifier, or NULL on error
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION RegistrationCodeByEmail (
   pEmail            text

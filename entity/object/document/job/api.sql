@@ -26,7 +26,13 @@ GRANT SELECT ON api.service_job TO apibot;
 --------------------------------------------------------------------------------
 -- FUNCTION api.job ------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve jobs by state type, filtered by execution date within the current scope.
+ * @param {uuid} pStateType - State type identifier (e.g., enabled, disabled)
+ * @param {timestamptz} pDateFrom - Return jobs scheduled on or before this timestamp
+ * @return {SETOF record} - Job records with id, typecode, statecode, created, daterun, body
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.job (
   pStateType    uuid,
   pDateFrom     timestamptz DEFAULT Now(),
@@ -53,7 +59,13 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- FUNCTION api.job ------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve jobs by state type code, with optional epoch-based date filter.
+ * @param {text} pStateType - State type code (e.g., 'enabled')
+ * @param {double precision} pDateFrom - Unix epoch timestamp (NULL defaults to now)
+ * @return {SETOF record} - Job records with id, typecode, statecode, created, daterun, body
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.job (
   pStateType    text DEFAULT 'enabled',
   pDateFrom     double precision DEFAULT null,
@@ -74,16 +86,17 @@ $$ LANGUAGE SQL
 -- api.add_job -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Добавляет задание.
- * @param {uuid} pParent - Ссылка на родительский объект: api.document | null
- * @param {uuid} pType - Идентификатор типа
- * @param {uuid} pScheduler - Планировщик
- * @param {uuid} pProgram - Программа
- * @param {timestamptz} pDateRun - Дата запуска
- * @param {text} pCode - Код
- * @param {text} pLabel - Метка
- * @param {text} pDescription - Описание
- * @return {uuid}
+ * @brief Create a new job via the API layer.
+ * @param {uuid} pParent - Parent object reference
+ * @param {uuid} pType - Job type identifier (defaults to 'periodic.job')
+ * @param {uuid} pScheduler - Scheduler reference
+ * @param {uuid} pProgram - Program to execute
+ * @param {timestamptz} pDateRun - First execution timestamp
+ * @param {text} pCode - Unique job code
+ * @param {text} pLabel - Display label
+ * @param {text} pDescription - Job description
+ * @return {uuid} - Identifier of the created job
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.add_job (
   pParent           uuid,
@@ -107,16 +120,19 @@ $$ LANGUAGE plpgsql
 -- api.update_job --------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Редактирует задание.
- * @param {uuid} pParent - Ссылка на родительский объект: Object.Parent | null
- * @param {uuid} pType - Идентификатор типа
- * @param {uuid} pScheduler - Планировщик
- * @param {uuid} pProgram - Программа
- * @param {timestamptz} pDateRun - Дата запуска
- * @param {text} pCode - Код
- * @param {text} pLabel - Метка
- * @param {text} pDescription - Описание
+ * @brief Update an existing job via the API layer.
+ * @param {uuid} pId - Job identifier
+ * @param {uuid} pParent - New parent object (NULL keeps current)
+ * @param {uuid} pType - New job type (NULL keeps current)
+ * @param {uuid} pScheduler - New scheduler (NULL keeps current)
+ * @param {uuid} pProgram - New program (NULL keeps current)
+ * @param {timestamptz} pDateRun - New execution timestamp (NULL keeps current)
+ * @param {text} pCode - New job code (NULL keeps current)
+ * @param {text} pLabel - New display label (NULL keeps current)
+ * @param {text} pDescription - New description (NULL keeps current)
  * @return {void}
+ * @throws ObjectNotFound - When no job matches pId
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.update_job (
   pId               uuid,
@@ -148,7 +164,20 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.set_job -----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Create or update a job (upsert). Routes to add or update based on pId.
+ * @param {uuid} pId - Job identifier (NULL to create)
+ * @param {uuid} pParent - Parent object reference
+ * @param {uuid} pType - Job type identifier
+ * @param {uuid} pScheduler - Scheduler reference
+ * @param {uuid} pProgram - Program to execute
+ * @param {timestamptz} pDateRun - Execution timestamp
+ * @param {text} pCode - Unique job code
+ * @param {text} pLabel - Display label
+ * @param {text} pDescription - Job description
+ * @return {SETOF api.job} - The created or updated job
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.set_job (
   pId               uuid,
   pParent           uuid default null,
@@ -178,9 +207,10 @@ $$ LANGUAGE plpgsql
 -- api.get_job -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает задание
- * @param {uuid} pId - Идентификатор
- * @return {api.job}
+ * @brief Retrieve a single job by identifier with access check.
+ * @param {uuid} pId - Job identifier
+ * @return {SETOF api.job} - Matching job record
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_job (
   pId       uuid
@@ -195,13 +225,14 @@ $$ LANGUAGE SQL
 -- api.list_job ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает задание в виде списка.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.job}
+ * @brief List jobs matching search, filter, and sort criteria.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Field-level equality filter
+ * @param {integer} pLimit - Maximum number of rows to return
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Array of fields to sort by
+ * @return {SETOF api.job} - Matching job records
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_job (
   pSearch   jsonb default null,
@@ -222,9 +253,10 @@ $$ LANGUAGE plpgsql
 -- api.get_job_id --------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает uuid по коду.
- * @param {text} pCode - Код задания
- * @return {uuid}
+ * @brief Resolve a job code (or UUID string) to its identifier.
+ * @param {text} pCode - Job code or UUID string
+ * @return {uuid} - Job identifier
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_job_id (
   pCode     text

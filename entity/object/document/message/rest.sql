@@ -2,10 +2,13 @@
 -- REST MESSAGE ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Запрос данных в формате REST JSON API (Сообщение).
- * @param {text} pPath - Путь
- * @param {jsonb} pPayload - JSON
- * @return {SETOF json} - Записи в JSON
+ * @brief Dispatch REST JSON API requests for the Message entity.
+ * @param {text} pPath - REST route path (e.g., /message/get, /message/send/mail)
+ * @param {jsonb} pPayload - Request payload
+ * @return {SETOF json} - JSON result set
+ * @throws RouteIsEmpty - When pPath is NULL
+ * @throws LoginFailed - When no active session exists
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION rest.message (
   pPath       text,
