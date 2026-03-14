@@ -28,27 +28,27 @@ CREATE TABLE db.file (
     fail        text
 );
 
-COMMENT ON TABLE db.file IS 'Файл.';
+COMMENT ON TABLE db.file IS 'Virtual file system entry (file, directory, link, or S3 storage bucket).';
 
-COMMENT ON COLUMN db.file.id IS 'Идентификатор';
-COMMENT ON COLUMN db.file.root IS 'Идентификатор корневого узла';
-COMMENT ON COLUMN db.file.parent IS 'Идентификатор родительского узла';
-COMMENT ON COLUMN db.file.link IS 'Ссылка на файл (идентификатор узла)';
-COMMENT ON COLUMN db.file.owner IS 'Идентификатор владельца';
-COMMENT ON COLUMN db.file.type IS 'Тип: "-" - file (файл), "d" - directory (каталог), "l" - link (ссылка), "s" - storage (хранилище)';
-COMMENT ON COLUMN db.file.mask IS 'Маска доступа. Девять бит ({u:rwe}{g:rwe}{o:rwe}), по три бита на действие r - read, w - write, e - execute, для: u - user (владелец) g - group (группа) o - other (остальные)';
-COMMENT ON COLUMN db.file.level IS 'Уровень вложенности';
-COMMENT ON COLUMN db.file.path IS 'Путь';
-COMMENT ON COLUMN db.file.name IS 'Наименование';
-COMMENT ON COLUMN db.file.size IS 'Размер';
-COMMENT ON COLUMN db.file.date IS 'Дата и время';
-COMMENT ON COLUMN db.file.data IS 'Содержимое (при наличии)';
-COMMENT ON COLUMN db.file.mime IS 'Тип в формате MIME';
-COMMENT ON COLUMN db.file.text IS 'Произвольный текст (описание)';
-COMMENT ON COLUMN db.file.hash IS 'Хеш';
-COMMENT ON COLUMN db.file.url IS 'URL';
-COMMENT ON COLUMN db.file.done IS 'Имя функции обратного вызова в случае успешной загрузки файла по ссылке';
-COMMENT ON COLUMN db.file.fail IS 'Имя функции обратного вызова в случае сбоя при загрузке файла по ссылке';
+COMMENT ON COLUMN db.file.id IS 'Unique file identifier (UUID).';
+COMMENT ON COLUMN db.file.root IS 'Root node identifier (top-level ancestor in the tree).';
+COMMENT ON COLUMN db.file.parent IS 'Parent directory identifier.';
+COMMENT ON COLUMN db.file.link IS 'Linked file identifier (for symlink-type entries).';
+COMMENT ON COLUMN db.file.owner IS 'Owner user identifier.';
+COMMENT ON COLUMN db.file.type IS 'Entry type: "-" = file, "d" = directory, "l" = link, "s" = storage (S3 bucket).';
+COMMENT ON COLUMN db.file.mask IS 'UNIX-style permission bitmask: 9 bits {owner:rwx}{group:rwx}{other:rwx}.';
+COMMENT ON COLUMN db.file.level IS 'Nesting depth in the directory tree (0 = root).';
+COMMENT ON COLUMN db.file.path IS 'Absolute path to the parent directory.';
+COMMENT ON COLUMN db.file.name IS 'File or directory name.';
+COMMENT ON COLUMN db.file.size IS 'Content size in bytes.';
+COMMENT ON COLUMN db.file.date IS 'Last modification timestamp.';
+COMMENT ON COLUMN db.file.data IS 'Binary content (stored inline when present).';
+COMMENT ON COLUMN db.file.mime IS 'MIME type (e.g. image/png, application/pdf).';
+COMMENT ON COLUMN db.file.text IS 'Free-text description or metadata.';
+COMMENT ON COLUMN db.file.hash IS 'Content hash (SHA-256 hex digest).';
+COMMENT ON COLUMN db.file.url IS 'Computed public URL for the file.';
+COMMENT ON COLUMN db.file.done IS 'Callback function name on successful remote file download.';
+COMMENT ON COLUMN db.file.fail IS 'Callback function name on failed remote file download.';
 
 CREATE UNIQUE INDEX ON db.file (root, parent, name);
 CREATE UNIQUE INDEX ON db.file (path, name);
@@ -64,6 +64,10 @@ CREATE INDEX ON db.file (hash);
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Initialise defaults and compute the public URL on file insert.
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_file_insert()
 RETURNS trigger AS $$
 DECLARE
@@ -103,6 +107,10 @@ CREATE TRIGGER t_file_insert
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Recompute the public URL when the file type changes.
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_file_type()
 RETURNS trigger AS $$
 DECLARE
@@ -132,6 +140,10 @@ CREATE TRIGGER t_file_type
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Normalise the path and recompute the public URL when the path changes.
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_file_path()
 RETURNS trigger AS $$
 DECLARE
@@ -163,6 +175,10 @@ CREATE TRIGGER t_file_path
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Normalise the name and recompute the public URL when the name changes.
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_file_name()
 RETURNS trigger AS $$
 DECLARE
@@ -194,6 +210,10 @@ CREATE TRIGGER t_file_name
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Emit a LISTEN/NOTIFY event for the PGFile helper on every file change.
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_file_notify()
 RETURNS trigger AS $$
 BEGIN

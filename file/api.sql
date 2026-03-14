@@ -25,8 +25,29 @@ GRANT SELECT ON api.file_data TO administrator;
 --------------------------------------------------------------------------------
 -- api.set_file ----------------------------------------------------------------
 --------------------------------------------------------------------------------
+
 /**
- * Создает или обновляет файл
+ * @brief Create or update a file, auto-creating intermediate directories from pPath.
+ * @param {uuid} pId - File identifier (NULL to create; looked up by path+name if omitted)
+ * @param {char} pType - Entry type: "-" file, "d" directory, "l" link, "s" storage
+ * @param {int} pMask - Permission bitmask as integer (cast to bit(9) internally)
+ * @param {uuid} pOwner - Owner user identifier
+ * @param {uuid} pRoot - Root node identifier
+ * @param {uuid} pParent - Parent directory identifier
+ * @param {uuid} pLink - Link target identifier
+ * @param {text} pName - File or directory name
+ * @param {text} pPath - Directory path; missing segments are created automatically
+ * @param {integer} pSize - Content size in bytes
+ * @param {timestamptz} pDate - Modification timestamp
+ * @param {text} pData - Base64-encoded binary content
+ * @param {text} pMime - MIME type
+ * @param {text} pText - Free-text description
+ * @param {text} pHash - Content hash
+ * @param {text} pDone - Success callback function name
+ * @param {text} pFail - Failure callback function name
+ * @return {SETOF api.file} - The created or updated file record
+ * @see SetFile, NewFilePath
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.set_file (
   pId       uuid,
@@ -84,10 +105,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.get_file ----------------------------------------------------------------
 --------------------------------------------------------------------------------
+
 /**
- * Возвращает файл
- * @param {uuid} pId - Идентификатор
- * @return {api.file_data}
+ * @brief Fetch a single file record with its binary data by identifier.
+ * @param {uuid} pId - File identifier
+ * @return {SETOF api.file_data} - File metadata and content
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_file (
   pId       uuid
@@ -101,11 +124,13 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 -- api.get_file_id -------------------------------------------------------------
 --------------------------------------------------------------------------------
+
 /**
- * Возвращает идентификатор файла по его имени и пути
- * @param {text} pName - Имя
- * @param {text} pPath - Путь
- * @return {uuid}
+ * @brief Resolve a file identifier by name and optional path.
+ * @param {text} pName - File name (defaults to "index.html" when NULL)
+ * @param {text} pPath - Directory path (normalised internally)
+ * @return {uuid} - Matching file identifier, or NULL if not found
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_file_id (
   pName     text,
@@ -122,10 +147,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.delete_file -------------------------------------------------------------
 --------------------------------------------------------------------------------
+
 /**
- * Удаляет файл
- * @param {uuid} pId - Идентификатор
- * @return {api.file}
+ * @brief Delete a file by identifier.
+ * @param {uuid} pId - File identifier to delete
+ * @return {boolean} - TRUE if the file was deleted
+ * @see DeleteFile
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.delete_file (
   pId       uuid
@@ -141,14 +169,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.list_file ---------------------------------------------------------------
 --------------------------------------------------------------------------------
+
 /**
- * Возвращает список файлов.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.file}
+ * @brief List files with optional search, filtering, pagination, and sorting.
+ * @param {jsonb} pSearch - Search conditions: [{"condition":"AND|OR","field":"<col>","compare":"EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN","value":"<val>"},...]
+ * @param {jsonb} pFilter - Key-value filter: {"<column>":"<value>"}
+ * @param {integer} pLimit - Maximum number of rows to return
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Array of column names to sort by
+ * @return {SETOF api.file} - Matching file records
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_file (
   pSearch   jsonb DEFAULT null,

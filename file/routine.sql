@@ -6,6 +6,14 @@
 -- NormalizeFileName -----------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Validate and optionally URL-encode a file name.
+ * @param {text} pName - File name to normalise (must not contain "/")
+ * @param {boolean} pLink - When true, return the URL-encoded form
+ * @return {text} - Normalised (or URL-encoded) file name
+ * @throws ERR-40000 - When the name contains a slash character
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION NormalizeFileName (
   pName     text,
   pLink     boolean DEFAULT false
@@ -30,6 +38,14 @@ $$ LANGUAGE plpgsql
 -- NormalizeFilePath -----------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Validate and optionally URL-encode a file path.
+ * @param {text} pPath - File path to normalise (must not start with "." or contain "..")
+ * @param {boolean} pLink - When true, URL-encode each path segment
+ * @return {text} - Normalised absolute path ending with "/"
+ * @throws ERR-40000 - When the path is relative or contains ".."
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION NormalizeFilePath (
   pPath     text,
   pLink     boolean DEFAULT false
@@ -73,6 +89,12 @@ $$ LANGUAGE plpgsql
 -- FUNCTION CollectFilePath ----------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Build the full path for a node by walking the parent chain recursively.
+ * @param {uuid} pId - File or directory identifier to start from
+ * @return {text} - Absolute path assembled from ancestor names (e.g. "/root/sub/")
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CollectFilePath (
   pId        uuid
 ) RETURNS    text
@@ -107,6 +129,27 @@ $$ LANGUAGE plpgsql
 -- NewFile ---------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Insert a new file record into the virtual file system.
+ * @param {uuid} pId - Explicit identifier (NULL to auto-generate)
+ * @param {uuid} pRoot - Root node of the file tree
+ * @param {uuid} pParent - Parent directory identifier
+ * @param {text} pName - File or directory name
+ * @param {char} pType - Entry type: "-" file, "d" directory, "l" link, "s" storage
+ * @param {uuid} pOwner - Owner user identifier (defaults to current user)
+ * @param {bit(9)} pMask - UNIX-style permission bitmask
+ * @param {uuid} pLink - Target file identifier for link entries
+ * @param {integer} pSize - Content size in bytes
+ * @param {timestamptz} pDate - Modification timestamp
+ * @param {bytea} pData - Binary content
+ * @param {text} pMime - MIME type
+ * @param {text} pText - Free-text description
+ * @param {text} pHash - Content hash (SHA-256)
+ * @param {text} pDone - Success callback function name (schema.func)
+ * @param {text} pFail - Failure callback function name (schema.func)
+ * @return {uuid} - Identifier of the newly created file record
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION NewFile (
   pId       uuid,
   pRoot     uuid,
@@ -151,6 +194,28 @@ $$ LANGUAGE plpgsql
 -- AddFile ---------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Add a file after validating callback function references.
+ * @param {uuid} pRoot - Root node of the file tree
+ * @param {uuid} pParent - Parent directory identifier
+ * @param {text} pName - File or directory name
+ * @param {char} pType - Entry type: "-" file, "d" directory, "l" link, "s" storage
+ * @param {uuid} pOwner - Owner user identifier
+ * @param {bit(9)} pMask - UNIX-style permission bitmask
+ * @param {uuid} pLink - Target file identifier for link entries
+ * @param {integer} pSize - Content size in bytes
+ * @param {timestamptz} pDate - Modification timestamp
+ * @param {bytea} pData - Binary content
+ * @param {text} pMime - MIME type
+ * @param {text} pText - Free-text description
+ * @param {text} pHash - Content hash (SHA-256)
+ * @param {text} pDone - Success callback function name (schema.func)
+ * @param {text} pFail - Failure callback function name (schema.func)
+ * @return {uuid} - Identifier of the newly created file record
+ * @throws EXCEPTION - When a specified callback function does not exist
+ * @see NewFile
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION AddFile (
   pRoot     uuid,
   pParent   uuid,
@@ -194,6 +259,26 @@ $$ LANGUAGE plpgsql
 -- EditFile --------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Update an existing file record (NULL parameters keep current values).
+ * @param {uuid} pId - File identifier to update
+ * @param {uuid} pRoot - New root node
+ * @param {uuid} pParent - New parent directory
+ * @param {text} pName - New file name
+ * @param {uuid} pOwner - New owner
+ * @param {bit(9)} pMask - New permission bitmask
+ * @param {uuid} pLink - New link target
+ * @param {integer} pSize - New content size
+ * @param {timestamptz} pDate - New modification timestamp
+ * @param {bytea} pData - New binary content
+ * @param {text} pMime - New MIME type
+ * @param {text} pText - New description
+ * @param {text} pHash - New content hash
+ * @param {text} pDone - New success callback
+ * @param {text} pFail - New failure callback
+ * @return {bool} - TRUE if a row was updated
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EditFile (
   pId       uuid,
   pRoot     uuid,
@@ -240,6 +325,28 @@ $$ LANGUAGE plpgsql
 -- SetFile ---------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Create or update a file record (upsert by identifier).
+ * @param {uuid} pId - File identifier (NULL to create, non-NULL to update)
+ * @param {char} pType - Entry type
+ * @param {bit(9)} pMask - Permission bitmask
+ * @param {uuid} pOwner - Owner user identifier
+ * @param {uuid} pRoot - Root node
+ * @param {uuid} pParent - Parent directory
+ * @param {uuid} pLink - Link target
+ * @param {text} pName - File name
+ * @param {integer} pSize - Content size in bytes
+ * @param {timestamptz} pDate - Modification timestamp
+ * @param {bytea} pData - Binary content
+ * @param {text} pMime - MIME type
+ * @param {text} pText - Free-text description
+ * @param {text} pHash - Content hash
+ * @param {text} pDone - Success callback
+ * @param {text} pFail - Failure callback
+ * @return {uuid} - File identifier (newly created or existing)
+ * @see AddFile, EditFile
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION SetFile (
   pId       uuid,
   pType     char,
@@ -276,6 +383,12 @@ $$ LANGUAGE plpgsql
 -- DeleteFile ------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Delete a single file record by identifier.
+ * @param {uuid} pId - File identifier to delete
+ * @return {boolean} - TRUE if a row was deleted
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION DeleteFile (
   pId       uuid
 ) RETURNS   boolean
@@ -292,6 +405,13 @@ $$ LANGUAGE plpgsql
 -- FUNCTION DeleteFiles --------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Recursively delete a directory and all its descendants.
+ * @param {uuid} pId - Root directory identifier to remove
+ * @return {void}
+ * @see DeleteFile
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION DeleteFiles (
   pId        uuid
 ) RETURNS    void
@@ -314,6 +434,13 @@ $$ LANGUAGE plpgsql
 -- FUNCTION GetFile ------------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Look up a file identifier by parent directory and name.
+ * @param {uuid} pParent - Parent directory identifier (NULL for root-level lookup)
+ * @param {text} pName - File or directory name
+ * @return {uuid} - Matching file identifier, or NULL if not found
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetFile (
   pParent        uuid,
   pName          text
@@ -338,6 +465,13 @@ $$ LANGUAGE plpgsql
 -- GetFile ---------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Look up a file identifier by name and absolute path.
+ * @param {text} pName - File name
+ * @param {text} pPath - Absolute directory path
+ * @return {uuid} - Matching file identifier, or NULL if not found
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetFile (
   pName     text,
   pPath     text
@@ -352,6 +486,15 @@ $$ LANGUAGE sql
 -- FUNCTION NewFilePath --------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Ensure all directories along a path exist, creating missing ones.
+ * @param {text} pPath - Desired directory path (e.g. "/images/avatars/")
+ * @param {uuid} pRoot - Root node to start from (auto-detected if NULL)
+ * @param {uuid} pOwner - Owner for newly created directories
+ * @return {uuid} - Identifier of the deepest (leaf) directory
+ * @see AddFile
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION NewFilePath (
   pPath         text,
   pRoot         uuid DEFAULT null,
@@ -397,6 +540,12 @@ $$ LANGUAGE plpgsql
 -- FUNCTION FindFile -----------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Resolve a full file path to its identifier by traversing each segment.
+ * @param {text} pName - Full path including file name (e.g. "/docs/readme.txt")
+ * @return {uuid} - File identifier, or NULL if any segment is missing
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION FindFile (
   pName			text
 ) RETURNS		uuid
@@ -424,6 +573,12 @@ $$ LANGUAGE plpgsql
 -- FUNCTION QueryFile ----------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Resolve a path as far as possible, returning the deepest existing node.
+ * @param {text} pFile - Full path to query (e.g. "/docs/missing/file.txt")
+ * @return {uuid} - Identifier of the deepest node found along the path
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION QueryFile (
   pFile			text
 ) RETURNS		uuid
@@ -458,6 +613,17 @@ $$ LANGUAGE plpgsql
 -- PutFileToS3 -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Upload a file to an S3-compatible storage bucket using AWS Signature V4.
+ * @param {uuid} pId - File identifier to upload
+ * @param {text} pRegion - AWS region override (defaults to registry value)
+ * @param {text} pDone - HTTP callback on successful upload
+ * @param {text} pFail - HTTP callback on failed upload
+ * @param {text} pType - Request type label for the HTTP fetch subsystem
+ * @param {text} pMessage - Optional message payload for the HTTP fetch subsystem
+ * @return {uuid} - HTTP request identifier returned by http.fetch
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION PutFileToS3 (
   pId               uuid,
   pRegion           text DEFAULT null,

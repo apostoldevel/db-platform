@@ -1,11 +1,13 @@
 --------------------------------------------------------------------------------
 -- REST FILE -------------------------------------------------------------------
 --------------------------------------------------------------------------------
+
 /**
- * Запрос данных в формате REST JSON API (Файл).
- * @param {text} pPath - Путь
- * @param {jsonb} pPayload - JSON
- * @return {SETOF json} - Записи в JSON
+ * @brief Route REST JSON API requests for the File module.
+ * @param {text} pPath - REST endpoint path (e.g. "/file/set", "/file/get")
+ * @param {jsonb} pPayload - JSON request body
+ * @return {SETOF json} - JSON-encoded result rows
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION rest.file (
   pPath       text,
