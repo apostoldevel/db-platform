@@ -1,3 +1,14 @@
+/**
+ * @file dt.sql
+ * @brief Custom composite types and enumerations for the db-platform kernel.
+ *
+ * Defines scalar wrapper types (Id, Code, Name, etc.), a tagged Variant union,
+ * and corresponding array-list types used across the entire platform for
+ * strongly-typed column declarations and function signatures.
+ *
+ * @since 1.0.0
+ */
+
 CREATE TYPE TVarType AS ENUM ('kernel', 'context', 'object');
 
 CREATE TYPE Id AS (Id uuid);
@@ -14,7 +25,7 @@ CREATE TYPE String AS (String TEXT);
 
 CREATE TYPE Status AS (Status VARCHAR(1));
 
--- Вариант
+-- Variant: tagged union holding one of five scalar types
 
 CREATE TYPE Variant AS (
     vType       integer,

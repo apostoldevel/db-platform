@@ -1,7 +1,10 @@
 --------------------------------------------------------------------------------
 -- ALL_TAB_COLUMNS -------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Expose kernel schema column metadata through an Oracle-style view.
+ * @since 1.0.0
+ */
 CREATE OR REPLACE VIEW all_tab_columns(table_name, column_id, column_name, data_type, udt_name)
 AS
   SELECT table_name, ordinal_position as column_id, column_name, data_type, udt_name
@@ -13,10 +16,13 @@ GRANT SELECT ON all_tab_columns TO PUBLIC;
 --------------------------------------------------------------------------------
 -- ALL_COL_COMMENTS ------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Expose kernel schema column comments alongside table descriptions.
+ * @since 1.0.0
+ */
 CREATE OR REPLACE VIEW all_col_comments(table_name, table_description, column_name, column_description)
 AS
-  SELECT table_name, 
+  SELECT table_name,
          obj_description(format('%s.%s', isc.table_schema, isc.table_name)::regclass::oid, 'pg_class') as table_description,
          column_name,
          pg_catalog.col_description(format('%s.%s', isc.table_schema, isc.table_name)::regclass::oid, isc.ordinal_position) as column_description
@@ -28,7 +34,15 @@ GRANT SELECT ON all_col_comments TO PUBLIC;
 --------------------------------------------------------------------------------
 -- get_columns -----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve column names for a given table, optionally prefixed with an alias.
+ * @param {text} pTable - Table name to introspect
+ * @param {text} pSchema - Schema name (defaults to current schema)
+ * @param {text} pAlias - Optional table alias prepended as "alias.column"
+ * @return {text[]} - Array of column names in ordinal order
+ * @see GetColumns
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION get_columns (
   pTable    text,
   pSchema   text DEFAULT current_schema(),
@@ -60,7 +74,15 @@ GRANT EXECUTE ON FUNCTION get_columns(text, text, text) TO PUBLIC;
 --------------------------------------------------------------------------------
 -- GetColumns ------------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve column names for a given table (CamelCase wrapper).
+ * @param {text} pTable - Table name to introspect
+ * @param {text} pSchema - Schema name (defaults to current schema)
+ * @param {text} pAlias - Optional table alias prepended as "alias.column"
+ * @return {text[]} - Array of column names in ordinal order
+ * @see get_columns
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetColumns (
   pTable    text,
   pSchema   text DEFAULT current_schema(),
@@ -79,7 +101,17 @@ GRANT EXECUTE ON FUNCTION GetColumns(text, text, text) TO PUBLIC;
 --------------------------------------------------------------------------------
 -- get_routines ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve input parameter names (and optionally types) for a stored routine.
+ * @param {text} pRoutine - Routine name to introspect
+ * @param {text} pSchema - Schema name (defaults to current schema)
+ * @param {boolean} pDataType - When true, append data type after each parameter name
+ * @param {text} pAlias - Optional alias prepended as "alias.param"
+ * @param {int} pNameFrom - Character position to start extracting the parameter name (strips prefix)
+ * @return {text[]} - Array of parameter descriptors in ordinal order
+ * @see GetRoutines
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION get_routines (
   pRoutine      text,
   pSchema       text DEFAULT current_schema(),
@@ -118,7 +150,17 @@ GRANT EXECUTE ON FUNCTION get_routines(text, text, boolean, text, int) TO PUBLIC
 --------------------------------------------------------------------------------
 -- GetRoutines -----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve input parameter names for a stored routine (CamelCase wrapper).
+ * @param {text} pRoutine - Routine name to introspect
+ * @param {text} pSchema - Schema name (defaults to current schema)
+ * @param {boolean} pDataType - When true, append data type after each parameter name
+ * @param {text} pAlias - Optional alias prepended as "alias.param"
+ * @param {int} pNameFrom - Character position to start extracting the parameter name
+ * @return {text[]} - Array of parameter descriptors in ordinal order
+ * @see get_routines
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetRoutines (
   pRoutine      text,
   pSchema       text DEFAULT current_schema(),
@@ -139,7 +181,13 @@ GRANT EXECUTE ON FUNCTION GetRoutines(text, text, boolean, text, int) TO PUBLIC;
 --------------------------------------------------------------------------------
 -- FUNCTION array_pos ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Find the 1-based index of a text element in a text array.
+ * @param {text[]} anyarray - Array to search
+ * @param {text} anyelement - Value to locate
+ * @return {int} - 1-based position, or 0 if not found
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION array_pos (
   anyarray       text[],
   anyelement     text
@@ -166,7 +214,13 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- FUNCTION array_pos ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Find the 1-based index of a numeric element in a numeric array.
+ * @param {numeric[]} anyarray - Array to search
+ * @param {numeric} anyelement - Value to locate
+ * @return {int} - 1-based position, or 0 if not found
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION array_pos (
   anyarray       numeric[],
   anyelement     numeric
@@ -193,7 +247,13 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- FUNCTION string_to_array_trim -----------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Split a string by a separator and trim whitespace from each element.
+ * @param {text} str - Input string to split
+ * @param {text} sep - Single-character separator
+ * @return {text[]} - Array of trimmed substrings
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION string_to_array_trim (
   str       text,
   sep       text
@@ -224,7 +284,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- FUNCTION path_to_array ------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Split a '/'-delimited path string into an array of path segments.
+ * @param {text} pPath - URL or filesystem-style path (leading '/' is ignored)
+ * @return {text[]} - Array of non-empty path segments
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION path_to_array (
   pPath     text
 ) RETURNS   text[]
@@ -263,7 +328,14 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- FUNCTION str_to_inet --------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Parse an IP address string (with optional range or wildcard) into an inet value and range count.
+ * @param {text} str - IP string like "192.168.1.1", "10.0.0.1-10.0.0.5", or "192.168.*.*"
+ * @param {inet} host - Parsed inet address with CIDR mask (OUT)
+ * @param {integer} range - Number of addresses in range, or NULL for single/CIDR (OUT)
+ * @return {record} - (host inet, range integer)
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION str_to_inet (
   str       text,
   OUT host  inet,
@@ -308,7 +380,14 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- FUNCTION IntToStr -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Convert a numeric value to its text representation using to_char.
+ * @param {numeric} pValue - Number to format
+ * @param {text} pFormat - to_char format mask (default FM999999999999990)
+ * @return {text} - Formatted number string
+ * @see StrToInt
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION IntToStr (
   pValue    numeric,
   pFormat   text DEFAULT 'FM999999999999990'
@@ -324,7 +403,14 @@ GRANT EXECUTE ON FUNCTION IntToStr(numeric, text) TO PUBLIC;
 --------------------------------------------------------------------------------
 -- FUNCTION StrToInt -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Parse a text string into a numeric value using to_number.
+ * @param {text} pValue - Numeric string to parse
+ * @param {text} pFormat - to_number format mask (default 999999999999999)
+ * @return {numeric} - Parsed numeric value
+ * @see IntToStr
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION StrToInt (
   pValue    text,
   pFormat   text DEFAULT '999999999999999'
@@ -340,7 +426,14 @@ GRANT EXECUTE ON FUNCTION IntToStr(numeric, text) TO PUBLIC;
 --------------------------------------------------------------------------------
 -- FUNCTION DateToStr ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Format a timestamptz value as a text string.
+ * @param {timestamptz} pValue - Timezone-aware timestamp to format
+ * @param {text} pFormat - to_char format mask (default DD.MM.YYYY HH24:MI:SS)
+ * @return {text} - Formatted date-time string
+ * @see StrToTimeStampTZ
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION DateToStr (
   pValue    timestamptz,
   pFormat   text DEFAULT 'DD.MM.YYYY HH24:MI:SS'
@@ -354,7 +447,14 @@ $$ LANGUAGE plpgsql;
 GRANT EXECUTE ON FUNCTION DateToStr(timestamptz, text) TO PUBLIC;
 
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Format a timestamp value as a text string.
+ * @param {timestamp} pValue - Timestamp to format
+ * @param {text} pFormat - to_char format mask (default DD.MM.YYYY HH24:MI:SS)
+ * @return {text} - Formatted date-time string
+ * @see StrToTimeStamp
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION DateToStr (
   pValue    timestamp,
   pFormat   text DEFAULT 'DD.MM.YYYY HH24:MI:SS'
@@ -368,7 +468,14 @@ $$ LANGUAGE plpgsql;
 GRANT EXECUTE ON FUNCTION DateToStr(timestamp, text) TO PUBLIC;
 
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Format a date value as a text string.
+ * @param {date} pValue - Date to format
+ * @param {text} pFormat - to_char format mask (default DD.MM.YYYY)
+ * @return {text} - Formatted date string
+ * @see StrToDate
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION DateToStr (
   pValue    date,
   pFormat   text DEFAULT 'DD.MM.YYYY'
@@ -384,7 +491,14 @@ GRANT EXECUTE ON FUNCTION DateToStr(date, text) TO PUBLIC;
 --------------------------------------------------------------------------------
 -- FUNCTION StrToDate ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Parse a text string into a date value using to_date.
+ * @param {text} pValue - Date string to parse
+ * @param {text} pFormat - to_date format mask (default DD.MM.YYYY)
+ * @return {date} - Parsed date value
+ * @see DateToStr
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION StrToDate (
   pValue    text,
   pFormat   text DEFAULT 'DD.MM.YYYY'
@@ -400,7 +514,14 @@ GRANT EXECUTE ON FUNCTION StrToDate(text, text) TO PUBLIC;
 --------------------------------------------------------------------------------
 -- FUNCTION StrToTimeStamp -----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Parse a text string into a timestamp value using to_timestamp.
+ * @param {text} pValue - Timestamp string to parse
+ * @param {text} pFormat - to_timestamp format mask (default DD.MM.YYYY HH24:MI:SS)
+ * @return {timestamp} - Parsed timestamp value
+ * @see DateToStr
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION StrToTimeStamp (
   pValue    text,
   pFormat   text DEFAULT 'DD.MM.YYYY HH24:MI:SS'
@@ -416,7 +537,14 @@ GRANT EXECUTE ON FUNCTION StrToTimeStamp(text, text) TO PUBLIC;
 --------------------------------------------------------------------------------
 -- FUNCTION StrToTimeStampTZ ---------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Parse a text string into a timezone-aware timestamp using to_timestamp.
+ * @param {text} pValue - Timestamp string to parse
+ * @param {text} pFormat - to_timestamp format mask (default DD.MM.YYYY HH24:MI:SS)
+ * @return {timestamptz} - Parsed timestamptz value
+ * @see DateToStr
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION StrToTimeStampTZ (
   pValue    text,
   pFormat   text DEFAULT 'DD.MM.YYYY HH24:MI:SS'
@@ -432,7 +560,12 @@ GRANT EXECUTE ON FUNCTION StrToTimeStampTZ(text, text) TO PUBLIC;
 --------------------------------------------------------------------------------
 -- FUNCTION StrToTime ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Parse a text string into a time value via dynamic SQL.
+ * @param {text} pValue - Time string to parse (e.g. '14:30:00')
+ * @return {time} - Parsed time value
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION StrToTime (
   pValue    text
 ) RETURNS   time
@@ -450,7 +583,12 @@ GRANT EXECUTE ON FUNCTION StrToTime(text) TO PUBLIC;
 --------------------------------------------------------------------------------
 -- FUNCTION StrToInterval ------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Parse a text string into an interval value via dynamic SQL.
+ * @param {text} pValue - Interval string to parse (e.g. '1 hour', '30 minutes')
+ * @return {interval} - Parsed interval value
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION StrToInterval (
   pValue    text
 ) RETURNS   interval
@@ -468,7 +606,13 @@ GRANT EXECUTE ON FUNCTION StrToInterval(text) TO PUBLIC;
 --------------------------------------------------------------------------------
 -- FUNCTION IntervalArrayToStr -------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Convert a two-dimensional interval array to a formatted text array.
+ * @param {interval[][]} pValue - 2D array of intervals (e.g. schedule time ranges)
+ * @param {text} pFormat - to_char format for each interval (default HH24:MI)
+ * @return {text[][]} - 2D text array with formatted interval strings
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION IntervalArrayToStr (
   pValue    interval[][],
   pFormat   text DEFAULT 'HH24:MI'
@@ -505,7 +649,12 @@ GRANT EXECUTE ON FUNCTION IntervalArrayToStr(interval[][], text) TO PUBLIC;
 --------------------------------------------------------------------------------
 -- FUNCTION MINDATE ------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Return the platform-wide minimum sentinel date (1970-01-01).
+ * @return {date} - Epoch start date used as a NULL substitute
+ * @see MAXDATE
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION MINDATE() RETURNS DATE
 AS $$
 BEGIN
@@ -518,7 +667,12 @@ GRANT EXECUTE ON FUNCTION MINDATE() TO PUBLIC;
 --------------------------------------------------------------------------------
 -- FUNCTION MAXDATE ------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Return the platform-wide maximum sentinel date (4433-12-31).
+ * @return {date} - Far-future date used as an "infinity" substitute
+ * @see MINDATE
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION MAXDATE() RETURNS DATE
 AS $$
 BEGIN
@@ -531,7 +685,12 @@ GRANT EXECUTE ON FUNCTION MAXDATE() TO PUBLIC;
 --------------------------------------------------------------------------------
 -- FUNCTION CheckNull ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Convert a null-sentinel UUID to actual NULL.
+ * @param {uuid} pValue - UUID that may be the null sentinel (00000000-0000-4000-8000-000000000000)
+ * @return {uuid} - NULL if the value equals the sentinel, otherwise the original value
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CheckNull (
   pValue    uuid
 ) RETURNS   uuid
@@ -546,7 +705,12 @@ GRANT EXECUTE ON FUNCTION CheckNull(uuid) TO PUBLIC;
 --------------------------------------------------------------------------------
 -- FUNCTION CheckNull ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Convert an empty string to actual NULL.
+ * @param {text} pValue - Text that may be an empty string
+ * @return {text} - NULL if empty, otherwise the original value
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CheckNull (
   pValue    text
 ) RETURNS   text
@@ -561,7 +725,12 @@ GRANT EXECUTE ON FUNCTION CheckNull(text) TO PUBLIC;
 --------------------------------------------------------------------------------
 -- FUNCTION CheckNull ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Convert an empty JSON object to actual NULL.
+ * @param {json} pValue - JSON value that may be an empty object
+ * @return {json} - NULL if '{}', otherwise the original value
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CheckNull (
   pValue    json
 ) RETURNS   json
@@ -576,7 +745,12 @@ GRANT EXECUTE ON FUNCTION CheckNull(json) TO PUBLIC;
 --------------------------------------------------------------------------------
 -- FUNCTION CheckNull ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Convert an empty JSONB object to actual NULL.
+ * @param {jsonb} pValue - JSONB value that may be an empty object
+ * @return {jsonb} - NULL if '{}', otherwise the original value
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CheckNull (
   pValue    jsonb
 ) RETURNS   jsonb
@@ -591,7 +765,12 @@ GRANT EXECUTE ON FUNCTION CheckNull(jsonb) TO PUBLIC;
 --------------------------------------------------------------------------------
 -- FUNCTION CheckNull ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Convert a zero numeric to actual NULL.
+ * @param {numeric} pValue - Numeric value that may be zero
+ * @return {numeric} - NULL if 0, otherwise the original value
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CheckNull (
   pValue    numeric
 ) RETURNS   numeric
@@ -606,7 +785,12 @@ GRANT EXECUTE ON FUNCTION CheckNull(numeric) TO PUBLIC;
 --------------------------------------------------------------------------------
 -- FUNCTION CheckNull ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Convert a sentinel integer (-1) to actual NULL.
+ * @param {integer} pValue - Integer value that may be -1
+ * @return {integer} - NULL if -1, otherwise the original value
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CheckNull (
   pValue    integer
 ) RETURNS   integer
@@ -621,7 +805,12 @@ GRANT EXECUTE ON FUNCTION CheckNull(integer) TO PUBLIC;
 --------------------------------------------------------------------------------
 -- FUNCTION CheckNull ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Convert a MINDATE() timestamp to actual NULL.
+ * @param {timestamp} pValue - Timestamp that may equal the minimum sentinel date
+ * @return {timestamp} - NULL if equal to MINDATE(), otherwise the original value
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CheckNull (
   pValue    timestamp
 ) RETURNS   timestamp
@@ -636,7 +825,12 @@ GRANT EXECUTE ON FUNCTION CheckNull(timestamp) TO PUBLIC;
 --------------------------------------------------------------------------------
 -- FUNCTION CheckNull ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Convert a MINDATE() timestamptz to actual NULL.
+ * @param {timestamptz} pValue - Timestamptz that may equal the minimum sentinel date
+ * @return {timestamptz} - NULL if equal to MINDATE(), otherwise the original value
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CheckNull (
   pValue    timestamptz
 ) RETURNS   timestamptz
@@ -651,7 +845,12 @@ GRANT EXECUTE ON FUNCTION CheckNull(timestamptz) TO PUBLIC;
 --------------------------------------------------------------------------------
 -- FUNCTION CheckNull ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Convert a zero interval to actual NULL.
+ * @param {interval} pValue - Interval that may be zero
+ * @return {interval} - NULL if interval '0', otherwise the original value
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CheckNull (
   pValue    interval
 ) RETURNS   interval
@@ -666,7 +865,12 @@ GRANT EXECUTE ON FUNCTION CheckNull(interval) TO PUBLIC;
 --------------------------------------------------------------------------------
 -- FUNCTION GetCompare ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Map a short comparison code to its SQL operator string.
+ * @param {text} pCompare - Three-letter comparison code (EQL, NEQ, LSS, LEQ, GTR, GEQ, GIN, LKE, IKE, etc.)
+ * @return {text} - SQL operator string with surrounding spaces, defaults to ' = '
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetCompare (
   pCompare  text
 ) RETURNS   text
@@ -726,7 +930,13 @@ GRANT EXECUTE ON FUNCTION GetCompare(text) TO PUBLIC;
 --------------------------------------------------------------------------------
 -- array_add_text --------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Append a suffix string to every element in a text array.
+ * @param {text[]} pArray - Source array of strings
+ * @param {text} pText - Text to append to each element
+ * @return {text[]} - New array with the suffix applied to each element
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION array_add_text (
   pArray    text[],
   pText     text
@@ -750,7 +960,14 @@ GRANT EXECUTE ON FUNCTION array_add_text(text[], text) TO PUBLIC;
 --------------------------------------------------------------------------------
 -- FUNCTION min_array ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Find the minimum value in an array, optionally excluding a specific element.
+ * @param {anyarray} parray - Array to scan
+ * @param {anyelement} pelement - Value to exclude from comparison (optional)
+ * @return {anyelement} - Minimum value found, or NULL on error
+ * @see max_array
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION min_array (
   parray    anyarray,
   pelement  anyelement DEFAULT null
@@ -762,7 +979,7 @@ DECLARE
 BEGIN
   i := 1;
   r := null;
-  FOR i IN 1..array_length(parray, 1) 
+  FOR i IN 1..array_length(parray, 1)
   LOOP
     IF pelement IS NOT NULL THEN
       IF coalesce(r, pelement) = pelement THEN
@@ -789,7 +1006,14 @@ GRANT EXECUTE ON FUNCTION min_array(anyarray, anyelement) TO PUBLIC;
 --------------------------------------------------------------------------------
 -- FUNCTION max_array ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Find the maximum value in an array, optionally excluding a specific element.
+ * @param {anyarray} parray - Array to scan
+ * @param {anyelement} pelement - Value to exclude from comparison (optional)
+ * @return {anyelement} - Maximum value found, or NULL on error
+ * @see min_array
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION max_array (
   parray    anyarray,
   pelement  anyelement DEFAULT null
@@ -801,7 +1025,7 @@ DECLARE
 BEGIN
   i := 1;
   r := null;
-  FOR i IN 1..array_length(parray, 1) 
+  FOR i IN 1..array_length(parray, 1)
   LOOP
     IF pelement IS NOT NULL THEN
       IF coalesce(r, pelement) = pelement THEN
@@ -828,7 +1052,12 @@ GRANT EXECUTE ON FUNCTION max_array(anyarray, anyelement) TO PUBLIC;
 --------------------------------------------------------------------------------
 -- FUNCTION inet_to_array ------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Split an IPv4 address into an array of its four octets.
+ * @param {inet} ip - IPv4 address to decompose
+ * @return {text[]} - Array of four octet strings (index 0..3)
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION inet_to_array (
   ip        inet
 ) RETURNS   text[]
@@ -862,7 +1091,11 @@ GRANT EXECUTE ON FUNCTION inet_to_array(inet) TO PUBLIC;
 --------------------------------------------------------------------------------
 -- FUNCTION UTC ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Return the current timestamp in UTC.
+ * @return {timestamptz} - Current time converted to UTC
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION UTC()
 RETURNS     timestamptz
 AS $$
@@ -876,7 +1109,13 @@ GRANT EXECUTE ON FUNCTION UTC() TO PUBLIC;
 --------------------------------------------------------------------------------
 -- FUNCTION GetISOTime ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Format a timestamp as an ISO 8601 string with milliseconds.
+ * @param {timestamp} pTime - Timestamp to format (defaults to current UTC time)
+ * @return {text} - ISO 8601 formatted string (e.g. "2024-01-15T12:30:45.123Z")
+ * @see GetEpoch
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetISOTime (
   pTime     timestamp DEFAULT current_timestamp at time zone 'utc'
 ) RETURNS   text
@@ -891,7 +1130,13 @@ GRANT EXECUTE ON FUNCTION GetISOTime(timestamp) TO PUBLIC;
 --------------------------------------------------------------------------------
 -- FUNCTION GetEpoch -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Convert a timestamp to a Unix epoch in seconds (truncated).
+ * @param {timestamp} pTime - Timestamp to convert (defaults to current UTC time)
+ * @return {double precision} - Whole seconds since 1970-01-01 00:00:00 UTC
+ * @see GetEpochMs, GetISOTime
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetEpoch (
   pTime     timestamp DEFAULT current_timestamp at time zone 'utc'
 ) RETURNS   double precision
@@ -906,7 +1151,13 @@ GRANT EXECUTE ON FUNCTION GetEpoch(timestamp) TO PUBLIC;
 --------------------------------------------------------------------------------
 -- FUNCTION GetEpochMs ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Convert a timestamp to a Unix epoch in milliseconds (truncated).
+ * @param {timestamp} pTime - Timestamp to convert (defaults to current UTC time)
+ * @return {double precision} - Whole milliseconds since 1970-01-01 00:00:00 UTC
+ * @see GetEpoch
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetEpochMs (
   pTime     timestamp DEFAULT current_timestamp at time zone 'utc'
 ) RETURNS   double precision
@@ -921,7 +1172,12 @@ GRANT EXECUTE ON FUNCTION GetEpochMs(timestamp) TO PUBLIC;
 --------------------------------------------------------------------------------
 -- FUNCTION Dow ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Return the ISO day of week (Monday=1 .. Sunday=7) for a given timestamp.
+ * @param {timestamptz} pDateTime - Timestamp to evaluate (defaults to now)
+ * @return {int} - Day of week: 1 (Monday) through 7 (Sunday)
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION Dow (
   pDateTime timestamptz DEFAULT Now()
 ) RETURNS   int
@@ -944,7 +1200,13 @@ GRANT EXECUTE ON FUNCTION Dow(timestamptz) TO PUBLIC;
 --------------------------------------------------------------------------------
 -- quote_literal_json ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Quote the value portion of a JSONB arrow expression (->>) for safe SQL embedding.
+ * @param {text} pStr - String potentially containing a '->>' JSONB accessor
+ * @return {text} - String with the accessor's value part properly quoted
+ * @see array_quote_literal_json
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION quote_literal_json (
   pStr      text
 ) RETURNS   text
@@ -973,7 +1235,13 @@ GRANT EXECUTE ON FUNCTION quote_literal_json(text) TO PUBLIC;
 --------------------------------------------------------------------------------
 -- array_quote_literal_json ----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Apply JSONB arrow quoting to every element in an array.
+ * @param {anyarray} pArray - Array of strings potentially containing '->>' accessors
+ * @return {anyarray} - Array with accessor values properly quoted
+ * @see quote_literal_json
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION array_quote_literal_json (
   pArray    anyarray
 ) RETURNS   anyarray
@@ -1003,7 +1271,13 @@ GRANT EXECUTE ON FUNCTION array_quote_literal_json(anyarray) TO PUBLIC;
 --------------------------------------------------------------------------------
 -- find_value_in_array ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Look up a value in a key=value pair array by key name.
+ * @param {anyarray} pArray - Array of "key=value" strings
+ * @param {text} pKey - Key to search for
+ * @return {text} - Associated value, or NULL if the key is not found
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION find_value_in_array (
   pArray    anyarray,
   pKey      text
@@ -1030,7 +1304,12 @@ GRANT EXECUTE ON FUNCTION find_value_in_array(anyarray, text) TO PUBLIC;
 --------------------------------------------------------------------------------
 -- FUNCTION result_success -----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Return a standard success record with boolean result and message.
+ * @return {record} - (result: true, message: 'Success')
+ * @see error_success
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION result_success (
   result    out boolean,
   message   out text
@@ -1048,7 +1327,12 @@ GRANT EXECUTE ON FUNCTION result_success() TO PUBLIC;
 --------------------------------------------------------------------------------
 -- FUNCTION error_success ------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Return a standard success record with integer error code and message.
+ * @return {record} - (result: 0, message: 'Success')
+ * @see result_success
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION error_success (
   result    out int,
   message   out text
@@ -1066,7 +1350,13 @@ GRANT EXECUTE ON FUNCTION error_success() TO PUBLIC;
 --------------------------------------------------------------------------------
 -- FUNCTION random_between -----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Generate a random integer within an inclusive range.
+ * @param {int} low - Lower bound (inclusive)
+ * @param {int} high - Upper bound (inclusive)
+ * @return {int} - Random integer between low and high
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION random_between (
   low       int,
   high      int
@@ -1083,7 +1373,13 @@ GRANT EXECUTE ON FUNCTION random_between(int, int) TO PUBLIC;
 --------------------------------------------------------------------------------
 -- FUNCTION bin_to_dec ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Convert a binary digit string to its decimal numeric equivalent.
+ * @param {text} B - String of '0' and '1' characters
+ * @return {numeric} - Decimal value
+ * @see dec_to_bin, bit_to_dec
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION bin_to_dec (
   B         text
 ) RETURNS   numeric
@@ -1109,7 +1405,15 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- FUNCTION dec_to_bin ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Convert a decimal numeric value to a binary digit string.
+ * @param {numeric} D - Decimal value to convert
+ * @param {integer} L - Minimum output length (left-padded)
+ * @param {text} F - Padding character (default '0')
+ * @return {text} - Binary string representation
+ * @see bin_to_dec
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION dec_to_bin (
   D         numeric,
   L         integer DEFAULT 1,
@@ -1137,7 +1441,13 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- FUNCTION bit_to_dec ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Convert a bit varying value to its decimal numeric equivalent.
+ * @param {bit varying} B - Bit string to convert
+ * @return {numeric} - Decimal value
+ * @see bin_to_dec, dec_to_bin
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION bit_to_dec (
   B         bit varying
 ) RETURNS   numeric
@@ -1151,7 +1461,13 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- FUNCTION hex_to_bit ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Convert a hexadecimal string to a bit varying value.
+ * @param {text} hex - Hexadecimal string (without '0x' prefix)
+ * @return {bit varying} - Corresponding bit string
+ * @see hex_to_int, hex_to_dec
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION hex_to_bit (
   hex       text
 ) RETURNS   bit varying
@@ -1170,7 +1486,13 @@ GRANT EXECUTE ON FUNCTION hex_to_bit(text) TO PUBLIC;
 --------------------------------------------------------------------------------
 -- FUNCTION hex_to_int ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Convert a hexadecimal string to a bigint value.
+ * @param {text} H - Hexadecimal string (without '0x' prefix)
+ * @return {bigint} - Integer value (limited to bigint range)
+ * @see hex_to_dec, hex_to_bit
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION hex_to_int (
   H         text
 ) RETURNS   bigint
@@ -1189,7 +1511,13 @@ GRANT EXECUTE ON FUNCTION hex_to_int(text) TO PUBLIC;
 --------------------------------------------------------------------------------
 -- FUNCTION hex_to_dec ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Convert a hexadecimal string to an arbitrary-precision numeric value.
+ * @param {text} H - Hexadecimal string (without '0x' prefix)
+ * @return {numeric} - Decimal value (supports values larger than bigint)
+ * @see hex_to_int, dec_to_hex
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION hex_to_dec (
   H         text
 ) RETURNS   numeric
@@ -1206,7 +1534,14 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- FUNCTION dec_to_hex ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Convert a decimal numeric value to a lowercase hexadecimal string.
+ * @param {numeric} D - Decimal value to convert
+ * @param {int} L - Minimum output length (left-padded with '0')
+ * @return {text} - Lowercase hexadecimal string
+ * @see hex_to_dec
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION dec_to_hex (
   D         numeric,
   L         int default null
@@ -1247,7 +1582,13 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- FUNCTION hex_to_num64 -------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Convert a hexadecimal string to a 256-bit numeric using byte-level bit shifting.
+ * @param {text} H - Hexadecimal string (up to 64 hex chars / 32 bytes)
+ * @return {numeric} - Numeric value representing the full 256-bit number
+ * @see hex_to_dec
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION hex_to_num64 (
   H         text
 ) RETURNS   numeric
@@ -1289,9 +1630,15 @@ AS $$
 $$ LANGUAGE SQL STRICT;
 
 --------------------------------------------------------------------------------
--- FUNCTION bin_to_dec ---------------------------------------------------------
+-- FUNCTION hex_to_bigint ------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Convert a hexadecimal string to a bigint using byte-level bit shifting.
+ * @param {text} H - Hexadecimal string (up to 16 hex chars / 8 bytes)
+ * @return {bigint} - Bigint value
+ * @see hex_to_int, hex_to_num64
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION hex_to_bigint (
   H         text
 ) RETURNS   bigint
@@ -1311,7 +1658,15 @@ $$ LANGUAGE SQL STRICT;
 --------------------------------------------------------------------------------
 -- FUNCTION bit_copy -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Extract a contiguous range of bits from a numeric value as a decimal.
+ * @param {numeric} B - Source numeric value interpreted as a bit field
+ * @param {integer} P - Bit position (0-based from LSB) of the range start
+ * @param {integer} C - Number of bits to extract
+ * @return {numeric} - Decimal value of the extracted bit range
+ * @see IEEE754_32, IEEE754_64
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION bit_copy (
   B         numeric,
   P         integer,
@@ -1335,7 +1690,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- FUNCTION to_little_endian ---------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Reverse the byte order of a bytea value (big-endian to little-endian).
+ * @param {bytea} B - Bytes in big-endian order
+ * @return {bytea} - Bytes in little-endian order
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION to_little_endian (
   B         bytea
 ) RETURNS   bytea
@@ -1359,7 +1719,13 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- FUNCTION to_little_endian ---------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Convert a numeric value to little-endian byte order and return as numeric.
+ * @param {numeric} D - Decimal value to convert
+ * @param {integer} L - Hex string length (byte count * 2) for the intermediate representation
+ * @return {numeric} - Numeric value reinterpreted in little-endian byte order
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION to_little_endian (
   D         numeric,
   L         integer
@@ -1378,7 +1744,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- FUNCTION to_little_endian ---------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Reverse the byte order of a hex string (big-endian to little-endian).
+ * @param {text} H - Hexadecimal string in big-endian order
+ * @return {text} - Hexadecimal string in little-endian order
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION to_little_endian (
   H         text
 ) RETURNS   text
@@ -1391,7 +1762,13 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- IEEE754_32 ------------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Decode a 32-bit IEEE 754 single-precision float from its numeric bit pattern.
+ * @param {numeric} P - 32-bit value as a decimal number
+ * @return {numeric} - Decoded floating-point value
+ * @see IEEE754_64, bit_copy
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION IEEE754_32 (
   P         numeric
 ) RETURNS   numeric
@@ -1418,7 +1795,13 @@ GRANT EXECUTE ON FUNCTION IEEE754_32(numeric) TO PUBLIC;
 --------------------------------------------------------------------------------
 -- IEEE754_64 ------------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Decode a 64-bit IEEE 754 double-precision float from its numeric bit pattern.
+ * @param {numeric} P - 64-bit value as a decimal number
+ * @return {numeric} - Decoded floating-point value
+ * @see IEEE754_32, bit_copy
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION IEEE754_64 (
   P         numeric
 ) RETURNS   numeric
@@ -1445,7 +1828,11 @@ GRANT EXECUTE ON FUNCTION IEEE754_64(numeric) TO PUBLIC;
 --------------------------------------------------------------------------------
 -- FUNCTION null_uuid ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Return the platform-wide null sentinel UUID.
+ * @return {uuid} - Constant UUID 00000000-0000-4000-8000-000000000000
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION null_uuid (
 ) RETURNS   uuid
 AS $$
@@ -1459,7 +1846,14 @@ GRANT EXECUTE ON FUNCTION null_uuid() TO PUBLIC;
 --------------------------------------------------------------------------------
 -- CheckCodes ------------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Validate a list of codes against a source set, raising an error for invalid ones.
+ * @param {text[]} pSource - Allowed code values
+ * @param {text[]} pCodes - Codes to validate
+ * @return {text[]} - Array of valid codes only
+ * @throws InvalidCodes - When any code is not found in the source set
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CheckCodes (
   pSource   text[],
   pCodes    text[]
@@ -1498,7 +1892,12 @@ GRANT EXECUTE ON FUNCTION CheckCodes(text[], text[]) TO PUBLIC;
 --------------------------------------------------------------------------------
 -- URLEncode -------------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Percent-encode a URL string per RFC 3986 (unreserved characters pass through).
+ * @param {text} url - Raw URL string to encode
+ * @return {text} - Percent-encoded string safe for use in query parameters
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION URLEncode (
   url       text
 ) RETURNS   text
@@ -1535,7 +1934,12 @@ GRANT EXECUTE ON FUNCTION URLEncode(text) TO PUBLIC;
 --------------------------------------------------------------------------------
 -- word_count ------------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Count the number of whitespace-separated words in a string.
+ * @param {text} str - Input text
+ * @return {integer} - Number of words
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION word_count (
   str       text
 ) RETURNS   integer
@@ -1548,7 +1952,20 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- generate_aws_signature ------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Compute an AWS Signature Version 4 for S3 requests.
+ * @param {text} HTTPMethod - HTTP method (GET, PUT, etc.)
+ * @param {text} canonicalURI - URL path component
+ * @param {text} canonicalQueryString - Sorted query string parameters
+ * @param {text} canonicalHeaders - Lowercase sorted headers with values
+ * @param {text} signedHeaders - Semicolon-separated list of signed header names
+ * @param {text} hashedPayload - SHA-256 hex digest of the request body
+ * @param {text} SECRET_KEY - AWS secret access key
+ * @param {text} REGION - AWS region identifier (e.g. 'us-east-1')
+ * @param {timestamp} currentTimeStamp - Override timestamp for testing (defaults to current UTC)
+ * @return {text} - Hex-encoded HMAC-SHA256 signature
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION generate_aws_signature (
   HTTPMethod            text,
   canonicalURI          text,
@@ -1573,7 +1990,7 @@ DECLARE
 BEGIN
   currentTimeStamp := coalesce(currentTimeStamp, current_timestamp AT TIME ZONE 'UTC');
 
-  -- Создаем канонический запрос
+  -- Build canonical request
   canonicalRequest := coalesce(HTTPMethod, 'GET') || E'\n' ||
                       coalesce(canonicalURI, '/') || E'\n' ||
                       coalesce(canonicalQueryString, '') || E'\n' ||
@@ -1581,23 +1998,23 @@ BEGIN
                       signedHeaders || E'\n' ||
                       coalesce(hashedPayload, 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855');
 
-  -- Форматируем текущую дату
+  -- Format current date for the credential scope
   currentDate := to_char(currentTimeStamp, 'YYYYMMDD"T"HH24MISS"Z"');
 
-  -- Создаем строку для подписи
+  -- Build string to sign
   stringToSign := 'AWS4-HMAC-SHA256' || E'\n' ||
                   currentDate || E'\n' ||
                   to_char(currentTimeStamp, 'YYYYMMDD') || '/' ||
                   REGION || '/s3/aws4_request' || E'\n' ||
                   encode(digest(canonicalRequest, 'sha256'), 'hex');
 
-  -- Генерируем ключи подписи
+  -- Derive the signing key through a chain of HMAC operations
   dateKey := hmac(to_char(currentTimeStamp, 'YYYYMMDD'), 'AWS4' || SECRET_KEY, 'sha256');
   dateRegionKey := hmac(convert_to(REGION, 'utf8'), dateKey, 'sha256');
   dateRegionServiceKey := hmac(convert_to('s3', 'utf8'), dateRegionKey, 'sha256');
   signingKey := hmac(convert_to('aws4_request', 'utf8'), dateRegionServiceKey, 'sha256');
 
-  -- Создаем подпись
+  -- Produce the final signature
   signature := encode(hmac(convert_to(stringToSign, 'utf8'), signingKey, 'sha256'), 'hex');
 
   RETURN signature;
@@ -1608,13 +2025,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- get_hostname_from_uri -------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Extract the hostname from a URI string (strips protocol and path).
+ * @param {text} uri - Full URI (e.g. 'https://example.com/path?q=1')
+ * @return {text} - Hostname portion only (e.g. 'example.com')
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION get_hostname_from_uri(uri TEXT)
 RETURNS TEXT AS $$
 DECLARE
   v_hostname TEXT;
 BEGIN
-  -- Извлечение хоста из URI с помощью регулярных выражений
   SELECT SubString(uri FROM '^(?:https?://)?([^/?#]+)') INTO v_hostname;
   RETURN v_hostname;
 END;
@@ -1623,7 +2044,13 @@ $$ LANGUAGE plpgsql STRICT;
 --------------------------------------------------------------------------------
 -- get_input_value -------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Extract the value attribute from an HTML input tag identified by a search string.
+ * @param {text} html - HTML source to search
+ * @param {text} str - Identifying string (e.g. input name) to locate the target tag
+ * @return {text} - Content of the value="" attribute, or NULL if not found
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION get_input_value (
   html      text,
   str       text
@@ -1635,29 +2062,23 @@ DECLARE
   start_pos int;
   end_pos   int;
 BEGIN
-  -- Найти начало строки с тегом input
   pos := position(str IN html);
 
-  -- Если тег не найден, вернуть NULL
   IF pos = 0 THEN
     RETURN NULL;
   END IF;
 
-  -- Найти позицию атрибута value в найденной строке
   start_pos := position('value="' IN SubString(html FROM pos));
 
-  -- Если атрибут value не найден, вернуть NULL
   IF start_pos = 0 THEN
     RETURN NULL;
   END IF;
 
-  -- Смещение для корректного нахождения значения value
+  -- Offset to the actual value content after 'value="'
   start_pos := pos + start_pos + length('value="') - 1;
 
-  -- Найти конец значения атрибута value
   end_pos := position('"' IN SubString(html FROM start_pos));
 
-  -- Извлечь значение атрибута value
   value := SubString(html FROM start_pos FOR end_pos - 1);
 
   RETURN value;
@@ -1667,7 +2088,12 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 -- is_valid_email --------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Validate an email address against a standard regex pattern.
+ * @param {text} email - Email address string to validate
+ * @return {boolean} - TRUE if the email matches the pattern, FALSE otherwise
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION is_valid_email (
   email             text
 ) RETURNS           boolean
@@ -1675,10 +2101,8 @@ AS $$
 DECLARE
   email_pattern     text;
 BEGIN
-  -- Устанавливаем регулярное выражение для проверки адреса
   email_pattern := '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$';
 
-  -- Проверяем соответствие регулярному выражению
   RETURN email ~ email_pattern;
 END;
 $$ LANGUAGE plpgsql;
