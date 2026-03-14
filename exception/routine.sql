@@ -2,6 +2,12 @@
 -- EXCEPTION -------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Parse a structured error message into its numeric code and text.
+ * @param {text} pMessage - Raw error string, optionally prefixed with "ERR-NNNNN"
+ * @return {record} code (int) and message (text)
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION ParseMessage (
   pMessage      text,
   OUT code      int,
@@ -21,6 +27,13 @@ $$ LANGUAGE plpgsql STRICT;
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Generate a deterministic UUID for an exception identified by group and code.
+ * @param {integer} pErrGroup - Error group (maps to HTTP-style status category)
+ * @param {integer} pErrCode - Unique error code within the group
+ * @return {uuid} Deterministic UUID encoding the error group and code
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetExceptionUUID (
   pErrGroup       integer,
   pErrCode        integer
@@ -33,6 +46,13 @@ $$ LANGUAGE plpgsql STRICT;
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Build the localized error string for a given exception group and code.
+ * @param {integer} pErrGroup - Error group (maps to HTTP-style status category)
+ * @param {integer} pErrCode - Unique error code within the group
+ * @return {text} Formatted error string "ERR-GGGCC: <message>."
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetExceptionStr (
   pErrGroup      integer,
   pErrCode       integer
@@ -45,6 +65,16 @@ $$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Register a localized resource string for an exception code.
+ * @param {uuid} pId - Exception UUID (from GetExceptionUUID)
+ * @param {text} pLocaleCode - Locale code (e.g. 'en', 'ru')
+ * @param {text} pName - Short resource name / exception identifier
+ * @param {text} pDescription - Localized error message template
+ * @param {uuid} pRoot - Parent resource UUID; defaults to the root error-codes node
+ * @return {uuid} Newly created or updated resource UUID
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CreateExceptionResource (
   pId            uuid,
   pLocaleCode    text,
@@ -87,6 +117,12 @@ SELECT CreateExceptionResource(GetExceptionUUID(401, 1), 'nl', 'LoginFailed', 'I
 SELECT CreateExceptionResource(GetExceptionUUID(401, 1), 'fr', 'LoginFailed', 'Échec de la connexion');
 SELECT CreateExceptionResource(GetExceptionUUID(401, 1), 'it', 'LoginFailed', 'Accesso non riuscito');
 
+/**
+ * @brief Raise an error when the login attempt fails.
+ * @return {void}
+ * @since 1.0.0
+ * @see AuthenticateError, LoginError
+ */
 CREATE OR REPLACE FUNCTION LoginFailed() RETURNS void
 AS $$
 BEGIN
@@ -102,6 +138,13 @@ SELECT CreateExceptionResource(GetExceptionUUID(401, 2), 'nl', 'AuthenticateErro
 SELECT CreateExceptionResource(GetExceptionUUID(401, 2), 'fr', 'AuthenticateError', 'Erreur d''authentification. %s');
 SELECT CreateExceptionResource(GetExceptionUUID(401, 2), 'it', 'AuthenticateError', 'Errore di autenticazione. %s');
 
+/**
+ * @brief Raise an authentication error with a custom detail message.
+ * @param {text} pMessage - Explanation of the authentication failure
+ * @return {void}
+ * @since 1.0.0
+ * @see LoginFailed, LoginError
+ */
 CREATE OR REPLACE FUNCTION AuthenticateError (
   pMessage    text
 ) RETURNS     void
@@ -119,6 +162,12 @@ SELECT CreateExceptionResource(GetExceptionUUID(401, 3), 'nl', 'LoginError', 'Co
 SELECT CreateExceptionResource(GetExceptionUUID(401, 3), 'fr', 'LoginError', 'Vérifiez que le nom d''utilisateur est correct et entrez à nouveau le mot de passe', GetExceptionUUID(401, 2));
 SELECT CreateExceptionResource(GetExceptionUUID(401, 3), 'it', 'LoginError', 'Verifica che il nome utente sia corretto e inserisci nuovamente la password', GetExceptionUUID(401, 2));
 
+/**
+ * @brief Raise an error advising the user to check credentials and retry.
+ * @return {void}
+ * @since 1.0.0
+ * @see LoginFailed, AuthenticateError
+ */
 CREATE OR REPLACE FUNCTION LoginError() RETURNS void
 AS $$
 BEGIN
@@ -134,6 +183,12 @@ SELECT CreateExceptionResource(GetExceptionUUID(401, 4), 'nl', 'UserLockError', 
 SELECT CreateExceptionResource(GetExceptionUUID(401, 4), 'fr', 'UserLockError', 'Le compte est bloqué', GetExceptionUUID(401, 2));
 SELECT CreateExceptionResource(GetExceptionUUID(401, 4), 'it', 'UserLockError', 'L''account è bloccato', GetExceptionUUID(401, 2));
 
+/**
+ * @brief Raise an error when the user account is permanently blocked.
+ * @return {void}
+ * @since 1.0.0
+ * @see UserTempLockError
+ */
 CREATE OR REPLACE FUNCTION UserLockError() RETURNS void
 AS $$
 BEGIN
@@ -149,6 +204,13 @@ SELECT CreateExceptionResource(GetExceptionUUID(401, 5), 'nl', 'UserTempLockErro
 SELECT CreateExceptionResource(GetExceptionUUID(401, 5), 'fr', 'UserTempLockError', 'Le compte est temporairement bloqué jusqu''à %s', GetExceptionUUID(401, 2));
 SELECT CreateExceptionResource(GetExceptionUUID(401, 5), 'it', 'UserTempLockError', 'L''account è temporaneamente bloccato fino a %s', GetExceptionUUID(401, 2));
 
+/**
+ * @brief Raise an error when the user account is temporarily locked until a given date.
+ * @param {timestamptz} pDate - Date/time when the lock expires
+ * @return {void}
+ * @since 1.0.0
+ * @see UserLockError
+ */
 CREATE OR REPLACE FUNCTION UserTempLockError (
   pDate      timestamptz
 ) RETURNS    void
@@ -166,6 +228,11 @@ SELECT CreateExceptionResource(GetExceptionUUID(401, 6), 'nl', 'PasswordExpired'
 SELECT CreateExceptionResource(GetExceptionUUID(401, 6), 'fr', 'PasswordExpired', 'Mot de passe expiré', GetExceptionUUID(401, 2));
 SELECT CreateExceptionResource(GetExceptionUUID(401, 6), 'it', 'PasswordExpired', 'Password scaduta', GetExceptionUUID(401, 2));
 
+/**
+ * @brief Raise an error when the user's password has expired.
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION PasswordExpired() RETURNS void
 AS $$
 BEGIN
@@ -181,6 +248,11 @@ SELECT CreateExceptionResource(GetExceptionUUID(401, 7), 'nl', 'SignatureError',
 SELECT CreateExceptionResource(GetExceptionUUID(401, 7), 'fr', 'SignatureError', 'La signature est incorrecte ou manquante');
 SELECT CreateExceptionResource(GetExceptionUUID(401, 7), 'it', 'SignatureError', 'La firma è errata o mancante');
 
+/**
+ * @brief Raise an error when the request signature is incorrect or missing.
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION SignatureError () RETURNS void
 AS $$
 BEGIN
@@ -196,6 +268,12 @@ SELECT CreateExceptionResource(GetExceptionUUID(403, 1), 'nl', 'TokenExpired', '
 SELECT CreateExceptionResource(GetExceptionUUID(403, 1), 'fr', 'TokenExpired', 'Le jeton est introuvable ou a expiré');
 SELECT CreateExceptionResource(GetExceptionUUID(403, 1), 'it', 'TokenExpired', 'Il token non è stato trovato o è scaduto');
 
+/**
+ * @brief Raise an error when the token is not found or has expired.
+ * @return {void}
+ * @since 1.0.0
+ * @see TokenError, TokenBelong
+ */
 CREATE OR REPLACE FUNCTION TokenExpired() RETURNS void
 AS $$
 BEGIN
@@ -211,6 +289,12 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 1), 'nl', 'AccessDenied', '
 SELECT CreateExceptionResource(GetExceptionUUID(400, 1), 'fr', 'AccessDenied', 'Accès refusé');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 1), 'it', 'AccessDenied', 'Accesso negato');
 
+/**
+ * @brief Raise an error when access to the requested resource is denied.
+ * @return {void}
+ * @since 1.0.0
+ * @see AccessDeniedForUser, ExecuteMethodError
+ */
 CREATE OR REPLACE FUNCTION AccessDenied (
 ) RETURNS     void
 AS $$
@@ -227,6 +311,13 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 2), 'nl', 'AccessDeniedForU
 SELECT CreateExceptionResource(GetExceptionUUID(400, 2), 'fr', 'AccessDeniedForUser', 'Accès refusé pour l''utilisateur %s');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 2), 'it', 'AccessDeniedForUser', 'Accesso negato per l''utente %s');
 
+/**
+ * @brief Raise an error when a specific user is denied access.
+ * @param {text} pUserName - Username that was denied
+ * @return {void}
+ * @since 1.0.0
+ * @see AccessDenied
+ */
 CREATE OR REPLACE FUNCTION AccessDeniedForUser (
   pUserName  text
 ) RETURNS    void
@@ -244,6 +335,13 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 3), 'nl', 'ExecuteMethodErr
 SELECT CreateExceptionResource(GetExceptionUUID(400, 3), 'fr', 'ExecuteMethodError', 'Droits insuffisants pour exécuter la méthode: %s');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 3), 'it', 'ExecuteMethodError', 'Diritti insufficienti per eseguire il metodo: %s');
 
+/**
+ * @brief Raise an error when the caller has insufficient rights to execute a method.
+ * @param {text} pMessage - Name or description of the method that was denied
+ * @return {void}
+ * @since 1.0.0
+ * @see AccessDenied
+ */
 CREATE OR REPLACE FUNCTION ExecuteMethodError (
   pMessage    text
 ) RETURNS     void
@@ -261,6 +359,11 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 4), 'nl', 'NonceExpired', '
 SELECT CreateExceptionResource(GetExceptionUUID(400, 4), 'fr', 'NonceExpired', 'La requête a expiré');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 4), 'it', 'NonceExpired', 'La richiesta è scaduta');
 
+/**
+ * @brief Raise an error when the request nonce has expired (timed out).
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION NonceExpired() RETURNS void
 AS $$
 BEGIN
@@ -276,6 +379,12 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 5), 'nl', 'TokenError', 'To
 SELECT CreateExceptionResource(GetExceptionUUID(400, 5), 'fr', 'TokenError', 'Jeton invalide');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 5), 'it', 'TokenError', 'Token non valido');
 
+/**
+ * @brief Raise an error when the provided token is invalid.
+ * @return {void}
+ * @since 1.0.0
+ * @see TokenExpired, TokenBelong
+ */
 CREATE OR REPLACE FUNCTION TokenError() RETURNS void
 AS $$
 BEGIN
@@ -291,6 +400,12 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 6), 'nl', 'TokenBelong', 'T
 SELECT CreateExceptionResource(GetExceptionUUID(400, 6), 'fr', 'TokenBelong', 'Le jeton appartient à un autre client');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 6), 'it', 'TokenBelong', 'Il token appartiene a un altro client');
 
+/**
+ * @brief Raise an error when the token belongs to a different client.
+ * @return {void}
+ * @since 1.0.0
+ * @see TokenError, TokenExpired
+ */
 CREATE OR REPLACE FUNCTION TokenBelong() RETURNS void
 AS $$
 BEGIN
@@ -306,6 +421,13 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 7), 'nl', 'InvalidScope', '
 SELECT CreateExceptionResource(GetExceptionUUID(400, 7), 'fr', 'InvalidScope', 'Certaines des étendues demandées n''étaient pas valides: {valide=[%s], invalide=[%s]}');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 7), 'it', 'InvalidScope', 'Alcuni ambiti richiesti non erano validi: {valido=[%s], non valido=[%s]}');
 
+/**
+ * @brief Raise an error when some requested OAuth scopes are invalid.
+ * @param {text[]} pValid - Array of valid scope names
+ * @param {text[]} pInvalid - Array of invalid scope names
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION InvalidScope (
   pValid    text[],
   pInvalid  text[]
@@ -324,6 +446,11 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 8), 'nl', 'AbstractError', 
 SELECT CreateExceptionResource(GetExceptionUUID(400, 8), 'fr', 'AbstractError', 'Une classe abstraite ne peut pas avoir d''objets');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 8), 'it', 'AbstractError', 'Una classe astratta non può avere oggetti');
 
+/**
+ * @brief Raise an error when attempting to instantiate an abstract class.
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION AbstractError() RETURNS void
 AS $$
 BEGIN
@@ -339,6 +466,11 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 9), 'nl', 'ChangeClassError
 SELECT CreateExceptionResource(GetExceptionUUID(400, 9), 'fr', 'ChangeClassError', 'La modification de la classe d''un objet n''est pas autorisée');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 9), 'it', 'ChangeClassError', 'La modifica della classe di un oggetto non è consentita');
 
+/**
+ * @brief Raise an error when an object's class change is not allowed.
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION ChangeClassError() RETURNS void
 AS $$
 BEGIN
@@ -354,6 +486,11 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 10), 'nl', 'ChangeAreaError
 SELECT CreateExceptionResource(GetExceptionUUID(400, 10), 'fr', 'ChangeAreaError', 'La modification de la zone d''un document n''est pas autorisée');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 10), 'it', 'ChangeAreaError', 'La modifica dell''area di un documento non è consentita');
 
+/**
+ * @brief Raise an error when changing a document's area is not allowed.
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION ChangeAreaError() RETURNS void
 AS $$
 BEGIN
@@ -369,6 +506,11 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 11), 'nl', 'IncorrectEntity
 SELECT CreateExceptionResource(GetExceptionUUID(400, 11), 'fr', 'IncorrectEntity', 'L''entité de l''objet est mal définie');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 11), 'it', 'IncorrectEntity', 'L''entità dell''oggetto non è impostata correttamente');
 
+/**
+ * @brief Raise an error when the object entity is set incorrectly.
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION IncorrectEntity() RETURNS void
 AS $$
 BEGIN
@@ -384,6 +526,12 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 12), 'nl', 'IncorrectClassT
 SELECT CreateExceptionResource(GetExceptionUUID(400, 12), 'fr', 'IncorrectClassType', 'Type d''objet invalide');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 12), 'it', 'IncorrectClassType', 'Tipo di oggetto non valido');
 
+/**
+ * @brief Raise an error when the object type is invalid.
+ * @return {void}
+ * @since 1.0.0
+ * @see IncorrectDocumentType
+ */
 CREATE OR REPLACE FUNCTION IncorrectClassType() RETURNS void
 AS $$
 BEGIN
@@ -399,6 +547,12 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 13), 'nl', 'IncorrectDocume
 SELECT CreateExceptionResource(GetExceptionUUID(400, 13), 'fr', 'IncorrectDocumentType', 'Type de document invalide');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 13), 'it', 'IncorrectDocumentType', 'Tipo di documento non valido');
 
+/**
+ * @brief Raise an error when the document type is invalid.
+ * @return {void}
+ * @since 1.0.0
+ * @see IncorrectClassType
+ */
 CREATE OR REPLACE FUNCTION IncorrectDocumentType() RETURNS void
 AS $$
 BEGIN
@@ -414,6 +568,12 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 14), 'nl', 'IncorrectLocale
 SELECT CreateExceptionResource(GetExceptionUUID(400, 14), 'fr', 'IncorrectLocaleCode', 'Langue non trouvée par code: %s');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 14), 'it', 'IncorrectLocaleCode', 'Lingua non trovata per codice: %s');
 
+/**
+ * @brief Raise an error when a locale cannot be found by the given code.
+ * @param {text} pCode - Locale code that was not found
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION IncorrectLocaleCode (
   pCode      text
 ) RETURNS    void
@@ -431,6 +591,12 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 15), 'nl', 'RootAreaError',
 SELECT CreateExceptionResource(GetExceptionUUID(400, 15), 'fr', 'RootAreaError', 'Les opérations sur les documents dans la zone racine sont interdites');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 15), 'it', 'RootAreaError', 'Le operazioni con i documenti nell''area root sono vietate');
 
+/**
+ * @brief Raise an error when operations on documents in the root area are attempted.
+ * @return {void}
+ * @since 1.0.0
+ * @see GuestAreaError, ChangeAreaError
+ */
 CREATE OR REPLACE FUNCTION RootAreaError() RETURNS void
 AS $$
 BEGIN
@@ -446,6 +612,12 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 16), 'nl', 'AreaError', 'Ge
 SELECT CreateExceptionResource(GetExceptionUUID(400, 16), 'fr', 'AreaError', 'Zone non trouvée par l''identifiant spécifié');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 16), 'it', 'AreaError', 'Area non trovata dall''identificatore specificato');
 
+/**
+ * @brief Raise an error when an area is not found by the specified identifier.
+ * @return {void}
+ * @since 1.0.0
+ * @see IncorrectAreaCode
+ */
 CREATE OR REPLACE FUNCTION AreaError() RETURNS void
 AS $$
 BEGIN
@@ -461,6 +633,13 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 17), 'nl', 'IncorrectAreaCo
 SELECT CreateExceptionResource(GetExceptionUUID(400, 17), 'fr', 'IncorrectAreaCode', 'Zone non trouvée par code: %s');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 17), 'it', 'IncorrectAreaCode', 'Area non trovata per codice: %s');
 
+/**
+ * @brief Raise an error when an area is not found by the given code.
+ * @param {text} pCode - Area code that was not found
+ * @return {void}
+ * @since 1.0.0
+ * @see AreaError
+ */
 CREATE OR REPLACE FUNCTION IncorrectAreaCode (
   pCode      text
 ) RETURNS    void
@@ -478,6 +657,14 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 18), 'nl', 'UserNotMemberAr
 SELECT CreateExceptionResource(GetExceptionUUID(400, 18), 'fr', 'UserNotMemberArea', 'L''utilisateur "%s" n''a pas accès à la zone "%s"');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 18), 'it', 'UserNotMemberArea', 'L''utente "%s" non ha accesso all''area "%s"');
 
+/**
+ * @brief Raise an error when a user does not have access to a specific area.
+ * @param {text} pUser - Username lacking access
+ * @param {text} pArea - Area name the user cannot access
+ * @return {void}
+ * @since 1.0.0
+ * @see UserNotMemberInterface
+ */
 CREATE OR REPLACE FUNCTION UserNotMemberArea (
   pUser      text,
   pArea      text
@@ -496,6 +683,11 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 19), 'nl', 'InterfaceError'
 SELECT CreateExceptionResource(GetExceptionUUID(400, 19), 'fr', 'InterfaceError', 'Interface non trouvée par l''identifiant spécifié');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 19), 'it', 'InterfaceError', 'Interfaccia non trovata dall''identificatore specificato');
 
+/**
+ * @brief Raise an error when an interface is not found by the specified identifier.
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION InterfaceError() RETURNS void
 AS $$
 BEGIN
@@ -511,6 +703,14 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 20), 'nl', 'UserNotMemberIn
 SELECT CreateExceptionResource(GetExceptionUUID(400, 20), 'fr', 'UserNotMemberInterface', 'L''utilisateur "%s" n''a pas accès à l''interface "%s"');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 20), 'it', 'UserNotMemberInterface', 'L''utente "%s" non ha accesso all''interfaccia "%s"');
 
+/**
+ * @brief Raise an error when a user does not have access to a specific interface.
+ * @param {text} pUser - Username lacking access
+ * @param {text} pInterface - Interface name the user cannot access
+ * @return {void}
+ * @since 1.0.0
+ * @see UserNotMemberArea
+ */
 CREATE OR REPLACE FUNCTION UserNotMemberInterface (
   pUser         text,
   pInterface    text
@@ -529,6 +729,13 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 21), 'nl', 'UnknownRoleName
 SELECT CreateExceptionResource(GetExceptionUUID(400, 21), 'fr', 'UnknownRoleName', 'Nom de rôle inconnu: %s');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 21), 'it', 'UnknownRoleName', 'Nome ruolo sconosciuto: %s');
 
+/**
+ * @brief Raise an error when the specified role name is not recognized.
+ * @param {text} pRoleName - Role name that was not found
+ * @return {void}
+ * @since 1.0.0
+ * @see RoleExists
+ */
 CREATE OR REPLACE FUNCTION UnknownRoleName (
   pRoleName     text
 ) RETURNS       void
@@ -546,6 +753,13 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 22), 'nl', 'RoleExists', 'R
 SELECT CreateExceptionResource(GetExceptionUUID(400, 22), 'fr', 'RoleExists', 'Le rôle "%s" existe déjà');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 22), 'it', 'RoleExists', 'Il ruolo "%s" esiste già');
 
+/**
+ * @brief Raise an error when the specified role already exists.
+ * @param {text} pRoleName - Role name that already exists
+ * @return {void}
+ * @since 1.0.0
+ * @see UnknownRoleName
+ */
 CREATE OR REPLACE FUNCTION RoleExists (
   pRoleName     text
 ) RETURNS       void
@@ -563,6 +777,12 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 23), 'nl', 'UserNotFound', 
 SELECT CreateExceptionResource(GetExceptionUUID(400, 23), 'fr', 'UserNotFound', 'L''utilisateur "%s" n''existe pas');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 23), 'it', 'UserNotFound', 'L''utente "%s" non esiste');
 
+/**
+ * @brief Raise an error when a user is not found by username.
+ * @param {text} pUserName - Username that does not exist
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION UserNotFound (
   pUserName     text
 ) RETURNS       void
@@ -580,6 +800,12 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 24), 'nl', 'UserIdNotFound'
 SELECT CreateExceptionResource(GetExceptionUUID(400, 24), 'fr', 'UserIdNotFound', 'Utilisateur avec id "%s" n''existe pas');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 24), 'it', 'UserIdNotFound', 'Utente con id "%s" non esiste');
 
+/**
+ * @brief Raise an error when a user is not found by identifier.
+ * @param {uuid} pId - User identifier that does not exist
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION UserNotFound (
   pId           uuid
 ) RETURNS       void
@@ -597,6 +823,11 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 25), 'nl', 'DeleteUserError
 SELECT CreateExceptionResource(GetExceptionUUID(400, 25), 'fr', 'DeleteUserError', 'Vous ne pouvez pas vous supprimer');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 25), 'it', 'DeleteUserError', 'Non puoi eliminare te stesso');
 
+/**
+ * @brief Raise an error when a user attempts to delete their own account.
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION DeleteUserError() RETURNS void
 AS $$
 BEGIN
@@ -612,6 +843,13 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 26), 'nl', 'AlreadyExists',
 SELECT CreateExceptionResource(GetExceptionUUID(400, 26), 'fr', 'AlreadyExists', '%s existe déjà');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 26), 'it', 'AlreadyExists', '%s esiste già');
 
+/**
+ * @brief Raise a generic error when a named entity already exists.
+ * @param {text} pWho - Description of the entity that already exists
+ * @return {void}
+ * @since 1.0.0
+ * @see RecordExists
+ */
 CREATE OR REPLACE FUNCTION AlreadyExists (
   pWho       text
 ) RETURNS    void
@@ -629,6 +867,13 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 27), 'nl', 'RecordExists', 
 SELECT CreateExceptionResource(GetExceptionUUID(400, 27), 'fr', 'RecordExists', 'L''entrée avec le code "%s" existe déjà');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 27), 'it', 'RecordExists', 'La voce con codice "%s" esiste già');
 
+/**
+ * @brief Raise an error when a record with the given code already exists.
+ * @param {text} pCode - Code of the duplicate entry
+ * @return {void}
+ * @since 1.0.0
+ * @see AlreadyExists
+ */
 CREATE OR REPLACE FUNCTION RecordExists (
   pCode     text
 ) RETURNS   void
@@ -646,6 +891,14 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 28), 'nl', 'InvalidCodes', 
 SELECT CreateExceptionResource(GetExceptionUUID(400, 28), 'fr', 'InvalidCodes', 'Certains codes n''étaient pas valides: {valide=[%s], invalide=[%s]}');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 28), 'it', 'InvalidCodes', 'Alcuni codici non erano validi: {valido=[%s], non valido=[%s]}');
 
+/**
+ * @brief Raise an error listing valid and invalid codes from a request.
+ * @param {text[]} pValid - Array of accepted codes
+ * @param {text[]} pInvalid - Array of rejected codes
+ * @return {void}
+ * @since 1.0.0
+ * @see IncorrectCode
+ */
 CREATE OR REPLACE FUNCTION InvalidCodes (
   pValid    text[],
   pInvalid  text[]
@@ -664,6 +917,14 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 29), 'nl', 'IncorrectCode',
 SELECT CreateExceptionResource(GetExceptionUUID(400, 29), 'fr', 'IncorrectCode', 'Code incorrect "%s". Codes valides: [%s]');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 29), 'it', 'IncorrectCode', 'Codice non valido "%s". Codici validi: [%s]');
 
+/**
+ * @brief Raise an error when a single code is invalid, showing allowed values.
+ * @param {text} pCode - The invalid code provided
+ * @param {anyarray} pArray - Array of valid codes
+ * @return {void}
+ * @since 1.0.0
+ * @see InvalidCodes
+ */
 CREATE OR REPLACE FUNCTION IncorrectCode (
   pCode     text,
   pArray    anyarray
@@ -688,6 +949,14 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 31), 'nl', 'ObjectIdIsNull'
 SELECT CreateExceptionResource(GetExceptionUUID(400, 31), 'fr', 'ObjectIdIsNull', 'Non trouvé %s avec %s: <null>');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 31), 'it', 'ObjectIdIsNull', 'Non trovato %s con %s: <null>');
 
+/**
+ * @brief Raise an error when an object is not found by a UUID parameter.
+ * @param {text} pWho - Object type description
+ * @param {text} pParam - Parameter name used for the lookup
+ * @param {uuid} pId - Identifier value (NULL triggers a separate message)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION ObjectNotFound (
   pWho      text,
   pParam    text,
@@ -705,6 +974,14 @@ $$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Raise an error when an object is not found by a text parameter.
+ * @param {text} pWho - Object type description
+ * @param {text} pParam - Parameter name used for the lookup
+ * @param {text} pCode - Code value (NULL triggers a separate message)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION ObjectNotFound (
   pWho      text,
   pParam    text,
@@ -728,6 +1005,14 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 32), 'nl', 'MethodActionNot
 SELECT CreateExceptionResource(GetExceptionUUID(400, 32), 'fr', 'MethodActionNotFound', 'Méthode de l''objet [%s] non trouvée, pour l''action: %s [%s]. État actuel: %s [%s]');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 32), 'it', 'MethodActionNotFound', 'Metodo dell''oggetto [%s] non trovato, per azione: %s [%s]. Stato attuale: %s [%s]');
 
+/**
+ * @brief Raise an error when no method is found for the given object and action.
+ * @param {uuid} pObject - Object identifier
+ * @param {uuid} pAction - Action identifier that has no corresponding method
+ * @return {void}
+ * @since 1.0.0
+ * @see MethodNotFound, MethodByCodeNotFound
+ */
 CREATE OR REPLACE FUNCTION MethodActionNotFound (
   pObject    uuid,
   pAction    uuid
@@ -746,6 +1031,14 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 33), 'nl', 'MethodNotFound'
 SELECT CreateExceptionResource(GetExceptionUUID(400, 33), 'fr', 'MethodNotFound', 'Méthode "%s" de l''objet "%s" non trouvée');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 33), 'it', 'MethodNotFound', 'Metodo "%s" dell''oggetto "%s" non trovato');
 
+/**
+ * @brief Raise an error when a method is not found for the given object.
+ * @param {uuid} pObject - Object identifier
+ * @param {uuid} pMethod - Method identifier that was not found
+ * @return {void}
+ * @since 1.0.0
+ * @see MethodActionNotFound, MethodByCodeNotFound
+ */
 CREATE OR REPLACE FUNCTION MethodNotFound (
   pObject    uuid,
   pMethod    uuid
@@ -764,6 +1057,14 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 34), 'nl', 'MethodByCodeNot
 SELECT CreateExceptionResource(GetExceptionUUID(400, 34), 'fr', 'MethodByCodeNotFound', 'Aucune méthode trouvée par code "%s" pour l''objet "%s"');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 34), 'it', 'MethodByCodeNotFound', 'Nessun metodo trovato per codice "%s" per oggetto "%s"');
 
+/**
+ * @brief Raise an error when no method is found by code for the given object.
+ * @param {uuid} pObject - Object identifier
+ * @param {text} pCode - Method code that was not found
+ * @return {void}
+ * @since 1.0.0
+ * @see MethodNotFound, MethodActionNotFound
+ */
 CREATE OR REPLACE FUNCTION MethodByCodeNotFound (
   pObject    uuid,
   pCode      text
@@ -782,6 +1083,13 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 35), 'nl', 'ChangeObjectSta
 SELECT CreateExceptionResource(GetExceptionUUID(400, 35), 'fr', 'ChangeObjectStateError', 'Échec de la modification de l''état de l''objet: %s');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 35), 'it', 'ChangeObjectStateError', 'Impossibile modificare lo stato dell''oggetto: %s');
 
+/**
+ * @brief Raise an error when changing the object's state fails.
+ * @param {uuid} pObject - Object whose state change failed
+ * @return {void}
+ * @since 1.0.0
+ * @see StateByCodeNotFound
+ */
 CREATE OR REPLACE FUNCTION ChangeObjectStateError (
   pObject    uuid
 ) RETURNS    void
@@ -799,6 +1107,11 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 36), 'nl', 'ChangesNotAllow
 SELECT CreateExceptionResource(GetExceptionUUID(400, 36), 'fr', 'ChangesNotAllowed', 'Les modifications ne sont pas autorisées');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 36), 'it', 'ChangesNotAllowed', 'Le modifiche non sono consentite');
 
+/**
+ * @brief Raise an error when modifications to the current entity are not allowed.
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION ChangesNotAllowed (
 ) RETURNS    void
 AS $$
@@ -815,6 +1128,14 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 37), 'nl', 'StateByCodeNotF
 SELECT CreateExceptionResource(GetExceptionUUID(400, 37), 'fr', 'StateByCodeNotFound', 'Aucun état trouvé par code "%s" pour l''objet "%s"');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 37), 'it', 'StateByCodeNotFound', 'Nessuno stato trovato per codice "%s" per oggetto "%s"');
 
+/**
+ * @brief Raise an error when no state is found by code for the given object.
+ * @param {uuid} pObject - Object identifier
+ * @param {text} pCode - State code that was not found
+ * @return {void}
+ * @since 1.0.0
+ * @see ChangeObjectStateError
+ */
 CREATE OR REPLACE FUNCTION StateByCodeNotFound (
   pObject   uuid,
   pCode     text
@@ -833,6 +1154,12 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 38), 'nl', 'MethodIsEmpty',
 SELECT CreateExceptionResource(GetExceptionUUID(400, 38), 'fr', 'MethodIsEmpty', 'L''ID de la méthode ne doit pas être vide');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 38), 'it', 'MethodIsEmpty', 'L''ID del metodo non deve essere vuoto');
 
+/**
+ * @brief Raise an error when the method identifier is empty.
+ * @return {void}
+ * @since 1.0.0
+ * @see ActionIsEmpty
+ */
 CREATE OR REPLACE FUNCTION MethodIsEmpty (
 ) RETURNS   void
 AS $$
@@ -849,6 +1176,12 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 39), 'nl', 'ActionIsEmpty',
 SELECT CreateExceptionResource(GetExceptionUUID(400, 39), 'fr', 'ActionIsEmpty', 'L''ID de l''action ne doit pas être vide');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 39), 'it', 'ActionIsEmpty', 'L''ID dell''azione non deve essere vuoto');
 
+/**
+ * @brief Raise an error when the action identifier is empty.
+ * @return {void}
+ * @since 1.0.0
+ * @see MethodIsEmpty
+ */
 CREATE OR REPLACE FUNCTION ActionIsEmpty (
 ) RETURNS    void
 AS $$
@@ -865,6 +1198,11 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 40), 'nl', 'ExecutorIsEmpty
 SELECT CreateExceptionResource(GetExceptionUUID(400, 40), 'fr', 'ExecutorIsEmpty', 'L''exécuteur ne doit pas être vide');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 40), 'it', 'ExecutorIsEmpty', 'L''esecutore non deve essere vuoto');
 
+/**
+ * @brief Raise an error when the executor is not specified.
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION ExecutorIsEmpty (
 ) RETURNS    void
 AS $$
@@ -881,6 +1219,12 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 41), 'nl', 'IncorrectDateIn
 SELECT CreateExceptionResource(GetExceptionUUID(400, 41), 'fr', 'IncorrectDateInterval', 'La date de fin de la période ne peut pas être antérieure à la date de début de la période');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 41), 'it', 'IncorrectDateInterval', 'La data di fine del periodo non può essere inferiore alla data di inizio del periodo');
 
+/**
+ * @brief Raise an error when the end date precedes the start date.
+ * @return {void}
+ * @since 1.0.0
+ * @see DateValidityPeriod
+ */
 CREATE OR REPLACE FUNCTION IncorrectDateInterval (
 ) RETURNS    void
 AS $$
@@ -897,6 +1241,11 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 42), 'nl', 'UserPasswordCha
 SELECT CreateExceptionResource(GetExceptionUUID(400, 42), 'fr', 'UserPasswordChange', 'Échec de la modification du mot de passe, la modification du mot de passe est interdite');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 42), 'it', 'UserPasswordChange', 'Modifica password non riuscita, la modifica della password è vietata');
 
+/**
+ * @brief Raise an error when password change is prohibited for the user.
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION UserPasswordChange (
 ) RETURNS void
 AS $$
@@ -913,6 +1262,11 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 43), 'nl', 'SystemRoleError
 SELECT CreateExceptionResource(GetExceptionUUID(400, 43), 'fr', 'SystemRoleError', 'Les opérations de modification, de suppression des rôles système sont interdites');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 43), 'it', 'SystemRoleError', 'Le operazioni di modifica, eliminazione per i ruoli di sistema sono vietate');
 
+/**
+ * @brief Raise an error when attempting to modify or delete a system role.
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION SystemRoleError (
 ) RETURNS void
 AS $$
@@ -929,6 +1283,12 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 44), 'nl', 'LoginIpTableErr
 SELECT CreateExceptionResource(GetExceptionUUID(400, 44), 'fr', 'LoginIpTableError', 'La connexion n''est pas possible. Accès limité par adresse IP: %s');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 44), 'it', 'LoginIpTableError', 'Accesso non possibile. Accesso limitato tramite indirizzo IP: %s');
 
+/**
+ * @brief Raise an error when login is denied due to IP address restrictions.
+ * @param {inet} pHost - IP address that was blocked
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION LoginIpTableError (
   pHost   inet
 ) RETURNS void
@@ -946,6 +1306,11 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 45), 'nl', 'OperationNotPos
 SELECT CreateExceptionResource(GetExceptionUUID(400, 45), 'fr', 'OperationNotPossible', 'L''opération n''est pas possible, il existe des documents associés');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 45), 'it', 'OperationNotPossible', 'Operazione non possibile, sono presenti documenti correlati');
 
+/**
+ * @brief Raise an error when an operation cannot proceed due to related documents.
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION OperationNotPossible (
 ) RETURNS    void
 AS $$
@@ -962,6 +1327,13 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 46), 'nl', 'ViewNotFound', 
 SELECT CreateExceptionResource(GetExceptionUUID(400, 46), 'fr', 'ViewNotFound', 'Vue "%s.%s" non trouvée');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 46), 'it', 'ViewNotFound', 'Vista "%s.%s" non trovata');
 
+/**
+ * @brief Raise an error when a database view is not found by schema and name.
+ * @param {text} pScheme - Schema name
+ * @param {text} pTable - View name
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION ViewNotFound (
   pScheme   text,
   pTable    text
@@ -980,6 +1352,12 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 47), 'nl', 'InvalidVerifica
 SELECT CreateExceptionResource(GetExceptionUUID(400, 47), 'fr', 'InvalidVerificationCodeType', 'Code de type de vérification non valide: %s');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 47), 'it', 'InvalidVerificationCodeType', 'Codice tipo verifica non valido: %s');
 
+/**
+ * @brief Raise an error when the verification type code is invalid.
+ * @param {char} pType - Verification type code that was rejected
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION InvalidVerificationCodeType (
   pType     char
 ) RETURNS   void
@@ -997,6 +1375,12 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 48), 'nl', 'InvalidPhoneNum
 SELECT CreateExceptionResource(GetExceptionUUID(400, 48), 'fr', 'InvalidPhoneNumber', 'Numéro de téléphone non valide: %s');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 48), 'it', 'InvalidPhoneNumber', 'Numero di telefono non valido: %s');
 
+/**
+ * @brief Raise an error when the provided phone number is invalid.
+ * @param {text} pPhone - Phone number that failed validation
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION InvalidPhoneNumber (
   pPhone    text
 ) RETURNS   void
@@ -1015,6 +1399,11 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 49), 'fr', 'ObjectIsNull', 
 SELECT CreateExceptionResource(GetExceptionUUID(400, 49), 'it', 'ObjectIsNull', 'ID oggetto non specificato');
 
 
+/**
+ * @brief Raise an error when the object identifier is not specified (NULL).
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION ObjectIsNull (
 ) RETURNS    void
 AS $$
@@ -1032,6 +1421,11 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 50), 'fr', 'PerformActionEr
 SELECT CreateExceptionResource(GetExceptionUUID(400, 50), 'it', 'PerformActionError', 'Non puoi eseguire questa azione');
 
 
+/**
+ * @brief Raise an error when the current user cannot perform the requested action.
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION PerformActionError (
 ) RETURNS    void
 AS $$
@@ -1049,6 +1443,11 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 51), 'fr', 'IdentityNotConf
 SELECT CreateExceptionResource(GetExceptionUUID(400, 51), 'it', 'IdentityNotConfirmed', 'Identità non confermata');
 
 
+/**
+ * @brief Raise an error when the user's identity has not been confirmed.
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION IdentityNotConfirmed (
 ) RETURNS    void
 AS $$
@@ -1065,6 +1464,11 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 52), 'nl', 'ReadOnlyError',
 SELECT CreateExceptionResource(GetExceptionUUID(400, 52), 'fr', 'ReadOnlyError', 'Les opérations de modification pour les rôles en lecture seule ne sont pas autorisées');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 52), 'it', 'ReadOnlyError', 'Le operazioni di modifica per i ruoli di sola lettura non sono consentite');
 
+/**
+ * @brief Raise an error when a modification is attempted on a read-only role.
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION ReadOnlyError (
 ) RETURNS void
 AS $$
@@ -1081,6 +1485,11 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 53), 'nl', 'ActionAlreadyCo
 SELECT CreateExceptionResource(GetExceptionUUID(400, 53), 'fr', 'ActionAlreadyCompleted', 'Vous avez déjà terminé cette action');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 53), 'it', 'ActionAlreadyCompleted', 'Hai già completato questa azione');
 
+/**
+ * @brief Raise an error when the action has already been completed.
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION ActionAlreadyCompleted (
 ) RETURNS    void
 AS $$
@@ -1097,6 +1506,11 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 60), 'nl', 'JsonIsEmpty', '
 SELECT CreateExceptionResource(GetExceptionUUID(400, 60), 'fr', 'JsonIsEmpty', 'JSON ne doit pas être vide');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 60), 'it', 'JsonIsEmpty', 'JSON non deve essere vuoto');
 
+/**
+ * @brief Raise an error when the provided JSON payload is empty.
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION JsonIsEmpty (
 ) RETURNS    void
 AS $$
@@ -1113,6 +1527,15 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 61), 'nl', 'IncorrectJsonKe
 SELECT CreateExceptionResource(GetExceptionUUID(400, 61), 'fr', 'IncorrectJsonKey', '(%s) Clé non valide "%s". Clés valides: [%s]');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 61), 'it', 'IncorrectJsonKey', '(%s) Chiave non valida "%s". Chiavi valide: [%s]');
 
+/**
+ * @brief Raise an error when a JSON key is not valid for the given route.
+ * @param {text} pRoute - API route where the key was submitted
+ * @param {text} pKey - The invalid JSON key
+ * @param {anyarray} pArray - Array of valid keys
+ * @return {void}
+ * @since 1.0.0
+ * @see JsonKeyNotFound
+ */
 CREATE OR REPLACE FUNCTION IncorrectJsonKey (
   pRoute    text,
   pKey      text,
@@ -1132,6 +1555,14 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 62), 'nl', 'JsonKeyNotFound
 SELECT CreateExceptionResource(GetExceptionUUID(400, 62), 'fr', 'JsonKeyNotFound', '(%s) Clé requise non trouvée: %s');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 62), 'it', 'JsonKeyNotFound', '(%s) Chiave richiesta non trovata: %s');
 
+/**
+ * @brief Raise an error when a required JSON key is missing from the payload.
+ * @param {text} pRoute - API route where the key was expected
+ * @param {text} pKey - Name of the missing required key
+ * @return {void}
+ * @since 1.0.0
+ * @see IncorrectJsonKey
+ */
 CREATE OR REPLACE FUNCTION JsonKeyNotFound (
   pRoute    text,
   pKey      text
@@ -1150,6 +1581,13 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 63), 'nl', 'IncorrectJsonTy
 SELECT CreateExceptionResource(GetExceptionUUID(400, 63), 'fr', 'IncorrectJsonType', 'Type non valide "%s", attendu "%s"');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 63), 'it', 'IncorrectJsonType', 'Tipo non valido "%s", previsto "%s"');
 
+/**
+ * @brief Raise an error when a JSON value has an unexpected type.
+ * @param {text} pType - Actual type received
+ * @param {text} pExpected - Expected type
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION IncorrectJsonType (
   pType      text,
   pExpected  text
@@ -1168,6 +1606,15 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 64), 'nl', 'IncorrectKeyInA
 SELECT CreateExceptionResource(GetExceptionUUID(400, 64), 'fr', 'IncorrectKeyInArray', 'Clé non valide "%s" dans le tableau "%s". Clés valides: [%s]');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 64), 'it', 'IncorrectKeyInArray', 'Chiave non valida "%s" nell''array "%s". Chiavi valide: [%s]');
 
+/**
+ * @brief Raise an error when an invalid key is found inside a JSON array element.
+ * @param {text} pKey - The invalid key
+ * @param {text} pArrayName - Name of the containing array
+ * @param {anyarray} pArray - Array of valid keys
+ * @return {void}
+ * @since 1.0.0
+ * @see IncorrectValueInArray
+ */
 CREATE OR REPLACE FUNCTION IncorrectKeyInArray (
   pKey          text,
   pArrayName    text,
@@ -1187,6 +1634,15 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 65), 'nl', 'IncorrectValueI
 SELECT CreateExceptionResource(GetExceptionUUID(400, 65), 'fr', 'IncorrectValueInArray', 'Valeur non valide "%s" dans le tableau "%s". Valeurs valides: [%s]');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 65), 'it', 'IncorrectValueInArray', 'Valore non valido "%s" nell''array "%s". Valori validi: [%s]');
 
+/**
+ * @brief Raise an error when an invalid value is found inside a JSON array element.
+ * @param {text} pValue - The invalid value
+ * @param {text} pArrayName - Name of the containing array
+ * @param {anyarray} pArray - Array of valid values
+ * @return {void}
+ * @since 1.0.0
+ * @see IncorrectKeyInArray
+ */
 CREATE OR REPLACE FUNCTION IncorrectValueInArray (
   pValue        text,
   pArrayName    text,
@@ -1206,6 +1662,12 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 66), 'nl', 'ValueOutOfRange
 SELECT CreateExceptionResource(GetExceptionUUID(400, 66), 'fr', 'ValueOutOfRange', 'La valeur [%s] est hors limites');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 66), 'it', 'ValueOutOfRange', 'Valore [%s] fuori intervallo');
 
+/**
+ * @brief Raise an error when a numeric value is outside the allowed range.
+ * @param {integer} pValue - The out-of-range value
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION ValueOutOfRange (
   pValue        integer
 ) RETURNS       void
@@ -1223,6 +1685,12 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 67), 'nl', 'DateValidityPer
 SELECT CreateExceptionResource(GetExceptionUUID(400, 67), 'fr', 'DateValidityPeriod', 'La date de début ne doit pas dépasser la date de fin');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 67), 'it', 'DateValidityPeriod', 'La data di inizio non deve superare la data di fine');
 
+/**
+ * @brief Raise an error when the start date exceeds the end date.
+ * @return {void}
+ * @since 1.0.0
+ * @see IncorrectDateInterval
+ */
 CREATE OR REPLACE FUNCTION DateValidityPeriod() RETURNS void
 AS $$
 BEGIN
@@ -1231,7 +1699,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
---- !!! Id: 68 занят. Смотреть ObjectNotFound
+--- !!! Id: 68 is reserved. See ObjectNotFound
 --------------------------------------------------------------------------------
 
 SELECT CreateExceptionResource(GetExceptionUUID(400, 70), 'ru', 'IssuerNotFound', 'OAuth 2.0: Не найден эмитент: %s');
@@ -1240,6 +1708,13 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 70), 'nl', 'IssuerNotFound'
 SELECT CreateExceptionResource(GetExceptionUUID(400, 70), 'fr', 'IssuerNotFound', 'OAuth 2.0: Émetteur non trouvé: %s');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 70), 'it', 'IssuerNotFound', 'OAuth 2.0: Emittente non trovato: %s');
 
+/**
+ * @brief Raise an error when the OAuth 2.0 issuer is not found.
+ * @param {text} pCode - Issuer identifier that was not found
+ * @return {void}
+ * @since 1.0.0
+ * @see AudienceNotFound
+ */
 CREATE OR REPLACE FUNCTION IssuerNotFound (
   pCode     text
 ) RETURNS   void
@@ -1257,6 +1732,12 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 71), 'nl', 'AudienceNotFoun
 SELECT CreateExceptionResource(GetExceptionUUID(400, 71), 'fr', 'AudienceNotFound', 'OAuth 2.0: Client non trouvé');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 71), 'it', 'AudienceNotFound', 'OAuth 2.0: Client non trovato');
 
+/**
+ * @brief Raise an error when the OAuth 2.0 client (audience) is not found.
+ * @return {void}
+ * @since 1.0.0
+ * @see IssuerNotFound
+ */
 CREATE OR REPLACE FUNCTION AudienceNotFound()
 RETURNS void
 AS $$
@@ -1273,6 +1754,12 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 72), 'nl', 'GuestAreaError'
 SELECT CreateExceptionResource(GetExceptionUUID(400, 72), 'fr', 'GuestAreaError', 'Les opérations sur les documents dans la zone invité sont interdites');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 72), 'it', 'GuestAreaError', 'Le operazioni con i documenti nell''area ospiti sono vietate');
 
+/**
+ * @brief Raise an error when operations on documents in the guest area are attempted.
+ * @return {void}
+ * @since 1.0.0
+ * @see RootAreaError
+ */
 CREATE OR REPLACE FUNCTION GuestAreaError() RETURNS void
 AS $$
 BEGIN
@@ -1288,6 +1775,12 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 73), 'nl', 'NotFound', 'Nie
 SELECT CreateExceptionResource(GetExceptionUUID(400, 73), 'fr', 'NotFound', 'Non trouvé');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 73), 'it', 'NotFound', 'Non trovato');
 
+/**
+ * @brief Raise a generic "not found" error.
+ * @return {void}
+ * @since 1.0.0
+ * @see ObjectNotFound
+ */
 CREATE OR REPLACE FUNCTION NotFound() RETURNS void
 AS $$
 BEGIN
@@ -1303,6 +1796,11 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 74), 'nl', 'DefaultAreaDocu
 SELECT CreateExceptionResource(GetExceptionUUID(400, 74), 'fr', 'DefaultAreaDocumentError', 'Le document ne peut être modifié que dans la zone ''Par défaut''');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 74), 'it', 'DefaultAreaDocumentError', 'Il documento può essere modificato solo nell''area "Predefinito"');
 
+/**
+ * @brief Raise an error when a document can only be modified in the default area.
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION DefaultAreaDocumentError() RETURNS void
 AS $$
 BEGIN
@@ -1318,6 +1816,14 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 80), 'nl', 'IncorrectRegist
 SELECT CreateExceptionResource(GetExceptionUUID(400, 80), 'fr', 'IncorrectRegistryKey', 'Clé non valide "%s". Clés valides: [%s]');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 80), 'it', 'IncorrectRegistryKey', 'Chiave non valida "%s". Chiavi valide: [%s]');
 
+/**
+ * @brief Raise an error when a registry key is invalid, showing allowed keys.
+ * @param {text} pKey - The invalid registry key
+ * @param {anyarray} pArray - Array of valid keys
+ * @return {void}
+ * @since 1.0.0
+ * @see IncorrectRegistryDataType
+ */
 CREATE OR REPLACE FUNCTION IncorrectRegistryKey (
   pKey       text,
   pArray     anyarray
@@ -1336,6 +1842,13 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 81), 'nl', 'IncorrectRegist
 SELECT CreateExceptionResource(GetExceptionUUID(400, 81), 'fr', 'IncorrectRegistryDataType', 'Type de données non valide: %s');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 81), 'it', 'IncorrectRegistryDataType', 'Tipo di dati non valido: %s');
 
+/**
+ * @brief Raise an error when a registry data type identifier is invalid.
+ * @param {integer} pType - The invalid data type code
+ * @return {void}
+ * @since 1.0.0
+ * @see IncorrectRegistryKey
+ */
 CREATE OR REPLACE FUNCTION IncorrectRegistryDataType (
   pType      integer
 ) RETURNS    void
@@ -1353,6 +1866,12 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 90), 'nl', 'RouteIsEmpty', 
 SELECT CreateExceptionResource(GetExceptionUUID(400, 90), 'fr', 'RouteIsEmpty', 'Le chemin ne doit pas être vide');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 90), 'it', 'RouteIsEmpty', 'Il percorso non deve essere vuoto');
 
+/**
+ * @brief Raise an error when the route path is empty.
+ * @return {void}
+ * @since 1.0.0
+ * @see RouteNotFound
+ */
 CREATE OR REPLACE FUNCTION RouteIsEmpty (
 ) RETURNS    void
 AS $$
@@ -1369,6 +1888,13 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 91), 'nl', 'RouteNotFound',
 SELECT CreateExceptionResource(GetExceptionUUID(400, 91), 'fr', 'RouteNotFound', 'Route non trouvée: %s');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 91), 'it', 'RouteNotFound', 'Route non trovata: %s');
 
+/**
+ * @brief Raise an error when the specified route is not found.
+ * @param {text} pRoute - Route path that was not found
+ * @return {void}
+ * @since 1.0.0
+ * @see RouteIsEmpty, EndPointNotSet
+ */
 CREATE OR REPLACE FUNCTION RouteNotFound (
   pRoute     text
 ) RETURNS    void
@@ -1386,6 +1912,13 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 92), 'nl', 'EndPointNotSet'
 SELECT CreateExceptionResource(GetExceptionUUID(400, 92), 'fr', 'EndPointNotSet', 'Point de terminaison non défini pour le chemin: %s');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 92), 'it', 'EndPointNotSet', 'Endpoint non impostato per percorso: %s');
 
+/**
+ * @brief Raise an error when no endpoint is configured for the given path.
+ * @param {text} pPath - Path missing an endpoint
+ * @return {void}
+ * @since 1.0.0
+ * @see RouteNotFound
+ */
 CREATE OR REPLACE FUNCTION EndPointNotSet (
   pPath      text
 ) RETURNS    void
@@ -1403,6 +1936,11 @@ SELECT CreateExceptionResource(GetExceptionUUID(400, 100), 'nl', 'SomethingWentW
 SELECT CreateExceptionResource(GetExceptionUUID(400, 100), 'fr', 'SomethingWentWrong', 'Oups, quelque chose s''est mal passé. Nos ingénieurs travaillent déjà à la résolution du problème');
 SELECT CreateExceptionResource(GetExceptionUUID(400, 100), 'it', 'SomethingWentWrong', 'Ops, qualcosa è andato storto. I nostri ingegneri stanno già lavorando alla risoluzione del problema');
 
+/**
+ * @brief Raise a generic unexpected-error message for end users.
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION SomethingWentWrong (
 ) RETURNS    void
 AS $$
