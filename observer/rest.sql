@@ -2,10 +2,14 @@
 -- REST OBSERVER ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Запрос данных в формате REST JSON API (Наблюдатель).
- * @param {text} pPath - Путь
- * @param {jsonb} pPayload - JSON
- * @return {SETOF json} - Записи в JSON
+ * @brief Dispatch REST JSON API requests for the observer module (subscribe, unsubscribe, publisher, listener).
+ * @param {text} pPath - REST endpoint path (e.g. /observer/subscribe, /observer/publisher/list)
+ * @param {jsonb} pPayload - Request payload as JSON object or array
+ * @return {SETOF json} - Result records as JSON
+ * @throws RouteIsEmpty - When pPath is NULL
+ * @throws LoginFailed - When no active session exists
+ * @throws RouteNotFound - When pPath does not match any known endpoint
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION rest.observer (
   pPath       text,

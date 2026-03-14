@@ -12,11 +12,11 @@ CREATE TABLE db.publisher (
     description text
 );
 
-COMMENT ON TABLE db.publisher IS 'Издатель.';
+COMMENT ON TABLE db.publisher IS 'Named event source (pub/sub channel) that listeners can subscribe to.';
 
-COMMENT ON COLUMN db.publisher.code IS 'Код';
-COMMENT ON COLUMN db.publisher.name IS 'Наименование';
-COMMENT ON COLUMN db.publisher.description IS 'Описание';
+COMMENT ON COLUMN db.publisher.code IS 'Unique publisher code used as the NOTIFY channel name.';
+COMMENT ON COLUMN db.publisher.name IS 'Human-readable display name.';
+COMMENT ON COLUMN db.publisher.description IS 'Optional description of the events this publisher emits.';
 
 --------------------------------------------------------------------------------
 -- db.listener -----------------------------------------------------------------
@@ -31,10 +31,10 @@ CREATE TABLE db.listener (
     PRIMARY KEY (publisher, session, identity)
 );
 
-COMMENT ON TABLE db.listener IS 'Слушатель.';
+COMMENT ON TABLE db.listener IS 'Subscriber bound to a publisher within a session, with optional JSON filter and delivery params.';
 
-COMMENT ON COLUMN db.listener.publisher IS 'Издатель';
-COMMENT ON COLUMN db.listener.session IS 'Сессия';
-COMMENT ON COLUMN db.listener.identity IS 'Идентификатор в рамках сессии';
-COMMENT ON COLUMN db.listener.filter IS 'Фильтр';
-COMMENT ON COLUMN db.listener.params IS 'Параметры';
+COMMENT ON COLUMN db.listener.publisher IS 'Publisher code (FK to db.publisher).';
+COMMENT ON COLUMN db.listener.session IS 'Session code that owns this subscription (FK to db.session).';
+COMMENT ON COLUMN db.listener.identity IS 'Logical subscription name within the session (default: main).';
+COMMENT ON COLUMN db.listener.filter IS 'JSON criteria that incoming events must match (empty object = accept all).';
+COMMENT ON COLUMN db.listener.params IS 'Delivery parameters: type (notify/object/mixed/hook) and optional hook config.';

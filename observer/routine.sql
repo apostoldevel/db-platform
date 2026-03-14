@@ -1,7 +1,15 @@
 --------------------------------------------------------------------------------
 -- FUNCTION CreatePublisher ----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Register a new event publisher (pub/sub channel).
+ * @param {text} pCode - Unique publisher code, also used as NOTIFY channel name
+ * @param {text} pName - Human-readable display name
+ * @param {text} pDescription - Optional description of the events this publisher emits
+ * @return {void}
+ * @see EditPublisher, DeletePublisher
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CreatePublisher (
   pCode          text,
   pName          text,
@@ -19,7 +27,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION EditPublisher ------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Update an existing publisher's name or description.
+ * @param {text} pCode - Publisher code to update
+ * @param {text} pName - New display name (NULL = keep current)
+ * @param {text} pDescription - New description (NULL = keep current)
+ * @return {void}
+ * @see CreatePublisher, DeletePublisher
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EditPublisher (
   pCode          text,
   pName          text DEFAULT null,
@@ -39,7 +55,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION DeletePublisher ----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Remove a publisher and cascade-delete its listeners.
+ * @param {text} pCode - Publisher code to delete
+ * @return {void}
+ * @see CreatePublisher, EditPublisher
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION DeletePublisher (
   pCode           text
 ) RETURNS         void
@@ -54,7 +76,18 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION CreateListener -----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Subscribe a session to a publisher with filter criteria and delivery params.
+ * @param {text} pPublisher - Publisher code to subscribe to
+ * @param {varchar} pSession - Session code that owns this subscription
+ * @param {text} pIdentity - Logical subscription name within the session (defaults to 'main')
+ * @param {jsonb} pFilter - JSON filter criteria for event matching (NULL = accept all)
+ * @param {jsonb} pParams - Delivery parameters, e.g. {"type": "notify"} (NULL = default notify)
+ * @return {void}
+ * @throws ERR-40000 - When the session is invalid
+ * @see EditListener, DeleteListener
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CreateListener (
   pPublisher    text,
   pSession      varchar,
@@ -92,7 +125,18 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION EditListener -------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Update filter and params for an existing listener subscription.
+ * @param {text} pPublisher - Publisher code
+ * @param {varchar} pSession - Session code
+ * @param {text} pIdentity - Subscription identity within the session (defaults to 'main')
+ * @param {jsonb} pFilter - New JSON filter criteria (NULL = accept all)
+ * @param {jsonb} pParams - New delivery parameters (NULL = default notify)
+ * @return {boolean} - true if a matching listener was found and updated
+ * @throws ERR-40000 - When the session is invalid
+ * @see CreateListener, DeleteListener
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EditListener (
   pPublisher    text,
   pSession      varchar,
@@ -134,7 +178,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION DeleteListener -----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Remove a listener subscription from a publisher.
+ * @param {text} pPublisher - Publisher code
+ * @param {varchar} pSession - Session code
+ * @param {text} pIdentity - Subscription identity (defaults to 'main')
+ * @return {boolean} - true if a matching listener was found and deleted
+ * @see CreateListener, EditListener
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION DeleteListener (
   pPublisher    text,
   pSession      varchar,
@@ -153,7 +205,11 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION InitListen ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Activate PostgreSQL LISTEN on every registered publisher channel.
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION InitListen (
 ) RETURNS        void
 AS $$
@@ -163,7 +219,7 @@ BEGIN
   FOR r IN SELECT * FROM db.publisher
   LOOP
     EXECUTE format('LISTEN %s;', r.code);
-    PERFORM WriteToEventLog('M', 5000, 'listen', format('Запущен слушатель: %s.', r.code));
+    PERFORM WriteToEventLog('M', 5000, 'listen', format('Listener started: %s.', r.code));
   END LOOP;
 END;
 $$ LANGUAGE plpgsql
@@ -173,7 +229,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION DoCheckListenerFilter ----------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Provide a custom filter validation hook for application-defined publishers.
+ * @param {text} pPublisher - Publisher code
+ * @param {jsonb} pFilter - Filter JSON to validate
+ * @return {void}
+ * @see CheckListenerFilter
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION DoCheckListenerFilter (
   pPublisher    text,
   pFilter       jsonb
@@ -189,7 +252,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION CheckListenerFilter ------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Validate a listener's filter JSON against the publisher's allowed keys and values.
+ * @param {text} pPublisher - Publisher code (notify, notice, message, replication, log, geo, or custom)
+ * @param {jsonb} pFilter - Filter JSON to validate; keys and array element values are checked
+ * @return {void}
+ * @throws IncorrectJsonType - When a filter field is not a JSON array
+ * @throws ERR-40000 - When a referenced method or object does not exist
+ * @see DoCheckListenerFilter, CheckListenerParams
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CheckListenerFilter (
   pPublisher    text,
   pFilter       jsonb
@@ -435,7 +507,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION DoCheckListenerParams ----------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Provide a custom params validation hook for application-defined publishers.
+ * @param {text} pPublisher - Publisher code
+ * @param {jsonb} pParams - Params JSON to validate
+ * @return {void}
+ * @see CheckListenerParams
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION DoCheckListenerParams (
   pPublisher    text,
   pParams       jsonb
@@ -451,7 +530,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION CheckListenerParams ------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Validate a listener's delivery params JSON against the publisher's allowed keys and values.
+ * @param {text} pPublisher - Publisher code (notify, notice, message, replication, log, geo, or custom)
+ * @param {jsonb} pParams - Params JSON to validate; checks type and optional hook configuration
+ * @return {void}
+ * @throws JsonIsEmpty - When hook config is required but missing
+ * @throws RouteIsEmpty - When hook path is NULL
+ * @throws RouteNotFound - When hook path does not match a registered route
+ * @see DoCheckListenerParams, CheckListenerFilter
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CheckListenerParams (
   pPublisher    text,
   pParams       jsonb
@@ -565,7 +654,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION DoFilterListener ---------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Provide a custom event-matching hook for application-defined publishers.
+ * @param {text} pPublisher - Publisher code
+ * @param {text} pSession - Session code of the listener
+ * @param {text} pIdentity - Subscription identity
+ * @param {jsonb} pData - Event payload to evaluate
+ * @return {boolean} - true if the event matches; default implementation returns false
+ * @see FilterListener
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION DoFilterListener (
   pPublisher    text,
   pSession      text,
@@ -583,7 +681,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION FilterListener -----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Evaluate whether an event matches a listener's filter criteria and access permissions.
+ * @param {text} pPublisher - Publisher code (notify, notice, message, replication, log, geo, or custom)
+ * @param {text} pSession - Session code of the listener
+ * @param {text} pIdentity - Subscription identity
+ * @param {jsonb} pData - Event payload containing publisher-specific fields to match against the filter
+ * @return {boolean} - true if the event passes filter checks and access control
+ * @see DoFilterListener, EventListener
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION FilterListener (
   pPublisher    text,
   pSession      text,
@@ -697,7 +804,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION DoEventListener ----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Provide a custom event-dispatch hook for application-defined publishers.
+ * @param {text} pPublisher - Publisher code
+ * @param {varchar} pSession - Session code of the listener
+ * @param {text} pIdentity - Subscription identity
+ * @param {jsonb} pData - Event payload; default implementation returns it as-is
+ * @return {SETOF json} - One or more JSON records to deliver to the listener
+ * @see EventListener
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION DoEventListener (
   pPublisher    text,
   pSession      varchar,
@@ -716,7 +832,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION EventListener ------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Dispatch an event to a listener, applying filter logic and building the response payload.
+ * @param {text} pPublisher - Publisher code (notify, notice, message, replication, log, geo, or custom)
+ * @param {varchar} pSession - Session code of the listener
+ * @param {text} pIdentity - Subscription identity (defaults to 'main')
+ * @param {jsonb} pData - Raw event data containing at minimum an id field
+ * @return {SETOF json} - JSON records shaped by the listener's params type (notify/object/mixed/hook)
+ * @see FilterListener, DoEventListener
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EventListener (
   pPublisher    text,
   pSession      varchar,
