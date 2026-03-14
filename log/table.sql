@@ -16,19 +16,19 @@ CREATE TABLE db.log (
     object      uuid
 );
 
-COMMENT ON TABLE db.log IS 'Журнал событий.';
+COMMENT ON TABLE db.log IS 'Event log: structured audit trail for messages, warnings, errors, and debug entries.';
 
-COMMENT ON COLUMN db.log.id IS 'Идентификатор';
-COMMENT ON COLUMN db.log.type IS 'Тип события';
-COMMENT ON COLUMN db.log.datetime IS 'Дата и время события (по часам)';
-COMMENT ON COLUMN db.log.timestamp IS 'Дата и время события (транзакции)';
-COMMENT ON COLUMN db.log.username IS 'Имя пользователя';
-COMMENT ON COLUMN db.log.session IS 'Сессия';
-COMMENT ON COLUMN db.log.code IS 'Код события';
-COMMENT ON COLUMN db.log.event IS 'Событие';
-COMMENT ON COLUMN db.log.text IS 'Текст';
-COMMENT ON COLUMN db.log.category IS 'Категория';
-COMMENT ON COLUMN db.log.object IS 'Идентификатор объекта';
+COMMENT ON COLUMN db.log.id IS 'Unique auto-generated event identifier.';
+COMMENT ON COLUMN db.log.type IS 'Event severity: M=message, W=warning, E=error, D=debug.';
+COMMENT ON COLUMN db.log.datetime IS 'Wall-clock time when the row was physically inserted (clock_timestamp).';
+COMMENT ON COLUMN db.log.timestamp IS 'Transaction time when the event was created (Now).';
+COMMENT ON COLUMN db.log.username IS 'Login name of the user who triggered the event.';
+COMMENT ON COLUMN db.log.session IS 'Session token (40-char) active at the time of the event.';
+COMMENT ON COLUMN db.log.code IS 'Application-defined numeric event code.';
+COMMENT ON COLUMN db.log.event IS 'Event name or subsystem label (e.g. log, exception).';
+COMMENT ON COLUMN db.log.text IS 'Human-readable event description or error message.';
+COMMENT ON COLUMN db.log.category IS 'Object class code for categorization (resolved from db.object).';
+COMMENT ON COLUMN db.log.object IS 'UUID of the related business object, if any.';
 
 CREATE INDEX ON db.log (type);
 CREATE INDEX ON db.log (datetime);
@@ -40,6 +40,11 @@ CREATE INDEX ON db.log (category);
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Populate default columns on log row insertion.
+ * @return {trigger} - Modified NEW row with datetime, username, and session filled in
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_log_insert()
 RETURNS trigger AS $$
 BEGIN
@@ -68,6 +73,11 @@ CREATE TRIGGER t_log_insert
 
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Broadcast a pg_notify event after a log row is inserted.
+ * @return {trigger} - Unchanged NEW row (notification is a side effect)
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION db.ft_log_after_insert()
 RETURNS trigger AS $$
 BEGIN

@@ -12,12 +12,14 @@ GRANT SELECT ON api.event_log TO administrator;
 -- api.event_log ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Журнал событий пользователя.
- * @param {char} pType - Тип события: {M|W|E}
- * @param {integer} pCode - Код
- * @param {timestamptz} pDateFrom - Дата начала периода
- * @param {timestamptz} pDateTo - Дата окончания периода
- * @return {SETOF api.event_log} - Записи
+ * @brief Filter event log entries by username, type, code, and date range.
+ * @param {text} pUserName - Login name to filter by (null = all users)
+ * @param {char} pType - Event severity filter: M=message, W=warning, E=error, D=debug
+ * @param {integer} pCode - Application-defined event code filter
+ * @param {timestamptz} pDateFrom - Start of the date range (inclusive)
+ * @param {timestamptz} pDateTo - End of the date range (exclusive)
+ * @return {SETOF api.event_log} - Matching log entries, max 500, newest first
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.event_log (
   pUserName      text DEFAULT null,
@@ -43,7 +45,15 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- api.write_to_log ------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Write a custom event to the log via the API and return the created entry.
+ * @param {text} pType - Event severity: M=message, W=warning, E=error
+ * @param {integer} pCode - Application-defined numeric event code
+ * @param {text} pText - Human-readable event description
+ * @return {SETOF api.event_log} - The newly created log entry
+ * @see AddEventLog
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.write_to_log (
   pType         text,
   pCode         integer,
@@ -64,9 +74,10 @@ $$ LANGUAGE plpgsql
 -- api.get_event_log -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает событие
- * @param {bigint} pId - Идентификатор
- * @return {api.event_log}
+ * @brief Fetch a single event log entry by its identifier.
+ * @param {bigint} pId - Unique event log identifier
+ * @return {SETOF api.event_log} - The matching log entry (one row or empty)
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_event_log (
   pId       bigint
@@ -81,13 +92,14 @@ $$ LANGUAGE SQL
 -- api.list_event_log ----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список событий.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.event_log}
+ * @brief List event log entries with dynamic search, filtering, pagination, and sorting.
+ * @param {jsonb} pSearch - Search conditions: [{"condition": "AND|OR", "field": "<col>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<val>"}]
+ * @param {jsonb} pFilter - Equality filter: {"<column>": "<value>"}
+ * @param {integer} pLimit - Maximum number of rows to return
+ * @param {integer} pOffSet - Number of rows to skip before returning results
+ * @param {jsonb} pOrderBy - Array of column names to sort by
+ * @return {SETOF api.event_log} - Matching log entries
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_event_log (
   pSearch    jsonb DEFAULT null,
@@ -121,12 +133,13 @@ GRANT SELECT ON api.user_log TO administrator;
 -- api.user_log ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Журнал событий пользователя.
- * @param {char} pType - Тип события: {M|W|E}
- * @param {integer} pCode - Код
- * @param {timestamptz} pDateFrom - Дата начала периода
- * @param {timestamptz} pDateTo - Дата окончания периода
- * @return {SETOF api.event_log} - Записи
+ * @brief Filter the current user's event log by type, code, and date range.
+ * @param {char} pType - Event severity filter: M=message, W=warning, E=error, D=debug
+ * @param {integer} pCode - Application-defined event code filter
+ * @param {timestamptz} pDateFrom - Start of the date range (inclusive)
+ * @param {timestamptz} pDateTo - End of the date range (exclusive)
+ * @return {SETOF api.user_log} - Matching entries for the current user, max 500, newest first
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.user_log (
   pType         char DEFAULT null,
@@ -151,9 +164,10 @@ $$ LANGUAGE SQL
 -- api.get_user_log ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает событие
- * @param {bigint} pId - Идентификатор
- * @return {api.user_log}
+ * @brief Fetch a single event log entry for the current user by its identifier.
+ * @param {bigint} pId - Unique event log identifier
+ * @return {SETOF api.user_log} - The matching log entry (one row or empty)
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_user_log (
   pId       bigint
@@ -168,13 +182,14 @@ $$ LANGUAGE SQL
 -- api.list_user_log -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список событий.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.user_log}
+ * @brief List current user's log entries with dynamic search, filtering, pagination, and sorting.
+ * @param {jsonb} pSearch - Search conditions: [{"condition": "AND|OR", "field": "<col>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<val>"}]
+ * @param {jsonb} pFilter - Equality filter: {"<column>": "<value>"}
+ * @param {integer} pLimit - Maximum number of rows to return
+ * @param {integer} pOffSet - Number of rows to skip before returning results
+ * @param {jsonb} pOrderBy - Array of column names to sort by
+ * @return {SETOF api.user_log} - Matching log entries for the current user
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_user_log (
   pSearch    jsonb DEFAULT null,
