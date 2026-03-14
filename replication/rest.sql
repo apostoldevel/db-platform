@@ -2,10 +2,14 @@
 -- REST REPLICATION ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Запрос данных в формате REST JSON API (Репликация).
- * @param {text} pPath - Путь
- * @param {jsonb} pPayload - JSON
- * @return {SETOF json} - Записи в JSON
+ * @brief Dispatch REST JSON API requests for the replication subsystem.
+ * @param {text} pPath - REST route path (e.g. /replication/log, /replication/relay/add)
+ * @param {jsonb} pPayload - Request payload
+ * @return {SETOF json} - JSON response rows
+ * @throws RouteIsEmpty - When pPath is NULL
+ * @throws LoginFailed - When no active session exists
+ * @throws AccessDenied - When the caller lacks the replication role
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION rest.replication (
   pPath       text,

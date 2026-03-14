@@ -6,9 +6,10 @@
 -- daemon.validation -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Проверяет маркет доступа.
- * @param {text} pToken - Маркер доступа в формате JWT
- * @return {jsonb}
+ * @brief Validate a JWT access token and return its claims.
+ * @param {text} pToken - JWT access token
+ * @return {jsonb} - Token claims on success, or error object on failure
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION daemon.validation (
   pToken        text
@@ -43,10 +44,11 @@ $$ LANGUAGE plpgsql
 -- daemon.refresh_token --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Проверяет и обновляет маркет доступа, если это необходимо.
- * @param {text} pToken - Маркер доступа в формате JWT
- * @param {text} pRefresh - Маркер обновления
- * @return {json}
+ * @brief Refresh an expired JWT access token using a refresh token.
+ * @param {text} pToken - Current JWT access token
+ * @param {text} pRefresh - Refresh token for obtaining a new access token
+ * @return {json} - New token pair on success, or error object on failure
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION daemon.refresh_token (
   pToken        text,
@@ -82,10 +84,11 @@ $$ LANGUAGE plpgsql
 -- daemon.identifier -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Проверить идентификатор пользователя.
- * @param {text} pToken - Маркер доступа в формате JWT
- * @param {text} pValue - Идентификатор пользователя (Логин или адрес электронной почты)
- * @return {json}
+ * @brief Look up a user by username, email, or phone and return their profile summary.
+ * @param {text} pToken - JWT access token for authorization
+ * @param {text} pValue - User identifier (username, email, or phone number)
+ * @return {json} - User profile with matched identifiers, or error object on failure
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION daemon.identifier (
   pToken        text,
@@ -150,14 +153,15 @@ $$ LANGUAGE plpgsql
 -- daemon.observer -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает данные наблюдателя.
- * @param {text} pPublisher - Издатель
- * @param {varchar} pSession - Сессия
- * @param {text} pIdentity -  Идентификатор в рамках сессии
- * @param {json} pData - Данные
- * @param {text} pAgent - Агент
- * @param {inet} pHost - IP адрес
- * @return {SETOF json}
+ * @brief Process an observer (event listener) request within a session context.
+ * @param {text} pPublisher - Event publisher channel name
+ * @param {varchar} pSession - Session code for authentication
+ * @param {text} pIdentity - Client-side identity within the session (e.g. WebSocket connection ID)
+ * @param {jsonb} pData - Event payload
+ * @param {text} pAgent - HTTP User-Agent string
+ * @param {inet} pHost - Client IP address
+ * @return {SETOF json} - Event listener response data
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION daemon.observer (
   pPublisher    text,
@@ -216,8 +220,9 @@ $$ LANGUAGE plpgsql
 -- daemon.init_listen ----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Инициализация слушателей.
- * @return {void}
+ * @brief Initialize PostgreSQL LISTEN channels for the C++ daemon process.
+ * @return {SETOF json} - Error object on failure, empty on success
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION daemon.init_listen (
 ) RETURNS       SETOF json
@@ -253,12 +258,13 @@ $$ LANGUAGE plpgsql
 -- daemon.login ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Вход в систему по маркеру из внешних систем.
- * @param {text} pToken - Маркер доступа в формате JWT
- * @param {text} pAgent - Агент
- * @param {inet} pHost - IP адрес
- * @param {text} pScope - Область видимости
- * @return {SETOF json} - Записи в JSON
+ * @brief Sign in using an external JWT token (e.g. Google OAuth), creating a local session.
+ * @param {text} pToken - External JWT access token
+ * @param {text} pAgent - HTTP User-Agent string
+ * @param {inet} pHost - Client IP address
+ * @param {text} pScope - Scope code to sign into
+ * @return {SETOF json} - Token pair on success, or error object on failure
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION daemon.login (
   pToken        text,
@@ -426,11 +432,14 @@ $$ LANGUAGE plpgsql
 -- daemon.authorize ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Авторизоваться по коду сессии.
- * @param {varchar} pSession - Сессия
- * @param {text} pAgent - Агент
- * @param {inet} pHost - IP адрес
- * @return {record}
+ * @brief Authorize by session code and return an active access token.
+ * @param {varchar} pSession - Session code
+ * @param {text} pAgent - HTTP User-Agent string
+ * @param {inet} pHost - Client IP address
+ * @return {json} - Access token with expiry, or error object on failure
+ * @throws AuthenticateError - When session authentication fails
+ * @throws TokenExpired - When no valid access token exists for the session
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION daemon.authorize (
   pSession      varchar,
@@ -491,13 +500,14 @@ $$ LANGUAGE plpgsql
 -- daemon.token ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Меняет код авторизации на маркер.
- * @param {text} pClientId - Клиент OAuth 2.0 (oauth2.audience.code)
- * @param {text} pSecret - Секрет (oauth2.audience.secret)
- * @param {text} pPayload - Полезные данные
- * @param {text} pAgent - Агент
- * @param {inet} pHost - IP адрес
-* @return {json}
+ * @brief Exchange an authorization code, credentials, or refresh token for an access token (OAuth 2.0 token endpoint).
+ * @param {text} pClientId - OAuth 2.0 client identifier (oauth2.audience.code)
+ * @param {text} pSecret - OAuth 2.0 client secret
+ * @param {jsonb} pPayload - Grant-specific payload (grant_type, code, username/password, refresh_token, etc.)
+ * @param {text} pAgent - HTTP User-Agent string
+ * @param {inet} pHost - Client IP address
+ * @return {json} - Token response on success, or error object on failure
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION daemon.token (
   pClientId             text,
@@ -797,11 +807,12 @@ $$ LANGUAGE plpgsql
 -- daemon.session_open ---------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Открывает сессию.
- * @param {text} pToken - Маркер доступа в формате JWT
- * @param {text} pAgent - Агент
- * @param {inet} pHost - IP адрес
- * @return {SETOF jsonb}
+ * @brief Open (resume) a session by validating a JWT token and entering the session context.
+ * @param {text} pToken - JWT access token
+ * @param {text} pAgent - HTTP User-Agent string
+ * @param {inet} pHost - Client IP address
+ * @return {SETOF json} - Token claims on success, or error object on failure
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION daemon.session_open (
   pToken        text,
@@ -850,11 +861,12 @@ $$ LANGUAGE plpgsql
 -- daemon.session_close --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Закрывает сессию.
- * @param {text} pToken - Маркер доступа в формате JWT
- * @param {boolean} pCloseAll - Закрыть все сессии
- * @param {text} pMessage - Сообщение
- * @return {SETOF jsonb}
+ * @brief Close (sign out) a session, optionally closing all sessions for the user.
+ * @param {text} pToken - JWT access token identifying the session
+ * @param {boolean} pCloseAll - TRUE to close all sessions for this user
+ * @param {text} pMessage - Optional sign-out reason message
+ * @return {SETOF json} - Token claims on success, or error object on failure
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION daemon.session_close (
   pToken        text,
@@ -901,13 +913,15 @@ $$ LANGUAGE plpgsql
 -- daemon.unauthorized_fetch ---------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Неавторизованный запрос данных в формате REST JSON API.
- * @param {text} pMethod - HTTP-Метод
- * @param {text} pPath - Путь
- * @param {jsonb} pPayload - Данные
- * @param {text} pAgent - Агент
- * @param {inet} pHost - IP адрес
- * @return {SETOF json} - Записи в JSON
+ * @brief Execute an unauthenticated REST JSON API request (public endpoints only).
+ * @param {text} pMethod - HTTP method (GET, POST, etc.)
+ * @param {text} pPath - REST route path
+ * @param {jsonb} pPayload - Request payload
+ * @param {text} pAgent - HTTP User-Agent string
+ * @param {inet} pHost - Client IP address
+ * @return {SETOF json} - JSON response rows
+ * @throws RouteIsEmpty - When pPath is empty or NULL
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION daemon.unauthorized_fetch (
   pMethod       text,
@@ -976,15 +990,18 @@ $$ LANGUAGE plpgsql
 -- daemon.authorized_fetch -----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Авторизованный запрос данных в формате REST JSON API с аутентификацией по имени пользователя и паролю.
- * @param {text} pUsername - Пользователь
- * @param {text} pPassword - Пароль
- * @param {text} pMethod - HTTP-Метод
- * @param {text} pPath - Путь
- * @param {jsonb} pPayload - Данные
- * @param {text} pAgent - Агент
- * @param {inet} pHost - IP адрес
- * @return {SETOF json} - Записи в JSON
+ * @brief Execute an authenticated REST JSON API request using username/password credentials.
+ * @param {text} pUsername - Login username
+ * @param {text} pPassword - Login password
+ * @param {text} pMethod - HTTP method (GET, POST, etc.)
+ * @param {text} pPath - REST route path
+ * @param {jsonb} pPayload - Request payload
+ * @param {text} pAgent - HTTP User-Agent string
+ * @param {inet} pHost - Client IP address
+ * @return {SETOF json} - JSON response rows
+ * @throws RouteIsEmpty - When pPath is empty or NULL
+ * @throws AuthenticateError - When authentication fails
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION daemon.authorized_fetch (
   pUsername     text,
@@ -1056,15 +1073,18 @@ $$ LANGUAGE plpgsql
 -- daemon.session_fetch --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Авторизованный запрос данных в формате REST JSON API с аутентификацией по сессии и секретному коду.
- * @param {varchar} pSession - Сессия
- * @param {text} pSecret - Секрет
- * @param {text} pMethod - HTTP-Метод
- * @param {text} pPath - Путь
- * @param {jsonb} pPayload - Данные
- * @param {text} pAgent - Агент
- * @param {inet} pHost - IP адрес
- * @return {SETOF json} - Записи в JSON
+ * @brief Execute an authenticated REST JSON API request using session code and secret.
+ * @param {varchar} pSession - Session code
+ * @param {text} pSecret - Session secret for authentication
+ * @param {text} pMethod - HTTP method (GET, POST, etc.)
+ * @param {text} pPath - REST route path
+ * @param {jsonb} pPayload - Request payload
+ * @param {text} pAgent - HTTP User-Agent string
+ * @param {inet} pHost - Client IP address
+ * @return {SETOF json} - JSON response rows
+ * @throws RouteIsEmpty - When pPath is empty or NULL
+ * @throws AuthenticateError - When session authentication fails
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION daemon.session_fetch (
   pSession      varchar,
@@ -1134,17 +1154,21 @@ $$ LANGUAGE plpgsql
 -- daemon.signed_fetch ---------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Запрос данных в формате REST JSON API с проверкой подписи методом HMAC-SHA256.
- * @param {text} pMethod - HTTP-Метод
- * @param {text} pPath - Путь
- * @param {json} pJson - Данные в JSON
- * @param {varchar} pSession - Сессия
- * @param {double precision} pNonce - Время в миллисекундах
- * @param {text} pSignature - Подпись
- * @param {text} pAgent - Агент
- * @param {inet} pHost - IP адрес
- * @param {interval} pTimeWindow - Временное окно
- * @return {SETOF json} - Записи в JSON
+ * @brief Execute an HMAC-SHA256 signed REST JSON API request with replay protection.
+ * @param {text} pMethod - HTTP method (GET, POST, etc.)
+ * @param {text} pPath - REST route path
+ * @param {json} pJson - Request payload as JSON
+ * @param {varchar} pSession - Session code
+ * @param {double precision} pNonce - Request timestamp in microseconds for replay protection
+ * @param {text} pSignature - HMAC-SHA256 signature of the request
+ * @param {text} pAgent - HTTP User-Agent string
+ * @param {inet} pHost - Client IP address
+ * @param {interval} pTimeWindow - Maximum age of the nonce (capped at 1 minute)
+ * @return {SETOF json} - JSON response rows
+ * @throws RouteIsEmpty - When pPath is empty or NULL
+ * @throws SignatureError - When HMAC signature verification fails
+ * @throws NonceExpired - When the nonce is outside the allowed time window
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION daemon.signed_fetch (
   pMethod       text,
@@ -1242,14 +1266,17 @@ $$ LANGUAGE plpgsql
 -- daemon.fetch ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Авторизованный запрос данных в формате REST JSON API.
- * @param {text} pToken - Маркер доступа в формате JWT
- * @param {text} pMethod - HTTP-Метод
- * @param {text} pPath - Путь
- * @param {jsonb} pPayload - Данные
- * @param {text} pAgent - Агент
- * @param {inet} pHost - IP адрес
- * @return {SETOF json} - Записи в JSON
+ * @brief Execute an authenticated REST JSON API request using a JWT access token.
+ * @param {text} pToken - JWT access token
+ * @param {text} pMethod - HTTP method (GET, POST, etc.)
+ * @param {text} pPath - REST route path
+ * @param {jsonb} pPayload - Request payload
+ * @param {text} pAgent - HTTP User-Agent string
+ * @param {inet} pHost - Client IP address
+ * @return {SETOF json} - JSON response rows
+ * @throws RouteIsEmpty - When pPath is empty or NULL
+ * @throws AuthenticateError - When session authentication fails
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION daemon.fetch (
   pToken        text,

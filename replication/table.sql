@@ -17,16 +17,16 @@ CREATE TABLE replication.log (
     source      text DEFAULT null
 );
 
-COMMENT ON TABLE replication.log IS 'Журнал репликации.';
+COMMENT ON TABLE replication.log IS 'Replication log. Stores every change (INSERT/UPDATE/DELETE) captured for cross-instance synchronization.';
 
-COMMENT ON COLUMN replication.log.id IS 'Идентификатор';
-COMMENT ON COLUMN replication.log.datetime IS 'Дата и время';
-COMMENT ON COLUMN replication.log.action IS 'Действие';
-COMMENT ON COLUMN replication.log.schema IS 'Схема';
-COMMENT ON COLUMN replication.log.name IS 'Наименование таблицы';
-COMMENT ON COLUMN replication.log.key IS 'Ключ';
-COMMENT ON COLUMN replication.log.data IS 'Данные';
-COMMENT ON COLUMN replication.log.source IS 'Источник данных';
+COMMENT ON COLUMN replication.log.id IS 'Auto-increment log entry identifier.';
+COMMENT ON COLUMN replication.log.datetime IS 'Timestamp when the change was recorded.';
+COMMENT ON COLUMN replication.log.action IS 'DML action type: I = INSERT, U = UPDATE, D = DELETE.';
+COMMENT ON COLUMN replication.log.schema IS 'Source table schema name.';
+COMMENT ON COLUMN replication.log.name IS 'Source table name.';
+COMMENT ON COLUMN replication.log.key IS 'Primary key columns as JSONB (used for UPDATE/DELETE identification).';
+COMMENT ON COLUMN replication.log.data IS 'Changed row data as JSONB (full row for INSERT, diff for UPDATE).';
+COMMENT ON COLUMN replication.log.source IS 'Originating instance identifier (NULL for local changes).';
 
 CREATE INDEX ON replication.log (action);
 CREATE INDEX ON replication.log (schema);
@@ -72,20 +72,20 @@ CREATE TABLE replication.relay (
     PRIMARY KEY (source, id)
 );
 
-COMMENT ON TABLE replication.relay IS 'Журнал ретрансляции.';
+COMMENT ON TABLE replication.relay IS 'Relay log. Incoming replication entries received from remote instances, pending application.';
 
-COMMENT ON COLUMN replication.relay.source IS 'Источник данных';
-COMMENT ON COLUMN replication.relay.id IS 'Идентификатор';
-COMMENT ON COLUMN replication.relay.state IS 'Состояние';
-COMMENT ON COLUMN replication.relay.created IS 'Дата и время загрузки';
-COMMENT ON COLUMN replication.relay.datetime IS 'Дата и время';
-COMMENT ON COLUMN replication.relay.action IS 'Действие';
-COMMENT ON COLUMN replication.relay.schema IS 'Схема';
-COMMENT ON COLUMN replication.relay.name IS 'Наименование таблицы';
-COMMENT ON COLUMN replication.relay.key IS 'Ключ';
-COMMENT ON COLUMN replication.relay.data IS 'Данные';
-COMMENT ON COLUMN replication.relay.message IS 'Сообщение об ошибке при наличии';
-COMMENT ON COLUMN replication.relay.proxy IS 'Дублировать запись в журнал репликации';
+COMMENT ON COLUMN replication.relay.source IS 'Originating instance identifier.';
+COMMENT ON COLUMN replication.relay.id IS 'Log entry ID from the source instance.';
+COMMENT ON COLUMN replication.relay.state IS 'Processing state: 0 = pending, 1 = applied, 2 = failed.';
+COMMENT ON COLUMN replication.relay.created IS 'Timestamp when the entry was received locally.';
+COMMENT ON COLUMN replication.relay.datetime IS 'Original timestamp of the change on the source instance.';
+COMMENT ON COLUMN replication.relay.action IS 'DML action type: I = INSERT, U = UPDATE, D = DELETE.';
+COMMENT ON COLUMN replication.relay.schema IS 'Target table schema name.';
+COMMENT ON COLUMN replication.relay.name IS 'Target table name.';
+COMMENT ON COLUMN replication.relay.key IS 'Primary key columns as JSONB for row identification.';
+COMMENT ON COLUMN replication.relay.data IS 'Row data to apply as JSONB.';
+COMMENT ON COLUMN replication.relay.message IS 'Error message if application failed (state = 2).';
+COMMENT ON COLUMN replication.relay.proxy IS 'When TRUE, re-insert applied entry into replication.log for further relay.';
 
 CREATE INDEX ON replication.relay (source);
 CREATE INDEX ON replication.relay (state);
@@ -101,11 +101,11 @@ CREATE TABLE replication.list (
     PRIMARY KEY (schema, name)
 );
 
-COMMENT ON TABLE replication.list IS 'Список таблиц для репликации.';
+COMMENT ON TABLE replication.list IS 'Replication set. Tables currently enrolled in replication.';
 
-COMMENT ON COLUMN replication.list.schema IS 'Схема';
-COMMENT ON COLUMN replication.list.name IS 'Наименование таблицы';
-COMMENT ON COLUMN replication.list.updated IS 'Дата и время последнего обновления';
+COMMENT ON COLUMN replication.list.schema IS 'Schema of the replicated table.';
+COMMENT ON COLUMN replication.list.name IS 'Name of the replicated table.';
+COMMENT ON COLUMN replication.list.updated IS 'Timestamp when the table was last enrolled or refreshed.';
 
 --------------------------------------------------------------------------------
 -- replication.pkey ------------------------------------------------------------
@@ -118,8 +118,8 @@ CREATE TABLE replication.pkey (
     PRIMARY KEY (schema, name, field)
 );
 
-COMMENT ON TABLE replication.pkey IS 'Список публичных ключей таблиц.';
+COMMENT ON TABLE replication.pkey IS 'Primary key cache. Stores PK column names for replicated tables.';
 
-COMMENT ON COLUMN replication.pkey.schema IS 'Схема';
-COMMENT ON COLUMN replication.pkey.name IS 'Наименование таблицы';
-COMMENT ON COLUMN replication.pkey.field IS 'Поле';
+COMMENT ON COLUMN replication.pkey.schema IS 'Schema of the replicated table.';
+COMMENT ON COLUMN replication.pkey.name IS 'Name of the replicated table.';
+COMMENT ON COLUMN replication.pkey.field IS 'Column name that is part of the primary key.';

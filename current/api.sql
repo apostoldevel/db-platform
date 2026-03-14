@@ -6,8 +6,9 @@
 -- api.current_session ---------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает текущую сессии.
- * @return {session} - Сессия
+ * @brief Retrieve the current session record.
+ * @return {SETOF session} - Active session details
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.current_session()
 RETURNS     SETOF session
@@ -21,8 +22,9 @@ $$ LANGUAGE SQL
 -- api.current_user ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает учётную запись текущего пользователя.
- * @return {users} - Учётная запись пользователя
+ * @brief Retrieve the current user account record.
+ * @return {SETOF users} - User account for the active session and scope
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.current_user (
 ) RETURNS   SETOF users
@@ -36,8 +38,9 @@ $$ LANGUAGE SQL
 -- api.current_userid ----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает идентификатор авторизированного пользователя.
- * @return {uuid} - Идентификатор пользователя: users.id
+ * @brief Retrieve the authenticated user's identifier.
+ * @return {uuid} - User ID (users.id) from the current session context
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.current_userid()
 RETURNS         uuid
@@ -53,8 +56,9 @@ $$ LANGUAGE plpgsql
 -- api.current_username --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает имя авторизированного пользователя.
- * @return {text} - Имя (username) пользователя: users.username
+ * @brief Retrieve the authenticated user's login name.
+ * @return {text} - Username (users.username) from the current session context
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.current_username()
 RETURNS         text
@@ -70,8 +74,9 @@ $$ LANGUAGE plpgsql
 -- api.current_area ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает данные текущей зоны.
- * @return {area} - Зона
+ * @brief Retrieve the current session area record.
+ * @return {SETOF area} - Active area (scope visibility zone) details
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.current_area (
 ) RETURNS        SETOF area
@@ -85,8 +90,9 @@ $$ LANGUAGE SQL
 -- api.current_interface -------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает данные текущего интерфейса.
- * @return {interface} - Интерфейс
+ * @brief Retrieve the current session interface record.
+ * @return {SETOF interface} - Active interface details
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.current_interface (
 ) RETURNS         SETOF interface
@@ -100,8 +106,9 @@ $$ LANGUAGE SQL
 -- api.current_locale ----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает данные текущего языка.
- * @return {locale} - Язык
+ * @brief Retrieve the current session locale record.
+ * @return {SETOF locale} - Active locale (language) details
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.current_locale (
 ) RETURNS         SETOF locale
@@ -115,8 +122,9 @@ $$ LANGUAGE SQL
 -- api.oper_date ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает дату операционного дня.
- * @return {timestamptz} - Дата операционного дня
+ * @brief Retrieve the current operational (business) date.
+ * @return {timestamptz} - Operational date from the session context
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.oper_date()
 RETURNS         timestamptz

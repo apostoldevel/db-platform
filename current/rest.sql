@@ -2,9 +2,12 @@
 -- REST CURRENT ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Запрос данных в формате REST JSON API (Текущий...).
- * @param {text} pPath - Путь
- * @return {SETOF json} - Записи в JSON
+ * @brief Dispatch REST JSON API requests for reading current session context values.
+ * @param {text} pPath - REST route path (e.g. /current/user, /current/locale)
+ * @param {jsonb} pPayload - Request payload (unused by most routes)
+ * @return {SETOF json} - Current context value as JSON
+ * @throws RouteIsEmpty - When pPath is NULL
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION rest.current (
   pPath       text,

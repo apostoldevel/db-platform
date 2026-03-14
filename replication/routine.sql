@@ -6,6 +6,11 @@
 -- replication.ft_replication --------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Capture row changes into the replication log for cross-instance synchronization.
+ * @return {trigger} - NULL (AFTER trigger, does not modify the row)
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION replication.ft_log()
 RETURNS trigger AS $$
 DECLARE
@@ -164,6 +169,14 @@ $$ LANGUAGE plpgsql
 -- replication.log -------------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Fetch replication log entries after a given ID, excluding a specific source.
+ * @param {bigint} pFrom - Log entry ID to start from (exclusive)
+ * @param {text} pSource - Source instance to exclude from results
+ * @param {int} pLimit - Maximum number of entries to return (default 500)
+ * @return {SETOF replication.log} - Matching log entries ordered by ID
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION replication.log (
   pFrom         bigint,
   pSource       text,
@@ -179,6 +192,18 @@ $$ LANGUAGE SQL
 -- replication.add_log ---------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Insert an entry into the replication log.
+ * @param {timestamptz} pDateTime - Timestamp of the original change
+ * @param {char} pAction - DML action: I = INSERT, U = UPDATE, D = DELETE
+ * @param {text} pSchema - Target table schema
+ * @param {text} pName - Target table name
+ * @param {jsonb} pKey - Primary key columns for row identification
+ * @param {jsonb} pData - Changed row data
+ * @param {text} pSource - Originating instance identifier (NULL for local)
+ * @return {bigint} - Newly created log entry ID
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION replication.add_log (
   pDateTime     timestamptz,
   pAction       char,
@@ -206,6 +231,20 @@ $$ LANGUAGE plpgsql
 -- replication.add_relay -------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Insert an entry into the relay log for deferred application.
+ * @param {text} pSource - Originating instance identifier
+ * @param {bigint} pId - Log entry ID from the source instance
+ * @param {timestamptz} pDateTime - Original timestamp of the change
+ * @param {char} pAction - DML action: I = INSERT, U = UPDATE, D = DELETE
+ * @param {text} pSchema - Target table schema
+ * @param {text} pName - Target table name
+ * @param {jsonb} pKey - Primary key columns for row identification
+ * @param {jsonb} pData - Row data to apply
+ * @param {bool} pProxy - When TRUE, re-log the entry for further relay
+ * @return {bigint} - The relay entry ID (same as pId)
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION replication.add_relay (
   pSource       text,
   pId           bigint,
@@ -232,6 +271,15 @@ $$ LANGUAGE plpgsql
 -- replication.apply_relay -----------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Apply a single relay log entry by executing the recorded DML on the target table.
+ * @param {text} pSource - Originating instance identifier
+ * @param {bigint} pId - Relay entry ID to apply
+ * @return {void}
+ * @throws NotFound - When the relay entry does not exist
+ * @see replication.apply
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION replication.apply_relay (
   pSource       text,
   pId           bigint
@@ -409,6 +457,13 @@ $$ LANGUAGE plpgsql
 -- replication.apply -----------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Apply all pending relay entries for a given source instance (up to 1000 per call).
+ * @param {text} pSource - Originating instance identifier
+ * @return {int} - Number of relay entries processed
+ * @see replication.apply_relay
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION replication.apply (
   pSource       text
 )
@@ -436,6 +491,14 @@ $$ LANGUAGE plpgsql
 -- replication.set_table -------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Add or remove a table from the replication set.
+ * @param {text} pSchema - Table schema name
+ * @param {text} pName - Table name
+ * @param {boolean} pActive - TRUE to enroll, FALSE to remove
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION replication.set_table (
   pSchema       text,
   pName         text,
@@ -462,6 +525,13 @@ $$ LANGUAGE plpgsql
 -- replication.set_key ---------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Populate the primary key cache for a replicated table from pg_constraint.
+ * @param {text} pSchema - Table schema name
+ * @param {text} pName - Table name
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION replication.set_key (
   pSchema       text,
   pName         text
@@ -489,6 +559,13 @@ $$ LANGUAGE plpgsql
 -- replication.delete_key ------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Remove the primary key cache entries for a table.
+ * @param {text} pSchema - Table schema name
+ * @param {text} pName - Table name
+ * @return {boolean} - TRUE if any rows were deleted
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION replication.delete_key (
   pSchema       text,
   pName         text
@@ -506,6 +583,14 @@ $$ LANGUAGE plpgsql
 -- replication.create_trigger --------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Generate a CREATE TRIGGER statement for attaching the replication trigger to a table.
+ * @param {text} pSchema - Table schema name
+ * @param {text} pName - Table name
+ * @return {text} - DDL statement to create the replication trigger
+ * @see replication.drop_trigger
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION replication.create_trigger (
   pSchema       text,
   pName         text
@@ -522,6 +607,14 @@ $$ LANGUAGE plpgsql
 -- replication.drop_trigger ----------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Generate a DROP TRIGGER statement for removing the replication trigger from a table.
+ * @param {text} pSchema - Table schema name
+ * @param {text} pName - Table name
+ * @return {text} - DDL statement to drop the replication trigger
+ * @see replication.create_trigger
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION replication.drop_trigger (
   pSchema       text,
   pName         text
@@ -538,6 +631,14 @@ $$ LANGUAGE plpgsql
 -- replication.table -----------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Enable or disable replication for a table (manages keys, triggers, and the replication set).
+ * @param {text} pSchema - Table schema name
+ * @param {text} pName - Table name
+ * @param {boolean} pActive - TRUE to enable replication, FALSE to disable
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION replication.table (
   pSchema       text,
   pName         text,
@@ -563,6 +664,12 @@ $$ LANGUAGE plpgsql
 -- replication.on --------------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Activate replication triggers on all tables registered in the replication set.
+ * @return {void}
+ * @see replication.off
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION replication.on()
 RETURNS void
 AS $$
@@ -597,6 +704,12 @@ $$ LANGUAGE plpgsql
 -- replication.off -------------------------------------------------------------
 --------------------------------------------------------------------------------
 
+/**
+ * @brief Deactivate replication triggers on all tables in the replication set.
+ * @return {void}
+ * @see replication.on
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION replication.off()
 RETURNS void
 AS $$

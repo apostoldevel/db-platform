@@ -2,10 +2,13 @@
 -- REST SESSION ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Запрос данных в формате REST JSON API (Сессия).
- * @param {text} pPath - Путь
- * @param {jsonb} pPayload - JSON
- * @return {SETOF json} - Записи в JSON
+ * @brief Dispatch REST JSON API requests for session context management.
+ * @param {text} pPath - REST route path (e.g. /session/set/area, /session/set/locale)
+ * @param {jsonb} pPayload - Request payload with setter parameters
+ * @return {SETOF json} - Updated context value as JSON
+ * @throws RouteIsEmpty - When pPath is NULL
+ * @throws LoginFailed - When no active session exists
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION rest.session (
   pPath       text,

@@ -6,9 +6,11 @@
 -- api.set_session_area --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Устанавливает зону.
- * @param {uuid} pArea - Идентификатор зоны
+ * @brief Set the current session area (scope visibility zone) by ID.
+ * @param {uuid} pArea - Area identifier
  * @return {void}
+ * @throws ObjectNotFound - When the area does not exist
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.set_session_area (
   pArea     uuid
@@ -33,9 +35,11 @@ $$ LANGUAGE plpgsql
 -- api.set_session_area --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Устанавливает зону.
- * @param {text} pArea - Код зоны
+ * @brief Set the current session area (scope visibility zone) by code.
+ * @param {text} pArea - Area code
  * @return {void}
+ * @throws ObjectNotFound - When the area code does not exist
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.set_session_area (
   pArea     text
@@ -60,9 +64,11 @@ $$ LANGUAGE plpgsql
 -- api.set_session_interface ---------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Устанавливает интерфейс.
- * @param {uuid} pInterface - Идентификатор интерфейса
+ * @brief Set the current session interface by ID.
+ * @param {uuid} pInterface - Interface identifier
  * @return {void}
+ * @throws ObjectNotFound - When the interface does not exist
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.set_session_interface (
   pInterface    uuid
@@ -87,9 +93,11 @@ $$ LANGUAGE plpgsql
 -- api.set_session_interface ---------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Устанавливает интерфейс.
- * @param {uuid} pInterface - Идентификатор интерфейса
+ * @brief Set the current session interface by ID (resolves and stores).
+ * @param {uuid} pInterface - Interface identifier
  * @return {void}
+ * @throws ObjectNotFound - When the interface does not exist
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.set_session_interface (
   pInterface    uuid
@@ -114,9 +122,10 @@ $$ LANGUAGE plpgsql
 -- api.set_session_oper_date ---------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Устанавливает дату операционного дня.
- * @param {timestamp} pOperDate - Дата операционного дня
+ * @brief Set the operational date for the current session (without time zone).
+ * @param {timestamp} pOperDate - Operational (business) date
  * @return {void}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.set_session_oper_date (
   pOperDate     timestamp
@@ -133,9 +142,10 @@ $$ LANGUAGE plpgsql
 -- api.set_session_oper_date ---------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Устанавливает дату операционного дня.
- * @param {timestamptz} pOperDate - Дата операционного дня
+ * @brief Set the operational date for the current session (with time zone).
+ * @param {timestamptz} pOperDate - Operational (business) date with time zone
  * @return {void}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.set_session_oper_date (
   pOperDate   timestamptz
@@ -152,9 +162,11 @@ $$ LANGUAGE plpgsql
 -- api.set_session_locale ------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Устанавливает по идентификатору текущий язык.
- * @param {uuid} pLocale - Идентификатор языка
+ * @brief Set the current session locale by ID.
+ * @param {uuid} pLocale - Locale identifier
  * @return {void}
+ * @throws ObjectNotFound - When the locale does not exist
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.set_session_locale (
   pLocale     uuid
@@ -179,9 +191,11 @@ $$ LANGUAGE plpgsql
 -- api.set_session_locale ------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Устанавливает по идентификатору текущий язык.
- * @param {text} pCode - Код языка
+ * @brief Set the current session locale by language code.
+ * @param {text} pCode - ISO language code (e.g. 'en', 'ru')
  * @return {void}
+ * @throws IncorrectCode - When the language code is not registered
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.set_session_locale (
   pCode     text DEFAULT 'ru'
