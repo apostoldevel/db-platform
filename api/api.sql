@@ -16,12 +16,13 @@ GRANT SELECT ON api.log TO administrator;
 -- api.log ---------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Журнал событий текущего пользователя.
- * @param {char} pType - Тип события: {M|W|E}
- * @param {integer} pCode - Код
- * @param {timestamptz} pDateFrom - Дата начала периода
- * @param {timestamptz} pDateTo - Дата окончания периода
- * @return {SETOF api.log} - Записи
+ * @brief Filter API log entries for the current user.
+ * @param {text} pUserName - Filter by username (NULL = all)
+ * @param {text} pPath - Filter by request path (NULL = all)
+ * @param {timestamptz} pDateFrom - Start of the time range (inclusive)
+ * @param {timestamptz} pDateTo - End of the time range (exclusive)
+ * @return {SETOF api.log} - Matching log records (max 500)
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.log (
   pUserName     text DEFAULT null,
@@ -46,9 +47,10 @@ $$ LANGUAGE SQL
 -- api.get_log -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает событие
- * @param {bigint} pId - Идентификатор
- * @return {api.log}
+ * @brief Fetch a single API log entry by identifier.
+ * @param {bigint} pId - Log record identifier
+ * @return {SETOF api.log} - The matching log record
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_log (
   pId       bigint
@@ -63,13 +65,14 @@ $$ LANGUAGE SQL
 -- api.list_log ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список событий.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @return {SETOF api.log}
+ * @brief List API log entries with dynamic search, filter, and pagination.
+ * @param {jsonb} pSearch - Search conditions array: [{"condition":"AND|OR","field":"<col>","compare":"EQL|NEQ|...","value":"<val>"}, ...]
+ * @param {jsonb} pFilter - Simple key-value filter: {"<col>": "<val>"}
+ * @param {integer} pLimit - Maximum number of rows to return
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Array of column names for ORDER BY
+ * @return {SETOF api.log} - Matching log records
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_log (
   pSearch   jsonb DEFAULT null,
@@ -90,44 +93,27 @@ $$ LANGUAGE plpgsql
 -- api.sql ---------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает динамический SQL запрос.
- * @param {text} pScheme - Схема
- * @param {text} pTable - Таблица
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
- * @param {jsonb} pFields - Список полей
- * @param {jsonb} pGroupBy - Группировать по указанным в массиве полям
- * @return {text} - SQL запрос
-
- Где сравнение (compare):
-   EQL - равно
-   NEQ - не равно
-   LSS - меньше
-   LEQ - меньше или равно
-   GTR - больше
-   GEQ - больше или равно
-   GIN - для поиска вхождений JSON
-
-   AND - битовый AND
-   OR  - битовый OR
-   XOR - битовый XOR
-   NOT - битовый NOT
-
-   ISN - IS NULL - Ключ (value) должен быть опушен
-   INN - IS NOT NULL - Ключ (value) должен быть опушен
-
-   LKE - LIKE - Значение ключа (value) должно передаваться вместе со знаком '%' в нужном месте
-   IKE - ILIKE - Регистр-независимый LIKE.
-
-   SIM - Регулярные выражения: SIMILAR TO
-
-   PSX - Регулярное выражение POSIX: ~
-   PSI - Регулярное выражение POSIX: ~*
-   PSN - Регулярное выражение POSIX: !~
-   PIN - Регулярное выражение POSIX: !~*
+ * @brief Build a dynamic SQL SELECT query with search, filter, pagination, and ordering.
+ * @param {text} pScheme - Schema name (e.g. 'api')
+ * @param {text} pTable - View/table name within the schema
+ * @param {jsonb} pSearch - Search conditions: [{"condition":"AND|OR","field":"<col>","compare":"<op>","value":"<val>"}, ...]
+ * @param {jsonb} pFilter - Simple key-value filter: {"<col>": "<val>"}
+ * @param {integer} pLimit - Maximum number of rows (default 500)
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Array of column names for ORDER BY
+ * @param {jsonb} pFields - Array of column names for SELECT (NULL = all)
+ * @param {jsonb} pGroupBy - Array of column names for GROUP BY
+ * @return {text} - Complete SQL query string ready for EXECUTE
+ *
+ * Compare operators:
+ *   EQL = equal, NEQ = not equal, LSS = less than, LEQ = less or equal,
+ *   GTR = greater than, GEQ = greater or equal, GIN = JSON containment,
+ *   AND/OR/XOR/NOT = bitwise operators,
+ *   ISN = IS NULL, INN = IS NOT NULL (value key must be omitted),
+ *   LKE = LIKE, IKE = ILIKE (value must include '%' wildcards),
+ *   SIM = SIMILAR TO,
+ *   PSX = POSIX ~, PSI = ~*, PSN = !~, PIN = !~*
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.sql (
   pScheme       text,
@@ -346,11 +332,15 @@ $$ LANGUAGE plpgsql
 -- api.run ---------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Выполняет REST JSON API запрос.
- * @param {text} pMethod - HTTP-Метод
- * @param {text} pPath - Путь
- * @param {jsonb} pPayload - Данные
- * @return {SETOF json}
+ * @brief Execute a REST JSON API request by resolving the route and running the endpoint.
+ * @param {text} pMethod - HTTP method (GET, POST, PUT, DELETE)
+ * @param {text} pPath - Full request path (e.g. "/api/v1/user/get")
+ * @param {jsonb} pPayload - Request body as JSON
+ * @return {SETOF json} - JSON result rows from the endpoint, or an error object
+ * @throws RouteIsEmpty - When pPath is NULL or empty
+ * @throws RouteNotFound - When no matching path node exists
+ * @throws EndPointNotSet - When no endpoint is bound to the resolved route
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.run (
   pMethod		text,

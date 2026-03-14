@@ -14,13 +14,13 @@ CREATE TABLE db.path (
     level       integer NOT NULL
 );
 
-COMMENT ON TABLE db.path IS 'API: Путь.';
+COMMENT ON TABLE db.path IS 'API route path tree node.';
 
-COMMENT ON COLUMN db.path.id IS 'Идентификатор';
-COMMENT ON COLUMN db.path.root IS 'Идентификатор корневого узла';
-COMMENT ON COLUMN db.path.parent IS 'Идентификатор родительского узла';
-COMMENT ON COLUMN db.path.name IS 'Наименование';
-COMMENT ON COLUMN db.path.level IS 'Уровень вложенности';
+COMMENT ON COLUMN db.path.id IS 'Path node identifier.';
+COMMENT ON COLUMN db.path.root IS 'Root node identifier (top of the subtree).';
+COMMENT ON COLUMN db.path.parent IS 'Parent node identifier.';
+COMMENT ON COLUMN db.path.name IS 'Path segment name (e.g. "v1", "user").';
+COMMENT ON COLUMN db.path.level IS 'Nesting depth (0 = root).';
 
 --------------------------------------------------------------------------------
 
@@ -59,10 +59,10 @@ CREATE TABLE db.endpoint (
     definition    text NOT NULL
 );
 
-COMMENT ON TABLE db.endpoint IS 'API: Конечная точка.';
+COMMENT ON TABLE db.endpoint IS 'API endpoint: holds the PL/pgSQL code executed for a route.';
 
-COMMENT ON COLUMN db.endpoint.id IS 'Идентификатор';
-COMMENT ON COLUMN db.endpoint.definition IS 'PL/pgSQL код';
+COMMENT ON COLUMN db.endpoint.id IS 'Endpoint identifier.';
+COMMENT ON COLUMN db.endpoint.definition IS 'Dynamic PL/pgSQL expression executed via EXECUTE ... USING.';
 
 --------------------------------------------------------------------------------
 -- db.route --------------------------------------------------------------------
@@ -75,11 +75,11 @@ CREATE TABLE db.route (
     PRIMARY KEY (method, path, endpoint)
 );
 
-COMMENT ON TABLE db.route IS 'API: Маршрут.';
+COMMENT ON TABLE db.route IS 'API route: binds an HTTP method + path to an endpoint.';
 
-COMMENT ON COLUMN db.route.method IS 'HTTP-Метод';
-COMMENT ON COLUMN db.route.path IS 'Путь';
-COMMENT ON COLUMN db.route.endpoint IS 'Конечная точка';
+COMMENT ON COLUMN db.route.method IS 'HTTP method (GET, POST, PUT, DELETE).';
+COMMENT ON COLUMN db.route.path IS 'Reference to the path node in db.path.';
+COMMENT ON COLUMN db.route.endpoint IS 'Reference to the endpoint in db.endpoint.';
 
 CREATE INDEX ON db.route (method);
 CREATE INDEX ON db.route (path);

@@ -16,16 +16,16 @@ CREATE TABLE db.api_log (
     runtime     interval
 );
 
-COMMENT ON TABLE db.api_log IS 'Лог API.';
+COMMENT ON TABLE db.api_log IS 'API request log: every REST call is recorded here.';
 
-COMMENT ON COLUMN db.api_log.id IS 'Идентификатор';
-COMMENT ON COLUMN db.api_log.datetime IS 'Дата и время';
-COMMENT ON COLUMN db.api_log.su IS 'Пользователь (СУБД)';
-COMMENT ON COLUMN db.api_log.session IS 'Сессия';
-COMMENT ON COLUMN db.api_log.username IS 'Пользователь (виртуальный)';
-COMMENT ON COLUMN db.api_log.path IS 'Путь';
-COMMENT ON COLUMN db.api_log.json IS 'JSON';
-COMMENT ON COLUMN db.api_log.runtime IS 'Время выполнения запроса';
+COMMENT ON COLUMN db.api_log.id IS 'Log entry identifier (auto-increment).';
+COMMENT ON COLUMN db.api_log.datetime IS 'Timestamp when the request was received.';
+COMMENT ON COLUMN db.api_log.su IS 'Database session user (PostgreSQL role).';
+COMMENT ON COLUMN db.api_log.session IS 'Application session token.';
+COMMENT ON COLUMN db.api_log.username IS 'Virtual (application-level) username.';
+COMMENT ON COLUMN db.api_log.path IS 'Request path (e.g. "/user/get").';
+COMMENT ON COLUMN db.api_log.json IS 'Request payload (passwords stripped).';
+COMMENT ON COLUMN db.api_log.runtime IS 'Server-side execution duration.';
 
 CREATE INDEX ON db.api_log (datetime);
 CREATE INDEX ON db.api_log (username);
@@ -35,7 +35,15 @@ CREATE INDEX ON db.api_log (eventid);
 --------------------------------------------------------------------------------
 -- AddApiLog -------------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Record an API request in the log, stripping sensitive fields.
+ * @param {text} pPath - Request path
+ * @param {jsonb} pJson - Request payload (password/hidden keys are removed)
+ * @param {double precision} pNonce - Optional cryptographic nonce (microsecond timestamp)
+ * @param {text} pSignature - Optional request signature
+ * @return {bigint} - Identifier of the new log entry
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION AddApiLog (
   pPath         text,
   pJson         jsonb,
@@ -77,7 +85,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- NewApiLog -------------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Create a new API log entry (fire-and-forget wrapper around AddApiLog).
+ * @param {text} pPath - Request path
+ * @param {jsonb} pJson - Request payload
+ * @param {double precision} pNonce - Optional cryptographic nonce
+ * @param {text} pSignature - Optional request signature
+ * @return {void}
+ * @see AddApiLog
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION NewApiLog (
   pPath         text,
   pJson         jsonb,
@@ -97,7 +114,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- WriteToApiLog ---------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Write an entry to the API log (convenience alias for NewApiLog).
+ * @param {text} pPath - Request path
+ * @param {jsonb} pJson - Request payload
+ * @param {double precision} pNonce - Optional cryptographic nonce
+ * @param {text} pSignature - Optional request signature
+ * @return {void}
+ * @see NewApiLog
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION WriteToApiLog (
   pPath         text,
   pJson         jsonb,
@@ -115,7 +141,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- DeleteApiLog ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Delete a single API log entry by identifier.
+ * @param {bigint} pId - Log entry identifier to remove
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION DeleteApiLog (
   pId        bigint
 ) RETURNS    void
@@ -130,7 +161,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- ClearApiLog -----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Purge API log entries older than the specified timestamp.
+ * @param {timestamptz} pDateTime - Delete all entries before this date/time
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION ClearApiLog (
   pDateTime  timestamptz
 ) RETURNS    void

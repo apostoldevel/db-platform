@@ -2,10 +2,13 @@
 -- REST API --------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Запрос данных в формате REST JSON API.
- * @param {text} pPath - Путь
- * @param {jsonb} pPayload - Данные
- * @return {SETOF json} - Записи в JSON
+ * @brief Dispatch the main REST API entry point: system routes (/ping, /authenticate, /search, etc.).
+ * @param {text} pPath - Request path (e.g. "/ping", "/authenticate", "/whoami")
+ * @param {jsonb} pPayload - Request body as JSON
+ * @return {SETOF json} - JSON result rows
+ * @throws RouteIsEmpty - When pPath is NULL or empty
+ * @throws RouteNotFound - When no matching route case exists
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION rest.api (
   pPath         text,
@@ -232,10 +235,13 @@ $$ LANGUAGE plpgsql
 -- REST API (sign) -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Запрос данных в формате REST JSON API (sign).
- * @param {text} pPath - Путь
- * @param {jsonb} pPayload - Данные
- * @return {SETOF json} - Записи в JSON
+ * @brief Handle sign-in, sign-up, and sign-out REST routes.
+ * @param {text} pPath - Request path (/sign/in, /sign/up, /sign/out)
+ * @param {jsonb} pPayload - Request body as JSON (credentials, etc.)
+ * @return {SETOF json} - JSON result rows
+ * @throws RouteIsEmpty - When pPath is NULL or empty
+ * @throws RouteNotFound - When no matching sign route exists
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION rest.sign (
   pPath         text,
@@ -316,10 +322,14 @@ $$ LANGUAGE plpgsql
 -- REST API (user) -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Запрос данных в формате REST JSON API (user).
- * @param {text} pPath - Путь
- * @param {jsonb} pPayload - Данные
- * @return {SETOF json} - Записи в JSON
+ * @brief Handle user management REST routes (get, set, list, profile, password, registration).
+ * @param {text} pPath - Request path (e.g. "/user/get", "/user/password")
+ * @param {jsonb} pPayload - Request body as JSON
+ * @return {SETOF json} - JSON result rows
+ * @throws RouteIsEmpty - When pPath is NULL or empty
+ * @throws LoginFailed - When no active session exists
+ * @throws RouteNotFound - When no matching user route exists
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION rest.user (
   pPath         text,
@@ -615,10 +625,14 @@ $$ LANGUAGE plpgsql
 -- REST API (state) ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Запрос данных в формате REST JSON API (state).
- * @param {text} pPath - Путь
- * @param {jsonb} pPayload - Данные
- * @return {SETOF json} - Записи в JSON
+ * @brief Handle workflow state REST routes (list states, filter by class/type).
+ * @param {text} pPath - Request path (e.g. "/state", "/state/class", "/state/by/type")
+ * @param {jsonb} pPayload - Request body as JSON
+ * @return {SETOF json} - JSON result rows
+ * @throws RouteIsEmpty - When pPath is NULL or empty
+ * @throws LoginFailed - When no active session exists
+ * @throws RouteNotFound - When no matching state route exists
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION rest.state (
   pPath     	text,
@@ -715,10 +729,14 @@ $$ LANGUAGE plpgsql
 -- REST API (action) -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Запрос данных в формате REST JSON API (action).
- * @param {text} pPath - Путь
- * @param {jsonb} pPayload - Данные
- * @return {SETOF json} - Записи в JSON
+ * @brief Handle workflow action REST routes (list actions, execute action on object).
+ * @param {text} pPath - Request path (e.g. "/action", "/action/execute")
+ * @param {jsonb} pPayload - Request body as JSON
+ * @return {SETOF json} - JSON result rows
+ * @throws RouteIsEmpty - When pPath is NULL or empty
+ * @throws LoginFailed - When no active session exists
+ * @throws RouteNotFound - When no matching action route exists
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION rest.action (
   pPath     	text,
@@ -795,10 +813,14 @@ $$ LANGUAGE plpgsql
 -- REST API (method) -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Запрос данных в формате REST JSON API (method).
- * @param {text} pPath - Путь
- * @param {jsonb} pPayload - Данные
- * @return {SETOF json} - Записи в JSON
+ * @brief Handle workflow method REST routes (list, run, execute, get methods).
+ * @param {text} pPath - Request path (e.g. "/method", "/method/run", "/method/execute")
+ * @param {jsonb} pPayload - Request body as JSON
+ * @return {SETOF json} - JSON result rows
+ * @throws RouteIsEmpty - When pPath is NULL or empty
+ * @throws LoginFailed - When no active session exists
+ * @throws RouteNotFound - When no matching method route exists
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION rest.method (
   pPath     	text,
@@ -933,10 +955,14 @@ $$ LANGUAGE plpgsql
 -- REST API (member) -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Запрос данных в формате REST JSON API (member).
- * @param {text} pPath - Путь
- * @param {jsonb} pPayload - Данные
- * @return {SETOF json} - Записи в JSON
+ * @brief Handle membership REST routes (user groups, areas, interfaces).
+ * @param {text} pPath - Request path (e.g. "/member/group", "/member/area")
+ * @param {jsonb} pPayload - Request body as JSON
+ * @return {SETOF json} - JSON result rows
+ * @throws RouteIsEmpty - When pPath is NULL or empty
+ * @throws LoginFailed - When no active session exists
+ * @throws RouteNotFound - When no matching member route exists
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION rest.member (
   pPath     	text,
@@ -955,21 +981,21 @@ BEGIN
   END IF;
 
   CASE lower(pPath)
-  WHEN '/member/group' THEN -- Группы пользователя
+  WHEN '/member/group' THEN
 
 	FOR r IN SELECT * FROM api.member_group(current_userid())
 	LOOP
 	  RETURN NEXT row_to_json(r);
 	END LOOP;
 
-  WHEN '/member/area' THEN -- Зоны пользователя
+  WHEN '/member/area' THEN
 
     FOR r IN SELECT * FROM api.member_area(current_userid())
     LOOP
       RETURN NEXT row_to_json(r);
     END LOOP;
 
-  WHEN '/member/interface' THEN -- Интерфейсы пользователя
+  WHEN '/member/interface' THEN
 
     FOR r IN SELECT * FROM api.member_interface(current_userid())
     LOOP

@@ -1,7 +1,14 @@
 --------------------------------------------------------------------------------
 -- FUNCTION AddPath ------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Insert a new path node into the route tree.
+ * @param {uuid} pRoot - Root node of the path subtree
+ * @param {uuid} pParent - Parent node (defaults to pRoot when NULL)
+ * @param {text} pName - Segment name for this path level
+ * @return {uuid} - Identifier of the newly created path node
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION AddPath (
   pRoot     uuid,
   pParent   uuid,
@@ -32,7 +39,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION GetPath ------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Look up a path node by parent and segment name.
+ * @param {uuid} pParent - Parent node identifier (NULL for root-level lookup)
+ * @param {text} pName - Segment name to find
+ * @return {uuid} - Path node identifier, or NULL if not found
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetPath (
   pParent        uuid,
   pName          text
@@ -56,7 +69,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION DeletePath ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Delete a single path node by identifier.
+ * @param {uuid} pId - Path node to delete
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION DeletePath (
   pId        uuid
 ) RETURNS    void
@@ -71,7 +89,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION DeletePaths --------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Recursively delete a path node and all its descendants.
+ * @param {uuid} pId - Root of the subtree to remove
+ * @return {void}
+ * @see DeletePath
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION DeletePaths (
   pId        uuid
 ) RETURNS    void
@@ -93,7 +117,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION AddEndPoint --------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Create a new API endpoint with the given PL/pgSQL definition.
+ * @param {text} pDefinition - Dynamic PL/pgSQL expression for the endpoint
+ * @return {uuid} - Identifier of the newly created endpoint
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION AddEndPoint (
   pDefinition    text
 ) RETURNS        uuid
@@ -114,7 +143,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION EditEndPoint -------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Update the PL/pgSQL definition of an existing endpoint.
+ * @param {uuid} pId - Endpoint identifier to update
+ * @param {text} pDefinition - New definition (NULL keeps the current value)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EditEndPoint (
   pId            uuid,
   pDefinition    text
@@ -132,7 +167,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION GetEndpoint --------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Resolve the endpoint identifier for a given path and HTTP method.
+ * @param {uuid} pPath - Path node identifier
+ * @param {text} pMethod - HTTP method (default 'POST')
+ * @return {uuid} - Endpoint identifier, or NULL if no route matches
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetEndpoint (
   pPath         uuid,
   pMethod       text DEFAULT 'POST'
@@ -151,7 +192,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION DeleteEndpoint -----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Delete an endpoint record by identifier.
+ * @param {uuid} pId - Endpoint identifier to remove
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION DeleteEndpoint (
   pId        uuid
 ) RETURNS    void
@@ -166,7 +212,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION GetEndpointDefinition ----------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Fetch the PL/pgSQL definition text for an endpoint.
+ * @param {uuid} pId - Endpoint identifier
+ * @return {text} - Dynamic SQL expression stored in the endpoint
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetEndpointDefinition (
   pId        uuid
 ) RETURNS    text
@@ -179,7 +230,13 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- FUNCTION RegisterPath -------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Register a full URL-style path, creating intermediate nodes as needed.
+ * @param {text} pPath - Slash-delimited path (e.g. "/api/v1/user")
+ * @return {uuid} - Identifier of the leaf path node
+ * @see FindPath
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION RegisterPath (
   pPath          text
 ) RETURNS        uuid
@@ -217,7 +274,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION UnregisterPath -----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Remove a registered path node found by its textual path.
+ * @param {text} pPath - Slash-delimited path to unregister
+ * @return {void}
+ * @see RegisterPath
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION UnregisterPath (
   pPath			text
 ) RETURNS		void
@@ -237,7 +300,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION FindPath -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Resolve a textual path to its leaf node identifier (exact match).
+ * @param {text} pPath - Slash-delimited path to look up
+ * @return {uuid} - Leaf path node identifier, or NULL if not found
+ * @see QueryPath
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION FindPath (
   pPath			text
 ) RETURNS		uuid
@@ -264,7 +333,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION QueryPath ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Resolve a textual path to the deepest matching node (partial match allowed).
+ * @param {text} pPath - Slash-delimited path to query
+ * @return {uuid} - Deepest matched path node identifier
+ * @see FindPath
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION QueryPath (
   pPath			text
 ) RETURNS		uuid
@@ -298,7 +373,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION CollectPath --------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Reconstruct the full slash-delimited path from a leaf node upward.
+ * @param {uuid} pId - Path node identifier
+ * @return {text} - Full path string (e.g. "/api/v1/user")
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CollectPath (
   pId		uuid
 ) RETURNS	text
@@ -332,7 +412,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION ExecuteDynamicMethod -----------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Execute a workflow action on an object via a dynamic path.
+ * @param {text} pPath - Path containing the action code as the second segment
+ * @param {jsonb} pPayload - JSON with "id" (object uuid) and optional "params"
+ * @return {jsonb} - Result of ExecuteObjectAction
+ * @throws LoginFailed - When no active session exists
+ * @throws RouteNotFound - When the action code cannot be resolved
+ * @throws ObjectIsNull - When the object id is not provided
+ * @throws ObjectNotFound - When the object id does not exist
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION ExecuteDynamicMethod (
   pPath     	text,
   pPayload  	jsonb
@@ -383,7 +473,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- RegisterRoute ---------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Register an API route, binding path + HTTP methods to an endpoint.
+ * @param {text} pPath - Relative path (appended after /{namespace}/{version}/)
+ * @param {uuid} pEndpoint - Endpoint identifier to bind
+ * @param {text} pVersion - API version prefix (default 'v1')
+ * @param {text} pNamespace - Namespace prefix (default 'api')
+ * @param {text[]} pMethod - Array of HTTP methods to register (default '{GET,POST}')
+ * @return {void}
+ * @see UnregisterRoute
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION RegisterRoute (
   pPath			text,
   pEndpoint		uuid,
@@ -416,7 +516,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION UnregisterRoute ----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Remove route bindings for the given path and HTTP methods.
+ * @param {text} pPath - Relative path (same as used in RegisterRoute)
+ * @param {text} pVersion - API version prefix (default 'v1')
+ * @param {text} pNamespace - Namespace prefix (default 'api')
+ * @param {text[]} pMethod - Array of HTTP methods to unregister (default '{GET,POST}')
+ * @return {void}
+ * @see RegisterRoute
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION UnregisterRoute (
   pPath			text,
   pVersion		text DEFAULT 'v1',
