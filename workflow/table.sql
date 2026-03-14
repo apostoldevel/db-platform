@@ -7,9 +7,9 @@ CREATE TABLE db.entity (
     code        text NOT NULL
 );
 
-COMMENT ON TABLE db.entity IS 'Сущность.';
-COMMENT ON COLUMN db.entity.id IS 'Идентификатор';
-COMMENT ON COLUMN db.entity.code IS 'Код';
+COMMENT ON TABLE db.entity IS 'Workflow entity. Top-level domain concept (object, document, reference, etc.).';
+COMMENT ON COLUMN db.entity.id IS 'Entity identifier (UUID).';
+COMMENT ON COLUMN db.entity.code IS 'Unique entity code (e.g. "object", "document", "reference").';
 
 CREATE UNIQUE INDEX ON db.entity (code);
 
@@ -27,12 +27,12 @@ CREATE TABLE db.entity_text (
 
 --------------------------------------------------------------------------------
 
-COMMENT ON TABLE db.entity_text IS 'Текст сущности.';
+COMMENT ON TABLE db.entity_text IS 'Locale-specific name and description for an entity.';
 
-COMMENT ON COLUMN db.entity_text.entity IS 'Идентификатор сущности';
-COMMENT ON COLUMN db.entity_text.locale IS 'Идентификатор локали';
-COMMENT ON COLUMN db.entity_text.name IS 'Наименование';
-COMMENT ON COLUMN db.entity_text.description IS 'Описание';
+COMMENT ON COLUMN db.entity_text.entity IS 'Reference to db.entity.';
+COMMENT ON COLUMN db.entity_text.locale IS 'Locale for this translation.';
+COMMENT ON COLUMN db.entity_text.name IS 'Localised display name.';
+COMMENT ON COLUMN db.entity_text.description IS 'Localised description (optional).';
 
 --------------------------------------------------------------------------------
 
@@ -52,14 +52,14 @@ CREATE TABLE db.class_tree (
     abstract    boolean DEFAULT TRUE NOT NULL
 );
 
-COMMENT ON TABLE db.class_tree IS 'Дерево классов.';
+COMMENT ON TABLE db.class_tree IS 'Hierarchical class tree. Each class belongs to an entity and may inherit from a parent class.';
 
-COMMENT ON COLUMN db.class_tree.id IS 'Идентификатор';
-COMMENT ON COLUMN db.class_tree.parent IS 'Ссылка на родительский узел';
-COMMENT ON COLUMN db.class_tree.entity IS 'Сущность';
-COMMENT ON COLUMN db.class_tree.level IS 'Уровень вложенности';
-COMMENT ON COLUMN db.class_tree.code IS 'Код';
-COMMENT ON COLUMN db.class_tree.abstract IS 'Абстрактный: Да/Нет';
+COMMENT ON COLUMN db.class_tree.id IS 'Class identifier (UUID).';
+COMMENT ON COLUMN db.class_tree.parent IS 'Parent class (NULL for root classes).';
+COMMENT ON COLUMN db.class_tree.entity IS 'Entity this class belongs to.';
+COMMENT ON COLUMN db.class_tree.level IS 'Nesting depth (0 = root).';
+COMMENT ON COLUMN db.class_tree.code IS 'Unique class code.';
+COMMENT ON COLUMN db.class_tree.abstract IS 'Abstract flag: true = cannot be instantiated directly.';
 
 --------------------------------------------------------------------------------
 
@@ -81,11 +81,11 @@ CREATE TABLE db.class_text (
 
 --------------------------------------------------------------------------------
 
-COMMENT ON TABLE db.class_text IS 'Текст класса.';
+COMMENT ON TABLE db.class_text IS 'Locale-specific label for a class.';
 
-COMMENT ON COLUMN db.class_text.class IS 'Идентификатор класса';
-COMMENT ON COLUMN db.class_text.locale IS 'Идентификатор локали';
-COMMENT ON COLUMN db.class_text.label IS 'Метка';
+COMMENT ON COLUMN db.class_text.class IS 'Reference to db.class_tree.';
+COMMENT ON COLUMN db.class_text.locale IS 'Locale for this translation.';
+COMMENT ON COLUMN db.class_text.label IS 'Localised display label.';
 
 --------------------------------------------------------------------------------
 
@@ -160,13 +160,13 @@ CREATE TABLE db.acu (
     PRIMARY KEY (class, userid)
 );
 
-COMMENT ON TABLE db.acu IS 'Доступ пользователя к классам.';
+COMMENT ON TABLE db.acu IS 'Access Control Unit. Per-class permission bitmask for each user/group.';
 
-COMMENT ON COLUMN db.acu.class IS 'Класс';
-COMMENT ON COLUMN db.acu.userid IS 'Пользователь';
-COMMENT ON COLUMN db.acu.deny IS 'Запрещающие биты: {acsud}. Где: {a - access; c - create; s - select; u - update; d - delete}';
-COMMENT ON COLUMN db.acu.allow IS 'Разрешающие биты: {acsud}. Где: {a - access; c - create; s - select; u - update; d - delete}';
-COMMENT ON COLUMN db.acu.mask IS 'Маска доступа: {acsud}. Где: {a - access; c - create; s - select; u - update; d - delete}';
+COMMENT ON COLUMN db.acu.class IS 'Class this ACL entry applies to.';
+COMMENT ON COLUMN db.acu.userid IS 'User or group granted/denied access.';
+COMMENT ON COLUMN db.acu.deny IS 'Deny bits: {acsud} where a=access, c=create, s=select, u=update, d=delete.';
+COMMENT ON COLUMN db.acu.allow IS 'Allow bits: {acsud} where a=access, c=create, s=select, u=update, d=delete.';
+COMMENT ON COLUMN db.acu.mask IS 'Effective mask: allow & ~deny. Computed by trigger.';
 
 CREATE INDEX ON db.acu (class);
 CREATE INDEX ON db.acu (userid);
@@ -203,11 +203,11 @@ CREATE TABLE db.type (
     code        text NOT NULL
 );
 
-COMMENT ON TABLE db.type IS 'Тип объекта.';
+COMMENT ON TABLE db.type IS 'Object type. Concrete specialisation within a class (e.g. "client.reference").';
 
-COMMENT ON COLUMN db.type.id IS 'Идентификатор';
-COMMENT ON COLUMN db.type.class IS 'Класс';
-COMMENT ON COLUMN db.type.code IS 'Код';
+COMMENT ON COLUMN db.type.id IS 'Type identifier (UUID).';
+COMMENT ON COLUMN db.type.class IS 'Class this type belongs to.';
+COMMENT ON COLUMN db.type.code IS 'Unique type code within the class.';
 
 CREATE INDEX ON db.type (class);
 
@@ -227,12 +227,12 @@ CREATE TABLE db.type_text (
 
 --------------------------------------------------------------------------------
 
-COMMENT ON TABLE db.type_text IS 'Текст типа объекта.';
+COMMENT ON TABLE db.type_text IS 'Locale-specific name and description for an object type.';
 
-COMMENT ON COLUMN db.type_text.type IS 'Идентификатор типа';
-COMMENT ON COLUMN db.type_text.locale IS 'Идентификатор локали';
-COMMENT ON COLUMN db.type_text.name IS 'Наименование';
-COMMENT ON COLUMN db.type_text.description IS 'Описание';
+COMMENT ON COLUMN db.type_text.type IS 'Reference to db.type.';
+COMMENT ON COLUMN db.type_text.locale IS 'Locale for this translation.';
+COMMENT ON COLUMN db.type_text.name IS 'Localised display name.';
+COMMENT ON COLUMN db.type_text.description IS 'Localised description (optional).';
 
 --------------------------------------------------------------------------------
 
@@ -248,10 +248,10 @@ CREATE TABLE db.state_type (
     code        text NOT NULL
 );
 
-COMMENT ON TABLE db.state_type IS 'Тип состояния объекта.';
+COMMENT ON TABLE db.state_type IS 'State type classifier (e.g. created, enabled, disabled, deleted).';
 
-COMMENT ON COLUMN db.state_type.id IS 'Идентификатор';
-COMMENT ON COLUMN db.state_type.code IS 'Код типа состояния объекта';
+COMMENT ON COLUMN db.state_type.id IS 'State type identifier (UUID).';
+COMMENT ON COLUMN db.state_type.code IS 'Unique state type code.';
 
 CREATE UNIQUE INDEX ON db.state_type (code);
 
@@ -269,12 +269,12 @@ CREATE TABLE db.state_type_text (
 
 --------------------------------------------------------------------------------
 
-COMMENT ON TABLE db.state_type_text IS 'Текст типа состояния объекта.';
+COMMENT ON TABLE db.state_type_text IS 'Locale-specific name and description for a state type.';
 
-COMMENT ON COLUMN db.state_type_text.type IS 'Идентификатор типа состояния объекта';
-COMMENT ON COLUMN db.state_type_text.locale IS 'Идентификатор локали';
-COMMENT ON COLUMN db.state_type_text.name IS 'Наименование';
-COMMENT ON COLUMN db.state_type_text.description IS 'Описание';
+COMMENT ON COLUMN db.state_type_text.type IS 'Reference to db.state_type.';
+COMMENT ON COLUMN db.state_type_text.locale IS 'Locale for this translation.';
+COMMENT ON COLUMN db.state_type_text.name IS 'Localised display name.';
+COMMENT ON COLUMN db.state_type_text.description IS 'Localised description (optional).';
 
 --------------------------------------------------------------------------------
 
@@ -293,13 +293,13 @@ CREATE TABLE db.state (
     sequence    integer NOT NULL
 );
 
-COMMENT ON TABLE db.state IS 'Состояние объекта.';
+COMMENT ON TABLE db.state IS 'Object state. Each class defines an ordered set of states an object can be in.';
 
-COMMENT ON COLUMN db.state.id IS 'Идентификатор';
-COMMENT ON COLUMN db.state.class IS 'Класс объекта';
-COMMENT ON COLUMN db.state.type IS 'Тип состояния';
-COMMENT ON COLUMN db.state.code IS 'Код состояния';
-COMMENT ON COLUMN db.state.sequence IS 'Очерёдность';
+COMMENT ON COLUMN db.state.id IS 'State identifier (UUID).';
+COMMENT ON COLUMN db.state.class IS 'Class this state is defined for.';
+COMMENT ON COLUMN db.state.type IS 'State type (created, enabled, etc.).';
+COMMENT ON COLUMN db.state.code IS 'Unique state code within the class.';
+COMMENT ON COLUMN db.state.sequence IS 'Display/processing order.';
 
 CREATE INDEX ON db.state (class);
 CREATE INDEX ON db.state (type);
@@ -320,11 +320,11 @@ CREATE TABLE db.state_text (
 
 --------------------------------------------------------------------------------
 
-COMMENT ON TABLE db.state_text IS 'Текст состояние объекта.';
+COMMENT ON TABLE db.state_text IS 'Locale-specific label for an object state.';
 
-COMMENT ON COLUMN db.state_text.state IS 'Идентификатор сущности';
-COMMENT ON COLUMN db.state_text.locale IS 'Идентификатор локали';
-COMMENT ON COLUMN db.state_text.label IS 'Метка';
+COMMENT ON COLUMN db.state_text.state IS 'Reference to db.state.';
+COMMENT ON COLUMN db.state_text.locale IS 'Locale for this translation.';
+COMMENT ON COLUMN db.state_text.label IS 'Localised display label.';
 
 --------------------------------------------------------------------------------
 
@@ -340,10 +340,10 @@ CREATE TABLE db.action (
     code        text NOT NULL
 );
 
-COMMENT ON TABLE db.action IS 'Действие.';
+COMMENT ON TABLE db.action IS 'Workflow action (e.g. create, enable, disable, delete, execute).';
 
-COMMENT ON COLUMN db.action.id IS 'Идентификатор';
-COMMENT ON COLUMN db.action.code IS 'Код действия';
+COMMENT ON COLUMN db.action.id IS 'Action identifier (UUID).';
+COMMENT ON COLUMN db.action.code IS 'Unique action code.';
 
 CREATE UNIQUE INDEX ON db.action (code);
 
@@ -361,12 +361,12 @@ CREATE TABLE db.action_text (
 
 --------------------------------------------------------------------------------
 
-COMMENT ON TABLE db.action_text IS 'Текст действия.';
+COMMENT ON TABLE db.action_text IS 'Locale-specific name and description for an action.';
 
-COMMENT ON COLUMN db.action_text.action IS 'Идентификатор действия';
-COMMENT ON COLUMN db.action_text.locale IS 'Идентификатор локали';
-COMMENT ON COLUMN db.action_text.name IS 'Наименование';
-COMMENT ON COLUMN db.action_text.description IS 'Описание';
+COMMENT ON COLUMN db.action_text.action IS 'Reference to db.action.';
+COMMENT ON COLUMN db.action_text.locale IS 'Locale for this translation.';
+COMMENT ON COLUMN db.action_text.name IS 'Localised display name.';
+COMMENT ON COLUMN db.action_text.description IS 'Localised description (optional).';
 
 --------------------------------------------------------------------------------
 
@@ -388,16 +388,16 @@ CREATE TABLE db.method (
     visible     boolean DEFAULT true
 );
 
-COMMENT ON TABLE db.method IS 'Методы класса.';
+COMMENT ON TABLE db.method IS 'Class method. Binds a (class, state, action) triple into an executable operation.';
 
-COMMENT ON COLUMN db.method.id IS 'Идентификатор';
-COMMENT ON COLUMN db.method.parent IS 'Ссылка на родительский узел';
-COMMENT ON COLUMN db.method.class IS 'Класс';
-COMMENT ON COLUMN db.method.state IS 'Состояние';
-COMMENT ON COLUMN db.method.action IS 'Действие';
-COMMENT ON COLUMN db.method.code IS 'Код метода класса';
-COMMENT ON COLUMN db.method.sequence IS 'Очерёдность';
-COMMENT ON COLUMN db.method.visible IS 'Видимое: Да/Нет';
+COMMENT ON COLUMN db.method.id IS 'Method identifier (UUID).';
+COMMENT ON COLUMN db.method.parent IS 'Parent method (for nested/sub-menu methods).';
+COMMENT ON COLUMN db.method.class IS 'Class this method belongs to.';
+COMMENT ON COLUMN db.method.state IS 'State in which this method is available (NULL = any state).';
+COMMENT ON COLUMN db.method.action IS 'Action performed by this method.';
+COMMENT ON COLUMN db.method.code IS 'Auto-generated code: "state_code:action_code".';
+COMMENT ON COLUMN db.method.sequence IS 'Display/processing order.';
+COMMENT ON COLUMN db.method.visible IS 'Whether this method appears in the UI.';
 
 --------------------------------------------------------------------------------
 
@@ -422,11 +422,11 @@ CREATE TABLE db.method_text (
 
 --------------------------------------------------------------------------------
 
-COMMENT ON TABLE db.method_text IS 'Текст состояние объекта.';
+COMMENT ON TABLE db.method_text IS 'Locale-specific label for a method.';
 
-COMMENT ON COLUMN db.method_text.method IS 'Идентификатор сущности';
-COMMENT ON COLUMN db.method_text.locale IS 'Идентификатор локали';
-COMMENT ON COLUMN db.method_text.label IS 'Метка';
+COMMENT ON COLUMN db.method_text.method IS 'Reference to db.method.';
+COMMENT ON COLUMN db.method_text.locale IS 'Locale for this translation.';
+COMMENT ON COLUMN db.method_text.label IS 'Localised display label.';
 
 --------------------------------------------------------------------------------
 
@@ -517,13 +517,13 @@ CREATE TABLE db.amu (
     PRIMARY KEY (method, userid)
 );
 
-COMMENT ON TABLE db.amu IS 'Доступ пользователя к методам класса.';
+COMMENT ON TABLE db.amu IS 'Access Method Unit. Per-method permission bitmask for each user/group.';
 
-COMMENT ON COLUMN db.amu.method IS 'Метод';
-COMMENT ON COLUMN db.amu.userid IS 'Пользователь';
-COMMENT ON COLUMN db.amu.deny IS 'Запрещающие биты: {xve}. Где: {x - execute, v - visible, e - enable}';
-COMMENT ON COLUMN db.amu.allow IS 'Разрешающие биты: {xve}. Где: {x - execute, v - visible, e - enable}';
-COMMENT ON COLUMN db.amu.mask IS 'Маска доступа: {xve}. Где: {x - execute, v - visible, e - enable}';
+COMMENT ON COLUMN db.amu.method IS 'Method this ACL entry applies to.';
+COMMENT ON COLUMN db.amu.userid IS 'User or group granted/denied access.';
+COMMENT ON COLUMN db.amu.deny IS 'Deny bits: {xve} where x=execute, v=visible, e=enable.';
+COMMENT ON COLUMN db.amu.allow IS 'Allow bits: {xve} where x=execute, v=visible, e=enable.';
+COMMENT ON COLUMN db.amu.mask IS 'Effective mask: allow & ~deny. Computed by trigger.';
 
 CREATE INDEX ON db.amu (method);
 CREATE INDEX ON db.amu (userid);
@@ -559,12 +559,12 @@ CREATE TABLE db.transition (
     newState    uuid NOT NULL REFERENCES db.state(id)
 );
 
-COMMENT ON TABLE db.transition IS 'Переходы из одного состояния в другое.';
+COMMENT ON TABLE db.transition IS 'State transition. Maps a method to the new state it produces.';
 
-COMMENT ON COLUMN db.transition.id IS 'Идентификатор';
-COMMENT ON COLUMN db.transition.state IS 'Состояние (текущее)';
-COMMENT ON COLUMN db.transition.method IS 'Совершаемая операция (действие)';
-COMMENT ON COLUMN db.transition.newState IS 'Состояние (новое)';
+COMMENT ON COLUMN db.transition.id IS 'Transition identifier (UUID).';
+COMMENT ON COLUMN db.transition.state IS 'Current state before the transition (NULL = initial/any).';
+COMMENT ON COLUMN db.transition.method IS 'Method that triggers this transition.';
+COMMENT ON COLUMN db.transition.newState IS 'Target state after the transition.';
 
 CREATE INDEX ON db.transition (state);
 CREATE INDEX ON db.transition (method);
@@ -578,10 +578,10 @@ CREATE TABLE db.event_type (
     code        text NOT NULL
 );
 
-COMMENT ON TABLE db.event_type IS 'Тип события.';
+COMMENT ON TABLE db.event_type IS 'Event type classifier (e.g. before, after, execute).';
 
-COMMENT ON COLUMN db.event_type.id IS 'Идентификатор';
-COMMENT ON COLUMN db.event_type.code IS 'Код типа события';
+COMMENT ON COLUMN db.event_type.id IS 'Event type identifier (UUID).';
+COMMENT ON COLUMN db.event_type.code IS 'Unique event type code.';
 
 CREATE UNIQUE INDEX ON db.event_type (code);
 
@@ -599,12 +599,12 @@ CREATE TABLE db.event_type_text (
 
 --------------------------------------------------------------------------------
 
-COMMENT ON TABLE db.event_type_text IS 'Текст типа события.';
+COMMENT ON TABLE db.event_type_text IS 'Locale-specific name and description for an event type.';
 
-COMMENT ON COLUMN db.event_type_text.type IS 'Идентификатор типа события';
-COMMENT ON COLUMN db.event_type_text.locale IS 'Идентификатор локали';
-COMMENT ON COLUMN db.event_type_text.name IS 'Наименование';
-COMMENT ON COLUMN db.event_type_text.description IS 'Описание';
+COMMENT ON COLUMN db.event_type_text.type IS 'Reference to db.event_type.';
+COMMENT ON COLUMN db.event_type_text.locale IS 'Locale for this translation.';
+COMMENT ON COLUMN db.event_type_text.name IS 'Localised display name.';
+COMMENT ON COLUMN db.event_type_text.description IS 'Localised description (optional).';
 
 --------------------------------------------------------------------------------
 
@@ -625,15 +625,15 @@ CREATE TABLE db.event (
     enabled     boolean DEFAULT TRUE NOT NULL
 );
 
-COMMENT ON TABLE db.event IS 'Событие.';
+COMMENT ON TABLE db.event IS 'Workflow event. PL/pgSQL handler fired when an action occurs on a class.';
 
-COMMENT ON COLUMN db.event.id IS 'Идентификатор';
-COMMENT ON COLUMN db.event.class IS 'Класс объекта';
-COMMENT ON COLUMN db.event.type IS 'Тип события';
-COMMENT ON COLUMN db.event.action IS 'Действие';
-COMMENT ON COLUMN db.event.text IS 'Текст';
-COMMENT ON COLUMN db.event.sequence IS 'Очерёдность';
-COMMENT ON COLUMN db.event.enabled IS 'Включено: Да/Нет';
+COMMENT ON COLUMN db.event.id IS 'Event identifier (UUID).';
+COMMENT ON COLUMN db.event.class IS 'Class this event is bound to.';
+COMMENT ON COLUMN db.event.type IS 'Event type (before, after, execute).';
+COMMENT ON COLUMN db.event.action IS 'Action that triggers this event.';
+COMMENT ON COLUMN db.event.text IS 'PL/pgSQL code body executed when the event fires.';
+COMMENT ON COLUMN db.event.sequence IS 'Execution order among events for the same action.';
+COMMENT ON COLUMN db.event.enabled IS 'Whether this event handler is active.';
 
 CREATE INDEX ON db.event (class);
 CREATE INDEX ON db.event (type);
@@ -652,11 +652,11 @@ CREATE TABLE db.event_text (
 
 --------------------------------------------------------------------------------
 
-COMMENT ON TABLE db.event_text IS 'Текст события.';
+COMMENT ON TABLE db.event_text IS 'Locale-specific label for an event.';
 
-COMMENT ON COLUMN db.event_text.event IS 'Идентификатор сущности';
-COMMENT ON COLUMN db.event_text.locale IS 'Идентификатор локали';
-COMMENT ON COLUMN db.event_text.label IS 'Метка';
+COMMENT ON COLUMN db.event_text.event IS 'Reference to db.event.';
+COMMENT ON COLUMN db.event_text.locale IS 'Locale for this translation.';
+COMMENT ON COLUMN db.event_text.label IS 'Localised display label.';
 
 --------------------------------------------------------------------------------
 
@@ -672,10 +672,10 @@ CREATE TABLE db.priority (
     code        text NOT NULL
 );
 
-COMMENT ON TABLE db.priority IS 'Приоритет.';
+COMMENT ON TABLE db.priority IS 'Priority level for objects/tasks (e.g. low, normal, high, critical).';
 
-COMMENT ON COLUMN db.priority.id IS 'Идентификатор';
-COMMENT ON COLUMN db.priority.code IS 'Код';
+COMMENT ON COLUMN db.priority.id IS 'Priority identifier (UUID).';
+COMMENT ON COLUMN db.priority.code IS 'Unique priority code.';
 
 CREATE UNIQUE INDEX ON db.priority (code);
 
@@ -693,12 +693,12 @@ CREATE TABLE db.priority_text (
 
 --------------------------------------------------------------------------------
 
-COMMENT ON TABLE db.priority_text IS 'Текст приоритета.';
+COMMENT ON TABLE db.priority_text IS 'Locale-specific name and description for a priority level.';
 
-COMMENT ON COLUMN db.priority_text.priority IS 'Идентификатор приоритета';
-COMMENT ON COLUMN db.priority_text.locale IS 'Идентификатор локали';
-COMMENT ON COLUMN db.priority_text.name IS 'Наименование';
-COMMENT ON COLUMN db.priority_text.description IS 'Описание';
+COMMENT ON COLUMN db.priority_text.priority IS 'Reference to db.priority.';
+COMMENT ON COLUMN db.priority_text.locale IS 'Locale for this translation.';
+COMMENT ON COLUMN db.priority_text.name IS 'Localised display name.';
+COMMENT ON COLUMN db.priority_text.description IS 'Localised description (optional).';
 
 --------------------------------------------------------------------------------
 

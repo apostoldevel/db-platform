@@ -6,7 +6,8 @@
 -- ESSENCE ---------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Сущность
+ * @brief Workflow entity view.
+ * @since 1.0.0
  */
 CREATE OR REPLACE VIEW api.entity
 AS
@@ -18,8 +19,10 @@ GRANT SELECT ON api.entity TO administrator;
 -- api.get_entity -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает сущность.
- * @return {SETOF api.entity} - Запись
+ * @brief Fetch a single entity by its identifier.
+ * @param {uuid} pId - Entity identifier
+ * @return {SETOF api.entity} - Entity record
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_entity (
   pId       uuid
@@ -34,13 +37,14 @@ $$ LANGUAGE SQL
 -- api.list_entity ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список сощностей.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
+ * @brief List entities with optional search, filter, pagination, and sorting.
+ * @param {jsonb} pSearch - Search conditions: [{"condition": "AND|OR", "field": "<col>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<val>"}]
+ * @param {jsonb} pFilter - Column-value filter: {"<col>": "<val>"}
+ * @param {integer} pLimit - Maximum number of rows to return
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Columns to sort by
  * @return {SETOF api.entity}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_entity (
   pSearch   jsonb DEFAULT null,
@@ -70,7 +74,12 @@ GRANT SELECT ON api.type TO administrator;
 --------------------------------------------------------------------------------
 -- api.type --------------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief List object types belonging to a specific entity.
+ * @param {uuid} pEntity - Entity identifier to filter by
+ * @return {SETOF api.type} - Matching type records
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.type (
   pEntity    uuid
 ) RETURNS    SETOF api.type
@@ -84,12 +93,13 @@ $$ LANGUAGE SQL
 -- api.add_type ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Создаёт тип.
- * @param {uuid} pClass - Идентификатор класса
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {text} pDescription - Описание
- * @return {uuid}
+ * @brief Create a new object type under a class.
+ * @param {uuid} pClass - Class this type belongs to
+ * @param {text} pCode - Unique type code
+ * @param {text} pName - Display name
+ * @param {text} pDescription - Description (optional)
+ * @return {uuid} - Identifier of the newly created type
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.add_type (
   pClass        uuid,
@@ -109,14 +119,14 @@ $$ LANGUAGE plpgsql
 -- api.update_type -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Обновляет тип.
- * @param {uuid} pId - Идентификатор типа
- * @param {uuid} pClass - Идентификатор класса
- * @param {text} pCode - Код
- * @param {text} pName - Наименование
- * @param {text} pDescription - Описание
- * @out param {uuid} id - Идентификатор типа
+ * @brief Update an existing object type.
+ * @param {uuid} pId - Type identifier
+ * @param {uuid} pClass - New class (NULL keeps existing)
+ * @param {text} pCode - New code (NULL keeps existing)
+ * @param {text} pName - New display name (NULL keeps existing)
+ * @param {text} pDescription - New description (NULL keeps existing)
  * @return {void}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.update_type (
   pId           uuid,
@@ -136,7 +146,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.set_type ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Upsert an object type: create if pId is NULL, update otherwise.
+ * @param {uuid} pId - Type identifier (NULL to create)
+ * @param {uuid} pClass - Class this type belongs to
+ * @param {text} pCode - Type code
+ * @param {text} pName - Display name
+ * @param {text} pDescription - Description (optional)
+ * @return {SETOF api.type} - The created or updated type record
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.set_type (
   pId           uuid,
   pClass        uuid DEFAULT null,
@@ -162,9 +181,10 @@ $$ LANGUAGE plpgsql
 -- api.delete_type -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Удаляет тип.
- * @param {uuid} pId - Идентификатор типа
+ * @brief Delete an object type by its identifier.
+ * @param {uuid} pId - Type identifier
  * @return {void}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.delete_type (
   pId         uuid
@@ -181,8 +201,10 @@ $$ LANGUAGE plpgsql
 -- api.get_type ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает тип.
- * @return {api.type} - Тип
+ * @brief Fetch a single object type by its identifier.
+ * @param {uuid} pId - Type identifier
+ * @return {SETOF api.type} - Type record
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_type (
   pId       uuid
@@ -197,9 +219,10 @@ $$ LANGUAGE SQL
 -- api.get_type_id -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает тип объекта по коду.
- * @param {text} pCode - Код типа объекта
- * @return {uuid} - Тип объекта
+ * @brief Resolve an object type identifier from a code or UUID string.
+ * @param {text} pCode - Type code or UUID string
+ * @return {uuid} - Resolved type identifier
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_type_id (
   pCode     text
@@ -220,13 +243,14 @@ $$ LANGUAGE plpgsql
 -- api.list_type ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список типов.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
+ * @brief List object types with optional search, filter, pagination, and sorting.
+ * @param {jsonb} pSearch - Search conditions
+ * @param {jsonb} pFilter - Column-value filter
+ * @param {integer} pLimit - Maximum number of rows to return
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Columns to sort by
  * @return {SETOF api.type}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_type (
   pSearch   jsonb DEFAULT null,
@@ -256,7 +280,12 @@ GRANT SELECT ON api.class TO administrator;
 --------------------------------------------------------------------------------
 -- FUNCTION ClassTree ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief List classes in the hierarchy starting from a given parent.
+ * @param {uuid} pParent - Parent class identifier (root if NULL)
+ * @return {SETOF api.class} - Class tree records with decoded access
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.class (
   pParent   uuid
 ) RETURNS   SETOF api.class
@@ -270,13 +299,14 @@ $$ LANGUAGE SQL
 -- api.add_class ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Создаёт класс.
- * @param {uuid} pParent - Идентификатор "родителя"
- * @param {uuid} pEntity - Идентификатор сущности
- * @param {text} pCode - Код
- * @param {text} pLabel - Наименование
- * @param {boolean} pAbstract - Абстрактный (Да/Нет)
- * @return {uuid}
+ * @brief Create a new class in the hierarchy.
+ * @param {uuid} pParent - Parent class (NULL for root)
+ * @param {uuid} pEntity - Entity this class belongs to
+ * @param {text} pCode - Unique class code
+ * @param {text} pLabel - Display label
+ * @param {boolean} pAbstract - Whether the class is abstract
+ * @return {uuid} - Identifier of the newly created class
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.add_class (
   pParent       uuid,
@@ -297,17 +327,15 @@ $$ LANGUAGE plpgsql
 -- api.update_class ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Обновляет класс.
- * @param {uuid} pId - Идентификатор класса
- * @param {uuid} pParent - Идентификатор "родителя"
- * @param {uuid} pEntity - Идентификатор сущности
- * @param {text} pCode - Код
- * @param {text} pLabel - Наименование
- * @param {boolean} pAbstract - Абстрактный (Да/Нет)
- * @out {uuid} id - Идентификатор класса
- * @out param {uuid} result - Результат
- * @out param {text} message - Текст ошибки
- * @return {record}
+ * @brief Update an existing class.
+ * @param {uuid} pId - Class identifier
+ * @param {uuid} pParent - New parent class
+ * @param {uuid} pEntity - New entity
+ * @param {text} pCode - New code
+ * @param {text} pLabel - New label
+ * @param {boolean} pAbstract - Whether the class is abstract
+ * @return {void}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.update_class (
   pId           uuid,
@@ -328,7 +356,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.set_class ---------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Upsert a class: create if pId is NULL, update otherwise.
+ * @param {uuid} pId - Class identifier (NULL to create)
+ * @param {uuid} pParent - Parent class
+ * @param {uuid} pEntity - Entity
+ * @param {text} pCode - Class code
+ * @param {text} pLabel - Display label
+ * @param {boolean} pAbstract - Whether the class is abstract
+ * @return {SETOF api.class} - The created or updated class record
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.set_class (
   pId           uuid,
   pParent       uuid,
@@ -354,7 +392,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.copy_class --------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Copy all workflow definitions (events, states, methods, transitions) between classes.
+ * @param {uuid} pSource - Source class to copy from
+ * @param {uuid} pDestination - Destination class to copy into
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.copy_class (
   pSource       uuid,
   pDestination  uuid
@@ -370,7 +414,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.clone_class -------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Create a new child class by cloning workflow definitions from the parent.
+ * @param {uuid} pParent - Parent class to clone from
+ * @param {uuid} pEntity - Entity for the new class
+ * @param {text} pCode - Code for the new class
+ * @param {text} pLabel - Label for the new class
+ * @param {boolean} pAbstract - Whether the new class is abstract
+ * @return {SETOF api.class} - The newly created class record
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.clone_class (
   pParent   uuid,
   pEntity   uuid,
@@ -393,9 +446,10 @@ $$ LANGUAGE plpgsql
 -- api.delete_class ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Удаляет класс.
- * @param {uuid} pId - Идентификатор класса
+ * @brief Delete a class and cascade-remove its workflow definitions.
+ * @param {uuid} pId - Class identifier
  * @return {void}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.delete_class (
   pId         uuid
@@ -412,8 +466,10 @@ $$ LANGUAGE plpgsql
 -- api.get_class ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает класс.
- * @return {record} - Запись
+ * @brief Fetch a single class by its identifier.
+ * @param {uuid} pId - Class identifier
+ * @return {SETOF api.class} - Class record
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_class (
   pId       uuid
@@ -428,13 +484,14 @@ $$ LANGUAGE SQL
 -- api.list_class --------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список классов.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
+ * @brief List classes with optional search, filter, pagination, and sorting.
+ * @param {jsonb} pSearch - Search conditions
+ * @param {jsonb} pFilter - Column-value filter
+ * @param {integer} pLimit - Maximum number of rows to return
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Columns to sort by
  * @return {SETOF api.class}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_class (
   pSearch   jsonb DEFAULT null,
@@ -455,8 +512,11 @@ $$ LANGUAGE plpgsql
 -- api.decode_class_access -----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Расшифровка маски прав доступа для класса.
- * @return {SETOF record} - Запись
+ * @brief Decode the ACU bitmask into boolean flags for a class and user.
+ * @param {uuid} pId - Class identifier
+ * @param {uuid} pUserId - User (defaults to current session user)
+ * @return {record} - (a=access, c=create, s=select, u=update, d=delete)
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.decode_class_access (
   pId       uuid,
@@ -487,8 +547,10 @@ GRANT SELECT ON api.class_access TO administrator;
 -- api.class_access ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает участников и права доступа для класса.
- * @return {SETOF api.class_access} - Запись
+ * @brief List users/groups and their access rights for a specific class.
+ * @param {uuid} pId - Class identifier
+ * @return {SETOF api.class_access} - Members with permission bits
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.class_access (
   pId       uuid
@@ -503,13 +565,14 @@ $$ LANGUAGE SQL
 -- api.list_class_access -------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список участников и права доступа для класса.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
+ * @brief List class access entries with optional search, filter, pagination, and sorting.
+ * @param {jsonb} pSearch - Search conditions
+ * @param {jsonb} pFilter - Column-value filter
+ * @param {integer} pLimit - Maximum number of rows to return
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Columns to sort by
  * @return {SETOF api.class_access}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_class_access (
   pSearch   jsonb DEFAULT null,
@@ -540,8 +603,10 @@ GRANT SELECT ON api.state_type TO administrator;
 -- api.get_state_type ----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает тип состояния.
- * @return {record} - Запись
+ * @brief Fetch a single state type by its identifier.
+ * @param {uuid} pId - State type identifier
+ * @return {SETOF api.state_type} - State type record
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_state_type (
   pId       uuid
@@ -561,7 +626,12 @@ AS
 GRANT SELECT ON api.state TO administrator;
 
 --------------------------------------------------------------------------------
-
+/**
+ * @brief List states for a class, including inherited states from the class hierarchy.
+ * @param {uuid} pClass - Class identifier
+ * @return {SETOF api.state} - State records ordered by sequence
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.state (
   pClass    uuid
 ) RETURNS   SETOF api.state
@@ -578,7 +648,12 @@ $$ LANGUAGE SQL
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
-
+/**
+ * @brief List states for all classes that define a given object type.
+ * @param {uuid} pType - Object type identifier
+ * @return {SETOF api.state} - State records ordered by type and sequence
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.state_by_type (
   pType     uuid
 ) RETURNS   SETOF api.state
@@ -592,16 +667,14 @@ $$ LANGUAGE SQL
 -- api.add_state ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Создаёт состояние.
- * @param {uuid} pClass - Идентификатор класса
- * @param {uuid} pType - Идентификатор типа
- * @param {text} pCode - Код
- * @param {text} pLabel - Наименование
- * @param {integer} pSequence - Очередность
- * @out param {uuid} id - Идентификатор состояния
- * @out param {boolean} result - Результат
- * @out param {text} message - Текст ошибки
- * @return {record}
+ * @brief Create a new state for a class.
+ * @param {uuid} pClass - Class this state belongs to
+ * @param {uuid} pType - State type (created, enabled, etc.)
+ * @param {text} pCode - Unique state code
+ * @param {text} pLabel - Display label
+ * @param {integer} pSequence - Display order
+ * @return {uuid} - Identifier of the newly created state
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.add_state (
   pClass      uuid,
@@ -622,14 +695,15 @@ $$ LANGUAGE plpgsql
 -- api.update_state ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Обновляет состояние.
- * @param {uuid} pId - Идентификатор состояния
- * @param {uuid} pClass - Идентификатор класса
- * @param {uuid} pType - Идентификатор типа
- * @param {text} pCode - Код
- * @param {text} pLabel - Наименование
- * @param {integer} pSequence - Очередность
+ * @brief Update an existing state.
+ * @param {uuid} pId - State identifier
+ * @param {uuid} pClass - New class (NULL keeps existing)
+ * @param {uuid} pType - New state type (NULL keeps existing)
+ * @param {text} pCode - New code (NULL keeps existing)
+ * @param {text} pLabel - New label (NULL keeps existing)
+ * @param {integer} pSequence - New display order (NULL keeps existing)
  * @return {void}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.update_state (
   pId         uuid,
@@ -650,7 +724,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.set_state ---------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Upsert a state: create if pId is NULL, update otherwise.
+ * @param {uuid} pId - State identifier (NULL to create)
+ * @param {uuid} pClass - Class this state belongs to
+ * @param {uuid} pType - State type
+ * @param {text} pCode - State code
+ * @param {text} pLabel - Display label
+ * @param {integer} pSequence - Display order
+ * @return {SETOF api.state} - The created or updated state record
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.set_state (
   pId           uuid,
   pClass        uuid DEFAULT null,
@@ -677,9 +761,10 @@ $$ LANGUAGE plpgsql
 -- api.delete_state ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Удаляет состояние.
- * @param {uuid} pId - Идентификатор состояния
+ * @brief Delete a state and its dependent transitions and methods.
+ * @param {uuid} pId - State identifier
  * @return {void}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.delete_state (
   pId         uuid
@@ -696,9 +781,10 @@ $$ LANGUAGE plpgsql
 -- api.get_state ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает состояние.
- * @param {uuid} pId - Идентификатор состояния
- * @return {SETOF api.state} - Состояние
+ * @brief Fetch a single state by its identifier.
+ * @param {uuid} pId - State identifier
+ * @return {SETOF api.state} - State record
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_state (
   pId       uuid
@@ -713,13 +799,14 @@ $$ LANGUAGE SQL
 -- api.list_state --------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список состояний.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
+ * @brief List states with optional search, filter, pagination, and sorting.
+ * @param {jsonb} pSearch - Search conditions
+ * @param {jsonb} pFilter - Column-value filter
+ * @param {integer} pLimit - Maximum number of rows to return
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Columns to sort by
  * @return {SETOF api.state}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_state (
   pSearch   jsonb DEFAULT null,
@@ -750,9 +837,10 @@ GRANT SELECT ON api.action TO administrator;
 -- api.get_action --------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает действие.
- * @param {uuid} pId - Идентификатор действия
- * @return {SETOF api.action} - Запись
+ * @brief Fetch a single action by its identifier.
+ * @param {uuid} pId - Action identifier
+ * @return {SETOF api.action} - Action record
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_action (
   pId         uuid
@@ -767,13 +855,14 @@ $$ LANGUAGE SQL
 -- api.list_action -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список действий.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
+ * @brief List actions with optional search, filter, pagination, and sorting.
+ * @param {jsonb} pSearch - Search conditions
+ * @param {jsonb} pFilter - Column-value filter
+ * @param {integer} pLimit - Maximum number of rows to return
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Columns to sort by
  * @return {SETOF api.action}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_action (
   pSearch   jsonb DEFAULT null,
@@ -801,7 +890,13 @@ AS
 GRANT SELECT ON api.method TO administrator;
 
 --------------------------------------------------------------------------------
-
+/**
+ * @brief List methods for a class and state, including inherited methods from the class hierarchy.
+ * @param {uuid} pClass - Class identifier
+ * @param {uuid} pState - State to filter by (NULL = stateless methods)
+ * @return {SETOF api.method} - Method records ordered by state code and sequence
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.method (
   pClass      uuid,
   pState      uuid DEFAULT null
@@ -822,16 +917,17 @@ $$ LANGUAGE SQL
 -- api.add_method --------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Создаёт метод (операцию).
- * @param {uuid} pParent - Идентификатор родителя (для создания вложенных методов, для построения меню)
- * @param {uuid} pClass - Идентификатор класса: api.class
- * @param {uuid} pState - Идентификатор состояния: api.state
- * @param {uuid} pAction - Идентификатор действия: api.action
- * @param {text} pCode - Код
- * @param {text} pLabel - Наименование
- * @param {integer} pSequence - Очередность
- * @param {boolean} pVisible - Видимый: Да/Нет
- * @return {uuid}
+ * @brief Create a new method binding a class, state, and action.
+ * @param {uuid} pParent - Parent method for nested hierarchy (optional)
+ * @param {uuid} pClass - Class this method belongs to
+ * @param {uuid} pState - State in which this method is available
+ * @param {uuid} pAction - Action this method performs
+ * @param {text} pCode - Method code
+ * @param {text} pLabel - Display label
+ * @param {integer} pSequence - Display order
+ * @param {boolean} pVisible - Whether visible in the UI
+ * @return {uuid} - Identifier of the newly created method
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.add_method (
   pParent       uuid,
@@ -855,17 +951,18 @@ $$ LANGUAGE plpgsql
 -- api.update_method -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Обновляет метод (операцию).
- * @param {uuid} pId - Идентификатор метода
- * @param {uuid} pParent - Идентификатор родителя (для создания вложенных методов, для построения меню)
- * @param {uuid} pClass - Идентификатор класса: api.class
- * @param {uuid} pState - Идентификатор состояния: api.state
- * @param {uuid} pAction - Идентификатор действия: api.action
- * @param {text} pCode - Код
- * @param {text} pLabel - Наименование
- * @param {integer} pSequence - Очередность
- * @param {boolean} pVisible - Видимый: Да/Нет
- * @return {record}
+ * @brief Update an existing method.
+ * @param {uuid} pId - Method identifier
+ * @param {uuid} pParent - New parent method (NULL keeps existing)
+ * @param {uuid} pClass - New class (NULL keeps existing)
+ * @param {uuid} pState - New state (NULL keeps existing)
+ * @param {uuid} pAction - New action (NULL keeps existing)
+ * @param {text} pCode - New code (NULL keeps existing)
+ * @param {text} pLabel - New label (NULL keeps existing)
+ * @param {integer} pSequence - New display order (NULL keeps existing)
+ * @param {boolean} pVisible - New visibility flag (NULL keeps existing)
+ * @return {void}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.update_method (
   pId           uuid,
@@ -889,7 +986,20 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.set_method --------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Upsert a method: create if pId is NULL, update otherwise.
+ * @param {uuid} pId - Method identifier (NULL to create)
+ * @param {uuid} pParent - Parent method
+ * @param {uuid} pClass - Class
+ * @param {uuid} pState - State
+ * @param {uuid} pAction - Action
+ * @param {text} pCode - Method code
+ * @param {text} pLabel - Display label
+ * @param {integer} pSequence - Display order
+ * @param {boolean} pVisible - Visibility flag
+ * @return {SETOF api.method} - The created or updated method record
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.set_method (
   pId           uuid,
   pParent       uuid DEFAULT null,
@@ -919,9 +1029,10 @@ $$ LANGUAGE plpgsql
 -- api.delete_method -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Удаляет метод (операцию).
- * @param {uuid} pId - Идентификатор метода
+ * @brief Delete a method by its identifier.
+ * @param {uuid} pId - Method identifier
  * @return {void}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.delete_method (
   pId       uuid
@@ -938,9 +1049,10 @@ $$ LANGUAGE plpgsql
 -- api.get_method --------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает метод.
- * @param {uuid} pId - Идентификатор метода
- * @return {record} - метод
+ * @brief Fetch a single method by its identifier.
+ * @param {uuid} pId - Method identifier
+ * @return {SETOF api.method} - Method record with access flags
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_method (
   pId       uuid
@@ -955,13 +1067,14 @@ $$ LANGUAGE SQL
 -- api.list_method -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список методов.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
+ * @brief List methods with optional search, filter, pagination, and sorting.
+ * @param {jsonb} pSearch - Search conditions
+ * @param {jsonb} pFilter - Column-value filter
+ * @param {integer} pLimit - Maximum number of rows to return
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Columns to sort by
  * @return {SETOF api.method}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_method (
   pSearch   jsonb DEFAULT null,
@@ -982,11 +1095,12 @@ $$ LANGUAGE plpgsql
 -- api.get_methods -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает методы объекта.
- * @param {uuid} pClass - Идентификатор класса
- * @param {uuid} pState - Идентификатор состояния
- * @param {uuid} pAction - Идентификатор действия
- * @return {record}
+ * @brief Fetch methods available for a class in a given state.
+ * @param {uuid} pClass - Class identifier
+ * @param {uuid} pState - State identifier
+ * @param {uuid} pAction - Optional action filter
+ * @return {SETOF api.method} - Matching method records ordered by sequence
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_methods (
   pClass        uuid,
@@ -1008,10 +1122,10 @@ $$ LANGUAGE SQL
 -- api.get_object_methods ------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает методы объекта.
- * @param {uuid} pObject - Идентификатор объекта
- * @param {uuid} pAction - Идентификатор действия
- * @return {record}
+ * @brief Fetch methods available for a specific object, computing per-object access masks.
+ * @param {uuid} pObject - Object identifier
+ * @return {SETOF api.method} - Method records with object-level access applied
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_object_methods (
   pObject       uuid
@@ -1053,7 +1167,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.get_methods_json --------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Fetch methods for a class and state as a JSON array.
+ * @param {uuid} pClass - Class identifier
+ * @param {uuid} pState - State identifier
+ * @return {json} - JSON array of method records
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.get_methods_json (
   pClass        uuid,
   pState        uuid
@@ -1077,7 +1197,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.get_methods_jsonb -------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Fetch methods for a class and state as a JSONB value.
+ * @param {uuid} pClass - Class identifier
+ * @param {uuid} pState - State identifier
+ * @return {jsonb} - JSONB array of method records
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.get_methods_jsonb (
   pClass        uuid,
   pState        uuid
@@ -1094,8 +1220,11 @@ $$ LANGUAGE plpgsql
 -- api.decode_method_access ----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Расшифровка маски прав доступа для метода.
- * @return {SETOF record} - Запись
+ * @brief Decode the AMU bitmask into boolean flags for a method and user.
+ * @param {uuid} pId - Method identifier
+ * @param {uuid} pUserId - User (defaults to current session user)
+ * @return {record} - (x=execute, v=visible, e=enable)
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.decode_method_access (
   pId       uuid,
@@ -1124,8 +1253,10 @@ GRANT SELECT ON api.method_access TO administrator;
 -- api.method_access -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает участников и права доступа для метода.
- * @return {SETOF api.method_access} - Запись
+ * @brief List users/groups and their access rights for a specific method.
+ * @param {uuid} pId - Method identifier
+ * @return {SETOF api.method_access} - Members with permission bits
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.method_access (
   pId       uuid
@@ -1140,13 +1271,14 @@ $$ LANGUAGE SQL
 -- api.list_method_access ------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список участников и права доступа для метода.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
+ * @brief List method access entries with optional search, filter, pagination, and sorting.
+ * @param {jsonb} pSearch - Search conditions
+ * @param {jsonb} pFilter - Column-value filter
+ * @param {integer} pLimit - Maximum number of rows to return
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Columns to sort by
  * @return {SETOF api.method_access}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_method_access (
   pSearch   jsonb DEFAULT null,
@@ -1177,14 +1309,12 @@ GRANT SELECT ON api.transition TO administrator;
 -- api.add_transition ----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Создаёт переход в новое состояние.
- * @param {uuid} pState - Идентификатор состояния
- * @param {uuid} pMethod - Идентификатор метода (операции)
- * @param {text} pNewState - Идентификатор нового состояния
- * @out param {uuid} id - Идентификатор перехода
- * @out param {boolean} result - Результат
- * @out param {text} message - Текст ошибки
- * @return {record}
+ * @brief Create a new state transition.
+ * @param {uuid} pState - Current state (NULL for initial transitions)
+ * @param {uuid} pMethod - Method that triggers the transition
+ * @param {uuid} pNewState - Target state after the transition
+ * @return {uuid} - Identifier of the newly created transition
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.add_transition (
   pState        uuid,
@@ -1203,12 +1333,13 @@ $$ LANGUAGE plpgsql
 -- api.update_transition -------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Обновляет переход в новое состояние.
- * @param {uuid} pId - Идентификатор перехода
- * @param {uuid} pState - Идентификатор состояния
- * @param {uuid} pMethod - Идентификатор метода (операции)
- * @param {text} pNewState - Идентификатор нового состояния
+ * @brief Update an existing state transition.
+ * @param {uuid} pId - Transition identifier
+ * @param {uuid} pState - New current state (NULL keeps existing)
+ * @param {uuid} pMethod - New method (NULL keeps existing)
+ * @param {uuid} pNewState - New target state (NULL keeps existing)
  * @return {void}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.update_transition (
   pId           uuid,
@@ -1227,7 +1358,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.set_transition ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Upsert a state transition: create if pId is NULL, update otherwise.
+ * @param {uuid} pId - Transition identifier (NULL to create)
+ * @param {uuid} pState - Current state
+ * @param {uuid} pMethod - Method
+ * @param {uuid} pNewState - Target state
+ * @return {SETOF api.transition} - The created or updated transition record
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.set_transition (
   pId           uuid,
   pState        uuid DEFAULT null,
@@ -1252,9 +1391,10 @@ $$ LANGUAGE plpgsql
 -- api.delete_transition -------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Удаляет переход в новое состояние.
- * @param {uuid} pId - Идентификатор перехода
+ * @brief Delete a state transition by its identifier.
+ * @param {uuid} pId - Transition identifier
  * @return {void}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.delete_transition (
   pId       uuid
@@ -1271,8 +1411,10 @@ $$ LANGUAGE plpgsql
 -- api.get_transition ----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает переход в новое состояние.
- * @return {SETOF api.transition} - Запись
+ * @brief Fetch a single state transition by its identifier.
+ * @param {uuid} pId - Transition identifier
+ * @return {SETOF api.transition} - Transition record
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_transition (
   pId       uuid
@@ -1287,13 +1429,14 @@ $$ LANGUAGE SQL
 -- api.list_transition ---------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список переходов в новое состояние.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
+ * @brief List state transitions with optional search, filter, pagination, and sorting.
+ * @param {jsonb} pSearch - Search conditions
+ * @param {jsonb} pFilter - Column-value filter
+ * @param {integer} pLimit - Maximum number of rows to return
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Columns to sort by
  * @return {SETOF api.transition}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_transition (
   pSearch   jsonb DEFAULT null,
@@ -1324,8 +1467,10 @@ GRANT SELECT ON api.event_type TO administrator;
 -- api.get_event_type ----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает тип события.
- * @return {record} - Запись
+ * @brief Fetch a single event type by its identifier.
+ * @param {uuid} pId - Event type identifier
+ * @return {SETOF api.event_type} - Event type record
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_event_type (
   pId       uuid
@@ -1348,15 +1493,16 @@ GRANT SELECT ON api.event TO administrator;
 -- api.add_event ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Создаёт событие.
- * @param {uuid} pClass - Идентификатор класса
- * @param {uuid} pType - Идентификатор типа
- * @param {uuid} pAction - Идентификатор действия
- * @param {text} pLabel - Наименование
- * @param {text} pText - PL/pgSQL Код
- * @param {integer} pSequence - Очередность
- * @param {boolean} pEnabled - Включен: Да/Нет
- * @return {uuid}
+ * @brief Create a new workflow event handler.
+ * @param {uuid} pClass - Class this event is bound to
+ * @param {uuid} pType - Event type (before, after, execute)
+ * @param {uuid} pAction - Action that triggers this event
+ * @param {text} pLabel - Display label
+ * @param {text} pText - PL/pgSQL code body
+ * @param {integer} pSequence - Execution order
+ * @param {boolean} pEnabled - Whether the handler is active
+ * @return {uuid} - Identifier of the newly created event
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.add_event (
   pClass        uuid,
@@ -1379,16 +1525,17 @@ $$ LANGUAGE plpgsql
 -- api.update_event ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Обновляет событие.
- * @param {uuid} pId - Идентификатор события
- * @param {uuid} pClass - Идентификатор класса
- * @param {uuid} pType - Идентификатор типа
- * @param {uuid} pAction - Идентификатор действия
- * @param {text} pLabel - Наименование
- * @param {text} pText - PL/pgSQL Код
- * @param {integer} pSequence - Очередность
- * @param {boolean} pEnabled - Включен: Да/Нет
+ * @brief Update an existing workflow event handler.
+ * @param {uuid} pId - Event identifier
+ * @param {uuid} pClass - New class (NULL keeps existing)
+ * @param {uuid} pType - New event type (NULL keeps existing)
+ * @param {uuid} pAction - New action (NULL keeps existing)
+ * @param {text} pLabel - New label (NULL keeps existing)
+ * @param {text} pText - New PL/pgSQL code body (NULL keeps existing)
+ * @param {integer} pSequence - New execution order (NULL keeps existing)
+ * @param {boolean} pEnabled - New enabled flag (NULL keeps existing)
  * @return {void}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.update_event (
   pId           uuid,
@@ -1411,7 +1558,19 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.set_event ---------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Upsert an event: create if pId is NULL, update otherwise.
+ * @param {uuid} pId - Event identifier (NULL to create)
+ * @param {uuid} pClass - Class
+ * @param {uuid} pType - Event type
+ * @param {uuid} pAction - Action
+ * @param {text} pLabel - Display label
+ * @param {text} pText - PL/pgSQL code body
+ * @param {integer} pSequence - Execution order
+ * @param {boolean} pEnabled - Whether active
+ * @return {SETOF api.event} - The created or updated event record
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION api.set_event (
   pId           uuid,
   pClass        uuid default null,
@@ -1440,9 +1599,10 @@ $$ LANGUAGE plpgsql
 -- api.delete_event ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Удаляет событие.
- * @param {uuid} pId - Идентификатор события
+ * @brief Delete a workflow event by its identifier.
+ * @param {uuid} pId - Event identifier
  * @return {void}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.delete_event (
   pId       uuid
@@ -1459,8 +1619,10 @@ $$ LANGUAGE plpgsql
 -- api.get_event ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает событыие.
- * @return {record} - Запись
+ * @brief Fetch a single event by its identifier.
+ * @param {uuid} pId - Event identifier
+ * @return {SETOF api.event} - Event record
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_event (
   pId       uuid
@@ -1475,13 +1637,14 @@ $$ LANGUAGE SQL
 -- api.list_event --------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список событий.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
+ * @brief List events with optional search, filter, pagination, and sorting.
+ * @param {jsonb} pSearch - Search conditions
+ * @param {jsonb} pFilter - Column-value filter
+ * @param {integer} pLimit - Maximum number of rows to return
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Columns to sort by
  * @return {SETOF api.event}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_event (
   pSearch   jsonb DEFAULT null,
@@ -1512,9 +1675,10 @@ GRANT SELECT ON api.priority TO administrator;
 -- api.get_priority ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает приоритет.
- * @param {uuid} pId - Идентификатор
- * @return {SETOF api.priority} - Запись
+ * @brief Fetch a single priority level by its identifier.
+ * @param {uuid} pId - Priority identifier
+ * @return {SETOF api.priority} - Priority record
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_priority (
   pId         uuid
@@ -1529,13 +1693,14 @@ $$ LANGUAGE SQL
 -- api.list_priority -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Возвращает список приоритетов.
- * @param {jsonb} pSearch - Условие: '[{"condition": "AND|OR", "field": "<поле>", "compare": "EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN", "value": "<значение>"}, ...]'
- * @param {jsonb} pFilter - Фильтр: '{"<поле>": "<значение>"}'
- * @param {integer} pLimit - Лимит по количеству строк
- * @param {integer} pOffSet - Пропустить указанное число строк
- * @param {jsonb} pOrderBy - Сортировать по указанным в массиве полям
+ * @brief List priority levels with optional search, filter, pagination, and sorting.
+ * @param {jsonb} pSearch - Search conditions
+ * @param {jsonb} pFilter - Column-value filter
+ * @param {integer} pLimit - Maximum number of rows to return
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Columns to sort by
  * @return {SETOF api.priority}
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_priority (
   pSearch   jsonb DEFAULT null,

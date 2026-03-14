@@ -2,10 +2,14 @@
 -- REST WORKFLOW ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * Запрос данных в формате REST JSON API (Документооборот).
- * @param {text} pPath - Путь
- * @param {jsonb} pPayload - JSON
- * @return {SETOF json} - Записи в JSON
+ * @brief Dispatch a REST JSON API request for the workflow module.
+ * @param {text} pPath - REST route path (e.g. "/workflow/entity/count")
+ * @param {jsonb} pPayload - Request payload with search/filter/pagination parameters
+ * @return {SETOF json} - Result rows as JSON objects
+ * @throws RouteIsEmpty - When pPath is NULL
+ * @throws LoginFailed - When there is no active session
+ * @throws AccessDenied - When the caller is not an administrator
+ * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION rest.workflow (
   pPath       text,

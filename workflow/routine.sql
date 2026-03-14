@@ -1,7 +1,15 @@
 --------------------------------------------------------------------------------
 -- NewEntityText ---------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Insert a new locale-specific text row for an entity.
+ * @param {uuid} pEntity - Entity to attach the text to
+ * @param {text} pName - Localised display name
+ * @param {text} pDescription - Localised description (optional)
+ * @param {uuid} pLocale - Target locale (defaults to session locale)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION NewEntityText (
   pEntity       uuid,
   pName         text,
@@ -20,7 +28,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- EditEntityText --------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Update locale-specific text for an entity, inserting if absent.
+ * @param {uuid} pEntity - Entity whose text is being edited
+ * @param {text} pName - New display name (NULL keeps existing)
+ * @param {text} pDescription - New description (NULL keeps existing)
+ * @param {uuid} pLocale - Target locale
+ * @return {void}
+ * @see NewEntityText
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EditEntityText (
   pEntity       uuid,
   pName         text,
@@ -45,7 +62,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION AddEntity ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Create a new workflow entity with localised text for every locale.
+ * @param {text} pCode - Unique entity code
+ * @param {text} pName - Display name (replicated to all locales)
+ * @param {text} pDescription - Description (optional)
+ * @return {uuid} - Identifier of the newly created entity
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION AddEntity (
   pCode         text,
   pName         text,
@@ -74,7 +98,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION EditEntity ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Update an existing entity and its current-locale text.
+ * @param {uuid} pId - Entity to update
+ * @param {text} pCode - New code (NULL keeps existing)
+ * @param {text} pName - New display name (NULL keeps existing)
+ * @param {text} pDescription - New description (NULL keeps existing)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EditEntity (
   pId           uuid,
   pCode         text DEFAULT null,
@@ -96,7 +128,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION DeleteEntity -------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Delete an entity and cascade-remove all its classes (kernel only).
+ * @param {uuid} pId - Entity to delete
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION DeleteEntity (
   pId       uuid
 ) RETURNS   void
@@ -115,7 +152,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION GetEntity ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Look up an entity identifier by its unique code.
+ * @param {text} pCode - Entity code
+ * @return {uuid} - Entity identifier or NULL
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetEntity (
   pCode     text
 ) RETURNS   uuid
@@ -129,7 +171,14 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 -- NewClassText ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Insert a new locale-specific label for a class.
+ * @param {uuid} pClass - Class to attach the label to
+ * @param {text} pLabel - Localised display label
+ * @param {uuid} pLocale - Target locale (defaults to session locale)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION NewClassText (
   pClass    uuid,
   pLabel    text,
@@ -147,7 +196,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- EditClassText ---------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Update a locale-specific label for a class, inserting if absent.
+ * @param {uuid} pClass - Class whose label is being edited
+ * @param {text} pLabel - New label (NULL keeps existing)
+ * @param {uuid} pLocale - Target locale
+ * @return {void}
+ * @see NewClassText
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EditClassText (
   pClass    uuid,
   pLabel    text,
@@ -170,7 +227,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION AddClass -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Create a new class in the hierarchy with localised labels.
+ * @param {uuid} pParent - Parent class (NULL for root)
+ * @param {uuid} pEntity - Entity this class belongs to
+ * @param {text} pCode - Unique class code
+ * @param {text} pLabel - Display label (replicated to all locales)
+ * @param {boolean} pAbstract - True if the class is abstract
+ * @return {uuid} - Identifier of the newly created class
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION AddClass (
   pParent   uuid,
   pEntity   uuid,
@@ -208,7 +274,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION CopyClass ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Copy all events, states, methods, and transitions from one class to another.
+ * @param {uuid} pSource - Source class to copy from
+ * @param {uuid} pDestination - Destination class to copy into
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CopyClass (
   pSource       uuid,
   pDestination  uuid
@@ -287,7 +359,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION CloneClass ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Create a new child class and copy the parent's workflow definition into it.
+ * @param {uuid} pParent - Parent class to clone from
+ * @param {uuid} pEntity - Entity for the new class
+ * @param {text} pCode - Code for the new class
+ * @param {text} pLabel - Label for the new class
+ * @param {boolean} pAbstract - Whether the new class is abstract
+ * @return {uuid} - Identifier of the newly created class
+ * @see AddClass, CopyClass
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CloneClass (
   pParent   uuid,
   pEntity   uuid,
@@ -310,7 +392,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION EditClass ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Update an existing class and its current-locale label.
+ * @param {uuid} pId - Class to update
+ * @param {uuid} pParent - New parent class (NULL keeps existing)
+ * @param {uuid} pEntity - New entity (NULL keeps existing)
+ * @param {text} pCode - New code (NULL keeps existing)
+ * @param {text} pLabel - New label (NULL keeps existing)
+ * @param {boolean} pAbstract - New abstract flag (NULL keeps existing)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EditClass (
   pId       uuid,
   pParent   uuid DEFAULT null,
@@ -346,7 +438,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION DeleteClass --------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Delete a class and cascade-remove its events, methods, states, and types (kernel only).
+ * @param {uuid} pId - Class to delete
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION DeleteClass (
   pId       uuid
 ) RETURNS   void
@@ -368,7 +465,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION GetClass -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Look up a class identifier by its unique code.
+ * @param {text} pCode - Class code
+ * @return {uuid} - Class identifier or NULL
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetClass (
   pCode     text
 ) RETURNS   uuid
@@ -381,7 +483,12 @@ $$ LANGUAGE sql STABLE STRICT
 --------------------------------------------------------------------------------
 -- FUNCTION GetClassEntity -----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve the entity identifier that a class belongs to.
+ * @param {uuid} pClass - Class identifier
+ * @return {uuid} - Entity identifier
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetClassEntity (
   pClass    uuid
 ) RETURNS   uuid
@@ -394,7 +501,12 @@ $$ LANGUAGE sql STABLE STRICT
 --------------------------------------------------------------------------------
 -- FUNCTION GetClassCode -------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve the code of a class by its identifier.
+ * @param {uuid} pId - Class identifier
+ * @return {text} - Class code
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetClassCode (
   pId       uuid
 ) RETURNS   text
@@ -407,7 +519,12 @@ $$ LANGUAGE sql STABLE STRICT
 --------------------------------------------------------------------------------
 -- FUNCTION GetClassLabel ------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve the localised label of a class.
+ * @param {uuid} pClass - Class identifier
+ * @return {text} - Localised label for the current locale
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetClassLabel (
   pClass    uuid
 ) RETURNS   text
@@ -420,7 +537,12 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 -- FUNCTION GetEntityCode ------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Resolve entity code by class id or entity id (tries class lookup first).
+ * @param {uuid} pId - Class identifier or entity identifier
+ * @return {text} - Entity code
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetEntityCode (
   pId       uuid
 ) RETURNS   text
@@ -446,7 +568,12 @@ $$ LANGUAGE plpgsql STABLE STRICT
 --------------------------------------------------------------------------------
 -- FUNCTION acu ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Compute aggregated ACU permissions for a user across all classes.
+ * @param {uuid} pUserId - User or group to evaluate
+ * @return {SETOF record} - (class, deny, allow, mask) per class
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION acu (
   pUserId   uuid,
   OUT class uuid,
@@ -466,7 +593,13 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- FUNCTION acu ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Compute aggregated ACU permissions for a user on a specific class.
+ * @param {uuid} pUserId - User or group to evaluate
+ * @param {uuid} pClass - Class to check permissions for
+ * @return {SETOF record} - (class, deny, allow, mask)
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION acu (
   pUserId   uuid,
   pClass    uuid,
@@ -488,7 +621,13 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- GetClassAccessMask ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve the effective ACU bitmask for a class and user.
+ * @param {uuid} pClass - Class to check
+ * @param {uuid} pUserId - User (defaults to current session user)
+ * @return {bit} - 5-bit effective access mask {acsud}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetClassAccessMask (
   pClass    uuid,
   pUserId   uuid default current_userid()
@@ -502,7 +641,14 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- CheckClassAccess ------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Check whether a user has specific access bits on a class.
+ * @param {uuid} pClass - Class to check
+ * @param {bit} pMask - Required permission bits
+ * @param {uuid} pUserId - User (defaults to current session user)
+ * @return {boolean} - True if all requested bits are granted
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CheckClassAccess (
   pClass    uuid,
   pMask     bit,
@@ -519,7 +665,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- DecodeClassAccess -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Decode the ACU bitmask into individual boolean flags for a class.
+ * @param {uuid} pClass - Class to decode access for
+ * @param {uuid} pUserId - User (defaults to current session user)
+ * @return {record} - (a=access, c=create, s=select, u=update, d=delete)
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION DecodeClassAccess (
   pClass    uuid,
   pUserId   uuid default current_userid(),
@@ -548,7 +700,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- GetClassMembers -------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief List all users/groups that have ACU entries for a class.
+ * @param {uuid} pClass - Class to inspect
+ * @return {SETOF ClassMembers} - Users/groups with their permission bits
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetClassMembers (
   pClass    uuid
 ) RETURNS   SETOF ClassMembers
@@ -561,15 +718,17 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- chmodc ----------------------------------------------------------------------
 --------------------------------------------------------------------------------
-/*
- * Устанавливает битовую маску доступа для класса и пользователя.
- * @param {uuid} pClass - Идентификатор класса
- * @param {bit} pMask - Маска доступа. Десять бит (d:{acsud}a:{acsud}) где: d - запрещающие биты; a - разрешающие биты: {a - access; c - create; s - select, u - update, d - delete}
- * @param {uuid} pUserId - Идентификатор пользователя/группы
- * @param {boolean} pRecursive - Рекурсивно установить права для всех нижестоящих классов.
- * @param {boolean} pObjectSet - Установить права на объектах (документах) принадлежащих указанному классу.
+/**
+ * @brief Set the access bitmask for a class and user, optionally recursing into child classes and objects.
+ * @param {uuid} pClass - Class to modify permissions for
+ * @param {bit} pMask - 10-bit mask (deny:{acsud} allow:{acsud}); NULL removes the entry
+ * @param {uuid} pUserId - User or group (defaults to current session user)
+ * @param {boolean} pRecursive - Recursively apply to all child classes
+ * @param {boolean} pObjectSet - Also apply permissions to objects owned by this class
  * @return {void}
-*/
+ * @throws AccessDenied - When the caller is not an administrator
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION chmodc (
   pClass        uuid,
   pMask         bit,
@@ -645,7 +804,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- NewTypeText -----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Insert a new locale-specific text row for an object type.
+ * @param {uuid} pType - Type to attach the text to
+ * @param {text} pName - Localised display name
+ * @param {text} pDescription - Localised description (optional)
+ * @param {uuid} pLocale - Target locale (defaults to session locale)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION NewTypeText (
   pType         uuid,
   pName         text,
@@ -664,7 +831,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- EditTypeText ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Update locale-specific text for an object type, inserting if absent.
+ * @param {uuid} pType - Type whose text is being edited
+ * @param {text} pName - New display name (NULL keeps existing)
+ * @param {text} pDescription - New description (NULL keeps existing)
+ * @param {uuid} pLocale - Target locale
+ * @return {void}
+ * @see NewTypeText
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EditTypeText (
   pType         uuid,
   pName         text,
@@ -689,7 +865,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION AddType ------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Create a new object type under a class with localised text for every locale.
+ * @param {uuid} pClass - Class this type belongs to
+ * @param {text} pCode - Unique type code within the class
+ * @param {text} pName - Display name (replicated to all locales)
+ * @param {text} pDescription - Description (optional)
+ * @param {uuid} pId - Pre-assigned identifier (optional, auto-generated if NULL)
+ * @return {uuid} - Identifier of the newly created type
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION AddType (
   pClass        uuid,
   pCode         text,
@@ -720,7 +905,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION EditType -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Update an existing object type and its current-locale text.
+ * @param {uuid} pId - Type to update
+ * @param {uuid} pClass - New class (NULL keeps existing)
+ * @param {text} pCode - New code (NULL keeps existing)
+ * @param {text} pName - New display name (NULL keeps existing)
+ * @param {text} pDescription - New description (NULL keeps existing)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EditType (
   pId           uuid,
   pClass        uuid DEFAULT null,
@@ -745,7 +939,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION DeleteType ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Delete an object type by its identifier.
+ * @param {uuid} pId - Type to delete
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION DeleteType (
   pId        uuid
 ) RETURNS    void
@@ -760,7 +959,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION GetType ------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Look up a type identifier by class and code.
+ * @param {uuid} pClass - Class the type belongs to
+ * @param {text} pCode - Type code
+ * @return {uuid} - Type identifier or NULL
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetType (
   pClass    uuid,
   pCode     text
@@ -774,7 +979,13 @@ $$ LANGUAGE sql STABLE STRICT
 --------------------------------------------------------------------------------
 -- FUNCTION GetType ------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Look up a type identifier by code, deriving the class from the code suffix.
+ * @param {text} pCode - Full type code (e.g. "client.reference")
+ * @param {text} pClass - Optional explicit class code override
+ * @return {uuid} - Type identifier or NULL
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetType (
   pCode     text,
   pClass    text DEFAULT null
@@ -790,7 +1001,15 @@ $$ LANGUAGE plpgsql STABLE
 --------------------------------------------------------------------------------
 -- FUNCTION SetType ------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Upsert an object type: create if absent, update if exists.
+ * @param {uuid} pClass - Class the type belongs to
+ * @param {text} pCode - Type code
+ * @param {text} pName - Display name
+ * @param {text} pDescription - Description (optional)
+ * @return {uuid} - Type identifier (existing or newly created)
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION SetType (
   pClass         uuid,
   pCode          text,
@@ -818,7 +1037,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION GetTypeCode --------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve the code of an object type by its identifier.
+ * @param {uuid} pId - Type identifier
+ * @return {text} - Type code
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetTypeCode (
   pId        uuid
 ) RETURNS    text
@@ -831,7 +1055,13 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 -- FUNCTION GetTypeName --------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve the localised name of an object type.
+ * @param {uuid} pId - Type identifier
+ * @param {uuid} pLocale - Locale (defaults to session locale)
+ * @return {text} - Localised type name
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetTypeName (
   pId        uuid,
   pLocale    uuid DEFAULT current_locale()
@@ -845,7 +1075,12 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 -- GetTypeCodes ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief List all type codes defined for a class as an array.
+ * @param {uuid} pClass - Class to inspect
+ * @return {text[]} - Array of type codes sorted alphabetically
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetTypeCodes (
   pClass    uuid
 ) RETURNS   text[]
@@ -872,7 +1107,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- CodeToType ------------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Resolve a type code or UUID string into a type identifier, validating against the entity.
+ * @param {text} pCode - Type code or UUID string
+ * @param {text} pEntity - Entity code to validate against
+ * @return {uuid} - Resolved type identifier
+ * @throws IncorrectCode - When the code is not found among valid types for the entity
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CodeToType (
   pCode     text,
   pEntity   text
@@ -908,7 +1150,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION GetStateType -------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Look up a state type identifier by its code.
+ * @param {text} pCode - State type code (e.g. "created", "enabled")
+ * @return {uuid} - State type identifier or NULL
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetStateType (
   pCode      text
 ) RETURNS    uuid
@@ -921,7 +1168,12 @@ $$ LANGUAGE sql STABLE STRICT
 --------------------------------------------------------------------------------
 -- FUNCTION GetStateTypeCode ---------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve the code of a state type by its identifier.
+ * @param {uuid} pId - State type identifier
+ * @return {text} - State type code
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetStateTypeCode (
   pId        uuid
 ) RETURNS    text
@@ -934,7 +1186,14 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 -- NewStateText ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Insert a new locale-specific label for a state.
+ * @param {uuid} pState - State to attach the label to
+ * @param {text} pLabel - Localised display label
+ * @param {uuid} pLocale - Target locale (defaults to session locale)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION NewStateText (
   pState    uuid,
   pLabel    text,
@@ -952,7 +1211,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- EditStateText ---------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Update a locale-specific label for a state, inserting if absent.
+ * @param {uuid} pState - State whose label is being edited
+ * @param {text} pLabel - New label (NULL keeps existing)
+ * @param {uuid} pLocale - Target locale
+ * @return {void}
+ * @see NewStateText
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EditStateText (
   pState        uuid,
   pLabel        text,
@@ -975,7 +1242,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION AddState -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Create a new state for a class with localised labels for every locale.
+ * @param {uuid} pClass - Class this state belongs to
+ * @param {uuid} pType - State type (created, enabled, etc.)
+ * @param {text} pCode - Unique state code within the class
+ * @param {text} pLabel - Display label (replicated to all locales)
+ * @param {integer} pSequence - Display order (auto-incremented if NULL)
+ * @return {uuid} - Identifier of the newly created state
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION AddState (
   pClass     uuid,
   pType      uuid,
@@ -1013,7 +1289,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION EditState ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Update an existing state and its current-locale label.
+ * @param {uuid} pId - State to update
+ * @param {uuid} pClass - New class (NULL keeps existing)
+ * @param {uuid} pType - New state type (NULL keeps existing)
+ * @param {text} pCode - New code (NULL keeps existing)
+ * @param {text} pLabel - New label (NULL keeps existing)
+ * @param {integer} pSequence - New display order (NULL keeps existing)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EditState (
   pId        uuid,
   pClass     uuid DEFAULT null,
@@ -1040,7 +1326,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION SetState -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Upsert a state: create if absent, update if exists.
+ * @param {uuid} pId - State identifier (NULL to look up by class+code)
+ * @param {uuid} pClass - Class the state belongs to
+ * @param {uuid} pType - State type
+ * @param {text} pCode - State code
+ * @param {text} pLabel - Display label
+ * @param {integer} pSequence - Display order
+ * @return {uuid} - State identifier (existing or newly created)
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION SetState (
   pId           uuid,
   pClass        uuid DEFAULT null,
@@ -1070,7 +1366,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION DeleteState --------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Delete a state and cascade-remove its transitions and methods.
+ * @param {uuid} pId - State to delete
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION DeleteState (
   pId        uuid
 ) RETURNS    void
@@ -1088,7 +1389,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION GetState -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Find a state by class and code, walking up the class hierarchy.
+ * @param {uuid} pClass - Class to start searching from
+ * @param {text} pCode - State code
+ * @return {uuid} - State identifier (deepest match) or NULL
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetState (
   pClass    uuid,
   pCode     text
@@ -1117,7 +1424,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION GetState -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Find a state by class and state type, walking up the class hierarchy.
+ * @param {uuid} pClass - Class to start searching from
+ * @param {uuid} pType - State type to match
+ * @return {uuid} - State identifier (deepest match) or NULL
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetState (
   pClass    uuid,
   pType     uuid
@@ -1146,7 +1459,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION GetStateTypeByState ------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve the state type identifier for a given state.
+ * @param {uuid} pState - State identifier
+ * @return {uuid} - State type identifier
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetStateTypeByState (
   pState    uuid
 ) RETURNS   uuid
@@ -1159,7 +1477,12 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 -- FUNCTION GetStateTypeCodeByState --------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve the state type code for a given state.
+ * @param {uuid} pState - State identifier
+ * @return {text} - State type code (e.g. "created", "enabled")
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetStateTypeCodeByState (
   pState    uuid
 ) RETURNS   text
@@ -1172,7 +1495,12 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 -- FUNCTION GetStateCode -------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve the code of a state by its identifier.
+ * @param {uuid} pState - State identifier
+ * @return {text} - State code
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetStateCode (
   pState    uuid
 ) RETURNS   text
@@ -1185,7 +1513,12 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 -- FUNCTION GetStateLabel ------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve the localised label of a state.
+ * @param {uuid} pState - State identifier
+ * @return {text} - Localised label for the current locale
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetStateLabel (
   pState    uuid
 ) RETURNS   text
@@ -1198,7 +1531,15 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 -- NewActionText ---------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Insert a new locale-specific text row for an action.
+ * @param {uuid} pAction - Action to attach the text to
+ * @param {text} pName - Localised display name
+ * @param {text} pDescription - Localised description (optional)
+ * @param {uuid} pLocale - Target locale (defaults to session locale)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION NewActionText (
   pAction       uuid,
   pName         text,
@@ -1217,7 +1558,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- EditActionText --------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Update locale-specific text for an action, inserting if absent.
+ * @param {uuid} pAction - Action whose text is being edited
+ * @param {text} pName - New display name (NULL keeps existing)
+ * @param {text} pDescription - New description (NULL keeps existing)
+ * @param {uuid} pLocale - Target locale
+ * @return {void}
+ * @see NewActionText
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EditActionText (
   pAction       uuid,
   pName         text,
@@ -1242,7 +1592,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION AddAction ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Create a new workflow action with localised text for every locale.
+ * @param {uuid} pId - Pre-assigned action identifier
+ * @param {text} pCode - Unique action code
+ * @param {text} pName - Display name (replicated to all locales)
+ * @param {text} pDescription - Description (optional)
+ * @return {uuid} - Identifier of the newly created action
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION AddAction (
   pId            uuid,
   pCode          text,
@@ -1272,7 +1630,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION EditAction ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Update an existing action and its current-locale text.
+ * @param {uuid} pId - Action to update
+ * @param {text} pCode - New code (NULL keeps existing)
+ * @param {text} pName - New display name (NULL keeps existing)
+ * @param {text} pDescription - New description (NULL keeps existing)
+ * @return {boolean} - True if the action was found and updated
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EditAction (
   pId            uuid,
   pCode          text DEFAULT null,
@@ -1299,7 +1665,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION DeleteAction -------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Delete an action by its identifier.
+ * @param {uuid} pId - Action to delete
+ * @return {boolean} - True if the action was found and deleted
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION DeleteAction (
   pId       uuid
 ) RETURNS   boolean
@@ -1315,7 +1686,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION SetAction ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Upsert an action: create if absent, update if exists.
+ * @param {uuid} pId - Action identifier (NULL to look up by code)
+ * @param {text} pCode - Action code
+ * @param {text} pName - Display name
+ * @param {text} pDescription - Description (optional)
+ * @return {uuid} - Action identifier (existing or newly created)
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION SetAction (
   pId            uuid,
   pCode          text,
@@ -1343,7 +1722,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION GetAction ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Look up an action identifier by its unique code.
+ * @param {text} pCode - Action code
+ * @return {uuid} - Action identifier or NULL
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetAction (
   pCode       text
 ) RETURNS     uuid
@@ -1357,7 +1741,12 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 -- FUNCTION GetActionCode ------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve the code of an action by its identifier.
+ * @param {uuid} pId - Action identifier
+ * @return {text} - Action code
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetActionCode (
   pId        uuid
 ) RETURNS    text
@@ -1371,7 +1760,12 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 -- FUNCTION GetActionName ------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve the localised name of an action.
+ * @param {uuid} pId - Action identifier
+ * @return {text} - Localised action name for the current locale
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetActionName (
   pId       uuid
 ) RETURNS   text
@@ -1384,7 +1778,14 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 -- NewMethodText ---------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Insert a new locale-specific label for a method.
+ * @param {uuid} pMethod - Method to attach the label to
+ * @param {text} pLabel - Localised display label
+ * @param {uuid} pLocale - Target locale (defaults to session locale)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION NewMethodText (
   pMethod   uuid,
   pLabel    text,
@@ -1402,7 +1803,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- EditMethodText --------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Update a locale-specific label for a method, inserting if absent.
+ * @param {uuid} pMethod - Method whose label is being edited
+ * @param {text} pLabel - New label (NULL keeps existing)
+ * @param {uuid} pLocale - Target locale
+ * @return {void}
+ * @see NewMethodText
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EditMethodText (
   pMethod       uuid,
   pLabel        text,
@@ -1425,7 +1834,19 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION AddMethod ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Create a new method binding a class, state, and action with localised labels.
+ * @param {uuid} pParent - Parent method for nested/sub-menu hierarchy (optional)
+ * @param {uuid} pClass - Class this method belongs to
+ * @param {uuid} pState - State in which this method is available (NULL = any)
+ * @param {uuid} pAction - Action this method performs
+ * @param {text} pCode - Method code (auto-generated from state:action if NULL)
+ * @param {text} pLabel - Display label (defaults to action name if NULL)
+ * @param {integer} pSequence - Display order (auto-incremented if NULL)
+ * @param {boolean} pVisible - Whether this method is visible in the UI
+ * @return {uuid} - Identifier of the newly created method
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION AddMethod (
   pParent   uuid,
   pClass    uuid,
@@ -1468,7 +1889,20 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION EditMethod ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Update an existing method and its current-locale label.
+ * @param {uuid} pId - Method to update
+ * @param {uuid} pParent - New parent method (NULL keeps existing)
+ * @param {uuid} pClass - New class (NULL keeps existing)
+ * @param {uuid} pState - New state (NULL keeps existing)
+ * @param {uuid} pAction - New action (NULL keeps existing)
+ * @param {text} pCode - New code (NULL keeps existing)
+ * @param {text} pLabel - New label (NULL keeps existing)
+ * @param {integer} pSequence - New display order (NULL keeps existing)
+ * @param {boolean} pVisible - New visibility flag (NULL keeps existing)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EditMethod (
   pId       uuid,
   pParent   uuid DEFAULT null,
@@ -1501,7 +1935,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION DeleteMethod -------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Delete a method and its related stack entries.
+ * @param {uuid} pId - Method to delete
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION DeleteMethod (
   pId       uuid
 ) RETURNS   void
@@ -1517,7 +1956,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION GetMethod ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Find a method by class, action, and state, walking up the non-abstract class hierarchy.
+ * @param {uuid} pClass - Class to start searching from
+ * @param {uuid} pAction - Action to match
+ * @param {uuid} pState - State to match (NULL = stateless methods)
+ * @return {uuid} - Method identifier (deepest match) or NULL
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetMethod (
   pClass    uuid,
   pAction   uuid,
@@ -1547,7 +1993,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION IsVisibleMethod ----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Check whether a method is visible in the UI.
+ * @param {uuid} pId - Method identifier
+ * @return {bool} - True if visible
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION IsVisibleMethod (
   pId       uuid
 ) RETURNS   bool
@@ -1560,7 +2011,13 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 -- FUNCTION IsHiddenMethod -----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Check whether a method is hidden from the UI.
+ * @param {uuid} pId - Method identifier
+ * @return {bool} - True if hidden (not visible)
+ * @see IsVisibleMethod
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION IsHiddenMethod (
   pId       uuid
 ) RETURNS   bool
@@ -1575,7 +2032,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION amu ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Compute aggregated AMU permissions for a user across all methods.
+ * @param {uuid} pUserId - User or group to evaluate
+ * @return {SETOF record} - (method, deny, allow, mask) per method
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION amu (
   pUserId       uuid,
   OUT method    uuid,
@@ -1595,7 +2057,13 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- FUNCTION amu ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Compute aggregated AMU permissions for a user on a specific method.
+ * @param {uuid} pUserId - User or group to evaluate
+ * @param {uuid} pMethod - Method to check permissions for
+ * @return {SETOF record} - (method, deny, allow, mask)
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION amu (
   pUserId       uuid,
   pMethod       uuid,
@@ -1617,7 +2085,13 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- GetMethodAccessMask ---------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve the effective AMU bitmask for a method and user.
+ * @param {uuid} pMethod - Method to check
+ * @param {uuid} pUserId - User (defaults to current session user)
+ * @return {bit} - 3-bit effective access mask {xve}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetMethodAccessMask (
   pMethod    uuid,
   pUserId    uuid default current_userid()
@@ -1631,7 +2105,14 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- CheckMethodAccess -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Check whether a user has specific access bits on a method.
+ * @param {uuid} pMethod - Method to check
+ * @param {bit} pMask - Required permission bits
+ * @param {uuid} pUserId - User (defaults to current session user)
+ * @return {boolean} - True if all requested bits are granted
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION CheckMethodAccess (
   pMethod    uuid,
   pMask      bit,
@@ -1648,7 +2129,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- DecodeMethodAccess ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Decode the AMU bitmask into individual boolean flags for a method.
+ * @param {uuid} pMethod - Method to decode access for
+ * @param {uuid} pUserId - User (defaults to current session user)
+ * @return {record} - (x=execute, v=visible, e=enable)
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION DecodeMethodAccess (
   pMethod    uuid,
   pUserId    uuid default current_userid(),
@@ -1673,7 +2160,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- GetMethodMembers ------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief List all users/groups that have AMU entries for a method.
+ * @param {uuid} pMethod - Method to inspect
+ * @return {SETOF MethodMembers} - Users/groups with their permission bits
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetMethodMembers (
   pMethod    uuid
 ) RETURNS    SETOF MethodMembers
@@ -1686,13 +2178,15 @@ $$ LANGUAGE SQL
 --------------------------------------------------------------------------------
 -- chmodm ----------------------------------------------------------------------
 --------------------------------------------------------------------------------
-/*
- * Устанавливает битовую маску доступа для метода и пользователя.
- * @param {uuid} pMethod - Идентификатор метода
- * @param {bit} pMask - Маска доступа. Шесть бит (d:{xve}a:{xve}) где: d - запрещающие биты; a - разрешающие биты: {x - execute, v - visible, e - enable}
- * @param {uuid} pUserId - Идентификатор пользователя/группы
+/**
+ * @brief Set the access bitmask for a method and user.
+ * @param {uuid} pMethod - Method to modify permissions for
+ * @param {bit} pMask - 6-bit mask (deny:{xve} allow:{xve}); NULL removes the entry
+ * @param {uuid} pUserId - User or group (defaults to current session user)
  * @return {void}
-*/
+ * @throws AccessDenied - When the caller is not an administrator
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION chmodm (
   pMethod    uuid,
   pMask      bit,
@@ -1732,7 +2226,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION AddTransition ------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Create a new state transition record.
+ * @param {uuid} pState - Current state (NULL for initial transitions)
+ * @param {uuid} pMethod - Method that triggers the transition
+ * @param {uuid} pNewState - Target state after the transition
+ * @return {uuid} - Identifier of the newly created transition
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION AddTransition (
   pState     uuid,
   pMethod    uuid,
@@ -1755,7 +2256,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION EditTransition -----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Update an existing state transition.
+ * @param {uuid} pId - Transition to update
+ * @param {uuid} pState - New current state (NULL keeps existing)
+ * @param {uuid} pMethod - New method (NULL keeps existing)
+ * @param {uuid} pNewState - New target state (NULL keeps existing)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EditTransition (
   pId       uuid,
   pState    uuid default null,
@@ -1777,7 +2286,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION DeleteTransition ---------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Delete a state transition by its identifier.
+ * @param {uuid} pId - Transition to delete
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION DeleteTransition (
   pId       uuid
 ) RETURNS   void
@@ -1792,7 +2306,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION GetEventType -------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Look up an event type identifier by its code.
+ * @param {text} pCode - Event type code (e.g. "before", "after", "execute")
+ * @return {uuid} - Event type identifier or NULL
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetEventType (
   pCode     text
 ) RETURNS   uuid
@@ -1811,7 +2330,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- NewEventText ----------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Insert a new locale-specific label for an event.
+ * @param {uuid} pEvent - Event to attach the label to
+ * @param {text} pLabel - Localised display label
+ * @param {uuid} pLocale - Target locale (defaults to session locale)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION NewEventText (
   pEvent    uuid,
   pLabel    text,
@@ -1829,7 +2355,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- EditEventText ---------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Update a locale-specific label for an event, inserting if absent.
+ * @param {uuid} pEvent - Event whose label is being edited
+ * @param {text} pLabel - New label (NULL keeps existing)
+ * @param {uuid} pLocale - Target locale
+ * @return {void}
+ * @see NewEventText
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EditEventText (
   pEvent    uuid,
   pLabel    text,
@@ -1852,7 +2386,18 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION AddEvent -----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Create a new workflow event handler for a class and action.
+ * @param {uuid} pClass - Class this event is bound to
+ * @param {uuid} pType - Event type (before, after, execute)
+ * @param {uuid} pAction - Action that triggers this event
+ * @param {text} pLabel - Display label (replicated to all locales)
+ * @param {text} pText - PL/pgSQL code body to execute (optional)
+ * @param {integer} pSequence - Execution order (auto-incremented if NULL)
+ * @param {boolean} pEnabled - Whether the handler is active
+ * @return {uuid} - Identifier of the newly created event
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION AddEvent (
   pClass    uuid,
   pType     uuid,
@@ -1889,7 +2434,19 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION EditEvent ----------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Update an existing workflow event handler.
+ * @param {uuid} pId - Event to update
+ * @param {uuid} pClass - New class (NULL keeps existing)
+ * @param {uuid} pType - New event type (NULL keeps existing)
+ * @param {uuid} pAction - New action (NULL keeps existing)
+ * @param {text} pLabel - New label (NULL keeps existing)
+ * @param {text} pText - New PL/pgSQL code body (NULL keeps existing)
+ * @param {integer} pSequence - New execution order (NULL keeps existing)
+ * @param {boolean} pEnabled - New enabled flag (NULL keeps existing)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EditEvent (
   pId       uuid,
   pClass    uuid default null,
@@ -1920,7 +2477,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION DeleteEvent --------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Delete a workflow event by its identifier.
+ * @param {uuid} pId - Event to delete
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION DeleteEvent (
   pId       uuid
 ) RETURNS   void
@@ -1935,7 +2497,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- NewPriorityText -------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Insert a new locale-specific text row for a priority level.
+ * @param {uuid} pPriority - Priority to attach the text to
+ * @param {text} pName - Localised display name
+ * @param {text} pDescription - Localised description (optional)
+ * @param {uuid} pLocale - Target locale (defaults to session locale)
+ * @return {void}
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION NewPriorityText (
   pPriority     uuid,
   pName         text,
@@ -1954,7 +2524,16 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- EditPriorityText ------------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Update locale-specific text for a priority, inserting if absent.
+ * @param {uuid} pPriority - Priority whose text is being edited
+ * @param {text} pName - New display name (NULL keeps existing)
+ * @param {text} pDescription - New description (NULL keeps existing)
+ * @param {uuid} pLocale - Target locale
+ * @return {void}
+ * @see NewPriorityText
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EditPriorityText (
   pPriority     uuid,
   pName         text,
@@ -1979,7 +2558,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION AddPriority --------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Create a new priority level with localised text for every locale.
+ * @param {uuid} pId - Pre-assigned priority identifier
+ * @param {text} pCode - Unique priority code
+ * @param {text} pName - Display name (replicated to all locales)
+ * @param {text} pDescription - Description (optional)
+ * @return {uuid} - Identifier of the newly created priority
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION AddPriority (
   pId           uuid,
   pCode         text,
@@ -2009,7 +2596,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION EditPriority -------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Update an existing priority level and its current-locale text.
+ * @param {uuid} pId - Priority to update
+ * @param {text} pCode - New code (NULL keeps existing)
+ * @param {text} pName - New display name (NULL keeps existing)
+ * @param {text} pDescription - New description (NULL keeps existing)
+ * @return {boolean} - True if the priority was found and updated
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION EditPriority (
   pId           uuid,
   pCode         text DEFAULT null,
@@ -2036,7 +2631,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION DeletePriority -----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Delete a priority level by its identifier.
+ * @param {uuid} pId - Priority to delete
+ * @return {boolean} - True if the priority was found and deleted
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION DeletePriority (
   pId        uuid
 ) RETURNS    boolean
@@ -2052,7 +2652,15 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION SetPriority --------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Upsert a priority level: create if absent, update if exists.
+ * @param {uuid} pId - Priority identifier (NULL to look up by code)
+ * @param {text} pCode - Priority code
+ * @param {text} pName - Display name
+ * @param {text} pDescription - Description (optional)
+ * @return {uuid} - Priority identifier (existing or newly created)
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION SetPriority (
   pId            uuid,
   pCode          text,
@@ -2080,7 +2688,12 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- FUNCTION GetPriority --------------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Look up a priority identifier by its unique code.
+ * @param {text} pCode - Priority code
+ * @return {uuid} - Priority identifier or NULL
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetPriority (
   pCode       text
 ) RETURNS     uuid
@@ -2093,7 +2706,12 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 -- FUNCTION GetPriorityCode ----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve the code of a priority level by its identifier.
+ * @param {uuid} pId - Priority identifier
+ * @return {text} - Priority code
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetPriorityCode (
   pId        uuid
 ) RETURNS    text
@@ -2106,7 +2724,12 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 -- FUNCTION GetPriorityName ----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Retrieve the localised name of a priority level.
+ * @param {uuid} pId - Priority identifier
+ * @return {text} - Localised priority name for the current locale
+ * @since 1.0.0
+ */
 CREATE OR REPLACE FUNCTION GetPriorityName (
   pId       uuid
 ) RETURNS   text
