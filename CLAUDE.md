@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What is this
 
-**db-platform** is a PL/pgSQL framework (25 modules, 100+ tables, 800+ functions) that turns PostgreSQL into a full-featured application server: REST API, OAuth2, workflow engine, entity system, file storage, pub/sub, reports. Version: see `VERSION` file (currently 1.2.1).
+**db-platform** is a PL/pgSQL framework (26 modules, 100+ tables, 800+ functions) that turns PostgreSQL into a full-featured application server: REST API, OAuth2, workflow engine, entity system, file storage, pub/sub, reports. Version: see `VERSION` file (currently 1.2.1).
 
 This is the **framework layer** — it lives at `sql/platform/` inside consuming projects. Application code goes into `sql/configuration/<dbname>/`. Execution order is always platform first, then configuration.
 
@@ -54,8 +54,8 @@ Connection: `PSQL` env var overrides the default `sudo -u postgres -H psql`.
 
 ### Module load order
 
-Defined in `create.psql` and `update.psql`. 25 modules in dependency order:
-kernel → oauth2 → locale → admin → http → resource → exception → registry → log → api → replication → daemon → session → current → workflow → kladr → file → entity → notice → comment → notification → verification → observer → report → reports
+Defined in `create.psql` and `update.psql`. 26 modules in dependency order:
+kernel → oauth2 → locale → admin → http → resource → exception → error → registry → log → api → replication → daemon → session → current → workflow → kladr → file → entity → notice → comment → notification → verification → observer → report → reports
 
 ### Execution pipeline (psql scripts)
 
