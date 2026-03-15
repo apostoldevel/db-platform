@@ -252,16 +252,18 @@ Dispatcher: `rest.workflow(pPath text, pPayload jsonb)`.
 ## Init / Seed Data (`InitWorkFlow()`)
 
 ### 4 State Types
-`created`, `enabled`, `disabled`, `deleted` (bilingual ru/en).
+`created`, `enabled`, `disabled`, `deleted` (6 locales: en, ru, de, fr, it, es).
 
 ### 3 Event Types
-`parent` (inherit parent class events), `event` (PL/pgSQL function call), `plpgsql` (inline code).
+`parent` (inherit parent class events), `event` (PL/pgSQL function call), `plpgsql` (inline code). 6 locales.
 
 ### 54 Actions
 `anything`, `abort`, `accept`, `add`, `alarm`, `approve`, `available`, `cancel`, `check`, `complete`, `confirm`, `create`, `delete`, `disable`, `done`, `drop`, `edit`, `enable`, `execute`, `expire`, `fail`, `faulted`, `finishing`, `heartbeat`, `invite`, `open`, `plan`, `post`, `postpone`, `preparing`, `reconfirm`, `remove`, `repeat`, `reserve`, `reserved`, `restore`, `return`, `save`, `send`, `sign`, `start`, `stop`, `submit`, `unavailable`, `update`, `reject`, `pay`, `continue`, `agree`, `close`, `activate`, `refund`, `download`, `prepare`.
 
+Each action localized to 6 languages (en base + ru/de/fr/it/es via `EditActionText`).
+
 ### 4 Priorities
-`low`, `medium`, `high`, `critical` (bilingual).
+`low`, `medium`, `high`, `critical` (6 locales).
 
 ### Helper Functions (in init.sql)
 
@@ -269,8 +271,8 @@ Dispatcher: `rest.workflow(pPath text, pPayload jsonb)`.
 |----------|---------|
 | `DefaultMethods(pClass)` | Create 10 global methods: create, open, edit, save, update, enable, disable, delete, restore, drop |
 | `DefaultTransition(pClass)` | Create transitions for global (stateless) methods |
-| `AddDefaultMethods(pClass, pNamesRU, pNamesEN)` | Full setup: DefaultMethods + 4 states + state-specific methods + all transitions |
-| `UpdateDefaultMethods(pClass, pLocale, pNames)` | Update localized labels for default methods/states |
+| `AddDefaultMethods(pClass, pNamesEN, pNamesRU)` | Full setup: DefaultMethods + 4 states + state-specific methods + all transitions (6 locales) |
+| `UpdateDefaultMethods(pClass, pLocale, pNames)` | Update localized labels for default methods/states (supports en/ru/de/fr/it/es) |
 
 ## Entity Registration Pattern
 
