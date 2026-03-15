@@ -24,48 +24,48 @@ BEGIN
   LOOP
 
     IF r.code = 'create' THEN
-      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Форма создана', 'EventFormCreate();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'Parent class events');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Form created', 'EventFormCreate();');
     END IF;
 
     IF r.code = 'open' THEN
-      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Форма открыта', 'EventFormOpen();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'Parent class events');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Form opened', 'EventFormOpen();');
     END IF;
 
     IF r.code = 'edit' THEN
-      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Форма изменена', 'EventFormEdit();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'Parent class events');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Form edited', 'EventFormEdit();');
     END IF;
 
     IF r.code = 'save' THEN
-      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Форма сохранена', 'EventFormSave();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'Parent class events');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Form saved', 'EventFormSave();');
     END IF;
 
     IF r.code = 'enable' THEN
-      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Форма доступна', 'EventFormEnable();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'Parent class events');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Form enabled', 'EventFormEnable();');
     END IF;
 
     IF r.code = 'disable' THEN
-      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Форма недоступна', 'EventFormDisable();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'Parent class events');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Form disabled', 'EventFormDisable();');
     END IF;
 
     IF r.code = 'delete' THEN
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Форма будет удалена', 'EventFormDelete();');
-      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Form will be deleted', 'EventFormDelete();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'Parent class events');
     END IF;
 
     IF r.code = 'restore' THEN
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Форма восстановлена', 'EventFormRestore();');
-      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Form restored', 'EventFormRestore();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'Parent class events');
     END IF;
 
     IF r.code = 'drop' THEN
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Форма будет уничтожена', 'EventFormDrop();');
-      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Form will be dropped', 'EventFormDrop();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'Parent class events');
     END IF;
 
   END LOOP;
@@ -88,18 +88,42 @@ DECLARE
   uClass        uuid;
 BEGIN
   -- Класс
-  uClass := AddClass(pParent, pEntity, 'form', 'Форма', false);
+  uClass := AddClass(pParent, pEntity, 'form', 'Form', false);
+  PERFORM EditClassText(uClass, 'Форма', null, GetLocale('ru'));
+  PERFORM EditClassText(uClass, 'Formular', null, GetLocale('de'));
+  PERFORM EditClassText(uClass, 'Formulaire', null, GetLocale('fr'));
+  PERFORM EditClassText(uClass, 'Modulo', null, GetLocale('it'));
+  PERFORM EditClassText(uClass, 'Formulario', null, GetLocale('es'));
 
   -- Тип
-  PERFORM AddType(uClass, 'none.form', 'Без типа', 'Без типа.');
-  PERFORM AddType(uClass, 'journal.form', 'Журнал', 'Форма журнала.');
-  PERFORM AddType(uClass, 'tracker.form', 'Суточный отчёт', 'Форма суточного отчёта.');
+  PERFORM AddType(uClass, 'none.form', 'Untyped', 'Untyped.');
+  PERFORM EditTypeText(GetType('none.form'), 'Без типа', 'Без типа.', GetLocale('ru'));
+  PERFORM EditTypeText(GetType('none.form'), 'Ohne Typ', 'Ohne Typ.', GetLocale('de'));
+  PERFORM EditTypeText(GetType('none.form'), 'Sans type', 'Sans type.', GetLocale('fr'));
+  PERFORM EditTypeText(GetType('none.form'), 'Senza tipo', 'Senza tipo.', GetLocale('it'));
+  PERFORM EditTypeText(GetType('none.form'), 'Sin tipo', 'Sin tipo.', GetLocale('es'));
+
+  PERFORM AddType(uClass, 'journal.form', 'Journal', 'Journal form.');
+  PERFORM EditTypeText(GetType('journal.form'), 'Журнал', 'Форма журнала.', GetLocale('ru'));
+  PERFORM EditTypeText(GetType('journal.form'), 'Journal', 'Journalformular.', GetLocale('de'));
+  PERFORM EditTypeText(GetType('journal.form'), 'Journal', 'Formulaire de journal.', GetLocale('fr'));
+  PERFORM EditTypeText(GetType('journal.form'), 'Registro', 'Modulo registro.', GetLocale('it'));
+  PERFORM EditTypeText(GetType('journal.form'), 'Diario', 'Formulario de diario.', GetLocale('es'));
+
+  PERFORM AddType(uClass, 'tracker.form', 'Daily report', 'Daily report form.');
+  PERFORM EditTypeText(GetType('tracker.form'), 'Суточный отчёт', 'Форма суточного отчёта.', GetLocale('ru'));
+  PERFORM EditTypeText(GetType('tracker.form'), 'Tagesbericht', 'Tagesberichtsformular.', GetLocale('de'));
+  PERFORM EditTypeText(GetType('tracker.form'), 'Rapport journalier', 'Formulaire de rapport journalier.', GetLocale('fr'));
+  PERFORM EditTypeText(GetType('tracker.form'), 'Report giornaliero', 'Modulo report giornaliero.', GetLocale('it'));
+  PERFORM EditTypeText(GetType('tracker.form'), 'Informe diario', 'Formulario de informe diario.', GetLocale('es'));
 
   -- Событие
   PERFORM AddFormEvents(uClass);
 
   -- Метод
-  PERFORM AddDefaultMethods(uClass, ARRAY['Создана', 'Открыта', 'Закрыта', 'Удалена', 'Открыть', 'Закрыть', 'Удалить']);
+  PERFORM AddDefaultMethods(uClass,
+    ARRAY['Created', 'Opened', 'Closed', 'Deleted', 'Open', 'Close', 'Delete'],
+    ARRAY['Создана', 'Открыта', 'Закрыта', 'Удалена', 'Открыть', 'Закрыть', 'Удалить']);
 
   RETURN uClass;
 END
@@ -120,7 +144,12 @@ DECLARE
   uEntity       uuid;
 BEGIN
   -- Сущность
-  uEntity := AddEntity('form', 'Форма');
+  uEntity := AddEntity('form', 'Form');
+  PERFORM EditEntityText(uEntity, 'Форма', null, GetLocale('ru'));
+  PERFORM EditEntityText(uEntity, 'Formular', null, GetLocale('de'));
+  PERFORM EditEntityText(uEntity, 'Formulaire', null, GetLocale('fr'));
+  PERFORM EditEntityText(uEntity, 'Modulo', null, GetLocale('it'));
+  PERFORM EditEntityText(uEntity, 'Formulario', null, GetLocale('es'));
 
   -- Класс
   PERFORM CreateClassForm(pParent, uEntity);
