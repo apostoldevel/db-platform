@@ -61,7 +61,7 @@ Event logging system. Stores typed events (Message/Warning/Error/Debug) with use
 | `WriteToEventLog(pType, pCode, pEvent, pText, pCategory)` | `bigint` | Write event with category |
 | `WriteToEventLog(pType, pCode, pEvent, pText, pCategory, pObject)` | `bigint` | Write event with category + object |
 | `DeleteEventLog(pId)` | `void` | Delete log entry |
-| `WriteDiagnostics(pMessage)` | `void` | Parse error message and write diagnostic entries |
+| `WriteDiagnostics(pMessage)` | `void` | Parse error message via `ParseMessage()` and write diagnostic entries (code + message fields) |
 
 ### api schema
 

@@ -75,7 +75,7 @@ REST API infrastructure: path hierarchy, endpoint registration, route dispatchin
 | Function | Returns | Purpose |
 |----------|---------|---------|
 | `ExecuteDynamicMethod(pPath, pMethod, pPayload)` | `SETOF json` | Execute endpoint definition as dynamic PL/pgSQL |
-| `api.run(pPath, pJson)` | `SETOF json` | Generic method execution |
+| `api.run(pPath, pJson)` | `SETOF json` | Generic method execution — error responses include `error` field with structured `ERR-GGG-CCC` code (since 1.2.0) |
 
 ### API Logging
 
@@ -129,7 +129,7 @@ Dispatcher: `rest.api(pPath text, pPayload jsonb)` — the **main entry point** 
 | `/class` | List classes |
 | `/priority` | List priorities |
 
-### Delegated Routes (~18 module dispatchers)
+### Delegated Routes (~19 module dispatchers)
 
 | First Segment | Dispatcher |
 |---------------|------------|
@@ -141,6 +141,7 @@ Dispatcher: `rest.api(pPath text, pPayload jsonb)` — the **main entry point** 
 | `/member/*` | `rest.member` |
 | `/admin/*` | `rest.admin` |
 | `/current/*` | `rest.current` |
+| `/error/*` | `rest.error` |
 | `/event/*` | `rest.event` |
 | `/kladr/*` | `rest.kladr` |
 | `/notification/*` | `rest.notification` |
@@ -153,10 +154,11 @@ Dispatcher: `rest.api(pPath text, pPayload jsonb)` — the **main entry point** 
 
 ## Init / Seed Data
 
-`InitAPI()` registers 18 route paths mapping first URL segments to dispatcher functions:
+`InitAPI()` registers 19 route paths mapping first URL segments to dispatcher functions:
 - `null` → `rest.api` (root)
 - `'sign'` → `rest.sign`
 - `'admin'` → `rest.admin`
+- `'error'` → `rest.error`
 - ... (see Delegated Routes above)
 
 ## File Manifest

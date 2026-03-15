@@ -2,7 +2,7 @@
 
 > Platform module #3 | Loaded by `create.psql` line 3
 
-Manages application locales (languages) using ISO 639-1 codes. A minimal reference module: one table, one view, two lookup functions, and five seed records.
+Manages application locales (languages) using ISO 639-1 codes. A minimal reference module: one table, one view, two lookup functions, and six seed records.
 
 ## Dependencies
 
@@ -40,7 +40,7 @@ Manages application locales (languages) using ISO 639-1 codes. A minimal referen
 
 ## Init / Seed Data
 
-`init.sql` inserts 5 locales with deterministic UUIDs:
+`init.sql` inserts 6 locales with deterministic UUIDs:
 
 | Code | Name | UUID suffix |
 |------|------|-------------|
@@ -49,6 +49,7 @@ Manages application locales (languages) using ISO 639-1 codes. A minimal referen
 | `de` | Deutsch | `...003` |
 | `fr` | Français | `...004` |
 | `it` | Italiano | `...005` |
+| `es` | Español | `...006` |
 
 ## File Manifest
 
@@ -57,6 +58,6 @@ Manages application locales (languages) using ISO 639-1 codes. A minimal referen
 | `table.sql` | yes | no | `db.locale` table + unique index |
 | `view.sql` | yes | yes | `Locale` view |
 | `routine.sql` | yes | yes | `GetLocale`, `GetLocaleCode` |
-| `init.sql` | yes | no | Insert 5 locales (en, ru, de, fr, it) |
+| `init.sql` | yes | no | Insert 6 locales (en, ru, de, fr, it, es) |
 | `create.psql` | - | - | Includes all |
 | `update.psql` | - | - | Includes view, routine |

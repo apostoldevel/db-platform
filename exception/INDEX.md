@@ -2,13 +2,13 @@
 
 > Platform module #7 | Loaded by `create.psql` line 7
 
-Centralized exception handling with ~84 standardized error-raising functions. Each exception has a numeric group:code (e.g., 401:1 for LoginFailed, 400:5 for JsonIsEmpty), a UUID derived from the code, and multilingual resource messages (ru, en, nl, fr, it). No tables or views — functions only.
+Centralized exception handling with ~84 standardized error-raising functions. Each exception has a numeric group:code (e.g., 401:1 for LoginFailed, 400:5 for JsonIsEmpty), a UUID derived from the code, and locale-aware messages via error_catalog (en, ru, de, fr, it, es) with resource tree fallback. No tables or views — functions only.
 
 ## Dependencies
 
 | Depends on | Depended by |
 |------------|-------------|
-| `kernel`, `resource` (stores error messages as resources) | All modules that raise business-logic exceptions |
+| `kernel`, `resource` (legacy fallback), `error` (reads error_catalog for localized messages) | All modules that raise business-logic exceptions |
 
 ## Schemas Used
 
@@ -30,9 +30,9 @@ None.
 
 | Function | Returns | Purpose |
 |----------|---------|---------|
-| `ParseMessage(pMessage)` | `record` | Parse "ERR-XXXX" format into group + code |
+| `ParseMessage(pMessage)` | `record(code int, message text, error text)` | Parse error string — supports both `ERR-GGG-CCC` (new) and `ERR-GGGCC` (legacy) formats, returns HTTP code + message + structured error code |
 | `GetExceptionUUID(pErrGroup, pErrCode)` | `uuid` | Deterministic UUID from error group:code |
-| `GetExceptionStr(pErrGroup, pErrCode, pMessage)` | `text` | Format complete exception string |
+| `GetExceptionStr(pErrGroup, pErrCode, pMessage)` | `text` | Format exception string — reads error_catalog first (current locale, then en), falls back to resource tree |
 | `CreateExceptionResource(pRoot, pErrGroup, pErrCode, pName, ...)` | `uuid` | Create multilingual resource for error |
 
 ### Authentication (5)
@@ -97,10 +97,7 @@ None.
 
 ## Init / Seed Data
 
-`routine.sql` creates exception resources for root error codes in 5 locales:
-- Root (0,0): "System error codes" / "Коды системных ошибок"
-- Auth (401,1): "LoginFailed"
-- Auth (401,2): "AuthenticateError"
+Exception messages are stored in `error_catalog` (see error module). `CreateExceptionResource` is preserved for backward compatibility but no longer called during init. Legacy resource tree entries remain for fallback.
 
 ## File Manifest
 

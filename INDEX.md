@@ -1,7 +1,7 @@
 # db-platform — INDEX
 
 > PostgreSQL Framework for Backend Development
-> Version: 1.1.4a | License: MIT
+> Version: 1.2.0 | License: MIT
 > GitHub: https://github.com/apostoldevel/db-platform
 
 ---
@@ -55,7 +55,7 @@ patch.psql    →  platform/patch.psql   →  configuration/patch.psql
 
 ---
 
-## 25 modules
+## 26 modules
 
 Loaded in dependency order (create.psql):
 
@@ -68,6 +68,7 @@ Loaded in dependency order (create.psql):
 | 3 | **locale** | 1 | Multi-language support (ISO 639-1) | [locale/INDEX.md](locale/INDEX.md) |
 | 4 | **admin** | 18 | Users, auth, sessions, scope, area, ACL, member_group | [admin/INDEX.md](admin/INDEX.md) |
 | 7 | **exception** | — | Standardized errors (~84 functions) | [exception/INDEX.md](exception/INDEX.md) |
+| 8 | **error** | 2 | Error catalog with locale-aware messages (ERR-GGG-CCC) | [error/INDEX.md](error/INDEX.md) |
 
 ### Infrastructure
 
