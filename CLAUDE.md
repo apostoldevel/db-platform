@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What is this
 
-**db-platform** is a PL/pgSQL framework (25 modules, 100+ tables, 800+ functions) that turns PostgreSQL into a full-featured application server: REST API, OAuth2, workflow engine, entity system, file storage, pub/sub, reports. Version: see `VERSION` file (currently 1.1.4a).
+**db-platform** is a PL/pgSQL framework (25 modules, 100+ tables, 800+ functions) that turns PostgreSQL into a full-featured application server: REST API, OAuth2, workflow engine, entity system, file storage, pub/sub, reports. Version: see `VERSION` file (currently 1.2.0).
 
 This is the **framework layer** — it lives at `sql/platform/` inside consuming projects. Application code goes into `sql/configuration/<dbname>/`. Execution order is always platform first, then configuration.
 
