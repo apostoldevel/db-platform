@@ -352,7 +352,6 @@ CREATE OR REPLACE FUNCTION InitWorkFlow()
 RETURNS     void
 AS $$
 DECLARE
-  uLocale   uuid;
   uAction   uuid;
   uPriority uuid;
 BEGIN
@@ -416,183 +415,413 @@ BEGIN
 
   --------------------------------------------------------------------------------
 
-  uLocale := GetLocale('en');
+  uAction := AddAction('00000000-0000-4000-b003-000000000000', 'anything', 'Anything');
+  PERFORM EditActionText(uAction, 'Ничто', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Beliebig', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'N''importe quoi', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Qualsiasi', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Cualquiera', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000000', 'anything', 'Ничто');
-  PERFORM EditActionText(uAction, 'Anything', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000001', 'abort', 'Abort');
+  PERFORM EditActionText(uAction, 'Прервать', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Abbrechen', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Abandonner', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Interrompere', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Abortar', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000001', 'abort', 'Прервать');
-  PERFORM EditActionText(uAction, 'Abort', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000002', 'accept', 'Accept');
+  PERFORM EditActionText(uAction, 'Принять', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Akzeptieren', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Accepter', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Accettare', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Aceptar', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000002', 'accept', 'Принять');
-  PERFORM EditActionText(uAction, 'Accept', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000003', 'add', 'Add');
+  PERFORM EditActionText(uAction, 'Добавить', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Hinzufügen', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Ajouter', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Aggiungere', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Añadir', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000003', 'add', 'Добавить');
-  PERFORM EditActionText(uAction, 'Add', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000004', 'alarm', 'Alarm');
+  PERFORM EditActionText(uAction, 'Тревога', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Alarm', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Alarme', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Allarme', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Alarma', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000004', 'alarm', 'Тревога');
-  PERFORM EditActionText(uAction, 'Alarm', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000005', 'approve', 'Approve');
+  PERFORM EditActionText(uAction, 'Утвердить', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Genehmigen', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Approuver', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Approvare', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Aprobar', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000005', 'approve', 'Утвердить');
-  PERFORM EditActionText(uAction, 'Approve', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000006', 'available', 'Available');
+  PERFORM EditActionText(uAction, 'Доступен', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Verfügbar', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Disponible', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Disponibile', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Disponible', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000006', 'available', 'Доступен');
-  PERFORM EditActionText(uAction, 'Available', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000007', 'cancel', 'Cancel');
+  PERFORM EditActionText(uAction, 'Отменить', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Abbrechen', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Annuler', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Annullare', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Cancelar', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000007', 'cancel', 'Отменить');
-  PERFORM EditActionText(uAction, 'Cancel', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000008', 'check', 'Check');
+  PERFORM EditActionText(uAction, 'Проверить', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Prüfen', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Vérifier', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Verificare', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Verificar', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000008', 'check', 'Проверить');
-  PERFORM EditActionText(uAction, 'Check', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000009', 'complete', 'Complete');
+  PERFORM EditActionText(uAction, 'Завершить', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Abschließen', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Terminer', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Completare', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Completar', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000009', 'complete', 'Завершить');
-  PERFORM EditActionText(uAction, 'Complete', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000010', 'confirm', 'Confirm');
+  PERFORM EditActionText(uAction, 'Подтвердить', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Bestätigen', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Confirmer', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Confermare', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Confirmar', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000010', 'confirm', 'Подтвердить');
-  PERFORM EditActionText(uAction, 'Confirm', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000011', 'create', 'Create');
+  PERFORM EditActionText(uAction, 'Создать', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Erstellen', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Créer', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Creare', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Crear', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000011', 'create', 'Создать');
-  PERFORM EditActionText(uAction, 'Create', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000012', 'delete', 'Delete');
+  PERFORM EditActionText(uAction, 'Удалить', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Löschen', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Supprimer', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Eliminare', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Eliminar', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000012', 'delete', 'Удалить');
-  PERFORM EditActionText(uAction, 'Delete', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000013', 'disable', 'Disable');
+  PERFORM EditActionText(uAction, 'Отключить', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Deaktivieren', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Désactiver', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Disattivare', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Desactivar', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000013', 'disable', 'Отключить');
-  PERFORM EditActionText(uAction, 'Disable', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000014', 'done', 'Done');
+  PERFORM EditActionText(uAction, 'Сделано', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Erledigt', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Terminé', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Fatto', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Hecho', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000014', 'done', 'Сделано');
-  PERFORM EditActionText(uAction, 'Done', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000015', 'drop', 'Drop');
+  PERFORM EditActionText(uAction, 'Уничтожить', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Vernichten', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Détruire', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Distruggere', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Destruir', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000015', 'drop', 'Уничтожить');
-  PERFORM EditActionText(uAction, 'Drop', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000016', 'edit', 'Edit');
+  PERFORM EditActionText(uAction, 'Изменить', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Bearbeiten', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Modifier', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Modificare', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Editar', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000016', 'edit', 'Изменить');
-  PERFORM EditActionText(uAction, 'Edit', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000017', 'enable', 'Enable');
+  PERFORM EditActionText(uAction, 'Включить', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Aktivieren', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Activer', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Attivare', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Activar', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000017', 'enable', 'Включить');
-  PERFORM EditActionText(uAction, 'Enable', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000018', 'execute', 'Execute');
+  PERFORM EditActionText(uAction, 'Выполнить', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Ausführen', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Exécuter', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Eseguire', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Ejecutar', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000018', 'execute', 'Выполнить');
-  PERFORM EditActionText(uAction, 'Execute', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000019', 'expire', 'Expire');
+  PERFORM EditActionText(uAction, 'Истекло', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Abgelaufen', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Expiré', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Scaduto', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Expirado', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000019', 'expire', 'Истекло');
-  PERFORM EditActionText(uAction, 'Expire', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000020', 'fail', 'Fail');
+  PERFORM EditActionText(uAction, 'Неудача', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Fehlgeschlagen', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Échoué', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Fallito', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Fallido', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000020', 'fail', 'Неудача');
-  PERFORM EditActionText(uAction, 'Fail', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000021', 'faulted', 'Faulted');
+  PERFORM EditActionText(uAction, 'Ошибка', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Fehlerhaft', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Défaillant', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Guasto', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Averiado', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000021', 'faulted', 'Ошибка');
-  PERFORM EditActionText(uAction, 'Faulted', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000022', 'finishing', 'Finishing');
+  PERFORM EditActionText(uAction, 'Завершение', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Abschluss', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Finalisation', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Completamento', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Finalización', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000022', 'finishing', 'Завершение');
-  PERFORM EditActionText(uAction, 'Finishing', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000023', 'heartbeat', 'Heartbeat');
+  PERFORM EditActionText(uAction, 'Сердцебиение', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Herzschlag', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Battement', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Battito', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Latido', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000023', 'heartbeat', 'Сердцебиение');
-  PERFORM EditActionText(uAction, 'Heartbeat', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000024', 'invite', 'Invite');
+  PERFORM EditActionText(uAction, 'Пригласить', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Einladen', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Inviter', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Invitare', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Invitar', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000024', 'invite', 'Пригласить');
-  PERFORM EditActionText(uAction, 'Invite', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000025', 'open', 'Open');
+  PERFORM EditActionText(uAction, 'Открыть', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Öffnen', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Ouvrir', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Aprire', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Abrir', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000025', 'open', 'Открыть');
-  PERFORM EditActionText(uAction, 'Open', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000026', 'plan', 'Plan');
+  PERFORM EditActionText(uAction, 'Планировать', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Planen', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Planifier', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Pianificare', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Planificar', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000026', 'plan', 'Планировать');
-  PERFORM EditActionText(uAction, 'Plan', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000027', 'post', 'Post');
+  PERFORM EditActionText(uAction, 'Публиковать', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Veröffentlichen', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Publier', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Pubblicare', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Publicar', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000027', 'post', 'Публиковать');
-  PERFORM EditActionText(uAction, 'Post', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000028', 'postpone', 'Postpone');
+  PERFORM EditActionText(uAction, 'Отложить', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Verschieben', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Reporter', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Rimandare', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Posponer', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000028', 'postpone', 'Отложить');
-  PERFORM EditActionText(uAction, 'Postpone', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000029', 'preparing', 'Preparing');
+  PERFORM EditActionText(uAction, 'Подготовка', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Vorbereitung', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Préparation', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Preparazione', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Preparación', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000029', 'preparing', 'Подготовка');
-  PERFORM EditActionText(uAction, 'Preparing', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000030', 'reconfirm', 'Reconfirm');
+  PERFORM EditActionText(uAction, 'Повторно подтвердить', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Erneut bestätigen', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Reconfirmer', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Riconfermare', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Reconfirmar', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000030', 'reconfirm', 'Повторно подтвердить');
-  PERFORM EditActionText(uAction, 'Reconfirm', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000031', 'remove', 'Remove');
+  PERFORM EditActionText(uAction, 'Удалить', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Entfernen', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Retirer', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Rimuovere', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Quitar', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000031', 'remove', 'Удалить');
-  PERFORM EditActionText(uAction, 'Remove', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000032', 'repeat', 'Repeat');
+  PERFORM EditActionText(uAction, 'Повторить', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Wiederholen', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Répéter', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Ripetere', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Repetir', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000032', 'repeat', 'Повторить');
-  PERFORM EditActionText(uAction, 'Repeat', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000033', 'reserve', 'Reserve');
+  PERFORM EditActionText(uAction, 'Резервировать', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Reservieren', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Réserver', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Riservare', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Reservar', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000033', 'reserve', 'Резервировать');
-  PERFORM EditActionText(uAction, 'Reserve', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000034', 'reserved', 'Reserved');
+  PERFORM EditActionText(uAction, 'Зарезервирован', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Reserviert', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Réservé', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Riservato', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Reservado', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000034', 'reserved', 'Зарезервирован');
-  PERFORM EditActionText(uAction, 'Reserved', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000035', 'restore', 'Restore');
+  PERFORM EditActionText(uAction, 'Восстановить', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Wiederherstellen', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Restaurer', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Ripristinare', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Restaurar', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000035', 'restore', 'Восстановить');
-  PERFORM EditActionText(uAction, 'Restore', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000036', 'return', 'Return');
+  PERFORM EditActionText(uAction, 'Вернуть', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Zurückgeben', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Retourner', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Restituire', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Devolver', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000036', 'return', 'Вернуть');
-  PERFORM EditActionText(uAction, 'Return', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000037', 'save', 'Save');
+  PERFORM EditActionText(uAction, 'Сохранить', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Speichern', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Enregistrer', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Salvare', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Guardar', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000037', 'save', 'Сохранить');
-  PERFORM EditActionText(uAction, 'Save', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000038', 'send', 'Send');
+  PERFORM EditActionText(uAction, 'Отправить', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Senden', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Envoyer', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Inviare', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Enviar', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000038', 'send', 'Отправить');
-  PERFORM EditActionText(uAction, 'Send', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000039', 'sign', 'Sign');
+  PERFORM EditActionText(uAction, 'Подписать', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Unterschreiben', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Signer', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Firmare', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Firmar', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000039', 'sign', 'Подписать');
-  PERFORM EditActionText(uAction, 'Sign', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000040', 'start', 'Start');
+  PERFORM EditActionText(uAction, 'Запустить', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Starten', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Démarrer', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Avviare', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Iniciar', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000040', 'start', 'Запустить');
-  PERFORM EditActionText(uAction, 'Start', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000041', 'stop', 'Stop');
+  PERFORM EditActionText(uAction, 'Остановить', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Stoppen', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Arrêter', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Fermare', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Detener', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000041', 'stop', 'Остановить');
-  PERFORM EditActionText(uAction, 'Stop', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000042', 'submit', 'Submit');
+  PERFORM EditActionText(uAction, 'Отправить', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Einreichen', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Soumettre', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Inviare', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Enviar', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000042', 'submit', 'Отправить');
-  PERFORM EditActionText(uAction, 'Submit', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000043', 'unavailable', 'Unavailable');
+  PERFORM EditActionText(uAction, 'Недоступен', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Nicht verfügbar', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Indisponible', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Non disponibile', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'No disponible', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000043', 'unavailable', 'Недоступен');
-  PERFORM EditActionText(uAction, 'Unavailable', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000044', 'update', 'Update');
+  PERFORM EditActionText(uAction, 'Обновить', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Aktualisieren', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Mettre à jour', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Aggiornare', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Actualizar', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000044', 'update', 'Обновить');
-  PERFORM EditActionText(uAction, 'Update', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000045', 'reject', 'Reject');
+  PERFORM EditActionText(uAction, 'Отклонить', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Ablehnen', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Rejeter', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Rifiutare', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Rechazar', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000045', 'reject', 'Отклонить');
-  PERFORM EditActionText(uAction, 'Reject', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000046', 'pay', 'Pay');
+  PERFORM EditActionText(uAction, 'Оплатить', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Bezahlen', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Payer', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Pagare', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Pagar', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000046', 'pay', 'Оплатить');
-  PERFORM EditActionText(uAction, 'Pay', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000047', 'continue', 'Continue');
+  PERFORM EditActionText(uAction, 'Продолжить', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Fortsetzen', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Continuer', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Continuare', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Continuar', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000047', 'continue', 'Продолжить');
-  PERFORM EditActionText(uAction, 'Continue', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000048', 'agree', 'Agree');
+  PERFORM EditActionText(uAction, 'Согласовать', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Zustimmen', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Accepter', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Concordare', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Acordar', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000048', 'agree', 'Согласовать');
-  PERFORM EditActionText(uAction, 'Agree', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000049', 'close', 'Close');
+  PERFORM EditActionText(uAction, 'Закрыть', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Schließen', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Fermer', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Chiudere', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Cerrar', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000049', 'close', 'Закрыть');
-  PERFORM EditActionText(uAction, 'Close', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000050', 'activate', 'Activate');
+  PERFORM EditActionText(uAction, 'Активировать', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Aktivieren', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Activer', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Attivare', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Activar', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000050', 'activate', 'Активировать');
-  PERFORM EditActionText(uAction, 'Activate', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000051', 'refund', 'Refund');
+  PERFORM EditActionText(uAction, 'Возврат денег', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Rückerstattung', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Remboursement', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Rimborso', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Reembolso', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000051', 'refund', 'Возврат денег');
-  PERFORM EditActionText(uAction, 'Refund', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000052', 'download', 'Download');
+  PERFORM EditActionText(uAction, 'Загрузить', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Herunterladen', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Télécharger', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Scaricare', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Descargar', null, GetLocale('es'));
 
-  uAction := AddAction('00000000-0000-4000-b003-000000000052', 'download', 'Загрузить');
-  PERFORM EditActionText(uAction, 'Download', null, uLocale);
-
-  uAction := AddAction('00000000-0000-4000-b003-000000000053', 'prepare', 'Подготовить');
-  PERFORM EditActionText(uAction, 'Preparation', null, uLocale);
+  uAction := AddAction('00000000-0000-4000-b003-000000000053', 'prepare', 'Preparation');
+  PERFORM EditActionText(uAction, 'Подготовить', null, GetLocale('ru'));
+  PERFORM EditActionText(uAction, 'Vorbereiten', null, GetLocale('de'));
+  PERFORM EditActionText(uAction, 'Préparer', null, GetLocale('fr'));
+  PERFORM EditActionText(uAction, 'Preparare', null, GetLocale('it'));
+  PERFORM EditActionText(uAction, 'Preparar', null, GetLocale('es'));
 
   --
 
-  uPriority := AddPriority('00000000-0000-4000-b004-000000000000', 'low', 'Низкий');
-  PERFORM EditPriorityText(uPriority, 'Low', null, uLocale);
+  uPriority := AddPriority('00000000-0000-4000-b004-000000000000', 'low', 'Low');
+  PERFORM EditPriorityText(uPriority, 'Низкий', null, GetLocale('ru'));
+  PERFORM EditPriorityText(uPriority, 'Niedrig', null, GetLocale('de'));
+  PERFORM EditPriorityText(uPriority, 'Faible', null, GetLocale('fr'));
+  PERFORM EditPriorityText(uPriority, 'Basso', null, GetLocale('it'));
+  PERFORM EditPriorityText(uPriority, 'Bajo', null, GetLocale('es'));
 
-  uPriority := AddPriority('00000000-0000-4000-b004-000000000001', 'medium', 'Средний');
-  PERFORM EditPriorityText(uPriority, 'Medium', null, uLocale);
+  uPriority := AddPriority('00000000-0000-4000-b004-000000000001', 'medium', 'Medium');
+  PERFORM EditPriorityText(uPriority, 'Средний', null, GetLocale('ru'));
+  PERFORM EditPriorityText(uPriority, 'Mittel', null, GetLocale('de'));
+  PERFORM EditPriorityText(uPriority, 'Moyen', null, GetLocale('fr'));
+  PERFORM EditPriorityText(uPriority, 'Medio', null, GetLocale('it'));
+  PERFORM EditPriorityText(uPriority, 'Medio', null, GetLocale('es'));
 
-  uPriority := AddPriority('00000000-0000-4000-b004-000000000002', 'high', 'Высокий');
-  PERFORM EditPriorityText(uPriority, 'High', null, uLocale);
+  uPriority := AddPriority('00000000-0000-4000-b004-000000000002', 'high', 'High');
+  PERFORM EditPriorityText(uPriority, 'Высокий', null, GetLocale('ru'));
+  PERFORM EditPriorityText(uPriority, 'Hoch', null, GetLocale('de'));
+  PERFORM EditPriorityText(uPriority, 'Élevé', null, GetLocale('fr'));
+  PERFORM EditPriorityText(uPriority, 'Alto', null, GetLocale('it'));
+  PERFORM EditPriorityText(uPriority, 'Alto', null, GetLocale('es'));
 
-  uPriority := AddPriority('00000000-0000-4000-b004-000000000003', 'critical', 'Критический');
-  PERFORM EditPriorityText(uPriority, 'Critical', null, uLocale);
+  uPriority := AddPriority('00000000-0000-4000-b004-000000000003', 'critical', 'Critical');
+  PERFORM EditPriorityText(uPriority, 'Критический', null, GetLocale('ru'));
+  PERFORM EditPriorityText(uPriority, 'Kritisch', null, GetLocale('de'));
+  PERFORM EditPriorityText(uPriority, 'Critique', null, GetLocale('fr'));
+  PERFORM EditPriorityText(uPriority, 'Critico', null, GetLocale('it'));
+  PERFORM EditPriorityText(uPriority, 'Crítico', null, GetLocale('es'));
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
