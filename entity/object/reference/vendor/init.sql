@@ -24,48 +24,48 @@ BEGIN
   LOOP
 
     IF r.code = 'create' THEN
-      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Производитель создан', 'EventVendorCreate();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'Parent class events');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Vendor created', 'EventVendorCreate();');
     END IF;
 
     IF r.code = 'open' THEN
-      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Производитель открыт', 'EventVendorOpen();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'Parent class events');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Vendor opened', 'EventVendorOpen();');
     END IF;
 
     IF r.code = 'edit' THEN
-      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Производитель изменён', 'EventVendorEdit();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'Parent class events');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Vendor edited', 'EventVendorEdit();');
     END IF;
 
     IF r.code = 'save' THEN
-      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Производитель сохранён', 'EventVendorSave();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'Parent class events');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Vendor saved', 'EventVendorSave();');
     END IF;
 
     IF r.code = 'enable' THEN
-      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Производитель доступен', 'EventVendorEnable();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'Parent class events');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Vendor enabled', 'EventVendorEnable();');
     END IF;
 
     IF r.code = 'disable' THEN
-      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Производитель недоступен', 'EventVendorDisable();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'Parent class events');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Vendor disabled', 'EventVendorDisable();');
     END IF;
 
     IF r.code = 'delete' THEN
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Производитель будет удалён', 'EventVendorDelete();');
-      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Vendor will be deleted', 'EventVendorDelete();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'Parent class events');
     END IF;
 
     IF r.code = 'restore' THEN
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Производитель восстановлен', 'EventVendorRestore();');
-      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Vendor restored', 'EventVendorRestore();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'Parent class events');
     END IF;
 
     IF r.code = 'drop' THEN
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Производитель будет уничтожен', 'EventVendorDrop();');
-      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Vendor will be dropped', 'EventVendorDrop();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'Parent class events');
     END IF;
 
   END LOOP;
@@ -88,12 +88,34 @@ DECLARE
   uClass        uuid;
 BEGIN
   -- Класс
-  uClass := AddClass(pParent, pEntity, 'vendor', 'Производитель', false);
+  uClass := AddClass(pParent, pEntity, 'vendor', 'Vendor', false);
+  PERFORM EditClassText(uClass, 'Производитель', null, GetLocale('ru'));
+  PERFORM EditClassText(uClass, 'Anbieter', null, GetLocale('de'));
+  PERFORM EditClassText(uClass, 'Fournisseur', null, GetLocale('fr'));
+  PERFORM EditClassText(uClass, 'Fornitore', null, GetLocale('it'));
+  PERFORM EditClassText(uClass, 'Proveedor', null, GetLocale('es'));
 
   -- Тип
-  PERFORM AddType(uClass, 'service.vendor', 'Услуга', 'Поставщик услуги.');
-  PERFORM AddType(uClass, 'device.vendor', 'Оборудование', 'Производитель оборудования.');
-  PERFORM AddType(uClass, 'car.vendor', 'Автомобиль', 'Производитель автомобилей.');
+  PERFORM AddType(uClass, 'service.vendor', 'Service', 'Service provider.');
+  PERFORM EditTypeText(GetType('service.vendor'), 'Услуга', 'Поставщик услуги.', GetLocale('ru'));
+  PERFORM EditTypeText(GetType('service.vendor'), 'Dienstleistung', 'Dienstanbieter.', GetLocale('de'));
+  PERFORM EditTypeText(GetType('service.vendor'), 'Service', 'Fournisseur de services.', GetLocale('fr'));
+  PERFORM EditTypeText(GetType('service.vendor'), 'Servizio', 'Fornitore di servizi.', GetLocale('it'));
+  PERFORM EditTypeText(GetType('service.vendor'), 'Servicio', 'Proveedor de servicios.', GetLocale('es'));
+
+  PERFORM AddType(uClass, 'device.vendor', 'Hardware', 'Hardware manufacturer.');
+  PERFORM EditTypeText(GetType('device.vendor'), 'Оборудование', 'Производитель оборудования.', GetLocale('ru'));
+  PERFORM EditTypeText(GetType('device.vendor'), 'Hardware', 'Hardwarehersteller.', GetLocale('de'));
+  PERFORM EditTypeText(GetType('device.vendor'), 'Matériel', 'Fabricant de matériel.', GetLocale('fr'));
+  PERFORM EditTypeText(GetType('device.vendor'), 'Hardware', 'Produttore hardware.', GetLocale('it'));
+  PERFORM EditTypeText(GetType('device.vendor'), 'Hardware', 'Fabricante de hardware.', GetLocale('es'));
+
+  PERFORM AddType(uClass, 'car.vendor', 'Automobile', 'Automobile manufacturer.');
+  PERFORM EditTypeText(GetType('car.vendor'), 'Автомобиль', 'Производитель автомобилей.', GetLocale('ru'));
+  PERFORM EditTypeText(GetType('car.vendor'), 'Automobil', 'Automobilhersteller.', GetLocale('de'));
+  PERFORM EditTypeText(GetType('car.vendor'), 'Automobile', 'Constructeur automobile.', GetLocale('fr'));
+  PERFORM EditTypeText(GetType('car.vendor'), 'Automobile', 'Costruttore automobili.', GetLocale('it'));
+  PERFORM EditTypeText(GetType('car.vendor'), 'Automóvil', 'Fabricante de automóviles.', GetLocale('es'));
 
   -- Событие
   PERFORM AddVendorEvents(uClass);
@@ -120,7 +142,12 @@ DECLARE
   uEntity       uuid;
 BEGIN
   -- Сущность
-  uEntity := AddEntity('vendor', 'Производитель');
+  uEntity := AddEntity('vendor', 'Vendor');
+  PERFORM EditEntityText(uEntity, 'Производитель', null, GetLocale('ru'));
+  PERFORM EditEntityText(uEntity, 'Anbieter', null, GetLocale('de'));
+  PERFORM EditEntityText(uEntity, 'Fournisseur', null, GetLocale('fr'));
+  PERFORM EditEntityText(uEntity, 'Fornitore', null, GetLocale('it'));
+  PERFORM EditEntityText(uEntity, 'Proveedor', null, GetLocale('es'));
 
   -- Класс
   PERFORM CreateClassVendor(pParent, uEntity);
