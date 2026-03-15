@@ -363,6 +363,7 @@ DECLARE
 
   vMessage      text;
   vContext      text;
+  vErrorId      text;
 
   ErrorCode     int;
   ErrorMessage  text;
@@ -414,12 +415,12 @@ WHEN others THEN
 
   PERFORM SetErrorMessage(vMessage);
 
-  SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
+  SELECT * INTO ErrorCode, ErrorMessage, vErrorId FROM ParseMessage(vMessage);
 
   PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
   PERFORM WriteToEventLog('D', ErrorCode, vContext);
 
-  RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
+  RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'error', vErrorId, 'message', ErrorMessage));
 
   nApiId := AddApiLog(pPath, pPayload);
   UPDATE db.api_log SET eventid = AddEventLog('E', ErrorCode, 'run', ErrorMessage) WHERE id = nApiId;

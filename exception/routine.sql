@@ -3,27 +3,44 @@
 --------------------------------------------------------------------------------
 
 /**
- * @brief Parse a structured error message into its numeric code and text.
- * @param {text} pMessage - Raw error string, optionally prefixed with "ERR-NNNNN"
- * @return {record} code (int) and message (text)
+ * @brief Parse a structured error message into its numeric code, text, and error identifier.
+ * @param {text} pMessage - Raw error string, optionally prefixed with "ERR-GGG-CCC" or legacy "ERR-GGGCC"
+ * @return {record} code (int), message (text), and error (text) — the structured identifier (e.g., ERR-400-001)
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION ParseMessage (
   pMessage      text,
   OUT code      int,
-  OUT message   text
+  OUT message   text,
+  OUT error     text
 ) RETURNS       record
 AS $$
 BEGIN
   IF SubStr(pMessage, 1, 4) = 'ERR-' THEN
-    code := SubStr(pMessage, 5, 5);
-    message := SubStr(pMessage, 12);
+    -- New format: ERR-GGG-CCC: message (e.g., ERR-400-001: Access denied.)
+    IF SubStr(pMessage, 8, 1) = '-' AND SubStr(pMessage, 12, 2) = ': ' THEN
+      code := SubStr(pMessage, 5, 3)::int;
+      error := SubStr(pMessage, 1, 11);
+      message := SubStr(pMessage, 14);
+    -- Old format: ERR-GGGCC: message (e.g., ERR-40001: Access denied.)
+    ELSIF SubStr(pMessage, 10, 2) = ': ' THEN
+      code := SubStr(pMessage, 5, 3)::int;
+      error := format('ERR-%s-%s', SubStr(pMessage, 5, 3), lpad(SubStr(pMessage, 8, 2), 3, '0'));
+      message := SubStr(pMessage, 12);
+    ELSE
+      code := -1;
+      error := null;
+      message := pMessage;
+    END IF;
   ELSE
     code := -1;
+    error := null;
     message := pMessage;
   END IF;
 END;
-$$ LANGUAGE plpgsql STRICT;
+$$ LANGUAGE plpgsql IMMUTABLE
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
 
@@ -50,7 +67,7 @@ $$ LANGUAGE plpgsql STRICT;
  * @brief Build the localized error string for a given exception group and code.
  * @param {integer} pErrGroup - Error group (maps to HTTP-style status category)
  * @param {integer} pErrCode - Unique error code within the group
- * @return {text} Formatted error string "ERR-GGGCC: <message>."
+ * @return {text} Formatted error string "ERR-GGG-CCC: <message>."
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION GetExceptionStr (
@@ -58,10 +75,40 @@ CREATE OR REPLACE FUNCTION GetExceptionStr (
   pErrCode       integer
 ) RETURNS        text
 AS $$
+DECLARE
+  vCode          text;
+  vMessage       text;
 BEGIN
-  RETURN format('ERR-%s%s: %s.', coalesce(NULLIF(IntToStr(pErrGroup, 'FM000'), '###'), '400'), coalesce(NULLIF(IntToStr(pErrCode, 'FM00'), '##'), '00'), GetResource(GetExceptionUUID(pErrGroup, pErrCode)));
+  vCode := format('ERR-%s-%s',
+    coalesce(NULLIF(IntToStr(pErrGroup, 'FM000'), '###'), '400'),
+    coalesce(NULLIF(IntToStr(pErrCode, 'FM000'), '###'), '000'));
+
+  -- Try error_catalog first (current locale)
+  SELECT ect.message INTO vMessage
+    FROM db.error_catalog ec
+    JOIN db.error_catalog_text ect ON ect.error_id = ec.id
+   WHERE ec.code = vCode
+     AND ect.locale = coalesce(current_locale(), GetLocale('en'));
+
+  -- Fallback to en locale
+  IF vMessage IS NULL THEN
+    SELECT ect.message INTO vMessage
+      FROM db.error_catalog ec
+      JOIN db.error_catalog_text ect ON ect.error_id = ec.id
+     WHERE ec.code = vCode
+       AND ect.locale = GetLocale('en');
+  END IF;
+
+  -- Fallback to resource tree (backward compat)
+  IF vMessage IS NULL THEN
+    vMessage := GetResource(GetExceptionUUID(pErrGroup, pErrCode));
+  END IF;
+
+  RETURN format('%s: %s.', vCode, coalesce(vMessage, 'Unknown error'));
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
 

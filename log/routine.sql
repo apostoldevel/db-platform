@@ -180,7 +180,7 @@ CREATE OR REPLACE FUNCTION WriteDiagnostics (
 ) RETURNS       record
 AS $$
 BEGIN
-  SELECT * INTO errorCode, errorMessage FROM ParseMessage(pMessage);
+  SELECT p.code, p.message INTO errorCode, errorMessage FROM ParseMessage(pMessage) p;
 
   PERFORM SetErrorMessage(pMessage);
 
