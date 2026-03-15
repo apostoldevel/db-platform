@@ -70,7 +70,7 @@ BEGIN
   SELECT t.id INTO uDocument FROM db.document t WHERE t.id = pId;
 
   IF NOT FOUND THEN
-    PERFORM ObjectNotFound('документ', 'id', pId);
+    PERFORM ObjectNotFound('document', 'id', pId);
   END IF;
 
   PERFORM EditDocument(uDocument, pParent, pType,pLabel, pDescription, pData, current_locale());

@@ -82,7 +82,7 @@ BEGIN
   SELECT t.id INTO uReportTree FROM db.report_tree t WHERE t.id = pId;
 
   IF NOT FOUND THEN
-    PERFORM ObjectNotFound('дерево отчётов', 'id', pId);
+    PERFORM ObjectNotFound('report tree', 'id', pId);
   END IF;
 
   PERFORM EditReportTree(uReportTree, pParent, pType,pRoot, pNode, pCode, pName, pDescription, pSequence);

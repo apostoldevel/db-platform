@@ -82,7 +82,7 @@ BEGIN
   SELECT id INTO uRoutine FROM db.report_routine WHERE id = pId;
 
   IF NOT FOUND THEN
-    PERFORM ObjectNotFound('функция отчёта', 'id', pId);
+    PERFORM ObjectNotFound('report routine', 'id', pId);
   END IF;
 
   PERFORM EditReportRoutine(pId, pParent, pType, pReport, pCode, pName, pDefinition, pDescription, pSequence);

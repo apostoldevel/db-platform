@@ -112,7 +112,7 @@ BEGIN
   SELECT r.id INTO uId FROM db.report r WHERE r.id = pId;
 
   IF NOT FOUND THEN
-    PERFORM ObjectNotFound('отчёт', 'id', pId);
+    PERFORM ObjectNotFound('report', 'id', pId);
   END IF;
 
   PERFORM EditReport(uId, pParent, pType, pTree, pForm, pBinding, pCode, pName, pDescription, pInfo);

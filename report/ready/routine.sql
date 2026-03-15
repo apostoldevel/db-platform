@@ -44,7 +44,7 @@ BEGIN
 
   SELECT id INTO uId FROM db.report WHERE id = pReport;
   IF NOT FOUND THEN
-    PERFORM ObjectNotFound('отчёт', 'id', pReport);
+    PERFORM ObjectNotFound('report', 'id', pReport);
   END IF;
 
   uDocument := CreateDocument(pParent, pType, pLabel, pDescription);
@@ -97,7 +97,7 @@ BEGIN
   IF pReport IS NOT NULL THEN
     SELECT id INTO uId FROM db.report WHERE id = pReport;
     IF NOT FOUND THEN
-      PERFORM ObjectNotFound('отчёт', 'id', pReport);
+      PERFORM ObjectNotFound('report', 'id', pReport);
     END IF;
   END IF;
 

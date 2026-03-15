@@ -70,7 +70,7 @@ BEGIN
   SELECT id INTO uForm FROM db.form WHERE id = pId;
 
   IF NOT FOUND THEN
-    PERFORM ObjectNotFound('форма', 'id', pId);
+    PERFORM ObjectNotFound('form', 'id', pId);
   END IF;
 
   PERFORM EditForm(pId, pParent, pType, pCode, pName, pDescription);

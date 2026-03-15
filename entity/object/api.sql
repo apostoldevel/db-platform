@@ -66,7 +66,7 @@ BEGIN
   SELECT t.id INTO uObject FROM db.object t WHERE t.id = pId;
 
   IF NOT FOUND THEN
-    PERFORM ObjectNotFound('объект', 'id', pId);
+    PERFORM ObjectNotFound('object', 'id', pId);
   END IF;
 
   PERFORM EditObject(uObject, pParent, pType, pLabel, pData, current_locale());
@@ -247,7 +247,7 @@ BEGIN
   SELECT o.id INTO uId FROM db.object o WHERE o.id = pId;
 
   IF NOT FOUND THEN
-    PERFORM ObjectNotFound('объект', 'id', pId);
+    PERFORM ObjectNotFound('object', 'id', pId);
   END IF;
 
   SELECT s.id INTO uState FROM db.state s WHERE s.class = GetObjectClass(pId) AND s.code = 'deleted';
@@ -505,7 +505,7 @@ BEGIN
   SELECT o.id INTO uId FROM db.object o WHERE o.id = pObject;
 
   IF NOT FOUND THEN
-    PERFORM ObjectNotFound('объект', 'id', pObject);
+    PERFORM ObjectNotFound('object', 'id', pObject);
   END IF;
 
   IF pMethod IS NULL THEN
@@ -552,7 +552,7 @@ BEGIN
   SELECT o.id INTO uId FROM db.object o WHERE o.id = pObject;
 
   IF NOT FOUND THEN
-    PERFORM ObjectNotFound('объект', 'id', pObject);
+    PERFORM ObjectNotFound('object', 'id', pObject);
   END IF;
 
   IF pCode IS NULL THEN
@@ -991,7 +991,7 @@ DECLARE
 BEGIN
   PERFORM FROM db.object o WHERE o.id = pId;
   IF NOT FOUND THEN
-    PERFORM ObjectNotFound('объект', 'id', pId);
+    PERFORM ObjectNotFound('object', 'id', pId);
   END IF;
 
   IF pFiles IS NOT NULL THEN
@@ -1304,7 +1304,7 @@ BEGIN
   SELECT o.id INTO uId FROM db.object o WHERE o.id = pId;
 
   IF NOT FOUND THEN
-    PERFORM ObjectNotFound('объект', 'id', pId);
+    PERFORM ObjectNotFound('object', 'id', pId);
   END IF;
 
   IF pData IS NOT NULL THEN
@@ -1571,7 +1571,7 @@ BEGIN
   SELECT o.id INTO uId FROM db.object o WHERE o.id = pId;
 
   IF NOT FOUND THEN
-    PERFORM ObjectNotFound('объект', 'id', pId);
+    PERFORM ObjectNotFound('object', 'id', pId);
   END IF;
 
   IF pCoordinates IS NOT NULL THEN

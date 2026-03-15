@@ -22,7 +22,7 @@ BEGIN
   SELECT id INTO uId FROM db.area WHERE id = pArea;
 
   IF NOT FOUND THEN
-    PERFORM ObjectNotFound('область видимости', 'id', pArea);
+    PERFORM ObjectNotFound('scope', 'id', pArea);
   END IF;
 
   PERFORM SetArea(pArea);
@@ -51,7 +51,7 @@ BEGIN
   SELECT id INTO uId FROM db.area WHERE code = pArea;
 
   IF NOT FOUND THEN
-    PERFORM ObjectNotFound('область видимости', 'code', pArea);
+    PERFORM ObjectNotFound('scope', 'code', pArea);
   END IF;
 
   PERFORM SetArea(uId);
@@ -80,7 +80,7 @@ BEGIN
   SELECT id INTO uId FROM db.interface WHERE id = pInterface;
 
   IF NOT FOUND THEN
-    PERFORM ObjectNotFound('интерфейс', 'id', pInterface);
+    PERFORM ObjectNotFound('interface', 'id', pInterface);
   END IF;
 
   PERFORM SetInterface(pInterface);
@@ -109,7 +109,7 @@ BEGIN
   SELECT id INTO uId FROM db.interface WHERE id = pInterface;
 
   IF NOT FOUND THEN
-    PERFORM ObjectNotFound('интерфейс', 'id', pInterface);
+    PERFORM ObjectNotFound('interface', 'id', pInterface);
   END IF;
 
   PERFORM SetInterface(uId);
@@ -178,7 +178,7 @@ BEGIN
   SELECT id INTO uId FROM db.locale WHERE id = pLocale;
 
   IF NOT FOUND THEN
-    PERFORM ObjectNotFound('язык', 'id', pLocale);
+    PERFORM ObjectNotFound('locale', 'id', pLocale);
   END IF;
 
   PERFORM SetSessionLocale(pLocale);

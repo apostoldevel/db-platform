@@ -123,7 +123,7 @@ BEGIN
   SELECT c.id INTO uId FROM db.report_ready c WHERE c.id = pId;
 
   IF NOT FOUND THEN
-    PERFORM ObjectNotFound('готовый отчёт', 'id', pId);
+    PERFORM ObjectNotFound('report ready', 'id', pId);
   END IF;
 
   PERFORM EditReportReady(uId, pParent, pType, pReport, pForm, pLabel, pDescription);

@@ -82,7 +82,7 @@ BEGIN
   SELECT t.id INTO uScheduler FROM db.scheduler t WHERE t.id = pId;
 
   IF NOT FOUND THEN
-    PERFORM ObjectNotFound('планировщик', 'id', pId);
+    PERFORM ObjectNotFound('scheduler', 'id', pId);
   END IF;
 
   PERFORM EditScheduler(uScheduler, pParent, pType, pCode, pName, pPeriod, pDateStart, pDateStop, pDescription);

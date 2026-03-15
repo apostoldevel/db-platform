@@ -74,7 +74,7 @@ BEGIN
   SELECT id INTO uForm FROM db.report_form WHERE id = pId;
 
   IF NOT FOUND THEN
-    PERFORM ObjectNotFound('форма отчёта', 'id', pId);
+    PERFORM ObjectNotFound('report form', 'id', pId);
   END IF;
 
   PERFORM EditReportForm(pId, pParent, pType, pCode, pName, pDefinition, pDescription);

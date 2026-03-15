@@ -74,7 +74,7 @@ BEGIN
   SELECT t.id INTO uAgent FROM db.agent t WHERE t.id = pId;
 
   IF NOT FOUND THEN
-    PERFORM ObjectNotFound('агент', 'id', pId);
+    PERFORM ObjectNotFound('agent', 'id', pId);
   END IF;
 
   PERFORM EditAgent(uAgent, pParent, pType, pVendor, pCode, pName, pDescription);

@@ -165,7 +165,7 @@ BEGIN
   PERFORM FROM db.form WHERE id = pForm;
 
   IF NOT FOUND THEN
-    PERFORM ObjectNotFound('форма журнала', 'id', pForm);
+    PERFORM ObjectNotFound('form field', 'id', pForm);
   END IF;
 
   IF pFields IS NULL THEN

@@ -70,7 +70,7 @@ BEGIN
   SELECT t.id INTO uReference FROM db.reference t WHERE t.id = pId;
 
   IF NOT FOUND THEN
-    PERFORM ObjectNotFound('справочник', 'id', pId);
+    PERFORM ObjectNotFound('reference', 'id', pId);
   END IF;
 
   PERFORM EditReference(uReference, pParent, pType, pCode, pName, pDescription, current_locale());

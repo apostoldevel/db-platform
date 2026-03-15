@@ -70,7 +70,7 @@ BEGIN
   SELECT t.id INTO uVendor FROM db.vendor t WHERE t.id = pId;
 
   IF NOT FOUND THEN
-    PERFORM ObjectNotFound('производитель', 'id', pId);
+    PERFORM ObjectNotFound('vendor', 'id', pId);
   END IF;
 
   PERFORM EditVendor(uVendor, pParent, pType, pCode, pName, pDescription);
