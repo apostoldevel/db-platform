@@ -140,6 +140,13 @@ BEGIN
 
   IF uLocale IS NOT NULL THEN
     pRoot := NULLIF(coalesce(pRoot, GetExceptionUUID(0, 0)), null_uuid());
+
+    -- Bootstrap: create root node if it doesn't exist yet
+    IF pRoot IS NOT NULL AND NOT EXISTS (SELECT 1 FROM db.resource WHERE id = pRoot) THEN
+      INSERT INTO db.resource (id, root, node, type, level, sequence)
+      VALUES (pRoot, pRoot, null, 'text/plain', 0, 1);
+    END IF;
+
     vCharSet := coalesce(nullif(pg_client_encoding(), 'UTF8'), 'UTF-8');
     uResource := SetResource(pId, pRoot, pRoot, 'text/plain', pName, pDescription, vCharSet, pDescription, null, uLocale);
   END IF;

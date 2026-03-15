@@ -144,6 +144,9 @@ BEGIN
 
   IF pNode IS NOT NULL THEN
     SELECT level + 1 INTO nLevel FROM db.resource WHERE id = pNode;
+    IF NOT FOUND THEN
+      nLevel := 0;
+    END IF;
   END IF;
 
   IF NULLIF(pSequence, 0) IS NULL THEN
@@ -205,6 +208,9 @@ DECLARE
 BEGIN
   IF pNode IS NOT NULL THEN
     SELECT level + 1 INTO nLevel FROM db.resource WHERE id = pNode;
+    IF NOT FOUND THEN
+      nLevel := 0;
+    END IF;
   END IF;
 
   SELECT node, sequence INTO uNode, nSequence FROM db.resource WHERE id = pId;
