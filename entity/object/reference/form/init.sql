@@ -89,11 +89,11 @@ DECLARE
 BEGIN
   -- Класс
   uClass := AddClass(pParent, pEntity, 'form', 'Form', false);
-  PERFORM EditClassText(uClass, 'Форма', null, GetLocale('ru'));
-  PERFORM EditClassText(uClass, 'Formular', null, GetLocale('de'));
-  PERFORM EditClassText(uClass, 'Formulaire', null, GetLocale('fr'));
-  PERFORM EditClassText(uClass, 'Modulo', null, GetLocale('it'));
-  PERFORM EditClassText(uClass, 'Formulario', null, GetLocale('es'));
+  PERFORM EditClassText(uClass, 'Форма', GetLocale('ru'));
+  PERFORM EditClassText(uClass, 'Formular', GetLocale('de'));
+  PERFORM EditClassText(uClass, 'Formulaire', GetLocale('fr'));
+  PERFORM EditClassText(uClass, 'Modulo', GetLocale('it'));
+  PERFORM EditClassText(uClass, 'Formulario', GetLocale('es'));
 
   -- Тип
   PERFORM AddType(uClass, 'none.form', 'Untyped', 'Untyped.');

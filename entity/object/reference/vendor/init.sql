@@ -89,11 +89,11 @@ DECLARE
 BEGIN
   -- Класс
   uClass := AddClass(pParent, pEntity, 'vendor', 'Vendor', false);
-  PERFORM EditClassText(uClass, 'Производитель', null, GetLocale('ru'));
-  PERFORM EditClassText(uClass, 'Anbieter', null, GetLocale('de'));
-  PERFORM EditClassText(uClass, 'Fournisseur', null, GetLocale('fr'));
-  PERFORM EditClassText(uClass, 'Fornitore', null, GetLocale('it'));
-  PERFORM EditClassText(uClass, 'Proveedor', null, GetLocale('es'));
+  PERFORM EditClassText(uClass, 'Производитель', GetLocale('ru'));
+  PERFORM EditClassText(uClass, 'Anbieter', GetLocale('de'));
+  PERFORM EditClassText(uClass, 'Fournisseur', GetLocale('fr'));
+  PERFORM EditClassText(uClass, 'Fornitore', GetLocale('it'));
+  PERFORM EditClassText(uClass, 'Proveedor', GetLocale('es'));
 
   -- Тип
   PERFORM AddType(uClass, 'service.vendor', 'Service', 'Service provider.');

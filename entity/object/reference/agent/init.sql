@@ -89,11 +89,11 @@ DECLARE
 BEGIN
   -- Класс
   uClass := AddClass(pParent, pEntity, 'agent', 'Agent', false);
-  PERFORM EditClassText(uClass, 'Агент', null, GetLocale('ru'));
-  PERFORM EditClassText(uClass, 'Agent', null, GetLocale('de'));
-  PERFORM EditClassText(uClass, 'Agent', null, GetLocale('fr'));
-  PERFORM EditClassText(uClass, 'Agente', null, GetLocale('it'));
-  PERFORM EditClassText(uClass, 'Agente', null, GetLocale('es'));
+  PERFORM EditClassText(uClass, 'Агент', GetLocale('ru'));
+  PERFORM EditClassText(uClass, 'Agent', GetLocale('de'));
+  PERFORM EditClassText(uClass, 'Agent', GetLocale('fr'));
+  PERFORM EditClassText(uClass, 'Agente', GetLocale('it'));
+  PERFORM EditClassText(uClass, 'Agente', GetLocale('es'));
 
   -- Тип
   PERFORM AddType(uClass, 'system.agent', 'System messages', 'Agent for delivering system messages.');

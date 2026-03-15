@@ -89,11 +89,11 @@ DECLARE
 BEGIN
   -- Класс
   uClass := AddClass(pParent, pEntity, 'scheduler', 'Scheduler', false);
-  PERFORM EditClassText(uClass, 'Планировщик', null, GetLocale('ru'));
-  PERFORM EditClassText(uClass, 'Planer', null, GetLocale('de'));
-  PERFORM EditClassText(uClass, 'Planificateur', null, GetLocale('fr'));
-  PERFORM EditClassText(uClass, 'Pianificatore', null, GetLocale('it'));
-  PERFORM EditClassText(uClass, 'Planificador', null, GetLocale('es'));
+  PERFORM EditClassText(uClass, 'Планировщик', GetLocale('ru'));
+  PERFORM EditClassText(uClass, 'Planer', GetLocale('de'));
+  PERFORM EditClassText(uClass, 'Planificateur', GetLocale('fr'));
+  PERFORM EditClassText(uClass, 'Pianificatore', GetLocale('it'));
+  PERFORM EditClassText(uClass, 'Planificador', GetLocale('es'));
 
   -- Тип
   PERFORM AddType(uClass, 'job.scheduler', 'Scheduler', 'Job scheduler.');

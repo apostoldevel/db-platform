@@ -89,11 +89,11 @@ DECLARE
 BEGIN
   -- Класс
   uClass := AddClass(pParent, pEntity, 'program', 'Program', false);
-  PERFORM EditClassText(uClass, 'Программа', null, GetLocale('ru'));
-  PERFORM EditClassText(uClass, 'Programm', null, GetLocale('de'));
-  PERFORM EditClassText(uClass, 'Programme', null, GetLocale('fr'));
-  PERFORM EditClassText(uClass, 'Programma', null, GetLocale('it'));
-  PERFORM EditClassText(uClass, 'Programa', null, GetLocale('es'));
+  PERFORM EditClassText(uClass, 'Программа', GetLocale('ru'));
+  PERFORM EditClassText(uClass, 'Programm', GetLocale('de'));
+  PERFORM EditClassText(uClass, 'Programme', GetLocale('fr'));
+  PERFORM EditClassText(uClass, 'Programma', GetLocale('it'));
+  PERFORM EditClassText(uClass, 'Programa', GetLocale('es'));
 
   -- Тип
   PERFORM AddType(uClass, 'plpgsql.program', 'PL/pgSQL', 'PL/pgSQL program code.');

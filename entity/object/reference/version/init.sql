@@ -89,11 +89,11 @@ DECLARE
 BEGIN
   -- Класс
   uClass := AddClass(pParent, pEntity, 'version', 'Version', false);
-  PERFORM EditClassText(uClass, 'Версия', null, GetLocale('ru'));
-  PERFORM EditClassText(uClass, 'Version', null, GetLocale('de'));
-  PERFORM EditClassText(uClass, 'Version', null, GetLocale('fr'));
-  PERFORM EditClassText(uClass, 'Versione', null, GetLocale('it'));
-  PERFORM EditClassText(uClass, 'Versión', null, GetLocale('es'));
+  PERFORM EditClassText(uClass, 'Версия', GetLocale('ru'));
+  PERFORM EditClassText(uClass, 'Version', GetLocale('de'));
+  PERFORM EditClassText(uClass, 'Version', GetLocale('fr'));
+  PERFORM EditClassText(uClass, 'Versione', GetLocale('it'));
+  PERFORM EditClassText(uClass, 'Versión', GetLocale('es'));
 
   -- Тип
   PERFORM AddType(uClass, 'api.version', 'API', 'API version.');
