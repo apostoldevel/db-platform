@@ -193,7 +193,7 @@ AS
          o.oper, u.username, u.name, o.ldate,
          t.area, a.code, a.name, a.description,
          o.scope, sc.code, sc.name, sc.description
-    FROM db.document t     LEFT JOIN db.document_text    dt ON dt.document = t.id AND dt.locale = current_locale()
+    FROM db.document t    LEFT JOIN db.document_text    dt ON dt.document = t.id AND dt.locale = current_locale()
 
                           INNER JOIN db.object            o ON t.object = o.id
                            LEFT JOIN db.object_text      ot ON ot.object = o.id AND ot.locale = current_locale()

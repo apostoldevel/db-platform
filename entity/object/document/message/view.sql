@@ -91,7 +91,8 @@ CREATE OR REPLACE VIEW ObjectMessage (Id, Object, Parent,
          o.oper, u.username, u.name,
          d.area, a.code, a.name, a.description,
          o.scope, sc.code, sc.name, sc.description
-    FROM db.message    t INNER JOIN db.document          d ON t.document = d.id
+    FROM db.message    t INNER JOIN AccessMessage         ac ON t.id = ac.object
+                         INNER JOIN db.document          d ON t.document = d.id
                           LEFT JOIN db.document_text    dt ON dt.document = d.id AND dt.locale = current_locale()
 
                          INNER JOIN db.object            o ON t.document = o.id
@@ -164,7 +165,8 @@ CREATE OR REPLACE VIEW ServiceMessage (Id, Object, Parent,
          o.oper, u.username, u.name, o.ldate,
          d.area, a.code, a.name, a.description,
          o.scope, sc.code, sc.name, sc.description
-    FROM db.message t INNER JOIN db.document          d ON t.document = d.id
+    FROM db.message t INNER JOIN AccessMessage        ac ON t.id = ac.object
+                      INNER JOIN db.document          d ON t.document = d.id
                        LEFT JOIN db.document_text    dt ON dt.document = d.id AND dt.locale = current_locale()
 
                       INNER JOIN db.object            o ON t.document = o.id
