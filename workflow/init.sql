@@ -13,39 +13,76 @@ RETURNS     void
 AS $$
 DECLARE
   uMethod   uuid;
-  uLocale   uuid;
 BEGIN
-  uLocale := GetLocale('en');
+  uMethod := AddMethod(null, pClass, null, GetAction('create'), null, 'Create');
+  PERFORM EditMethodText(uMethod, 'Создать', GetLocale('ru'));
+  PERFORM EditMethodText(uMethod, 'Erstellen', GetLocale('de'));
+  PERFORM EditMethodText(uMethod, 'Créer', GetLocale('fr'));
+  PERFORM EditMethodText(uMethod, 'Creare', GetLocale('it'));
+  PERFORM EditMethodText(uMethod, 'Crear', GetLocale('es'));
 
-  uMethod := AddMethod(null, pClass, null, GetAction('create'), null, 'Создать');
-  PERFORM EditMethodText(uMethod, 'Create', uLocale);
+  uMethod := AddMethod(null, pClass, null, GetAction('open'), null, 'Open');
+  PERFORM EditMethodText(uMethod, 'Открыть', GetLocale('ru'));
+  PERFORM EditMethodText(uMethod, 'Öffnen', GetLocale('de'));
+  PERFORM EditMethodText(uMethod, 'Ouvrir', GetLocale('fr'));
+  PERFORM EditMethodText(uMethod, 'Aprire', GetLocale('it'));
+  PERFORM EditMethodText(uMethod, 'Abrir', GetLocale('es'));
 
-  uMethod := AddMethod(null, pClass, null, GetAction('open'), null, 'Открыть');
-  PERFORM EditMethodText(uMethod, 'Open', uLocale);
+  uMethod := AddMethod(null, pClass, null, GetAction('edit'), null, 'Edit');
+  PERFORM EditMethodText(uMethod, 'Изменить', GetLocale('ru'));
+  PERFORM EditMethodText(uMethod, 'Bearbeiten', GetLocale('de'));
+  PERFORM EditMethodText(uMethod, 'Modifier', GetLocale('fr'));
+  PERFORM EditMethodText(uMethod, 'Modificare', GetLocale('it'));
+  PERFORM EditMethodText(uMethod, 'Editar', GetLocale('es'));
 
-  uMethod := AddMethod(null, pClass, null, GetAction('edit'), null, 'Изменить');
-  PERFORM EditMethodText(uMethod, 'Edit', uLocale);
+  uMethod := AddMethod(null, pClass, null, GetAction('save'), null, 'Save');
+  PERFORM EditMethodText(uMethod, 'Сохранить', GetLocale('ru'));
+  PERFORM EditMethodText(uMethod, 'Speichern', GetLocale('de'));
+  PERFORM EditMethodText(uMethod, 'Enregistrer', GetLocale('fr'));
+  PERFORM EditMethodText(uMethod, 'Salvare', GetLocale('it'));
+  PERFORM EditMethodText(uMethod, 'Guardar', GetLocale('es'));
 
-  uMethod := AddMethod(null, pClass, null, GetAction('save'), null, 'Сохранить');
-  PERFORM EditMethodText(uMethod, 'Save', uLocale);
+  uMethod := AddMethod(null, pClass, null, GetAction('update'), null, 'Update');
+  PERFORM EditMethodText(uMethod, 'Обновить', GetLocale('ru'));
+  PERFORM EditMethodText(uMethod, 'Aktualisieren', GetLocale('de'));
+  PERFORM EditMethodText(uMethod, 'Mettre à jour', GetLocale('fr'));
+  PERFORM EditMethodText(uMethod, 'Aggiornare', GetLocale('it'));
+  PERFORM EditMethodText(uMethod, 'Actualizar', GetLocale('es'));
 
-  uMethod := AddMethod(null, pClass, null, GetAction('update'), null, 'Обновить');
-  PERFORM EditMethodText(uMethod, 'Update', uLocale);
+  uMethod := AddMethod(null, pClass, null, GetAction('enable'), null, 'Enable');
+  PERFORM EditMethodText(uMethod, 'Включить', GetLocale('ru'));
+  PERFORM EditMethodText(uMethod, 'Aktivieren', GetLocale('de'));
+  PERFORM EditMethodText(uMethod, 'Activer', GetLocale('fr'));
+  PERFORM EditMethodText(uMethod, 'Attivare', GetLocale('it'));
+  PERFORM EditMethodText(uMethod, 'Activar', GetLocale('es'));
 
-  uMethod := AddMethod(null, pClass, null, GetAction('enable'), null, 'Включить');
-  PERFORM EditMethodText(uMethod, 'Enable', uLocale);
+  uMethod := AddMethod(null, pClass, null, GetAction('disable'), null, 'Disable');
+  PERFORM EditMethodText(uMethod, 'Выключить', GetLocale('ru'));
+  PERFORM EditMethodText(uMethod, 'Deaktivieren', GetLocale('de'));
+  PERFORM EditMethodText(uMethod, 'Désactiver', GetLocale('fr'));
+  PERFORM EditMethodText(uMethod, 'Disattivare', GetLocale('it'));
+  PERFORM EditMethodText(uMethod, 'Desactivar', GetLocale('es'));
 
-  uMethod := AddMethod(null, pClass, null, GetAction('disable'), null, 'Выключить');
-  PERFORM EditMethodText(uMethod, 'Disable', uLocale);
+  uMethod := AddMethod(null, pClass, null, GetAction('delete'), null, 'Delete');
+  PERFORM EditMethodText(uMethod, 'Удалить', GetLocale('ru'));
+  PERFORM EditMethodText(uMethod, 'Löschen', GetLocale('de'));
+  PERFORM EditMethodText(uMethod, 'Supprimer', GetLocale('fr'));
+  PERFORM EditMethodText(uMethod, 'Eliminare', GetLocale('it'));
+  PERFORM EditMethodText(uMethod, 'Eliminar', GetLocale('es'));
 
-  uMethod := AddMethod(null, pClass, null, GetAction('delete'), null, 'Удалить');
-  PERFORM EditMethodText(uMethod, 'Delete', uLocale);
+  uMethod := AddMethod(null, pClass, null, GetAction('restore'), null, 'Restore');
+  PERFORM EditMethodText(uMethod, 'Восстановить', GetLocale('ru'));
+  PERFORM EditMethodText(uMethod, 'Wiederherstellen', GetLocale('de'));
+  PERFORM EditMethodText(uMethod, 'Restaurer', GetLocale('fr'));
+  PERFORM EditMethodText(uMethod, 'Ripristinare', GetLocale('it'));
+  PERFORM EditMethodText(uMethod, 'Restaurar', GetLocale('es'));
 
-  uMethod := AddMethod(null, pClass, null, GetAction('restore'), null, 'Восстановить');
-  PERFORM EditMethodText(uMethod, 'Restore', uLocale);
-
-  uMethod := AddMethod(null, pClass, null, GetAction('drop'), null, 'Уничтожить');
-  PERFORM EditMethodText(uMethod, 'Drop', uLocale);
+  uMethod := AddMethod(null, pClass, null, GetAction('drop'), null, 'Drop');
+  PERFORM EditMethodText(uMethod, 'Уничтожить', GetLocale('ru'));
+  PERFORM EditMethodText(uMethod, 'Vernichten', GetLocale('de'));
+  PERFORM EditMethodText(uMethod, 'Détruire', GetLocale('fr'));
+  PERFORM EditMethodText(uMethod, 'Distruggere', GetLocale('it'));
+  PERFORM EditMethodText(uMethod, 'Destruir', GetLocale('es'));
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
