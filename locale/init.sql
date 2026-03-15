@@ -7,3 +7,4 @@ INSERT INTO db.locale (id, code, name, description) VALUES ('00000000-0000-4001-
 INSERT INTO db.locale (id, code, name, description) VALUES ('00000000-0000-4001-a000-000000000003', 'de', 'Deutsch',  'Deutsche Sprache');
 INSERT INTO db.locale (id, code, name, description) VALUES ('00000000-0000-4001-a000-000000000004', 'fr', 'Français', 'Langue française');
 INSERT INTO db.locale (id, code, name, description) VALUES ('00000000-0000-4001-a000-000000000005', 'it', 'Italiano', 'Lingua italiana');
+INSERT INTO db.locale (id, code, name, description) VALUES ('00000000-0000-4001-a000-000000000006', 'es', 'Español',  'Lengua española');
