@@ -24,48 +24,48 @@ BEGIN
   LOOP
 
     IF r.code = 'create' THEN
-      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Форма отчёта создана', 'EventReportFormCreate();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'Parent class events');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Report form created', 'EventReportFormCreate();');
     END IF;
 
     IF r.code = 'open' THEN
-      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Форма отчёта открыта', 'EventReportFormOpen();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'Parent class events');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Report form opened', 'EventReportFormOpen();');
     END IF;
 
     IF r.code = 'edit' THEN
-      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Форма отчёта изменена', 'EventReportFormEdit();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'Parent class events');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Report form edited', 'EventReportFormEdit();');
     END IF;
 
     IF r.code = 'save' THEN
-      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Форма отчёта сохранена', 'EventReportFormSave();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'Parent class events');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Report form saved', 'EventReportFormSave();');
     END IF;
 
     IF r.code = 'enable' THEN
-      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Форма отчёта доступна', 'EventReportFormEnable();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'Parent class events');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Report form enabled', 'EventReportFormEnable();');
     END IF;
 
     IF r.code = 'disable' THEN
-      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Форма отчёта недоступна', 'EventReportFormDisable();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'Parent class events');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Report form disabled', 'EventReportFormDisable();');
     END IF;
 
     IF r.code = 'delete' THEN
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Форма отчёта будет удалена', 'EventReportFormDelete();');
-      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Report form will be deleted', 'EventReportFormDelete();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'Parent class events');
     END IF;
 
     IF r.code = 'restore' THEN
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Форма отчёта восстановлена', 'EventReportFormRestore();');
-      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Report form restored', 'EventReportFormRestore();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'Parent class events');
     END IF;
 
     IF r.code = 'drop' THEN
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Форма отчёта будет уничтожена', 'EventReportFormDrop();');
-      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Report form will be dropped', 'EventReportFormDrop();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'Parent class events');
     END IF;
 
   END LOOP;
@@ -87,17 +87,30 @@ AS $$
 DECLARE
   uClass        uuid;
 BEGIN
-  -- Класс
-  uClass := AddClass(pParent, pEntity, 'report_form', 'Форма отчёта', false);
+  -- Class
+  uClass := AddClass(pParent, pEntity, 'report_form', 'Report form', false);
 
-  -- Тип
-  PERFORM AddType(uClass, 'json.report_form', 'JSON', 'Форма отчёта в формате JSON.');
+  PERFORM EditClassText(uClass, 'Форма отчёта', GetLocale('ru'));
+  PERFORM EditClassText(uClass, 'Berichtsformular', GetLocale('de'));
+  PERFORM EditClassText(uClass, 'Formulaire de rapport', GetLocale('fr'));
+  PERFORM EditClassText(uClass, 'Modulo di report', GetLocale('it'));
+  PERFORM EditClassText(uClass, 'Formulario de informe', GetLocale('es'));
 
-  -- Событие
+  -- Type
+  PERFORM AddType(uClass, 'json.report_form', 'JSON', 'Report form in JSON format.');
+  PERFORM EditTypeText(GetType('json.report_form'), 'JSON', 'Форма отчёта в формате JSON.', GetLocale('ru'));
+  PERFORM EditTypeText(GetType('json.report_form'), 'JSON', 'Berichtsformular im JSON-Format.', GetLocale('de'));
+  PERFORM EditTypeText(GetType('json.report_form'), 'JSON', 'Formulaire de rapport au format JSON.', GetLocale('fr'));
+  PERFORM EditTypeText(GetType('json.report_form'), 'JSON', 'Modulo di report in formato JSON.', GetLocale('it'));
+  PERFORM EditTypeText(GetType('json.report_form'), 'JSON', 'Formulario de informe en formato JSON.', GetLocale('es'));
+
+  -- Event
   PERFORM AddReportFormEvents(uClass);
 
-  -- Метод
-  PERFORM AddDefaultMethods(uClass, ARRAY['Создана', 'Открыта', 'Закрыта', 'Удалена', 'Открыть', 'Закрыть', 'Удалить']);
+  -- Method
+  PERFORM AddDefaultMethods(uClass,
+    ARRAY['Created', 'Opened', 'Closed', 'Deleted', 'Open', 'Close', 'Delete'],
+    ARRAY['Создана', 'Открыта', 'Закрыта', 'Удалена', 'Открыть', 'Закрыть', 'Удалить']);
 
   RETURN uClass;
 END
@@ -117,10 +130,16 @@ AS $$
 DECLARE
   uEntity       uuid;
 BEGIN
-  -- Сущность
-  uEntity := AddEntity('report_form', 'Форма отчёта');
+  -- Entity
+  uEntity := AddEntity('report_form', 'Report form');
 
-  -- Класс
+  PERFORM EditEntityText(uEntity, 'Форма отчёта', null, GetLocale('ru'));
+  PERFORM EditEntityText(uEntity, 'Berichtsformular', null, GetLocale('de'));
+  PERFORM EditEntityText(uEntity, 'Formulaire de rapport', null, GetLocale('fr'));
+  PERFORM EditEntityText(uEntity, 'Modulo di report', null, GetLocale('it'));
+  PERFORM EditEntityText(uEntity, 'Formulario de informe', null, GetLocale('es'));
+
+  -- Class
   PERFORM CreateClassReportForm(pParent, uEntity);
 
   -- API

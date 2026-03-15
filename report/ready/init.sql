@@ -13,16 +13,17 @@ RETURNS             void
 AS $$
 DECLARE
   uState            uuid;
+  uMethod           uuid;
 
   rec_type          record;
   rec_state         record;
   rec_method        record;
 BEGIN
-  -- Операции (без учёта состояния)
+  -- Methods (without state)
 
   PERFORM DefaultMethods(pClass);
 
-  -- Операции (с учётом состояния)
+  -- Methods (with state)
 
   FOR rec_type IN SELECT * FROM StateType
   LOOP
@@ -30,47 +31,165 @@ BEGIN
     CASE rec_type.code
     WHEN 'created' THEN
 
-      uState := AddState(pClass, rec_type.id, rec_type.code, 'Создан');
+      uState := AddState(pClass, rec_type.id, rec_type.code, 'Created');
 
-        PERFORM AddMethod(null, pClass, uState, GetAction('execute'));
-        PERFORM AddMethod(null, pClass, uState, GetAction('delete'));
+        PERFORM EditStateText(uState, 'Создан', GetLocale('ru'));
+        PERFORM EditStateText(uState, 'Erstellt', GetLocale('de'));
+        PERFORM EditStateText(uState, 'Créé', GetLocale('fr'));
+        PERFORM EditStateText(uState, 'Creato', GetLocale('it'));
+        PERFORM EditStateText(uState, 'Creado', GetLocale('es'));
+
+        uMethod := AddMethod(null, pClass, uState, GetAction('execute'), null, 'Execute');
+        PERFORM EditMethodText(uMethod, 'Выполнить', GetLocale('ru'));
+        PERFORM EditMethodText(uMethod, 'Ausführen', GetLocale('de'));
+        PERFORM EditMethodText(uMethod, 'Exécuter', GetLocale('fr'));
+        PERFORM EditMethodText(uMethod, 'Eseguire', GetLocale('it'));
+        PERFORM EditMethodText(uMethod, 'Ejecutar', GetLocale('es'));
+
+        uMethod := AddMethod(null, pClass, uState, GetAction('delete'), null, 'Delete');
+        PERFORM EditMethodText(uMethod, 'Удалить', GetLocale('ru'));
+        PERFORM EditMethodText(uMethod, 'Löschen', GetLocale('de'));
+        PERFORM EditMethodText(uMethod, 'Supprimer', GetLocale('fr'));
+        PERFORM EditMethodText(uMethod, 'Eliminare', GetLocale('it'));
+        PERFORM EditMethodText(uMethod, 'Eliminar', GetLocale('es'));
 
     WHEN 'enabled' THEN
 
-      uState := AddState(pClass, rec_type.id, 'progress', 'Выполняется');
+      uState := AddState(pClass, rec_type.id, 'progress', 'In progress');
 
-        PERFORM AddMethod(null, pClass, uState, GetAction('complete'), pvisible => false);
-        PERFORM AddMethod(null, pClass, uState, GetAction('fail'), pvisible => false);
+        PERFORM EditStateText(uState, 'Выполняется', GetLocale('ru'));
+        PERFORM EditStateText(uState, 'In Bearbeitung', GetLocale('de'));
+        PERFORM EditStateText(uState, 'En cours', GetLocale('fr'));
+        PERFORM EditStateText(uState, 'In corso', GetLocale('it'));
+        PERFORM EditStateText(uState, 'En progreso', GetLocale('es'));
 
-        PERFORM AddMethod(null, pClass, uState, GetAction('cancel'));
+        uMethod := AddMethod(null, pClass, uState, GetAction('complete'), null, 'Complete', null, false);
+        PERFORM EditMethodText(uMethod, 'Завершить', GetLocale('ru'));
+        PERFORM EditMethodText(uMethod, 'Abschließen', GetLocale('de'));
+        PERFORM EditMethodText(uMethod, 'Terminer', GetLocale('fr'));
+        PERFORM EditMethodText(uMethod, 'Completare', GetLocale('it'));
+        PERFORM EditMethodText(uMethod, 'Completar', GetLocale('es'));
 
-      uState := AddState(pClass, rec_type.id, 'canceled', 'Отменяется');
+        uMethod := AddMethod(null, pClass, uState, GetAction('fail'), null, 'Fail', null, false);
+        PERFORM EditMethodText(uMethod, 'Неудача', GetLocale('ru'));
+        PERFORM EditMethodText(uMethod, 'Fehlgeschlagen', GetLocale('de'));
+        PERFORM EditMethodText(uMethod, 'Échoué', GetLocale('fr'));
+        PERFORM EditMethodText(uMethod, 'Fallito', GetLocale('it'));
+        PERFORM EditMethodText(uMethod, 'Fallido', GetLocale('es'));
 
-        PERFORM AddMethod(null, pClass, uState, GetAction('abort'), pvisible => false);
+        uMethod := AddMethod(null, pClass, uState, GetAction('cancel'), null, 'Cancel');
+        PERFORM EditMethodText(uMethod, 'Отменить', GetLocale('ru'));
+        PERFORM EditMethodText(uMethod, 'Abbrechen', GetLocale('de'));
+        PERFORM EditMethodText(uMethod, 'Annuler', GetLocale('fr'));
+        PERFORM EditMethodText(uMethod, 'Annullare', GetLocale('it'));
+        PERFORM EditMethodText(uMethod, 'Cancelar', GetLocale('es'));
+
+      uState := AddState(pClass, rec_type.id, 'canceled', 'Canceling');
+
+        PERFORM EditStateText(uState, 'Отменяется', GetLocale('ru'));
+        PERFORM EditStateText(uState, 'Wird abgebrochen', GetLocale('de'));
+        PERFORM EditStateText(uState, 'En annulation', GetLocale('fr'));
+        PERFORM EditStateText(uState, 'In annullamento', GetLocale('it'));
+        PERFORM EditStateText(uState, 'Cancelando', GetLocale('es'));
+
+        uMethod := AddMethod(null, pClass, uState, GetAction('abort'), null, 'Abort', null, false);
+        PERFORM EditMethodText(uMethod, 'Прервать', GetLocale('ru'));
+        PERFORM EditMethodText(uMethod, 'Abbrechen', GetLocale('de'));
+        PERFORM EditMethodText(uMethod, 'Abandonner', GetLocale('fr'));
+        PERFORM EditMethodText(uMethod, 'Interrompere', GetLocale('it'));
+        PERFORM EditMethodText(uMethod, 'Abortar', GetLocale('es'));
 
     WHEN 'disabled' THEN
 
-      uState := AddState(pClass, rec_type.id, 'completed', 'Завершён');
+      uState := AddState(pClass, rec_type.id, 'completed', 'Completed');
 
-        PERFORM AddMethod(null, pClass, uState, GetAction('execute'));
-        PERFORM AddMethod(null, pClass, uState, GetAction('delete'));
+        PERFORM EditStateText(uState, 'Завершён', GetLocale('ru'));
+        PERFORM EditStateText(uState, 'Abgeschlossen', GetLocale('de'));
+        PERFORM EditStateText(uState, 'Terminé', GetLocale('fr'));
+        PERFORM EditStateText(uState, 'Completato', GetLocale('it'));
+        PERFORM EditStateText(uState, 'Completado', GetLocale('es'));
 
-      uState := AddState(pClass, rec_type.id, 'aborted', 'Прерван');
+        uMethod := AddMethod(null, pClass, uState, GetAction('execute'), null, 'Execute');
+        PERFORM EditMethodText(uMethod, 'Выполнить', GetLocale('ru'));
+        PERFORM EditMethodText(uMethod, 'Ausführen', GetLocale('de'));
+        PERFORM EditMethodText(uMethod, 'Exécuter', GetLocale('fr'));
+        PERFORM EditMethodText(uMethod, 'Eseguire', GetLocale('it'));
+        PERFORM EditMethodText(uMethod, 'Ejecutar', GetLocale('es'));
 
-        PERFORM AddMethod(null, pClass, uState, GetAction('execute'));
-        PERFORM AddMethod(null, pClass, uState, GetAction('delete'));
+        uMethod := AddMethod(null, pClass, uState, GetAction('delete'), null, 'Delete');
+        PERFORM EditMethodText(uMethod, 'Удалить', GetLocale('ru'));
+        PERFORM EditMethodText(uMethod, 'Löschen', GetLocale('de'));
+        PERFORM EditMethodText(uMethod, 'Supprimer', GetLocale('fr'));
+        PERFORM EditMethodText(uMethod, 'Eliminare', GetLocale('it'));
+        PERFORM EditMethodText(uMethod, 'Eliminar', GetLocale('es'));
 
-      uState := AddState(pClass, rec_type.id, 'failed', 'Ошибка');
+      uState := AddState(pClass, rec_type.id, 'aborted', 'Aborted');
 
-        PERFORM AddMethod(null, pClass, uState, GetAction('execute'));
-        PERFORM AddMethod(null, pClass, uState, GetAction('delete'));
+        PERFORM EditStateText(uState, 'Прерван', GetLocale('ru'));
+        PERFORM EditStateText(uState, 'Abgebrochen', GetLocale('de'));
+        PERFORM EditStateText(uState, 'Abandonné', GetLocale('fr'));
+        PERFORM EditStateText(uState, 'Interrotto', GetLocale('it'));
+        PERFORM EditStateText(uState, 'Abortado', GetLocale('es'));
+
+        uMethod := AddMethod(null, pClass, uState, GetAction('execute'), null, 'Execute');
+        PERFORM EditMethodText(uMethod, 'Выполнить', GetLocale('ru'));
+        PERFORM EditMethodText(uMethod, 'Ausführen', GetLocale('de'));
+        PERFORM EditMethodText(uMethod, 'Exécuter', GetLocale('fr'));
+        PERFORM EditMethodText(uMethod, 'Eseguire', GetLocale('it'));
+        PERFORM EditMethodText(uMethod, 'Ejecutar', GetLocale('es'));
+
+        uMethod := AddMethod(null, pClass, uState, GetAction('delete'), null, 'Delete');
+        PERFORM EditMethodText(uMethod, 'Удалить', GetLocale('ru'));
+        PERFORM EditMethodText(uMethod, 'Löschen', GetLocale('de'));
+        PERFORM EditMethodText(uMethod, 'Supprimer', GetLocale('fr'));
+        PERFORM EditMethodText(uMethod, 'Eliminare', GetLocale('it'));
+        PERFORM EditMethodText(uMethod, 'Eliminar', GetLocale('es'));
+
+      uState := AddState(pClass, rec_type.id, 'failed', 'Failed');
+
+        PERFORM EditStateText(uState, 'Ошибка', GetLocale('ru'));
+        PERFORM EditStateText(uState, 'Fehlgeschlagen', GetLocale('de'));
+        PERFORM EditStateText(uState, 'Échoué', GetLocale('fr'));
+        PERFORM EditStateText(uState, 'Fallito', GetLocale('it'));
+        PERFORM EditStateText(uState, 'Fallido', GetLocale('es'));
+
+        uMethod := AddMethod(null, pClass, uState, GetAction('execute'), null, 'Execute');
+        PERFORM EditMethodText(uMethod, 'Выполнить', GetLocale('ru'));
+        PERFORM EditMethodText(uMethod, 'Ausführen', GetLocale('de'));
+        PERFORM EditMethodText(uMethod, 'Exécuter', GetLocale('fr'));
+        PERFORM EditMethodText(uMethod, 'Eseguire', GetLocale('it'));
+        PERFORM EditMethodText(uMethod, 'Ejecutar', GetLocale('es'));
+
+        uMethod := AddMethod(null, pClass, uState, GetAction('delete'), null, 'Delete');
+        PERFORM EditMethodText(uMethod, 'Удалить', GetLocale('ru'));
+        PERFORM EditMethodText(uMethod, 'Löschen', GetLocale('de'));
+        PERFORM EditMethodText(uMethod, 'Supprimer', GetLocale('fr'));
+        PERFORM EditMethodText(uMethod, 'Eliminare', GetLocale('it'));
+        PERFORM EditMethodText(uMethod, 'Eliminar', GetLocale('es'));
 
     WHEN 'deleted' THEN
 
-      uState := AddState(pClass, rec_type.id, rec_type.code, 'Удалён');
+      uState := AddState(pClass, rec_type.id, rec_type.code, 'Deleted');
 
-        PERFORM AddMethod(null, pClass, uState, GetAction('restore'));
-        PERFORM AddMethod(null, pClass, uState, GetAction('drop'));
+        PERFORM EditStateText(uState, 'Удалён', GetLocale('ru'));
+        PERFORM EditStateText(uState, 'Gelöscht', GetLocale('de'));
+        PERFORM EditStateText(uState, 'Supprimé', GetLocale('fr'));
+        PERFORM EditStateText(uState, 'Eliminato', GetLocale('it'));
+        PERFORM EditStateText(uState, 'Eliminado', GetLocale('es'));
+
+        uMethod := AddMethod(null, pClass, uState, GetAction('restore'), null, 'Restore');
+        PERFORM EditMethodText(uMethod, 'Восстановить', GetLocale('ru'));
+        PERFORM EditMethodText(uMethod, 'Wiederherstellen', GetLocale('de'));
+        PERFORM EditMethodText(uMethod, 'Restaurer', GetLocale('fr'));
+        PERFORM EditMethodText(uMethod, 'Ripristinare', GetLocale('it'));
+        PERFORM EditMethodText(uMethod, 'Restaurar', GetLocale('es'));
+
+        uMethod := AddMethod(null, pClass, uState, GetAction('drop'), null, 'Drop');
+        PERFORM EditMethodText(uMethod, 'Уничтожить', GetLocale('ru'));
+        PERFORM EditMethodText(uMethod, 'Vernichten', GetLocale('de'));
+        PERFORM EditMethodText(uMethod, 'Détruire', GetLocale('fr'));
+        PERFORM EditMethodText(uMethod, 'Distruggere', GetLocale('it'));
+        PERFORM EditMethodText(uMethod, 'Destruir', GetLocale('es'));
 
     END CASE;
 
@@ -78,7 +197,7 @@ BEGIN
 
   PERFORM DefaultTransition(pClass);
 
-  -- Переходы из состояния в состояние
+  -- Transitions between states
 
   FOR rec_state IN SELECT * FROM State WHERE class = pClass
   LOOP
@@ -198,73 +317,73 @@ BEGIN
   LOOP
 
     IF r.code = 'create' THEN
-      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Готовый отчёт создано', 'EventReportReadyCreate();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'Parent class events');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Ready report created', 'EventReportReadyCreate();');
     END IF;
 
     IF r.code = 'open' THEN
-      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Готовый отчёт открыто', 'EventReportReadyOpen();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'Parent class events');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Ready report opened', 'EventReportReadyOpen();');
     END IF;
 
     IF r.code = 'edit' THEN
-      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Готовый отчёт изменено', 'EventReportReadyEdit();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'Parent class events');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Ready report edited', 'EventReportReadyEdit();');
     END IF;
 
     IF r.code = 'save' THEN
-      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Готовый отчёт сохранено', 'EventReportReadySave();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'Parent class events');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Ready report saved', 'EventReportReadySave();');
     END IF;
 
     IF r.code = 'enable' THEN
-      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Готовый отчёт включено', 'EventReportReadyEnable();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'Parent class events');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Ready report enabled', 'EventReportReadyEnable();');
     END IF;
 
     IF r.code = 'disable' THEN
-      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Готовый отчёт отключено', 'EventReportReadyDisable();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'Parent class events');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Ready report disabled', 'EventReportReadyDisable();');
     END IF;
 
     IF r.code = 'execute' THEN
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Смена состояния', 'ChangeObjectState();');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Готовый отчёт выполняется', 'EventReportReadyExecute();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'State change', 'ChangeObjectState();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Ready report in progress', 'EventReportReadyExecute();');
     END IF;
 
     IF r.code = 'complete' THEN
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Смена состояния', 'ChangeObjectState();');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Готовый отчёт выполнен', 'EventReportReadyComplete();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'State change', 'ChangeObjectState();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Ready report completed', 'EventReportReadyComplete();');
     END IF;
 
     IF r.code = 'fail' THEN
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Смена состояния', 'ChangeObjectState();');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Сбой при выполнении задания', 'EventReportReadyFail();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'State change', 'ChangeObjectState();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Ready report failed', 'EventReportReadyFail();');
     END IF;
 
     IF r.code = 'abort' THEN
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Смена состояния', 'ChangeObjectState();');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Готовый отчёт прервано', 'EventReportReadyAbort();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'State change', 'ChangeObjectState();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Ready report aborted', 'EventReportReadyAbort();');
     END IF;
 
     IF r.code = 'cancel' THEN
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Смена состояния', 'ChangeObjectState();');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Готовый отчёт отменено', 'EventReportReadyCancel();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'State change', 'ChangeObjectState();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Ready report canceled', 'EventReportReadyCancel();');
     END IF;
 
     IF r.code = 'delete' THEN
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Готовый отчёт будет удалено', 'EventReportReadyDelete();');
-      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Ready report will be deleted', 'EventReportReadyDelete();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'Parent class events');
     END IF;
 
     IF r.code = 'restore' THEN
-      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Готовый отчёт восстановлено', 'EventReportReadyRestore();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'Parent class events');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Ready report restored', 'EventReportReadyRestore();');
     END IF;
 
     IF r.code = 'drop' THEN
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Готовый отчёт будет уничтожено', 'EventReportReadyDrop();');
-      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Ready report will be dropped', 'EventReportReadyDrop();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'Parent class events');
     END IF;
 
   END LOOP;
@@ -286,17 +405,34 @@ AS $$
 DECLARE
   uClass        uuid;
 BEGIN
-  -- Класс
-  uClass := AddClass(pParent, pEntity, 'report_ready', 'Готовый отчёт', false);
+  -- Class
+  uClass := AddClass(pParent, pEntity, 'report_ready', 'Ready report', false);
 
-  -- Тип
-  PERFORM AddType(uClass, 'sync.report_ready', 'Синхронный', 'Синхронный отчёт.');
-  PERFORM AddType(uClass, 'async.report_ready', 'Асинхронный', 'Асинхронный отчёт.');
+  PERFORM EditClassText(uClass, 'Готовый отчёт', GetLocale('ru'));
+  PERFORM EditClassText(uClass, 'Fertiger Bericht', GetLocale('de'));
+  PERFORM EditClassText(uClass, 'Rapport prêt', GetLocale('fr'));
+  PERFORM EditClassText(uClass, 'Report pronto', GetLocale('it'));
+  PERFORM EditClassText(uClass, 'Informe listo', GetLocale('es'));
 
-  -- Событие
+  -- Type
+  PERFORM AddType(uClass, 'sync.report_ready', 'Synchronous', 'Synchronous report.');
+  PERFORM EditTypeText(GetType('sync.report_ready'), 'Синхронный', 'Синхронный отчёт.', GetLocale('ru'));
+  PERFORM EditTypeText(GetType('sync.report_ready'), 'Synchron', 'Synchroner Bericht.', GetLocale('de'));
+  PERFORM EditTypeText(GetType('sync.report_ready'), 'Synchrone', 'Rapport synchrone.', GetLocale('fr'));
+  PERFORM EditTypeText(GetType('sync.report_ready'), 'Sincrono', 'Report sincrono.', GetLocale('it'));
+  PERFORM EditTypeText(GetType('sync.report_ready'), 'Síncrono', 'Informe síncrono.', GetLocale('es'));
+
+  PERFORM AddType(uClass, 'async.report_ready', 'Asynchronous', 'Asynchronous report.');
+  PERFORM EditTypeText(GetType('async.report_ready'), 'Асинхронный', 'Асинхронный отчёт.', GetLocale('ru'));
+  PERFORM EditTypeText(GetType('async.report_ready'), 'Asynchron', 'Asynchroner Bericht.', GetLocale('de'));
+  PERFORM EditTypeText(GetType('async.report_ready'), 'Asynchrone', 'Rapport asynchrone.', GetLocale('fr'));
+  PERFORM EditTypeText(GetType('async.report_ready'), 'Asincrono', 'Report asincrono.', GetLocale('it'));
+  PERFORM EditTypeText(GetType('async.report_ready'), 'Asíncrono', 'Informe asíncrono.', GetLocale('es'));
+
+  -- Event
   PERFORM AddReportReadyEvents(uClass);
 
-  -- Метод
+  -- Method
   PERFORM AddReportReadyMethods(uClass);
 
   RETURN uClass;
@@ -317,10 +453,16 @@ AS $$
 DECLARE
   uEntity       uuid;
 BEGIN
-  -- Сущность
-  uEntity := AddEntity('report_ready', 'Готовый отчёт');
+  -- Entity
+  uEntity := AddEntity('report_ready', 'Ready report');
 
-  -- Класс
+  PERFORM EditEntityText(uEntity, 'Готовый отчёт', null, GetLocale('ru'));
+  PERFORM EditEntityText(uEntity, 'Fertiger Bericht', null, GetLocale('de'));
+  PERFORM EditEntityText(uEntity, 'Rapport prêt', null, GetLocale('fr'));
+  PERFORM EditEntityText(uEntity, 'Report pronto', null, GetLocale('it'));
+  PERFORM EditEntityText(uEntity, 'Informe listo', null, GetLocale('es'));
+
+  -- Class
   PERFORM CreateClassReportReady(pParent, uEntity);
 
   -- API
