@@ -31,7 +31,7 @@ DROP TABLE db.turn_over CASCADE;
 
 \connect :dbname admin
 
-SELECT SignIn(CreateSystemOAuth2(), 'admin', 'admin');
+SELECT SignIn(CreateSystemOAuth2(), 'admin', :'admin');
 
 SELECT GetErrorMessage();
 
@@ -51,7 +51,7 @@ SELECT SignOut();
 
 \connect :dbname kernel
 
-SELECT SignIn(CreateSystemOAuth2(), 'admin', 'admin');
+SELECT SignIn(CreateSystemOAuth2(), 'admin', :'admin');
 
 INSERT INTO db.balance SELECT id, type, GetAccount(encode(digest(client::text, 'sha1'), 'hex'), GetCurrency('RUB')), amount, validfromdate, validtodate FROM db._balance;
 INSERT INTO db.turnover SELECT id, type, GetAccount(encode(digest(client::text, 'sha1'), 'hex'), GetCurrency('RUB')), debit, credit, turn_date, updated FROM db._turnover;

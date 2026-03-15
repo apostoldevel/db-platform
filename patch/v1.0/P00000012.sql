@@ -22,7 +22,7 @@ WITH RECURSIVE area_tree(id, parent) AS (
 
 \ir '../admin/routine.sql'
 
-SELECT SignIn(CreateSystemOAuth2(), 'admin', 'admin');
+SELECT SignIn(CreateSystemOAuth2(), 'admin', :'admin');
 
 SELECT GetErrorMessage();
 

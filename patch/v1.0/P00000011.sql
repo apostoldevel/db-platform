@@ -37,7 +37,7 @@ CREATE TRIGGER t_message_after_insert
 
 --------------------------------------------------------------------------------
 
-SELECT SignIn(CreateSystemOAuth2(), 'admin', 'admin');
+SELECT SignIn(CreateSystemOAuth2(), 'admin', :'admin');
 
 SELECT GetErrorMessage();
 

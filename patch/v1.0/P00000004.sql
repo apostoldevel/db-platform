@@ -35,7 +35,7 @@ CREATE INDEX ON db.model_property (measure);
 
 \connect :dbname admin
 
-SELECT SignIn(CreateSystemOAuth2(), 'admin', 'admin');
+SELECT SignIn(CreateSystemOAuth2(), 'admin', :'admin');
 
 SELECT GetErrorMessage();
 
