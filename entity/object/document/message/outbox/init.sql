@@ -13,16 +13,17 @@ RETURNS             void
 AS $$
 DECLARE
   uState            uuid;
+  uMethod           uuid;
 
   rec_type          record;
   rec_state         record;
   rec_method        record;
 BEGIN
-  -- Операции (без учёта состояния)
+  -- Methods (without state)
 
   PERFORM DefaultMethods(pClass);
 
-  -- Операции (с учётом состояния)
+  -- Methods (with state)
 
   FOR rec_type IN SELECT * FROM StateType
   LOOP
@@ -30,46 +31,164 @@ BEGIN
     CASE rec_type.code
     WHEN 'created' THEN
 
-      uState := SetState(null, pClass, rec_type.id, rec_type.code, 'Создано');
+      uState := SetState(null, pClass, rec_type.id, rec_type.code, 'Created');
 
-        PERFORM AddMethod(null, pClass, uState, GetAction('submit'));
-        PERFORM AddMethod(null, pClass, uState, GetAction('delete'));
+        PERFORM EditStateText(uState, 'Создано', GetLocale('ru'));
+        PERFORM EditStateText(uState, 'Erstellt', GetLocale('de'));
+        PERFORM EditStateText(uState, 'Créé', GetLocale('fr'));
+        PERFORM EditStateText(uState, 'Creato', GetLocale('it'));
+        PERFORM EditStateText(uState, 'Creado', GetLocale('es'));
+
+        uMethod := AddMethod(null, pClass, uState, GetAction('submit'), null, 'Prepare');
+        PERFORM EditMethodText(uMethod, 'Подготовить', GetLocale('ru'));
+        PERFORM EditMethodText(uMethod, 'Vorbereiten', GetLocale('de'));
+        PERFORM EditMethodText(uMethod, 'Préparer', GetLocale('fr'));
+        PERFORM EditMethodText(uMethod, 'Preparare', GetLocale('it'));
+        PERFORM EditMethodText(uMethod, 'Preparar', GetLocale('es'));
+
+        uMethod := AddMethod(null, pClass, uState, GetAction('delete'), null, 'Delete');
+        PERFORM EditMethodText(uMethod, 'Удалить', GetLocale('ru'));
+        PERFORM EditMethodText(uMethod, 'Löschen', GetLocale('de'));
+        PERFORM EditMethodText(uMethod, 'Supprimer', GetLocale('fr'));
+        PERFORM EditMethodText(uMethod, 'Eliminare', GetLocale('it'));
+        PERFORM EditMethodText(uMethod, 'Eliminar', GetLocale('es'));
 
     WHEN 'enabled' THEN
 
-      uState := SetState(null, pClass, rec_type.id, 'prepared', 'Подготовлено');
+      uState := SetState(null, pClass, rec_type.id, 'prepared', 'Prepared');
 
-        PERFORM AddMethod(null, pClass, uState, GetAction('send'), pvisible => false);
-        PERFORM AddMethod(null, pClass, uState, GetAction('done'), pvisible => false);
-        PERFORM AddMethod(null, pClass, uState, GetAction('fail'), pvisible => false);
+        PERFORM EditStateText(uState, 'Подготовлено', GetLocale('ru'));
+        PERFORM EditStateText(uState, 'Vorbereitet', GetLocale('de'));
+        PERFORM EditStateText(uState, 'Préparé', GetLocale('fr'));
+        PERFORM EditStateText(uState, 'Preparato', GetLocale('it'));
+        PERFORM EditStateText(uState, 'Preparado', GetLocale('es'));
 
-        PERFORM AddMethod(null, pClass, uState, GetAction('cancel'));
+        uMethod := AddMethod(null, pClass, uState, GetAction('send'), pvisible => false);
+        PERFORM EditMethodText(uMethod, 'Отправить', GetLocale('ru'));
+        PERFORM EditMethodText(uMethod, 'Senden', GetLocale('de'));
+        PERFORM EditMethodText(uMethod, 'Envoyer', GetLocale('fr'));
+        PERFORM EditMethodText(uMethod, 'Inviare', GetLocale('it'));
+        PERFORM EditMethodText(uMethod, 'Enviar', GetLocale('es'));
 
-      uState := SetState(null, pClass, rec_type.id, 'sending', 'Отправка');
+        uMethod := AddMethod(null, pClass, uState, GetAction('done'), pvisible => false);
+        PERFORM EditMethodText(uMethod, 'Сделано', GetLocale('ru'));
+        PERFORM EditMethodText(uMethod, 'Erledigt', GetLocale('de'));
+        PERFORM EditMethodText(uMethod, 'Terminé', GetLocale('fr'));
+        PERFORM EditMethodText(uMethod, 'Fatto', GetLocale('it'));
+        PERFORM EditMethodText(uMethod, 'Hecho', GetLocale('es'));
 
-        PERFORM AddMethod(null, pClass, uState, GetAction('done'), pvisible => false);
-        PERFORM AddMethod(null, pClass, uState, GetAction('fail'), pvisible => false);
+        uMethod := AddMethod(null, pClass, uState, GetAction('fail'), pvisible => false);
+        PERFORM EditMethodText(uMethod, 'Неудача', GetLocale('ru'));
+        PERFORM EditMethodText(uMethod, 'Fehlgeschlagen', GetLocale('de'));
+        PERFORM EditMethodText(uMethod, 'Échoué', GetLocale('fr'));
+        PERFORM EditMethodText(uMethod, 'Fallito', GetLocale('it'));
+        PERFORM EditMethodText(uMethod, 'Fallido', GetLocale('es'));
 
-        PERFORM AddMethod(null, pClass, uState, GetAction('delete'));
+        uMethod := AddMethod(null, pClass, uState, GetAction('cancel'), null, 'Cancel');
+        PERFORM EditMethodText(uMethod, 'Отменить', GetLocale('ru'));
+        PERFORM EditMethodText(uMethod, 'Abbrechen', GetLocale('de'));
+        PERFORM EditMethodText(uMethod, 'Annuler', GetLocale('fr'));
+        PERFORM EditMethodText(uMethod, 'Annullare', GetLocale('it'));
+        PERFORM EditMethodText(uMethod, 'Cancelar', GetLocale('es'));
+
+      uState := SetState(null, pClass, rec_type.id, 'sending', 'Sending');
+
+        PERFORM EditStateText(uState, 'Отправка', GetLocale('ru'));
+        PERFORM EditStateText(uState, 'Wird gesendet', GetLocale('de'));
+        PERFORM EditStateText(uState, 'En cours d''envoi', GetLocale('fr'));
+        PERFORM EditStateText(uState, 'In invio', GetLocale('it'));
+        PERFORM EditStateText(uState, 'Enviando', GetLocale('es'));
+
+        uMethod := AddMethod(null, pClass, uState, GetAction('done'), pvisible => false);
+        PERFORM EditMethodText(uMethod, 'Сделано', GetLocale('ru'));
+        PERFORM EditMethodText(uMethod, 'Erledigt', GetLocale('de'));
+        PERFORM EditMethodText(uMethod, 'Terminé', GetLocale('fr'));
+        PERFORM EditMethodText(uMethod, 'Fatto', GetLocale('it'));
+        PERFORM EditMethodText(uMethod, 'Hecho', GetLocale('es'));
+
+        uMethod := AddMethod(null, pClass, uState, GetAction('fail'), pvisible => false);
+        PERFORM EditMethodText(uMethod, 'Неудача', GetLocale('ru'));
+        PERFORM EditMethodText(uMethod, 'Fehlgeschlagen', GetLocale('de'));
+        PERFORM EditMethodText(uMethod, 'Échoué', GetLocale('fr'));
+        PERFORM EditMethodText(uMethod, 'Fallito', GetLocale('it'));
+        PERFORM EditMethodText(uMethod, 'Fallido', GetLocale('es'));
+
+        uMethod := AddMethod(null, pClass, uState, GetAction('delete'), null, 'Delete');
+        PERFORM EditMethodText(uMethod, 'Удалить', GetLocale('ru'));
+        PERFORM EditMethodText(uMethod, 'Löschen', GetLocale('de'));
+        PERFORM EditMethodText(uMethod, 'Supprimer', GetLocale('fr'));
+        PERFORM EditMethodText(uMethod, 'Eliminare', GetLocale('it'));
+        PERFORM EditMethodText(uMethod, 'Eliminar', GetLocale('es'));
 
     WHEN 'disabled' THEN
 
-      uState := SetState(null, pClass, rec_type.id, 'submitted', 'Отправлено');
+      uState := SetState(null, pClass, rec_type.id, 'submitted', 'Sent');
 
-        PERFORM AddMethod(null, pClass, uState, GetAction('repeat'));
-        PERFORM AddMethod(null, pClass, uState, GetAction('delete'));
+        PERFORM EditStateText(uState, 'Отправлено', GetLocale('ru'));
+        PERFORM EditStateText(uState, 'Gesendet', GetLocale('de'));
+        PERFORM EditStateText(uState, 'Envoyé', GetLocale('fr'));
+        PERFORM EditStateText(uState, 'Inviato', GetLocale('it'));
+        PERFORM EditStateText(uState, 'Enviado', GetLocale('es'));
 
-      uState := SetState(null, pClass, rec_type.id, 'failed', 'Ошибка');
+        uMethod := AddMethod(null, pClass, uState, GetAction('repeat'), null, 'Repeat');
+        PERFORM EditMethodText(uMethod, 'Повторить', GetLocale('ru'));
+        PERFORM EditMethodText(uMethod, 'Wiederholen', GetLocale('de'));
+        PERFORM EditMethodText(uMethod, 'Répéter', GetLocale('fr'));
+        PERFORM EditMethodText(uMethod, 'Ripetere', GetLocale('it'));
+        PERFORM EditMethodText(uMethod, 'Repetir', GetLocale('es'));
 
-        PERFORM AddMethod(null, pClass, uState, GetAction('repeat'));
-        PERFORM AddMethod(null, pClass, uState, GetAction('delete'));
+        uMethod := AddMethod(null, pClass, uState, GetAction('delete'), null, 'Delete');
+        PERFORM EditMethodText(uMethod, 'Удалить', GetLocale('ru'));
+        PERFORM EditMethodText(uMethod, 'Löschen', GetLocale('de'));
+        PERFORM EditMethodText(uMethod, 'Supprimer', GetLocale('fr'));
+        PERFORM EditMethodText(uMethod, 'Eliminare', GetLocale('it'));
+        PERFORM EditMethodText(uMethod, 'Eliminar', GetLocale('es'));
+
+      uState := SetState(null, pClass, rec_type.id, 'failed', 'Failed');
+
+        PERFORM EditStateText(uState, 'Ошибка', GetLocale('ru'));
+        PERFORM EditStateText(uState, 'Fehlgeschlagen', GetLocale('de'));
+        PERFORM EditStateText(uState, 'Échoué', GetLocale('fr'));
+        PERFORM EditStateText(uState, 'Fallito', GetLocale('it'));
+        PERFORM EditStateText(uState, 'Fallido', GetLocale('es'));
+
+        uMethod := AddMethod(null, pClass, uState, GetAction('repeat'), null, 'Repeat');
+        PERFORM EditMethodText(uMethod, 'Повторить', GetLocale('ru'));
+        PERFORM EditMethodText(uMethod, 'Wiederholen', GetLocale('de'));
+        PERFORM EditMethodText(uMethod, 'Répéter', GetLocale('fr'));
+        PERFORM EditMethodText(uMethod, 'Ripetere', GetLocale('it'));
+        PERFORM EditMethodText(uMethod, 'Repetir', GetLocale('es'));
+
+        uMethod := AddMethod(null, pClass, uState, GetAction('delete'), null, 'Delete');
+        PERFORM EditMethodText(uMethod, 'Удалить', GetLocale('ru'));
+        PERFORM EditMethodText(uMethod, 'Löschen', GetLocale('de'));
+        PERFORM EditMethodText(uMethod, 'Supprimer', GetLocale('fr'));
+        PERFORM EditMethodText(uMethod, 'Eliminare', GetLocale('it'));
+        PERFORM EditMethodText(uMethod, 'Eliminar', GetLocale('es'));
 
     WHEN 'deleted' THEN
 
-      uState := SetState(null, pClass, rec_type.id, rec_type.code, 'Удалено');
+      uState := SetState(null, pClass, rec_type.id, rec_type.code, 'Deleted');
 
-        PERFORM AddMethod(null, pClass, uState, GetAction('restore'));
-        PERFORM AddMethod(null, pClass, uState, GetAction('drop'));
+        PERFORM EditStateText(uState, 'Удалено', GetLocale('ru'));
+        PERFORM EditStateText(uState, 'Gelöscht', GetLocale('de'));
+        PERFORM EditStateText(uState, 'Supprimé', GetLocale('fr'));
+        PERFORM EditStateText(uState, 'Eliminato', GetLocale('it'));
+        PERFORM EditStateText(uState, 'Eliminado', GetLocale('es'));
+
+        uMethod := AddMethod(null, pClass, uState, GetAction('restore'), null, 'Restore');
+        PERFORM EditMethodText(uMethod, 'Восстановить', GetLocale('ru'));
+        PERFORM EditMethodText(uMethod, 'Wiederherstellen', GetLocale('de'));
+        PERFORM EditMethodText(uMethod, 'Restaurer', GetLocale('fr'));
+        PERFORM EditMethodText(uMethod, 'Ripristinare', GetLocale('it'));
+        PERFORM EditMethodText(uMethod, 'Restaurar', GetLocale('es'));
+
+        uMethod := AddMethod(null, pClass, uState, GetAction('drop'), null, 'Drop');
+        PERFORM EditMethodText(uMethod, 'Уничтожить', GetLocale('ru'));
+        PERFORM EditMethodText(uMethod, 'Vernichten', GetLocale('de'));
+        PERFORM EditMethodText(uMethod, 'Détruire', GetLocale('fr'));
+        PERFORM EditMethodText(uMethod, 'Distruggere', GetLocale('it'));
+        PERFORM EditMethodText(uMethod, 'Destruir', GetLocale('es'));
 
     END CASE;
 
@@ -77,7 +196,7 @@ BEGIN
 
   PERFORM DefaultTransition(pClass);
 
-  -- Переходы из состояния в состояние
+  -- State transitions
 
   FOR rec_state IN SELECT * FROM State WHERE class = pClass
   LOOP
@@ -196,68 +315,68 @@ BEGIN
   LOOP
 
     IF r.code = 'create' THEN
-      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Исходящее сообщение создано', 'EventOutboxCreate();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'Parent class events');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Outbox message created', 'EventOutboxCreate();');
     END IF;
 
     IF r.code = 'open' THEN
-      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Исходящее сообщение открыто', 'EventOutboxOpen();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'Parent class events');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Outbox message opened', 'EventOutboxOpen();');
     END IF;
 
     IF r.code = 'edit' THEN
-      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Исходящее сообщение изменено', 'EventOutboxEdit();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'Parent class events');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Outbox message edited', 'EventOutboxEdit();');
     END IF;
 
     IF r.code = 'save' THEN
-      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Исходящее сообщение сохранено', 'EventOutboxSave();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'Parent class events');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Outbox message saved', 'EventOutboxSave();');
     END IF;
 
     IF r.code = 'submit' THEN
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Смена состояния', 'ChangeObjectState();');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Исходящее сообщение готово к отправке', 'EventOutboxSubmit();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'State change', 'ChangeObjectState();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Outbox message submitted', 'EventOutboxSubmit();');
     END IF;
 
     IF r.code = 'send' THEN
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Смена состояния', 'ChangeObjectState();');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Исходящее сообщение отправляется', 'EventOutboxSend();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'State change', 'ChangeObjectState();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Outbox message sending', 'EventOutboxSend();');
     END IF;
 
     IF r.code = 'cancel' THEN
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Смена состояния', 'ChangeObjectState();');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Отправка сообщения отменена', 'EventOutboxCancel();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'State change', 'ChangeObjectState();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Outbox message canceled', 'EventOutboxCancel();');
     END IF;
 
     IF r.code = 'done' THEN
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Смена состояния', 'ChangeObjectState();');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Исходящее сообщение отправено', 'EventOutboxDone();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'State change', 'ChangeObjectState();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Outbox message done', 'EventOutboxDone();');
     END IF;
 
     IF r.code = 'fail' THEN
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Смена состояния', 'ChangeObjectState();');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Сбой при отправке сообщения', 'EventOutboxFail();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'State change', 'ChangeObjectState();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Outbox message failed', 'EventOutboxFail();');
     END IF;
 
     IF r.code = 'repeat' THEN
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Смена состояния', 'ChangeObjectState();');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Повторная отправка сообщения', 'EventOutboxRepeat();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'State change', 'ChangeObjectState();');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Outbox message will be repeated', 'EventOutboxRepeat();');
     END IF;
 
     IF r.code = 'delete' THEN
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Исходящее сообщение будет удалено', 'EventOutboxDelete();');
-      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Outbox message will be deleted', 'EventOutboxDelete();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'Parent class events');
     END IF;
 
     IF r.code = 'restore' THEN
-      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Исходящее сообщение восстановлено', 'EventOutboxRestore();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'Parent class events');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Outbox message restored', 'EventOutboxRestore();');
     END IF;
 
     IF r.code = 'drop' THEN
-      PERFORM AddEvent(pClass, uEvent, r.id, 'Исходящее сообщение будет уничтожено', 'EventOutboxDrop();');
-      PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+      PERFORM AddEvent(pClass, uEvent, r.id, 'Outbox message will be dropped', 'EventOutboxDrop();');
+      PERFORM AddEvent(pClass, uParent, r.id, 'Parent class events');
     END IF;
 
   END LOOP;
@@ -279,16 +398,28 @@ AS $$
 DECLARE
   uClass        uuid;
 BEGIN
-  -- Класс
-  uClass := AddClass(pParent, pEntity, 'outbox', 'Исходящее', false);
+  -- Class
+  uClass := AddClass(pParent, pEntity, 'outbox', 'Outbox', false);
 
-  -- Тип
-  PERFORM AddType(uClass, 'message.outbox', 'Исходящие', 'Исходящие сообщение.');
+  PERFORM EditClassText(uClass, 'Исходящее', GetLocale('ru'));
+  PERFORM EditClassText(uClass, 'Ausgang', GetLocale('de'));
+  PERFORM EditClassText(uClass, 'Boîte d''envoi', GetLocale('fr'));
+  PERFORM EditClassText(uClass, 'Posta in uscita', GetLocale('it'));
+  PERFORM EditClassText(uClass, 'Bandeja de salida', GetLocale('es'));
 
-  -- Событие
+  -- Type
+  PERFORM AddType(uClass, 'message.outbox', 'Outbox', 'Outgoing message.');
+
+  PERFORM EditTypeText(GetType('message.outbox'), 'Исходящие', 'Исходящие сообщение.', GetLocale('ru'));
+  PERFORM EditTypeText(GetType('message.outbox'), 'Ausgang', 'Ausgehende Nachricht.', GetLocale('de'));
+  PERFORM EditTypeText(GetType('message.outbox'), 'Envoi', 'Message sortant.', GetLocale('fr'));
+  PERFORM EditTypeText(GetType('message.outbox'), 'In uscita', 'Messaggio in uscita.', GetLocale('it'));
+  PERFORM EditTypeText(GetType('message.outbox'), 'Salida', 'Mensaje saliente.', GetLocale('es'));
+
+  -- Event
   PERFORM AddOutboxEvents(uClass);
 
-  -- Метод
+  -- Method
   PERFORM AddOutboxMethods(uClass);
 
   RETURN uClass;

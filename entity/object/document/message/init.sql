@@ -20,7 +20,7 @@ BEGIN
 
   FOR r IN SELECT * FROM Action
   LOOP
-    PERFORM AddEvent(pClass, uParent, r.id, 'События класса родителя');
+    PERFORM AddEvent(pClass, uParent, r.id, 'Parent class events');
   END LOOP;
 END
 $$ LANGUAGE plpgsql
@@ -40,15 +40,21 @@ AS $$
 DECLARE
   uClass        uuid;
 BEGIN
-  -- Класс
-  uClass := AddClass(pParent, pEntity, 'message', 'Сообщения', true);
+  -- Class
+  uClass := AddClass(pParent, pEntity, 'message', 'Message', true);
 
-  -- Тип
+  PERFORM EditClassText(uClass, 'Сообщение', GetLocale('ru'));
+  PERFORM EditClassText(uClass, 'Nachricht', GetLocale('de'));
+  PERFORM EditClassText(uClass, 'Message', GetLocale('fr'));
+  PERFORM EditClassText(uClass, 'Messaggio', GetLocale('it'));
+  PERFORM EditClassText(uClass, 'Mensaje', GetLocale('es'));
 
-  -- Событие
+  -- Type
+
+  -- Event
   PERFORM AddMessageEvents(uClass);
 
-  -- Метод
+  -- Method
   PERFORM AddDefaultMethods(uClass);
 
   RETURN uClass;
@@ -70,10 +76,16 @@ DECLARE
   uEntity       uuid;
   uClass        uuid;
 BEGIN
-  -- Сущность
-  uEntity := AddEntity('message', 'Сообщение');
+  -- Entity
+  uEntity := AddEntity('message', 'Message');
 
-  -- Класс
+  PERFORM EditEntityText(uEntity, 'Сообщение', null, GetLocale('ru'));
+  PERFORM EditEntityText(uEntity, 'Nachricht', null, GetLocale('de'));
+  PERFORM EditEntityText(uEntity, 'Message', null, GetLocale('fr'));
+  PERFORM EditEntityText(uEntity, 'Messaggio', null, GetLocale('it'));
+  PERFORM EditEntityText(uEntity, 'Mensaje', null, GetLocale('es'));
+
+  -- Class
   uClass := CreateClassMessage(pParent, uEntity);
 
   PERFORM CreateClassInbox(uClass, uEntity);
