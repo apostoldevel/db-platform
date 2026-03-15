@@ -138,14 +138,14 @@ BEGIN
 
   IF FOUND THEN
     IF utilized THEN
-      PERFORM SetErrorMessage('Код подтверждения уже был использован.');
+      PERFORM SetErrorMessage('Verification code has already been used.');
     ELSE
       UPDATE db.verification_code SET used = Now() WHERE id = uId;
-      PERFORM SetErrorMessage('Успешно.');
+      PERFORM SetErrorMessage('Success.');
       RETURN uUserId;
     END IF;
   ELSE
-    PERFORM SetErrorMessage('Код подтверждения не найден.');
+    PERFORM SetErrorMessage('Verification code not found.');
   END IF;
 
   RETURN null;
@@ -180,10 +180,10 @@ BEGIN
     CASE pType
     WHEN 'M' THEN
       UPDATE db.profile SET email_verified = true WHERE userId = uUserId;
-      PERFORM SetErrorMessage('Электронный адрес подтверждён.');
+      PERFORM SetErrorMessage('Email address confirmed.');
     WHEN 'P' THEN
       UPDATE db.profile SET phone_verified = true WHERE userId = uUserId;
-      PERFORM SetErrorMessage('Номер телефона подтверждён.');
+      PERFORM SetErrorMessage('Phone number confirmed.');
     ELSE
       PERFORM InvalidVerificationCodeType(pType);
     END CASE;

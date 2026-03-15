@@ -1740,7 +1740,7 @@ AS $$
 DECLARE
   vMessage  text;
 BEGIN
-  PERFORM SetErrorMessage('Успешно.');
+  PERFORM SetErrorMessage('Success.');
   PERFORM api.delete_area(pId);
   RETURN true;
 EXCEPTION

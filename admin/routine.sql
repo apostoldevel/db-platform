@@ -590,7 +590,7 @@ BEGIN
   END IF;
 
   IF NOT allow THEN
-    PERFORM SetErrorMessage('Ограничен доступ по IP-адресу.');
+    PERFORM SetErrorMessage('Access denied by IP address.');
   END IF;
 
   RETURN allow;
@@ -5163,12 +5163,12 @@ BEGIN
 
   IF FOUND THEN
     IF passed THEN
-      PERFORM SetErrorMessage('Успешно.');
+      PERFORM SetErrorMessage('Success.');
     ELSE
-      PERFORM SetErrorMessage('Пароль не прошёл проверку.');
+      PERFORM SetErrorMessage('Password verification failed.');
     END IF;
   ELSE
-    PERFORM SetErrorMessage('Пользователь не найден.');
+    PERFORM SetErrorMessage('User not found.');
   END IF;
 
   RETURN coalesce(passed, false);
@@ -5406,12 +5406,12 @@ BEGIN
 
   IF FOUND THEN
     IF coalesce(passed, false) THEN
-      PERFORM SetErrorMessage('Успешно.');
+      PERFORM SetErrorMessage('Success.');
     ELSE
-      PERFORM SetErrorMessage('Код сессии не прошёл проверку.');
+      PERFORM SetErrorMessage('Session code verification failed.');
     END IF;
   ELSE
-    PERFORM SetErrorMessage('Код сессии не найден.');
+    PERFORM SetErrorMessage('Session code not found.');
   END IF;
 
   RETURN coalesce(passed, false);
@@ -5445,12 +5445,12 @@ BEGIN
 
   IF FOUND THEN
     IF coalesce(passed, false) THEN
-      PERFORM SetErrorMessage('Успешно.');
+      PERFORM SetErrorMessage('Success.');
     ELSE
-      PERFORM SetErrorMessage('Секретный код сессии не прошёл проверку.');
+      PERFORM SetErrorMessage('Session secret verification failed.');
     END IF;
   ELSE
-    PERFORM SetErrorMessage('Код сессии не найден.');
+    PERFORM SetErrorMessage('Session code not found.');
   END IF;
 
   RETURN coalesce(passed, false);
@@ -5758,7 +5758,7 @@ DECLARE
   vMessage      text;
   vContext      text;
 BEGIN
-  PERFORM SetErrorMessage('Успешно.');
+  PERFORM SetErrorMessage('Success.');
 
   BEGIN
     RETURN Login(pOAuth2, pRoleName, pPassword, pAgent, pHost);
