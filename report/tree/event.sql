@@ -49,7 +49,7 @@ CREATE OR REPLACE FUNCTION EventReportTreeCreate (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'create', 'Дерево отчётов создано.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'create', 'Report tree created.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -67,7 +67,7 @@ CREATE OR REPLACE FUNCTION EventReportTreeOpen (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'open', 'Дерево отчётов открыто.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'open', 'Report tree opened.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -85,7 +85,7 @@ CREATE OR REPLACE FUNCTION EventReportTreeEdit (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'edit', 'Дерево отчётов изменено.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'edit', 'Report tree modified.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -103,7 +103,7 @@ CREATE OR REPLACE FUNCTION EventReportTreeSave (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'save', 'Дерево отчётов сохранено.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'save', 'Report tree saved.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -121,7 +121,7 @@ CREATE OR REPLACE FUNCTION EventReportTreeEnable (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'enable', 'Дерево отчётов активно.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'enable', 'Report tree enabled.', pObject);
   PERFORM EventReportMethodForAllChild(pObject);
 END;
 $$ LANGUAGE plpgsql;
@@ -140,7 +140,7 @@ CREATE OR REPLACE FUNCTION EventReportTreeDisable (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'disable', 'Дерево отчётов неактивно.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'disable', 'Report tree disabled.', pObject);
   PERFORM EventReportMethodForAllChild(pObject);
 END;
 $$ LANGUAGE plpgsql;
@@ -159,7 +159,7 @@ CREATE OR REPLACE FUNCTION EventReportTreeDelete (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'delete', 'Дерево отчётов удалено.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'delete', 'Report tree deleted.', pObject);
   PERFORM EventReportMethodForAllChild(pObject);
 END;
 $$ LANGUAGE plpgsql;
@@ -178,7 +178,7 @@ CREATE OR REPLACE FUNCTION EventReportTreeRestore (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'restore', 'Дерево отчётов восстановлено.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'restore', 'Report tree restored.', pObject);
   PERFORM EventReportMethodForAllChild(pObject);
 END;
 $$ LANGUAGE plpgsql;
@@ -205,6 +205,6 @@ BEGIN
 
   DELETE FROM db.report_tree WHERE id = pObject;
 
-  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '') || '] Дерево отчётов уничтожено.');
+  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '') || '] Report tree dropped.');
 END;
 $$ LANGUAGE plpgsql;

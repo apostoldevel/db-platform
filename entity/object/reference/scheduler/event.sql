@@ -17,7 +17,7 @@ CREATE OR REPLACE FUNCTION EventSchedulerCreate (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'create', 'Планировщик создан.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'create', 'Scheduler created.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -36,7 +36,7 @@ CREATE OR REPLACE FUNCTION EventSchedulerOpen (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'open', 'Планировщик открыт.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'open', 'Scheduler opened.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -55,7 +55,7 @@ CREATE OR REPLACE FUNCTION EventSchedulerEdit (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'edit', 'Планировщик изменён.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'edit', 'Scheduler modified.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -74,7 +74,7 @@ CREATE OR REPLACE FUNCTION EventSchedulerSave (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'save', 'Планировщик сохранён.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'save', 'Scheduler saved.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -93,7 +93,7 @@ CREATE OR REPLACE FUNCTION EventSchedulerEnable (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'enable', 'Планировщик включен.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'enable', 'Scheduler enabled.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -112,7 +112,7 @@ CREATE OR REPLACE FUNCTION EventSchedulerDisable (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'disable', 'Планировщик выключен.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'disable', 'Scheduler disabled.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -131,7 +131,7 @@ CREATE OR REPLACE FUNCTION EventSchedulerDelete (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'delete', 'Планировщик удалён.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'delete', 'Scheduler deleted.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -150,7 +150,7 @@ CREATE OR REPLACE FUNCTION EventSchedulerRestore (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'restore', 'Планировщик восстановлен.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'restore', 'Scheduler restored.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -175,6 +175,6 @@ BEGIN
 
   DELETE FROM db.scheduler WHERE id = pObject;
 
-  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '') || '] Планировщик уничтожен.');
+  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '') || '] Scheduler dropped.');
 END;
 $$ LANGUAGE plpgsql;

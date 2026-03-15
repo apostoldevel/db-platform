@@ -16,7 +16,7 @@ CREATE OR REPLACE FUNCTION EventInboxCreate (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'create', 'Входящее сообщение создано.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'create', 'Inbox message created.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -34,7 +34,7 @@ CREATE OR REPLACE FUNCTION EventInboxOpen (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'open', 'Входящее сообщение открыто на просмотр.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'open', 'Inbox message opened.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -52,7 +52,7 @@ CREATE OR REPLACE FUNCTION EventInboxEdit (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'edit', 'Входящее сообщение изменено.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'edit', 'Inbox message modified.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -70,7 +70,7 @@ CREATE OR REPLACE FUNCTION EventInboxSave (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'save', 'Входящее сообщение сохранено.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'save', 'Inbox message saved.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -88,7 +88,7 @@ CREATE OR REPLACE FUNCTION EventInboxEnable (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'enable', 'Входящее сообщение просмотрено.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'enable', 'Inbox message reviewed.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -106,7 +106,7 @@ CREATE OR REPLACE FUNCTION EventInboxDisable (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'disable', 'Входящее сообщение прочитано.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'disable', 'Inbox message read.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -124,7 +124,7 @@ CREATE OR REPLACE FUNCTION EventInboxDelete (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'delete', 'Входящее сообщение удалено.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'delete', 'Inbox message deleted.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -142,7 +142,7 @@ CREATE OR REPLACE FUNCTION EventInboxRestore (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'restore', 'Входящее сообщение восстановлено.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'restore', 'Inbox message restored.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -164,6 +164,6 @@ DECLARE
 BEGIN
   SELECT label INTO r FROM db.object_text WHERE object = pObject AND locale = current_locale();
 
-  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '') || '] Входящее сообщение уничтожено.');
+  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '') || '] Inbox message dropped.');
 END;
 $$ LANGUAGE plpgsql;

@@ -16,7 +16,7 @@ CREATE OR REPLACE FUNCTION EventOutboxCreate (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'create', 'Исходящее сообщение создано.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'create', 'Outbox message created.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -34,7 +34,7 @@ CREATE OR REPLACE FUNCTION EventOutboxOpen (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'open', 'Исходящее сообщение открыто на просмотр.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'open', 'Outbox message opened.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -52,7 +52,7 @@ CREATE OR REPLACE FUNCTION EventOutboxEdit (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'edit', 'Исходящее сообщение изменено.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'edit', 'Outbox message modified.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -70,7 +70,7 @@ CREATE OR REPLACE FUNCTION EventOutboxSave (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'save', 'Исходящее сообщение сохранено.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'save', 'Outbox message saved.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -88,7 +88,7 @@ CREATE OR REPLACE FUNCTION EventOutboxEnable (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'enable', 'Исходящее сообщение готово к отправке.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'enable', 'Outbox message ready to send.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -106,7 +106,7 @@ CREATE OR REPLACE FUNCTION EventOutboxSubmit (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'submit', 'Исходящее сообщение передано на отправку.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'submit', 'Outbox message submitted.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -124,7 +124,7 @@ CREATE OR REPLACE FUNCTION EventOutboxSend (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'send', 'Исходящее сообщение отправляется.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'send', 'Outbox message sending.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -142,7 +142,7 @@ CREATE OR REPLACE FUNCTION EventOutboxCancel (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'cancel', 'Исходящее сообщение отменено.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'cancel', 'Outbox message cancelled.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -160,7 +160,7 @@ CREATE OR REPLACE FUNCTION EventOutboxDone (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'done', 'Исходящее сообщение отправено.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'done', 'Outbox message sent.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -178,7 +178,7 @@ CREATE OR REPLACE FUNCTION EventOutboxFail (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'fail', 'Сбой при отправке сообщения.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'fail', 'Outbox message failed.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -196,7 +196,7 @@ CREATE OR REPLACE FUNCTION EventOutboxRepeat (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'repeat', 'Повторная отправка сообщения.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'repeat', 'Outbox message resending.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -214,7 +214,7 @@ CREATE OR REPLACE FUNCTION EventOutboxDisable (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'disable', 'Исходящее сообщение закрыто.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'disable', 'Outbox message disabled.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -232,7 +232,7 @@ CREATE OR REPLACE FUNCTION EventOutboxDelete (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'delete', 'Исходящее сообщение удалено.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'delete', 'Outbox message deleted.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -250,7 +250,7 @@ CREATE OR REPLACE FUNCTION EventOutboxRestore (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'restore', 'Исходящее сообщение восстановлено.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'restore', 'Outbox message restored.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -272,6 +272,6 @@ DECLARE
 BEGIN
   SELECT label INTO r FROM db.object_text WHERE object = pObject AND locale = current_locale();
 
-  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '') || '] Исходящее сообщение уничтожено.');
+  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '') || '] Outbox message dropped.');
 END;
 $$ LANGUAGE plpgsql;

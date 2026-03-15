@@ -16,7 +16,7 @@ CREATE OR REPLACE FUNCTION EventReportRoutineCreate (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'create', 'Функция отчёта создана.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'create', 'Report routine created.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -34,7 +34,7 @@ CREATE OR REPLACE FUNCTION EventReportRoutineOpen (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'open', 'Функция отчёта открыта.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'open', 'Report routine opened.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -52,7 +52,7 @@ CREATE OR REPLACE FUNCTION EventReportRoutineEdit (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'edit', 'Функция отчёта изменена.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'edit', 'Report routine modified.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -70,7 +70,7 @@ CREATE OR REPLACE FUNCTION EventReportRoutineSave (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'save', 'Функция отчёта сохранена.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'save', 'Report routine saved.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -88,7 +88,7 @@ CREATE OR REPLACE FUNCTION EventReportRoutineEnable (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'enable', 'Функция отчёта включена.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'enable', 'Report routine enabled.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -106,7 +106,7 @@ CREATE OR REPLACE FUNCTION EventReportRoutineDisable (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'disable', 'Функция отчёта выключена.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'disable', 'Report routine disabled.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -124,7 +124,7 @@ CREATE OR REPLACE FUNCTION EventReportRoutineDelete (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'delete', 'Функция отчёта удалена.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'delete', 'Report routine deleted.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -142,7 +142,7 @@ CREATE OR REPLACE FUNCTION EventReportRoutineRestore (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'restore', 'Функция отчёта восстановлена.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'restore', 'Report routine restored.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -166,6 +166,6 @@ BEGIN
 
   DELETE FROM db.report_routine WHERE id = pObject;
 
-  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '') || '] Функция отчёта уничтожена.');
+  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '') || '] Report routine dropped.');
 END;
 $$ LANGUAGE plpgsql;

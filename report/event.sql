@@ -16,7 +16,7 @@ CREATE OR REPLACE FUNCTION EventReportCreate (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'create', 'Отчёт создан.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'create', 'Report created.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -34,7 +34,7 @@ CREATE OR REPLACE FUNCTION EventReportOpen (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'open', 'Отчёт открыт.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'open', 'Report opened.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -52,7 +52,7 @@ CREATE OR REPLACE FUNCTION EventReportEdit (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'edit', 'Отчёт изменён.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'edit', 'Report modified.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -70,7 +70,7 @@ CREATE OR REPLACE FUNCTION EventReportSave (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'save', 'Отчёт сохранён.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'save', 'Report saved.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -88,7 +88,7 @@ CREATE OR REPLACE FUNCTION EventReportEnable (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'enable', 'Отчёт включен.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'enable', 'Report enabled.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -106,7 +106,7 @@ CREATE OR REPLACE FUNCTION EventReportDisable (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'disable', 'Отчёт выключен.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'disable', 'Report disabled.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -124,7 +124,7 @@ CREATE OR REPLACE FUNCTION EventReportDelete (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'delete', 'Отчёт удалён.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'delete', 'Report deleted.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -142,7 +142,7 @@ CREATE OR REPLACE FUNCTION EventReportRestore (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'restore', 'Отчёт восстановлен.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'restore', 'Report restored.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -194,6 +194,6 @@ BEGIN
 
   SELECT label INTO r FROM db.object_text WHERE object = pObject AND locale = current_locale();
 
-  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '') || '] Отчёт уничтожен.');
+  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '') || '] Report dropped.');
 END;
 $$ LANGUAGE plpgsql;

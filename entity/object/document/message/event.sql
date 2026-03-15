@@ -16,7 +16,7 @@ CREATE OR REPLACE FUNCTION EventMessageCreate (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'create', 'Сообщение создано.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'create', 'Message created.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -34,7 +34,7 @@ CREATE OR REPLACE FUNCTION EventMessageOpen (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'open', 'Сообщение открыто на просмотр.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'open', 'Message opened.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -52,7 +52,7 @@ CREATE OR REPLACE FUNCTION EventMessageEdit (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'edit', 'Сообщение изменено.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'edit', 'Message modified.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -70,7 +70,7 @@ CREATE OR REPLACE FUNCTION EventMessageSave (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'save', 'Сообщение сохранено.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'save', 'Message saved.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -88,7 +88,7 @@ CREATE OR REPLACE FUNCTION EventMessageEnable (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'enable', 'Сообщение открыто.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'enable', 'Message enabled.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -106,7 +106,7 @@ CREATE OR REPLACE FUNCTION EventMessageDisable (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'disable', 'Сообщение закрыто.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'disable', 'Message disabled.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -124,7 +124,7 @@ CREATE OR REPLACE FUNCTION EventMessageDelete (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'delete', 'Сообщение удалено.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'delete', 'Message deleted.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -142,7 +142,7 @@ CREATE OR REPLACE FUNCTION EventMessageRestore (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'restore', 'Сообщение восстановлено.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'restore', 'Message restored.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -167,7 +167,7 @@ BEGIN
   DELETE FROM db.object_link WHERE linked = pObject;
   DELETE FROM db.message WHERE id = pObject;
 
-  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '') || '] Сообщение уничтожено.');
+  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '') || '] Message dropped.');
 END;
 $$ LANGUAGE plpgsql;
 
@@ -227,8 +227,8 @@ BEGIN
       vSupport := format('support@%s', vDomain);
 
       IF locale_code() = 'ru' THEN
-        vSubject := 'Подтвердите, пожалуйста, адрес Вашей электронной почты.';
-        vDescription := 'Подтверждение email: ' || vEmail;
+        vSubject := 'Please confirm your email address.';
+        vDescription := 'Confirm email: ' || vEmail;
       ELSE
         vSubject := 'Please confirm your email address.';
         vDescription := 'Confirm email: ' || vEmail;
@@ -297,8 +297,8 @@ BEGIN
       vSupport := format('support@%s', vDomain);
 
       IF locale_code() = 'ru' THEN
-        vSubject := 'Информация о Вашей учетной записи.';
-        vDescription := 'Информация об учетной записи: ' || vUserName;
+        vSubject := 'Your account information.';
+        vDescription := 'Account information: ' || vUserName;
       ELSE
         vSubject := 'Your account information.';
         vDescription := 'Account information: ' || vUserName;

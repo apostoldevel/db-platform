@@ -16,7 +16,7 @@ CREATE OR REPLACE FUNCTION EventReportReadyCreate (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'create', 'Готовый отчёт создан.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'create', 'Report ready created.', pObject);
 
   PERFORM ExecuteObjectAction(pObject, GetAction('execute'));
 END;
@@ -36,7 +36,7 @@ CREATE OR REPLACE FUNCTION EventReportReadyOpen (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'open', 'Готовый отчёт открыт.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'open', 'Report ready opened.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -59,7 +59,7 @@ BEGIN
     PERFORM ChangesNotAllowed();
   END IF;
 
-  PERFORM WriteToEventLog('M', 1000, 'edit', 'Готовый отчёт изменён.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'edit', 'Report ready modified.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -77,7 +77,7 @@ CREATE OR REPLACE FUNCTION EventReportReadySave (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'save', 'Готовый отчёт сохранён.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'save', 'Report ready saved.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -95,7 +95,7 @@ CREATE OR REPLACE FUNCTION EventReportReadyEnable (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'enable', 'Готовый отчёт включен.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'enable', 'Report ready enabled.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -113,7 +113,7 @@ CREATE OR REPLACE FUNCTION EventReportReadyDisable (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'disable', 'Готовый отчёт выключен.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'disable', 'Report ready disabled.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -131,7 +131,7 @@ CREATE OR REPLACE FUNCTION EventReportReadyDelete (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'delete', 'Готовый отчёт удалён.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'delete', 'Report ready deleted.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -149,7 +149,7 @@ CREATE OR REPLACE FUNCTION EventReportReadyRestore (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'restore', 'Готовый отчёт восстановлен.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'restore', 'Report ready restored.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -167,7 +167,7 @@ CREATE OR REPLACE FUNCTION EventReportReadyExecute (
 ) RETURNS   void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'execute', 'Готовый отчёт выполняется.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'execute', 'Report ready in progress.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -185,7 +185,7 @@ CREATE OR REPLACE FUNCTION EventReportReadyComplete (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'complete', 'Готовый отчёт завершён.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'complete', 'Report ready completed.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -203,7 +203,7 @@ CREATE OR REPLACE FUNCTION EventReportReadyFail (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'fail', 'Сбой при выполнении отчёта.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'fail', 'Report ready failed.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -221,7 +221,7 @@ CREATE OR REPLACE FUNCTION EventReportReadyAbort (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'abort', 'Выполнение отчёта прервано.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'abort', 'Report ready aborted.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -239,7 +239,7 @@ CREATE OR REPLACE FUNCTION EventReportReadyCancel (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'cancel', 'Готовый отчёт отменён.', pObject);
+  PERFORM WriteToEventLog('M', 1000, 'cancel', 'Report ready cancelled.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -264,6 +264,6 @@ BEGIN
   DELETE FROM db.object_file WHERE object = pObject;
   DELETE FROM db.report_ready WHERE id = pObject;
 
-  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '') || '] Готовый отчёт уничтожен.');
+  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '') || '] Report ready dropped.');
 END;
 $$ LANGUAGE plpgsql;
