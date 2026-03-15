@@ -52,6 +52,28 @@ $$ LANGUAGE SQL
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- api.count_notification ------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Count notification records matching search/filter criteria.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Exact-match filter object
+ * @return {SETOF bigint} - Record count
+ * @since 1.2.1
+ */
+CREATE OR REPLACE FUNCTION api.count_notification (
+  pSearch    jsonb default null,
+  pFilter    jsonb default null
+) RETURNS    SETOF bigint
+AS $$
+BEGIN
+  RETURN QUERY EXECUTE api.sql('api', 'notification', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- api.list_notification -------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
@@ -108,6 +130,28 @@ CREATE OR REPLACE FUNCTION api.get_object_method_history (
 AS $$
   SELECT * FROM api.object_method_history WHERE id = pId;
 $$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.count_object_method_history ---------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Count object method history records matching search/filter criteria.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Exact-match filter object
+ * @return {SETOF bigint} - Record count
+ * @since 1.2.1
+ */
+CREATE OR REPLACE FUNCTION api.count_object_method_history (
+  pSearch    jsonb default null,
+  pFilter    jsonb default null
+) RETURNS    SETOF bigint
+AS $$
+BEGIN
+  RETURN QUERY EXECUTE api.sql('api', 'object_method_history', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
+END;
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 

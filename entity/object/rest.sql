@@ -138,7 +138,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN SELECT count(*) FROM api.list_object_state_history(r.search, r.filter, r.reclimit, r.recoffset, r.orderby)
+        FOR e IN SELECT * FROM api.count_object_state_history(r.search, r.filter)
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -148,7 +148,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN SELECT count(*) FROM api.list_object_state_history(r.search, r.filter, r.reclimit, r.recoffset, r.orderby)
+        FOR e IN SELECT * FROM api.count_object_state_history(r.search, r.filter)
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -315,7 +315,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN SELECT count(*) FROM api.list_object_method_history(r.search, r.filter, r.reclimit, r.recoffset, r.orderby)
+        FOR e IN SELECT * FROM api.count_object_method_history(r.search, r.filter)
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -325,7 +325,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN SELECT count(*) FROM api.list_object_method_history(r.search, r.filter, r.reclimit, r.recoffset, r.orderby)
+        FOR e IN SELECT * FROM api.count_object_method_history(r.search, r.filter)
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -394,7 +394,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN SELECT count(*) FROM api.list_object(r.search, r.filter, r.reclimit, r.recoffset, r.orderby)
+        FOR e IN SELECT * FROM api.count_object(r.search, r.filter)
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -404,7 +404,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN SELECT count(*) FROM api.list_object(r.search, r.filter, r.reclimit, r.recoffset, r.orderby)
+        FOR e IN SELECT * FROM api.count_object(r.search, r.filter)
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -597,7 +597,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN SELECT count(*) FROM api.list_object_group(r.search, r.filter, r.reclimit, r.recoffset, r.orderby)
+        FOR e IN SELECT * FROM api.count_object_group(r.search, r.filter)
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -607,7 +607,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN SELECT count(*) FROM api.list_object_group(r.search, r.filter, r.reclimit, r.recoffset, r.orderby)
+        FOR e IN SELECT * FROM api.count_object_group(r.search, r.filter)
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -912,7 +912,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN SELECT count(*) FROM api.list_object_link(r.search, r.filter, r.reclimit, r.recoffset, r.orderby)
+        FOR e IN SELECT * FROM api.count_object_link(r.search, r.filter)
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -922,7 +922,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN SELECT count(*) FROM api.list_object_link(r.search, r.filter, r.reclimit, r.recoffset, r.orderby)
+        FOR e IN SELECT * FROM api.count_object_link(r.search, r.filter)
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -1077,7 +1077,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN SELECT count(*) FROM api.list_object_file(r.search, r.filter, r.reclimit, r.recoffset, r.orderby)
+        FOR e IN SELECT * FROM api.count_object_file(r.search, r.filter)
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -1087,7 +1087,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN SELECT count(*) FROM api.list_object_file(r.search, r.filter, r.reclimit, r.recoffset, r.orderby)
+        FOR e IN SELECT * FROM api.count_object_file(r.search, r.filter)
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -1515,7 +1515,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN SELECT count(*) FROM api.list_object_coordinates(r.search, r.filter, r.reclimit, r.recoffset, r.orderby)
+        FOR e IN SELECT * FROM api.count_object_coordinates(r.search, r.filter)
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -1525,7 +1525,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN SELECT count(*) FROM api.list_object_coordinates(r.search, r.filter, r.reclimit, r.recoffset, r.orderby)
+        FOR e IN SELECT * FROM api.count_object_coordinates(r.search, r.filter)
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;

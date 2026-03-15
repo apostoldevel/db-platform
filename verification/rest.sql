@@ -187,6 +187,43 @@ BEGIN
 
     END IF;
 
+  WHEN '/verification/code/count' THEN
+
+    IF session_user <> 'kernel' THEN
+      IF NOT IsUserRole(GetGroup('administrator')) THEN
+        PERFORM AccessDenied();
+      END IF;
+    END IF;
+
+    IF pPayload IS NOT NULL THEN
+      arKeys := array_cat(arKeys, ARRAY['search', 'filter', 'reclimit', 'recoffset', 'orderby']);
+      PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+    ELSE
+      pPayload := '{}';
+    END IF;
+
+    IF jsonb_typeof(pPayload) = 'array' THEN
+
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
+      LOOP
+        FOR e IN SELECT * FROM api.count_verification_code(r.search, r.filter)
+        LOOP
+          RETURN NEXT row_to_json(e);
+        END LOOP;
+      END LOOP;
+
+    ELSE
+
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
+      LOOP
+        FOR e IN SELECT * FROM api.count_verification_code(r.search, r.filter)
+        LOOP
+          RETURN NEXT row_to_json(e);
+        END LOOP;
+      END LOOP;
+
+    END IF;
+
   WHEN '/verification/code/list' THEN
 
     IF session_user <> 'kernel' THEN

@@ -38,7 +38,7 @@ CREATE OR REPLACE FUNCTION api.replication_log (
 ) RETURNS       SETOF api.replication_log
 AS $$
   SELECT * FROM replication.log(pFrom, pSource, coalesce(pLimit, 500));
-$$ LANGUAGE SQL
+$$ LANGUAGE SQL STABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -55,7 +55,7 @@ CREATE OR REPLACE FUNCTION api.get_max_log_id()
 RETURNS         bigint
 AS $$
   SELECT max(id) FROM replication.log;
-$$ LANGUAGE SQL
+$$ LANGUAGE SQL STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -74,7 +74,7 @@ CREATE OR REPLACE FUNCTION api.get_max_relay_id (
 ) RETURNS   bigint
 AS $$
   SELECT max(id) FROM replication.relay WHERE source = pSource;
-$$ LANGUAGE SQL
+$$ LANGUAGE SQL STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -131,7 +131,30 @@ CREATE OR REPLACE FUNCTION api.get_replication_log (
 ) RETURNS   SETOF api.replication_log
 AS $$
   SELECT * FROM api.replication_log WHERE id = pId;
-$$ LANGUAGE SQL
+$$ LANGUAGE SQL STABLE STRICT
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.count_replication_log ---------------------------------------------------
+--------------------------------------------------------------------------------
+
+/**
+ * @brief Count replication log entries matching search/filter criteria.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Exact-match filter object
+ * @return {SETOF bigint} - Record count
+ * @since 1.2.1
+ */
+CREATE OR REPLACE FUNCTION api.count_replication_log (
+  pSearch    jsonb default null,
+  pFilter    jsonb default null
+) RETURNS    SETOF bigint
+AS $$
+BEGIN
+  RETURN QUERY EXECUTE api.sql('api', 'replication_log', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
+END;
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -159,6 +182,29 @@ CREATE OR REPLACE FUNCTION api.list_replication_log (
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'replication_log', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.count_relay_log ---------------------------------------------------------
+--------------------------------------------------------------------------------
+
+/**
+ * @brief Count relay log entries matching search/filter criteria.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Exact-match filter object
+ * @return {SETOF bigint} - Record count
+ * @since 1.2.1
+ */
+CREATE OR REPLACE FUNCTION api.count_relay_log (
+  pSearch    jsonb default null,
+  pFilter    jsonb default null
+) RETURNS    SETOF bigint
+AS $$
+BEGIN
+  RETURN QUERY EXECUTE api.sql('api', 'relay_log', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -211,7 +257,7 @@ CREATE OR REPLACE FUNCTION api.replication_apply_relay (
 ) RETURNS       text
 AS $$
   SELECT GetErrorMessage() FROM replication.apply_relay(pSource, pId)
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 

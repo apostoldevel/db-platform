@@ -2,7 +2,7 @@
 -- REST FORM -------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Dispatch REST JSON API requests for the Form entity (includes /form/field/* delegation).
+ * @brief Dispatch REST JSON API requests for the Form entity (includes /form/field/{*} delegation).
  * @param {text} pPath - Route path (e.g., /form/get, /form/build)
  * @param {jsonb} pPayload - Request payload
  * @return {SETOF json} - Response rows as JSON
@@ -88,7 +88,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN SELECT count(*) FROM api.list_form(r.search, r.filter, r.reclimit, r.recoffset, r.orderby)
+        FOR e IN SELECT * FROM api.count_form(r.search, r.filter)
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -98,7 +98,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN SELECT count(*) FROM api.list_form(r.search, r.filter, r.reclimit, r.recoffset, r.orderby)
+        FOR e IN SELECT * FROM api.count_form(r.search, r.filter)
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;

@@ -356,6 +356,28 @@ $$ LANGUAGE SQL
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- api.count_session -----------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Count session records matching search/filter criteria.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Exact-match filter object
+ * @return {SETOF bigint} - Record count
+ * @since 1.2.1
+ */
+CREATE OR REPLACE FUNCTION api.count_session (
+  pSearch    jsonb default null,
+  pFilter    jsonb default null
+) RETURNS    SETOF bigint
+AS $$
+BEGIN
+  RETURN QUERY EXECUTE api.sql('api', 'session', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- api.list_session ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
@@ -554,6 +576,32 @@ CREATE OR REPLACE FUNCTION api.get_user (
 AS $$
   SELECT * FROM api.user WHERE id = pId;
 $$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.count_user --------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Count user records matching search/filter criteria.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Exact-match filter object
+ * @return {SETOF bigint} - Record count
+ * @since 1.2.1
+ */
+CREATE OR REPLACE FUNCTION api.count_user (
+  pSearch    jsonb default null,
+  pFilter    jsonb default null
+) RETURNS    SETOF bigint
+AS $$
+BEGIN
+  IF NOT IsAdmin() THEN
+    pFilter := coalesce(pFilter, '{}'::jsonb) || jsonb_build_object('id', current_userid());
+  END IF;
+
+  RETURN QUERY EXECUTE api.sql('api', 'user', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
+END;
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1294,6 +1342,28 @@ $$ LANGUAGE SQL
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- api.count_group -------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Count group records matching search/filter criteria.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Exact-match filter object
+ * @return {SETOF bigint} - Record count
+ * @since 1.2.1
+ */
+CREATE OR REPLACE FUNCTION api.count_group (
+  pSearch    jsonb default null,
+  pFilter    jsonb default null
+) RETURNS    SETOF bigint
+AS $$
+BEGIN
+  RETURN QUERY EXECUTE api.sql('api', 'group', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- api.list_group --------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
@@ -1831,6 +1901,28 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- api.count_area --------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Count area records matching search/filter criteria.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Exact-match filter object
+ * @return {SETOF bigint} - Record count
+ * @since 1.2.1
+ */
+CREATE OR REPLACE FUNCTION api.count_area (
+  pSearch    jsonb default null,
+  pFilter    jsonb default null
+) RETURNS    SETOF bigint
+AS $$
+BEGIN
+  RETURN QUERY EXECUTE api.sql('api', 'area', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- api.list_area ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
@@ -2147,6 +2239,28 @@ CREATE OR REPLACE FUNCTION api.get_interface (
 AS $$
   SELECT * FROM api.interface WHERE id = pId;
 $$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.count_interface ---------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Count interface records matching search/filter criteria.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Exact-match filter object
+ * @return {SETOF bigint} - Record count
+ * @since 1.2.1
+ */
+CREATE OR REPLACE FUNCTION api.count_interface (
+  pSearch    jsonb default null,
+  pFilter    jsonb default null
+) RETURNS    SETOF bigint
+AS $$
+BEGIN
+  RETURN QUERY EXECUTE api.sql('api', 'interface', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
+END;
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 

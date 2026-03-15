@@ -128,6 +128,28 @@ $$ LANGUAGE SQL
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- api.count_object ------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Count object records matching search/filter criteria.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Exact-match filter object
+ * @return {SETOF bigint} - Record count
+ * @since 1.2.1
+ */
+CREATE OR REPLACE FUNCTION api.count_object (
+  pSearch    jsonb default null,
+  pFilter    jsonb default null
+) RETURNS    SETOF bigint
+AS $$
+BEGIN
+  RETURN QUERY EXECUTE api.sql('api', 'object', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- api.list_object -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
@@ -688,6 +710,28 @@ $$ LANGUAGE SQL
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- api.count_object_group ------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Count object group records matching search/filter criteria.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Exact-match filter object
+ * @return {SETOF bigint} - Record count
+ * @since 1.2.1
+ */
+CREATE OR REPLACE FUNCTION api.count_object_group (
+  pSearch    jsonb default null,
+  pFilter    jsonb default null
+) RETURNS    SETOF bigint
+AS $$
+BEGIN
+  RETURN QUERY EXECUTE api.sql('api', 'object_group', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- api.list_object_group -------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
@@ -868,6 +912,28 @@ CREATE OR REPLACE FUNCTION api.get_object_link (
 AS $$
   SELECT * FROM api.object_link WHERE id = pId;
 $$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.count_object_link -------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Count object link records matching search/filter criteria.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Exact-match filter object
+ * @return {SETOF bigint} - Record count
+ * @since 1.2.1
+ */
+CREATE OR REPLACE FUNCTION api.count_object_link (
+  pSearch    jsonb default null,
+  pFilter    jsonb default null
+) RETURNS    SETOF bigint
+AS $$
+BEGIN
+  RETURN QUERY EXECUTE api.sql('api', 'object_link', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
+END;
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1164,6 +1230,28 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- api.count_object_file -------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Count object file attachment records matching search/filter criteria.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Exact-match filter object
+ * @return {SETOF bigint} - Record count
+ * @since 1.2.1
+ */
+CREATE OR REPLACE FUNCTION api.count_object_file (
+  pSearch    jsonb default null,
+  pFilter    jsonb default null
+) RETURNS    SETOF bigint
+AS $$
+BEGIN
+  RETURN QUERY EXECUTE api.sql('api', 'object_file', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- api.list_object_file --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
@@ -1422,6 +1510,28 @@ BEGIN
 
   RETURN QUERY SELECT * FROM api.object_data WHERE object = pId AND type = pType AND code = pCode;
 END
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.count_object_data -------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Count object data records matching search/filter criteria.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Exact-match filter object
+ * @return {SETOF bigint} - Record count
+ * @since 1.2.1
+ */
+CREATE OR REPLACE FUNCTION api.count_object_data (
+  pSearch    jsonb default null,
+  pFilter    jsonb default null
+) RETURNS    SETOF bigint
+AS $$
+BEGIN
+  RETURN QUERY EXECUTE api.sql('api', 'object_data', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
+END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -1707,6 +1817,28 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- api.count_object_coordinates ------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Count object coordinate records matching search/filter criteria.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Exact-match filter object
+ * @return {SETOF bigint} - Record count
+ * @since 1.2.1
+ */
+CREATE OR REPLACE FUNCTION api.count_object_coordinates (
+  pSearch    jsonb default null,
+  pFilter    jsonb default null
+) RETURNS    SETOF bigint
+AS $$
+BEGIN
+  RETURN QUERY EXECUTE api.sql('api', 'object_coordinates', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- api.list_object_coordinates -------------------------------------------------
 --------------------------------------------------------------------------------
 /**
@@ -1763,6 +1895,28 @@ CREATE OR REPLACE FUNCTION api.get_object_state_history (
 AS $$
   SELECT * FROM api.object_state_history WHERE id = pId;
 $$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.count_object_state_history ----------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Count object state history records matching search/filter criteria.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Exact-match filter object
+ * @return {SETOF bigint} - Record count
+ * @since 1.2.1
+ */
+CREATE OR REPLACE FUNCTION api.count_object_state_history (
+  pSearch    jsonb default null,
+  pFilter    jsonb default null
+) RETURNS    SETOF bigint
+AS $$
+BEGIN
+  RETURN QUERY EXECUTE api.sql('api', 'object_state_history', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
+END;
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 

@@ -62,6 +62,28 @@ $$ LANGUAGE SQL
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- api.count_log ---------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Count API log records matching search/filter criteria.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Exact-match filter object
+ * @return {SETOF bigint} - Record count
+ * @since 1.2.1
+ */
+CREATE OR REPLACE FUNCTION api.count_log (
+  pSearch    jsonb default null,
+  pFilter    jsonb default null
+) RETURNS    SETOF bigint
+AS $$
+BEGIN
+  RETURN QUERY EXECUTE api.sql('api', 'log', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- api.list_log ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
@@ -137,6 +159,7 @@ DECLARE
   vWith         text;
   vSelect       text;
   vWhere        text;
+  vOrderBy      text;
   vJoin         text;
 
   vCondition    text;
@@ -189,8 +212,8 @@ BEGIN
         vCondition := coalesce(upper(r.condition), 'AND');
         vField     := coalesce(lower(r.field), '');
         vCompare   := coalesce(upper(r.compare), 'EQL');
-        vLStr      := coalesce(r.lstr, '');
-        vRStr      := coalesce(r.rstr, '');
+        vLStr      := CASE WHEN r.lstr = '(' THEN '(' ELSE '' END;
+        vRStr      := CASE WHEN r.rstr = ')' THEN ')' ELSE '' END;
 
         vField := quote_literal_json(vField);
 
@@ -278,10 +301,10 @@ BEGIN
   END IF;
 
   IF pOrderBy IS NOT NULL THEN
-    --PERFORM CheckJsonbValues('orderby', array_cat(arColumns, array_add_text(arColumns, ' desc')), pOrderBy);
     IF jsonb_typeof(pOrderBy) = 'array' THEN
-      IF JsonbToStrArray(pOrderBy) IS NOT NULL THEN
-        vSelect := vSelect || E'\n ORDER BY ' || array_to_string(array_quote_literal_json(JsonbToStrArray(pOrderBy)), ',');
+      vOrderBy := JsonbToOrderBy(pOrderBy, arColumns);
+      IF vOrderBy IS NOT NULL THEN
+        vSelect := vSelect || E'\n ORDER BY ' || vOrderBy;
       END IF;
     END IF;
   ELSE

@@ -34,7 +34,7 @@ AS $$
   SELECT r.*
     FROM api.report r INNER JOIN classtree c ON r.binding = c.id
    ORDER BY c.level DESC
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -179,7 +179,29 @@ CREATE OR REPLACE FUNCTION api.get_report (
 ) RETURNS   SETOF api.report
 AS $$
   SELECT * FROM api.report WHERE id = pId AND CheckObjectAccess(id, B'100')
-$$ LANGUAGE SQL
+$$ LANGUAGE SQL STABLE STRICT
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.count_report ------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Count report records matching search/filter criteria.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Exact-match filter object
+ * @return {SETOF bigint} - Record count
+ * @since 1.2.1
+ */
+CREATE OR REPLACE FUNCTION api.count_report (
+  pSearch    jsonb default null,
+  pFilter    jsonb default null
+) RETURNS    SETOF bigint
+AS $$
+BEGIN
+  RETURN QUERY EXECUTE api.sql('api', 'report', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
+END;
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -206,6 +228,30 @@ CREATE OR REPLACE FUNCTION api.list_report (
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'report', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.count_report_object -----------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Count reports bound to a specific object class matching search/filter criteria.
+ * @param {uuid} pClass - Object class identifier
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Exact-match filter object
+ * @return {SETOF bigint} - Record count
+ * @since 1.2.1
+ */
+CREATE OR REPLACE FUNCTION api.count_report_object (
+  pClass     uuid,
+  pSearch    jsonb default null,
+  pFilter    jsonb default null
+) RETURNS    SETOF bigint
+AS $$
+BEGIN
+  RETURN QUERY EXECUTE api.sql('api', format('report_object(%L::uuid)', pClass), pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
