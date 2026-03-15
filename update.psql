@@ -5,6 +5,7 @@
 \ir './http/update.psql'
 \ir './resource/update.psql'
 \ir './exception/update.psql'
+\ir './error/update.psql'
 \ir './registry/update.psql'
 \ir './log/update.psql'
 \ir './api/update.psql'
