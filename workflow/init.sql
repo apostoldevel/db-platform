@@ -135,29 +135,36 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE FUNCTION AddDefaultMethods (
   pClass        uuid,
-  pNamesRU      text[] DEFAULT null,
-  pNamesEN      text[] DEFAULT null
+  pNamesEN      text[] DEFAULT null,
+  pNamesRU      text[] DEFAULT null
 )
 RETURNS         void
 AS $$
 DECLARE
   uState        uuid;
   uMethod       uuid;
-  uLocale       uuid;
+
+  aDE           text[];
+  aFR           text[];
+  aIT           text[];
+  aES           text[];
 
   rec_type      record;
   rec_state     record;
   rec_method    record;
 BEGIN
-  uLocale := GetLocale('en');
+  IF pNamesEN IS NULL THEN
+    pNamesEN := array_cat(pNamesEN, ARRAY['Created', 'Opened', 'Closed', 'Deleted', 'Open', 'Close', 'Delete', 'Restore', 'Drop']);
+  END IF;
 
   IF pNamesRU IS NULL THEN
-    pNamesRU := array_cat(pNamesRU, ARRAY['Создан', 'Открыт', 'Закрыт', 'Удалён', 'Открыть', 'Закрыть', 'Удалить']);
+    pNamesRU := array_cat(pNamesRU, ARRAY['Создан', 'Открыт', 'Закрыт', 'Удалён', 'Открыть', 'Закрыть', 'Удалить', 'Восстановить', 'Уничтожить']);
   END IF;
 
-  IF pNamesEN IS NULL THEN
-    pNamesEN := array_cat(pNamesEN, ARRAY['Created', 'Opened', 'Closed', 'Deleted', 'Open', 'Close', 'Delete']);
-  END IF;
+  aDE := ARRAY['Erstellt', 'Geöffnet', 'Geschlossen', 'Gelöscht', 'Öffnen', 'Schließen', 'Löschen', 'Wiederherstellen', 'Vernichten'];
+  aFR := ARRAY['Créé', 'Ouvert', 'Fermé', 'Supprimé', 'Ouvrir', 'Fermer', 'Supprimer', 'Restaurer', 'Détruire'];
+  aIT := ARRAY['Creato', 'Aperto', 'Chiuso', 'Eliminato', 'Aprire', 'Chiudere', 'Eliminare', 'Ripristinare', 'Distruggere'];
+  aES := ARRAY['Creado', 'Abierto', 'Cerrado', 'Eliminado', 'Abrir', 'Cerrar', 'Eliminar', 'Restaurar', 'Destruir'];
 
   -- Операции (без учёта состояния)
 
@@ -171,50 +178,102 @@ BEGIN
     CASE rec_type.code
     WHEN 'created' THEN
 
-      uState := AddState(pClass, rec_type.id, rec_type.code, pNamesRU[1]);
-      PERFORM EditStateText(uState, pNamesEN[1], uLocale);
+      uState := AddState(pClass, rec_type.id, rec_type.code, pNamesEN[1]);
+      PERFORM EditStateText(uState, pNamesRU[1], GetLocale('ru'));
+      PERFORM EditStateText(uState, aDE[1], GetLocale('de'));
+      PERFORM EditStateText(uState, aFR[1], GetLocale('fr'));
+      PERFORM EditStateText(uState, aIT[1], GetLocale('it'));
+      PERFORM EditStateText(uState, aES[1], GetLocale('es'));
 
-        uMethod := AddMethod(null, pClass, uState, GetAction('enable'), null, pNamesRU[5]);
-        PERFORM EditMethodText(uMethod, pNamesEN[5], uLocale);
+        uMethod := AddMethod(null, pClass, uState, GetAction('enable'), null, pNamesEN[5]);
+        PERFORM EditMethodText(uMethod, pNamesRU[5], GetLocale('ru'));
+        PERFORM EditMethodText(uMethod, aDE[5], GetLocale('de'));
+        PERFORM EditMethodText(uMethod, aFR[5], GetLocale('fr'));
+        PERFORM EditMethodText(uMethod, aIT[5], GetLocale('it'));
+        PERFORM EditMethodText(uMethod, aES[5], GetLocale('es'));
 
-        uMethod := AddMethod(null, pClass, uState, GetAction('disable'), null, pNamesRU[6]);
-        PERFORM EditMethodText(uMethod, pNamesEN[6], uLocale);
+        uMethod := AddMethod(null, pClass, uState, GetAction('disable'), null, pNamesEN[6]);
+        PERFORM EditMethodText(uMethod, pNamesRU[6], GetLocale('ru'));
+        PERFORM EditMethodText(uMethod, aDE[6], GetLocale('de'));
+        PERFORM EditMethodText(uMethod, aFR[6], GetLocale('fr'));
+        PERFORM EditMethodText(uMethod, aIT[6], GetLocale('it'));
+        PERFORM EditMethodText(uMethod, aES[6], GetLocale('es'));
 
-        uMethod := AddMethod(null, pClass, uState, GetAction('delete'), null, pNamesRU[7]);
-        PERFORM EditMethodText(uMethod, pNamesEN[7], uLocale);
+        uMethod := AddMethod(null, pClass, uState, GetAction('delete'), null, pNamesEN[7]);
+        PERFORM EditMethodText(uMethod, pNamesRU[7], GetLocale('ru'));
+        PERFORM EditMethodText(uMethod, aDE[7], GetLocale('de'));
+        PERFORM EditMethodText(uMethod, aFR[7], GetLocale('fr'));
+        PERFORM EditMethodText(uMethod, aIT[7], GetLocale('it'));
+        PERFORM EditMethodText(uMethod, aES[7], GetLocale('es'));
 
     WHEN 'enabled' THEN
 
-      uState := AddState(pClass, rec_type.id, rec_type.code, pNamesRU[2]);
-      PERFORM EditStateText(uState, pNamesEN[2], uLocale);
+      uState := AddState(pClass, rec_type.id, rec_type.code, pNamesEN[2]);
+      PERFORM EditStateText(uState, pNamesRU[2], GetLocale('ru'));
+      PERFORM EditStateText(uState, aDE[2], GetLocale('de'));
+      PERFORM EditStateText(uState, aFR[2], GetLocale('fr'));
+      PERFORM EditStateText(uState, aIT[2], GetLocale('it'));
+      PERFORM EditStateText(uState, aES[2], GetLocale('es'));
 
-        uMethod := AddMethod(null, pClass, uState, GetAction('disable'), null, pNamesRU[6]);
-        PERFORM EditMethodText(uMethod, pNamesEN[6], uLocale);
+        uMethod := AddMethod(null, pClass, uState, GetAction('disable'), null, pNamesEN[6]);
+        PERFORM EditMethodText(uMethod, pNamesRU[6], GetLocale('ru'));
+        PERFORM EditMethodText(uMethod, aDE[6], GetLocale('de'));
+        PERFORM EditMethodText(uMethod, aFR[6], GetLocale('fr'));
+        PERFORM EditMethodText(uMethod, aIT[6], GetLocale('it'));
+        PERFORM EditMethodText(uMethod, aES[6], GetLocale('es'));
 
-        uMethod := AddMethod(null, pClass, uState, GetAction('delete'), null, pNamesRU[7]);
-        PERFORM EditMethodText(uMethod, pNamesEN[7], uLocale);
+        uMethod := AddMethod(null, pClass, uState, GetAction('delete'), null, pNamesEN[7]);
+        PERFORM EditMethodText(uMethod, pNamesRU[7], GetLocale('ru'));
+        PERFORM EditMethodText(uMethod, aDE[7], GetLocale('de'));
+        PERFORM EditMethodText(uMethod, aFR[7], GetLocale('fr'));
+        PERFORM EditMethodText(uMethod, aIT[7], GetLocale('it'));
+        PERFORM EditMethodText(uMethod, aES[7], GetLocale('es'));
 
     WHEN 'disabled' THEN
 
-      uState := AddState(pClass, rec_type.id, rec_type.code, pNamesRU[3]);
-      PERFORM EditStateText(uState, pNamesEN[3], uLocale);
+      uState := AddState(pClass, rec_type.id, rec_type.code, pNamesEN[3]);
+      PERFORM EditStateText(uState, pNamesRU[3], GetLocale('ru'));
+      PERFORM EditStateText(uState, aDE[3], GetLocale('de'));
+      PERFORM EditStateText(uState, aFR[3], GetLocale('fr'));
+      PERFORM EditStateText(uState, aIT[3], GetLocale('it'));
+      PERFORM EditStateText(uState, aES[3], GetLocale('es'));
 
-        uMethod := AddMethod(null, pClass, uState, GetAction('enable'), null, pNamesRU[5]);
-        PERFORM EditMethodText(uMethod, pNamesEN[5], uLocale);
+        uMethod := AddMethod(null, pClass, uState, GetAction('enable'), null, pNamesEN[5]);
+        PERFORM EditMethodText(uMethod, pNamesRU[5], GetLocale('ru'));
+        PERFORM EditMethodText(uMethod, aDE[5], GetLocale('de'));
+        PERFORM EditMethodText(uMethod, aFR[5], GetLocale('fr'));
+        PERFORM EditMethodText(uMethod, aIT[5], GetLocale('it'));
+        PERFORM EditMethodText(uMethod, aES[5], GetLocale('es'));
 
-        uMethod := AddMethod(null, pClass, uState, GetAction('delete'), null, pNamesRU[7]);
-        PERFORM EditMethodText(uMethod, pNamesEN[7], uLocale);
+        uMethod := AddMethod(null, pClass, uState, GetAction('delete'), null, pNamesEN[7]);
+        PERFORM EditMethodText(uMethod, pNamesRU[7], GetLocale('ru'));
+        PERFORM EditMethodText(uMethod, aDE[7], GetLocale('de'));
+        PERFORM EditMethodText(uMethod, aFR[7], GetLocale('fr'));
+        PERFORM EditMethodText(uMethod, aIT[7], GetLocale('it'));
+        PERFORM EditMethodText(uMethod, aES[7], GetLocale('es'));
 
     WHEN 'deleted' THEN
 
-      uState := AddState(pClass, rec_type.id, rec_type.code, pNamesRU[4]);
-      PERFORM EditStateText(uState, pNamesEN[4], uLocale);
+      uState := AddState(pClass, rec_type.id, rec_type.code, pNamesEN[4]);
+      PERFORM EditStateText(uState, pNamesRU[4], GetLocale('ru'));
+      PERFORM EditStateText(uState, aDE[4], GetLocale('de'));
+      PERFORM EditStateText(uState, aFR[4], GetLocale('fr'));
+      PERFORM EditStateText(uState, aIT[4], GetLocale('it'));
+      PERFORM EditStateText(uState, aES[4], GetLocale('es'));
 
-        uMethod := AddMethod(null, pClass, uState, GetAction('restore'));
-        PERFORM EditMethodText(uMethod, 'Restore', uLocale);
+        uMethod := AddMethod(null, pClass, uState, GetAction('restore'), null, pNamesEN[8]);
+        PERFORM EditMethodText(uMethod, pNamesRU[8], GetLocale('ru'));
+        PERFORM EditMethodText(uMethod, aDE[8], GetLocale('de'));
+        PERFORM EditMethodText(uMethod, aFR[8], GetLocale('fr'));
+        PERFORM EditMethodText(uMethod, aIT[8], GetLocale('it'));
+        PERFORM EditMethodText(uMethod, aES[8], GetLocale('es'));
 
-        uMethod := AddMethod(null, pClass, uState, GetAction('drop'));
-        PERFORM EditMethodText(uMethod, 'Drop', uLocale);
+        uMethod := AddMethod(null, pClass, uState, GetAction('drop'), null, pNamesEN[9]);
+        PERFORM EditMethodText(uMethod, pNamesRU[9], GetLocale('ru'));
+        PERFORM EditMethodText(uMethod, aDE[9], GetLocale('de'));
+        PERFORM EditMethodText(uMethod, aFR[9], GetLocale('fr'));
+        PERFORM EditMethodText(uMethod, aIT[9], GetLocale('it'));
+        PERFORM EditMethodText(uMethod, aES[9], GetLocale('es'));
 
     END CASE;
 
@@ -303,6 +362,14 @@ BEGIN
   IF pNames IS NULL THEN
     IF pLocale = GetLocale('ru') THEN
       pNames := array_cat(pNames, ARRAY['Создан', 'Открыт', 'Закрыт', 'Удалён', 'Открыть', 'Закрыть', 'Удалить', 'Восстановить', 'Уничтожить']);
+    ELSIF pLocale = GetLocale('de') THEN
+      pNames := array_cat(pNames, ARRAY['Erstellt', 'Geöffnet', 'Geschlossen', 'Gelöscht', 'Öffnen', 'Schließen', 'Löschen', 'Wiederherstellen', 'Vernichten']);
+    ELSIF pLocale = GetLocale('fr') THEN
+      pNames := array_cat(pNames, ARRAY['Créé', 'Ouvert', 'Fermé', 'Supprimé', 'Ouvrir', 'Fermer', 'Supprimer', 'Restaurer', 'Détruire']);
+    ELSIF pLocale = GetLocale('it') THEN
+      pNames := array_cat(pNames, ARRAY['Creato', 'Aperto', 'Chiuso', 'Eliminato', 'Aprire', 'Chiudere', 'Eliminare', 'Ripristinare', 'Distruggere']);
+    ELSIF pLocale = GetLocale('es') THEN
+      pNames := array_cat(pNames, ARRAY['Creado', 'Abierto', 'Cerrado', 'Eliminado', 'Abrir', 'Cerrar', 'Eliminar', 'Restaurar', 'Destruir']);
     ELSE
       pNames := array_cat(pNames, ARRAY['Created', 'Opened', 'Closed', 'Deleted', 'Open', 'Close', 'Delete', 'Restore', 'Drop']);
     END IF;
