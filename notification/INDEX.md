@@ -16,7 +16,7 @@ Event audit trail and notification dispatch. Records every state transition (met
 |--------|-------|
 | `db` | 1 table (notification) + 1 trigger |
 | `kernel` | 2 views, 4 functions |
-| `api` | 2 views, 6 functions |
+| `api` | 2 views, 8 functions |
 | `rest` | `rest.notification` dispatcher (5 routes) |
 
 ## Tables — 1
@@ -57,14 +57,16 @@ All FK columns have `ON DELETE CASCADE`.
 | `AddNotification(pClass, pAction, pMethod, pStateOld, pStateNew, pObject, pUserId, pDateTime)` | `void` | Convenience: auto-looks up entity from class |
 | `Notification(pDateFrom, pUserId)` | `SETOF Notification` | Access-controlled query: filters by aou mask `B'100'` with group membership expansion |
 
-## Functions (api schema) — 6
+## Functions (api schema) — 8
 
 | Function | Returns | Purpose |
 |----------|---------|---------|
 | `api.notification(pDateFrom, pUserId)` | `SETOF api.notification` | Wrapper for `Notification()` |
 | `api.get_notification(pId)` | `SETOF api.notification` | Get by ID |
+| `api.count_notification(pSearch, pFilter)` | `SETOF bigint` | Count notifications with search/filter |
 | `api.list_notification(pSearch, pFilter, pLimit, pOffSet, pOrderBy)` | `SETOF api.notification` | List with search/filter/pagination |
 | `api.get_object_method_history(pId)` | `SETOF api.object_method_history` | Get history for object |
+| `api.count_object_method_history(pSearch, pFilter)` | `SETOF bigint` | Count method history with search/filter |
 | `api.list_object_method_history(pSearch, pFilter, pLimit, pOffSet, pOrderBy)` | `SETOF api.object_method_history` | List history |
 
 ## REST Routes — 5
@@ -86,7 +88,7 @@ Dispatcher: `rest.notification(pPath text, pPayload jsonb)`.
 | `table.sql` | yes | no | 1 table + 1 trigger |
 | `view.sql` | yes | yes | Notification, ObjectMethodHistory views |
 | `routine.sql` | yes | yes | 4 kernel functions |
-| `api.sql` | yes | yes | 2 api views + 6 api functions |
+| `api.sql` | yes | yes | 2 api views + 8 api functions |
 | `rest.sql` | yes | yes | `rest.notification` dispatcher (5 routes) |
 | `create.psql` | - | - | Includes all |
 | `update.psql` | - | - | Excludes table.sql |

@@ -16,7 +16,7 @@ Pub/Sub event system. Publishers emit events; listeners subscribe with filters a
 |--------|-------|
 | `db` | 2 tables (publisher, listener) |
 | `kernel` | 2 views, ~14 functions |
-| `api` | 2 views, ~11 functions |
+| `api` | 2 views, 13 functions |
 | `rest` | `rest.observer` dispatcher (11 routes) |
 
 ## Tables — 2
@@ -95,12 +95,23 @@ Pub/Sub event system. Publishers emit events; listeners subscribe with filters a
 | `mixed` | Return both notification and object |
 | `hook` | Call `api.run(method, path, payload)` internally |
 
-## Functions (api schema) — ~11
+## Functions (api schema) — 13
 
-Standard publisher/listener CRUD plus:
+Standard publisher/listener CRUD plus count functions:
 
 | Function | Returns | Purpose |
 |----------|---------|---------|
+| `api.publisher(pCode)` | `SETOF api.publisher` | Look up publisher by code |
+| `api.get_publisher(pCode)` | `SETOF api.publisher` | Retrieve publisher by code |
+| `api.count_publisher(pSearch, pFilter)` | `SETOF bigint` | Count publishers with search/filter |
+| `api.list_publisher(pSearch, pFilter, pLimit, pOffSet, pOrderBy)` | `SETOF api.publisher` | List publishers with search/filter/pagination |
+| `api.listener(pPublisher, pSession, pIdentity)` | `SETOF api.listener` | Look up listener by key |
+| `api.add_listener(pPublisher, pSession, pIdentity, pFilter, pParams)` | `void` | Create listener subscription |
+| `api.update_listener(pPublisher, pSession, pIdentity, pFilter, pParams)` | `boolean` | Update listener |
+| `api.set_listener(pPublisher, pSession, pIdentity, pFilter, pParams)` | `SETOF api.listener` | Upsert listener |
+| `api.get_listener(pPublisher, pSession, pIdentity)` | `SETOF api.listener` | Retrieve listener by key |
+| `api.count_listener(pSearch, pFilter)` | `SETOF bigint` | Count listeners with search/filter |
+| `api.list_listener(pSearch, pFilter, pLimit, pOffSet, pOrderBy)` | `SETOF api.listener` | List listeners with search/filter/pagination |
 | `api.subscribe_observer(pPublisher, pSession, pIdentity, pFilter, pParams)` | `SETOF api.listener` | Subscribe (uses `current_session()` if NULL) |
 | `api.unsubscribe_observer(pPublisher, pSession, pIdentity)` | `boolean` | Unsubscribe (uses `current_session()` if NULL) |
 
@@ -129,7 +140,7 @@ Dispatcher: `rest.observer(pPath text, pPayload jsonb)`.
 | `table.sql` | yes | no | 2 tables |
 | `view.sql` | yes | yes | Publisher, Listener views |
 | `routine.sql` | yes | yes | ~14 kernel functions |
-| `api.sql` | yes | yes | 2 api views + ~11 api functions |
+| `api.sql` | yes | yes | 2 api views + 13 api functions |
 | `rest.sql` | yes | yes | `rest.observer` dispatcher (11 routes) |
 | `create.psql` | - | - | Includes all |
 | `update.psql` | - | - | Excludes table.sql |

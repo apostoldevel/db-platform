@@ -16,7 +16,7 @@ Hierarchical comment system for objects. Supports threaded replies via parent/ch
 |--------|-------|
 | `db` | 1 table (comment) + 1 trigger |
 | `kernel` | 1 view, 3 functions |
-| `api` | 1 view (recursive CTE), 7 functions |
+| `api` | 1 view (recursive CTE), 8 functions |
 | `rest` | `rest.comment` dispatcher (5 routes) |
 
 ## Tables — 1
@@ -46,7 +46,7 @@ Hierarchical comment system for objects. Supports threaded replies via parent/ch
 | `EditComment(pId, pPriority, pText, pData)` | `void` | Update (parent/owner immutable) |
 | `DeleteComment(pId)` | `boolean` | Delete comment |
 
-## Functions (api schema) — 7
+## Functions (api schema) — 8
 
 | Function | Returns | Purpose |
 |----------|---------|---------|
@@ -55,6 +55,7 @@ Hierarchical comment system for objects. Supports threaded replies via parent/ch
 | `api.update_comment(pId, pPriority, pText, pData)` | `void` | Update (owner or admin only) |
 | `api.set_comment(pId, pParent, pObject, pPriority, pText, pData)` | `SETOF api.comment` | Upsert: add if NULL, update if exists |
 | `api.get_comment(pId)` | `SETOF api.comment` | Get with `CheckObjectAccess(B'100')` |
+| `api.count_comment(pSearch, pFilter)` | `SETOF bigint` | Count with search/filter |
 | `api.list_comment(pSearch, pFilter, pLimit, pOffSet, pOrderBy)` | `SETOF api.comment` | List with search/filter/pagination |
 | `api.delete_comment(pId)` | `boolean` | Delete (owner or admin only) |
 
@@ -77,7 +78,7 @@ Dispatcher: `rest.comment(pPath text, pPayload jsonb)`.
 | `table.sql` | yes | no | 1 table + 1 trigger |
 | `view.sql` | yes | yes | Comment view (recursive tree) |
 | `routine.sql` | yes | yes | 3 kernel functions |
-| `api.sql` | yes | yes | 1 api view + 7 api functions |
+| `api.sql` | yes | yes | 1 api view + 8 api functions |
 | `rest.sql` | yes | yes | `rest.comment` dispatcher (5 routes) |
 | `init.sql` | yes | no | Route registration |
 | `create.psql` | - | - | Includes all |

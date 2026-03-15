@@ -16,7 +16,7 @@ Hierarchical, locale-aware content/resource management. Stores tree-structured r
 |--------|-------|
 | `db` | `db.resource`, `db.resource_data` tables |
 | `kernel` | `Resource`, `ResourceTree` views; CRUD functions |
-| `api` | `api.resource`, `api.resource_tree` views; 6 API functions |
+| `api` | `api.resource`, `api.resource_tree` views; 7 API functions |
 | `rest` | `rest.resource` dispatcher (5 routes) |
 
 ## Tables
@@ -66,6 +66,7 @@ Hierarchical, locale-aware content/resource management. Stores tree-structured r
 | `api.set_resource(...)` | `SETOF api.resource` | Upsert, returns row |
 | `api.get_resource(pId)` | `SETOF api.resource` | Get by ID |
 | `api.delete_resource(pId)` | `void` | Delete |
+| `api.count_resource(pSearch, pFilter)` | `SETOF bigint` | Count with search/filter |
 | `api.list_resource(pSearch, pFilter, pLimit, pOffSet, pOrderBy)` | `SETOF api.resource` | Dynamic list with search/filter/pagination |
 
 ## REST Routes — 5
@@ -94,7 +95,7 @@ Dispatcher: `rest.resource(pPath text, pPayload jsonb)`.
 | `table.sql` | yes | no | 2 tables + 2 triggers |
 | `view.sql` | yes | yes | `Resource`, `ResourceTree`, api pass-through views |
 | `routine.sql` | yes | yes | 8 kernel CRUD + ordering functions |
-| `api.sql` | yes | yes | 6 API wrapper functions |
+| `api.sql` | yes | yes | 7 API wrapper functions |
 | `rest.sql` | yes | yes | `rest.resource` dispatcher (5 routes) |
 | `create.psql` | - | - | Includes all |
 | `update.psql` | - | - | Includes view, routine, api, rest |

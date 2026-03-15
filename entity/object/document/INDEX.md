@@ -50,7 +50,7 @@ CRUD: `CreateDocument`, `EditDocument`. Text: `NewDocumentText`, `EditDocumentTe
 
 ### API — 7 functions
 
-`api.add_document`, `api.update_document`, `api.set_document`, `api.get_document`, `api.list_document`, `api.change_document_area`.
+`api.add_document`, `api.update_document`, `api.set_document`, `api.get_document`, `api.count_document`, `api.list_document`, `api.change_document_area`.
 
 ### REST Routes — 7
 

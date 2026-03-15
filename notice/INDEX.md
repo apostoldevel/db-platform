@@ -16,7 +16,7 @@ User notification/alert system. Stores per-user notices with status tracking (cr
 |--------|-------|
 | `db` | 1 table (notice) + 1 trigger |
 | `kernel` | 1 view, 3 functions |
-| `api` | 1 view, 9 functions |
+| `api` | 1 view, 10 functions |
 | `rest` | `rest.notice` dispatcher (6 routes) |
 
 ## Tables — 1
@@ -49,7 +49,7 @@ User notification/alert system. Stores per-user notices with status tracking (cr
 | `DeleteNotice(pId)` | `boolean` | Delete notice |
 | `MarkNotice(pId)` | `boolean` | Mark as read (status=2). NULL pId = mark all unread for current user |
 
-## Functions (api schema) — 9
+## Functions (api schema) — 10
 
 | Function | Returns | Purpose |
 |----------|---------|---------|
@@ -59,6 +59,7 @@ User notification/alert system. Stores per-user notices with status tracking (cr
 | `api.update_notice(...)` | `void` | Update notice |
 | `api.set_notice(...)` | `SETOF api.notice` | Upsert |
 | `api.get_notice(pId)` | `SETOF api.notice` | Get by ID |
+| `api.count_notice(pSearch, pFilter)` | `SETOF bigint` | Count with search/filter |
 | `api.list_notice(pSearch, pFilter, pLimit, pOffSet, pOrderBy)` | `SETOF api.notice` | List with search/filter/pagination |
 | `api.delete_notice(pId)` | `boolean` | Delete |
 | `api.mark_notice(pId)` | `boolean` | Mark as read |
@@ -83,7 +84,7 @@ Dispatcher: `rest.notice(pPath text, pPayload jsonb)`.
 | `table.sql` | yes | no | 1 table + 1 trigger |
 | `view.sql` | yes | yes | Notice view |
 | `routine.sql` | yes | yes | 5 kernel functions |
-| `api.sql` | yes | yes | 1 api view + 9 api functions |
+| `api.sql` | yes | yes | 1 api view + 10 api functions |
 | `rest.sql` | yes | yes | `rest.notice` dispatcher (6 routes) |
 | `init.sql` | yes | no | Route registration |
 | `create.psql` | - | - | Includes all |

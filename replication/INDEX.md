@@ -76,7 +76,7 @@ Data replication between database instances. Logs all INSERT/UPDATE/DELETE opera
 
 ### API Wrappers
 
-`api.replication_log`, `api.get_max_log_id`, `api.get_max_relay_id`, `api.add_to_relay_log`, `api.get_replication_log`, `api.list_replication_log`, `api.list_relay_log`, `api.replication_apply_relay`, `api.replication_apply`.
+`api.replication_log`, `api.get_max_log_id`, `api.get_max_relay_id`, `api.add_to_relay_log`, `api.get_replication_log`, `api.count_replication_log`, `api.list_replication_log`, `api.count_relay_log`, `api.list_relay_log`, `api.replication_apply_relay`, `api.replication_apply`.
 
 ## REST Routes — 11
 
@@ -111,7 +111,7 @@ Dispatcher: `rest.replication(pPath text, pPayload jsonb)`.
 | `table.sql` | yes | no | 4 tables + notify trigger |
 | `view.sql` | yes | yes | 3 kernel views |
 | `routine.sql` | yes | yes | ~15 replication functions |
-| `api.sql` | yes | yes | 9 API wrapper functions |
+| `api.sql` | yes | yes | 11 API wrapper functions |
 | `rest.sql` | yes | yes | `rest.replication` dispatcher (11 routes) |
 | `init.sql` | yes | no | RegisterRoute for replication |
 | `create.psql` | - | - | Includes all |

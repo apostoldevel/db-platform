@@ -16,7 +16,7 @@ Russian Federation address classifier (КЛАДР). Provides a hierarchical addr
 |--------|-------|
 | `db` | 3 tables (kladr, street, address_tree) |
 | `kernel` | 1 view, 8 functions |
-| `api` | 1 view, 4 functions |
+| `api` | 1 view, 5 functions |
 | `rest` | `rest.kladr` dispatcher (4 routes) |
 
 ## Tables — 3
@@ -55,21 +55,23 @@ Russian Federation address classifier (КЛАДР). Provides a hierarchical addr
 
 `GetAddressTreeString` options: `pShort` (0=none, 1=left abbreviation, 2=right), `pLevel` (filter depth).
 
-## Functions (api schema) — 4
+## Functions (api schema) — 5
 
 | Function | Returns | Purpose |
 |----------|---------|---------|
 | `api.get_address_tree(pId)` | `SETOF api.address_tree` | Fetch single address by ID |
+| `api.count_address_tree(pSearch, pFilter)` | `SETOF bigint` | Count with search/filter |
 | `api.list_address_tree(pSearch, pFilter, pLimit, pOffSet, pOrderBy)` | `SETOF api.address_tree` | List with search/filter/pagination |
 | `api.get_address_tree_history(pId)` | `SETOF api.address_tree` | Recursive parent chain (ancestors) |
 | `api.get_address_tree_string(pCode, pShort, pLevel)` | `text` | Wrapper for `GetAddressTreeString` |
 
-## REST Routes — 4
+## REST Routes — 5
 
 Dispatcher: `rest.kladr(pPath text, pPayload jsonb)`.
 
 | Path | Purpose |
 |------|---------|
+| `/kladr/count` | Count with search/filter |
 | `/kladr/get` | Fetch address(es) by ID with field projection |
 | `/kladr/list` | List addresses with filtering |
 | `/kladr/history` | Get address hierarchy (parent chain) |
@@ -86,7 +88,7 @@ No `init.sql`. Data is loaded by calling `LoadFromKladr()` from application code
 | `table.sql` | yes | no | 3 tables + indexes |
 | `view.sql` | yes | yes | `AddressTree` view |
 | `routine.sql` | yes | yes | 8 kernel functions |
-| `api.sql` | yes | yes | 1 api view + 4 api functions |
+| `api.sql` | yes | yes | 1 api view + 5 api functions |
 | `rest.sql` | yes | yes | `rest.kladr` dispatcher (4 routes) |
 | `create.psql` | - | - | Includes all |
 | `update.psql` | - | - | Excludes table.sql |

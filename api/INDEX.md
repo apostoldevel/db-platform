@@ -104,6 +104,7 @@ Compare operators: `EQL`, `NEQ`, `LSS`, `LEQ`, `GTR`, `GEQ`, `GIN`, `LKE`, `ISN`
 |----------|---------|---------|
 | `api.log(pUserId, pPath, pDateFrom, pDateTo)` | `SETOF api.log` | Query API logs |
 | `api.get_log(pId)` | `SETOF api.log` | Get single log entry |
+| `api.count_log(pSearch, pFilter)` | `SETOF bigint` | Count API log entries with search/filter |
 | `api.list_log(pSearch, pFilter, pLimit, pOffSet, pOrderBy)` | `SETOF api.log` | Dynamic list |
 
 ## REST Routes

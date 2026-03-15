@@ -16,7 +16,7 @@ Hierarchical file system abstraction layer. Supports documents, directories, sym
 |--------|-------|
 | `db` | 1 table (file) + 5 triggers |
 | `kernel` | 3 views, ~15 functions |
-| `api` | 2 views, 5 functions |
+| `api` | 2 views, 6 functions |
 | `rest` | `rest.file` dispatcher (5 routes) |
 
 ## Tables — 1
@@ -90,7 +90,7 @@ Hierarchical file system abstraction layer. Supports documents, directories, sym
 
 S3 config read from registry: `CONFIG\S3` keys: `Region`, `Endpoint`, `AccessKey`, `SecretKey`.
 
-## Functions (api schema) — 5
+## Functions (api schema) — 6
 
 | Function | Returns | Purpose |
 |----------|---------|---------|
@@ -98,6 +98,7 @@ S3 config read from registry: `CONFIG\S3` keys: `Region`, `Endpoint`, `AccessKey
 | `api.get_file(pId)` | `SETOF api.file_data` | Get file with base64-encoded content |
 | `api.get_file_id(pName, pPath)` | `uuid` | Resolve file ID by name + path |
 | `api.delete_file(pId)` | `boolean` | Delete file |
+| `api.count_file(pSearch, pFilter)` | `SETOF bigint` | Count with search/filter |
 | `api.list_file(pSearch, pFilter, pLimit, pOffSet, pOrderBy)` | `SETOF api.file` | List with search/filter/pagination |
 
 ## REST Routes — 5
@@ -119,7 +120,7 @@ Dispatcher: `rest.file(pPath text, pPayload jsonb)`.
 | `table.sql` | yes | no | 1 table + 5 triggers |
 | `view.sql` | yes | yes | File, FileData, FileTree views |
 | `routine.sql` | yes | yes | ~15 kernel functions |
-| `api.sql` | yes | yes | 2 api views + 5 api functions |
+| `api.sql` | yes | yes | 2 api views + 6 api functions |
 | `rest.sql` | yes | yes | `rest.file` dispatcher (5 routes) |
 | `init.sql` | yes | no | Route registration |
 | `create.psql` | - | - | Includes all |

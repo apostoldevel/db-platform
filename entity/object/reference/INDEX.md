@@ -45,7 +45,7 @@ object (abstract)
 
 ### API — 6 functions
 
-`api.add_reference`, `api.update_reference`, `api.set_reference`, `api.get_reference`, `api.list_reference`.
+`api.add_reference`, `api.update_reference`, `api.set_reference`, `api.get_reference`, `api.count_reference`, `api.list_reference`.
 
 ### REST Routes — 6
 
@@ -65,7 +65,7 @@ All sub-entities follow the same structure:
 |-------|---------|
 | **Table** | `db.{entity}` with `id uuid PK/FK(reference)`, `reference uuid FK`, specialized columns |
 | **Trigger** | BEFORE INSERT: copy `reference` to `id` |
-| **Views** | 3 per entity: `{Entity}`, `Access{Entity}`, `Object{Entity}` |
+| **Views** | 3 per entity: `{Entity}`, `Access{Entity}`, `Object{Entity}` (access-filtered via `INNER JOIN Access{Entity}`) |
 | **Functions** | `Create{Entity}` → calls `CreateReference` + insert specialized row + `ExecuteMethod('create')` |
 | **Events** | 9 standard lifecycle + `Event{Entity}Drop` deletes specialized row |
 | **Init** | `CreateClass{Entity}` (class + types + events + methods) |
@@ -81,7 +81,7 @@ All sub-entities follow the same structure:
 | **Types** | `system.agent`, `api.agent`, `email.agent`, `stream.agent` |
 | **Special** | AFTER INSERT trigger sets mailbot AOU permissions |
 | **Functions** | `CreateAgent`, `EditAgent`, `GetAgent`, `GetAgentCode`, `GetAgentVendor` |
-| **API extra** | `api.get_agent_id(pCode)` — UUID/code resolution |
+| **API extra** | `api.count_agent(pSearch, pFilter)` — count with search/filter; `api.get_agent_id(pCode)` — UUID/code resolution |
 | **REST extra** | Dynamic methods via `ExecuteDynamicMethod()` |
 
 ## FORM
@@ -91,7 +91,7 @@ All sub-entities follow the same structure:
 | **Extra columns** | (none, just id+reference) |
 | **Types** | `none.form`, `journal.form`, `tracker.form` |
 | **Special** | `BuildForm(pForm, pParams)` → JSON array of fields ordered by sequence |
-| **API extra** | `api.build_form(pId, pParams)` |
+| **API extra** | `api.count_form(pSearch, pFilter)` — count with search/filter; `api.build_form(pId, pParams)` |
 | **REST extra** | `/form/build` + delegates to `rest.form_field()` for `/form/field*` |
 
 ### FORM FIELD (child table, not a workflow entity)
@@ -102,7 +102,7 @@ All sub-entities follow the same structure:
 
 Functions: `CreateFormField`, `EditFormField`, `SetFormField` (upsert), `DeleteFormField`, `SetFormFieldSequence`, `GetFormFieldJson`.
 
-API: `api.set_form_field`, `api.get_form_field`, `api.delete_form_field`, `api.clear_form_field`, `api.set_form_field_json`/`jsonb`, `api.get_form_field_json`/`jsonb`, `api.list_form_field`.
+API: `api.set_form_field`, `api.get_form_field`, `api.delete_form_field`, `api.count_form_field`, `api.clear_form_field`, `api.set_form_field_json`/`jsonb`, `api.get_form_field_json`/`jsonb`, `api.list_form_field`.
 
 REST: `/form/field`, `/form/field/count`, `/form/field/set`, `/form/field/get`, `/form/field/delete`, `/form/field/list`.
 
@@ -113,6 +113,7 @@ REST: `/form/field`, `/form/field/count`, `/form/field/set`, `/form/field/get`, 
 | **Extra columns** | `body text` (PL/pgSQL source code) |
 | **Types** | `plpgsql.program` |
 | **Functions** | `CreateProgram`, `EditProgram`, `GetProgram` |
+| **API extra** | `api.count_program(pSearch, pFilter)` — count with search/filter; `api.get_program_id(pCode)` — UUID/code resolution |
 
 ## SCHEDULER
 
@@ -121,6 +122,7 @@ REST: `/form/field`, `/form/field/count`, `/form/field/set`, `/form/field/get`, 
 | **Extra columns** | `period interval`, `dateStart timestamptz` (default NOW()), `dateStop timestamptz` (default '4433-12-31') |
 | **Types** | `job.scheduler` |
 | **Functions** | `CreateScheduler`, `EditScheduler`, `GetScheduler` |
+| **API extra** | `api.count_scheduler(pSearch, pFilter)` — count with search/filter; `api.get_scheduler_id(pCode)` — UUID/code resolution |
 
 ## VENDOR
 
@@ -129,6 +131,7 @@ REST: `/form/field`, `/form/field/count`, `/form/field/set`, `/form/field/get`, 
 | **Extra columns** | (none, just id+reference) |
 | **Types** | `service.vendor`, `device.vendor`, `car.vendor` |
 | **Functions** | `CreateVendor`, `EditVendor`, `GetVendor` |
+| **API extra** | `api.count_vendor(pSearch, pFilter)` — count with search/filter; `api.get_vendor_id(pCode)` — UUID/code resolution |
 
 ## VERSION
 
@@ -137,6 +140,7 @@ REST: `/form/field`, `/form/field/count`, `/form/field/set`, `/form/field/get`, 
 | **Extra columns** | (none, just id+reference) |
 | **Types** | `api.version` |
 | **Functions** | `CreateVersion`, `EditVersion`, `GetVersion` |
+| **API extra** | `api.count_version(pSearch, pFilter)` — count with search/filter; `api.get_version_id(pCode)` — UUID/code resolution |
 
 ---
 

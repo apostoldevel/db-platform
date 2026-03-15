@@ -2,7 +2,7 @@
 
 > Platform module #4 | Loaded by `create.psql` line 4
 
-User management, authentication, authorization, sessions, and access control. The largest platform module by API surface: 159 kernel functions, 73 api functions, 13 api views, 64 REST routes. Manages the full lifecycle from login through session creation, token management, and ACL enforcement.
+User management, authentication, authorization, sessions, and access control. The largest platform module by API surface: 159 kernel functions, 78 api functions, 13 api views, 64 REST routes. Manages the full lifecycle from login through session creation, token management, and ACL enforcement.
 
 ## Dependencies
 
@@ -16,7 +16,7 @@ User management, authentication, authorization, sessions, and access control. Th
 |--------|-------|
 | `db` | 15 tables (scope, area, user, profile, session, token, acl, etc.) |
 | `kernel` | 14 views, 159 functions |
-| `api` | 13 views, 73 functions |
+| `api` | 13 views, 78 functions |
 | `rest` | `rest.admin` dispatcher (64 routes) |
 
 ## Tables
@@ -156,35 +156,35 @@ User management, authentication, authorization, sessions, and access control. Th
 
 `SetLogMode`, `GetLogMode`, `SetDebugMode`, `GetDebugMode`.
 
-## Functions (api schema) — 73 functions, 13 views
+## Functions (api schema) — 78 functions, 13 views
 
 ### Auth (5)
 
 `api.login`, `api.signin`, `api.signout`, `api.authenticate`, `api.authorize`.
 
-### Session (6)
+### Session (7)
 
-`api.session(userid,username)`, `api.get_session`, `api.list_session`, `api.get_sessions`, `api.check_session`, `api.check_offline`.
+`api.session(userid,username)`, `api.get_session`, `api.list_session`, `api.count_session`, `api.get_sessions`, `api.check_session`, `api.check_offline`.
 
-### User (14)
+### User (15)
 
-`api.add_user`, `api.update_user`, `api.set_user`, `api.delete_user`, `api.get_user`, `api.list_user`, `api.change_password`, `api.recovery_password`, `api.check_recovery_ticket`, `api.reset_password`, `api.registration_code*` (3), `api.check_registration_code`, `api.update_profile`, `api.set_user_profile`, `api.su`, `api.user_lock`, `api.user_unlock`, `api.get_user_iptable`, `api.set_user_iptable`.
+`api.add_user`, `api.update_user`, `api.set_user`, `api.delete_user`, `api.get_user`, `api.list_user`, `api.count_user`, `api.change_password`, `api.recovery_password`, `api.check_recovery_ticket`, `api.reset_password`, `api.registration_code*` (3), `api.check_registration_code`, `api.update_profile`, `api.set_user_profile`, `api.su`, `api.user_lock`, `api.user_unlock`, `api.get_user_iptable`, `api.set_user_iptable`.
 
-### Group (7)
+### Group (8)
 
-`api.add_group`, `api.update_group`, `api.set_group`, `api.delete_group`, `api.get_group`, `api.list_group`.
+`api.add_group`, `api.update_group`, `api.set_group`, `api.delete_group`, `api.get_group`, `api.list_group`, `api.count_group`.
 
 ### Members (16)
 
 `api.user_member`, `api.member_user`, `api.member_group`, `api.group_member`, `api.group_member_add/delete`, `api.member_group_add/delete`, `api.area_member`, `api.member_area`, `api.area_member_add/delete`, `api.member_area_add/delete`, `api.interface_member`, `api.member_interface`, `api.interface_member_add/delete`, `api.member_interface_add/delete`, `api.get_groups_json`, `api.is_user_role`.
 
-### Area (11)
+### Area (12)
 
-`api.get_area_type`, `api.add_area`, `api.update_area`, `api.set_area`, `api.delete_area`, `api.safely_delete_area`, `api.clear_area`, `api.get_area`, `api.get_area_id`, `api.list_area`.
+`api.get_area_type`, `api.add_area`, `api.update_area`, `api.set_area`, `api.delete_area`, `api.safely_delete_area`, `api.clear_area`, `api.get_area`, `api.get_area_id`, `api.list_area`, `api.count_area`.
 
-### Interface (8)
+### Interface (9)
 
-`api.add_interface`, `api.update_interface`, `api.set_interface`, `api.delete_interface`, `api.get_interface`, `api.list_interface`.
+`api.add_interface`, `api.update_interface`, `api.set_interface`, `api.delete_interface`, `api.get_interface`, `api.list_interface`, `api.count_interface`.
 
 ### ACL (3)
 
@@ -233,7 +233,7 @@ Dispatcher: `rest.admin(pPath text, pPayload jsonb)`. Requires `administrator` r
 | `t_recovery_ticket_before` | `db.recovery_ticket` | BEFORE INSERT/UPDATE | Generate ticket UUID, set validity |
 | `t_token_header_before_delete` | `db.token_header` | BEFORE DELETE | Cascade delete tokens |
 | `t_token_before` | `db.token` | BEFORE INSERT/UPDATE/DELETE | Hash token, set validity by type (C=10min, A/I=60min, R=60day) |
-| `t_session_before` | `db.session` | BEFORE INSERT/UPDATE/DELETE | Generate code/secret/salt/pwkey; validate area/interface; rotate salt hourly |
+| `t_session_before` | `db.session` | BEFORE INSERT/UPDATE/DELETE | Generate code/secret/salt/pwkey (bcrypt via `gen_salt('bf')`); validate area/interface; rotate salt hourly |
 | `t_session_after` | `db.session` | AFTER UPDATE/DELETE | Cascade delete token_header; update current user |
 | `t_acl_before` | `db.acl` | BEFORE INSERT/UPDATE | Compute mask = allow & ~deny |
 
@@ -254,7 +254,7 @@ Dispatcher: `rest.admin(pPath text, pPayload jsonb)`. Requires `administrator` r
 | `view.sql` | yes | yes | 14 kernel views |
 | `do.sql` | yes | yes | 8 configuration hook stubs |
 | `routine.sql` | yes | yes | 159 kernel functions |
-| `api.sql` | yes | yes | 13 api views + 73 api functions |
+| `api.sql` | yes | yes | 13 api views + 78 api functions |
 | `rest.sql` | yes | yes | `rest.admin` dispatcher (64 routes) |
 | `init.sql` | yes | no | Seed area types, scope, areas, interfaces, groups, system users |
 | `create.psql` | - | - | Includes all 7 files |

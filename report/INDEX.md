@@ -103,7 +103,7 @@ All log to event log (code 1000):
 | restore | `EventReportRestore` | Report restored |
 | drop | `EventReportDrop` | Cascade delete: report_ready, report_routine, disabled objects |
 
-## Functions (api schema) — ~10
+## Functions (api schema) — ~19
 
 | Function | Returns | Purpose |
 |----------|---------|---------|
@@ -111,13 +111,21 @@ All log to event log (code 1000):
 | `api.add_report(...)` | `uuid` | Create (type defaults to `'report.report'`) |
 | `api.update_report(...)` | `void` | Update |
 | `api.get_report(pId)` | `SETOF api.report` | Get by ID |
+| `api.count_report(pSearch, pFilter)` | `SETOF bigint` | Count reports with search/filter |
 | `api.list_report(pSearch, pFilter, pLimit, pOffSet, pOrderBy)` | `SETOF api.report` | List with search/filter |
+| `api.count_report_object(pClass, pSearch, pFilter)` | `SETOF bigint` | Count reports bound to class with search/filter |
+| `api.list_report_object(pClass, pSearch, pFilter, pLimit, pOffSet, pOrderBy)` | `SETOF api.report` | List reports bound to class |
+| `api.get_report_form_files(pReport)` | `SETOF api.object_file` | Get files attached to report form |
 | `api.delete_report(pId)` | `void` | Soft delete via state |
 | `api.add_report_tree(...)` | `uuid` | Create tree node |
+| `api.count_report_tree(pSearch, pFilter)` | `SETOF bigint` | Count tree nodes with search/filter |
 | `api.add_report_form(...)` | `uuid` | Create form |
+| `api.count_report_form(pSearch, pFilter)` | `SETOF bigint` | Count forms with search/filter |
 | `api.add_report_routine(...)` | `uuid` | Create routine |
+| `api.count_report_routine(pSearch, pFilter)` | `SETOF bigint` | Count routines with search/filter |
+| `api.count_report_ready(pSearch, pFilter)` | `SETOF bigint` | Count ready reports with search/filter |
 
-## REST Routes — 8
+## REST Routes — 10
 
 Dispatcher: `rest.report(pPath text, pPayload jsonb)`.
 
@@ -126,10 +134,12 @@ Dispatcher: `rest.report(pPath text, pPayload jsonb)`.
 | `/report/type` | Report types |
 | `/report/method` | Methods for report object |
 | `/report/count` | Count with search/filter |
-| `/report/list` | List with search/filter/pagination |
-| `/report/get` | Get single with field projection |
 | `/report/set` | Insert or update |
-| `/report/add` | Create new |
+| `/report/get` | Get single with field projection |
+| `/report/list` | List with search/filter/pagination |
+| `/report/build` | Build report output (ReportReady) |
+| `/report/object/count` | Count reports bound to object class |
+| `/report/object/list` | List reports bound to object class |
 | `/report/delete` | Soft delete |
 
 ## File Manifest

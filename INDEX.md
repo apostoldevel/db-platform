@@ -1,7 +1,7 @@
 # db-platform — INDEX
 
 > PostgreSQL Framework for Backend Development
-> Version: 1.2.0 | License: MIT
+> Version: 1.2.1 | License: MIT
 > GitHub: https://github.com/apostoldevel/db-platform
 
 ---
@@ -76,50 +76,50 @@ Loaded in dependency order (create.psql):
 |--:|--------|-------:|-------------|-------|
 | 5 | **http** | 3 | Outbound HTTP requests + callbacks (LISTEN/NOTIFY) | [http/INDEX.md](http/INDEX.md) |
 | 6 | **resource** | 2 | Locale-aware content tree | [resource/INDEX.md](resource/INDEX.md) |
-| 8 | **registry** | 2 | Key-value configuration (hierarchical, Windows Registry style) | [registry/INDEX.md](registry/INDEX.md) |
-| 9 | **log** | 1 | Structured event log | [log/INDEX.md](log/INDEX.md) |
-| 10 | **api** | 4 | REST routing, request log, `rest.api()` — main entry point | [api/INDEX.md](api/INDEX.md) |
-| 11 | **replication** | 4 | Multi-instance sync | [replication/INDEX.md](replication/INDEX.md) |
-| 12 | **daemon** | — | C++ ↔ PL/pgSQL interface | [daemon/INDEX.md](daemon/INDEX.md) |
+| 9 | **registry** | 2 | Key-value configuration (hierarchical, Windows Registry style) | [registry/INDEX.md](registry/INDEX.md) |
+| 10 | **log** | 1 | Structured event log | [log/INDEX.md](log/INDEX.md) |
+| 11 | **api** | 4 | REST routing, request log, `rest.api()` — main entry point | [api/INDEX.md](api/INDEX.md) |
+| 12 | **replication** | 4 | Multi-instance sync | [replication/INDEX.md](replication/INDEX.md) |
+| 13 | **daemon** | — | C++ ↔ PL/pgSQL interface | [daemon/INDEX.md](daemon/INDEX.md) |
 
 ### Session
 
 | # | Module | Tables | Description | INDEX |
 |--:|--------|-------:|-------------|-------|
-| 13 | **session** | — | Session context setters (`SetSessionUserId`, `SetSessionScope`, ...) | [session/INDEX.md](session/INDEX.md) |
-| 14 | **current** | — | Session context getters (`current_userid()`, `current_scope()`, ...) | [current/INDEX.md](current/INDEX.md) |
+| 14 | **session** | — | Session context setters (`SetSessionUserId`, `SetSessionScope`, ...) | [session/INDEX.md](session/INDEX.md) |
+| 15 | **current** | — | Session context getters (`current_userid()`, `current_scope()`, ...) | [current/INDEX.md](current/INDEX.md) |
 
 ### Business logic
 
 | # | Module | Tables | Description | INDEX |
 |--:|--------|-------:|-------------|-------|
-| 15 | **workflow** | 23 | State machine: entity → class → type, states, actions, methods, transitions, events, `acu`, `amu` | [workflow/INDEX.md](workflow/INDEX.md) |
-| 16 | **kladr** | 3 | Russian address classifier (KLADR) | [kladr/INDEX.md](kladr/INDEX.md) |
-| 17 | **file** | 1 | Virtual FS: files, directories, UNIX mask, S3 buckets | [file/INDEX.md](file/INDEX.md) |
-| 18 | **entity** | 27 | Entity system: object, reference, document. AOU/AOM access control | [entity/INDEX.md](entity/INDEX.md) |
+| 16 | **workflow** | 23 | State machine: entity → class → type, states, actions, methods, transitions, events, `acu`, `amu` | [workflow/INDEX.md](workflow/INDEX.md) |
+| 17 | **kladr** | 3 | Russian address classifier (KLADR) | [kladr/INDEX.md](kladr/INDEX.md) |
+| 18 | **file** | 1 | Virtual FS: files, directories, UNIX mask, S3 buckets | [file/INDEX.md](file/INDEX.md) |
+| 19 | **entity** | 27 | Entity system: object, reference, document. AOU/AOM access control | [entity/INDEX.md](entity/INDEX.md) |
 
 ### Communication
 
 | # | Module | Tables | Description | INDEX |
 |--:|--------|-------:|-------------|-------|
-| 19 | **notice** | 1 | User notifications | [notice/INDEX.md](notice/INDEX.md) |
-| 20 | **comment** | 1 | Threaded comments on objects | [comment/INDEX.md](comment/INDEX.md) |
-| 21 | **notification** | 1 | Event audit trail + dispatch | [notification/INDEX.md](notification/INDEX.md) |
-| 22 | **verification** | 1 | Email/phone verification codes | [verification/INDEX.md](verification/INDEX.md) |
-| 23 | **observer** | 2 | Pub/Sub: publishers, listeners, filter routing | [observer/INDEX.md](observer/INDEX.md) |
+| 20 | **notice** | 1 | User notifications | [notice/INDEX.md](notice/INDEX.md) |
+| 21 | **comment** | 1 | Threaded comments on objects | [comment/INDEX.md](comment/INDEX.md) |
+| 22 | **notification** | 1 | Event audit trail + dispatch | [notification/INDEX.md](notification/INDEX.md) |
+| 23 | **verification** | 1 | Email/phone verification codes | [verification/INDEX.md](verification/INDEX.md) |
+| 24 | **observer** | 2 | Pub/Sub: publishers, listeners, filter routing | [observer/INDEX.md](observer/INDEX.md) |
 
 ### Reporting
 
 | # | Module | Tables | Description | INDEX |
 |--:|--------|-------:|-------------|-------|
-| 24 | **report** | 5 | Reports: tree, form, routine, ready | [report/INDEX.md](report/INDEX.md) |
-| 25 | **reports** | — | Pre-built report definitions | [reports/INDEX.md](reports/INDEX.md) |
+| 25 | **report** | 5 | Reports: tree, form, routine, ready | [report/INDEX.md](report/INDEX.md) |
+| 26 | **reports** | — | Pre-built report definitions | [reports/INDEX.md](reports/INDEX.md) |
 
 ---
 
 ## Key subsystems
 
-### Workflow Engine (module #15)
+### Workflow Engine (module #16)
 
 State machine for all entities:
 

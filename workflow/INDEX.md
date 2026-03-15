@@ -1,6 +1,6 @@
 # workflow
 
-> Platform module #15 | Loaded by `create.psql` line 15
+> Platform module #16 | Loaded by `create.psql` line 16
 
 **The conceptual heart of the platform.** Implements a full state-machine workflow engine: entities → classes (inheritance tree) → types, states, actions, methods, transitions, events. Every business object in the system is governed by this workflow. Also manages three access-control layers: ACU (class-level), AMU (method-level), and AOU (object-level, defined in the entity module).
 
@@ -16,7 +16,7 @@
 |--------|-------|
 | `db` | 20 tables (10 core + 10 `_text` i18n) |
 | `kernel` | 18 views, 89 functions |
-| `api` | 12 views, 49 functions |
+| `api` | 12 views, 60 functions |
 | `rest` | `rest.workflow` dispatcher (52 routes) |
 
 ## Core Concepts
@@ -215,9 +215,11 @@ Default ACU on class creation (via trigger):
 
 `New*Text` / `Edit*Text` for: Entity, Class, Type, State, Action, Method, Event, Priority (2 functions each).
 
-## Functions (api schema) — 49 total
+## Functions (api schema) — 60 total
 
-Standard CRUD pattern per entity: `add_*`, `update_*`, `set_*` (upsert), `delete_*`, `get_*`, `list_*` (with search/filter/pagination).
+Standard CRUD pattern per entity: `add_*`, `update_*`, `set_*` (upsert), `delete_*`, `get_*`, `list_*`, `count_*` (with search/filter/pagination).
+
+Count functions (11): `api.count_entity`, `api.count_type`, `api.count_class`, `api.count_class_access`, `api.count_state`, `api.count_action`, `api.count_method`, `api.count_method_access`, `api.count_transition`, `api.count_event`, `api.count_priority`.
 
 Plus: `api.class()`, `api.copy_class()`, `api.clone_class()`, `api.decode_class_access()`, `api.class_access()`, `api.state()`, `api.state_by_type()`, `api.method()`, `api.get_methods()`, `api.get_object_methods()`, `api.get_methods_json()`, `api.get_methods_jsonb()`, `api.decode_method_access()`, `api.method_access()`.
 
@@ -306,7 +308,7 @@ PERFORM RegisterRoute('myentity', 'rest.myentity');
 | `table.sql` | yes | no | 20 tables (10 core + 10 _text) + 7 triggers |
 | `view.sql` | yes | yes | 18 kernel views |
 | `routine.sql` | yes | yes | 89 kernel functions |
-| `api.sql` | yes | yes | 12 api views + 49 api functions |
+| `api.sql` | yes | yes | 12 api views + 60 api functions |
 | `rest.sql` | yes | yes | `rest.workflow` dispatcher (52 routes) |
 | `init.sql` | yes | no | `InitWorkFlow()` + `DefaultMethods` + `DefaultTransition` + `AddDefaultMethods` + `UpdateDefaultMethods` |
 | `create.psql` | - | - | Includes all |

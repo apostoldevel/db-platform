@@ -16,7 +16,7 @@ Code-based email and phone verification. Generates time-bounded verification cod
 |--------|-------|
 | `db` | 1 table (verification_code) + 1 trigger |
 | `kernel` | 1 view, 5 functions |
-| `api` | 1 view, 5 functions |
+| `api` | 1 view, 6 functions |
 | `rest` | `rest.verification` dispatcher (6 routes) |
 
 ## Tables — 1
@@ -53,16 +53,17 @@ Code-based email and phone verification. Generates time-bounded verification cod
 | `CheckVerificationCode(pType, pCode)` | `uuid` | Validate code: check type, validity window, not-used. Returns userid or NULL |
 | `ConfirmVerificationCode(pType, pCode)` | `uuid` | Check + mark `email_verified`/`phone_verified` on `db.profile` |
 
-## Functions (api schema) — 5
+## Functions (api schema) — 6
 
 | Function | Returns | Purpose |
 |----------|---------|---------|
 | `api.new_verification_code(pType, pCode, pUserId)` | `SETOF api.verification_code` | Generate code, return record |
 | `api.confirm_verification_code(pType, pCode)` | `record(result bool, message text)` | Confirm code + trigger `DoConfirmEmail`/`DoConfirmPhone` via apibot substitution |
 | `api.get_verification_code(pId)` | `SETOF api.verification_code` | Get by ID |
+| `api.count_verification_code(pSearch, pFilter)` | `SETOF bigint` | Count with search/filter |
 | `api.list_verification_code(pSearch, pFilter, pLimit, pOffSet, pOrderBy)` | `SETOF api.verification_code` | List (admin only) |
 
-## REST Routes — 6
+## REST Routes — 7
 
 Dispatcher: `rest.verification(pPath text, pPayload jsonb)`.
 
@@ -73,6 +74,7 @@ Dispatcher: `rest.verification(pPath text, pPayload jsonb)`.
 | `/verification/email/confirm` | Confirm email with code |
 | `/verification/phone/confirm` | Confirm phone with code |
 | `/verification/code/get` | Get verification code by ID |
+| `/verification/code/count` | Count with search/filter |
 | `/verification/code/list` | List codes (admin only) |
 
 ## File Manifest
@@ -82,7 +84,7 @@ Dispatcher: `rest.verification(pPath text, pPayload jsonb)`.
 | `table.sql` | yes | no | 1 table + 1 trigger |
 | `view.sql` | yes | yes | VerificationCode view |
 | `routine.sql` | yes | yes | 5 kernel functions |
-| `api.sql` | yes | yes | 1 api view + 5 api functions |
+| `api.sql` | yes | yes | 1 api view + 6 api functions |
 | `rest.sql` | yes | yes | `rest.verification` dispatcher (6 routes) |
 | `create.psql` | - | - | Includes all |
 | `update.psql` | - | - | Excludes table.sql |

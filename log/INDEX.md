@@ -16,7 +16,7 @@ Event logging system. Stores typed events (Message/Warning/Error/Debug) with use
 |--------|-------|
 | `db` | `db.log` table |
 | `kernel` | `EventLog` view, 6 core functions |
-| `api` | `api.event_log`, `api.user_log` views + 7 API functions |
+| `api` | `api.event_log`, `api.user_log` views + 9 API functions |
 | `rest` | `rest.event` dispatcher (5 routes) |
 
 ## Tables
@@ -71,7 +71,9 @@ Event logging system. Stores typed events (Message/Warning/Error/Debug) with use
 | `api.user_log(pType, pCode, pDateFrom, pDateTo)` | `SETOF api.user_log` | Current user's events |
 | `api.get_event_log(pId)` | `SETOF api.event_log` | Get single event |
 | `api.get_user_log(pId)` | `SETOF api.user_log` | Get user's single event |
+| `api.count_event_log(pSearch, pFilter)` | `SETOF bigint` | Count event log entries with search/filter |
 | `api.list_event_log(pSearch, pFilter, pLimit, pOffSet, pOrderBy)` | `SETOF api.event_log` | Dynamic list with search/filter/pagination |
+| `api.count_user_log(pSearch, pFilter)` | `SETOF bigint` | Count user log entries with search/filter |
 | `api.list_user_log(pSearch, pFilter, pLimit, pOffSet, pOrderBy)` | `SETOF api.user_log` | User's dynamic list |
 | `api.write_to_log(pType, pCode, pEvent, pText)` | `bigint` | API wrapper for logging |
 
@@ -101,7 +103,7 @@ Dispatcher: `rest.event(pPath text, pPayload jsonb)`.
 | `table.sql` | yes | no | `db.log` table + indexes + 2 triggers |
 | `view.sql` | yes | yes | `EventLog` view |
 | `routine.sql` | yes | yes | 7 core logging functions |
-| `api.sql` | yes | yes | 2 api views + 7 API functions |
+| `api.sql` | yes | yes | 2 api views + 9 API functions |
 | `rest.sql` | yes | yes | `rest.event` dispatcher (5 routes) |
 | `create.psql` | - | - | Includes all |
 | `update.psql` | - | - | Includes view, routine, api, rest |

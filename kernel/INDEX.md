@@ -8,7 +8,7 @@ Foundation module providing custom data types, schemas, database users, utility 
 
 | Depends on | Depended by |
 |------------|-------------|
-| _(none)_ | All 24 other modules |
+| _(none)_ | All 25 other modules |
 
 ## Schemas Created
 
@@ -152,6 +152,7 @@ Foundation module providing custom data types, schemas, database users, utility 
 | `CheckJsonbValues(pArrayName, pArray, jsonb)` | `void` | Validate JSONB array values |
 | `JsonToFields(json, pFields)` | `text` | JSON field list to SQL SELECT clause |
 | `JsonbToFields(jsonb, pFields)` | `text` | JSONB field list to SQL SELECT (supports aggregates) |
+| `JsonbToOrderBy(pJson, pFields)` | `text` | Validate JSONB array into safe ORDER BY clause |
 
 ### jwt.sql -- JWT Token Functions
 

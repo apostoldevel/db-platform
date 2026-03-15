@@ -1,8 +1,8 @@
 # entity/object
 
-> Platform module #18 (part of entity system) | Loaded by `entity/object/create.psql`
+> Platform module #19 (part of entity system) | Loaded by `entity/object/create.psql`
 
-**The foundational object module.** Every business entity in the platform (documents, references, messages, jobs) is ultimately an `object`. Provides: 14 core tables (object, text, access control, state history, groups, links, references, files, data, coordinates), ~130 kernel functions, ~65 REST routes, full-text search (EN/RU), and three-layer access control (AOM/AOU/OMA).
+**The foundational object module.** Every business entity in the platform (documents, references, messages, jobs) is ultimately an `object`. Provides: 14 core tables (object, text, access control, state history, groups, links, references, files, data, coordinates), ~130 kernel functions, 53 REST routes, full-text search (EN/RU), and three-layer access control (AOM/AOU/OMA).
 
 ## Dependencies
 
@@ -16,8 +16,8 @@
 |--------|-------|
 | `db` | 14 tables + ~8 triggers |
 | `kernel` | 13 views, ~130 functions (routine.sql + security.sql) |
-| `api` | 10 views, ~70 functions |
-| `rest` | `rest.object` dispatcher (~65 routes) |
+| `api` | 10 views, 60 functions (incl. 7 count functions) |
+| `rest` | `rest.object` dispatcher (53 routes) |
 
 ## Loading Order (create.psql)
 
@@ -195,14 +195,14 @@ table.sql → security.sql → view.sql → routine.sql → api.sql → rest.sql
 | restore | `EventObjectRestore` | — |
 | drop | `EventObjectDrop` | Cascades: comment, notice, object_link, object_file, object_data, object_state, method_stack, notification, log; nulls parent in children; deletes object |
 
-## REST Routes — ~65
+## REST Routes — 53
 
 Dispatcher: `rest.object(pPath text, pPayload jsonb)`.
 
 | Group | Routes | Operations |
 |-------|--------|------------|
 | Metadata | 7 | class, type, state, method, access, access/set, access/decode |
-| CRUD | 4 | set, get, list, count, delete/force |
+| CRUD | 5 | count, set, get, list, delete/force |
 | State History | 3 | state/history/get, list, count |
 | Method/Action | 5 | method/execute, action/execute, method/history/get, list, count |
 | Groups | 7 | group/set, get, list, count, member, member/add, member/delete |
@@ -236,8 +236,8 @@ Dispatcher: `rest.object(pPath text, pPayload jsonb)`.
 | `security.sql` | yes | yes | AOU/OMA access control functions |
 | `view.sql` | yes | yes | 13 kernel views |
 | `routine.sql` | yes | yes | ~130 kernel functions |
-| `api.sql` | yes | yes | 10 api views + ~70 api functions |
-| `rest.sql` | yes | yes | `rest.object` dispatcher (~65 routes) |
+| `api.sql` | yes | yes | 10 api views + 60 api functions |
+| `rest.sql` | yes | yes | `rest.object` dispatcher (53 routes) |
 | `event.sql` | yes | yes | 9 event handlers |
 | `init.sql` | yes | no | Entity/class/event registration |
 | `search.sql` | yes | yes | Full-text search (EN/RU) |

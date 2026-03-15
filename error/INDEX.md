@@ -16,7 +16,7 @@ Centralized error catalog with locale-aware messages. Every application error co
 |--------|-------|
 | `db` | `db.error_catalog`, `db.error_catalog_text` tables |
 | `kernel` | `ErrorCatalog` view, 7 business logic functions |
-| `api` | `api.error_catalog` view, 6 API functions |
+| `api` | `api.error_catalog` view, 7 API functions |
 | `rest` | `rest.error` dispatcher |
 
 ## Tables
@@ -71,6 +71,7 @@ Centralized error catalog with locale-aware messages. Every application error co
 | `api.set_error(pId, pCode, pHttpCode, pSeverity, pCategory, pMessage, pDescription, pResolution)` | `SETOF api.error_catalog` | Upsert: create when pId is NULL, otherwise update; returns the row |
 | `api.get_error(pId uuid)` | `SETOF api.error_catalog` | Retrieve a single entry by ID |
 | `api.get_error_by_code(pCode text)` | `SETOF api.error_catalog` | Retrieve a single entry by code string |
+| `api.count_error(pSearch, pFilter)` | `SETOF bigint` | Count entries with search/filter |
 | `api.list_error(pSearch, pFilter, pLimit, pOffSet, pOrderBy)` | `SETOF api.error_catalog` | List entries with search, filter, and pagination |
 
 ### rest schema
@@ -119,7 +120,7 @@ Error code format: `ERR-<http_code>-<sequence>` (e.g., `ERR-401-001`, `ERR-400-0
 | `table.sql` | yes | no | `db.error_catalog` + `db.error_catalog_text` tables, indexes |
 | `routine.sql` | yes | yes | 7 kernel functions (CRUD + RegisterError + message lookup) |
 | `view.sql` | yes | yes | `ErrorCatalog` + `api.error_catalog` views |
-| `api.sql` | yes | yes | 6 API functions (add, update, set, get, get_by_code, list) |
+| `api.sql` | yes | yes | 7 API functions (add, update, set, get, get_by_code, count, list) |
 | `rest.sql` | yes | yes | `rest.error` dispatcher (5 routes) |
 | `init.sql` | yes | no | 80 error codes x 6 locales = 480 RegisterError calls |
 | `create.psql` | - | - | Includes all (table, routine, view, api, rest, init) |
