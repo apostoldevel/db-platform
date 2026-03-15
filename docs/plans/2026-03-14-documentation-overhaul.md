@@ -2,6 +2,8 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
+**Status:** Completed (2026-03-15)
+
 **Goal:** Rewrite all JSDoc blocks, COMMENT ON statements, and inline comments to meaningful English across 25 modules (46 sub-modules).
 
 **Architecture:** Process modules strictly in `create.psql` order. Within each module: read `table.sql` to understand data model, then document `routine.sql`, `api.sql`, and remaining files. One commit per module (small modules grouped).

@@ -1,7 +1,7 @@
 # Documentation Overhaul — Design
 
 **Date:** 2026-03-14
-**Status:** Approved
+**Status:** Completed
 **Scope:** Cosmetic / documentation only — no business logic changes
 
 ## Goal
