@@ -26,13 +26,16 @@ Replace existing `nl` (Dutch) with `de` (German). Remove `al` (Albanian) if pres
 
 ## Error Code Format
 
-**New format:** `ERR-GGG-CC`
+**New format:** `ERR-GGG-CCC`
 
 - `GGG` — HTTP status group (400, 401, 403, 404, 500)
-- `CC` — unique code within group (01-99)
-- Example: `ERR-400-01` (Access denied), `ERR-401-01` (Login failed)
+- `CCC` — unique code within group (001–999)
+- Example: `ERR-400-001` (Access denied), `ERR-401-001` (Login failed)
 
-**Migration from current:** `ERR-40001` → `ERR-400-01`
+Three digits for the code ensure no limit issues as projects grow (platform
+currently has ~60 in group 400, each project adds 20-60 more).
+
+**Migration from current:** `ERR-40001` → `ERR-400-001`
 
 `ParseMessage()` supports both formats during transition period. Projects migrate
 at their own pace.
@@ -46,7 +49,7 @@ at their own pace.
 
 **New:**
 ```json
-{"error": {"code": 400, "error": "ERR-400-01", "message": "Access denied."}}
+{"error": {"code": 400, "error": "ERR-400-001", "message": "Access denied."}}
 ```
 
 - `code` (int) — HTTP status code. Unchanged. Backward compatible for all frontends.
@@ -56,8 +59,8 @@ at their own pace.
 ## Support Flow
 
 ```
-User sees error → reads ERR-400-01 → looks up in docs or asks support
-Support/AI-agent → GET /api/v1/error/ERR-400-01 → gets description + resolution
+User sees error → reads ERR-400-001 → looks up in docs or asks support
+Support/AI-agent → GET /api/v1/error/ERR-400-001 → gets description + resolution
 ```
 
 ## Architecture
@@ -67,7 +70,7 @@ Support/AI-agent → GET /api/v1/error/ERR-400-01 → gets description + resolut
 ```sql
 CREATE TABLE db.error_catalog (
   id          uuid PRIMARY KEY DEFAULT gen_kernel_uuid(),
-  code        text NOT NULL UNIQUE,      -- 'ERR-400-01'
+  code        text NOT NULL UNIQUE,      -- 'ERR-400-001'
   http_code   integer NOT NULL,          -- 400
   severity    char(1) NOT NULL DEFAULT 'E',  -- E=error, W=warning
   category    text NOT NULL,             -- 'auth', 'access', 'entity', 'workflow', 'validation', 'system'
@@ -116,8 +119,8 @@ Standard query capabilities:
 
 **`ParseMessage(text)`** — dual parser:
 ```
-Input: 'ERR-400-01: Access denied.'  → error_code='ERR-400-01', http_code=400, message='Access denied.'
-Input: 'ERR-40001: Access denied.'   → error_code='ERR-400-01', http_code=400, message='Access denied.'
+Input: 'ERR-400-001: Access denied.'  → error_code='ERR-400-001', http_code=400, message='Access denied.'
+Input: 'ERR-40001: Access denied.'   → error_code='ERR-400-001', http_code=400, message='Access denied.'
 ```
 
 **`GetExceptionStr(pErrGroup, pErrCode)`** — reads from `error_catalog_text`:
@@ -132,7 +135,7 @@ Falls back to `en` if current locale has no translation.
 ```sql
 RETURN NEXT json_build_object('error', json_build_object(
   'code',    HttpCode,
-  'error',   ErrorIdentifier,  -- 'ERR-400-01'
+  'error',   ErrorIdentifier,  -- 'ERR-400-001'
   'message', ErrorMessage
 ));
 ```
@@ -172,7 +175,7 @@ State names, method names, entity labels in init.sql are business data.
 
 ### ParseMessage() dual format
 
-Supports both `ERR-40001` and `ERR-400-01`. Old format converted internally
+Supports both `ERR-40001` and `ERR-400-001`. Old format converted internally
 to new format. No breakage for projects using old format.
 
 ### JSON response
@@ -228,7 +231,7 @@ continues to work for UI labels, content, and other multilingual resources.
 
 - `db.error_catalog` + `db.error_catalog_text` as reference entity
 - Updated `ParseMessage()`, `GetExceptionStr()`, `api.run()`
-- All 84 exceptions migrated to ERR-GGG-CC format
+- All 84 exceptions migrated to ERR-GGG-CCC format
 - All hardcoded Russian in platform → through exception system or English
 - Error catalog API: `/api/v1/error/{get,list,count}`
 - `docs/error-codes.md` — generated catalog
