@@ -499,9 +499,9 @@ BEGIN
 
     uMessageId := http."fetch"(vAPI || address, 'POST', headers, content, 'api.mts_done', 'api.mts_fail', 'mts', profile, address, pMessage, 'curl', jsonb_build_object('session', current_session(), 'user_id', current_userid()));
 
-    PERFORM WriteToEventLog('M', 1001, 'sms', format('SMS передано на отправку: %s', uMessageId), uMessageId);
+    PERFORM WriteToEventLog('M', 1001, 'sms', format('SMS submitted for delivery: %s', uMessageId), uMessageId);
   ELSE
-    PERFORM WriteToEventLog('E', 3001, 'sms', 'Не удалось отправить SMS, телефон не установлен.', pParent);
+    PERFORM WriteToEventLog('E', 3001, 'sms', 'Failed to send SMS, phone number not set.', pParent);
   END IF;
 
   RETURN uMessageId;
@@ -569,11 +569,11 @@ BEGIN
         END IF;
 
         uMessageId := SendFCM(pObject, projectId, GetUserName(pUserId), pTitle, jsonb_build_object('message', message)::text);
-        PERFORM WriteToEventLog('M', 1001, 'push', format('Push сообщение передано на отправку: %s', uMessageId), pObject);
+        PERFORM WriteToEventLog('M', 1001, 'push', format('Push notification submitted for delivery: %s', uMessageId), pObject);
       END IF;
     END LOOP;
   ELSE
-    PERFORM WriteToEventLog('E', 3001, 'push', 'Не удалось отправить Push сообщение, токен не установлен.', pObject);
+    PERFORM WriteToEventLog('E', 3001, 'push', 'Failed to send push notification, token not set.', pObject);
   END IF;
 
   RETURN uMessageId;
@@ -633,11 +633,11 @@ BEGIN
         message := jsonb_build_object('token', token, 'android', android, 'data', pData);
 
         uMessageId := SendFCM(pObject, projectId, GetUserName(pUserId), pSubject, jsonb_build_object('message', message)::text);
-        PERFORM WriteToEventLog('M', 1001, 'push', format('Push сообщение передано на отправку: %s', uMessageId), pObject);
+        PERFORM WriteToEventLog('M', 1001, 'push', format('Push notification submitted for delivery: %s', uMessageId), pObject);
       END IF;
     END LOOP;
   ELSE
-    PERFORM WriteToEventLog('E', 3001, 'push', 'Не удалось отправить Push сообщение, токен не установлен.', pObject);
+    PERFORM WriteToEventLog('E', 3001, 'push', 'Failed to send push notification, token not set.', pObject);
   END IF;
 
   RETURN uMessageId;
@@ -864,7 +864,7 @@ BEGIN
 
   uMessageId := http."fetch"(vAPI || '/messages', 'POST', headers, content, 'api.mts_done', 'api.mts_fail', 'mts', profile, address, vMessage, 'curl', jsonb_build_object('session', current_session(), 'user_id', current_userid()));
 
-  PERFORM WriteToEventLog('M', 1001, 'sms', format('SMS передано на отправку: %s', uMessageId), uMessageId);
+  PERFORM WriteToEventLog('M', 1001, 'sms', format('SMS submitted for delivery: %s', uMessageId), uMessageId);
 
   IF uMessageId IS NOT NULL THEN
     uTicket := NewRecoveryTicket(current_userid(), vCode, encode(digest(pPhone, 'sha1'), 'hex'), Now(), Now() + INTERVAL '5 min');

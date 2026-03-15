@@ -12,6 +12,6 @@ CREATE OR REPLACE FUNCTION JobExists (
 ) RETURNS    void
 AS $$
 BEGIN
-  RAISE EXCEPTION 'ERR-40000: Задание с кодом "%" уже существует.', pCode;
+  RAISE EXCEPTION 'ERR-40000: Job with code "%" already exists.', pCode;
 END;
 $$ LANGUAGE plpgsql;
