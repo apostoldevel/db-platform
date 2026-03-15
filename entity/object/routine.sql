@@ -182,7 +182,7 @@ CREATE OR REPLACE FUNCTION GetObjectMembers (
 ) RETURNS   SETOF ObjectMembers
 AS $$
   SELECT * FROM ObjectMembers WHERE object = pObject;
-$$ LANGUAGE SQL
+$$ LANGUAGE SQL STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -200,7 +200,7 @@ CREATE OR REPLACE FUNCTION GetObjectEntity (
 ) RETURNS   uuid
 AS $$
   SELECT entity FROM db.object WHERE id = pObject;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -218,7 +218,7 @@ CREATE OR REPLACE FUNCTION GetObjectParent (
 ) RETURNS   uuid
 AS $$
   SELECT parent FROM db.object WHERE id = pObject;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -238,7 +238,7 @@ CREATE OR REPLACE FUNCTION GetObjectLabel (
 ) RETURNS   text
 AS $$
   SELECT label FROM db.object_text WHERE object = pObject AND locale = pLocale;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -289,7 +289,7 @@ CREATE OR REPLACE FUNCTION GetObjectClass (
 ) RETURNS   uuid
 AS $$
   SELECT class FROM db.object WHERE id = pId;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -307,7 +307,7 @@ CREATE OR REPLACE FUNCTION GetObjectType (
 ) RETURNS   uuid
 AS $$
   SELECT type FROM db.object WHERE id = pId;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -327,7 +327,7 @@ AS $$
   SELECT code FROM db.type WHERE id = (
     SELECT type FROM db.object WHERE id = pId
   );
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -345,7 +345,7 @@ CREATE OR REPLACE FUNCTION GetObjectState (
 ) RETURNS   uuid
 AS $$
   SELECT state FROM db.object WHERE id = pId;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -459,7 +459,7 @@ CREATE OR REPLACE FUNCTION GetObjectOwner (
 ) RETURNS   uuid
 AS $$
   SELECT owner FROM db.object WHERE id = pId;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -477,7 +477,7 @@ CREATE OR REPLACE FUNCTION GetObjectOper (
 ) RETURNS   uuid
 AS $$
   SELECT oper FROM db.object WHERE id = pId;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -554,7 +554,7 @@ AS $$
    WHERE object = pObject
      AND validFromDate <= pDate
      AND validToDate > pDate;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -572,7 +572,7 @@ CREATE OR REPLACE FUNCTION GetNewState (
 ) RETURNS   uuid
 AS $$
   SELECT newstate FROM db.transition WHERE method = pMethod;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -702,7 +702,7 @@ CREATE OR REPLACE FUNCTION GetMethodStack (
 ) RETURNS   jsonb
 AS $$
   SELECT result FROM db.method_stack WHERE object = pObject AND method = pMethod
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1378,7 +1378,7 @@ CREATE OR REPLACE FUNCTION GetObjectGroup (
 ) RETURNS   uuid
 AS $$
   SELECT id FROM db.object_group WHERE owner = pOwner AND code = pCode;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1396,7 +1396,7 @@ CREATE OR REPLACE FUNCTION ObjectGroup (
 ) RETURNS   SETOF ObjectGroup
 AS $$
   SELECT * FROM ObjectGroup WHERE owner = pOwner
-$$ LANGUAGE SQL
+$$ LANGUAGE SQL STABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -2214,7 +2214,7 @@ CREATE OR REPLACE FUNCTION GetObjectData (
 ) RETURNS   text
 AS $$
   SELECT data FROM db.object_data WHERE object = pObject AND type = pType AND code = pCode;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -2327,7 +2327,7 @@ CREATE OR REPLACE FUNCTION ObjectCoordinates (
 ) RETURNS   SETOF ObjectCoordinates
 AS $$
   SELECT * FROM ObjectCoordinates WHERE validfromdate <= pDateFrom AND validtodate > pDateFrom
-$$ LANGUAGE SQL
+$$ LANGUAGE SQL STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -2437,7 +2437,7 @@ CREATE OR REPLACE FUNCTION GetObjectCoordinates (
 ) RETURNS   ObjectCoordinates
 AS $$
   SELECT * FROM ObjectCoordinates WHERE object = pObject AND code = pCode;
-$$ LANGUAGE SQL
+$$ LANGUAGE SQL STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 

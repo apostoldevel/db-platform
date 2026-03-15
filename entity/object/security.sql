@@ -83,8 +83,7 @@ AS $$
     FROM db.aou a INNER JOIN db.object    o ON a.object = o.id AND a.entity = pEntity
                   INNER JOIN member_group m ON a.userid = m.userid
    GROUP BY a.object;
-$$ LANGUAGE SQL
-   STABLE STRICT
+$$ LANGUAGE SQL STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -278,8 +277,7 @@ AS $$
      AND o.entity = pEntity
    GROUP BY object
   HAVING (bit_or(a.allow) & ~bit_or(a.deny)) & B'100' = B'100'
-$$ LANGUAGE SQL
-   STABLE STRICT
+$$ LANGUAGE SQL STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 

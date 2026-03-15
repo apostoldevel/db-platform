@@ -105,7 +105,7 @@ CREATE OR REPLACE FUNCTION GetVerificationCode (
 ) RETURNS       text
 AS $$
   SELECT code FROM db.verification_code WHERE id = pId;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 

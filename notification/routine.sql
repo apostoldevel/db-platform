@@ -26,7 +26,7 @@ AS $$
   )
   SELECT n.* FROM Notification n INNER JOIN access a ON n.object = a.object AND a.mask & B'100' = B'100'
    WHERE n.datetime >= pDateFrom
-$$ LANGUAGE SQL
+$$ LANGUAGE SQL STABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 

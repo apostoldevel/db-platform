@@ -209,7 +209,8 @@ BEGIN
 
   RETURN i;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 --------------------------------------------------------------------------------
 -- FUNCTION array_pos ----------------------------------------------------------
@@ -242,7 +243,8 @@ BEGIN
 
   RETURN i;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 --------------------------------------------------------------------------------
 -- FUNCTION string_to_array_trim -----------------------------------------------
@@ -279,7 +281,8 @@ BEGIN
 
   RETURN arr;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 --------------------------------------------------------------------------------
 -- FUNCTION path_to_array ------------------------------------------------------
@@ -323,7 +326,8 @@ BEGIN
 
   RETURN arPath;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 --------------------------------------------------------------------------------
 -- FUNCTION str_to_inet --------------------------------------------------------
@@ -375,7 +379,8 @@ BEGIN
 
   host := replace(vHost, '*', '0') || '/' || nMask;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 --------------------------------------------------------------------------------
 -- FUNCTION IntToStr -----------------------------------------------------------
@@ -396,7 +401,8 @@ AS $$
 BEGIN
   RETURN to_char(pValue, pFormat);
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION IntToStr(numeric, text) TO PUBLIC;
 
@@ -419,7 +425,8 @@ AS $$
 BEGIN
   RETURN to_number(pValue, pFormat);
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION IntToStr(numeric, text) TO PUBLIC;
 
@@ -442,7 +449,8 @@ AS $$
 BEGIN
   RETURN to_char(pValue, pFormat);
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION DateToStr(timestamptz, text) TO PUBLIC;
 
@@ -463,7 +471,8 @@ AS $$
 BEGIN
   RETURN to_char(pValue, pFormat);
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION DateToStr(timestamp, text) TO PUBLIC;
 
@@ -484,7 +493,8 @@ AS $$
 BEGIN
   RETURN to_char(pValue, pFormat);
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION DateToStr(date, text) TO PUBLIC;
 
@@ -507,7 +517,8 @@ AS $$
 BEGIN
   RETURN to_date(pValue, pFormat);
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION StrToDate(text, text) TO PUBLIC;
 
@@ -530,7 +541,8 @@ AS $$
 BEGIN
   RETURN to_timestamp(pValue, pFormat);
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION StrToTimeStamp(text, text) TO PUBLIC;
 
@@ -553,7 +565,8 @@ AS $$
 BEGIN
   RETURN to_timestamp(pValue, pFormat);
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION StrToTimeStampTZ(text, text) TO PUBLIC;
 
@@ -576,7 +589,8 @@ BEGIN
   EXECUTE 'SELECT time ' || quote_literal(pValue) INTO t;
   RETURN t;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION StrToTime(text) TO PUBLIC;
 
@@ -599,7 +613,8 @@ BEGIN
   EXECUTE 'SELECT interval ' || quote_literal(pValue) INTO i;
   RETURN i;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION StrToInterval(text) TO PUBLIC;
 
@@ -642,7 +657,8 @@ BEGIN
 
   RETURN r2[2:];
 END;
-$$ LANGUAGE plpgsql STRICT;
+$$ LANGUAGE plpgsql STRICT
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION IntervalArrayToStr(interval[][], text) TO PUBLIC;
 
@@ -660,7 +676,8 @@ AS $$
 BEGIN
   RETURN TO_DATE('1970-01-01', 'YYYY-MM-DD');
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql IMMUTABLE
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION MINDATE() TO PUBLIC;
 
@@ -678,7 +695,8 @@ AS $$
 BEGIN
   RETURN TO_DATE('4433-12-31', 'YYYY-MM-DD');
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql IMMUTABLE
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION MAXDATE() TO PUBLIC;
 
@@ -698,7 +716,8 @@ AS $$
 BEGIN
   RETURN NULLIF(pValue, '00000000-0000-4000-8000-000000000000');
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION CheckNull(uuid) TO PUBLIC;
 
@@ -718,7 +737,8 @@ AS $$
 BEGIN
   RETURN NULLIF(pValue, '');
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION CheckNull(text) TO PUBLIC;
 
@@ -738,7 +758,8 @@ AS $$
 BEGIN
   RETURN NULLIF(pValue::jsonb, '{}'::jsonb);
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION CheckNull(json) TO PUBLIC;
 
@@ -758,7 +779,8 @@ AS $$
 BEGIN
   RETURN NULLIF(pValue, '{}'::jsonb);
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION CheckNull(jsonb) TO PUBLIC;
 
@@ -778,7 +800,8 @@ AS $$
 BEGIN
   RETURN NULLIF(pValue, 0);
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION CheckNull(numeric) TO PUBLIC;
 
@@ -798,7 +821,8 @@ AS $$
 BEGIN
   RETURN NULLIF(pValue, -1);
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION CheckNull(integer) TO PUBLIC;
 
@@ -818,7 +842,8 @@ AS $$
 BEGIN
   RETURN NULLIF(pValue, MINDATE());
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION CheckNull(timestamp) TO PUBLIC;
 
@@ -838,7 +863,8 @@ AS $$
 BEGIN
   RETURN NULLIF(pValue, MINDATE());
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION CheckNull(timestamptz) TO PUBLIC;
 
@@ -858,7 +884,8 @@ AS $$
 BEGIN
   RETURN NULLIF(pValue, interval '0');
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION CheckNull(interval) TO PUBLIC;
 
@@ -923,7 +950,8 @@ BEGIN
 
   RETURN ' = ';
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql IMMUTABLE
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION GetCompare(text) TO PUBLIC;
 
@@ -953,7 +981,8 @@ BEGIN
 
   RETURN arResult;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION array_add_text(text[], text) TO PUBLIC;
 
@@ -999,7 +1028,8 @@ EXCEPTION
 WHEN others THEN
   RETURN null;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION min_array(anyarray, anyelement) TO PUBLIC;
 
@@ -1045,7 +1075,8 @@ EXCEPTION
 WHEN others THEN
   RETURN null;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION max_array(anyarray, anyelement) TO PUBLIC;
 
@@ -1084,7 +1115,8 @@ BEGIN
 
   RETURN r;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION inet_to_array(inet) TO PUBLIC;
 
@@ -1102,7 +1134,8 @@ AS $$
 BEGIN
   RETURN current_timestamp at time zone 'utc';
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION UTC() TO PUBLIC;
 
@@ -1123,7 +1156,8 @@ AS $$
 BEGIN
   RETURN replace(to_char(pTime, 'YYYY-MM-DD#HH24:MI:SS.MSZ'), '#', 'T');
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION GetISOTime(timestamp) TO PUBLIC;
 
@@ -1144,7 +1178,8 @@ AS $$
 BEGIN
   RETURN trunc(extract(EPOCH FROM pTime));
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION GetEpoch(timestamp) TO PUBLIC;
 
@@ -1165,7 +1200,8 @@ AS $$
 BEGIN
   RETURN trunc(extract(EPOCH FROM pTime) * 1000);
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION GetEpochMs(timestamp) TO PUBLIC;
 
@@ -1193,7 +1229,8 @@ BEGIN
 
   RETURN dow;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION Dow(timestamptz) TO PUBLIC;
 
@@ -1228,7 +1265,8 @@ BEGIN
   END IF;
   RETURN pStr;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION quote_literal_json(text) TO PUBLIC;
 
@@ -1264,7 +1302,8 @@ BEGIN
 
   RETURN pArray;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION array_quote_literal_json(anyarray) TO PUBLIC;
 
@@ -1297,7 +1336,8 @@ BEGIN
 
   RETURN null;
 END;
-$$ LANGUAGE plpgsql STRICT;
+$$ LANGUAGE plpgsql STRICT
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION find_value_in_array(anyarray, text) TO PUBLIC;
 
@@ -1320,7 +1360,8 @@ BEGIN
   result := true;
   message := 'Success';
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION result_success() TO PUBLIC;
 
@@ -1343,7 +1384,8 @@ BEGIN
   result := 0;
   message := 'Success';
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION error_success() TO PUBLIC;
 
@@ -1366,7 +1408,8 @@ $$
 BEGIN
   RETURN floor(random() * (high - low + 1)) + low;
 END;
-$$ LANGUAGE plpgsql VOLATILE;
+$$ LANGUAGE plpgsql VOLATILE
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION random_between(int, int) TO PUBLIC;
 
@@ -1400,7 +1443,8 @@ BEGIN
 
   RETURN N;
 END
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 --------------------------------------------------------------------------------
 -- FUNCTION dec_to_bin ---------------------------------------------------------
@@ -1436,7 +1480,8 @@ BEGIN
 
   RETURN lpad(S, greatest(length(S), L), F);
 END
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 --------------------------------------------------------------------------------
 -- FUNCTION bit_to_dec ---------------------------------------------------------
@@ -1456,7 +1501,8 @@ $$
 BEGIN
   RETURN bin_to_dec(B::text);
 END
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 --------------------------------------------------------------------------------
 -- FUNCTION hex_to_bit ---------------------------------------------------------
@@ -1479,7 +1525,8 @@ BEGIN
   EXECUTE 'SELECT x' || quote_literal(hex) INTO bits;
   RETURN bits;
 END
-$$ LANGUAGE plpgsql STABLE STRICT;
+$$ LANGUAGE plpgsql STABLE STRICT
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION hex_to_bit(text) TO PUBLIC;
 
@@ -1504,7 +1551,8 @@ BEGIN
   EXECUTE 'SELECT x' || quote_literal(H) || '::bigint' INTO R;
   RETURN R;
 END
-$$ LANGUAGE plpgsql STABLE STRICT;
+$$ LANGUAGE plpgsql STABLE STRICT
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION hex_to_int(text) TO PUBLIC;
 
@@ -1529,7 +1577,8 @@ BEGIN
   EXECUTE 'SELECT x' || quote_literal(H) INTO B;
   RETURN bit_to_dec(B);
 END
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 --------------------------------------------------------------------------------
 -- FUNCTION dec_to_hex ---------------------------------------------------------
@@ -1577,7 +1626,8 @@ BEGIN
 
   RETURN H;
 END
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 --------------------------------------------------------------------------------
 -- FUNCTION hex_to_num64 -------------------------------------------------------
@@ -1627,7 +1677,7 @@ AS $$
     (get_byte(x,30)::int8<<(1*8)) |
     (get_byte(x,31)::int8)
   FROM (SELECT decode(lpad(H, 64, '0'), 'hex') AS x) AS a;
-$$ LANGUAGE SQL STRICT;
+$$ LANGUAGE SQL STABLE STRICT;
 
 --------------------------------------------------------------------------------
 -- FUNCTION hex_to_bigint ------------------------------------------------------
@@ -1653,7 +1703,7 @@ AS $$
     (get_byte(x,6)::int8<<(1*8)) |
     (get_byte(x,7)::int8)
   FROM (SELECT decode(lpad(H, 16, '0'), 'hex') AS x) AS a;
-$$ LANGUAGE SQL STRICT;
+$$ LANGUAGE SQL STABLE STRICT;
 
 --------------------------------------------------------------------------------
 -- FUNCTION bit_copy -----------------------------------------------------------
@@ -1685,7 +1735,8 @@ BEGIN
 
   RETURN bin_to_dec(SubStr(S, length(S) - (P + C - 1), C));
 END
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 --------------------------------------------------------------------------------
 -- FUNCTION to_little_endian ---------------------------------------------------
@@ -1714,7 +1765,8 @@ BEGIN
 
   RETURN R;
 END
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 --------------------------------------------------------------------------------
 -- FUNCTION to_little_endian ---------------------------------------------------
@@ -1739,7 +1791,8 @@ BEGIN
   R := to_little_endian(B);
   RETURN hex_to_dec(encode(R, 'hex'));
 END
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 --------------------------------------------------------------------------------
 -- FUNCTION to_little_endian ---------------------------------------------------
@@ -1757,7 +1810,8 @@ AS $$
 BEGIN
   RETURN encode(to_little_endian(decode(H, 'hex')), 'hex');
 END
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 --------------------------------------------------------------------------------
 -- IEEE754_32 ------------------------------------------------------------------
@@ -1788,7 +1842,8 @@ BEGIN
 
   RETURN F;
 END
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION IEEE754_32(numeric) TO PUBLIC;
 
@@ -1821,7 +1876,8 @@ BEGIN
 
   RETURN F;
 END
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION IEEE754_64(numeric) TO PUBLIC;
 
@@ -1839,7 +1895,8 @@ AS $$
 BEGIN
   RETURN '00000000-0000-4000-8000-000000000000';
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql IMMUTABLE
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION null_uuid() TO PUBLIC;
 
@@ -1885,7 +1942,8 @@ BEGIN
 
   RETURN arValid;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION CheckCodes(text[], text[]) TO PUBLIC;
 
@@ -1927,7 +1985,8 @@ BEGIN
 
   RETURN result;
 END
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 GRANT EXECUTE ON FUNCTION URLEncode(text) TO PUBLIC;
 
@@ -1947,7 +2006,8 @@ AS $$
 BEGIN
   RETURN (SELECT COUNT(*) FROM regexp_split_to_table(str, '\s+') as word);
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 --------------------------------------------------------------------------------
 -- generate_aws_signature ------------------------------------------------------
@@ -2039,7 +2099,8 @@ BEGIN
   SELECT SubString(uri FROM '^(?:https?://)?([^/?#]+)') INTO v_hostname;
   RETURN v_hostname;
 END;
-$$ LANGUAGE plpgsql STRICT;
+$$ LANGUAGE plpgsql STRICT
+   SET search_path = kernel, public, pg_temp;
 
 --------------------------------------------------------------------------------
 -- get_input_value -------------------------------------------------------------
@@ -2083,7 +2144,8 @@ BEGIN
 
   RETURN value;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;
 
 --------------------------------------------------------------------------------
 -- is_valid_email --------------------------------------------------------------
@@ -2105,4 +2167,5 @@ BEGIN
 
   RETURN email ~ email_pattern;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = kernel, public, pg_temp;

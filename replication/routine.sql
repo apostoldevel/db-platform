@@ -184,7 +184,7 @@ CREATE OR REPLACE FUNCTION replication.log (
 ) RETURNS       SETOF replication.log
 AS $$
   SELECT * FROM replication.log WHERE id > pFrom AND source IS DISTINCT FROM pSource ORDER BY id LIMIT pLimit
-$$ LANGUAGE SQL
+$$ LANGUAGE SQL STABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 

@@ -218,7 +218,7 @@ DECLARE
 BEGIN
   FOR r IN SELECT * FROM db.publisher
   LOOP
-    EXECUTE format('LISTEN %s;', r.code);
+    EXECUTE format('LISTEN %I;', r.code);
     PERFORM WriteToEventLog('M', 5000, 'listen', format('Listener started: %s.', r.code));
   END LOOP;
 END;
@@ -876,7 +876,7 @@ BEGIN
 
         vRoutine := coalesce(GetClassCode((pData->>'class')::uuid), GetEntityCode((pData->>'entity')::uuid), 'object');
 
-        FOR e IN EXECUTE format('SELECT * FROM api.get_%s($1)', vRoutine) USING (pData->>'object')::uuid
+        FOR e IN EXECUTE format('SELECT * FROM api.get_%I($1)', vRoutine) USING (pData->>'object')::uuid
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -894,7 +894,7 @@ BEGIN
 
         vRoutine := coalesce(GetClassCode((pData->>'class')::uuid), GetEntityCode((pData->>'entity')::uuid), 'object');
 
-        FOR e IN EXECUTE format('SELECT * FROM api.get_%s($1)', vRoutine) USING (pData->>'object')::uuid
+        FOR e IN EXECUTE format('SELECT * FROM api.get_%I($1)', vRoutine) USING (pData->>'object')::uuid
         LOOP
           mixed := mixed || jsonb_build_object('object', row_to_json(e));
         END LOOP;

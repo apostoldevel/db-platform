@@ -144,7 +144,7 @@ CREATE OR REPLACE FUNCTION http.request (
 ) RETURNS   SETOF http.request
 AS $$
   SELECT * FROM http.request WHERE id = pId;
-$$ LANGUAGE SQL
+$$ LANGUAGE SQL STABLE STRICT
    SECURITY DEFINER
    SET search_path = http, pg_temp;
 

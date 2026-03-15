@@ -26,7 +26,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
-   SET search_path = public, pg_temp;
+   SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
 -- FUNCTION gen_random_code ----------------------------------------------------
@@ -40,7 +40,7 @@ CREATE OR REPLACE FUNCTION gen_random_code()
 RETURNS text
 AS $$
   SELECT replace(replace(encode(gen_random_bytes(12), 'base64'), '+', 'p'), '/', 's');
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, public, pg_temp;
 
@@ -1293,7 +1293,7 @@ BEGIN
   IF pJson IS NOT NULL THEN
     FOR r IN SELECT * FROM jsonb_array_elements_text(pJson)
     LOOP
-      IF regexp_like(r.value, '\m(sum|count|max|min|avg)\s*\(\s*(?:DISTINCT\s+)?(\*|[A-Za-z_][A-Za-z0-9_]*|\([^)]*\))\s*\)', 'i') THEN
+      IF regexp_like(r.value, '^(sum|count|max|min|avg)\s*\(\s*(?:DISTINCT\s+)?(\*|[A-Za-z_][A-Za-z0-9_]*|\([^)]*\))\s*\)(\s+AS\s+[A-Za-z_][A-Za-z0-9_]*)?$', 'i') THEN
         pFields := array_append(pFields, r.value);
       END IF;
     END LOOP;
@@ -1303,6 +1303,65 @@ BEGIN
   END IF;
 
   RETURN '*';
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- JsonbToOrderBy --------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Validate and convert a JSONB array into a safe ORDER BY clause.
+ *
+ * Accepts plain column names (with optional ASC/DESC suffix) and safe
+ * function-call expressions whose arguments reference at least one known
+ * column.  Rejects everything else via CheckJsonbValues.
+ *
+ * @param {jsonb} pJson - JSONB array of ORDER BY expressions
+ * @param {text[]} pFields - Allowed column names (typically from GetColumns)
+ * @return {text} - Comma-separated ORDER BY list, or NULL if pJson is empty
+ * @see JsonbToFields, CheckJsonbValues
+ * @since 1.2.1
+ */
+CREATE OR REPLACE FUNCTION JsonbToOrderBy (
+  pJson     jsonb,
+  pFields   text[]
+) RETURNS   text
+AS $$
+DECLARE
+  r         record;
+  vIdents   text[];
+BEGIN
+  pJson := NULLIF(pJson, '[]');
+
+  IF pJson IS NOT NULL THEN
+    -- Extend whitelist: column + asc/desc
+    pFields := array_cat(pFields, array_add_text(pFields, ' desc'));
+    pFields := array_cat(pFields, array_add_text(pFields, ' asc'));
+
+    -- Auto-allow safe function calls on known columns
+    FOR r IN SELECT * FROM jsonb_array_elements_text(pJson)
+    LOOP
+      IF array_position(pFields, r.value) IS NULL THEN
+        -- Full-match: func(args) [asc|desc]
+        -- No nested parentheses allowed — [^()]* rejects subqueries
+        IF regexp_like(r.value, '^[a-z_][a-z0-9_]*\s*\([^()]*\)(\s+(asc|desc))?$', 'i') THEN
+          -- Verify at least one known column name inside parentheses
+          SELECT array_agg(m[1]) INTO vIdents
+            FROM regexp_matches(r.value, '([A-Za-z_][A-Za-z0-9_]*)', 'g') AS m;
+          IF vIdents && pFields THEN
+            pFields := array_append(pFields, r.value);
+          END IF;
+        END IF;
+      END IF;
+    END LOOP;
+
+    PERFORM CheckJsonbValues('orderby', pFields, pJson);
+    RETURN array_to_string(array_quote_literal_json(JsonbToStrArray(pJson)), ',');
+  END IF;
+
+  RETURN NULL;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

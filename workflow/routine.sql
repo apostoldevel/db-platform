@@ -163,8 +163,7 @@ CREATE OR REPLACE FUNCTION GetEntity (
 ) RETURNS   uuid
 AS $$
   SELECT id FROM db.entity WHERE code = pCode;
-$$ LANGUAGE sql
-   STABLE STRICT
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -530,7 +529,7 @@ CREATE OR REPLACE FUNCTION GetClassLabel (
 ) RETURNS   text
 AS $$
   SELECT label FROM db.class_text WHERE class = pClass AND locale = current_locale();
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -586,7 +585,7 @@ AS $$
     FROM db.acu a
    WHERE a.userid IN (SELECT pUserId UNION SELECT userid FROM db.member_group WHERE member = pUserId)
    GROUP BY a.class
-$$ LANGUAGE SQL
+$$ LANGUAGE SQL STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -614,7 +613,7 @@ AS $$
    WHERE a.userid IN (SELECT pUserId UNION SELECT userid FROM db.member_group WHERE member = pUserId)
      AND a.class = pClass
    GROUP BY a.class
-$$ LANGUAGE SQL
+$$ LANGUAGE SQL STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -634,7 +633,7 @@ CREATE OR REPLACE FUNCTION GetClassAccessMask (
 ) RETURNS   bit
 AS $$
   SELECT mask FROM acu(pUserId, pClass)
-$$ LANGUAGE SQL
+$$ LANGUAGE SQL STABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -711,7 +710,7 @@ CREATE OR REPLACE FUNCTION GetClassMembers (
 ) RETURNS   SETOF ClassMembers
 AS $$
   SELECT * FROM ClassMembers WHERE class = pClass;
-$$ LANGUAGE SQL
+$$ LANGUAGE SQL STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1048,7 +1047,7 @@ CREATE OR REPLACE FUNCTION GetTypeCode (
 ) RETURNS    text
 AS $$
   SELECT code FROM db.type WHERE id = pId;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1068,7 +1067,7 @@ CREATE OR REPLACE FUNCTION GetTypeName (
 ) RETURNS    text
 AS $$
   SELECT name FROM db.type_text WHERE type = pId AND locale = pLocale;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1179,7 +1178,7 @@ CREATE OR REPLACE FUNCTION GetStateTypeCode (
 ) RETURNS    text
 AS $$
   SELECT code FROM db.state_type WHERE id = pId;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1470,7 +1469,7 @@ CREATE OR REPLACE FUNCTION GetStateTypeByState (
 ) RETURNS   uuid
 AS $$
   SELECT type FROM db.state WHERE id = pState;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1488,7 +1487,7 @@ CREATE OR REPLACE FUNCTION GetStateTypeCodeByState (
 ) RETURNS   text
 AS $$
   SELECT code FROM db.state_type WHERE id = (SELECT type FROM db.state WHERE id = pState);
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1506,7 +1505,7 @@ CREATE OR REPLACE FUNCTION GetStateCode (
 ) RETURNS   text
 AS $$
   SELECT code FROM db.state WHERE id = pState;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1524,7 +1523,7 @@ CREATE OR REPLACE FUNCTION GetStateLabel (
 ) RETURNS   text
 AS $$
   SELECT label FROM db.state_text WHERE state = pState AND locale = current_locale();
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1733,8 +1732,7 @@ CREATE OR REPLACE FUNCTION GetAction (
 ) RETURNS     uuid
 AS $$
   SELECT id FROM db.action WHERE code = pCode;
-$$ LANGUAGE sql
-   STABLE STRICT
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1752,8 +1750,7 @@ CREATE OR REPLACE FUNCTION GetActionCode (
 ) RETURNS    text
 AS $$
   SELECT code FROM db.action WHERE id = pId;
-$$ LANGUAGE sql
-   STABLE STRICT
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1771,7 +1768,7 @@ CREATE OR REPLACE FUNCTION GetActionName (
 ) RETURNS   text
 AS $$
   SELECT name FROM db.action_text WHERE action = pId AND locale = current_locale();
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -2004,7 +2001,7 @@ CREATE OR REPLACE FUNCTION IsVisibleMethod (
 ) RETURNS   bool
 AS $$
   SELECT visible FROM db.method WHERE id = pId;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -2050,7 +2047,7 @@ AS $$
     FROM db.amu a
    WHERE userid IN (SELECT pUserId UNION SELECT userid FROM db.member_group WHERE member = pUserId)
    GROUP BY a.method
-$$ LANGUAGE SQL
+$$ LANGUAGE SQL STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -2078,7 +2075,7 @@ AS $$
    WHERE userid IN (SELECT pUserId UNION SELECT userid FROM db.member_group WHERE member = pUserId)
      AND a.method = pMethod
    GROUP BY a.method
-$$ LANGUAGE SQL
+$$ LANGUAGE SQL STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -2098,7 +2095,7 @@ CREATE OR REPLACE FUNCTION GetMethodAccessMask (
 ) RETURNS    bit
 AS $$
   SELECT mask FROM amu(pUserId, pMethod)
-$$ LANGUAGE SQL
+$$ LANGUAGE SQL STABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -2171,7 +2168,7 @@ CREATE OR REPLACE FUNCTION GetMethodMembers (
 ) RETURNS    SETOF MethodMembers
 AS $$
   SELECT * FROM MethodMembers WHERE method = pMethod;
-$$ LANGUAGE SQL
+$$ LANGUAGE SQL STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -2699,7 +2696,7 @@ CREATE OR REPLACE FUNCTION GetPriority (
 ) RETURNS     uuid
 AS $$
   SELECT id FROM db.priority WHERE code = pCode;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -2717,7 +2714,7 @@ CREATE OR REPLACE FUNCTION GetPriorityCode (
 ) RETURNS    text
 AS $$
   SELECT code FROM db.priority WHERE id = pId;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -2735,6 +2732,6 @@ CREATE OR REPLACE FUNCTION GetPriorityName (
 ) RETURNS   text
 AS $$
   SELECT name FROM db.priority_text WHERE priority = pId AND locale = current_locale();
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

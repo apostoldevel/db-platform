@@ -129,7 +129,7 @@ CREATE OR REPLACE FUNCTION GetReportFormDefinition (
 ) RETURNS    text
 AS $$
   SELECT definition FROM db.report_form WHERE id = pId
-$$ LANGUAGE SQL
+$$ LANGUAGE SQL STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -150,7 +150,7 @@ CREATE OR REPLACE FUNCTION BuildReportForm (
 ) RETURNS   SETOF json
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE 'SELECT report.' || GetReportFormDefinition(pForm) || '($1, $2);' USING pForm, pParams;
+  RETURN QUERY EXECUTE format('SELECT report.%I($1, $2);', GetReportFormDefinition(pForm)) USING pForm, pParams;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

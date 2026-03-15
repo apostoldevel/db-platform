@@ -149,7 +149,6 @@ CREATE OR REPLACE FUNCTION GetAgentVendor (
 ) RETURNS   uuid
 AS $$
   SELECT vendor FROM db.agent WHERE id = pId;
-$$ LANGUAGE SQL
+$$ LANGUAGE SQL STABLE STRICT
    SECURITY DEFINER
-   STABLE STRICT
    SET search_path = kernel, pg_temp;

@@ -313,7 +313,7 @@ CREATE OR REPLACE FUNCTION GetResource (
 ) RETURNS       text
 AS $$
   SELECT data FROM db.resource_data WHERE resource = pResource AND locale = pLocale;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 

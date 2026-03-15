@@ -130,6 +130,10 @@ AS $$
 DECLARE
   uId            uuid;
 BEGIN
+  IF NOT regexp_like(pDefinition, '^SELECT \* FROM rest\.[a-z_]+\(\$1, \$2\);$') THEN
+    RAISE EXCEPTION 'Invalid endpoint definition format: %', pDefinition;
+  END IF;
+
   INSERT INTO db.endpoint (definition)
   VALUES (pDefinition)
   RETURNING id INTO uId;
@@ -223,7 +227,7 @@ CREATE OR REPLACE FUNCTION GetEndpointDefinition (
 ) RETURNS    text
 AS $$
   SELECT definition FROM db.endpoint WHERE id = pId
-$$ LANGUAGE SQL
+$$ LANGUAGE SQL STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 

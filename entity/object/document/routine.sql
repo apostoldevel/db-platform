@@ -178,7 +178,7 @@ CREATE OR REPLACE FUNCTION GetDocumentDescription (
 ) RETURNS       text
 AS $$
   SELECT description FROM db.document_text WHERE document = pDocument AND locale = pLocale
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -196,7 +196,7 @@ CREATE OR REPLACE FUNCTION GetDocumentArea (
 ) RETURNS       uuid
 AS $$
   SELECT area FROM db.document WHERE id = pDocument
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 

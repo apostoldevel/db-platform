@@ -100,7 +100,7 @@ AS $$
   SELECT vtype, vinteger, vnumeric, vdatetime, vstring, vboolean
     FROM registry.value
    WHERE id = pId
-$$ LANGUAGE SQL
+$$ LANGUAGE SQL STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -119,7 +119,7 @@ CREATE OR REPLACE FUNCTION RegEnumKey (
 ) RETURNS    SETOF registry.key
 AS $$
   SELECT * FROM registry.key WHERE parent = pId
-$$ LANGUAGE SQL
+$$ LANGUAGE SQL STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -142,7 +142,7 @@ CREATE OR REPLACE FUNCTION RegEnumValue (
 ) RETURNS    SETOF record
 AS $$
   SELECT v.id, v.key, v.vname, registry.get_reg_value(v.id) FROM registry.value v WHERE v.key = pKey
-$$ LANGUAGE SQL
+$$ LANGUAGE SQL STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -161,7 +161,7 @@ CREATE OR REPLACE FUNCTION RegEnumValueEx (
 ) RETURNS    SETOF registry.value
 AS $$
   SELECT * FROM registry.value WHERE key = pKey
-$$ LANGUAGE SQL
+$$ LANGUAGE SQL STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -180,7 +180,7 @@ CREATE OR REPLACE FUNCTION RegQueryValue (
 ) RETURNS    Variant
 AS $$
   SELECT registry.get_reg_value(id) FROM registry.value WHERE id = pId
-$$ LANGUAGE SQL
+$$ LANGUAGE SQL STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -199,7 +199,7 @@ CREATE OR REPLACE FUNCTION RegQueryValueEx (
 ) RETURNS    registry.value
 AS $$
   SELECT * FROM registry.value WHERE id = pId
-$$ LANGUAGE SQL
+$$ LANGUAGE SQL STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -220,7 +220,7 @@ CREATE OR REPLACE FUNCTION RegGetValue (
 ) RETURNS       Variant
 AS $$
   SELECT registry.get_reg_value(id) FROM registry.value WHERE key = pKey AND vname = pValueName
-$$ LANGUAGE SQL
+$$ LANGUAGE SQL STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -241,7 +241,7 @@ CREATE OR REPLACE FUNCTION RegGetValueEx (
 ) RETURNS       registry.value
 AS $$
   SELECT * FROM registry.value WHERE key = pKey AND vname = pValueName
-$$ LANGUAGE SQL
+$$ LANGUAGE SQL STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -893,7 +893,7 @@ CREATE OR REPLACE FUNCTION registry.registry (
 ) RETURNS    SETOF registry.registry
 AS $$
   SELECT * FROM registry.registry WHERE key = pKey
-$$ LANGUAGE SQL
+$$ LANGUAGE SQL STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -912,7 +912,7 @@ CREATE OR REPLACE FUNCTION registry.registry_ex (
 ) RETURNS    SETOF registry.registry_ex
 AS $$
   SELECT * FROM registry.registry_ex WHERE key = pKey
-$$ LANGUAGE SQL
+$$ LANGUAGE SQL STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -930,7 +930,7 @@ CREATE OR REPLACE FUNCTION registry.registry_key (
 ) RETURNS    SETOF registry.registry_key
 AS $$
   SELECT * FROM registry.registry_key WHERE root = pKey
-$$ LANGUAGE SQL
+$$ LANGUAGE SQL STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -948,7 +948,7 @@ CREATE OR REPLACE FUNCTION registry.registry_value (
 ) RETURNS    SETOF registry.registry_value
 AS $$
   SELECT * FROM registry.registry_value WHERE key = pKey
-$$ LANGUAGE SQL
+$$ LANGUAGE SQL STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -967,7 +967,7 @@ CREATE OR REPLACE FUNCTION registry.registry_value_ex (
 ) RETURNS    SETOF registry.registry_value_ex
 AS $$
   SELECT * FROM registry.registry_value_ex WHERE key = pKey
-$$ LANGUAGE SQL
+$$ LANGUAGE SQL STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 

@@ -159,7 +159,7 @@ CREATE OR REPLACE FUNCTION GetReportRoutineDefinition (
 ) RETURNS    text
 AS $$
   SELECT definition FROM db.report_routine WHERE id = pId
-$$ LANGUAGE SQL
+$$ LANGUAGE SQL STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 

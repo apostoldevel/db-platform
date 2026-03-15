@@ -127,6 +127,6 @@ CREATE OR REPLACE FUNCTION GetProgramBody (
 ) RETURNS     text
 AS $$
   SELECT body FROM db.program WHERE id = pId;
-$$ LANGUAGE SQL
+$$ LANGUAGE SQL STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

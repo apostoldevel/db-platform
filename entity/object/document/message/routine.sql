@@ -130,7 +130,7 @@ CREATE OR REPLACE FUNCTION GetMessageCode (
 ) RETURNS  text
 AS $$
   SELECT code FROM db.message WHERE id = pId;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 

@@ -478,7 +478,7 @@ CREATE OR REPLACE FUNCTION GetFile (
 ) RETURNS   uuid
 AS $$
   SELECT id FROM db.file WHERE path = pPath AND name = pName;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -724,4 +724,4 @@ BEGIN
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
-   SET search_path = public, kernel, pg_temp;
+   SET search_path = kernel, pg_temp;

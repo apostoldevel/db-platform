@@ -16,9 +16,8 @@ CREATE OR REPLACE FUNCTION GetAreaType (
 ) RETURNS     uuid
 AS $$
   SELECT id FROM db.area_type WHERE code = pCode;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
-   STABLE STRICT
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -35,9 +34,8 @@ CREATE OR REPLACE FUNCTION GetAreaTypeCode (
 ) RETURNS   text
 AS $$
   SELECT code FROM db.area_type WHERE id = pId;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
-   STABLE STRICT
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -54,9 +52,8 @@ CREATE OR REPLACE FUNCTION GetAreaTypeName (
 ) RETURNS   text
 AS $$
   SELECT name FROM db.area_type WHERE id = pId;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
-   STABLE STRICT
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -285,7 +282,7 @@ CREATE OR REPLACE FUNCTION NewRecoveryTicket (
 ) RETURNS           uuid
 AS $$
 BEGIN
-  RETURN AddRecoveryTicket(pUserId, crypt(pSecurityAnswer, gen_salt('md5')), pInitiator, pDateFrom, pDateTo);
+  RETURN AddRecoveryTicket(pUserId, crypt(pSecurityAnswer, gen_salt('bf')), pInitiator, pDateFrom, pDateTo);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1533,7 +1530,7 @@ CREATE OR REPLACE FUNCTION GetToken (
 ) RETURNS   text
 AS $$
   SELECT token FROM db.token WHERE id = pId;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -1985,9 +1982,8 @@ CREATE OR REPLACE FUNCTION current_scope_code (
 RETURNS         text
 AS $$
   SELECT code FROM db.scope WHERE id = current_scope(pSession);
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE
    SECURITY DEFINER
-   STABLE
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -2207,9 +2203,8 @@ CREATE OR REPLACE FUNCTION session_username (
 RETURNS         text
 AS $$
   SELECT username FROM db.user WHERE id = session_userid(pSession) AND type = 'U';
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
-   STABLE STRICT
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -2224,9 +2219,8 @@ CREATE OR REPLACE FUNCTION current_username ()
 RETURNS         text
 AS $$
   SELECT username FROM db.user WHERE id = current_userid();
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE
    SECURITY DEFINER
-   STABLE
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -2295,9 +2289,8 @@ CREATE OR REPLACE FUNCTION GetSessionArea (
 RETURNS         uuid
 AS $$
   SELECT area FROM db.session WHERE code = pSession;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
-   STABLE STRICT
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -2315,7 +2308,7 @@ CREATE OR REPLACE FUNCTION current_area_type (
 RETURNS         uuid
 AS $$
   SELECT type FROM db.area WHERE id = GetSessionArea(pSession);
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -2554,9 +2547,8 @@ CREATE OR REPLACE FUNCTION GetSessionLocale (
 ) RETURNS       uuid
 AS $$
   SELECT locale FROM db.session WHERE code = pSession;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
-   STABLE STRICT
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -2758,7 +2750,7 @@ AS $$
   )
   SELECT bit_or(a.deny), bit_or(a.allow), bit_or(a.allow) & ~bit_or(a.deny)
     FROM db.acl a INNER JOIN mg ON a.userid = mg.userid;
-$$ LANGUAGE SQL
+$$ LANGUAGE SQL STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -2776,7 +2768,7 @@ CREATE OR REPLACE FUNCTION GetAccessControlListMask (
 ) RETURNS       bit varying
 AS $$
   SELECT mask FROM acl(pUserId)
-$$ LANGUAGE SQL
+$$ LANGUAGE SQL STABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -3564,7 +3556,7 @@ BEGIN
 
     UPDATE db.user
        SET passwordchange = bPasswordChange,
-           pswhash = crypt(pPassword, gen_salt('md5'))
+           pswhash = crypt(pPassword, gen_salt('bf'))
      WHERE id = pId;
 
     IF session_user <> 'kernel' THEN
@@ -3798,7 +3790,7 @@ CREATE OR REPLACE FUNCTION GetUsername (
 ) RETURNS       text
 AS $$
   SELECT username FROM db.user WHERE id = pId AND type = 'U';
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -3816,7 +3808,7 @@ CREATE OR REPLACE FUNCTION GetUserFullName (
 ) RETURNS       text
 AS $$
   SELECT name FROM db.user WHERE id = pId AND type = 'U';
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -3834,7 +3826,7 @@ CREATE OR REPLACE FUNCTION GetGroupUsername (
 ) RETURNS       text
 AS $$
   SELECT username FROM db.user WHERE id = pId AND type = 'G';
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -3852,7 +3844,7 @@ CREATE OR REPLACE FUNCTION GetGroupName (
 ) RETURNS       text
 AS $$
   SELECT name FROM db.user WHERE id = pId AND type = 'G';
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -4000,9 +3992,8 @@ CREATE OR REPLACE FUNCTION GetScope (
 ) RETURNS       uuid
 AS $$
   SELECT id FROM db.scope WHERE code = pCode;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
-   STABLE STRICT
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -4019,9 +4010,8 @@ CREATE OR REPLACE FUNCTION GetScopeName (
 ) RETURNS       text
 AS $$
   SELECT name FROM db.scope WHERE id = pId;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
-   STABLE STRICT
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -4308,9 +4298,8 @@ CREATE OR REPLACE FUNCTION GetAreaScope (
 ) RETURNS       uuid
 AS $$
   SELECT scope FROM db.area WHERE id = pArea;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
-   STABLE STRICT
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -4329,9 +4318,8 @@ CREATE OR REPLACE FUNCTION GetArea (
 ) RETURNS       uuid
 AS $$
   SELECT id FROM db.area WHERE scope = pScope AND code = pCode;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
-   STABLE STRICT
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -4348,9 +4336,8 @@ CREATE OR REPLACE FUNCTION GetAreaRoot (
 ) RETURNS       uuid
 AS $$
   SELECT id FROM db.area WHERE scope = pScope AND type = '00000000-0000-4002-a000-000000000000';
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
-   STABLE STRICT
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -4367,9 +4354,8 @@ CREATE OR REPLACE FUNCTION GetAreaSystem (
 ) RETURNS       uuid
 AS $$
   SELECT id FROM db.area WHERE scope = pScope AND type = '00000000-0000-4002-a000-000000000001';
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
-   STABLE STRICT
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -4386,9 +4372,8 @@ CREATE OR REPLACE FUNCTION GetAreaGuest (
 ) RETURNS       uuid
 AS $$
   SELECT id FROM db.area WHERE scope = pScope AND type = '00000000-0000-4002-a000-000000000002';
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
-   STABLE STRICT
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -4405,9 +4390,8 @@ CREATE OR REPLACE FUNCTION GetAreaDefault (
 ) RETURNS       uuid
 AS $$
   SELECT id FROM db.area WHERE scope = pScope AND type = '00000000-0000-4002-a001-000000000000';
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
-   STABLE STRICT
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -4424,9 +4408,8 @@ CREATE OR REPLACE FUNCTION GetAreaCode (
 ) RETURNS       text
 AS $$
   SELECT code FROM db.area WHERE id = pId;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
-   STABLE STRICT
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -4443,9 +4426,8 @@ CREATE OR REPLACE FUNCTION GetAreaName (
 ) RETURNS       text
 AS $$
   SELECT name FROM db.area WHERE id = pId;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
-   STABLE STRICT
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -4471,7 +4453,7 @@ AS $$
       FROM tree
      WHERE scope IN (SELECT current_scopes())
      ORDER BY sortlist;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -4898,7 +4880,7 @@ CREATE OR REPLACE FUNCTION GetInterface (
 ) RETURNS       uuid
 AS $$
   SELECT id FROM db.interface WHERE code = pCode;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -4916,7 +4898,7 @@ CREATE OR REPLACE FUNCTION GetInterfaceName (
 ) RETURNS       text
 AS $$
   SELECT name FROM db.interface WHERE id = pId;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -5947,7 +5929,7 @@ DECLARE
   vCode         text;
 BEGIN
   IF ValidSecret(pSecret, pSession) THEN
-    vCode := SessionIn(pSession, pAgent, pHost, gen_salt('md5'));
+    vCode := SessionIn(pSession, pAgent, pHost, gen_salt('bf'));
   ELSE
     PERFORM SessionOut(pSession, false, GetErrorMessage());
   END IF;

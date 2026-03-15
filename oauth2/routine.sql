@@ -52,7 +52,7 @@ CREATE OR REPLACE FUNCTION GetProvider (
 ) RETURNS   integer
 AS $$
   SELECT id FROM oauth2.provider WHERE code = pCode;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -72,7 +72,7 @@ CREATE OR REPLACE FUNCTION GetProviderCode (
 ) RETURNS   text
 AS $$
   SELECT code FROM oauth2.provider WHERE id = pId;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -92,7 +92,7 @@ CREATE OR REPLACE FUNCTION GetProviderType (
 ) RETURNS   char
 AS $$
   SELECT type FROM oauth2.provider WHERE id = pId;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -150,7 +150,7 @@ CREATE OR REPLACE FUNCTION GetApplication (
 ) RETURNS   integer
 AS $$
   SELECT id FROM oauth2.application WHERE code = pCode;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -170,7 +170,7 @@ CREATE OR REPLACE FUNCTION GetApplicationCode (
 ) RETURNS   text
 AS $$
   SELECT code FROM oauth2.application WHERE id = pId;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -228,7 +228,7 @@ CREATE OR REPLACE FUNCTION GetIssuer (
 ) RETURNS   integer
 AS $$
   SELECT id FROM oauth2.issuer WHERE code = pCode;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -248,7 +248,7 @@ CREATE OR REPLACE FUNCTION GetIssuerCode (
 ) RETURNS   text
 AS $$
   SELECT code FROM oauth2.issuer WHERE id = pId;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -304,7 +304,7 @@ CREATE OR REPLACE FUNCTION GetAlgorithm (
 ) RETURNS 	integer
 AS $$
   SELECT id FROM oauth2.algorithm WHERE code = pCode;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -324,7 +324,7 @@ CREATE OR REPLACE FUNCTION GetAlgorithmCode (
 ) RETURNS 	text
 AS $$
   SELECT code FROM oauth2.algorithm WHERE id = pId;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -344,7 +344,7 @@ CREATE OR REPLACE FUNCTION GetAlgorithmName (
 ) RETURNS 	text
 AS $$
   SELECT name FROM oauth2.algorithm WHERE id = pId;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -384,7 +384,7 @@ BEGIN
   END IF;
 
   INSERT INTO oauth2.audience (provider, application, algorithm, code, secret, hash, name)
-  VALUES (pProvider, pApplication, pAlgorithm, pCode, pSecret, crypt(pSecret, gen_salt('md5')), pName)
+  VALUES (pProvider, pApplication, pAlgorithm, pCode, pSecret, crypt(pSecret, gen_salt('bf')), pName)
   RETURNING Id INTO nId;
 
   RETURN nId;
@@ -409,7 +409,7 @@ CREATE OR REPLACE FUNCTION GetAudience (
 ) RETURNS 	integer
 AS $$
   SELECT id FROM oauth2.audience WHERE code = pCode;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -429,6 +429,6 @@ CREATE OR REPLACE FUNCTION GetAudienceCode (
 ) RETURNS 	text
 AS $$
   SELECT code FROM oauth2.audience WHERE id = pId;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

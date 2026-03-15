@@ -131,7 +131,7 @@ CREATE OR REPLACE FUNCTION GetReportReadyForm (
 ) RETURNS   jsonb
 AS $$
   SELECT form FROM db.report_ready WHERE id = pId;
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -159,7 +159,7 @@ BEGIN
 
   FOR r IN SELECT definition FROM db.report_routine WHERE report = uReport ORDER BY sequence
   LOOP
-    EXECUTE 'SELECT report.' || r.definition || '($1, $2);' USING pId, jForm;
+    EXECUTE format('SELECT report.%I($1, $2);', r.definition) USING pId, jForm;
   END LOOP;
 END;
 $$ LANGUAGE plpgsql
