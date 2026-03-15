@@ -16,7 +16,7 @@ CREATE OR REPLACE FUNCTION url_encode(data bytea) RETURNS text LANGUAGE sql AS $
     SELECT translate(encode(data, 'base64'), E'+/=\n', '-_');
 $$;
 
-GRANT EXECUTE ON FUNCTION url_encode(bytea) TO PUBLIC;
+
 
 --------------------------------------------------------------------------------
 -- FUNCTION url_decode ---------------------------------------------------------
@@ -39,7 +39,7 @@ WITH t AS (SELECT translate(data, '-_', '+/') AS trans),
     'base64') FROM t, rem;
 $$;
 
-GRANT EXECUTE ON FUNCTION url_decode(text) TO PUBLIC;
+
 
 --------------------------------------------------------------------------------
 -- FUNCTION algorithm_sign -----------------------------------------------------
@@ -65,7 +65,7 @@ WITH
 SELECT url_encode(hmac(signables, secret, alg.id)) FROM alg;
 $$ SET search_path = kernel, public, pg_temp;
 
-GRANT EXECUTE ON FUNCTION algorithm_sign(text, text, text) TO PUBLIC;
+
 
 --------------------------------------------------------------------------------
 -- FUNCTION sign ---------------------------------------------------------------
@@ -96,7 +96,7 @@ SELECT
     algorithm_sign(signables.data, secret, algorithm) FROM signables;
 $$;
 
-GRANT EXECUTE ON FUNCTION sign(json, text, text) TO PUBLIC;
+
 
 --------------------------------------------------------------------------------
 -- FUNCTION verify -------------------------------------------------------------
@@ -119,4 +119,4 @@ RETURNS table(header json, payload json, valid boolean) LANGUAGE sql AS $$
   FROM regexp_split_to_array(token, '\.') r;
 $$;
 
-GRANT EXECUTE ON FUNCTION verify(text, text, text) TO PUBLIC;
+

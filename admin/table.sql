@@ -1035,7 +1035,7 @@ BEGIN
 
     -- Rotate salt when session idle for more than 1 hour
     IF (NEW.updated - OLD.updated) > INTERVAL '1 hour' THEN
-      NEW.salt := gen_salt('md5');
+      NEW.salt := gen_salt('bf');
     END IF;
 
     IF NEW.salt IS DISTINCT FROM OLD.salt THEN
@@ -1076,7 +1076,7 @@ BEGIN
       NEW.agent := coalesce(vAgent, current_database());
     END IF;
 
-    NEW.salt := gen_salt('md5');
+    NEW.salt := gen_salt('bf');
 
     IF NEW.pwkey IS NULL THEN
       NEW.pwkey := crypt(StrPwKey(NEW.suid, NEW.secret, NEW.created), NEW.salt);
