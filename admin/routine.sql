@@ -345,18 +345,21 @@ BEGIN
     messages[2] := 'Успешно.';
     messages[3] := 'Секретный код не прошёл проверку.';
     messages[4] := 'Талон не найден.';
+    messages[5] := 'Превышено количество попыток. Запросите новый код.';
   ELSE
     messages[1] := 'The secret code has already been used.';
     messages[2] := 'Successful.';
     messages[3] := 'Secret code failed verification.';
     messages[4] := 'Ticket not found.';
+    messages[5] := 'Too many attempts. Please request a new code.';
   END IF;
 
   SELECT userId, (securityAnswer = crypt(pSecurityAnswer, securityAnswer)), used IS NOT NULL INTO uUserId, passed, utilized
     FROM db.recovery_ticket
    WHERE ticket = pTicket
      AND validFromDate <= Now()
-     AND validtoDate > Now();
+     AND validtoDate > Now()
+     AND attempts < 5;
 
   IF FOUND THEN
     IF utilized THEN
@@ -366,11 +369,18 @@ BEGIN
         PERFORM SetErrorMessage(messages[2]);
         RETURN uUserId;
       ELSE
+        UPDATE db.recovery_ticket SET attempts = attempts + 1 WHERE ticket = pTicket;
         PERFORM SetErrorMessage(messages[3]);
       END IF;
     END IF;
   ELSE
-    PERFORM SetErrorMessage(messages[4]);
+    -- Check if ticket exists but exceeded attempts
+    PERFORM FROM db.recovery_ticket WHERE ticket = pTicket AND attempts >= 5;
+    IF FOUND THEN
+      PERFORM SetErrorMessage(messages[5]);
+    ELSE
+      PERFORM SetErrorMessage(messages[4]);
+    END IF;
   END IF;
 
   RETURN null;
@@ -3559,6 +3569,9 @@ BEGIN
            pswhash = crypt(pPassword, gen_salt('bf'))
      WHERE id = pId;
 
+    -- Invalidate all other sessions for this user (security: prevent stolen token reuse)
+    DELETE FROM db.session WHERE userid = pId AND code <> current_session();
+
     IF session_user <> 'kernel' THEN
       INSERT INTO db.log (type, code, username, session, event, text)
       VALUES ('W', 2222, r.username, current_session(), 'password', 'Смена пароля.');
@@ -5767,7 +5780,8 @@ BEGIN
 
       IF FOUND THEN
         IF nInputError >= 5 AND pRoleName != 'demo' THEN
-          UPDATE db.user SET lock_date = Now() + INTERVAL '1 min' WHERE id = up.id;
+          -- Exponential backoff: 1m, 5m, 25m, 2h, 10h (capped)
+          UPDATE db.user SET lock_date = Now() + least(INTERVAL '1 min' * power(5, (nInputError / 5) - 1), INTERVAL '10 hour') WHERE id = up.id;
         END IF;
       END IF;
     END IF;
@@ -5824,9 +5838,15 @@ BEGIN
 
     IF pCloseAll THEN
       DELETE FROM db.session WHERE userid = uUserId;
+      -- Revoke orphaned tokens (session deleted, token_header remains)
+      DELETE FROM db.token WHERE header IN (SELECT h.id FROM db.token_header h LEFT JOIN db.session s ON h.session = s.code WHERE s.code IS NULL AND h.session IS NOT NULL);
+      DELETE FROM db.token_header h WHERE NOT EXISTS (SELECT 1 FROM db.session s WHERE s.code = h.session) AND h.session IS NOT NULL;
       message := message || ' (с закрытием всех активных сессий)';
     ELSE
       DELETE FROM db.session WHERE code = pSession;
+      -- Revoke orphaned tokens for this session
+      DELETE FROM db.token WHERE header IN (SELECT id FROM db.token_header WHERE session = pSession);
+      DELETE FROM db.token_header WHERE session = pSession;
     END IF;
 
     SELECT count(code) INTO nCount FROM db.session WHERE userid = uUserId;

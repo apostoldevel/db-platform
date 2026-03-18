@@ -644,6 +644,7 @@ CREATE TABLE db.recovery_ticket (
     securityAnswer  text NOT NULL,
     initiator       text NOT NULL,
     used            timestamptz,
+    attempts        int NOT NULL DEFAULT 0,
     validFromDate   timestamptz NOT NULL,
     validToDate     timestamptz NOT NULL
 );
