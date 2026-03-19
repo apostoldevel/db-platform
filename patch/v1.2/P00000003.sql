@@ -15,5 +15,14 @@ DROP FUNCTION IF EXISTS ParseMessage(text);
 -- 2. Create error_catalog tables
 \ir '../../error/table.sql'
 
--- 3. Populate error catalog
+-- 3. Create error module functions (needed by init.sql)
+\ir '../../error/routine.sql'
+\ir '../../error/view.sql'
+\ir '../../error/api.sql'
+\ir '../../error/rest.sql'
+
+-- 4. Create new ParseMessage (with OUT error parameter)
+\ir '../../exception/routine.sql'
+
+-- 5. Populate error catalog
 \ir '../../error/init.sql'

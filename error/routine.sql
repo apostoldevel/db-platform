@@ -206,7 +206,9 @@ BEGIN
     uId := CreateErrorCatalog(pCode, pHttpCode, pSeverity, pCategory);
   END IF;
 
-  PERFORM SetErrorCatalogText(uId, GetLocale(pLocaleCode), pMessage, pDescription, pResolution);
+  IF GetLocale(pLocaleCode) IS NOT NULL THEN
+    PERFORM SetErrorCatalogText(uId, GetLocale(pLocaleCode), pMessage, pDescription, pResolution);
+  END IF;
 
   RETURN uId;
 END;
