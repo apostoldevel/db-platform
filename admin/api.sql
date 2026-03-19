@@ -371,7 +371,7 @@ CREATE OR REPLACE FUNCTION api.count_session (
 ) RETURNS    SETOF bigint
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'session', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
+  RETURN QUERY EXECUTE api.sql('api', 'session', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(code)"]'::jsonb);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
