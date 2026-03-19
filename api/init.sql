@@ -24,6 +24,7 @@ BEGIN
   PERFORM RegisterRoute('session', AddEndpoint('SELECT * FROM rest.session($1, $2);'));
   PERFORM RegisterRoute('verification', AddEndpoint('SELECT * FROM rest.verification($1, $2);'));
   PERFORM RegisterRoute('workflow', AddEndpoint('SELECT * FROM rest.workflow($1, $2);'));
+  PERFORM RegisterRoute('error', AddEndpoint('SELECT * FROM rest.error($1, $2);'));
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
