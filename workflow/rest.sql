@@ -50,7 +50,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN SELECT * FROM api.count_entity(r.search, r.filter)
+        FOR e IN SELECT * FROM api.count_entity(r.search, r.filter) AS count
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -60,7 +60,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN SELECT * FROM api.count_entity(r.search, r.filter)
+        FOR e IN SELECT * FROM api.count_entity(r.search, r.filter) AS count
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -129,7 +129,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN SELECT * FROM api.count_type(r.search, r.filter)
+        FOR e IN SELECT * FROM api.count_type(r.search, r.filter) AS count
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -139,7 +139,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN SELECT * FROM api.count_type(r.search, r.filter)
+        FOR e IN SELECT * FROM api.count_type(r.search, r.filter) AS count
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -260,7 +260,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN SELECT * FROM api.count_class(r.search, r.filter)
+        FOR e IN SELECT * FROM api.count_class(r.search, r.filter) AS count
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -270,7 +270,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN SELECT * FROM api.count_class(r.search, r.filter)
+        FOR e IN SELECT * FROM api.count_class(r.search, r.filter) AS count
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -545,7 +545,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN SELECT * FROM api.count_state(r.search, r.filter)
+        FOR e IN SELECT * FROM api.count_state(r.search, r.filter) AS count
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -555,7 +555,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN SELECT * FROM api.count_state(r.search, r.filter)
+        FOR e IN SELECT * FROM api.count_state(r.search, r.filter) AS count
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -676,7 +676,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN SELECT * FROM api.count_action(r.search, r.filter)
+        FOR e IN SELECT * FROM api.count_action(r.search, r.filter) AS count
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -686,7 +686,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN SELECT * FROM api.count_action(r.search, r.filter)
+        FOR e IN SELECT * FROM api.count_action(r.search, r.filter) AS count
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -755,7 +755,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN SELECT * FROM api.count_method(r.search, r.filter)
+        FOR e IN SELECT * FROM api.count_method(r.search, r.filter) AS count
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -765,7 +765,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN SELECT * FROM api.count_method(r.search, r.filter)
+        FOR e IN SELECT * FROM api.count_method(r.search, r.filter) AS count
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -972,7 +972,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN SELECT * FROM api.count_transition(r.search, r.filter)
+        FOR e IN SELECT * FROM api.count_transition(r.search, r.filter) AS count
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -982,7 +982,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN SELECT * FROM api.count_transition(r.search, r.filter)
+        FOR e IN SELECT * FROM api.count_transition(r.search, r.filter) AS count
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -1113,7 +1113,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN SELECT * FROM api.count_event(r.search, r.filter)
+        FOR e IN SELECT * FROM api.count_event(r.search, r.filter) AS count
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -1123,7 +1123,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN SELECT * FROM api.count_event(r.search, r.filter)
+        FOR e IN SELECT * FROM api.count_event(r.search, r.filter) AS count
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -1244,7 +1244,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN SELECT * FROM api.count_priority(r.search, r.filter)
+        FOR e IN SELECT * FROM api.count_priority(r.search, r.filter) AS count
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -1254,7 +1254,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN SELECT * FROM api.count_priority(r.search, r.filter)
+        FOR e IN SELECT * FROM api.count_priority(r.search, r.filter) AS count
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;

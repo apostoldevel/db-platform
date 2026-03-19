@@ -43,7 +43,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN SELECT * FROM api.count_error(r.search, r.filter)
+        FOR e IN SELECT * FROM api.count_error(r.search, r.filter) AS count
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
@@ -53,7 +53,7 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
       LOOP
-        FOR e IN SELECT * FROM api.count_error(r.search, r.filter)
+        FOR e IN SELECT * FROM api.count_error(r.search, r.filter) AS count
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;
