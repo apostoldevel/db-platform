@@ -1336,9 +1336,11 @@ BEGIN
   pJson := NULLIF(pJson, '[]');
 
   IF pJson IS NOT NULL THEN
-    -- Extend whitelist: column + asc/desc
+    -- Extend whitelist: column + asc/desc (both cases)
     pFields := array_cat(pFields, array_add_text(pFields, ' desc'));
     pFields := array_cat(pFields, array_add_text(pFields, ' asc'));
+    pFields := array_cat(pFields, array_add_text(pFields, ' DESC'));
+    pFields := array_cat(pFields, array_add_text(pFields, ' ASC'));
 
     -- Auto-allow safe function calls on known columns
     FOR r IN SELECT * FROM jsonb_array_elements_text(pJson)
