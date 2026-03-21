@@ -253,7 +253,7 @@ CREATE OR REPLACE FUNCTION http.post (
   path      text,
   headers   jsonb,
   params    jsonb DEFAULT null,
-  body      jsonb DEFAULT null
+  body      json DEFAULT null
 ) RETURNS   SETOF json
 AS $$
 DECLARE
@@ -266,7 +266,7 @@ DECLARE
   vMessage  text;
   vContext  text;
 BEGIN
-  nId := http.write_to_log(path, headers, params, body, 'POST');
+  nId := http.write_to_log(path, headers, params, body::jsonb, 'POST');
 
   IF split_part(path, '/', 3) != 'v1' THEN
     RAISE EXCEPTION 'Invalid API version.';
@@ -298,7 +298,7 @@ BEGIN
 
   WHEN 'body' THEN
 
-    RETURN NEXT coalesce(body, jsonb_build_object());
+    RETURN NEXT coalesce(body::jsonb, jsonb_build_object());
 
   ELSE
 
@@ -313,7 +313,7 @@ EXCEPTION
 WHEN others THEN
   GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
 
-  PERFORM http.write_to_log(path, headers, params, body, 'POST', vMessage, vContext);
+  PERFORM http.write_to_log(path, headers, params, body::jsonb, 'POST', vMessage, vContext);
 
   RETURN NEXT json_build_object('error', json_build_object('code', 400, 'message', vMessage));
 
