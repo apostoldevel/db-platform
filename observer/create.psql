@@ -12,3 +12,6 @@
 
 \echo [M] call rest.sql
 \ir rest.sql
+
+\echo [M] call daemon.sql
+\ir daemon.sql
