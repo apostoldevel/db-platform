@@ -197,7 +197,11 @@ BEGIN
 
     FOR r IN SELECT * FROM jsonb_each(pFilter)
     LOOP
-      pSearch := coalesce(pSearch, '[]'::jsonb) || jsonb_build_object('field', r.key, 'value', r.value);
+      IF jsonb_typeof(r.value) = 'array' THEN
+        pSearch := coalesce(pSearch, '[]'::jsonb) || jsonb_build_object('field', r.key, 'valarr', r.value);
+      ELSE
+        pSearch := coalesce(pSearch, '[]'::jsonb) || jsonb_build_object('field', r.key, 'value', r.value);
+      END IF;
     END LOOP;
   END IF;
 
