@@ -215,24 +215,28 @@ $$ LANGUAGE plpgsql
  * @param {uuid} pReport - Report definition identifier
  * @param {uuid} pType - Type for the report_ready document (defaults to 'sync.report_ready')
  * @param {jsonb} pForm - Input form parameters (JSON)
+ * @param {jsonb} pName - Report ready name
+ * @param {jsonb} pDescription - Report ready description
  * @return {uuid} - Identifier of the newly created report_ready document
  * @see CreateReportReady, ExecuteReportReady
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION BuildReport (
-  pReport   uuid,
-  pType     uuid default null,
-  pForm     jsonb default null
-) RETURNS   uuid
+  pReport       uuid,
+  pType         uuid default null,
+  pForm         jsonb default null,
+  pName         text default null,
+  pDescription  text default null
+) RETURNS       uuid
 AS $$
 DECLARE
-  r         record;
+  r             record;
 BEGIN
   pType := coalesce(pType, GetType('sync.report_ready'));
 
   SELECT name, description INTO r FROM Report WHERE id = pReport;
 
-  RETURN CreateReportReady(pReport, pType, pReport, pForm, r.name, r.description);
+  RETURN CreateReportReady(pReport, pType, pReport, pForm, coalesce(pName, r.name), coalesce(pDescription, r.description));
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
