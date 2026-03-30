@@ -78,8 +78,9 @@ AS
          o.owner, w.username, w.name,
          o.oper, u.username, u.name,
          o.scope, sc.code, sc.name, sc.description
-    FROM db.Program t INNER JOIN AccessProgram         ac ON t.id = ac.object
-                      INNER JOIN db.reference           r ON t.reference = r.id AND r.scope = current_scope()
+    FROM db.program    t INNER JOIN AccessProgram      aou ON t.id = aou.object
+
+                         INNER JOIN db.reference         r ON t.reference = r.id AND r.scope = current_scope()
                           LEFT JOIN db.reference_text   rt ON rt.reference = r.id AND rt.locale = current_locale()
 
                          INNER JOIN db.object            o ON t.reference = o.id

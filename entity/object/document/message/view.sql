@@ -91,7 +91,8 @@ CREATE OR REPLACE VIEW ObjectMessage (Id, Object, Parent,
          o.oper, u.username, u.name,
          d.area, a.code, a.name, a.description,
          o.scope, sc.code, sc.name, sc.description
-    FROM db.message    t INNER JOIN AccessMessage         ac ON t.id = ac.object
+    FROM db.message    t INNER JOIN AccessMessage      aou ON t.id = aou.object
+
                          INNER JOIN db.document          d ON t.document = d.id
                           LEFT JOIN db.document_text    dt ON dt.document = d.id AND dt.locale = current_locale()
 
@@ -138,68 +139,69 @@ CREATE OR REPLACE VIEW ServiceMessage (Id, Object, Parent,
   Entity, EntityCode, EntityName,
   Class, ClassCode, ClassLabel,
   Type, TypeCode, TypeName, TypeDescription,
+  StateType, StateTypeCode, StateTypeName,
+  State, StateCode, StateLabel,
+  Created, LastUpdate, OperDate,
+  Code, Name, Label, Description,
   AgentType, AgentTypeCode, AgentTypeName, AgentTypeDescription,
   Agent, AgentCode, AgentName, AgentDescription,
-  Code, Profile, Address, Subject, Content,
-  Label, Description,
-  StateType, StateTypeCode, StateTypeName,
-  State, StateCode, StateLabel, LastUpdate,
+  Profile, Address, Subject, Content,
   Priority, PriorityCode, PriorityName, PriorityDescription,
-  Owner, OwnerCode, OwnerName, Created,
-  Oper, OperCode, OperName, OperDate,
+  Owner, OwnerCode, OwnerName,
+  Oper, OperCode, OperName,
   Area, AreaCode, AreaName, AreaDescription,
   Scope, ScopeCode, ScopeName, ScopeDescription
 ) AS
   SELECT t.id, d.object, o.parent,
          o.entity, e.code, et.name,
-         o.class, c.code, ct.label,
+         o.class, ct.code, ctt.label,
          o.type, y.code, ty.name, ty.description,
+         o.state_type, st.code, stt.name,
+         o.state, s.code, sst.label,
+         o.pdate, o.udate, o.ldate,
+         t.code, ot.label,ot.label, dt.description,
          ar.type, ay.code, aty.name, aty.description,
          t.agent, ar.code, art.name, art.description,
-         t.code, t.profile, t.address, t.subject, t.content,
-         ot.label, dt.description,
-         o.state_type, st.code, stt.name,
-         o.state, s.code, sst.label, o.udate,
+         t.profile, t.address, t.subject, t.content,
          d.priority, p.code, pt.name, pt.description,
-         o.owner, w.username, w.name, o.pdate,
-         o.oper, u.username, u.name, o.ldate,
+         o.owner, w.username, w.name,
+         o.oper, u.username, u.name,
          d.area, a.code, a.name, a.description,
          o.scope, sc.code, sc.name, sc.description
-    FROM db.message t INNER JOIN AccessMessage        ac ON t.id = ac.object
-                      INNER JOIN db.document          d ON t.document = d.id
-                       LEFT JOIN db.document_text    dt ON dt.document = d.id AND dt.locale = current_locale()
+    FROM db.message    t INNER JOIN db.document          d ON t.document = d.id
+                          LEFT JOIN db.document_text    dt ON dt.document = d.id AND dt.locale = current_locale()
 
-                      INNER JOIN db.object            o ON t.document = o.id
-                       LEFT JOIN db.object_text      ot ON ot.object = o.id AND ot.locale = current_locale()
+                         INNER JOIN db.object            o ON t.document = o.id
+                          LEFT JOIN db.object_text      ot ON ot.object = o.id AND ot.locale = current_locale()
 
-                      INNER JOIN db.reference        ar ON t.agent = ar.id
-                       LEFT JOIN db.reference_text  art ON art.reference = ar.id AND art.locale = current_locale()
+                         INNER JOIN db.entity            e ON o.entity = e.id
+                          LEFT JOIN db.entity_text      et ON et.entity = e.id AND et.locale = current_locale()
 
-                      INNER JOIN db.type             ay ON ar.type = ay.id
-                       LEFT JOIN db.type_text       aty ON aty.type = ay.id AND aty.locale = current_locale()
+                         INNER JOIN db.class_tree       ct ON o.class = ct.id
+                          LEFT JOIN db.class_text      ctt ON ctt.class = ct.id AND ctt.locale = current_locale()
 
-                      INNER JOIN db.entity            e ON o.entity = e.id
-                       LEFT JOIN db.entity_text      et ON et.entity = e.id AND et.locale = current_locale()
+                         INNER JOIN db.type              y ON o.type = y.id
+                          LEFT JOIN db.type_text        ty ON ty.type = y.id AND ty.locale = current_locale()
 
-                      INNER JOIN db.class_tree        c ON o.class = c.id
-                       LEFT JOIN db.class_text       ct ON ct.class = c.id AND ct.locale = current_locale()
+                         INNER JOIN db.state_type       st ON o.state_type = st.id
+                          LEFT JOIN db.state_type_text stt ON stt.type = st.id AND stt.locale = current_locale()
 
-                      INNER JOIN db.type              y ON o.type = y.id
-                       LEFT JOIN db.type_text        ty ON ty.type = y.id AND ty.locale = current_locale()
+                         INNER JOIN db.state             s ON o.state = s.id
+                          LEFT JOIN db.state_text      sst ON sst.state = s.id AND sst.locale = current_locale()
 
-                      INNER JOIN db.state_type       st ON o.state_type = st.id
-                       LEFT JOIN db.state_type_text stt ON stt.type = st.id AND stt.locale = current_locale()
+                         INNER JOIN db.priority          p ON d.priority = p.id
+                          LEFT JOIN db.priority_text    pt ON pt.priority = p.id AND pt.locale = current_locale()
 
-                      INNER JOIN db.state             s ON o.state = s.id
-                       LEFT JOIN db.state_text      sst ON sst.state = s.id AND sst.locale = current_locale()
+                         INNER JOIN db.reference        ar ON t.agent = ar.id
+                          LEFT JOIN db.reference_text  art ON art.reference = ar.id AND art.locale = current_locale()
 
-                      INNER JOIN db.priority          p ON d.priority = p.id
-                       LEFT JOIN db.priority_text    pt ON pt.priority = p.id AND pt.locale = current_locale()
+                         INNER JOIN db.type             ay ON ar.type = ay.id
+                          LEFT JOIN db.type_text       aty ON aty.type = ay.id AND aty.locale = current_locale()
 
-                      INNER JOIN db.user              w ON o.owner = w.id
-                      INNER JOIN db.user              u ON o.oper = u.id
+                         INNER JOIN db.user              w ON o.owner = w.id
+                         INNER JOIN db.user              u ON o.oper = u.id
 
-                      INNER JOIN DocumentAreaTree     a ON d.area = a.id
-                      INNER JOIN db.scope            sc ON o.scope = sc.id;
+                         INNER JOIN DocumentAreaTree     a ON d.area = a.id
+                         INNER JOIN db.scope            sc ON o.scope = sc.id;
 
 GRANT SELECT ON ServiceMessage TO administrator;

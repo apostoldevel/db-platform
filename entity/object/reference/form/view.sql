@@ -78,8 +78,9 @@ AS
          o.owner, w.username, w.name,
          o.oper, u.username, u.name,
          o.scope, sc.code, sc.name, sc.description
-    FROM db.Form t INNER JOIN AccessForm             ac ON t.id = ac.object
-                   INNER JOIN db.reference           r ON t.reference = r.id AND r.scope = current_scope()
+    FROM db.form    t INNER JOIN AccessForm         aou ON t.id = aou.object
+
+                      INNER JOIN db.reference         r ON t.reference = r.id AND r.scope = current_scope()
                        LEFT JOIN db.reference_text   rt ON rt.reference = r.id AND rt.locale = current_locale()
 
                       INNER JOIN db.object            o ON t.reference = o.id

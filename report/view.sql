@@ -70,8 +70,10 @@ CREATE OR REPLACE VIEW ObjectReport (Id, Object, Parent,
          o.owner, w.username, w.name, o.pdate,
          o.oper, u.username, u.name, o.ldate,
          o.scope, sc.code, sc.name, sc.description
-    FROM db.report t INNER JOIN db.reference         r ON t.reference = r.id
-                     LEFT JOIN db.reference_text   rt ON rt.reference = r.id AND rt.locale = current_locale()
+    FROM db.report t INNER JOIN AccessReport       aou ON t.id = aou.object
+
+                     INNER JOIN db.reference         r ON t.reference = r.id
+                      LEFT JOIN db.reference_text   rt ON rt.reference = r.id AND rt.locale = current_locale()
 
                      INNER JOIN db.object            o ON t.reference = o.id
                       LEFT JOIN db.object_text      ot ON ot.object = o.id AND ot.locale = current_locale()

@@ -296,25 +296,22 @@ db-platform uses **two patterns** for Access views in different contexts:
 Used in `Object{Class}` views **in the configuration layer**. Each entity defines its own Access view:
 
 ```sql
-CREATE OR REPLACE VIEW AccessTrader
+CREATE OR REPLACE VIEW AccessAccount
 AS
-WITH _access AS (
-   WITH _membergroup AS (
-     SELECT current_userid() AS userid
-     UNION
-     SELECT userid FROM db.member_group WHERE member = current_userid()
-   ) SELECT object
-       FROM db.aou AS a INNER JOIN db.entity    e ON a.entity = e.id AND e.code = 'trader'
-                        INNER JOIN _membergroup m ON a.userid = m.userid
-      GROUP BY object
-      HAVING (bit_or(a.allow) & ~bit_or(a.deny)) & B'100' = B'100'
-) SELECT t.* FROM db.trader t INNER JOIN _access ac ON t.id = ac.object;
+WITH _membergroup AS (
+  SELECT current_userid() AS userid UNION SELECT userid FROM db.member_group WHERE member = current_userid()
+) SELECT object
+    FROM db.account t INNER JOIN db.aou         a ON a.object = t.id
+                      INNER JOIN _membergroup   m ON a.userid = m.userid
+   GROUP BY object
+   HAVING (bit_or(a.allow) & ~bit_or(a.deny)) & B'100' = B'100';
+
+GRANT SELECT ON AccessAccount TO administrator;
 ```
 
 **Key points**:
-- Filters by `e.code = 'trader'` — only objects of this entity
 - `HAVING ... & B'100' = B'100'` — requires SELECT permission
-- Returns rows from the entity table (e.g. `db.trader`)
+- Returns rows from the entity table (e.g. `db.account`)
 
 #### Pattern 2: Platform-level Access view
 
@@ -344,9 +341,9 @@ This ensures automatic filtering by the current user's permissions. Without this
 
 ### Examples
 
-**Document entity** (ObjectTrader):
+**Document entity** (ObjectAccount):
 ```sql
-FROM db.trader    t INNER JOIN AccessTrader          ac ON t.id = ac.object
+FROM db.account   t INNER JOIN AccessAccount       ac ON t.id = ac.object
                     INNER JOIN db.document          d ON t.document = d.id
                      LEFT JOIN db.document_text    dt ON ...
 ```

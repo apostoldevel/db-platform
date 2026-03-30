@@ -78,8 +78,8 @@ AS
          o.owner, w.username, w.name,
          o.oper, u.username, u.name,
          o.scope, sc.code, sc.name, sc.description
-    FROM db.Vendor t INNER JOIN AccessVendor          ac ON t.id = ac.object
-                     INNER JOIN db.reference           r ON t.reference = r.id AND r.scope = current_scope()
+    FROM db.Vendor t    INNER JOIN AccessVendor       aou ON t.id = aou.object
+                        INNER JOIN db.reference         r ON t.reference = r.id AND r.scope = current_scope()
                          LEFT JOIN db.reference_text   rt ON rt.reference = r.id AND rt.locale = current_locale()
                         INNER JOIN db.object            o ON t.reference = o.id
                          LEFT JOIN db.object_text      ot ON ot.object = o.id AND ot.locale = current_locale()

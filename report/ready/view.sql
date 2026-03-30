@@ -57,7 +57,9 @@ CREATE OR REPLACE VIEW ObjectReportReady (Id, Object, Parent,
          o.oper, u.username, u.name, o.ldate,
          d.area, a.code, a.name, a.description,
          o.scope, sc.code, sc.name, sc.description
-    FROM db.report_ready t INNER JOIN db.document          d ON t.document = d.id
+    FROM db.report_ready t INNER JOIN AccessReportReady  aou ON t.id = aou.object
+
+                           INNER JOIN db.document          d ON t.document = d.id
                             LEFT JOIN db.document_text    dt ON dt.document = d.id AND dt.locale = current_locale()
 
                            INNER JOIN db.object            o ON d.object = o.id
