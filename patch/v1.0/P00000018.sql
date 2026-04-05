@@ -39,7 +39,7 @@ SELECT SignIn(CreateSystemOAuth2(), 'admin', :'admin');
 
 SELECT GetErrorMessage();
 
-SELECT chmod(B'1000000000001101111111111100', GetUser('apibot'));
+SELECT chmod(B'0001000000000001111101111111111100', GetUser('apibot'));
 
 SELECT SignOut();
 

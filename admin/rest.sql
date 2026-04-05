@@ -1305,12 +1305,12 @@ BEGIN
       PERFORM JsonIsEmpty();
     END IF;
 
-    arKeys := array_cat(arKeys, ARRAY['id', 'name']);
+    arKeys := array_cat(arKeys, ARRAY['id', 'userid', 'name']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, name text)
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, userid uuid, name text)
     LOOP
-      FOR e IN SELECT * FROM api.group_member(coalesce(r.id, GetGroup(r.name)))
+      FOR e IN SELECT * FROM api.group_member(coalesce(coalesce(r.id, r.userid), GetGroup(r.name)))
       LOOP
         RETURN NEXT row_to_json(e);
       END LOOP;
@@ -1322,12 +1322,12 @@ BEGIN
       PERFORM JsonIsEmpty();
     END IF;
 
-    arKeys := array_cat(arKeys, ARRAY['id', 'name']);
+    arKeys := array_cat(arKeys, ARRAY['id', 'userid', 'name']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, name text)
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, userid uuid, name text)
     LOOP
-      FOR e IN SELECT * FROM api.member_group(coalesce(r.id, GetUser(r.name)))
+      FOR e IN SELECT * FROM api.member_group(coalesce(coalesce(r.id, r.userid), GetUser(r.name)))
       LOOP
         RETURN NEXT row_to_json(e);
       END LOOP;
@@ -1393,12 +1393,12 @@ BEGIN
       PERFORM JsonIsEmpty();
     END IF;
 
-    arKeys := array_cat(arKeys, ARRAY['id', 'name']);
+    arKeys := array_cat(arKeys, ARRAY['id', 'userid', 'name']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, name text)
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, userid uuid, name text)
     LOOP
-      FOR e IN SELECT * FROM api.member_area(coalesce(r.id, GetUser(r.name), GetGroup(r.name)))
+      FOR e IN SELECT * FROM api.member_area(coalesce(coalesce(r.id, r.userid), GetUser(r.name), GetGroup(r.name)))
       LOOP
         RETURN NEXT row_to_json(e);
       END LOOP;
@@ -1464,12 +1464,12 @@ BEGIN
       PERFORM JsonIsEmpty();
     END IF;
 
-    arKeys := array_cat(arKeys, ARRAY['id', 'name']);
+    arKeys := array_cat(arKeys, ARRAY['id', 'userid', 'name']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, name text)
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, userid uuid, name text)
     LOOP
-      FOR e IN SELECT * FROM api.member_interface(coalesce(r.id, GetUser(r.name), GetGroup(r.name)))
+      FOR e IN SELECT * FROM api.member_interface(coalesce(coalesce(r.id, r.userid), GetUser(r.name), GetGroup(r.name)))
       LOOP
         RETURN NEXT row_to_json(e);
       END LOOP;

@@ -249,15 +249,15 @@ RETURNS trigger AS $$
 BEGIN
   CASE NEW.username
   WHEN 'system' THEN
-    INSERT INTO db.acl SELECT NEW.id, B'00000000000000', B'10000000000011';
+    INSERT INTO db.acl SELECT NEW.id, B'00000000000000000', B'00010000000000011';
   WHEN 'administrator' THEN
-    INSERT INTO db.acl SELECT NEW.id, B'00000000000000', B'01111111111111';
+    INSERT INTO db.acl SELECT NEW.id, B'00000000000000000', B'11101111111111111';
   WHEN 'guest' THEN
-    INSERT INTO db.acl SELECT NEW.id, B'11111111111100', B'00000000000011';
+    INSERT INTO db.acl SELECT NEW.id, B'11111111111111100', B'00000000000000011';
   WHEN 'apibot' THEN
-    INSERT INTO db.acl SELECT NEW.id, B'10000000000011', B'01111111111100';
+    INSERT INTO db.acl SELECT NEW.id, B'00010000000000011', B'11101111111111100';
   ELSE
-    INSERT INTO db.acl SELECT NEW.id, B'00000000000000', B'00000000000011';
+    INSERT INTO db.acl SELECT NEW.id, B'00000000000000000', B'00000000000000011';
   END CASE;
 
   RETURN NEW;
@@ -1173,7 +1173,10 @@ CREATE TRIGGER t_session_after
 -- db.acl ----------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /*
- Access control bitmask (14 bits, MSB first):
+ Access control bitmask (17 bits, MSB first):
+   16: r - delete area
+   15: e - update area
+   14: a - create area
    13: s - substitute user
    12: L - unlock user
    11: l - lock user
@@ -1200,8 +1203,8 @@ CREATE TABLE db.acl (
 COMMENT ON TABLE db.acl IS 'Access control list defining per-user administrative privilege bitmasks.';
 
 COMMENT ON COLUMN db.acl.userid IS 'User or group this ACL entry applies to.';
-COMMENT ON COLUMN db.acl.deny IS 'Deny bitmask (14 bits); set bits revoke the corresponding privilege.';
-COMMENT ON COLUMN db.acl.allow IS 'Allow bitmask (14 bits); set bits grant the corresponding privilege.';
+COMMENT ON COLUMN db.acl.deny IS 'Deny bitmask (17 bits); set bits revoke the corresponding privilege.';
+COMMENT ON COLUMN db.acl.allow IS 'Allow bitmask (17 bits); set bits grant the corresponding privilege.';
 COMMENT ON COLUMN db.acl.mask IS 'Effective bitmask computed as (allow AND NOT deny).';
 
 --------------------------------------------------------------------------------

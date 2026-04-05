@@ -2811,8 +2811,11 @@ $$ LANGUAGE plpgsql
  * @brief Sets the ACL bitmask for a user or group.
  *        Requires administrator role unless called by the kernel.
  *        Passing an all-zero mask deletes the ACL entry.
- * @param {bit varying} pMask - Access mask (d:{sLlEIDUCpducoi}a:{sLlEIDUCpducoi})
+ * @param {bit varying} pMask - Access mask (d:{reasLlEIDUCpducoi}a:{reasLlEIDUCpducoi})
  *   where d = deny bits, a = allow bits:
+ *   16: r - delete area
+ *   15: e - update area
+ *   14: a - create area
  *   13: s - substitute user
  *   12: L - unlock user
  *   11: l - lock user
@@ -2830,7 +2833,7 @@ $$ LANGUAGE plpgsql
  * @param {uuid} pUserId - User or group identifier (defaults to current user)
  * @return {void}
  * @throws ACCESS_DENIED if caller lacks administrator role
- * @since 1.0.0
+ * @since 1.1.0
  */
 CREATE OR REPLACE FUNCTION chmod (
   pMask         bit varying,
@@ -2888,7 +2891,7 @@ CREATE OR REPLACE FUNCTION SubstituteUser (
 AS $$
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT CheckAccessControlList(B'10000000000000', session_userid(pSession)) THEN
+    IF NOT CheckAccessControlList(B'00010000000000000', session_userid(pSession)) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3075,7 +3078,7 @@ DECLARE
   vSecret               text;
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT CheckAccessControlList(B'00000000000100') THEN
+    IF NOT CheckAccessControlList(B'00000000000000100') THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3137,7 +3140,7 @@ DECLARE
   uId           uuid;
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT CheckAccessControlList(B'00000001000000') THEN
+    IF NOT CheckAccessControlList(B'00000000001000000') THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3201,7 +3204,7 @@ BEGIN
 
   IF session_user <> 'kernel' THEN
     IF pId <> current_userid() THEN
-      IF NOT CheckAccessControlList(B'00000000001000') THEN
+      IF NOT CheckAccessControlList(B'00000000000001000') THEN
         PERFORM AccessDenied();
       END IF;
     END IF;
@@ -3274,7 +3277,7 @@ BEGIN
   END IF;
 
   IF session_user <> 'kernel' THEN
-    IF NOT CheckAccessControlList(B'00000010000000') OR r.readonly THEN
+    IF NOT CheckAccessControlList(B'00000000010000000') OR r.readonly THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3318,7 +3321,7 @@ DECLARE
   vUserName     text;
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT CheckAccessControlList(B'00000000010000') THEN
+    IF NOT CheckAccessControlList(B'00000000000010000') THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3409,7 +3412,7 @@ DECLARE
   vGroupName    text;
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT CheckAccessControlList(B'00000010000000') THEN
+    IF NOT CheckAccessControlList(B'00000000010000000') THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3541,7 +3544,7 @@ BEGIN
 
   IF session_user <> 'kernel' THEN
     IF pId <> uUserId THEN
-      IF NOT CheckAccessControlList(B'00000000100000') THEN
+      IF NOT CheckAccessControlList(B'00000000000100000') THEN
         PERFORM AccessDenied();
       END IF;
     END IF;
@@ -3646,7 +3649,7 @@ DECLARE
 BEGIN
   IF session_user <> 'kernel' THEN
     IF pId <> current_userid() THEN
-      IF NOT CheckAccessControlList(B'00100000000000') THEN
+      IF NOT CheckAccessControlList(B'00000100000000000') THEN
         PERFORM AccessDenied();
       END IF;
     END IF;
@@ -3683,7 +3686,7 @@ DECLARE
   uId           uuid;
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT CheckAccessControlList(B'01000000000000') THEN
+    IF NOT CheckAccessControlList(B'00001000000000000') THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3718,7 +3721,7 @@ CREATE OR REPLACE FUNCTION AddMemberToGroup (
 AS $$
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT CheckAccessControlList(B'00001000000000') THEN
+    IF NOT CheckAccessControlList(B'00000001000000000') THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3748,7 +3751,7 @@ CREATE OR REPLACE FUNCTION DeleteGroupForMember (
 AS $$
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT CheckAccessControlList(B'00010000000000') THEN
+    IF NOT CheckAccessControlList(B'00000010000000000') THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -3778,7 +3781,7 @@ CREATE OR REPLACE FUNCTION DeleteMemberFromGroup (
 AS $$
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT CheckAccessControlList(B'00010000000000') THEN
+    IF NOT CheckAccessControlList(B'00000010000000000') THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -4129,7 +4132,7 @@ DECLARE
   nLevel        integer;
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(GetGroup('administrator')) THEN
+    IF NOT CheckAccessControlList(B'00100000000000000') THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -4208,7 +4211,7 @@ DECLARE
   nSequence         integer;
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(GetGroup('administrator')) THEN
+    IF NOT CheckAccessControlList(B'01000000000000000') THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -4279,7 +4282,7 @@ DECLARE
   uId           uuid;
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(GetGroup('administrator')) THEN
+    IF NOT CheckAccessControlList(B'10000000000000000') THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -4487,7 +4490,7 @@ CREATE OR REPLACE FUNCTION AddMemberToArea (
 AS $$
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT CheckAccessControlList(B'00001000000000') THEN
+    IF NOT CheckAccessControlList(B'01000000000000000') THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -4516,7 +4519,7 @@ CREATE OR REPLACE FUNCTION DeleteAreaForMember (
 AS $$
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT CheckAccessControlList(B'00010000000000') THEN
+    IF NOT CheckAccessControlList(B'01000000000000000') THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -4545,7 +4548,7 @@ CREATE OR REPLACE FUNCTION DeleteMemberFromArea (
 AS $$
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT CheckAccessControlList(B'00010000000000') THEN
+    IF NOT CheckAccessControlList(B'01000000000000000') THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -4812,7 +4815,7 @@ CREATE OR REPLACE FUNCTION AddMemberToInterface (
 AS $$
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT CheckAccessControlList(B'00001000000000') THEN
+    IF NOT CheckAccessControlList(B'00000001000000000') THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -4840,7 +4843,7 @@ CREATE OR REPLACE FUNCTION DeleteInterfaceForMember (
 AS $$
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT CheckAccessControlList(B'00010000000000') THEN
+    IF NOT CheckAccessControlList(B'00000010000000000') THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -4868,7 +4871,7 @@ CREATE OR REPLACE FUNCTION DeleteMemberFromInterface (
 AS $$
 BEGIN
   IF session_user <> 'kernel' THEN
-    IF NOT CheckAccessControlList(B'00010000000000') THEN
+    IF NOT CheckAccessControlList(B'00000010000000000') THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -5642,7 +5645,7 @@ BEGIN
     PERFORM LoginError();
   END IF;
 
-  IF NOT CheckAccessControlList(B'00000000000001', up.id) THEN
+  IF NOT CheckAccessControlList(B'00000000000000001', up.id) THEN
     PERFORM AccessDenied();
   END IF;
 
@@ -5830,7 +5833,7 @@ BEGIN
 
     SELECT userid INTO uUserId FROM db.session WHERE code = pSession;
 
-    IF NOT CheckAccessControlList(B'00000000000010', uUserId) THEN
+    IF NOT CheckAccessControlList(B'00000000000000010', uUserId) THEN
       PERFORM AccessDenied();
     END IF;
 
@@ -6029,7 +6032,7 @@ BEGIN
 
   IF session_user <> 'kernel' AND NOT (session_user = 'apibot' AND pUserId = '00000000-0000-4000-a002-000000000001'::uuid) THEN
     uSUID := coalesce(session_userid(), GetUser(session_user));
-    IF NOT CheckAccessControlList(B'10000000000000', uSUID) THEN
+    IF NOT CheckAccessControlList(B'00010000000000000', uSUID) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
