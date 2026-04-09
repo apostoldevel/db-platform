@@ -25,6 +25,7 @@ CREATE OR REPLACE FUNCTION api.event_log (
   pUserName      text DEFAULT null,
   pType          char DEFAULT null,
   pCode          integer DEFAULT null,
+  pScope         text DEFAULT null,
   pDateFrom      timestamptz DEFAULT null,
   pDateTo        timestamptz DEFAULT null
 ) RETURNS        SETOF api.event_log
@@ -34,6 +35,7 @@ AS $$
    WHERE username = coalesce(pUserName, username)
      AND type = coalesce(pType, type)
      AND code = coalesce(pCode, code)
+     AND scope = coalesce(pScope, scope)
      AND datetime >= coalesce(pDateFrom, MINDATE())
      AND datetime < coalesce(pDateTo, MAXDATE())
    ORDER BY datetime DESC, id
@@ -57,13 +59,14 @@ $$ LANGUAGE SQL
 CREATE OR REPLACE FUNCTION api.write_to_log (
   pType         text,
   pCode         integer,
+  pScope        text,
   pText         text
 ) RETURNS       SETOF api.event_log
 AS $$
 DECLARE
   nId           bigint;
 BEGIN
-  nId := AddEventLog(pType, pCode, 'api', pText);
+  nId := AddEventLog(pType, pCode, coalesce(pScope, 'api'), 'manual', pText);
   RETURN QUERY SELECT * FROM api.get_event_log(nId);
 END;
 $$ LANGUAGE plpgsql
@@ -166,6 +169,7 @@ GRANT SELECT ON api.user_log TO administrator;
 CREATE OR REPLACE FUNCTION api.user_log (
   pType         char DEFAULT null,
   pCode         integer DEFAULT null,
+  pScope        text DEFAULT null,
   pDateFrom     timestamptz DEFAULT null,
   pDateTo       timestamptz DEFAULT null
 ) RETURNS       SETOF api.user_log
@@ -174,6 +178,7 @@ AS $$
     FROM api.user_log
    WHERE type = coalesce(pType, type)
      AND code = coalesce(pCode, code)
+     AND scope = coalesce(pScope, scope)
      AND datetime >= coalesce(pDateFrom, MINDATE())
      AND datetime < coalesce(pDateTo, MAXDATE())
    ORDER BY datetime DESC, id

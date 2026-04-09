@@ -57,9 +57,9 @@ BEGIN
     arKeys := array_cat(arKeys, GetRoutines('write_to_log', 'api', false));
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(type char, code integer, text text)
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(type char, code integer, scope text, text text)
     LOOP
-      FOR e IN SELECT * FROM api.write_to_log(coalesce(r.type, 'M'), coalesce(r.code, 9999), r.text)
+      FOR e IN SELECT * FROM api.write_to_log(coalesce(r.type, 'M'), coalesce(r.code, 9999), r.scope, r.text)
       LOOP
         RETURN NEXT row_to_json(e);
       END LOOP;

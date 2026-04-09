@@ -9,6 +9,7 @@ CREATE TABLE db.log (
     timestamp   timestamptz DEFAULT Now() NOT NULL,
     username    text NOT NULL,
     session     char(40),
+    scope       text,
     code        integer NOT NULL,
     event       text NOT NULL,
     text        text NOT NULL,
@@ -24,6 +25,7 @@ COMMENT ON COLUMN db.log.datetime IS 'Wall-clock time when the row was physicall
 COMMENT ON COLUMN db.log.timestamp IS 'Transaction time when the event was created (Now).';
 COMMENT ON COLUMN db.log.username IS 'Login name of the user who triggered the event.';
 COMMENT ON COLUMN db.log.session IS 'Session token (40-char) active at the time of the event.';
+COMMENT ON COLUMN db.log.scope IS 'Event subsystem: lifecycle, workflow, payment.stripe, ocpp.status, etc.';
 COMMENT ON COLUMN db.log.code IS 'Application-defined numeric event code.';
 COMMENT ON COLUMN db.log.event IS 'Event name or subsystem label (e.g. log, exception).';
 COMMENT ON COLUMN db.log.text IS 'Human-readable event description or error message.';
@@ -37,6 +39,10 @@ CREATE INDEX ON db.log (username);
 CREATE INDEX ON db.log (code);
 CREATE INDEX ON db.log (event);
 CREATE INDEX ON db.log (category);
+CREATE INDEX ON db.log (scope);
+CREATE INDEX ON db.log (scope, event);
+CREATE INDEX ON db.log (type, datetime);
+CREATE INDEX ON db.log (type, scope, datetime);
 
 --------------------------------------------------------------------------------
 
@@ -81,7 +87,7 @@ CREATE TRIGGER t_log_insert
 CREATE OR REPLACE FUNCTION db.ft_log_after_insert()
 RETURNS trigger AS $$
 BEGIN
-  PERFORM pg_notify('log', json_build_object('id', NEW.id, 'type', NEW.type, 'code', NEW.code, 'username', NEW.username, 'event', NEW.event, 'category', NEW.category)::text);
+  PERFORM pg_notify('log', json_build_object('id', NEW.id, 'type', NEW.type, 'code', NEW.code, 'username', NEW.username, 'scope', NEW.scope, 'event', NEW.event, 'category', NEW.category)::text);
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql
