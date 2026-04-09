@@ -16,7 +16,7 @@ CREATE OR REPLACE FUNCTION EventReportFormCreate (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'create', 'Report form created.', pObject);
+  PERFORM WriteToEventLog('M', 1001, 'lifecycle', 'create', 'Report form created.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -34,7 +34,7 @@ CREATE OR REPLACE FUNCTION EventReportFormOpen (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'open', 'Report form opened.', pObject);
+  PERFORM WriteToEventLog('M', 1002, 'lifecycle', 'open', 'Report form opened.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -52,7 +52,7 @@ CREATE OR REPLACE FUNCTION EventReportFormEdit (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'edit', 'Report form modified.', pObject);
+  PERFORM WriteToEventLog('M', 1003, 'lifecycle', 'edit', 'Report form updated.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -70,7 +70,7 @@ CREATE OR REPLACE FUNCTION EventReportFormSave (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'save', 'Report form saved.', pObject);
+  PERFORM WriteToEventLog('M', 1004, 'lifecycle', 'save', 'Report form saved.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -88,7 +88,7 @@ CREATE OR REPLACE FUNCTION EventReportFormEnable (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'enable', 'Report form enabled.', pObject);
+  PERFORM WriteToEventLog('M', 2001, 'workflow', 'enable', 'Report form enabled.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -106,7 +106,7 @@ CREATE OR REPLACE FUNCTION EventReportFormDisable (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'disable', 'Report form disabled.', pObject);
+  PERFORM WriteToEventLog('M', 2002, 'workflow', 'disable', 'Report form disabled.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -124,7 +124,7 @@ CREATE OR REPLACE FUNCTION EventReportFormDelete (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'delete', 'Report form deleted.', pObject);
+  PERFORM WriteToEventLog('M', 2003, 'workflow', 'delete', 'Report form deleted.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -142,7 +142,7 @@ CREATE OR REPLACE FUNCTION EventReportFormRestore (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'restore', 'Report form restored.', pObject);
+  PERFORM WriteToEventLog('M', 2004, 'workflow', 'restore', 'Report form restored.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -166,6 +166,6 @@ BEGIN
 
   DELETE FROM db.report_form WHERE id = pObject;
 
-  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '') || '] Report form dropped.');
+  PERFORM WriteToEventLog('W', 2005, 'workflow', 'drop', 'Report form dropped.', pObject);
 END;
 $$ LANGUAGE plpgsql;

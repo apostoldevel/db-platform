@@ -31,8 +31,8 @@ WHEN others THEN
 
   SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
 
-  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
-  PERFORM WriteToEventLog('D', ErrorCode, vContext);
+  PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, 'exception', 'context', vContext);
 
   RETURN json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
 END;
@@ -71,8 +71,8 @@ WHEN others THEN
 
   SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
 
-  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
-  PERFORM WriteToEventLog('D', ErrorCode, vContext);
+  PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, 'exception', 'context', vContext);
 
   RETURN json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
 END;
@@ -131,8 +131,8 @@ WHEN others THEN
 
   SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
 
-  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
-  PERFORM WriteToEventLog('D', ErrorCode, vContext);
+  PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, 'exception', 'context', vContext);
 
   RETURN json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
 END;
@@ -196,8 +196,8 @@ WHEN others THEN
 
   SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
 
-  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
-  PERFORM WriteToEventLog('D', ErrorCode, vContext);
+  PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, 'exception', 'context', vContext);
 
   RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
 
@@ -234,8 +234,8 @@ WHEN others THEN
 
   SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
 
-  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
-  PERFORM WriteToEventLog('D', ErrorCode, vContext);
+  PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, 'exception', 'context', vContext);
 
   RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
 
@@ -408,8 +408,8 @@ WHEN others THEN
 
   SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
 
-  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
-  PERFORM WriteToEventLog('D', ErrorCode, vContext);
+  PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, 'exception', 'context', vContext);
 
   RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
 
@@ -478,8 +478,8 @@ WHEN others THEN
 
   SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
 
-  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
-  PERFORM WriteToEventLog('D', ErrorCode, vContext);
+  PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, 'exception', 'context', vContext);
 
   RETURN json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
 END;
@@ -659,7 +659,7 @@ BEGIN
 
     IF vSession IS NULL THEN
       SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(GetErrorMessage());
-      PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
+      PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
       RETURN json_build_object('error', json_build_object('code', 401, 'error', 'access_denied', 'message', ErrorMessage));
     END IF;
 
@@ -718,7 +718,7 @@ BEGIN
     PERFORM SignOut(vOAuthSession);
 
     IF vSession IS NULL THEN
-      PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
+      PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
       RETURN json_build_object('error', json_build_object('code', 401, 'error', 'access_denied', 'message', ErrorMessage));
     END IF;
 
@@ -785,8 +785,8 @@ WHEN others THEN
 
   SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
 
-  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
-  PERFORM WriteToEventLog('D', ErrorCode, vContext);
+  PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, 'exception', 'context', vContext);
 
   RETURN json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'error', 'server_error', 'message', ErrorMessage));
 END;
@@ -837,8 +837,8 @@ WHEN others THEN
 
   SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
 
-  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
-  PERFORM WriteToEventLog('D', ErrorCode, vContext);
+  PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, 'exception', 'context', vContext);
 
   RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
 
@@ -889,8 +889,8 @@ WHEN others THEN
 
   SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
 
-  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
-  PERFORM WriteToEventLog('D', ErrorCode, vContext);
+  PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, 'exception', 'context', vContext);
 
   RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
 
@@ -966,8 +966,8 @@ WHEN others THEN
 
   SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
 
-  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
-  PERFORM WriteToEventLog('D', ErrorCode, vContext);
+  PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, 'exception', 'context', vContext);
 
   RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
 
@@ -1049,8 +1049,8 @@ WHEN others THEN
 
   SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
 
-  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
-  PERFORM WriteToEventLog('D', ErrorCode, vContext);
+  PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, 'exception', 'context', vContext);
 
   RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
 
@@ -1130,8 +1130,8 @@ WHEN others THEN
 
   SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
 
-  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
-  PERFORM WriteToEventLog('D', ErrorCode, vContext);
+  PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, 'exception', 'context', vContext);
 
   RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
 
@@ -1242,8 +1242,8 @@ WHEN others THEN
 
   SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
 
-  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
-  PERFORM WriteToEventLog('D', ErrorCode, vContext);
+  PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, 'exception', 'context', vContext);
 
   RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
 
@@ -1326,8 +1326,8 @@ WHEN others THEN
 
   SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
 
-  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
-  PERFORM WriteToEventLog('D', ErrorCode, vContext);
+  PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, 'exception', 'context', vContext);
 
   RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
 

@@ -16,7 +16,7 @@ CREATE OR REPLACE FUNCTION EventAgentCreate (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'create', 'Agent created.', pObject);
+  PERFORM WriteToEventLog('M', 1001, 'lifecycle', 'create', 'Agent created.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -34,7 +34,7 @@ CREATE OR REPLACE FUNCTION EventAgentOpen (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'open', 'Agent opened.', pObject);
+  PERFORM WriteToEventLog('M', 1002, 'lifecycle', 'open', 'Agent opened.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -52,7 +52,7 @@ CREATE OR REPLACE FUNCTION EventAgentEdit (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'edit', 'Agent modified.', pObject);
+  PERFORM WriteToEventLog('M', 1003, 'lifecycle', 'edit', 'Agent updated.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -70,7 +70,7 @@ CREATE OR REPLACE FUNCTION EventAgentSave (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'save', 'Agent saved.', pObject);
+  PERFORM WriteToEventLog('M', 1004, 'lifecycle', 'save', 'Agent saved.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -88,7 +88,7 @@ CREATE OR REPLACE FUNCTION EventAgentEnable (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'enable', 'Agent enabled.', pObject);
+  PERFORM WriteToEventLog('M', 2001, 'workflow', 'enable', 'Agent enabled.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -106,7 +106,7 @@ CREATE OR REPLACE FUNCTION EventAgentDisable (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'disable', 'Agent disabled.', pObject);
+  PERFORM WriteToEventLog('M', 2002, 'workflow', 'disable', 'Agent disabled.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -124,7 +124,7 @@ CREATE OR REPLACE FUNCTION EventAgentDelete (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'delete', 'Agent deleted.', pObject);
+  PERFORM WriteToEventLog('M', 2003, 'workflow', 'delete', 'Agent deleted.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -142,7 +142,7 @@ CREATE OR REPLACE FUNCTION EventAgentRestore (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'restore', 'Agent restored.', pObject);
+  PERFORM WriteToEventLog('M', 2004, 'workflow', 'restore', 'Agent restored.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -166,6 +166,6 @@ BEGIN
 
   DELETE FROM db.agent WHERE id = pObject;
 
-  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '') || '] Agent dropped.');
+  PERFORM WriteToEventLog('W', 2005, 'workflow', 'drop', 'Agent dropped.', pObject);
 END;
 $$ LANGUAGE plpgsql;

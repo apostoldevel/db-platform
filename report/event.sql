@@ -16,7 +16,7 @@ CREATE OR REPLACE FUNCTION EventReportCreate (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'create', 'Report created.', pObject);
+  PERFORM WriteToEventLog('M', 1001, 'lifecycle', 'create', 'Report created.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -34,7 +34,7 @@ CREATE OR REPLACE FUNCTION EventReportOpen (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'open', 'Report opened.', pObject);
+  PERFORM WriteToEventLog('M', 1002, 'lifecycle', 'open', 'Report opened.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -52,7 +52,7 @@ CREATE OR REPLACE FUNCTION EventReportEdit (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'edit', 'Report modified.', pObject);
+  PERFORM WriteToEventLog('M', 1003, 'lifecycle', 'edit', 'Report updated.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -70,7 +70,7 @@ CREATE OR REPLACE FUNCTION EventReportSave (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'save', 'Report saved.', pObject);
+  PERFORM WriteToEventLog('M', 1004, 'lifecycle', 'save', 'Report saved.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -88,7 +88,7 @@ CREATE OR REPLACE FUNCTION EventReportEnable (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'enable', 'Report enabled.', pObject);
+  PERFORM WriteToEventLog('M', 2001, 'workflow', 'enable', 'Report enabled.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -106,7 +106,7 @@ CREATE OR REPLACE FUNCTION EventReportDisable (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'disable', 'Report disabled.', pObject);
+  PERFORM WriteToEventLog('M', 2002, 'workflow', 'disable', 'Report disabled.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -124,7 +124,7 @@ CREATE OR REPLACE FUNCTION EventReportDelete (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'delete', 'Report deleted.', pObject);
+  PERFORM WriteToEventLog('M', 2003, 'workflow', 'delete', 'Report deleted.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -142,7 +142,7 @@ CREATE OR REPLACE FUNCTION EventReportRestore (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'restore', 'Report restored.', pObject);
+  PERFORM WriteToEventLog('M', 2004, 'workflow', 'restore', 'Report restored.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -150,7 +150,7 @@ $$ LANGUAGE plpgsql;
 -- EventReportDrop -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Handle the 'drop' workflow event — permanently destroy a report and cascade to child entities.
+ * @brief Handle the 'drop' workflow event -- permanently destroy a report and cascade to child entities.
  * @param {uuid} pObject - Report object identifier
  * @return {void}
  * @since 1.0.0
@@ -194,6 +194,6 @@ BEGIN
 
   SELECT label INTO r FROM db.object_text WHERE object = pObject AND locale = current_locale();
 
-  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '') || '] Report dropped.');
+  PERFORM WriteToEventLog('W', 2005, 'workflow', 'drop', 'Report dropped.', pObject);
 END;
 $$ LANGUAGE plpgsql;

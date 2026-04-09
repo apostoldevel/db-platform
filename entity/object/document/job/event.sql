@@ -16,7 +16,7 @@ CREATE OR REPLACE FUNCTION EventJobCreate (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'create', 'Job created.', pObject);
+  PERFORM WriteToEventLog('M', 1001, 'lifecycle', 'create', 'Job created.', pObject);
   PERFORM DoEnable(pObject);
 END;
 $$ LANGUAGE plpgsql;
@@ -35,7 +35,7 @@ CREATE OR REPLACE FUNCTION EventJobOpen (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'open', 'Job opened.', pObject);
+  PERFORM WriteToEventLog('M', 1002, 'lifecycle', 'open', 'Job opened.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -53,7 +53,7 @@ CREATE OR REPLACE FUNCTION EventJobEdit (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'edit', 'Job modified.', pObject);
+  PERFORM WriteToEventLog('M', 1003, 'lifecycle', 'edit', 'Job updated.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -71,7 +71,7 @@ CREATE OR REPLACE FUNCTION EventJobSave (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'save', 'Job saved.', pObject);
+  PERFORM WriteToEventLog('M', 1004, 'lifecycle', 'save', 'Job saved.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -89,7 +89,7 @@ CREATE OR REPLACE FUNCTION EventJobEnable (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'enable', 'Job enabled.', pObject);
+  PERFORM WriteToEventLog('M', 2001, 'workflow', 'enable', 'Job enabled.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -107,7 +107,7 @@ CREATE OR REPLACE FUNCTION EventJobDisable (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'disable', 'Job disabled.', pObject);
+  PERFORM WriteToEventLog('M', 2002, 'workflow', 'disable', 'Job disabled.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -125,7 +125,7 @@ CREATE OR REPLACE FUNCTION EventJobDelete (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'delete', 'Job deleted.', pObject);
+  PERFORM WriteToEventLog('M', 2003, 'workflow', 'delete', 'Job deleted.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -143,7 +143,7 @@ CREATE OR REPLACE FUNCTION EventJobRestore (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'restore', 'Job restored.', pObject);
+  PERFORM WriteToEventLog('M', 2004, 'workflow', 'restore', 'Job restored.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -161,7 +161,7 @@ CREATE OR REPLACE FUNCTION EventJobExecute (
 ) RETURNS        void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'execute', 'Job in progress.', pObject);
+  PERFORM WriteToEventLog('M', 2010, 'workflow.job', 'execute', 'Job in progress.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -179,7 +179,7 @@ CREATE OR REPLACE FUNCTION EventJobComplete (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'complete', 'Job completed.', pObject);
+  PERFORM WriteToEventLog('M', 2011, 'workflow.job', 'complete', 'Job completed.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -219,7 +219,7 @@ BEGIN
 
   UPDATE db.job SET daterun = dtDateRun WHERE id = pObject;
 
-  PERFORM WriteToEventLog('M', 1000, 'done', 'Job done.', pObject);
+  PERFORM WriteToEventLog('M', 2012, 'workflow.job', 'done', 'Job done.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -237,7 +237,7 @@ CREATE OR REPLACE FUNCTION EventJobFail (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'fail', 'Job failed.', pObject);
+  PERFORM WriteToEventLog('W', 2021, 'workflow.job', 'fail', 'Job failed.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -255,7 +255,7 @@ CREATE OR REPLACE FUNCTION EventJobAbort (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'abort', 'Job aborted.', pObject);
+  PERFORM WriteToEventLog('W', 2025, 'workflow.job', 'abort', 'Job aborted.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -273,7 +273,7 @@ CREATE OR REPLACE FUNCTION EventJobCancel (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'cancel', 'Job cancelled.', pObject);
+  PERFORM WriteToEventLog('M', 2020, 'workflow.job', 'cancel', 'Job cancelled.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -297,6 +297,6 @@ BEGIN
 
   DELETE FROM db.job WHERE id = pObject;
 
-  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '') || '] Job dropped.');
+  PERFORM WriteToEventLog('W', 2005, 'workflow', 'drop', 'Job dropped.', pObject);
 END;
 $$ LANGUAGE plpgsql;

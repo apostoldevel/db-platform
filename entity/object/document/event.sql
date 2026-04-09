@@ -16,7 +16,7 @@ CREATE OR REPLACE FUNCTION EventDocumentCreate (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'create', 'Document created.', pObject);
+  PERFORM WriteToEventLog('M', 1001, 'lifecycle', 'create', 'Document created.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -34,7 +34,7 @@ CREATE OR REPLACE FUNCTION EventDocumentOpen (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'open', 'Document opened.', pObject);
+  PERFORM WriteToEventLog('M', 1002, 'lifecycle', 'open', 'Document opened.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -52,7 +52,7 @@ CREATE OR REPLACE FUNCTION EventDocumentEdit (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'edit', 'Document modified.', pObject);
+  PERFORM WriteToEventLog('M', 1003, 'lifecycle', 'edit', 'Document updated.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -70,7 +70,7 @@ CREATE OR REPLACE FUNCTION EventDocumentSave (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'save', 'Document saved.', pObject);
+  PERFORM WriteToEventLog('M', 1004, 'lifecycle', 'save', 'Document saved.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -88,7 +88,7 @@ CREATE OR REPLACE FUNCTION EventDocumentEnable (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'enable', 'Document enabled.', pObject);
+  PERFORM WriteToEventLog('M', 2001, 'workflow', 'enable', 'Document enabled.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -106,7 +106,7 @@ CREATE OR REPLACE FUNCTION EventDocumentDisable (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'disable', 'Document disabled.', pObject);
+  PERFORM WriteToEventLog('M', 2002, 'workflow', 'disable', 'Document disabled.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -124,7 +124,7 @@ CREATE OR REPLACE FUNCTION EventDocumentDelete (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'delete', 'Document deleted.', pObject);
+  PERFORM WriteToEventLog('M', 2003, 'workflow', 'delete', 'Document deleted.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -142,7 +142,7 @@ CREATE OR REPLACE FUNCTION EventDocumentRestore (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'restore', 'Document restored.', pObject);
+  PERFORM WriteToEventLog('M', 2004, 'workflow', 'restore', 'Document restored.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -166,6 +166,6 @@ BEGIN
 
   DELETE FROM db.document WHERE id = pObject;
 
-  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '') || '] Document dropped.');
+  PERFORM WriteToEventLog('W', 2005, 'workflow', 'drop', 'Document dropped.', pObject);
 END;
 $$ LANGUAGE plpgsql;

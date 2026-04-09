@@ -445,8 +445,8 @@ WHEN others THEN
 
   SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
 
-  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
-  PERFORM WriteToEventLog('D', ErrorCode, vContext);
+  PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, 'exception', 'context', vContext);
 
   RETURN json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
 END;
@@ -487,8 +487,8 @@ WHEN others THEN
 
   SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
 
-  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
-  PERFORM WriteToEventLog('D', ErrorCode, vContext);
+  PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, 'exception', 'context', vContext);
 
   RETURN json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
 END;

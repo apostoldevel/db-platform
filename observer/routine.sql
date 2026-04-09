@@ -219,7 +219,7 @@ BEGIN
   FOR r IN SELECT * FROM db.publisher
   LOOP
     EXECUTE format('LISTEN %I;', r.code);
-    PERFORM WriteToEventLog('M', 5000, 'listen', format('Listener started: %s.', r.code));
+    PERFORM WriteToEventLog('M', 5010, 'observer', 'listen', format('Listener started: %s.', r.code));
   END LOOP;
 END;
 $$ LANGUAGE plpgsql

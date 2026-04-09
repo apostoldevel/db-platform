@@ -16,7 +16,7 @@ CREATE OR REPLACE FUNCTION EventReportRoutineCreate (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'create', 'Report routine created.', pObject);
+  PERFORM WriteToEventLog('M', 1001, 'lifecycle', 'create', 'Report routine created.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -34,7 +34,7 @@ CREATE OR REPLACE FUNCTION EventReportRoutineOpen (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'open', 'Report routine opened.', pObject);
+  PERFORM WriteToEventLog('M', 1002, 'lifecycle', 'open', 'Report routine opened.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -52,7 +52,7 @@ CREATE OR REPLACE FUNCTION EventReportRoutineEdit (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'edit', 'Report routine modified.', pObject);
+  PERFORM WriteToEventLog('M', 1003, 'lifecycle', 'edit', 'Report routine updated.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -70,7 +70,7 @@ CREATE OR REPLACE FUNCTION EventReportRoutineSave (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'save', 'Report routine saved.', pObject);
+  PERFORM WriteToEventLog('M', 1004, 'lifecycle', 'save', 'Report routine saved.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -88,7 +88,7 @@ CREATE OR REPLACE FUNCTION EventReportRoutineEnable (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'enable', 'Report routine enabled.', pObject);
+  PERFORM WriteToEventLog('M', 2001, 'workflow', 'enable', 'Report routine enabled.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -106,7 +106,7 @@ CREATE OR REPLACE FUNCTION EventReportRoutineDisable (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'disable', 'Report routine disabled.', pObject);
+  PERFORM WriteToEventLog('M', 2002, 'workflow', 'disable', 'Report routine disabled.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -124,7 +124,7 @@ CREATE OR REPLACE FUNCTION EventReportRoutineDelete (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'delete', 'Report routine deleted.', pObject);
+  PERFORM WriteToEventLog('M', 2003, 'workflow', 'delete', 'Report routine deleted.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -142,7 +142,7 @@ CREATE OR REPLACE FUNCTION EventReportRoutineRestore (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'restore', 'Report routine restored.', pObject);
+  PERFORM WriteToEventLog('M', 2004, 'workflow', 'restore', 'Report routine restored.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -166,6 +166,6 @@ BEGIN
 
   DELETE FROM db.report_routine WHERE id = pObject;
 
-  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '') || '] Report routine dropped.');
+  PERFORM WriteToEventLog('W', 2005, 'workflow', 'drop', 'Report routine dropped.', pObject);
 END;
 $$ LANGUAGE plpgsql;

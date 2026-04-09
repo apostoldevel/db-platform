@@ -16,7 +16,7 @@ CREATE OR REPLACE FUNCTION EventOutboxCreate (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'create', 'Outbox message created.', pObject);
+  PERFORM WriteToEventLog('M', 1001, 'lifecycle', 'create', 'Outbox message created.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -34,7 +34,7 @@ CREATE OR REPLACE FUNCTION EventOutboxOpen (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'open', 'Outbox message opened.', pObject);
+  PERFORM WriteToEventLog('M', 1002, 'lifecycle', 'open', 'Outbox message opened.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -52,7 +52,7 @@ CREATE OR REPLACE FUNCTION EventOutboxEdit (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'edit', 'Outbox message modified.', pObject);
+  PERFORM WriteToEventLog('M', 1003, 'lifecycle', 'edit', 'Outbox message updated.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -70,7 +70,7 @@ CREATE OR REPLACE FUNCTION EventOutboxSave (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'save', 'Outbox message saved.', pObject);
+  PERFORM WriteToEventLog('M', 1004, 'lifecycle', 'save', 'Outbox message saved.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -88,7 +88,7 @@ CREATE OR REPLACE FUNCTION EventOutboxEnable (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'enable', 'Outbox message ready to send.', pObject);
+  PERFORM WriteToEventLog('M', 2001, 'workflow', 'enable', 'Outbox message ready to send.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -106,7 +106,7 @@ CREATE OR REPLACE FUNCTION EventOutboxSubmit (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'submit', 'Outbox message submitted.', pObject);
+  PERFORM WriteToEventLog('M', 2010, 'workflow.outbox', 'submit', 'Outbox message submitted.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -124,7 +124,7 @@ CREATE OR REPLACE FUNCTION EventOutboxSend (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'send', 'Outbox message sending.', pObject);
+  PERFORM WriteToEventLog('M', 2030, 'workflow.outbox', 'send', 'Outbox message sending.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -142,7 +142,7 @@ CREATE OR REPLACE FUNCTION EventOutboxCancel (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'cancel', 'Outbox message cancelled.', pObject);
+  PERFORM WriteToEventLog('M', 2020, 'workflow.outbox', 'cancel', 'Outbox message cancelled.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -160,7 +160,7 @@ CREATE OR REPLACE FUNCTION EventOutboxDone (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'done', 'Outbox message sent.', pObject);
+  PERFORM WriteToEventLog('M', 2012, 'workflow.outbox', 'done', 'Outbox message sent.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -178,7 +178,7 @@ CREATE OR REPLACE FUNCTION EventOutboxFail (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'fail', 'Outbox message failed.', pObject);
+  PERFORM WriteToEventLog('W', 2021, 'workflow.outbox', 'fail', 'Outbox message failed.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -196,7 +196,7 @@ CREATE OR REPLACE FUNCTION EventOutboxRepeat (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'repeat', 'Outbox message resending.', pObject);
+  PERFORM WriteToEventLog('M', 2031, 'workflow.outbox', 'repeat', 'Outbox message resending.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -214,7 +214,7 @@ CREATE OR REPLACE FUNCTION EventOutboxDisable (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'disable', 'Outbox message disabled.', pObject);
+  PERFORM WriteToEventLog('M', 2002, 'workflow', 'disable', 'Outbox message disabled.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -232,7 +232,7 @@ CREATE OR REPLACE FUNCTION EventOutboxDelete (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'delete', 'Outbox message deleted.', pObject);
+  PERFORM WriteToEventLog('M', 2003, 'workflow', 'delete', 'Outbox message deleted.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -250,7 +250,7 @@ CREATE OR REPLACE FUNCTION EventOutboxRestore (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'restore', 'Outbox message restored.', pObject);
+  PERFORM WriteToEventLog('M', 2004, 'workflow', 'restore', 'Outbox message restored.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -258,7 +258,7 @@ $$ LANGUAGE plpgsql;
 -- EventOutboxDrop -------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Handle the "drop" workflow event: log permanent destruction of an outbox message.
+ * @brief Handle the "drop" workflow event: permanently destroy an outbox message.
  * @param {uuid} pObject - Message identifier (defaults to context object)
  * @return {void}
  * @since 1.0.0
@@ -272,6 +272,6 @@ DECLARE
 BEGIN
   SELECT label INTO r FROM db.object_text WHERE object = pObject AND locale = current_locale();
 
-  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '') || '] Outbox message dropped.');
+  PERFORM WriteToEventLog('W', 2005, 'workflow', 'drop', 'Outbox message dropped.', pObject);
 END;
 $$ LANGUAGE plpgsql;

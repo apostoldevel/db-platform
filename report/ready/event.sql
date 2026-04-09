@@ -16,7 +16,7 @@ CREATE OR REPLACE FUNCTION EventReportReadyCreate (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'create', 'Report ready created.', pObject);
+  PERFORM WriteToEventLog('M', 1001, 'lifecycle', 'create', 'Report ready created.', pObject);
 
   PERFORM ExecuteObjectAction(pObject, GetAction('execute'));
 END;
@@ -36,7 +36,7 @@ CREATE OR REPLACE FUNCTION EventReportReadyOpen (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'open', 'Report ready opened.', pObject);
+  PERFORM WriteToEventLog('M', 1002, 'lifecycle', 'open', 'Report ready opened.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -59,7 +59,7 @@ BEGIN
     PERFORM ChangesNotAllowed();
   END IF;
 
-  PERFORM WriteToEventLog('M', 1000, 'edit', 'Report ready modified.', pObject);
+  PERFORM WriteToEventLog('M', 1003, 'lifecycle', 'edit', 'Report ready updated.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -77,7 +77,7 @@ CREATE OR REPLACE FUNCTION EventReportReadySave (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'save', 'Report ready saved.', pObject);
+  PERFORM WriteToEventLog('M', 1004, 'lifecycle', 'save', 'Report ready saved.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -95,7 +95,7 @@ CREATE OR REPLACE FUNCTION EventReportReadyEnable (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'enable', 'Report ready enabled.', pObject);
+  PERFORM WriteToEventLog('M', 2001, 'workflow', 'enable', 'Report ready enabled.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -113,7 +113,7 @@ CREATE OR REPLACE FUNCTION EventReportReadyDisable (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'disable', 'Report ready disabled.', pObject);
+  PERFORM WriteToEventLog('M', 2002, 'workflow', 'disable', 'Report ready disabled.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -131,7 +131,7 @@ CREATE OR REPLACE FUNCTION EventReportReadyDelete (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'delete', 'Report ready deleted.', pObject);
+  PERFORM WriteToEventLog('M', 2003, 'workflow', 'delete', 'Report ready deleted.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -149,7 +149,7 @@ CREATE OR REPLACE FUNCTION EventReportReadyRestore (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'restore', 'Report ready restored.', pObject);
+  PERFORM WriteToEventLog('M', 2004, 'workflow', 'restore', 'Report ready restored.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -157,7 +157,7 @@ $$ LANGUAGE plpgsql;
 -- EventReportReadyExecute -----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Handle the 'execute' workflow event — report generation is in progress.
+ * @brief Handle the 'execute' workflow event -- report generation is in progress.
  * @param {uuid} pObject - Report ready object identifier
  * @return {void}
  * @since 1.0.0
@@ -167,7 +167,7 @@ CREATE OR REPLACE FUNCTION EventReportReadyExecute (
 ) RETURNS   void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'execute', 'Report ready in progress.', pObject);
+  PERFORM WriteToEventLog('M', 2010, 'workflow.report', 'execute', 'Report ready in progress.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -175,7 +175,7 @@ $$ LANGUAGE plpgsql;
 -- EventReportReadyComplete ----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Handle the 'complete' workflow event — report generation finished successfully.
+ * @brief Handle the 'complete' workflow event -- report generation finished successfully.
  * @param {uuid} pObject - Report ready object identifier
  * @return {void}
  * @since 1.0.0
@@ -185,7 +185,7 @@ CREATE OR REPLACE FUNCTION EventReportReadyComplete (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'complete', 'Report ready completed.', pObject);
+  PERFORM WriteToEventLog('M', 2011, 'workflow.report', 'complete', 'Report ready completed.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -193,7 +193,7 @@ $$ LANGUAGE plpgsql;
 -- EventReportReadyFail --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Handle the 'fail' workflow event — report generation encountered an error.
+ * @brief Handle the 'fail' workflow event -- report generation encountered an error.
  * @param {uuid} pObject - Report ready object identifier
  * @return {void}
  * @since 1.0.0
@@ -203,7 +203,7 @@ CREATE OR REPLACE FUNCTION EventReportReadyFail (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'fail', 'Report ready failed.', pObject);
+  PERFORM WriteToEventLog('W', 2021, 'workflow.report', 'fail', 'Report ready failed.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -211,7 +211,7 @@ $$ LANGUAGE plpgsql;
 -- EventReportReadyAbort -------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Handle the 'abort' workflow event — report generation was forcibly terminated.
+ * @brief Handle the 'abort' workflow event -- report generation was forcibly terminated.
  * @param {uuid} pObject - Report ready object identifier
  * @return {void}
  * @since 1.0.0
@@ -221,7 +221,7 @@ CREATE OR REPLACE FUNCTION EventReportReadyAbort (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'abort', 'Report ready aborted.', pObject);
+  PERFORM WriteToEventLog('W', 2025, 'workflow.report', 'abort', 'Report ready aborted.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -229,7 +229,7 @@ $$ LANGUAGE plpgsql;
 -- EventReportReadyCancel ------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Handle the 'cancel' workflow event — report generation was cancelled by the user.
+ * @brief Handle the 'cancel' workflow event -- report generation was cancelled by the user.
  * @param {uuid} pObject - Report ready object identifier
  * @return {void}
  * @since 1.0.0
@@ -239,7 +239,7 @@ CREATE OR REPLACE FUNCTION EventReportReadyCancel (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'cancel', 'Report ready cancelled.', pObject);
+  PERFORM WriteToEventLog('M', 2020, 'workflow.report', 'cancel', 'Report ready cancelled.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -247,7 +247,7 @@ $$ LANGUAGE plpgsql;
 -- EventReportReadyDrop --------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Handle the 'drop' workflow event — permanently destroy a generated report and its files.
+ * @brief Handle the 'drop' workflow event -- permanently destroy a generated report and its files.
  * @param {uuid} pObject - Report ready object identifier
  * @return {void}
  * @since 1.0.0
@@ -264,6 +264,6 @@ BEGIN
   DELETE FROM db.object_file WHERE object = pObject;
   DELETE FROM db.report_ready WHERE id = pObject;
 
-  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '') || '] Report ready dropped.');
+  PERFORM WriteToEventLog('W', 2005, 'workflow', 'drop', 'Report ready dropped.', pObject);
 END;
 $$ LANGUAGE plpgsql;

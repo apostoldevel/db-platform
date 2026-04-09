@@ -17,7 +17,7 @@ CREATE OR REPLACE FUNCTION EventVersionCreate (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'create', 'Version created.', pObject);
+  PERFORM WriteToEventLog('M', 1001, 'lifecycle', 'create', 'Version created.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -36,7 +36,7 @@ CREATE OR REPLACE FUNCTION EventVersionOpen (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'open', 'Version opened.', pObject);
+  PERFORM WriteToEventLog('M', 1002, 'lifecycle', 'open', 'Version opened.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -55,7 +55,7 @@ CREATE OR REPLACE FUNCTION EventVersionEdit (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'edit', 'Version modified.', pObject);
+  PERFORM WriteToEventLog('M', 1003, 'lifecycle', 'edit', 'Version updated.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -74,7 +74,7 @@ CREATE OR REPLACE FUNCTION EventVersionSave (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'save', 'Version saved.', pObject);
+  PERFORM WriteToEventLog('M', 1004, 'lifecycle', 'save', 'Version saved.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -93,7 +93,7 @@ CREATE OR REPLACE FUNCTION EventVersionEnable (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'enable', 'Version enabled.', pObject);
+  PERFORM WriteToEventLog('M', 2001, 'workflow', 'enable', 'Version enabled.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -112,7 +112,7 @@ CREATE OR REPLACE FUNCTION EventVersionDisable (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'disable', 'Version disabled.', pObject);
+  PERFORM WriteToEventLog('M', 2002, 'workflow', 'disable', 'Version disabled.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -131,7 +131,7 @@ CREATE OR REPLACE FUNCTION EventVersionDelete (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'delete', 'Version deleted.', pObject);
+  PERFORM WriteToEventLog('M', 2003, 'workflow', 'delete', 'Version deleted.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -150,7 +150,7 @@ CREATE OR REPLACE FUNCTION EventVersionRestore (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'restore', 'Version restored.', pObject);
+  PERFORM WriteToEventLog('M', 2004, 'workflow', 'restore', 'Version restored.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -175,6 +175,6 @@ BEGIN
 
   DELETE FROM db.version WHERE id = pObject;
 
-  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '') || '] Version dropped.');
+  PERFORM WriteToEventLog('W', 2005, 'workflow', 'drop', 'Version dropped.', pObject);
 END;
 $$ LANGUAGE plpgsql;

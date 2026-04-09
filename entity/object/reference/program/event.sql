@@ -17,7 +17,7 @@ CREATE OR REPLACE FUNCTION EventProgramCreate (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'create', 'Program created.', pObject);
+  PERFORM WriteToEventLog('M', 1001, 'lifecycle', 'create', 'Program created.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -36,7 +36,7 @@ CREATE OR REPLACE FUNCTION EventProgramOpen (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'open', 'Program opened.', pObject);
+  PERFORM WriteToEventLog('M', 1002, 'lifecycle', 'open', 'Program opened.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -55,7 +55,7 @@ CREATE OR REPLACE FUNCTION EventProgramEdit (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'edit', 'Program modified.', pObject);
+  PERFORM WriteToEventLog('M', 1003, 'lifecycle', 'edit', 'Program updated.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -74,7 +74,7 @@ CREATE OR REPLACE FUNCTION EventProgramSave (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'save', 'Program saved.', pObject);
+  PERFORM WriteToEventLog('M', 1004, 'lifecycle', 'save', 'Program saved.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -93,7 +93,7 @@ CREATE OR REPLACE FUNCTION EventProgramEnable (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'enable', 'Program enabled.', pObject);
+  PERFORM WriteToEventLog('M', 2001, 'workflow', 'enable', 'Program enabled.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -112,7 +112,7 @@ CREATE OR REPLACE FUNCTION EventProgramDisable (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'disable', 'Program disabled.', pObject);
+  PERFORM WriteToEventLog('M', 2002, 'workflow', 'disable', 'Program disabled.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -131,7 +131,7 @@ CREATE OR REPLACE FUNCTION EventProgramDelete (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'delete', 'Program deleted.', pObject);
+  PERFORM WriteToEventLog('M', 2003, 'workflow', 'delete', 'Program deleted.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -150,7 +150,7 @@ CREATE OR REPLACE FUNCTION EventProgramRestore (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'restore', 'Program restored.', pObject);
+  PERFORM WriteToEventLog('M', 2004, 'workflow', 'restore', 'Program restored.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -175,6 +175,6 @@ BEGIN
 
   DELETE FROM db.program WHERE id = pObject;
 
-  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '') || '] Program dropped.');
+  PERFORM WriteToEventLog('W', 2005, 'workflow', 'drop', 'Program dropped.', pObject);
 END;
 $$ LANGUAGE plpgsql;

@@ -499,9 +499,9 @@ BEGIN
 
     uMessageId := http."fetch"(vAPI || address, 'POST', headers, content, 'api.mts_done', 'api.mts_fail', 'mts', profile, address, pMessage, 'curl', jsonb_build_object('session', current_session(), 'user_id', current_userid()));
 
-    PERFORM WriteToEventLog('M', 1001, 'sms', format('SMS submitted for delivery: %s', uMessageId), uMessageId);
+    PERFORM WriteToEventLog('M', 5003, 'notification.sms', 'send', format('SMS submitted for delivery: %s', uMessageId), uMessageId);
   ELSE
-    PERFORM WriteToEventLog('E', 3001, 'sms', 'Failed to send SMS, phone number not set.', pParent);
+    PERFORM WriteToEventLog('E', 5003, 'notification.sms', 'error', 'Failed to send SMS, phone number not set.', pParent);
   END IF;
 
   RETURN uMessageId;
@@ -569,11 +569,11 @@ BEGIN
         END IF;
 
         uMessageId := SendFCM(pObject, projectId, GetUserName(pUserId), pTitle, jsonb_build_object('message', message)::text);
-        PERFORM WriteToEventLog('M', 1001, 'push', format('Push notification submitted for delivery: %s', uMessageId), pObject);
+        PERFORM WriteToEventLog('M', 5002, 'notification.push', 'send', format('Push notification submitted for delivery: %s', uMessageId), pObject);
       END IF;
     END LOOP;
   ELSE
-    PERFORM WriteToEventLog('E', 3001, 'push', 'Failed to send push notification, token not set.', pObject);
+    PERFORM WriteToEventLog('E', 5002, 'notification.push', 'error', 'Failed to send push notification, token not set.', pObject);
   END IF;
 
   RETURN uMessageId;
@@ -633,11 +633,11 @@ BEGIN
         message := jsonb_build_object('token', token, 'android', android, 'data', pData);
 
         uMessageId := SendFCM(pObject, projectId, GetUserName(pUserId), pSubject, jsonb_build_object('message', message)::text);
-        PERFORM WriteToEventLog('M', 1001, 'push', format('Push notification submitted for delivery: %s', uMessageId), pObject);
+        PERFORM WriteToEventLog('M', 5002, 'notification.push', 'send', format('Push notification submitted for delivery: %s', uMessageId), pObject);
       END IF;
     END LOOP;
   ELSE
-    PERFORM WriteToEventLog('E', 3001, 'push', 'Failed to send push notification, token not set.', pObject);
+    PERFORM WriteToEventLog('E', 5002, 'notification.push', 'error', 'Failed to send push notification, token not set.', pObject);
   END IF;
 
   RETURN uMessageId;
@@ -730,7 +730,7 @@ BEGIN
   PERFORM SendMail(null, vNoReply, vEmail, vSubject, vBody, null, vDescription);
   PERFORM CreateNotice(pUserId, null, vDescription);
 
-  PERFORM WriteToEventLog('M', 1001, 'email', vDescription);
+  PERFORM WriteToEventLog('M', 5001, 'notification.email', 'send', vDescription);
 
   RETURN uTicket;
 EXCEPTION
@@ -741,8 +741,8 @@ WHEN others THEN
 
   SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
 
-  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
-  PERFORM WriteToEventLog('D', ErrorCode, vContext);
+  PERFORM WriteToEventLog('E', ErrorCode, 'notification', 'error', ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, 'notification', 'context', vContext);
 
   RETURN null;
 END
@@ -864,7 +864,7 @@ BEGIN
 
   uMessageId := http."fetch"(vAPI || '/messages', 'POST', headers, content, 'api.mts_done', 'api.mts_fail', 'mts', profile, address, vMessage, 'curl', jsonb_build_object('session', current_session(), 'user_id', current_userid()));
 
-  PERFORM WriteToEventLog('M', 1001, 'sms', format('SMS submitted for delivery: %s', uMessageId), uMessageId);
+  PERFORM WriteToEventLog('M', 5003, 'notification.sms', 'send', format('SMS submitted for delivery: %s', uMessageId), uMessageId);
 
   IF uMessageId IS NOT NULL THEN
     uTicket := NewRecoveryTicket(current_userid(), vCode, encode(digest(pPhone, 'sha1'), 'hex'), Now(), Now() + INTERVAL '5 min');
@@ -943,7 +943,7 @@ BEGIN
   PERFORM SendMail(null, vNoReply, pEmail, vSubject, vBody, null, vDescription);
   PERFORM CreateNotice(current_userid(), null, vDescription);
 
-  PERFORM WriteToEventLog('M', 1001, 'email', vDescription);
+  PERFORM WriteToEventLog('M', 5001, 'notification.email', 'send', vDescription);
 
   RETURN uTicket;
 EXCEPTION
@@ -954,8 +954,8 @@ WHEN others THEN
 
   SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
 
-  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
-  PERFORM WriteToEventLog('D', ErrorCode, vContext);
+  PERFORM WriteToEventLog('E', ErrorCode, 'notification', 'error', ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, 'notification', 'context', vContext);
 
   RETURN null;
 END

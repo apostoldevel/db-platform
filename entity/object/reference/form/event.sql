@@ -17,7 +17,7 @@ CREATE OR REPLACE FUNCTION EventFormCreate (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'create', 'Form created.', pObject);
+  PERFORM WriteToEventLog('M', 1001, 'lifecycle', 'create', 'Form created.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -36,7 +36,7 @@ CREATE OR REPLACE FUNCTION EventFormOpen (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'open', 'Form opened.', pObject);
+  PERFORM WriteToEventLog('M', 1002, 'lifecycle', 'open', 'Form opened.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -55,7 +55,7 @@ CREATE OR REPLACE FUNCTION EventFormEdit (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'edit', 'Form modified.', pObject);
+  PERFORM WriteToEventLog('M', 1003, 'lifecycle', 'edit', 'Form updated.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -74,7 +74,7 @@ CREATE OR REPLACE FUNCTION EventFormSave (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'save', 'Form saved.', pObject);
+  PERFORM WriteToEventLog('M', 1004, 'lifecycle', 'save', 'Form saved.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -93,7 +93,7 @@ CREATE OR REPLACE FUNCTION EventFormEnable (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'enable', 'Form enabled.', pObject);
+  PERFORM WriteToEventLog('M', 2001, 'workflow', 'enable', 'Form enabled.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -112,7 +112,7 @@ CREATE OR REPLACE FUNCTION EventFormDisable (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'disable', 'Form disabled.', pObject);
+  PERFORM WriteToEventLog('M', 2002, 'workflow', 'disable', 'Form disabled.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -131,7 +131,7 @@ CREATE OR REPLACE FUNCTION EventFormDelete (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'delete', 'Form deleted.', pObject);
+  PERFORM WriteToEventLog('M', 2003, 'workflow', 'delete', 'Form deleted.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -150,7 +150,7 @@ CREATE OR REPLACE FUNCTION EventFormRestore (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'restore', 'Form restored.', pObject);
+  PERFORM WriteToEventLog('M', 2004, 'workflow', 'restore', 'Form restored.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -175,6 +175,6 @@ BEGIN
 
   DELETE FROM db.form WHERE id = pObject;
 
-  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '') || '] Form dropped.');
+  PERFORM WriteToEventLog('W', 2005, 'workflow', 'drop', 'Form dropped.', pObject);
 END;
 $$ LANGUAGE plpgsql;

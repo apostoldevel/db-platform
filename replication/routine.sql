@@ -158,7 +158,7 @@ BEGIN
 EXCEPTION
 WHEN others THEN
   GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
-  PERFORM WriteDiagnostics(vMessage, vContext);
+  PERFORM WriteDiagnostics(vMessage, vContext, 'replication');
   RETURN NULL;
 END
 $$ LANGUAGE plpgsql
@@ -442,10 +442,10 @@ WHEN others THEN
 
   PERFORM SetErrorMessage(vMessage);
 
-  PERFORM WriteDiagnostics(vMessage, vContext);
+  PERFORM WriteDiagnostics(vMessage, vContext, 'replication');
   PERFORM SafeSetVar('replication_apply', 'false');
 
-  PERFORM WriteToEventLog('D', 9999, 'replication', coalesce(SQL, '<null>'));
+  PERFORM WriteToEventLog('D', 9020, 'replication', 'diagnostic', coalesce(SQL, '<null>'));
 
   UPDATE replication.relay SET state = 2, message = vMessage WHERE source = pSource AND id = pId;
 END
@@ -692,7 +692,7 @@ BEGIN
     EXCEPTION
     WHEN others THEN
       GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
-      PERFORM WriteDiagnostics(vMessage, vContext);
+      PERFORM WriteDiagnostics(vMessage, vContext, 'replication');
     END;
   END LOOP;
 END;
@@ -726,7 +726,7 @@ BEGIN
 EXCEPTION
 WHEN others THEN
   GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
-  PERFORM WriteDiagnostics(vMessage, vContext);
+  PERFORM WriteDiagnostics(vMessage, vContext, 'replication');
 END;
 $$ LANGUAGE plpgsql
   SECURITY DEFINER

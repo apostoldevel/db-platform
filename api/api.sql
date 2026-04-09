@@ -346,7 +346,7 @@ BEGIN
   END IF;
 
   IF GetDebugMode() THEN
-    PERFORM WriteToEventLog('D', 9001, 'sql', vSelect);
+    PERFORM WriteToEventLog('D', 9010, 'debug', 'sql', vSelect);
   END IF;
 
   RETURN vSelect;
@@ -444,8 +444,8 @@ WHEN others THEN
 
   SELECT * INTO ErrorCode, ErrorMessage, vErrorId FROM ParseMessage(vMessage);
 
-  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
-  PERFORM WriteToEventLog('D', ErrorCode, vContext);
+  PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, 'exception', 'context', vContext);
 
   RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'error', vErrorId, 'message', ErrorMessage));
 

@@ -985,7 +985,7 @@ BEGIN
        AND json->>'phone' != pPhone;
 
     IF FOUND THEN
-      PERFORM WriteToEventLog('W', 2003, 'registration_code_by_phone', format('Обнаружена попытка регистрации разных номеров телефона c одной и той же сессии. Телефон: "%s". Сессия "%s" закрыта.', pPhone, current_session()));
+      PERFORM WriteToEventLog('W', 6001, 'admin', 'phone_mismatch', format('Different phone number registration attempt from the same session. Phone: "%s". Session "%s" closed.', pPhone, current_session()));
       PERFORM SessionOut(current_session(), false);
       RETURN gen_random_uuid();
     END IF;
@@ -997,7 +997,7 @@ BEGIN
        AND json->>'phone' = pPhone;
 
     IF nCount > 3 THEN
-      PERFORM WriteToEventLog('W', 2004, 'registration_code_by_phone', format('Превышено количество регистраций по номеру телефона "%s" с одной и той же сессии. Сессия "%s" закрыта.', pPhone, current_session()));
+      PERFORM WriteToEventLog('W', 6002, 'admin', 'phone_abuse', format('Registration limit exceeded for phone "%s" from the same session. Session "%s" closed.', pPhone, current_session()));
       PERFORM SessionOut(current_session(), false);
       RETURN gen_random_uuid();
     END IF;
@@ -2555,8 +2555,8 @@ WHEN others THEN
 
   SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
 
-  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
-  PERFORM WriteToEventLog('D', ErrorCode, vContext);
+  PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, 'exception', 'context', vContext);
 END;
 $$ LANGUAGE plpgsql
   SECURITY DEFINER
@@ -2592,8 +2592,8 @@ WHEN others THEN
 
   SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
 
-  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage);
-  PERFORM WriteToEventLog('D', ErrorCode, vContext);
+  PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, 'exception', 'context', vContext);
 END;
 $$ LANGUAGE plpgsql
   SECURITY DEFINER

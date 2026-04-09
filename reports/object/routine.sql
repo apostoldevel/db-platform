@@ -136,8 +136,8 @@ WHEN others THEN
 
   SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
 
-  PERFORM WriteToEventLog('E', ErrorCode, ErrorMessage, pReady);
-  PERFORM WriteToEventLog('D', ErrorCode, vContext, pReady);
+  PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage, pReady);
+  PERFORM WriteToEventLog('D', ErrorCode, 'exception', 'context', vContext, pReady);
 
   PERFORM DoAction(pReady, 'fail');
 

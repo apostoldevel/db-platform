@@ -17,7 +17,7 @@ CREATE OR REPLACE FUNCTION EventSchedulerCreate (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'create', 'Scheduler created.', pObject);
+  PERFORM WriteToEventLog('M', 1001, 'lifecycle', 'create', 'Scheduler created.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -36,7 +36,7 @@ CREATE OR REPLACE FUNCTION EventSchedulerOpen (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'open', 'Scheduler opened.', pObject);
+  PERFORM WriteToEventLog('M', 1002, 'lifecycle', 'open', 'Scheduler opened.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -55,7 +55,7 @@ CREATE OR REPLACE FUNCTION EventSchedulerEdit (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'edit', 'Scheduler modified.', pObject);
+  PERFORM WriteToEventLog('M', 1003, 'lifecycle', 'edit', 'Scheduler updated.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -74,7 +74,7 @@ CREATE OR REPLACE FUNCTION EventSchedulerSave (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'save', 'Scheduler saved.', pObject);
+  PERFORM WriteToEventLog('M', 1004, 'lifecycle', 'save', 'Scheduler saved.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -93,7 +93,7 @@ CREATE OR REPLACE FUNCTION EventSchedulerEnable (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'enable', 'Scheduler enabled.', pObject);
+  PERFORM WriteToEventLog('M', 2001, 'workflow', 'enable', 'Scheduler enabled.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -112,7 +112,7 @@ CREATE OR REPLACE FUNCTION EventSchedulerDisable (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'disable', 'Scheduler disabled.', pObject);
+  PERFORM WriteToEventLog('M', 2002, 'workflow', 'disable', 'Scheduler disabled.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -131,7 +131,7 @@ CREATE OR REPLACE FUNCTION EventSchedulerDelete (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'delete', 'Scheduler deleted.', pObject);
+  PERFORM WriteToEventLog('M', 2003, 'workflow', 'delete', 'Scheduler deleted.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -150,7 +150,7 @@ CREATE OR REPLACE FUNCTION EventSchedulerRestore (
 ) RETURNS    void
 AS $$
 BEGIN
-  PERFORM WriteToEventLog('M', 1000, 'restore', 'Scheduler restored.', pObject);
+  PERFORM WriteToEventLog('M', 2004, 'workflow', 'restore', 'Scheduler restored.', pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -175,6 +175,6 @@ BEGIN
 
   DELETE FROM db.scheduler WHERE id = pObject;
 
-  PERFORM WriteToEventLog('W', 1000, 'drop', '[' || pObject || '] [' || coalesce(r.label, '') || '] Scheduler dropped.');
+  PERFORM WriteToEventLog('W', 2005, 'workflow', 'drop', 'Scheduler dropped.', pObject);
 END;
 $$ LANGUAGE plpgsql;

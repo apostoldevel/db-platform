@@ -1050,7 +1050,7 @@ BEGIN
 EXCEPTION
 WHEN others THEN
   GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
-  PERFORM WriteDiagnostics(vMessage, vContext, pObject);
+  PERFORM WriteDiagnostics(vMessage, vContext, 'exception', pObject);
   RETURN null;
 END;
 $$ LANGUAGE plpgsql
