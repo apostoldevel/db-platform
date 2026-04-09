@@ -496,6 +496,7 @@ BEGIN
     END IF;
 
   WHEN '/admin/user/member' THEN
+  WHEN '/admin/user/member' THEN
 
     FOR r IN SELECT * FROM api.user_member()
     LOOP
