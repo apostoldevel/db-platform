@@ -3576,8 +3576,8 @@ BEGIN
     DELETE FROM db.session WHERE userid = pId AND code <> current_session();
 
     IF session_user <> 'kernel' THEN
-      INSERT INTO db.log (type, code, username, session, event, text)
-      VALUES ('W', 2222, r.username, current_session(), 'password', 'Смена пароля.');
+      INSERT INTO db.log (type, code, scope, username, session, event, text)
+      VALUES ('W', 6012, 'auth', r.username, current_session(), 'password', 'Password changed.');
     END IF;
   ELSE
     PERFORM UserNotFound(pId);
@@ -5716,8 +5716,8 @@ BEGIN
 
   END IF;
 
-  INSERT INTO db.log (type, code, username, session, event, text)
-  VALUES ('M', 1100, pRoleName, vSession, 'login', 'Вход в систему.');
+  INSERT INTO db.log (type, code, scope, username, session, event, text)
+  VALUES ('M', 6010, 'auth', pRoleName, vSession, 'login', 'User logged in.');
 
   RETURN vSession;
 END;
@@ -5789,11 +5789,11 @@ BEGIN
       END IF;
     END IF;
 
-    INSERT INTO db.log (type, code, username, event, text)
-    VALUES ('E', 3100, coalesce(pRoleName, session_user), 'login', vMessage);
+    INSERT INTO db.log (type, code, scope, username, event, text)
+    VALUES ('E', 9001, 'auth', coalesce(pRoleName, session_user), 'error', vMessage);
 
-    INSERT INTO db.log (type, code, username, event, text)
-    VALUES ('D', 9100, coalesce(pRoleName, session_user), 'login', vContext);
+    INSERT INTO db.log (type, code, scope, username, event, text)
+    VALUES ('D', 9001, 'auth', coalesce(pRoleName, session_user), 'context', vContext);
 
     RETURN null;
   END;
@@ -5861,8 +5861,8 @@ BEGIN
 
     message := message || coalesce('. ' || pMessage, '.');
 
-    INSERT INTO db.log (type, code, username, session, event, text)
-    VALUES ('M', 1100, GetUserName(uUserId), pSession, 'logout', message);
+    INSERT INTO db.log (type, code, scope, username, session, event, text)
+    VALUES ('M', 6011, 'auth', GetUserName(uUserId), pSession, 'logout', message);
 
     PERFORM SetErrorMessage(message);
 
@@ -5915,11 +5915,11 @@ WHEN others THEN
     SELECT userid INTO uUserId FROM db.session WHERE code = pSession;
   END IF;
 
-  INSERT INTO db.log (type, code, username, session, event, text)
-  VALUES ('E', 3100, coalesce(GetUserName(uUserId), session_user), pSession, 'logout', 'Выход из системы. ' || vMessage);
+  INSERT INTO db.log (type, code, scope, username, session, event, text)
+  VALUES ('E', 9001, 'auth', coalesce(GetUserName(uUserId), session_user), pSession, 'error', 'Logout failed. ' || vMessage);
 
-  INSERT INTO db.log (type, code, username, session, event, text)
-  VALUES ('D', 9100, coalesce(GetUserName(uUserId), session_user), pSession, 'logout', vContext);
+  INSERT INTO db.log (type, code, scope, username, session, event, text)
+  VALUES ('D', 9001, 'auth', coalesce(GetUserName(uUserId), session_user), pSession, 'context', vContext);
 
   RETURN false;
 END;
