@@ -116,7 +116,8 @@ BEGIN
   END IF;
 
   INSERT INTO db.listener (publisher, session, identity, filter, params)
-  VALUES (pPublisher, pSession, pIdentity, pFilter, pParams);
+  VALUES (pPublisher, pSession, pIdentity, pFilter, pParams)
+  ON CONFLICT (publisher, session, identity) DO UPDATE SET filter = pFilter, params = pParams;
 END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
