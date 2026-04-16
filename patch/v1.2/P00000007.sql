@@ -1,6 +1,8 @@
 -- P00000007.sql: Add scope column to db.log
 -- Part of: Logging system redesign (2026-04-09)
 
+DROP VIEW EventLog CASCADE;
+
 ALTER TABLE db.log ADD COLUMN IF NOT EXISTS scope text;
 
 COMMENT ON COLUMN db.log.scope IS 'Event subsystem: lifecycle, workflow, payment.stripe, ocpp.status, etc.';

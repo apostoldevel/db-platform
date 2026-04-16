@@ -5669,6 +5669,10 @@ BEGIN
     PERFORM LoginIPTableError(pHost);
   END IF;
 
+  IF up.readonly THEN
+    PERFORM ReadOnlyError();
+  END IF;
+
   IF CheckPassword(pRoleName, pPassword) THEN
 
     PERFORM CheckSessionLimit(up.id);
@@ -5772,7 +5776,7 @@ BEGIN
 
     SELECT * INTO up FROM db.user WHERE type = 'U' AND username = pRoleName;
 
-    IF FOUND THEN
+    IF FOUND AND NOT up.readonly THEN
       UPDATE db.profile
          SET input_error = input_error + 1,
              input_error_last = now(),
