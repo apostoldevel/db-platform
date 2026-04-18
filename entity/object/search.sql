@@ -69,11 +69,17 @@ CREATE OR REPLACE FUNCTION api.search (
   pLocaleCode   text DEFAULT locale_code()
 ) RETURNS       SETOF api.object
 AS $$
+DECLARE
+  arClasses     text[];
 BEGIN
+  SELECT array_agg(t.code) INTO arClasses
+    FROM db.class_tree t INNER JOIN db.entity e on e.id = t.entity
+   WHERE e.code = ANY(JsonbToStrArray(pEntities)) AND NOT abstract;
+
   IF pLocaleCode = 'ru' THEN
-    RETURN QUERY SELECT * FROM api.search_ru(pText) WHERE array_position(coalesce(JsonbToStrArray(pEntities), ARRAY[classcode]), classcode) IS NOT NULL;
+    RETURN QUERY SELECT * FROM api.search_ru(pText) WHERE array_position(coalesce(arClasses, ARRAY[classcode]), classcode) IS NOT NULL;
   ELSE
-    RETURN QUERY SELECT * FROM api.search_en(pText) WHERE array_position(coalesce(JsonbToStrArray(pEntities), ARRAY[classcode]), classcode) IS NOT NULL;
+    RETURN QUERY SELECT * FROM api.search_en(pText) WHERE array_position(coalesce(arClasses, ARRAY[classcode]), classcode) IS NOT NULL;
   END IF;
 
   RETURN;
