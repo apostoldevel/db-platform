@@ -267,8 +267,8 @@ $$ LANGUAGE plpgsql
  */
 CREATE OR REPLACE FUNCTION WriteDiagnostics (
   pMessage      text,
-  pContext      text default null,
-  pObject       uuid default null,
+  pContext      text,
+  pObject       uuid,
   errorCode     OUT int,
   errorMessage  OUT text
 ) RETURNS       record
