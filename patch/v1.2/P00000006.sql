@@ -1,3 +1,7 @@
+-- Migrate existing 14-bit ACL masks to 17-bit
+UPDATE db.acl SET allow = B'000' || allow, deny = B'000' || deny
+WHERE bit_length(allow) < 17;
+
 CREATE OR REPLACE FUNCTION db.ft_user_after_insert()
 RETURNS trigger AS $$
 BEGIN
