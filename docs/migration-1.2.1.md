@@ -232,6 +232,118 @@ Locale helper: `GetLocale('en')`, `GetLocale('ru')`, `GetLocale('de')`,
 
 ---
 
+---
+
+## Phase 5: Force English Session Locale During Bootstrap
+
+`AddMethod()` without an explicit `pLabel` resolves the label via
+`GetActionName(pAction)` **for `current_locale()` at the moment of call**, and then
+replicates that value to every row of `db.locale`:
+
+```sql
+-- platform/workflow/routine.sql: AddMethod() excerpt
+pLabel := coalesce(pLabel, GetActionName(pAction));
+FOR l IN SELECT id FROM db.locale
+LOOP
+  PERFORM NewMethodText(uId, pLabel, l.id);
+END LOOP;
+```
+
+If `InitConfiguration()` runs with `SetSessionLocale(GetLocale('ru'))` — as happened
+historically when `project.locale = 'ru'` — every locale's method label ends up stamped
+with the Russian action name. The bug is silent: `en`/`de`/`fr`/… rows all contain the
+Russian string.
+
+**Fix in the project's `configuration/<dbname>/init.sql`:**
+
+```sql
+-- BEFORE: SetSessionLocale(GetLocale(current_setting('project.locale')))
+-- followed by Init* and FillDataBase.
+
+-- AFTER:
+-- AddMethod() without explicit pLabel copies GetActionName(pAction) for current_locale()
+-- into every db.locale row, so registration must run under 'en' to avoid poisoning all
+-- locales. Project locale is restored after FillDataBase.
+PERFORM SetSessionLocale(GetLocale('en'));
+
+PERFORM InitConfigurationEntity();
+PERFORM InitOCPP();
+...
+PERFORM FillDataBase();
+
+PERFORM SetSessionLocale(GetLocale(current_setting('project.locale')));
+```
+
+This is a silent-failure fix: current code works when `project.locale='en'` (which
+is the default for most brands), but breaks on any other locale. Apply proactively.
+
+---
+
+## Phase 6: Project-Specific Extra Locales
+
+Platform seeds 6 locales: `en, ru, de, fr, it, es`. A configuration may add more in
+`configuration/<dbname>/init.sql` before `SetSessionLocale()`:
+
+```sql
+-- Extra locales beyond the platform's 6 (en, ru, de, fr, it, es)
+INSERT INTO db.locale (id, code, name, description) VALUES
+  ('00000000-0000-4001-a000-000000000007', 'cs', 'Čeština',  'Český jazyk')
+  ON CONFLICT (code) DO NOTHING;
+INSERT INTO db.locale (id, code, name, description) VALUES
+  ('00000000-0000-4001-a000-000000000008', 'sk', 'Slovenčina', 'Slovenský jazyk')
+  ON CONFLICT (code) DO NOTHING;
+```
+
+Use UUIDs `…00000007`, `…00000008`, … — do not collide with platform's `…00000001..6`.
+`ON CONFLICT DO NOTHING` keeps `--update` safe.
+
+Once added, every `Edit*Text` pattern in the project may pass `GetLocale('cs')` /
+`GetLocale('sk')` in addition to the platform's 6. The checklist items below apply
+to the base 6 as the minimum — the project may extend on top.
+
+---
+
+## Phase 7: Replace Hardcoded Locale UUIDs
+
+The platform's `db.locale` UUIDs look like `00000000-0000-4001-a000-00000000000X`.
+Inlining them into application code breaks when:
+
+- An environment re-seeds with different UUIDs (rare but possible).
+- A project reshuffles its extra locales between brands.
+- Readability of queries (what does `…000000000002` mean?).
+
+**Audit:**
+
+```bash
+grep -rnE "00000000-0000-4001-a000-00000000000[0-9]" configuration/<dbname>/ \
+  --include="*.sql" \
+  | grep -v "INSERT INTO db.locale"
+```
+
+**Fix:** replace each hit with `GetLocale('ru')` / `GetLocale('en')` / etc.
+
+**Exception — hot-path performance:**
+
+`current_locale()` override in `configuration/<dbname>/admin/routine.sql` uses the
+raw UUID as a fallback because it runs on every request:
+
+```sql
+CREATE OR REPLACE FUNCTION current_locale (
+  pSession varchar DEFAULT current_session()
+) RETURNS uuid
+AS $$
+BEGIN
+  RETURN coalesce(GetSessionLocale(pSession), '00000000-0000-4001-a000-000000000001');
+END;
+$$ LANGUAGE plpgsql STABLE ...
+```
+
+Calling `GetLocale('en')` here would add a `SELECT` to a function the planner treats
+as `STABLE` but that runs at every call. Leave the UUID here — add a comment so the
+next auditor doesn't grep-and-replace it blindly.
+
+---
+
 ## Checklist for AI Agent
 
 - [ ] All `AddEntity()` calls use English as primary, with 5 `EditEntityText()` calls
@@ -244,5 +356,17 @@ Locale helper: `GetLocale('en')`, `GetLocale('ru')`, `GetLocale('de')`,
 - [ ] Bulk UPDATE translation patches in FillDataBase() removed or replaced
 - [ ] `PERFORM AddMethod(...)` changed to `uMethod := AddMethod(...)` where Edit*Text needed
 - [ ] All `uMethod uuid` variables declared in DECLARE blocks
-- [ ] No hardcoded locale UUIDs — use `GetLocale('xx')` everywhere
+- [ ] No hardcoded locale UUIDs — use `GetLocale('xx')` everywhere (except `current_locale()` hot-path)
+- [ ] `InitConfiguration()` forces `SetSessionLocale(GetLocale('en'))` before Init*/FillDataBase, restores `project.locale` after
+- [ ] Project-added extra locales (cs/sk/etc.) live in `configuration/<dbname>/init.sql` with `ON CONFLICT DO NOTHING`
 - [ ] Tested with `--install` (full reinstall with seed data)
+
+---
+
+## See Also
+
+- [Platform 1.2.0 Migration Guide](migration-1.2.0.md) -- error catalog, inline `RAISE EXCEPTION` wrapping, runtime string localization patterns (+ `i18n/` resource module as the final shape)
+- `platform/resource/` -- platform module that backs the configuration-level `i18n/` module (see `configuration/csms/i18n/` for a reference implementation)
+- `platform/workflow/routine.sql` -- `AddMethod`, `GetActionName`, `EditMethodText`
+- `platform/locale/routine.sql` -- `GetLocale`, `GetLocaleCode`
+- `platform/admin/routine.sql` -- `GetDefaultLocale`, `SetSessionLocale`, `current_locale`
