@@ -7,7 +7,7 @@ RETURNS trigger AS $$
 BEGIN
   CASE NEW.username
   WHEN 'system' THEN
-    INSERT INTO db.acl SELECT NEW.id, B'00000000000000000', B'00010000000000011';
+    INSERT INTO db.acl SELECT NEW.id, B'00000000000000000', B'01110000000000011';
   WHEN 'administrator' THEN
     INSERT INTO db.acl SELECT NEW.id, B'00000000000000000', B'11101111111111111';
   WHEN 'guest' THEN
@@ -23,3 +23,16 @@ END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
+
+--
+
+SELECT SignIn(CreateSystemOAuth2(), 'admin', :'admin');
+
+SELECT GetErrorMessage();
+
+SELECT chmod(B'0000000000000000001110000000000011', GetGroup('system'));
+SELECT chmod(B'0000000000000000011101111111111111', GetGroup('administrator'));
+SELECT chmod(B'1111111111111110000000000000000011', GetGroup('guest'));
+SELECT chmod(B'0001000000000001111101111111111100', GetUser('apibot'));
+
+SELECT SignOut();
