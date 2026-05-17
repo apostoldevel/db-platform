@@ -672,7 +672,7 @@ BEGIN
   SELECT hash INTO vHash FROM db.user WHERE id = pUserId;
 
   IF FOUND THEN
-    vStrPwKey := '{' || pUserId::text || '-' || vHash || '-' || pSecret || '-' || current_database() || '-' || DateToStr(pCreated, 'YYYYMMDDHH24MISS') || '}';
+    vStrPwKey := '{' || pUserId::text || '-' || vHash || '-' || pSecret || '-' || current_database() || '-' || DateToStr(pCreated AT TIME ZONE 'UTC', 'YYYYMMDDHH24MISS') || '}';
   END IF;
 
   RETURN encode(digest(vStrPwKey, 'sha1'), 'hex');
