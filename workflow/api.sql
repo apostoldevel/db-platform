@@ -1262,11 +1262,15 @@ CREATE OR REPLACE FUNCTION api.get_methods (
   pAction       uuid DEFAULT null
 ) RETURNS       SETOF api.method
 AS $$
+  -- NULL-safe filter: `state` is nullable on db.method (action-only
+  -- methods have no source state), so `coalesce(NULL, state)` would
+  -- evaluate to NULL → `NULL = NULL` → UNKNOWN, and those rows would
+  -- silently drop out of any unfiltered query.
   SELECT *
     FROM api.method
    WHERE class = pClass
-     AND state = coalesce(pState, state)
-     AND action = coalesce(pAction, action)
+     AND (pState  IS NULL OR state  = pState)
+     AND (pAction IS NULL OR action = pAction)
    ORDER BY sequence
 $$ LANGUAGE SQL
    SECURITY DEFINER

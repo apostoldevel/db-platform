@@ -30,12 +30,16 @@ CREATE OR REPLACE FUNCTION api.event_log (
   pDateTo        timestamptz DEFAULT null
 ) RETURNS        SETOF api.event_log
 AS $$
+  -- NULL-safe filter. db.log allows NULL in username (system-internal
+  -- writes), code (raw text without an app-code), and scope (legacy
+  -- entries before P00000007). The naive `col = coalesce(NULL, col)`
+  -- form drops those rows entirely.
   SELECT *
     FROM api.event_log
-   WHERE username = coalesce(pUserName, username)
-     AND type = coalesce(pType, type)
-     AND code = coalesce(pCode, code)
-     AND scope = coalesce(pScope, scope)
+   WHERE (pUserName IS NULL OR username = pUserName)
+     AND (pType     IS NULL OR type     = pType)
+     AND (pCode     IS NULL OR code     = pCode)
+     AND (pScope    IS NULL OR scope    = pScope)
      AND datetime >= coalesce(pDateFrom, MINDATE())
      AND datetime < coalesce(pDateTo, MAXDATE())
    ORDER BY datetime DESC, id
@@ -176,9 +180,9 @@ CREATE OR REPLACE FUNCTION api.user_log (
 AS $$
   SELECT *
     FROM api.user_log
-   WHERE type = coalesce(pType, type)
-     AND code = coalesce(pCode, code)
-     AND scope = coalesce(pScope, scope)
+   WHERE (pType  IS NULL OR type  = pType)
+     AND (pCode  IS NULL OR code  = pCode)
+     AND (pScope IS NULL OR scope = pScope)
      AND datetime >= coalesce(pDateFrom, MINDATE())
      AND datetime < coalesce(pDateTo, MAXDATE())
    ORDER BY datetime DESC, id

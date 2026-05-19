@@ -31,10 +31,13 @@ CREATE OR REPLACE FUNCTION api.log (
   pDateTo       timestamptz DEFAULT null
 ) RETURNS       SETOF api.log
 AS $$
+  -- NULL-safe filter for nullable columns (username / path can be NULL
+  -- for anonymous or system-internal calls). The naive
+  -- `col = coalesce(NULL, col)` form drops those rows entirely.
   SELECT *
     FROM api.log
-   WHERE username = coalesce(pUserName, username)
-     AND path = coalesce(pPath, path)
+   WHERE (pUserName IS NULL OR username = pUserName)
+     AND (pPath     IS NULL OR path     = pPath)
      AND datetime >= coalesce(pDateFrom, MINDATE())
      AND datetime < coalesce(pDateTo, MAXDATE())
    ORDER BY datetime DESC, id

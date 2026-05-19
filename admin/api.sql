@@ -329,8 +329,8 @@ CREATE OR REPLACE FUNCTION api.session (
 AS $$
   SELECT *
     FROM api.session
-   WHERE userid = coalesce(pUserId, userid)
-     AND username = coalesce(pUsername, username)
+   WHERE (pUserId   IS NULL OR userid   = pUserId)
+     AND (pUsername IS NULL OR username = pUsername)
    ORDER BY created DESC, userid
    LIMIT 500
 $$ LANGUAGE SQL

@@ -2466,7 +2466,7 @@ BEGIN
     SELECT *
       FROM ObjectCoordinates
      WHERE object = pObject
-       AND code = coalesce(pCode, code)
+       AND (pCode IS NULL OR code = pCode)
        AND validFromDate <= pDateFrom
        AND validToDate > pDateFrom
   LOOP
