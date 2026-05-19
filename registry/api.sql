@@ -23,11 +23,14 @@ CREATE OR REPLACE FUNCTION api.registry (
   pSubKey    uuid
 ) RETURNS    SETOF api.registry
 AS $$
+  -- NB: NULL-safe filter form. The naive `col = coalesce(pParam, col)`
+  -- breaks when the row's column is NULL — `NULL = NULL` is UNKNOWN,
+  -- not TRUE, so the row gets filtered out.
   SELECT *
     FROM api.registry
-   WHERE id = coalesce(pId, id)
-     AND key = coalesce(pKey, key)
-     AND subkey = coalesce(pSubKey, subkey)
+   WHERE (pId     IS NULL OR id     = pId)
+     AND (pKey    IS NULL OR key    = pKey)
+     AND (pSubKey IS NULL OR subkey = pSubKey)
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -57,9 +60,9 @@ CREATE OR REPLACE FUNCTION api.registry_ex (
 AS $$
   SELECT *
     FROM api.registry_ex
-   WHERE id = coalesce(pId, id)
-     AND key = coalesce(pKey, key)
-     AND subkey = coalesce(pSubKey, subkey)
+   WHERE (pId     IS NULL OR id     = pId)
+     AND (pKey    IS NULL OR key    = pKey)
+     AND (pSubKey IS NULL OR subkey = pSubKey)
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -89,12 +92,16 @@ CREATE OR REPLACE FUNCTION api.registry_key (
   pKey       text
 ) RETURNS    SETOF api.registry_key
 AS $$
+  -- Root rows have `parent IS NULL` — they would be filtered out by the
+  -- naive `parent = coalesce(NULL, parent) → NULL = NULL → NULL` chain,
+  -- making the root invisible to any caller (including point-fetch by
+  -- id). NULL-safe form below restores them.
   SELECT *
     FROM api.registry_key
-   WHERE id = coalesce(pId, id)
-     AND root = coalesce(pRoot, root)
-     AND parent = coalesce(pParent, parent)
-     AND key = coalesce(pKey, key)
+   WHERE (pId     IS NULL OR id     = pId)
+     AND (pRoot   IS NULL OR root   = pRoot)
+     AND (pParent IS NULL OR parent = pParent)
+     AND (pKey    IS NULL OR key    = pKey)
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -130,8 +137,8 @@ CREATE OR REPLACE FUNCTION api.registry_value (
 AS $$
   SELECT *
     FROM api.registry_value
-   WHERE id = coalesce(pId, id)
-     AND key = coalesce(pKey, key)
+   WHERE (pId  IS NULL OR id  = pId)
+     AND (pKey IS NULL OR key = pKey)
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -151,8 +158,8 @@ CREATE OR REPLACE FUNCTION api.registry_value_ex (
 AS $$
   SELECT *
     FROM api.registry_value_ex
-   WHERE id = coalesce(pId, id)
-     AND key = coalesce(pKey, key)
+   WHERE (pId  IS NULL OR id  = pId)
+     AND (pKey IS NULL OR key = pKey)
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
