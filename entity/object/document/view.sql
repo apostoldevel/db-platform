@@ -157,8 +157,8 @@ WITH _access AS (
 	FROM db.document t INNER JOIN db.aou         a ON a.object = t.id
                        INNER JOIN _membergroup   m ON a.userid = m.userid
    WHERE t.scope = current_scope()
-     AND a.mask = B'100'
    GROUP BY a.object
+   HAVING (bit_or(a.allow) & ~bit_or(a.deny)) & B'100' = B'100'
 ) SELECT d.* FROM db.document d INNER JOIN _access ac ON d.id = ac.object;
 
 GRANT SELECT ON AccessDocument TO administrator;
