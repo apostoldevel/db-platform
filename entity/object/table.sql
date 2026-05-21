@@ -355,6 +355,7 @@ CREATE INDEX ON db.aou (object);
 CREATE INDEX ON db.aou (userid);
 CREATE INDEX ON db.aou (entity);
 CREATE INDEX ON db.aou (entity, userid, mask);
+CREATE INDEX ON db.aou (object, userid) WHERE allow & B'100' = B'100';
 
 --------------------------------------------------------------------------------
 

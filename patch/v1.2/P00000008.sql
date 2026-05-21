@@ -1,0 +1,1 @@
+CREATE INDEX ON db.aou (object, userid) WHERE allow & B'100' = B'100';
