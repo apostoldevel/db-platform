@@ -4,7 +4,7 @@
 
 CREATE OR REPLACE VIEW api.inbox
 AS
-  SELECT * FROM api.service_message(GetClass('inbox'));
+  SELECT * FROM api.message WHERE class = GetClass('inbox');
 
 GRANT SELECT ON api.inbox TO administrator;
 GRANT SELECT ON api.inbox TO apibot;
@@ -94,8 +94,32 @@ CREATE OR REPLACE FUNCTION api.get_inbox (
   pId       uuid
 ) RETURNS   SETOF api.inbox
 AS $$
-  SELECT * FROM api.inbox WHERE id = pId AND CheckObjectAccess(id, B'100')
+  SELECT * FROM api.inbox WHERE id = pId
 $$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.count_inbox -------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Count inbox records matching search/filter criteria.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Exact-match filter object
+ * @return {SETOF bigint} - Record count
+ * @since 1.2.1
+ */
+CREATE OR REPLACE FUNCTION api.count_inbox (
+  pSearch    jsonb default null,
+  pFilter    jsonb default null
+) RETURNS    SETOF bigint
+AS $$
+BEGIN
+  pFilter := coalesce(pFilter, '{}'::jsonb) || jsonb_build_object('class', GetClass('inbox'));
+
+  RETURN QUERY EXECUTE api.sql('kernel', 'ObjectMessage', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
+END;
+$$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -121,7 +145,9 @@ CREATE OR REPLACE FUNCTION api.list_inbox (
 ) RETURNS   SETOF api.inbox
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'inbox', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+  pFilter := coalesce(pFilter, '{}'::jsonb) || jsonb_build_object('class', GetClass('inbox'));
+
+  RETURN QUERY EXECUTE api.sql('kernel', 'ObjectMessage', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

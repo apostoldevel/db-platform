@@ -94,7 +94,7 @@ CREATE OR REPLACE VIEW CurrentDocument (Id, Object,
          dt.description,
          d.priority, p.code, pt.name, pt.description,
          d.area, a.code, a.name, a.description,
-         d.scope, sc.code, sc.name, sc.description
+         d.scope, s.code, s.name, s.description
     FROM db.document d  LEFT JOIN db.document_text    dt ON dt.document = d.id AND dt.locale = current_locale()
 
                        INNER JOIN db.entity            e ON d.entity = e.id
@@ -110,7 +110,7 @@ CREATE OR REPLACE VIEW CurrentDocument (Id, Object,
                         LEFT JOIN db.priority_text    pt ON pt.priority = p.id AND pt.locale = current_locale()
 
                        INNER JOIN DocumentAreaTree     a ON d.area = a.id
-                       INNER JOIN db.scope            sc ON d.scope = sc.id;
+                       INNER JOIN db.scope             s ON d.scope = s.id;
 
 GRANT SELECT ON CurrentDocument TO administrator;
 
@@ -131,14 +131,13 @@ CREATE OR REPLACE FUNCTION AccessDocumentUser (
 )
 AS $$
   WITH _membergroup AS (
-      SELECT pUserId AS userid UNION SELECT userid FROM db.member_group WHERE member = pUserId
+    SELECT pUserId AS userid UNION SELECT userid FROM db.member_group WHERE member = pUserId
   )
   SELECT a.object
-	FROM db.document t INNER JOIN db.aou         a ON a.object = t.id
-                       INNER JOIN _membergroup   m ON a.userid = m.userid
-   WHERE t.scope = current_scope()
-     AND a.mask = B'100'
+    FROM db.aou a INNER JOIN _membergroup m ON a.userid = m.userid
+                  INNER JOIN db.document  d ON a.object = d.object
    GROUP BY a.object
+  HAVING (bit_or(a.allow) & ~bit_or(a.deny)) & B'100' = B'100';
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -149,17 +148,14 @@ $$ LANGUAGE SQL
 
 CREATE OR REPLACE VIEW AccessDocument
 AS
-WITH _access AS (
-  WITH _membergroup AS (
-      SELECT current_userid() AS userid UNION SELECT userid FROM db.member_group WHERE member = current_userid()
-  )
-  SELECT a.object
-	FROM db.document t INNER JOIN db.aou         a ON a.object = t.id
-                       INNER JOIN _membergroup   m ON a.userid = m.userid
-   WHERE t.scope = current_scope()
+WITH _membergroup AS (
+  SELECT current_userid() AS userid UNION SELECT userid FROM db.member_group WHERE member = current_userid()
+) SELECT a.object
+    FROM db.aou a INNER JOIN _membergroup m ON a.userid = m.userid
+                  INNER JOIN db.document  d ON a.object = d.object
+   WHERE d.scope = current_scope()
    GROUP BY a.object
-   HAVING (bit_or(a.allow) & ~bit_or(a.deny)) & B'100' = B'100'
-) SELECT d.* FROM db.document d INNER JOIN _access ac ON d.id = ac.object;
+  HAVING (bit_or(a.allow) & ~bit_or(a.deny)) & B'100' = B'100';
 
 GRANT SELECT ON AccessDocument TO administrator;
 
@@ -193,33 +189,33 @@ AS
          o.oper, u.username, u.name, o.ldate,
          t.area, a.code, a.name, a.description,
          o.scope, sc.code, sc.name, sc.description
-    FROM db.document t    LEFT JOIN db.document_text    dt ON dt.document = t.id AND dt.locale = current_locale()
+    FROM db.document t  LEFT JOIN db.document_text    dt ON dt.document = t.id AND dt.locale = current_locale()
 
-                          INNER JOIN db.object            o ON t.object = o.id
-                           LEFT JOIN db.object_text      ot ON ot.object = o.id AND ot.locale = current_locale()
+                       INNER JOIN db.object            o ON t.object = o.id
+                        LEFT JOIN db.object_text      ot ON ot.object = o.id AND ot.locale = current_locale()
 
-                          INNER JOIN db.entity            e ON t.entity = e.id
-                           LEFT JOIN db.entity_text      et ON et.entity = e.id AND et.locale = current_locale()
+                       INNER JOIN db.entity            e ON t.entity = e.id
+                        LEFT JOIN db.entity_text      et ON et.entity = e.id AND et.locale = current_locale()
 
-                          INNER JOIN db.class_tree        c ON t.class = c.id
-                           LEFT JOIN db.class_text       ct ON ct.class = c.id AND ct.locale = current_locale()
+                       INNER JOIN db.class_tree        c ON t.class = c.id
+                        LEFT JOIN db.class_text       ct ON ct.class = c.id AND ct.locale = current_locale()
 
-                          INNER JOIN db.type              y ON t.type = y.id
-                           LEFT JOIN db.type_text        ty ON ty.type = y.id AND ty.locale = current_locale()
+                       INNER JOIN db.type              y ON t.type = y.id
+                        LEFT JOIN db.type_text        ty ON ty.type = y.id AND ty.locale = current_locale()
 
-                          INNER JOIN db.priority          p ON t.priority = p.id
-                           LEFT JOIN db.priority_text    pt ON pt.priority = p.id AND pt.locale = current_locale()
+                       INNER JOIN db.priority          p ON t.priority = p.id
+                        LEFT JOIN db.priority_text    pt ON pt.priority = p.id AND pt.locale = current_locale()
 
-                          INNER JOIN db.state_type       st ON o.state_type = st.id
-                           LEFT JOIN db.state_type_text stt ON stt.type = st.id AND stt.locale = current_locale()
+                       INNER JOIN db.state_type       st ON o.state_type = st.id
+                        LEFT JOIN db.state_type_text stt ON stt.type = st.id AND stt.locale = current_locale()
 
-                          INNER JOIN db.state             s ON o.state = s.id
-                           LEFT JOIN db.state_text      sst ON sst.state = s.id AND sst.locale = current_locale()
+                       INNER JOIN db.state             s ON o.state = s.id
+                        LEFT JOIN db.state_text      sst ON sst.state = s.id AND sst.locale = current_locale()
 
-                          INNER JOIN db.user              w ON o.owner = w.id
-                          INNER JOIN db.user              u ON o.oper = u.id
+                       INNER JOIN db.user              w ON o.owner = w.id
+                       INNER JOIN db.user              u ON o.oper = u.id
 
-                          INNER JOIN DocumentAreaTree     a ON t.area = a.id
-                          INNER JOIN db.scope            sc ON o.scope = sc.id;
+                       INNER JOIN DocumentAreaTree     a ON t.area = a.id
+                       INNER JOIN db.scope            sc ON o.scope = sc.id;
 
 GRANT SELECT ON ObjectDocument TO administrator;

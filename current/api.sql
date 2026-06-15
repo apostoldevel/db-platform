@@ -130,7 +130,7 @@ CREATE OR REPLACE FUNCTION api.oper_date()
 RETURNS         timestamptz
 AS $$
 BEGIN
-  RETURN GetOperDate();
+  RETURN GetSessionOperDate();
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

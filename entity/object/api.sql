@@ -8,7 +8,7 @@
 
 CREATE OR REPLACE VIEW api.object
 AS
-  SELECT * FROM AccessObject;
+  SELECT t.* FROM Object t INNER JOIN AccessObject a ON t.id = a.object;
 
 GRANT SELECT ON api.object TO administrator;
 
@@ -122,7 +122,7 @@ CREATE OR REPLACE FUNCTION api.get_object (
   pId       uuid
 ) RETURNS   SETOF api.object
 AS $$
-  SELECT * FROM api.object WHERE id = pId AND CheckObjectAccess(id, B'100')
+  SELECT * FROM Object WHERE id = pId AND CheckObjectAccess(id, B'100')
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -143,7 +143,7 @@ CREATE OR REPLACE FUNCTION api.count_object (
 ) RETURNS    SETOF bigint
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'object', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
+  RETURN QUERY EXECUTE api.sql('kernel', 'Object', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -171,7 +171,7 @@ CREATE OR REPLACE FUNCTION api.list_object (
 ) RETURNS   SETOF api.object
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'object', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+  RETURN QUERY EXECUTE api.sql('kernel', 'Object', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -855,8 +855,8 @@ CREATE OR REPLACE VIEW api.object_link
 AS
   SELECT l.id, l.object AS objectId, row_to_json(oo) AS object, l.linked AS linkedId, row_to_json(ol) AS linked,
          l.key, l.validfromdate, l.validtodate
-    FROM db.object_link l INNER JOIN AccessObject oo ON l.object = oo.id
-                          INNER JOIN Object       ol ON l.linked = ol.id
+    FROM db.object_link l INNER JOIN Object oo ON l.object = oo.id AND CheckObjectAccess(oo.id, B'100')
+                          INNER JOIN Object ol ON l.linked = ol.id AND CheckObjectAccess(ol.id, B'100')
    WHERE l.validfromdate <= oper_date()
      AND l.validtodate > oper_date();
 
@@ -975,7 +975,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE VIEW api.object_file
 AS
-  SELECT f.* FROM ObjectFile f INNER JOIN AccessObject o ON f.object = o.id;
+  SELECT f.* FROM ObjectFile f INNER JOIN AccessObject o ON f.object = o.object;
 
 GRANT SELECT ON api.object_file TO administrator;
 
@@ -1314,7 +1314,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE VIEW api.object_data
 AS
-  SELECT d.* FROM ObjectData d INNER JOIN AccessObject o ON d.object = o.id;
+  SELECT d.* FROM ObjectData d INNER JOIN AccessObject o ON d.object = o.object;
 
 GRANT SELECT ON api.object_data TO administrator;
 
@@ -1574,7 +1574,7 @@ $$ LANGUAGE plpgsql
 
 CREATE OR REPLACE VIEW api.object_coordinates
 AS
-  SELECT c.* FROM ObjectCoordinates c INNER JOIN AccessObject o ON c.object = o.id;
+  SELECT c.* FROM ObjectCoordinates c INNER JOIN AccessObject o ON c.object = o.object;
 
 GRANT SELECT ON api.object_coordinates TO administrator;
 

@@ -8,7 +8,7 @@
 
 CREATE OR REPLACE VIEW api.vendor
 AS
-  SELECT * FROM ObjectVendor;
+  SELECT t.* FROM ObjectVendor t INNER JOIN AccessVendor a ON t.object = a.object;
 
 GRANT SELECT ON api.vendor TO administrator;
 
@@ -128,7 +128,7 @@ CREATE OR REPLACE FUNCTION api.get_vendor (
   pId       uuid
 ) RETURNS   SETOF api.vendor
 AS $$
-  SELECT * FROM api.vendor WHERE id = pId AND CheckObjectAccess(id, B'100')
+  SELECT * FROM kernel.ObjectVendor WHERE id = pId AND CheckObjectAccess(id, B'100')
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -149,7 +149,7 @@ CREATE OR REPLACE FUNCTION api.count_vendor (
 ) RETURNS    SETOF bigint
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'vendor', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
+  RETURN QUERY EXECUTE api.sql('kernel', 'ObjectVendor', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -177,7 +177,7 @@ CREATE OR REPLACE FUNCTION api.list_vendor (
 ) RETURNS   SETOF api.vendor
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'vendor', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+  RETURN QUERY EXECUTE api.sql('kernel', 'ObjectVendor', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

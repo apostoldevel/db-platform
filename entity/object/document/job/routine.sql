@@ -144,12 +144,7 @@ CREATE OR REPLACE FUNCTION GetJob (
   pCode     text
 ) RETURNS   uuid
 AS $$
-DECLARE
-  uId       uuid;
-BEGIN
-  SELECT id INTO uId FROM db.job WHERE code = pCode;
-  RETURN uId;
-END;
-$$ LANGUAGE plpgsql
+  SELECT id FROM db.job WHERE code = pCode
+$$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

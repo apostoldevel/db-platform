@@ -19,8 +19,7 @@ AS $$
       SELECT pUserId AS userid UNION SELECT userid FROM db.member_group WHERE member = pUserId
   )
   SELECT a.object, bit_or(a.deny), bit_or(a.allow), bit_or(a.allow) & ~bit_or(a.deny)
-    FROM db.aou a INNER JOIN db.object    o ON a.object = o.id
-                  INNER JOIN member_group m ON a.userid = m.userid
+    FROM db.aou a INNER JOIN member_group m ON a.userid = m.userid
    GROUP BY a.object;
 $$ LANGUAGE SQL
    SECURITY DEFINER
@@ -49,8 +48,7 @@ AS $$
       SELECT pUserId AS userid UNION SELECT userid FROM db.member_group WHERE member = pUserId
   )
   SELECT a.object, bit_or(a.deny), bit_or(a.allow), bit_or(a.allow) & ~bit_or(a.deny)
-    FROM db.aou a INNER JOIN db.object    o ON a.object = o.id
-                  INNER JOIN member_group m ON a.userid = m.userid
+    FROM db.aou a INNER JOIN member_group m ON a.userid = m.userid
    WHERE a.object = pObject
    GROUP BY a.object
 $$ LANGUAGE SQL
@@ -80,8 +78,8 @@ AS $$
       SELECT pUserId AS userid UNION SELECT userid FROM db.member_group WHERE member = pUserId
   )
   SELECT a.object, bit_or(a.deny), bit_or(a.allow), bit_or(a.allow) & ~bit_or(a.deny)
-    FROM db.aou a INNER JOIN db.object    o ON a.object = o.id AND a.entity = pEntity
-                  INNER JOIN member_group m ON a.userid = m.userid
+    FROM db.aou a INNER JOIN member_group m ON a.userid = m.userid
+   WHERE a.entity = pEntity
    GROUP BY a.object;
 $$ LANGUAGE SQL STABLE STRICT
    SECURITY DEFINER
@@ -271,10 +269,10 @@ AS $$
       SELECT pUserId AS userid UNION SELECT userid FROM db.member_group WHERE member = pUserId
   )
   SELECT a.object
-    FROM db.object o INNER JOIN db.aou       a ON a.object = o.id
-                     INNER JOIN _membergroup m ON a.userid = m.userid
-   WHERE o.scope = pScope
-     AND o.entity = pEntity
+    FROM db.aou a INNER JOIN _membergroup m ON a.userid = m.userid
+                  INNER JOIN db.object o ON a.object = o.id
+   WHERE a.entity = pEntity
+     AND o.scope = pScope
    GROUP BY object
   HAVING (bit_or(a.allow) & ~bit_or(a.deny)) & B'100' = B'100'
 $$ LANGUAGE SQL STABLE STRICT

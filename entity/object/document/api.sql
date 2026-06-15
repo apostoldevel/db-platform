@@ -8,7 +8,7 @@
 
 CREATE OR REPLACE VIEW api.document
 AS
-  SELECT * FROM ObjectDocument;
+  SELECT t.* FROM ObjectDocument t INNER JOIN AccessDocument a ON t.object = a.object;
 
 GRANT SELECT ON api.document TO administrator;
 
@@ -128,7 +128,7 @@ CREATE OR REPLACE FUNCTION api.get_document (
   pId       uuid
 ) RETURNS   SETOF api.document
 AS $$
-  SELECT * FROM api.document WHERE id = pId AND CheckObjectAccess(id, B'100')
+  SELECT * FROM ObjectDocument WHERE id = pId AND CheckObjectAccess(id, B'100')
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -149,7 +149,7 @@ CREATE OR REPLACE FUNCTION api.count_document (
 ) RETURNS    SETOF bigint
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'document', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
+  RETURN QUERY EXECUTE api.sql('kernel', 'ObjectDocument', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -177,7 +177,7 @@ CREATE OR REPLACE FUNCTION api.list_document (
 ) RETURNS    SETOF api.document
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'document', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+  RETURN QUERY EXECUTE api.sql('kernel', 'ObjectDocument', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

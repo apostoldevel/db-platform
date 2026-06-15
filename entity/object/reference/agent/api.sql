@@ -8,7 +8,7 @@
 
 CREATE OR REPLACE VIEW api.agent
 AS
-  SELECT * FROM ObjectAgent;
+  SELECT t.* FROM ObjectAgent t INNER JOIN AccessAgent a ON t.object = a.object;
 
 GRANT SELECT ON api.agent TO administrator;
 
@@ -134,7 +134,7 @@ CREATE OR REPLACE FUNCTION api.get_agent (
   pId       uuid
 ) RETURNS   SETOF api.agent
 AS $$
-  SELECT * FROM api.agent WHERE id = pId AND CheckObjectAccess(id, B'100')
+  SELECT * FROM kernel.ObjectAgent WHERE id = pId AND CheckObjectAccess(id, B'100')
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -155,7 +155,7 @@ CREATE OR REPLACE FUNCTION api.count_agent (
 ) RETURNS    SETOF bigint
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'agent', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
+  RETURN QUERY EXECUTE api.sql('kernel', 'ObjectAgent', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -183,7 +183,7 @@ CREATE OR REPLACE FUNCTION api.list_agent (
 ) RETURNS   SETOF api.agent
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'agent', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+  RETURN QUERY EXECUTE api.sql('kernel', 'ObjectAgent', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

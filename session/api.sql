@@ -132,7 +132,7 @@ CREATE OR REPLACE FUNCTION api.set_session_oper_date (
 ) RETURNS       void
 AS $$
 BEGIN
-  PERFORM SetOperDate(pOperDate);
+  PERFORM SetSessionOperDate(pOperDate);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -152,7 +152,7 @@ CREATE OR REPLACE FUNCTION api.set_session_oper_date (
 ) RETURNS     void
 AS $$
 BEGIN
-  PERFORM SetOperDate(pOperDate);
+  PERFORM SetSessionOperDate(pOperDate);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

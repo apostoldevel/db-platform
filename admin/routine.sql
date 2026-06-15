@@ -1813,6 +1813,82 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- FUNCTION SetAccessMode ------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Enables or disables access mode (AOU) for the current session.
+ * @param {boolean} pValue - true to enable, false to disable
+ * @return {void}
+ * @since 1.0.0
+ */
+CREATE OR REPLACE FUNCTION SetAccessMode (
+  pValue        boolean
+) RETURNS       void
+AS $$
+BEGIN
+  PERFORM SafeSetVar('access', pValue::text);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION GetAccessMode ------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Retrieve the current access mode (defaults to true).
+ * @return {boolean} true if access mode is enabled
+ * @since 1.0.0
+ */
+CREATE OR REPLACE FUNCTION GetAccessMode()
+RETURNS         boolean
+AS $$
+BEGIN
+  RETURN coalesce(SafeGetVar('access')::boolean, true);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION SetNotificationMode ------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Enables or disables notification mode (NOTIFY) for the current session.
+ * @param {boolean} pValue - true to enable, false to disable
+ * @return {void}
+ * @since 1.0.0
+ */
+CREATE OR REPLACE FUNCTION SetNotificationMode (
+  pValue        boolean
+) RETURNS       void
+AS $$
+BEGIN
+  PERFORM SafeSetVar('notification', pValue::text);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION GetAccessMode ------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Retrieve the current notification mode (defaults to true).
+ * @return {boolean} true if access mode is enabled
+ * @since 1.0.0
+ */
+CREATE OR REPLACE FUNCTION GetNotificationMode()
+RETURNS         boolean
+AS $$
+BEGIN
+  RETURN coalesce(SafeGetVar('notification')::boolean, true);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- FUNCTION SetCurrentSession --------------------------------------------------
 --------------------------------------------------------------------------------
 /**
@@ -2263,6 +2339,45 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- FUNCTION SetCurrentArea -----------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Updates the area for the current session.
+ * @param {uuid} pArea - Area identifier
+ * @return {void}
+ * @since 1.0.0
+ */
+CREATE OR REPLACE FUNCTION SetCurrentArea (
+  pArea         uuid
+) RETURNS       void
+AS $$
+BEGIN
+  PERFORM SafeSetVar('area', pArea::text);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION GetCurrentArea -----------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Retrieve the area identifier for the current session.
+ * @return {uuid} Area identifier
+ * @since 1.0.0
+ */
+CREATE OR REPLACE FUNCTION GetCurrentArea()
+RETURNS         uuid
+AS $$
+BEGIN
+  RETURN SafeGetVar('area');
+END
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   STABLE
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- FUNCTION SetSessionArea -----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
@@ -2337,7 +2452,7 @@ CREATE OR REPLACE FUNCTION current_area (
 RETURNS         uuid
 AS $$
 BEGIN
-  RETURN coalesce(GetSessionArea(pSession), '00000000-0000-4003-a000-000000000002');
+  RETURN coalesce(GetCurrentArea(), GetSessionArea(pSession), '00000000-0000-4003-a000-000000000002');
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -2420,11 +2535,50 @@ $$ LANGUAGE plpgsql
 /**
  * @brief Sets the operational date for the given session.
  * @param {timestamptz} pOperDate - Operational (business) date
- * @param {varchar} pSession - Session code (defaults to current session)
  * @return {void}
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION SetOperDate (
+  pOperDate     timestamptz
+) RETURNS       void
+AS $$
+BEGIN
+  PERFORM SafeSetVar('oper_date', DateToStr(pOperDate));
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION GetOperDate --------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Retrieve the operational date for the given session.
+ * @return {timestamptz} Operational date, or NULL if not set
+ * @since 1.0.0
+ */
+CREATE OR REPLACE FUNCTION GetOperDate()
+RETURNS     timestamptz
+AS $$
+BEGIN
+  RETURN StrToTimeStampTZ(SafeGetVar('oper_date'));
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   STABLE
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION SetSessionOperDate -------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Sets the operational date for the given session.
+ * @param {timestamptz} pOperDate - Operational (business) date
+ * @param {varchar} pSession - Session code (defaults to current session)
+ * @return {void}
+ * @since 1.0.0
+ */
+CREATE OR REPLACE FUNCTION SetSessionOperDate (
   pOperDate     timestamptz,
   pSession      varchar DEFAULT current_session()
 ) RETURNS       void
@@ -2437,7 +2591,7 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- FUNCTION GetOperDate --------------------------------------------------------
+-- FUNCTION GetSessionOperDate -------------------------------------------------
 --------------------------------------------------------------------------------
 /**
  * @brief Retrieve the operational date for the given session.
@@ -2445,7 +2599,7 @@ $$ LANGUAGE plpgsql
  * @return {timestamptz} Operational date, or NULL if not set
  * @since 1.0.0
  */
-CREATE OR REPLACE FUNCTION GetOperDate (
+CREATE OR REPLACE FUNCTION GetSessionOperDate (
   pSession      varchar DEFAULT current_session()
 )
 RETURNS         timestamptz
@@ -2472,18 +2626,11 @@ $$ LANGUAGE plpgsql
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION oper_date (
-  pSession      varchar DEFAULT current_session()
-)
-RETURNS         timestamptz
+  pSession  varchar DEFAULT current_session()
+) RETURNS   timestamptz
 AS $$
-DECLARE
-  dtOperDate    timestamptz;
 BEGIN
-  dtOperDate := GetOperDate(pSession);
-  IF dtOperDate IS NULL THEN
-    dtOperDate := now();
-  END IF;
-  RETURN dtOperDate;
+  RETURN coalesce(GetOperDate(), GetSessionOperDate(pSession), Now());
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -5571,6 +5718,8 @@ BEGIN
     PERFORM SetCurrentSession(pSession);
     PERFORM SetCurrentUserId(up.id);
     PERFORM SetOAuth2ClientId(GetAudienceCode(nAudience));
+    PERFORM SetAccessMode(NOT IsUserRole(GetGroup('administrator'), uUserId));
+    PERFORM SetNotificationMode(true);
 
     IF pSalt IS NOT NULL THEN
       UPDATE db.user SET status = set_bit(set_bit(status, 3, 0), 2, 1) WHERE id = up.id;
@@ -5698,6 +5847,8 @@ BEGIN
     PERFORM SetCurrentSession(vSession);
     PERFORM SetCurrentUserId(up.id);
     PERFORM SetOAuth2ClientId(GetAudienceCode(nAudience));
+    PERFORM SetAccessMode(NOT IsUserRole(GetGroup('administrator'), up.id));
+    PERFORM SetNotificationMode(true);
 
     UPDATE db.user SET status = set_bit(set_bit(status, 3, 0), 2, 1), lock_date = null WHERE id = up.id;
 

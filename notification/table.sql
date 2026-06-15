@@ -54,6 +54,10 @@ DECLARE
   vEntity   text;
   vAction   text;
 BEGIN
+  IF NOT GetNotificationMode() THEN
+	RETURN NEW;
+  END IF;
+
   PERFORM pg_notify('notify', row_to_json(NEW)::text);
 
   vEntity := GetEntityCode(NEW.entity);

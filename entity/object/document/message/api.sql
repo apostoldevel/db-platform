@@ -8,7 +8,7 @@
 
 CREATE OR REPLACE VIEW api.message
 AS
-  SELECT * FROM ObjectMessage;
+  SELECT t.* FROM ObjectMessage t INNER JOIN AccessMessage a ON t.object = a.object;
 
 GRANT SELECT ON api.message TO administrator;
 
@@ -18,7 +18,7 @@ GRANT SELECT ON api.message TO administrator;
 
 CREATE OR REPLACE VIEW api.service_message
 AS
-  SELECT * FROM ServiceMessage WHERE scope = current_scope();
+  SELECT * FROM ObjectMessage WHERE scope = current_scope();
 
 GRANT SELECT ON api.service_message TO administrator;
 GRANT SELECT ON api.service_message TO apibot;
@@ -230,7 +230,7 @@ CREATE OR REPLACE FUNCTION api.get_message (
   pId       uuid
 ) RETURNS   SETOF api.message
 AS $$
-  SELECT * FROM api.message WHERE id = pId AND CheckObjectAccess(id, B'100')
+  SELECT * FROM kernel.ObjectMessage WHERE id = pId AND CheckObjectAccess(id, B'100')
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -269,7 +269,7 @@ CREATE OR REPLACE FUNCTION api.count_message (
 ) RETURNS    SETOF bigint
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'message', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
+  RETURN QUERY EXECUTE api.sql('kernel', 'ObjectMessage', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -297,7 +297,31 @@ CREATE OR REPLACE FUNCTION api.list_message (
 ) RETURNS   SETOF api.message
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'message', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+  RETURN QUERY EXECUTE api.sql('kernel', 'ObjectMessage', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.get_message_id ----------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Resolve a message code (or UUID string) to its identifier.
+ * @param {text} pCode - Message code or UUID string
+ * @return {uuid} - Message identifier
+ * @since 1.0.0
+ */
+CREATE OR REPLACE FUNCTION api.get_message_id (
+  pCode     text
+) RETURNS   uuid
+AS $$
+BEGIN
+  IF length(pCode) = 36 AND SubStr(pCode, 15, 1) = '4' THEN
+    RETURN pCode;
+  END IF;
+
+  RETURN GetMessage(pCode);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

@@ -8,7 +8,7 @@
 
 CREATE OR REPLACE VIEW api.program
 AS
-  SELECT * FROM ObjectProgram;
+  SELECT t.* FROM ObjectProgram t INNER JOIN AccessProgram a ON t.object = a.object;
 
 GRANT SELECT ON api.program TO administrator;
 
@@ -134,7 +134,7 @@ CREATE OR REPLACE FUNCTION api.get_program (
   pId       uuid
 ) RETURNS   SETOF api.program
 AS $$
-  SELECT * FROM api.program WHERE id = pId AND CheckObjectAccess(id, B'100')
+  SELECT * FROM ObjectProgram WHERE id = pId AND CheckObjectAccess(id, B'100')
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -155,7 +155,7 @@ CREATE OR REPLACE FUNCTION api.count_program (
 ) RETURNS    SETOF bigint
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'program', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
+  RETURN QUERY EXECUTE api.sql('kernel', 'ObjectProgram', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -183,7 +183,7 @@ CREATE OR REPLACE FUNCTION api.list_program (
 ) RETURNS   SETOF api.program
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'program', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+  RETURN QUERY EXECUTE api.sql('kernel', 'ObjectProgram', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

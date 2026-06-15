@@ -8,7 +8,7 @@
 
 CREATE OR REPLACE VIEW api.version
 AS
-  SELECT * FROM ObjectVersion;
+  SELECT t.* FROM ObjectVersion t INNER JOIN AccessVersion a ON t.object = a.object;
 
 GRANT SELECT ON api.version TO administrator;
 
@@ -128,7 +128,7 @@ CREATE OR REPLACE FUNCTION api.get_version (
   pId       uuid
 ) RETURNS   SETOF api.version
 AS $$
-  SELECT * FROM api.version WHERE id = pId AND CheckObjectAccess(id, B'100')
+  SELECT * FROM kernel.ObjectVersion WHERE id = pId AND CheckObjectAccess(id, B'100')
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -149,7 +149,7 @@ CREATE OR REPLACE FUNCTION api.count_version (
 ) RETURNS    SETOF bigint
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'version', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
+  RETURN QUERY EXECUTE api.sql('kernel', 'ObjectVersion', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -177,7 +177,7 @@ CREATE OR REPLACE FUNCTION api.list_version (
 ) RETURNS   SETOF api.version
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'version', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+  RETURN QUERY EXECUTE api.sql('kernel', 'ObjectVersion', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

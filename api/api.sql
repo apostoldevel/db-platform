@@ -157,9 +157,9 @@ DECLARE
 
   uId           uuid;
 
---  vTable        text;
+  vTable        text;
+  vFields       text;
 
-  vWith         text;
   vSelect       text;
   vWhere        text;
   vOrderBy      text;
@@ -175,25 +175,26 @@ DECLARE
   arValues      text[];
   arColumns     text[];
 BEGIN
-/*
-  SELECT table_name INTO vTable
-    FROM information_schema.tables
-   WHERE table_catalog = current_database()
-     AND table_schema = pScheme
-     AND table_name = pTable
-     AND table_type = 'VIEW';
-
-  IF NOT FOUND THEN
-    PERFORM ViewNotFound(pScheme, pTable);
-  END IF;
-*/
-
   pOrderBy := NULLIF(pOrderBy, '[]');
   pGroupBy := NULLIF(pGroupBy, '[]');
 
   arColumns := GetColumns(pTable, pScheme);
+  vFields := nullif(JsonbToFields(pFields, arColumns), '*');
 
-  vSelect := coalesce(vWith, '') || 'SELECT ' || JsonbToFields(pFields, arColumns) || E'\n  FROM ' || pScheme || '.' || pTable || ' t ' || coalesce(vJoin, '');
+  IF GetAccessMode() THEN
+    SELECT table_name INTO vTable
+      FROM information_schema.tables
+     WHERE table_catalog = current_database()
+       AND table_schema = 'kernel'
+       AND table_name = format('access%s', pTable)
+       AND table_type = 'VIEW';
+
+    IF FOUND THEN
+      vJoin := format('INNER JOIN %s aou ON t.id = aou.object', vTable);
+    END IF;
+  END IF;
+
+  vSelect := 'SELECT ' || coalesce(vFields, 't.*') || E'\n  FROM ' || pScheme || '.' || pTable || ' t ' || coalesce(vJoin, '');
 
   IF pFilter IS NOT NULL THEN
     PERFORM CheckJsonbKeys(pTable || '/filter', arColumns, pFilter);
@@ -266,7 +267,7 @@ BEGIN
           ELSIF vField = 'typecode' THEN
             vField := 'type';
             SELECT id INTO uId FROM db.type WHERE code = r.value;
-        	vValue := quote_nullable(uId);
+            vValue := quote_nullable(uId);
 		  ELSIF vField = 'classcode' THEN
 			vField := 'class';
 			SELECT id INTO uId FROM db.class_tree WHERE code = r.value;

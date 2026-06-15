@@ -8,7 +8,7 @@
 
 CREATE OR REPLACE VIEW api.form
 AS
-  SELECT * FROM ObjectForm;
+  SELECT t.* FROM ObjectForm t INNER JOIN AccessForm a ON t.object = a.object;
 
 GRANT SELECT ON api.form TO administrator;
 
@@ -128,7 +128,7 @@ CREATE OR REPLACE FUNCTION api.get_form (
   pId       uuid
 ) RETURNS   SETOF api.form
 AS $$
-  SELECT * FROM api.form WHERE id = pId AND CheckObjectAccess(id, B'100')
+  SELECT * FROM ObjectForm WHERE id = pId AND CheckObjectAccess(id, B'100')
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -149,7 +149,7 @@ CREATE OR REPLACE FUNCTION api.count_form (
 ) RETURNS    SETOF bigint
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'form', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
+  RETURN QUERY EXECUTE api.sql('kernel', 'ObjectForm', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -177,7 +177,31 @@ CREATE OR REPLACE FUNCTION api.list_form (
 ) RETURNS   SETOF api.form
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'form', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+  RETURN QUERY EXECUTE api.sql('kernel', 'ObjectForm', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.get_form_id -------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Resolve a form ID from a code or UUID string.
+ * @param {text} pCode - Form code or UUID
+ * @return {uuid} - Form ID
+ * @since 1.0.0
+ */
+CREATE OR REPLACE FUNCTION api.get_form_id (
+  pCode     text
+) RETURNS   uuid
+AS $$
+BEGIN
+  IF length(pCode) = 36 AND SubStr(pCode, 15, 1) = '4' THEN
+    RETURN pCode;
+  END IF;
+
+  RETURN GetForm(pCode);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

@@ -46,23 +46,14 @@ GRANT SELECT ON Object TO administrator;
 
 CREATE OR REPLACE VIEW AccessObject
 AS
-  WITH access AS (
-    SELECT * FROM aou(current_userid())
-  )
-  SELECT o.* FROM Object o INNER JOIN access ac ON o.id = ac.object WHERE o.scope = current_scope();
-
-GRANT SELECT ON AccessObject TO administrator;
-
---------------------------------------------------------------------------------
--- AccessObjectId --------------------------------------------------------------
---------------------------------------------------------------------------------
-
-CREATE OR REPLACE VIEW AccessObjectId
-AS
-  WITH access AS (
-    SELECT * FROM aou(current_userid())
-  )
-  SELECT o.id FROM db.object o INNER JOIN access ac ON o.id = ac.object WHERE o.scope = current_scope();
+WITH _membergroup AS (
+  SELECT current_userid() AS userid UNION SELECT userid FROM db.member_group WHERE member = current_userid()
+) SELECT a.object
+    FROM db.aou a INNER JOIN _membergroup m ON a.userid = m.userid
+                  INNER JOIN db.object    o ON a.object = o.id
+   WHERE o.scope = current_scope()
+   GROUP BY a.object
+  HAVING (bit_or(a.allow) & ~bit_or(a.deny)) & B'100' = B'100';
 
 GRANT SELECT ON AccessObject TO administrator;
 

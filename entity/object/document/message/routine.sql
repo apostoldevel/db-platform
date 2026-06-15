@@ -117,6 +117,24 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- GetMessage ----------------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Look up a job identifier by its unique code.
+ * @param {text} pCode - Message code
+ * @return {uuid} - Message identifier, or NULL if not found
+ * @since 1.0.0
+ */
+CREATE OR REPLACE FUNCTION GetMessage (
+  pCode     text
+) RETURNS   uuid
+AS $$
+  SELECT id FROM db.message WHERE code = pCode
+$$ LANGUAGE sql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- GetMessageCode --------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**

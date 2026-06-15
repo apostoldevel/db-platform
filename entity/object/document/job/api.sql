@@ -8,7 +8,7 @@
 
 CREATE OR REPLACE VIEW api.job
 AS
-  SELECT * FROM ObjectJob;
+  SELECT t.* FROM ObjectJob t INNER JOIN AccessJob a ON t.object = a.object;
 
 GRANT SELECT ON api.job TO administrator;
 
@@ -18,7 +18,7 @@ GRANT SELECT ON api.job TO administrator;
 
 CREATE OR REPLACE VIEW api.service_job
 AS
-  SELECT * FROM ServiceJob WHERE scope = current_scope();
+  SELECT * FROM ObjectJob WHERE scope = current_scope();
 
 GRANT SELECT ON api.service_job TO administrator;
 GRANT SELECT ON api.service_job TO apibot;
@@ -216,7 +216,7 @@ CREATE OR REPLACE FUNCTION api.get_job (
   pId       uuid
 ) RETURNS   SETOF api.job
 AS $$
-  SELECT * FROM api.job WHERE id = pId AND CheckObjectAccess(id, B'100')
+  SELECT * FROM kernel.ObjectJob WHERE id = pId AND CheckObjectAccess(id, B'100')
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -237,7 +237,7 @@ CREATE OR REPLACE FUNCTION api.count_job (
 ) RETURNS    SETOF bigint
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'job', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
+  RETURN QUERY EXECUTE api.sql('kernel', 'ObjectJob', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -265,7 +265,7 @@ CREATE OR REPLACE FUNCTION api.list_job (
 ) RETURNS   SETOF api.job
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'job', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+  RETURN QUERY EXECUTE api.sql('kernel', 'ObjectJob', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
