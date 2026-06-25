@@ -22,11 +22,11 @@ CREATE OR REPLACE VIEW AccessReportForm
 AS
 WITH _membergroup AS (
   SELECT current_userid() AS userid UNION SELECT userid FROM db.member_group WHERE member = current_userid()
-) SELECT object
-	FROM db.report_form t INNER JOIN db.aou         a ON a.object = t.id
-                          INNER JOIN _membergroup   m ON a.userid = m.userid
-   GROUP BY object
-   HAVING (bit_or(a.allow) & ~bit_or(a.deny)) & B'100' = B'100';
+) SELECT a.object
+    FROM db.aou a INNER JOIN _membergroup m ON a.userid = m.userid
+   WHERE a.entity = GetEntity('report_form')
+   GROUP BY a.object
+  HAVING (bit_or(a.allow) & ~bit_or(a.deny)) & B'100' = B'100';
 
 GRANT SELECT ON AccessReportForm TO administrator;
 
@@ -55,9 +55,7 @@ CREATE OR REPLACE VIEW ObjectReportForm (Id, Object, Parent,
          o.owner, w.username, w.name, o.pdate,
          o.oper, u.username, u.name, o.ldate,
          o.scope, sc.code, sc.name, sc.description
-    FROM db.report_form t INNER JOIN AccessReportForm   aou ON t.id = aou.object
-
-                          INNER JOIN db.reference         r ON t.reference = r.id AND r.scope = current_scope()
+    FROM db.report_form t INNER JOIN db.reference         r ON t.reference = r.id AND r.scope = current_scope()
                            LEFT JOIN db.reference_text   rt ON rt.reference = r.id AND rt.locale = current_locale()
 
                           INNER JOIN db.object            o ON r.object = o.id

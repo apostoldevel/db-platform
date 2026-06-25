@@ -8,7 +8,7 @@
 
 CREATE OR REPLACE VIEW api.report_routine
 AS
-  SELECT * FROM ObjectReportRoutine;
+  SELECT t.* FROM ObjectReportRoutine t INNER JOIN AccessReportRoutine a ON t.object = a.object;
 
 GRANT SELECT ON api.report_routine TO administrator;
 
@@ -77,7 +77,7 @@ CREATE OR REPLACE FUNCTION api.update_report_routine (
 ) RETURNS       void
 AS $$
 DECLARE
-  uRoutine        uuid;
+  uRoutine      uuid;
 BEGIN
   SELECT id INTO uRoutine FROM db.report_routine WHERE id = pId;
 
@@ -167,7 +167,7 @@ CREATE OR REPLACE FUNCTION api.count_report_routine (
 ) RETURNS    SETOF bigint
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'report_routine', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
+  RETURN QUERY EXECUTE api.sql('kernel', 'ObjectReportRoutine', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -195,29 +195,7 @@ CREATE OR REPLACE FUNCTION api.list_report_routine (
 ) RETURNS   SETOF api.report_routine
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'report_routine', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
-
---------------------------------------------------------------------------------
--- api.call_report_routine -----------------------------------------------------
---------------------------------------------------------------------------------
-/**
- * @brief Invoke a report generation routine directly with the given form data.
- * @param {uuid} pId - Report routine identifier
- * @param {json} pForm - Input form parameters (JSON)
- * @return {SETOF json} - Generated report data as JSON
- * @since 1.0.0
- */
-CREATE OR REPLACE FUNCTION api.call_report_routine (
-  pId       uuid,
-  pForm     json
-) RETURNS   SETOF json
-AS $$
-BEGIN
-  RETURN QUERY SELECT * FROM CallReportRoutine(pId, pForm);
+  RETURN QUERY EXECUTE api.sql('kernel', 'ObjectReportRoutine', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

@@ -181,16 +181,16 @@ BEGIN
   arColumns := GetColumns(pTable, pScheme);
   vFields := nullif(JsonbToFields(pFields, arColumns), '*');
 
-  IF GetAccessMode() THEN
+  IF pScheme = 'kernel' AND GetAccessMode() THEN
     SELECT table_name INTO vTable
       FROM information_schema.tables
      WHERE table_catalog = current_database()
        AND table_schema = 'kernel'
-       AND table_name = format('access%s', pTable)
+       AND table_name = replace(lower(pTable), 'object', 'access')
        AND table_type = 'VIEW';
 
     IF FOUND THEN
-      vJoin := format('INNER JOIN %s aou ON t.id = aou.object', vTable);
+      vJoin := format('INNER JOIN %s.%s aou ON t.object = aou.object', pScheme, vTable);
     END IF;
   END IF;
 
@@ -217,6 +217,10 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_recordset(pSearch) AS x(condition text, field text, compare text, value text, valarr jsonb, lstr text, rstr text)
       LOOP
+        IF nullif(r.value, '') IS NULL THEN
+		  CONTINUE;
+		END IF;
+
         vCondition := coalesce(upper(r.condition), 'AND');
         vField     := coalesce(lower(r.field), '');
         vCompare   := coalesce(upper(r.compare), 'EQL');

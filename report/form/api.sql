@@ -8,7 +8,7 @@
 
 CREATE OR REPLACE VIEW api.report_form
 AS
-  SELECT * FROM ObjectReportForm;
+  SELECT t.* FROM ObjectReportForm t INNER JOIN AccessReportForm a ON t.object = a.object;
 
 GRANT SELECT ON api.report_form TO administrator;
 
@@ -155,7 +155,7 @@ CREATE OR REPLACE FUNCTION api.count_report_form (
 ) RETURNS    SETOF bigint
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'report_form', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
+  RETURN QUERY EXECUTE api.sql('kernel', 'ObjectReportForm', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -183,7 +183,7 @@ CREATE OR REPLACE FUNCTION api.list_report_form (
 ) RETURNS   SETOF api.report_form
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'report_form', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+  RETURN QUERY EXECUTE api.sql('kernel', 'ObjectReportForm', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

@@ -8,7 +8,7 @@
 
 CREATE OR REPLACE VIEW api.report_tree
 AS
-  SELECT * FROM ObjectReportTree;
+  SELECT t.* FROM ObjectReportTree t INNER JOIN AccessReportTree a ON t.object = a.object;
 
 GRANT SELECT ON api.report_tree TO administrator;
 
@@ -167,7 +167,7 @@ CREATE OR REPLACE FUNCTION api.count_report_tree (
 ) RETURNS    SETOF bigint
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'report_tree', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
+  RETURN QUERY EXECUTE api.sql('kernel', 'ObjectReportTree', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -195,7 +195,7 @@ CREATE OR REPLACE FUNCTION api.list_report_tree (
 ) RETURNS   SETOF api.report_tree
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'report_tree', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+  RETURN QUERY EXECUTE api.sql('kernel', 'ObjectReportTree', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

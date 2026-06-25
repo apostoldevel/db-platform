@@ -8,7 +8,7 @@
 
 CREATE OR REPLACE VIEW api.report_ready
 AS
-  SELECT * FROM ObjectReportReady;
+  SELECT t.* FROM ObjectReportReady t INNER JOIN AccessReportReady a ON t.object = a.object;
 
 GRANT SELECT ON api.report_ready TO administrator;
 
@@ -204,7 +204,7 @@ CREATE OR REPLACE FUNCTION api.count_report_ready (
 ) RETURNS    SETOF bigint
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'report_ready', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
+  RETURN QUERY EXECUTE api.sql('kernel', 'ObjectReportReady', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -232,7 +232,7 @@ CREATE OR REPLACE FUNCTION api.list_report_ready (
 ) RETURNS   SETOF api.report_ready
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'report_ready', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+  RETURN QUERY EXECUTE api.sql('kernel', 'ObjectReportReady', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

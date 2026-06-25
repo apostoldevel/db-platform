@@ -20,11 +20,11 @@ CREATE OR REPLACE VIEW AccessReportReady
 AS
 WITH _membergroup AS (
   SELECT current_userid() AS userid UNION SELECT userid FROM db.member_group WHERE member = current_userid()
-) SELECT object
-	FROM db.report_ready t INNER JOIN db.aou         a ON a.object = t.id
-                           INNER JOIN _membergroup   m ON a.userid = m.userid
-   GROUP BY object
-   HAVING (bit_or(a.allow) & ~bit_or(a.deny)) & B'100' = B'100';
+) SELECT a.object
+    FROM db.aou a INNER JOIN _membergroup m ON a.userid = m.userid
+   WHERE a.entity = GetEntity('report_ready')
+   GROUP BY a.object
+  HAVING (bit_or(a.allow) & ~bit_or(a.deny)) & B'100' = B'100';
 
 GRANT SELECT ON AccessReportReady TO administrator;
 
@@ -57,9 +57,7 @@ CREATE OR REPLACE VIEW ObjectReportReady (Id, Object, Parent,
          o.oper, u.username, u.name, o.ldate,
          d.area, a.code, a.name, a.description,
          o.scope, sc.code, sc.name, sc.description
-    FROM db.report_ready t INNER JOIN AccessReportReady  aou ON t.id = aou.object
-
-                           INNER JOIN db.document          d ON t.document = d.id
+    FROM db.report_ready t INNER JOIN db.document          d ON t.document = d.id
                             LEFT JOIN db.document_text    dt ON dt.document = d.id AND dt.locale = current_locale()
 
                            INNER JOIN db.object            o ON d.object = o.id
@@ -87,7 +85,6 @@ CREATE OR REPLACE VIEW ObjectReportReady (Id, Object, Parent,
                            INNER JOIN db.user              u ON o.oper = u.id
 
                            INNER JOIN DocumentAreaTree     a ON d.area = a.id
-
                            INNER JOIN db.scope            sc ON o.scope = sc.id;
 
 GRANT SELECT ON ObjectReportReady TO administrator;

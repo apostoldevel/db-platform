@@ -72,6 +72,14 @@ BEGIN
     pJson := pJson - 'hidden';
   END IF;
 
+  IF pJson ? 'oldpass' THEN
+    pJson := pJson - 'oldpass';
+  END IF;
+
+  IF pJson ? 'newpass' THEN
+    pJson := pJson - 'newpass';
+  END IF;
+
   INSERT INTO db.api_log (session, username, path, json, nonce, signature)
   VALUES (vSession, vUserName, pPath, pJson, pNonce, pSignature)
   RETURNING id INTO nId;
