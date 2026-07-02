@@ -217,10 +217,6 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_recordset(pSearch) AS x(condition text, field text, compare text, value text, valarr jsonb, lstr text, rstr text)
       LOOP
-        IF nullif(r.value, '') IS NULL THEN
-		  CONTINUE;
-		END IF;
-
         vCondition := coalesce(upper(r.condition), 'AND');
         vField     := coalesce(lower(r.field), '');
         vCompare   := coalesce(upper(r.compare), 'EQL');
@@ -264,6 +260,10 @@ BEGIN
             PERFORM IncorrectValueInArray(vCompare, 'compare', arValues);
           END IF;
 
+          IF NOT (vCompare = ANY (ARRAY['ISN', 'INN'])) AND nullif(r.value, '') IS NULL THEN
+            CONTINUE;
+          END IF;
+
           IF vField = 'statetypecode' THEN
             vField := 'statetype';
             SELECT id INTO uId FROM db.state_type WHERE code = r.value;
@@ -272,15 +272,15 @@ BEGIN
             vField := 'type';
             SELECT id INTO uId FROM db.type WHERE code = r.value;
             vValue := quote_nullable(uId);
-		  ELSIF vField = 'classcode' THEN
-			vField := 'class';
-			SELECT id INTO uId FROM db.class_tree WHERE code = r.value;
-			vValue := quote_nullable(uId);
-		  ELSIF vField = 'entitycode' THEN
-			vField := 'entity';
-			SELECT id INTO uId FROM db.entity WHERE code = r.value;
-			vValue := quote_nullable(uId);
-		  END IF;
+          ELSIF vField = 'classcode' THEN
+            vField := 'class';
+            SELECT id INTO uId FROM db.class_tree WHERE code = r.value;
+            vValue := quote_nullable(uId);
+          ELSIF vField = 'entitycode' THEN
+            vField := 'entity';
+            SELECT id INTO uId FROM db.entity WHERE code = r.value;
+            vValue := quote_nullable(uId);
+          END IF;
 
           IF vCompare IN ('AND', 'OR', 'XOR', 'NOT') THEN
             vValue := vValue || ' = ' || vValue;
@@ -378,20 +378,20 @@ $$ LANGUAGE plpgsql
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.run (
-  pMethod		text,
-  pPath			text,
-  pPayload		jsonb DEFAULT null
-) RETURNS		SETOF json
+  pMethod        text,
+  pPath            text,
+  pPayload        jsonb DEFAULT null
+) RETURNS        SETOF json
 AS $$
 DECLARE
-  r				record;
+  r                record;
 
-  arPath		text[];
+  arPath        text[];
 
-  uPath			uuid;
-  uEndpoint		uuid;
+  uPath            uuid;
+  uEndpoint        uuid;
 
-  nLength		integer;
+  nLength        integer;
 
   nApiId        bigint;
   dtBegin       timestamptz;
@@ -411,12 +411,12 @@ BEGIN
 
   uPath := QueryPath(pPath);
   IF uPath IS NULL THEN
-	PERFORM RouteNotFound(pPath);
+    PERFORM RouteNotFound(pPath);
   END IF;
 
   uEndpoint := GetEndpoint(uPath, pMethod);
   IF uEndpoint IS NULL THEN
-	PERFORM EndPointNotSet(pPath);
+    PERFORM EndPointNotSet(pPath);
   END IF;
 
   arPath := path_to_array(pPath);
@@ -426,7 +426,7 @@ BEGIN
   IF nLength >= 3 THEN
     FOR i IN 3..nLength
     LOOP
-	  pPath := coalesce(nullif(pPath, '/'), '') || '/' || arPath[i];
+      pPath := coalesce(nullif(pPath, '/'), '') || '/' || arPath[i];
     END LOOP;
   END IF;
 
@@ -438,7 +438,7 @@ BEGIN
 
   FOR r IN EXECUTE GetEndpointDefinition(uEndpoint) USING pPath, pPayload
   LOOP
-	RETURN NEXT r;
+    RETURN NEXT r;
   END LOOP;
 
   UPDATE db.api_log SET runtime = age(clock_timestamp(), dtBegin) WHERE id = nApiId;
