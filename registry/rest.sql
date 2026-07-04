@@ -30,6 +30,12 @@ BEGIN
     PERFORM LoginFailed();
   END IF;
 
+  IF session_user NOT IN ('kernel', 'apibot') THEN
+    IF NOT IsAdmin() THEN
+      PERFORM AccessDenied();
+    END IF;
+  END IF;
+
   CASE pPath
   WHEN '/registry/list' THEN
 

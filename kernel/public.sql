@@ -123,6 +123,7 @@ AS $$
 DECLARE
   r             record;
   arResult      text[];
+  vName         text;
 BEGIN
   FOR r IN
     SELECT ip.ordinal_position, ip.parameter_name, ip.data_type
@@ -132,10 +133,12 @@ BEGIN
        AND ip.parameter_mode = 'IN'
      ORDER BY ordinal_position
   LOOP
+    vName := quote_ident(SubStr(r.parameter_name::text, pNameFrom));
+
     IF pDataType THEN
-      arResult := array_append(arResult, SubStr(r.parameter_name::text, pNameFrom) || ' ' || r.data_type::text);
+      arResult := array_append(arResult, vName || ' ' || r.data_type::text);
     ELSE
-      arResult := array_append(arResult, coalesce(pAlias || '.', '') || SubStr(r.parameter_name::text, pNameFrom));
+      arResult := array_append(arResult, coalesce(pAlias || '.', '') || vName);
     END IF;
   END LOOP;
 

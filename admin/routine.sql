@@ -3100,10 +3100,8 @@ CREATE OR REPLACE FUNCTION IsUserRole (
   pUserId       uuid DEFAULT current_userid()
 ) RETURNS       boolean
 AS $$
-DECLARE
-  uId           uuid;
 BEGIN
-  SELECT member INTO uId FROM db.member_group WHERE userid = pRoleId AND member = pUserId;
+  PERFORM FROM db.member_group WHERE userid = pRoleId AND member = pUserId;
   RETURN FOUND;
 END;
 $$ LANGUAGE plpgsql
@@ -3128,12 +3126,33 @@ CREATE OR REPLACE FUNCTION IsUserRole (
 AS $$
 DECLARE
   uUserId       uuid;
-  nRoleId       uuid;
+  uRoleId       uuid;
 BEGIN
   SELECT id INTO uUserId FROM db.user WHERE username = pUser AND type = 'U';
-  SELECT id INTO nRoleId FROM db.user WHERE username = pRole AND type = 'G';
+  SELECT id INTO uRoleId FROM db.user WHERE username = pRole AND type = 'G';
 
-  RETURN IsUserRole(nRoleId, uUserId);
+  RETURN IsUserRole(uRoleId, uUserId);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   STABLE STRICT
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- IsSystem --------------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Checks if the user belongs to the "System" group.
+ * @param {uuid} pMember - User ID (default: current user)
+ * @return {boolean}
+ * @since 1.0.0
+ */
+CREATE OR REPLACE FUNCTION IsSystem (
+  pMember   uuid DEFAULT current_userid()
+) RETURNS   boolean
+AS $$
+BEGIN
+  RETURN IsUserRole(GetGroup('system'), pMember);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -3144,18 +3163,17 @@ $$ LANGUAGE plpgsql
 -- IsAdmin ---------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Checks whether the user is a member of the 'administrator' group.
- * @param {uuid} pMember - User identifier (defaults to current user)
- * @return {boolean} true if the user is an administrator
+ * @brief Checks if the user belongs to the "Administrators" group.
+ * @param {uuid} pMember - User ID (default: current user)
+ * @return {boolean}
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION IsAdmin (
-  pMember       uuid DEFAULT current_userid()
-) RETURNS       boolean
+  pMember   uuid DEFAULT current_userid()
+) RETURNS   boolean
 AS $$
 BEGIN
-  PERFORM FROM db.member_group WHERE userid = '00000000-0000-4000-a000-000000000001'::uuid AND member = pMember;
-  RETURN FOUND;
+  RETURN IsUserRole(GetGroup('administrator'), pMember);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

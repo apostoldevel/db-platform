@@ -4,7 +4,7 @@
 
 CREATE OR REPLACE VIEW Registry
 AS
-  SELECT * FROM registry.registry(GetRegRoot('kernel'))
+  SELECT * FROM registry.registry(GetRegRoot('kernel')) WHERE IsAdmin() OR IsSystem()
    UNION ALL
   SELECT * FROM registry.registry(GetRegRoot(current_username()));
 
@@ -16,7 +16,7 @@ GRANT ALL ON Registry TO administrator;
 
 CREATE OR REPLACE VIEW RegistryEx
 AS
-  SELECT * FROM registry.registry_ex(GetRegRoot('kernel'))
+  SELECT * FROM registry.registry_ex(GetRegRoot('kernel')) WHERE IsAdmin() OR IsSystem()
    UNION ALL
   SELECT * FROM registry.registry_ex(GetRegRoot(current_username()));
 
@@ -28,7 +28,7 @@ GRANT ALL ON RegistryEx TO administrator;
 
 CREATE OR REPLACE VIEW RegistryKey
 AS
-  SELECT * FROM registry.registry_key(GetRegRoot('kernel'))
+  SELECT * FROM registry.registry_key(GetRegRoot('kernel')) WHERE IsAdmin() OR IsSystem()
    UNION ALL
   SELECT * FROM registry.registry_key(GetRegRoot(current_username()));
 
@@ -40,7 +40,7 @@ GRANT ALL ON RegistryKey TO administrator;
 
 CREATE OR REPLACE VIEW RegistryValue
 AS
-  SELECT * FROM registry.registry_value(GetRegRoot('kernel'))
+  SELECT * FROM registry.registry_value(GetRegRoot('kernel')) WHERE IsAdmin() OR IsSystem()
    UNION ALL
   SELECT * FROM registry.registry_value(GetRegRoot(current_username()));
 
@@ -52,7 +52,7 @@ GRANT ALL ON RegistryValue TO administrator;
 
 CREATE OR REPLACE VIEW RegistryValueEx
 AS
-  SELECT * FROM registry.registry_value_ex(GetRegRoot('kernel'))
+  SELECT * FROM registry.registry_value_ex(GetRegRoot('kernel')) WHERE IsAdmin() OR IsSystem()
    UNION ALL
   SELECT * FROM registry.registry_value_ex(GetRegRoot(current_username()));
 
