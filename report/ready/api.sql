@@ -117,16 +117,13 @@ CREATE OR REPLACE FUNCTION api.update_report_ready (
   pDescription  text default null
 ) RETURNS       void
 AS $$
-DECLARE
-  uId           uuid;
 BEGIN
-  SELECT c.id INTO uId FROM db.report_ready c WHERE c.id = pId;
-
+  PERFORM FROM db.report_ready c WHERE c.id = pId;
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('report ready', 'id', pId);
   END IF;
 
-  PERFORM EditReportReady(uId, pParent, pType, pReport, pForm, pLabel, pDescription);
+  PERFORM EditReportReady(pId, pParent, pType, pReport, pForm, pLabel, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -183,7 +180,7 @@ CREATE OR REPLACE FUNCTION api.get_report_ready (
   pId       uuid
 ) RETURNS   SETOF api.report_ready
 AS $$
-  SELECT * FROM api.report_ready WHERE id = pId AND CheckObjectAccess(id, B'100')
+  SELECT * FROM api.report_ready WHERE id = pId
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

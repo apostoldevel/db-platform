@@ -64,16 +64,13 @@ CREATE OR REPLACE FUNCTION api.update_document (
   pData         text DEFAULT null
 ) RETURNS       void
 AS $$
-DECLARE
-  uDocument     uuid;
 BEGIN
-  SELECT t.id INTO uDocument FROM db.document t WHERE t.id = pId;
-
+  PERFORM FROM db.document WHERE id = pId;
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('document', 'id', pId);
   END IF;
 
-  PERFORM EditDocument(uDocument, pParent, pType,pLabel, pDescription, pData, current_locale());
+  PERFORM EditDocument(pId, pParent, pType,pLabel, pDescription, pData, current_locale());
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -128,7 +125,7 @@ CREATE OR REPLACE FUNCTION api.get_document (
   pId       uuid
 ) RETURNS   SETOF api.document
 AS $$
-  SELECT * FROM ObjectDocument WHERE id = pId AND CheckObjectAccess(id, B'100')
+  SELECT * FROM api.document WHERE id = pId
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

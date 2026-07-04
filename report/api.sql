@@ -8,7 +8,7 @@
 
 CREATE OR REPLACE VIEW api.report
 AS
-  SELECT * FROM ObjectReport;
+  SELECT t.* FROM ObjectReport t INNER JOIN AccessReport a ON t.object = a.object;
 
 GRANT SELECT ON api.report TO administrator;
 
@@ -106,16 +106,13 @@ CREATE OR REPLACE FUNCTION api.update_report (
   pInfo         jsonb default null
 ) RETURNS       void
 AS $$
-DECLARE
-  uId           uuid;
 BEGIN
-  SELECT r.id INTO uId FROM db.report r WHERE r.id = pId;
-
+  PERFORM FROM db.report WHERE id = pId;
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('report', 'id', pId);
   END IF;
 
-  PERFORM EditReport(uId, pParent, pType, pTree, pForm, pBinding, pCode, pName, pDescription, pInfo);
+  PERFORM EditReport(pId, pParent, pType, pTree, pForm, pBinding, pCode, pName, pDescription, pInfo);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -153,6 +150,8 @@ CREATE OR REPLACE FUNCTION api.set_report (
 ) RETURNS       SETOF api.report
 AS $$
 BEGIN
+  pId := coalesce(pId, GetReport(pCode));
+
   IF pId IS NULL THEN
     pId := api.add_report(pParent, pType, pTree, pForm, pBinding, pCode, pName, pDescription, pInfo);
   ELSE
@@ -178,7 +177,7 @@ CREATE OR REPLACE FUNCTION api.get_report (
   pId       uuid
 ) RETURNS   SETOF api.report
 AS $$
-  SELECT * FROM api.report WHERE id = pId AND CheckObjectAccess(id, B'100')
+  SELECT * FROM api.report WHERE id = pId
 $$ LANGUAGE SQL STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -199,7 +198,7 @@ CREATE OR REPLACE FUNCTION api.count_report (
 ) RETURNS    SETOF bigint
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'report', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
+  RETURN QUERY EXECUTE api.sql('kernel', 'ObjectReport', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -227,7 +226,7 @@ CREATE OR REPLACE FUNCTION api.list_report (
 ) RETURNS       SETOF api.report
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'report', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+  RETURN QUERY EXECUTE api.sql('kernel', 'ObjectReport', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

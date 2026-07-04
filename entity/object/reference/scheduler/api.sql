@@ -76,16 +76,13 @@ CREATE OR REPLACE FUNCTION api.update_scheduler (
   pDescription  text default null
 ) RETURNS       void
 AS $$
-DECLARE
-  uScheduler    uuid;
 BEGIN
-  SELECT t.id INTO uScheduler FROM db.scheduler t WHERE t.id = pId;
-
+  PERFORM FROM db.scheduler WHERE id = pId;
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('scheduler', 'id', pId);
   END IF;
 
-  PERFORM EditScheduler(uScheduler, pParent, pType, pCode, pName, pPeriod, pDateStart, pDateStop, pDescription);
+  PERFORM EditScheduler(pId, pParent, pType, pCode, pName, pPeriod, pDateStart, pDateStop, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -121,6 +118,8 @@ CREATE OR REPLACE FUNCTION api.set_scheduler (
 ) RETURNS       SETOF api.scheduler
 AS $$
 BEGIN
+  pId := coalesce(pId, GetScheduler(pCode));
+
   IF pId IS NULL THEN
     pId := api.add_scheduler(pParent, pType, pCode, pName, pPeriod, pDateStart, pDateStop, pDescription);
   ELSE
@@ -146,7 +145,7 @@ CREATE OR REPLACE FUNCTION api.get_scheduler (
   pId       uuid
 ) RETURNS   SETOF api.scheduler
 AS $$
-  SELECT * FROM kernel.ObjectScheduler WHERE id = pId AND CheckObjectAccess(id, B'100')
+  SELECT * FROM api.scheduler WHERE id = pId
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

@@ -31,11 +31,11 @@ CREATE OR REPLACE VIEW AccessReport
 AS
 WITH _membergroup AS (
   SELECT current_userid() AS userid UNION SELECT userid FROM db.member_group WHERE member = current_userid()
-) SELECT object
-    FROM db.report t INNER JOIN db.aou         a ON a.object = t.id
-                     INNER JOIN _membergroup   m ON a.userid = m.userid
-   GROUP BY object
-   HAVING (bit_or(a.allow) & ~bit_or(a.deny)) & B'100' = B'100';
+) SELECT a.object
+    FROM db.aou a INNER JOIN _membergroup m ON a.userid = m.userid
+   WHERE a.entity = GetEntity('report')
+   GROUP BY a.object
+  HAVING (bit_or(a.allow) & ~bit_or(a.deny)) & B'100' = B'100';
 
 GRANT SELECT ON AccessReport TO administrator;
 
@@ -70,12 +70,10 @@ CREATE OR REPLACE VIEW ObjectReport (Id, Object, Parent,
          o.owner, w.username, w.name, o.pdate,
          o.oper, u.username, u.name, o.ldate,
          o.scope, sc.code, sc.name, sc.description
-    FROM db.report t INNER JOIN AccessReport       aou ON t.id = aou.object
-
-                     INNER JOIN db.reference         r ON t.reference = r.id
+    FROM db.report t INNER JOIN db.reference         r ON t.reference = r.id
                       LEFT JOIN db.reference_text   rt ON rt.reference = r.id AND rt.locale = current_locale()
 
-                     INNER JOIN db.object            o ON t.reference = o.id
+                     INNER JOIN db.object            o ON r.object = o.id
                       LEFT JOIN db.object_text      ot ON ot.object = o.id AND ot.locale = current_locale()
 
                      INNER JOIN db.entity            e ON o.entity = e.id

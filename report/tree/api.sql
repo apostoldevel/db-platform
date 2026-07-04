@@ -76,16 +76,13 @@ CREATE OR REPLACE FUNCTION api.update_report_tree (
   pSequence     integer default null
 ) RETURNS       void
 AS $$
-DECLARE
-  uReportTree   uuid;
 BEGIN
-  SELECT t.id INTO uReportTree FROM db.report_tree t WHERE t.id = pId;
-
+  PERFORM FROM db.report_tree WHERE id = pId;
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('report tree', 'id', pId);
   END IF;
 
-  PERFORM EditReportTree(uReportTree, pParent, pType,pRoot, pNode, pCode, pName, pDescription, pSequence);
+  PERFORM EditReportTree(pId, pParent, pType,pRoot, pNode, pCode, pName, pDescription, pSequence);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -121,6 +118,8 @@ CREATE OR REPLACE FUNCTION api.set_report_tree (
 ) RETURNS       SETOF api.report_tree
 AS $$
 BEGIN
+  pId := coalesce(pId, GetReportTree(pCode));
+
   IF pId IS NULL THEN
     pId := api.add_report_tree(pParent, pType, pRoot, pNode, pCode, pName, pDescription, pSequence);
   ELSE
@@ -146,7 +145,7 @@ CREATE OR REPLACE FUNCTION api.get_report_tree (
   pId       uuid
 ) RETURNS   SETOF api.report_tree
 AS $$
-  SELECT * FROM api.report_tree WHERE id = pId AND CheckObjectAccess(id, B'100')
+  SELECT * FROM api.report_tree WHERE id = pId
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

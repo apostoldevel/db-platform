@@ -64,11 +64,8 @@ CREATE OR REPLACE FUNCTION api.update_form (
   pDescription  text default null
 ) RETURNS       void
 AS $$
-DECLARE
-  uForm        uuid;
 BEGIN
-  SELECT id INTO uForm FROM db.form WHERE id = pId;
-
+  PERFORM FROM db.form WHERE id = pId;
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('form', 'id', pId);
   END IF;
@@ -103,6 +100,8 @@ CREATE OR REPLACE FUNCTION api.set_form (
 ) RETURNS       SETOF api.form
 AS $$
 BEGIN
+  pId := coalesce(pId, GetForm(pCode));
+
   IF pId IS NULL THEN
     pId := api.add_form(pParent, pType, pCode, pName, pDescription);
   ELSE
@@ -128,7 +127,7 @@ CREATE OR REPLACE FUNCTION api.get_form (
   pId       uuid
 ) RETURNS   SETOF api.form
 AS $$
-  SELECT * FROM ObjectForm WHERE id = pId AND CheckObjectAccess(id, B'100')
+  SELECT * FROM api.form WHERE id = pId
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

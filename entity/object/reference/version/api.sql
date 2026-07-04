@@ -64,16 +64,13 @@ CREATE OR REPLACE FUNCTION api.update_version (
   pDescription  text default null
 ) RETURNS       void
 AS $$
-DECLARE
-  uVersion      uuid;
 BEGIN
-  SELECT t.id INTO uVersion FROM db.version t WHERE t.id = pId;
-
+  PERFORM FROM db.version WHERE id = pId;
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('version', 'id', pId);
   END IF;
 
-  PERFORM EditVersion(uVersion, pParent, pType, pCode, pName, pDescription);
+  PERFORM EditVersion(pId, pParent, pType, pCode, pName, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -103,6 +100,8 @@ CREATE OR REPLACE FUNCTION api.set_version (
 ) RETURNS       SETOF api.version
 AS $$
 BEGIN
+  pId := coalesce(pId, GetVersion(pCode));
+
   IF pId IS NULL THEN
     pId := api.add_version(pParent, pType, pCode, pName, pDescription);
   ELSE
@@ -128,7 +127,7 @@ CREATE OR REPLACE FUNCTION api.get_version (
   pId       uuid
 ) RETURNS   SETOF api.version
 AS $$
-  SELECT * FROM kernel.ObjectVersion WHERE id = pId AND CheckObjectAccess(id, B'100')
+  SELECT * FROM api.version WHERE id = pId
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

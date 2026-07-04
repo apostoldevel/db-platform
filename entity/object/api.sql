@@ -60,16 +60,13 @@ CREATE OR REPLACE FUNCTION api.update_object (
   pData         text default null
 ) RETURNS       void
 AS $$
-DECLARE
-  uObject       uuid;
 BEGIN
-  SELECT t.id INTO uObject FROM db.object t WHERE t.id = pId;
-
+  PERFORM FROM db.object WHERE id = pId;
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('object', 'id', pId);
   END IF;
 
-  PERFORM EditObject(uObject, pParent, pType, pLabel, pData, current_locale());
+  PERFORM EditObject(pId, pParent, pType, pLabel, pData, current_locale());
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -122,7 +119,7 @@ CREATE OR REPLACE FUNCTION api.get_object (
   pId       uuid
 ) RETURNS   SETOF api.object
 AS $$
-  SELECT * FROM Object WHERE id = pId AND CheckObjectAccess(id, B'100')
+  SELECT * FROM api.object WHERE id = pId
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -191,10 +188,8 @@ CREATE OR REPLACE FUNCTION api.get_object_label (
   pObject   uuid
 ) RETURNS   text
 AS $$
-DECLARE
-  uId       uuid;
 BEGIN
-  SELECT o.id INTO uId FROM db.object o WHERE o.id = pObject AND CheckObjectAccess(id, B'100');
+  PERFORM FROM db.object WHERE id = pObject AND CheckObjectAccess(id, B'100');
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('object', 'id', pObject);
   END IF;
@@ -263,11 +258,9 @@ CREATE OR REPLACE FUNCTION api.object_force_delete (
 ) RETURNS       void
 AS $$
 DECLARE
-  uId           uuid;
   uState        uuid;
 BEGIN
-  SELECT o.id INTO uId FROM db.object o WHERE o.id = pId;
-
+  PERFORM FROM db.object o WHERE o.id = pId;
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('object', 'id', pId);
   END IF;

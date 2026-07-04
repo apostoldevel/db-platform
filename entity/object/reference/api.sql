@@ -64,16 +64,13 @@ CREATE OR REPLACE FUNCTION api.update_reference (
   pDescription  text DEFAULT null
 ) RETURNS       void
 AS $$
-DECLARE
-  uReference    uuid;
 BEGIN
-  SELECT t.id INTO uReference FROM db.reference t WHERE t.id = pId;
-
+  PERFORM FROM db.reference WHERE id = pId;
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('reference', 'id', pId);
   END IF;
 
-  PERFORM EditReference(uReference, pParent, pType, pCode, pName, pDescription, current_locale());
+  PERFORM EditReference(pId, pParent, pType, pCode, pName, pDescription, current_locale());
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -103,6 +100,8 @@ CREATE OR REPLACE FUNCTION api.set_reference (
 ) RETURNS       SETOF api.reference
 AS $$
 BEGIN
+  pId := coalesce(pId, GetReference(pCode));
+
   IF pId IS NULL THEN
     pId := api.add_reference(pParent, pType, pCode, pName, pDescription);
   ELSE

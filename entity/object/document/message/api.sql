@@ -157,15 +157,13 @@ CREATE OR REPLACE FUNCTION api.update_message (
   pDescription  text default null
 ) RETURNS       void
 AS $$
-DECLARE
-  uMessage      uuid;
 BEGIN
-  SELECT a.id INTO uMessage FROM db.message a WHERE a.id = pId;
+  PERFORM FROM db.message WHERE id = pId;
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('message', 'id', pId);
   END IF;
 
-  PERFORM EditMessage(uMessage, pParent, pType, pAgent, pCode, pProfile, pAddress, pSubject, pContent, pLabel, pDescription);
+  PERFORM EditMessage(pId, pParent, pType, pAgent, pCode, pProfile, pAddress, pSubject, pContent, pLabel, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -205,6 +203,8 @@ CREATE OR REPLACE FUNCTION api.set_message (
 ) RETURNS       SETOF api.message
 AS $$
 BEGIN
+  pId := coalesce(pId, GetMessage(pCode));
+
   IF pId IS NULL THEN
     pId := api.add_message(pParent, pType, pAgent, pCode, pProfile, pAddress, pSubject, pContent, pLabel, pDescription);
   ELSE
@@ -230,7 +230,7 @@ CREATE OR REPLACE FUNCTION api.get_message (
   pId       uuid
 ) RETURNS   SETOF api.message
 AS $$
-  SELECT * FROM kernel.ObjectMessage WHERE id = pId AND CheckObjectAccess(id, B'100')
+  SELECT * FROM api.message WHERE id = pId
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -248,7 +248,7 @@ CREATE OR REPLACE FUNCTION api.get_service_message (
   pId       uuid
 ) RETURNS   SETOF api.service_message
 AS $$
-  SELECT * FROM api.service_message WHERE id = pId AND CheckObjectAccess(id, B'100')
+  SELECT * FROM api.service_message WHERE id = pId
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

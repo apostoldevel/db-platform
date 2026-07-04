@@ -76,11 +76,8 @@ CREATE OR REPLACE FUNCTION api.update_report_routine (
   pSequence     integer default null
 ) RETURNS       void
 AS $$
-DECLARE
-  uRoutine      uuid;
 BEGIN
-  SELECT id INTO uRoutine FROM db.report_routine WHERE id = pId;
-
+  PERFORM FROM db.report_routine WHERE id = pId;
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('report routine', 'id', pId);
   END IF;
@@ -121,6 +118,8 @@ CREATE OR REPLACE FUNCTION api.set_report_routine (
 ) RETURNS       SETOF api.report_routine
 AS $$
 BEGIN
+  pId := coalesce(pId, GetReportRoutine(pCode));
+
   IF pId IS NULL THEN
     pId := api.add_report_routine(pParent, pType, pReport, pCode, pName, pDefinition, pDescription, pSequence);
   ELSE
@@ -146,7 +145,7 @@ CREATE OR REPLACE FUNCTION api.get_report_routine (
   pId       uuid
 ) RETURNS   SETOF api.report_routine
 AS $$
-  SELECT * FROM api.report_routine WHERE id = pId AND CheckObjectAccess(id, B'100')
+  SELECT * FROM api.report_routine WHERE id = pId
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

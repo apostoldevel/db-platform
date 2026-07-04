@@ -68,16 +68,13 @@ CREATE OR REPLACE FUNCTION api.update_program (
   pDescription  text default null
 ) RETURNS       void
 AS $$
-DECLARE
-  uProgram      uuid;
 BEGIN
-  SELECT t.id INTO uProgram FROM db.program t WHERE t.id = pId;
-
+  PERFORM FROM db.program WHERE id = pId;
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('program', 'id', pId);
   END IF;
 
-  PERFORM EditProgram(uProgram, pParent, pType, pCode, pName, pBody, pDescription);
+  PERFORM EditProgram(pId, pParent, pType, pCode, pName, pBody, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -109,6 +106,8 @@ CREATE OR REPLACE FUNCTION api.set_program (
 ) RETURNS       SETOF api.program
 AS $$
 BEGIN
+  pId := coalesce(pId, GetProgram(pCode));
+
   IF pId IS NULL THEN
     pId := api.add_program(pParent, pType, pCode, pName, pBody, pDescription);
   ELSE
@@ -134,7 +133,7 @@ CREATE OR REPLACE FUNCTION api.get_program (
   pId       uuid
 ) RETURNS   SETOF api.program
 AS $$
-  SELECT * FROM ObjectProgram WHERE id = pId AND CheckObjectAccess(id, B'100')
+  SELECT * FROM api.program WHERE id = pId
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

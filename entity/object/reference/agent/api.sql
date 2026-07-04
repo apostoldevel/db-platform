@@ -68,16 +68,13 @@ CREATE OR REPLACE FUNCTION api.update_agent (
   pDescription  text default null
 ) RETURNS       void
 AS $$
-DECLARE
-  uAgent        uuid;
 BEGIN
-  SELECT t.id INTO uAgent FROM db.agent t WHERE t.id = pId;
-
+  PERFORM FROM db.agent WHERE id = pId;
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('agent', 'id', pId);
   END IF;
 
-  PERFORM EditAgent(uAgent, pParent, pType, pVendor, pCode, pName, pDescription);
+  PERFORM EditAgent(pId, pParent, pType, pVendor, pCode, pName, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -109,6 +106,8 @@ CREATE OR REPLACE FUNCTION api.set_agent (
 ) RETURNS       SETOF api.agent
 AS $$
 BEGIN
+  pId := coalesce(pId, GetAgent(pCode));
+
   IF pId IS NULL THEN
     pId := api.add_agent(pParent, pType, pVendor, pCode, pName, pDescription);
   ELSE
@@ -134,7 +133,7 @@ CREATE OR REPLACE FUNCTION api.get_agent (
   pId       uuid
 ) RETURNS   SETOF api.agent
 AS $$
-  SELECT * FROM kernel.ObjectAgent WHERE id = pId AND CheckObjectAccess(id, B'100')
+  SELECT * FROM api.agent WHERE id = pId
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

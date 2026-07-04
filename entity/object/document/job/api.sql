@@ -146,16 +146,13 @@ CREATE OR REPLACE FUNCTION api.update_job (
   pDescription      text default null
 ) RETURNS           void
 AS $$
-DECLARE
-  uJob              uuid;
 BEGIN
-  SELECT c.id INTO uJob FROM db.job c WHERE c.id = pId;
-
+  PERFORM FROM db.job WHERE id = pId;
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('job', 'id', pId);
   END IF;
 
-  PERFORM EditJob(uJob, pParent, pType, pScheduler, pProgram, pDateRun, pCode, pLabel, pDescription);
+  PERFORM EditJob(pId, pParent, pType, pScheduler, pProgram, pDateRun, pCode, pLabel, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -191,6 +188,8 @@ CREATE OR REPLACE FUNCTION api.set_job (
 ) RETURNS           SETOF api.job
 AS $$
 BEGIN
+  pId := coalesce(pId, GetJob(pCode));
+
   IF pId IS NULL THEN
     pId := api.add_job(pParent, pType, pScheduler, pProgram, pDateRun, pCode, pLabel, pDescription);
   ELSE
@@ -216,7 +215,7 @@ CREATE OR REPLACE FUNCTION api.get_job (
   pId       uuid
 ) RETURNS   SETOF api.job
 AS $$
-  SELECT * FROM kernel.ObjectJob WHERE id = pId AND CheckObjectAccess(id, B'100')
+  SELECT * FROM api.job WHERE id = pId
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

@@ -64,16 +64,13 @@ CREATE OR REPLACE FUNCTION api.update_vendor (
   pDescription  text default null
 ) RETURNS       void
 AS $$
-DECLARE
-  uVendor       uuid;
 BEGIN
-  SELECT t.id INTO uVendor FROM db.vendor t WHERE t.id = pId;
-
+  PERFORM FROM db.vendor WHERE id = pId;
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('vendor', 'id', pId);
   END IF;
 
-  PERFORM EditVendor(uVendor, pParent, pType, pCode, pName, pDescription);
+  PERFORM EditVendor(pId, pParent, pType, pCode, pName, pDescription);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -103,6 +100,8 @@ CREATE OR REPLACE FUNCTION api.set_vendor (
 ) RETURNS       SETOF api.vendor
 AS $$
 BEGIN
+  pId := coalesce(pId, GetVendor(pCode));
+
   IF pId IS NULL THEN
     pId := api.add_vendor(pParent, pType, pCode, pName, pDescription);
   ELSE
@@ -128,7 +127,7 @@ CREATE OR REPLACE FUNCTION api.get_vendor (
   pId       uuid
 ) RETURNS   SETOF api.vendor
 AS $$
-  SELECT * FROM kernel.ObjectVendor WHERE id = pId AND CheckObjectAccess(id, B'100')
+  SELECT * FROM api.vendor WHERE id = pId
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
