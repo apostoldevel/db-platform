@@ -4,7 +4,7 @@
 
 CREATE OR REPLACE VIEW api.outbox
 AS
-  SELECT * FROM api.message WHERE class = GetClass('outbox');
+  SELECT * FROM api.service_message WHERE class = GetClass('outbox');
 
 GRANT SELECT ON api.outbox TO administrator;
 GRANT SELECT ON api.outbox TO apibot;

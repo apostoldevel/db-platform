@@ -18,7 +18,7 @@ GRANT SELECT ON api.message TO administrator;
 
 CREATE OR REPLACE VIEW api.service_message
 AS
-  SELECT * FROM ObjectMessage WHERE scope = current_scope();
+  SELECT * FROM ServiceMessage WHERE scope = current_scope();
 
 GRANT SELECT ON api.service_message TO administrator;
 GRANT SELECT ON api.service_message TO apibot;

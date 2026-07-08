@@ -4,7 +4,7 @@
 
 CREATE OR REPLACE VIEW api.inbox
 AS
-  SELECT * FROM api.message WHERE class = GetClass('inbox');
+  SELECT * FROM api.service_message WHERE class = GetClass('inbox');
 
 GRANT SELECT ON api.inbox TO administrator;
 GRANT SELECT ON api.inbox TO apibot;
