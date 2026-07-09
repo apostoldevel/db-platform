@@ -8,7 +8,7 @@
 
 CREATE OR REPLACE VIEW api.version
 AS
-  SELECT t.* FROM ObjectVersion t INNER JOIN AccessVersion a ON t.object = a.object;
+  SELECT t.* FROM ObjectVersion t INNER JOIN AccessVersion a ON t.id = a.object;
 
 GRANT SELECT ON api.version TO administrator;
 

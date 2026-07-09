@@ -8,7 +8,7 @@
 
 CREATE OR REPLACE VIEW api.message
 AS
-  SELECT t.* FROM ObjectMessage t INNER JOIN AccessMessage a ON t.object = a.object;
+  SELECT t.* FROM ObjectMessage t INNER JOIN AccessMessage a ON t.id = a.object;
 
 GRANT SELECT ON api.message TO administrator;
 

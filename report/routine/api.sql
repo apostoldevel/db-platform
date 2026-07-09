@@ -8,7 +8,7 @@
 
 CREATE OR REPLACE VIEW api.report_routine
 AS
-  SELECT t.* FROM ObjectReportRoutine t INNER JOIN AccessReportRoutine a ON t.object = a.object;
+  SELECT t.* FROM ObjectReportRoutine t INNER JOIN AccessReportRoutine a ON t.id = a.object;
 
 GRANT SELECT ON api.report_routine TO administrator;
 

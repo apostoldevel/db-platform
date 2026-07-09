@@ -8,7 +8,7 @@
 
 CREATE OR REPLACE VIEW api.program
 AS
-  SELECT t.* FROM ObjectProgram t INNER JOIN AccessProgram a ON t.object = a.object;
+  SELECT t.* FROM ObjectProgram t INNER JOIN AccessProgram a ON t.id = a.object;
 
 GRANT SELECT ON api.program TO administrator;
 

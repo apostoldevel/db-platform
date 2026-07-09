@@ -8,7 +8,7 @@
 
 CREATE OR REPLACE VIEW api.scheduler
 AS
-  SELECT t.* FROM ObjectScheduler t INNER JOIN AccessScheduler a ON t.object = a.object;
+  SELECT t.* FROM ObjectScheduler t INNER JOIN AccessScheduler a ON t.id = a.object;
 
 GRANT SELECT ON api.scheduler TO administrator;
 

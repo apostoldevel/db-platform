@@ -8,7 +8,7 @@
 
 CREATE OR REPLACE VIEW api.report_ready
 AS
-  SELECT t.* FROM ObjectReportReady t INNER JOIN AccessReportReady a ON t.object = a.object;
+  SELECT t.* FROM ObjectReportReady t INNER JOIN AccessReportReady a ON t.id = a.object;
 
 GRANT SELECT ON api.report_ready TO administrator;
 

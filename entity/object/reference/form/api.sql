@@ -8,7 +8,7 @@
 
 CREATE OR REPLACE VIEW api.form
 AS
-  SELECT t.* FROM ObjectForm t INNER JOIN AccessForm a ON t.object = a.object;
+  SELECT t.* FROM ObjectForm t INNER JOIN AccessForm a ON t.id = a.object;
 
 GRANT SELECT ON api.form TO administrator;
 

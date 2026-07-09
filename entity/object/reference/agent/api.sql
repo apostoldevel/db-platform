@@ -8,7 +8,7 @@
 
 CREATE OR REPLACE VIEW api.agent
 AS
-  SELECT t.* FROM ObjectAgent t INNER JOIN AccessAgent a ON t.object = a.object;
+  SELECT t.* FROM ObjectAgent t INNER JOIN AccessAgent a ON t.id = a.object;
 
 GRANT SELECT ON api.agent TO administrator;
 

@@ -8,7 +8,7 @@
 
 CREATE OR REPLACE VIEW api.report_tree
 AS
-  SELECT t.* FROM ObjectReportTree t INNER JOIN AccessReportTree a ON t.object = a.object;
+  SELECT t.* FROM ObjectReportTree t INNER JOIN AccessReportTree a ON t.id = a.object;
 
 GRANT SELECT ON api.report_tree TO administrator;
 

@@ -8,7 +8,7 @@
 
 CREATE OR REPLACE VIEW api.job
 AS
-  SELECT t.* FROM ObjectJob t INNER JOIN AccessJob a ON t.object = a.object;
+  SELECT t.* FROM ObjectJob t INNER JOIN AccessJob a ON t.id = a.object;
 
 GRANT SELECT ON api.job TO administrator;
 

@@ -8,7 +8,7 @@
 
 CREATE OR REPLACE VIEW api.vendor
 AS
-  SELECT t.* FROM ObjectVendor t INNER JOIN AccessVendor a ON t.object = a.object;
+  SELECT t.* FROM ObjectVendor t INNER JOIN AccessVendor a ON t.id = a.object;
 
 GRANT SELECT ON api.vendor TO administrator;
 

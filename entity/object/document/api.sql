@@ -8,7 +8,7 @@
 
 CREATE OR REPLACE VIEW api.document
 AS
-  SELECT t.* FROM ObjectDocument t INNER JOIN AccessDocument a ON t.object = a.object;
+  SELECT t.* FROM ObjectDocument t INNER JOIN AccessDocument a ON t.id = a.object;
 
 GRANT SELECT ON api.document TO administrator;
 

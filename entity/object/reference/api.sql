@@ -8,7 +8,7 @@
 
 CREATE OR REPLACE VIEW api.reference
 AS
-  SELECT t.* FROM ObjectReference t INNER JOIN AccessReference a ON t.object = a.object;
+  SELECT t.* FROM ObjectReference t INNER JOIN AccessReference a ON t.id = a.object;
 
 GRANT SELECT ON api.reference TO administrator;
 
