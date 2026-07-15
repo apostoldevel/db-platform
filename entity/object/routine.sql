@@ -373,7 +373,7 @@ BEGIN
 
   RETURN vCode;
 END;
-$$ LANGUAGE plpgsql
+$$ LANGUAGE plpgsql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -396,7 +396,7 @@ BEGIN
   SELECT state INTO uState FROM db.object WHERE id = pId;
   RETURN GetStateTypeByState(uState);
 END;
-$$ LANGUAGE plpgsql
+$$ LANGUAGE plpgsql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -419,7 +419,7 @@ BEGIN
   SELECT state INTO uState FROM db.object WHERE id = pId;
   RETURN GetStateTypeCodeByState(uState);
 END;
-$$ LANGUAGE plpgsql
+$$ LANGUAGE plpgsql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
