@@ -1039,7 +1039,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pValueName - Name of the value to set
  * @param {timestamp} pValue - Timestamp data to store
  * @param {uuid} pUserId - User identifier (used when pKey = 'CURRENT_USER')
- * @return {timestamp} - The stored timestamp value
+ * @return {uuid} - Identifier of the created or updated value row
  * @see RegGetValueDate
  * @since 1.0.0
  */
@@ -1049,7 +1049,7 @@ CREATE OR REPLACE FUNCTION RegSetValueDate (
   pValueName    text,
   pValue        timestamp,
   pUserId       uuid DEFAULT current_userid()
-) RETURNS       timestamp
+) RETURNS       uuid
 AS $$
 BEGIN
   RETURN RegSetValueEx(RegCreateKey(pKey, pSubKey, pUserId), pValueName, 2, pDateTime => pValue);
@@ -1068,7 +1068,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pValueName - Name of the value to set
  * @param {text} pValue - Text data to store
  * @param {uuid} pUserId - User identifier (used when pKey = 'CURRENT_USER')
- * @return {text} - The stored text value
+ * @return {uuid} - Identifier of the created or updated value row
  * @see RegGetValueString
  * @since 1.0.0
  */
@@ -1078,7 +1078,7 @@ CREATE OR REPLACE FUNCTION RegSetValueString (
   pValueName    text,
   pValue        text,
   pUserId       uuid DEFAULT current_userid()
-) RETURNS       text
+) RETURNS       uuid
 AS $$
 BEGIN
   RETURN RegSetValueEx(RegCreateKey(pKey, pSubKey, pUserId), pValueName, 3, pString => pValue);
@@ -1097,7 +1097,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pValueName - Name of the value to set
  * @param {boolean} pValue - Boolean data to store
  * @param {uuid} pUserId - User identifier (used when pKey = 'CURRENT_USER')
- * @return {boolean} - The stored boolean value
+ * @return {uuid} - Identifier of the created or updated value row
  * @see RegGetValueBoolean
  * @since 1.0.0
  */
@@ -1107,7 +1107,7 @@ CREATE OR REPLACE FUNCTION RegSetValueBoolean (
   pValueName    text,
   pValue        boolean,
   pUserId       uuid DEFAULT current_userid()
-) RETURNS       boolean
+) RETURNS       uuid
 AS $$
 BEGIN
   RETURN RegSetValueEx(RegCreateKey(pKey, pSubKey, pUserId), pValueName, 4, pBoolean => pValue);
