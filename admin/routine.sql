@@ -5836,10 +5836,6 @@ BEGIN
     PERFORM LoginIPTableError(pHost);
   END IF;
 
-  IF up.readonly THEN
-    PERFORM ReadOnlyError();
-  END IF;
-
   IF CheckPassword(pRoleName, pPassword) THEN
 
     PERFORM CheckSessionLimit(up.id);
