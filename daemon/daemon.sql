@@ -488,6 +488,154 @@ $$ LANGUAGE plpgsql
   SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- daemon.authorization_code ---------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Issue an OAuth 2.0 authorization code to a client on behalf of a user who
+ *        is already signed in (the "session exists" branch of GET /oauth2/authorize).
+ *        The caller proves possession of the user's session code; no credentials are
+ *        re-entered and no password is required.
+ *
+ *        Substitution is performed under the *system* OAuth 2.0 client rather than
+ *        under the requesting client, so a client registered by an oauth2.audience
+ *        row alone — with no matching db.user — is supported. The issued code is
+ *        bound to pClientId, pRedirectURI and pScope; daemon.token verifies all
+ *        three on exchange.
+ *
+ *        Note: pRedirectURI is *not* validated against a whitelist here — the
+ *        platform keeps no per-client redirect URI list. The caller (AuthServer)
+ *        must validate it against its own client registry before calling.
+ * @param {varchar} pSession - Session code of the signed-in user
+ * @param {text} pClientId - Client identifier the code is issued to (oauth2.audience.code)
+ * @param {text} pRedirectURI - Redirect URI the code is bound to; must be replayed on exchange
+ * @param {text} pScope - Space-separated scope codes
+ * @param {text} pState - OAuth 2.0 state parameter, echoed back on success
+ * @param {text} pAccessType - 'online' or 'offline' ('offline' yields a refresh token)
+ * @param {text} pAgent - HTTP User-Agent string
+ * @param {inet} pHost - Client IP address
+ * @return {json} - {"code": ..., "state": ...} on success, or error object on failure
+ * @see daemon.token, daemon.authorize
+ * @since 1.2.11
+ */
+CREATE OR REPLACE FUNCTION daemon.authorization_code (
+  pSession      varchar,
+  pClientId     text,
+  pRedirectURI  text,
+  pScope        text DEFAULT null,
+  pState        text DEFAULT null,
+  pAccessType   text DEFAULT null,
+  pAgent        text DEFAULT null,
+  pHost         inet DEFAULT null
+) RETURNS       json
+AS $$
+DECLARE
+  result        jsonb;
+
+  uUserId       uuid;
+
+  nAudience     integer;
+  nOAuth2       bigint;
+
+  vSystemId     text;
+  vSystemSecret text;
+  vSystemSession text;
+
+  vSession      text;
+  vCode         text;
+
+  vMessage      text;
+  vContext      text;
+
+  ErrorCode     int;
+  ErrorMessage  text;
+BEGIN
+  IF NULLIF(pClientId, '') IS NULL THEN
+    RETURN json_build_object('error', json_build_object('code', 400, 'error', 'invalid_request', 'message', 'Missing parameter: client_id'));
+  END IF;
+
+  IF NULLIF(pRedirectURI, '') IS NULL THEN
+    RETURN json_build_object('error', json_build_object('code', 400, 'error', 'invalid_request', 'message', 'Missing parameter: redirect_uri'));
+  END IF;
+
+  pAccessType := coalesce(pAccessType, 'online');
+
+  IF SessionIn(pSession, pAgent, pHost) IS NULL THEN
+    SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(GetErrorMessage());
+    RETURN json_build_object('error', json_build_object('code', 401, 'error', 'access_denied', 'message', ErrorMessage));
+  END IF;
+
+  uUserId := current_userid();
+
+  SELECT a.id INTO nAudience FROM oauth2.audience a WHERE a.code = pClientId;
+
+  IF NOT FOUND THEN
+    RETURN json_build_object('error', json_build_object('code', 401, 'error', 'invalid_client', 'message', 'The OAuth 2.0 client was not FOUND.'));
+  END IF;
+
+  -- Elevate: GetSession requires the "substitute user" ACL bit, which the signed-in
+  -- user does not have. The system client does — and it exists in every database.
+  vSystemId := oauth2_system_client_id();
+
+  SELECT a.secret INTO vSystemSecret FROM oauth2.audience a WHERE a.code = vSystemId;
+
+  IF NOT FOUND THEN
+    RETURN json_build_object('error', json_build_object('code', 500, 'error', 'server_error', 'message', 'The system OAuth 2.0 client was not FOUND.'));
+  END IF;
+
+  -- The elevation session is a throwaway: give it the system client's own scope,
+  -- not the one the client asked for, which the system user may have no profile in.
+  vSystemSession := SignIn(CreateSystemOAuth2(), vSystemId, vSystemSecret, pAgent, pHost);
+
+  IF vSystemSession IS NULL THEN
+    SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(GetErrorMessage());
+    PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
+    RETURN json_build_object('error', json_build_object('code', 500, 'error', 'server_error', 'message', 'The system OAuth 2.0 client is not authorized.'));
+  END IF;
+
+  nOAuth2 := CreateOAuth2(nAudience, pScope, pAccessType, pRedirectURI, pState);
+
+  vSession := GetSession(uUserId, nOAuth2, pAgent, pHost, true, false);
+
+  SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(GetErrorMessage());
+
+  PERFORM SignOut(vSystemSession);
+
+  IF vSession IS NULL THEN
+    PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
+    RETURN json_build_object('error', json_build_object('code', 401, 'error', 'access_denied', 'message', ErrorMessage));
+  END IF;
+
+  vCode := oauth2_current_code(vSession);
+
+  IF vCode IS NULL THEN
+    RETURN json_build_object('error', json_build_object('code', 500, 'error', 'server_error', 'message', 'Authorization code was not issued.'));
+  END IF;
+
+  result := jsonb_build_object('code', vCode);
+
+  IF pState IS NOT NULL THEN
+    result := result || jsonb_build_object('state', pState);
+  END IF;
+
+  RETURN result;
+EXCEPTION
+WHEN others THEN
+  GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
+
+  PERFORM SetErrorMessage(vMessage);
+
+  SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
+
+  PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, 'exception', 'context', vContext);
+
+  RETURN json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'error', 'server_error', 'message', ErrorMessage));
+END;
+$$ LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = kernel, public, pg_temp;
+
+--------------------------------------------------------------------------------
 -- daemon.token ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
@@ -515,6 +663,7 @@ DECLARE
   uTicket               uuid;
 
   nAudience             integer;
+  nCodeAudience         integer;
   nOauth2               bigint;
 
   grant_type            text;
@@ -610,10 +759,15 @@ BEGIN
       RETURN json_build_object('error', json_build_object('code', 400, 'error', 'invalid_grant', 'message', 'Malformed auth code.'));
     END IF;
 
-    SELECT a.redirect_uri INTO vRedirectURI FROM db.oauth2 a WHERE id = nOauth2;
+    SELECT a.audience, a.redirect_uri INTO nCodeAudience, vRedirectURI FROM db.oauth2 a WHERE id = nOauth2;
 
     IF NOT FOUND THEN
       RETURN json_build_object('error', json_build_object('code', 400, 'error', 'invalid_request', 'message', 'The OAuth 2.0 params was not FOUND.'));
+    END IF;
+
+    -- The code belongs to the client it was issued to and to no one else.
+    IF nCodeAudience IS DISTINCT FROM nAudience THEN
+      RETURN json_build_object('error', json_build_object('code', 400, 'error', 'invalid_grant', 'message', 'Malformed auth code.'));
     END IF;
 
     IF vRedirectURI != redirect_uri THEN

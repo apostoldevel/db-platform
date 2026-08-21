@@ -14,7 +14,7 @@ Server-side functions in the `daemon` schema for the C++ application layer. Hand
 
 | Schema | Usage |
 |--------|-------|
-| `daemon` | All functions (~15) |
+| `daemon` | All functions (~16) |
 
 ## Tables
 
@@ -41,6 +41,7 @@ None.
 | `daemon.session_open(pToken, pAgent, pHost)` | `json` | Open session from JWT token |
 | `daemon.session_close(pToken, pCloseAll, pMessage)` | `json` | Close session(s); pCloseAll closes all user sessions |
 | `daemon.authorize(pSession, pAgent, pHost)` | `json` | Authorize session code → access token + expiry |
+| `daemon.authorization_code(pSession, pClientId, pRedirectURI, pScope, pState, pAccessType, pAgent, pHost)` | `json` | Issue an authorization code to a client for an already signed-in user (GET `/oauth2/authorize` with a live session) |
 | `daemon.login(pToken, pAgent, pHost, pScope)` | `json` | OAuth2 JWT Bearer login; handles external providers (Google, etc.), auto-creates user/profile |
 
 ### OAuth2 Token Endpoint
