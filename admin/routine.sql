@@ -3143,6 +3143,17 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * @brief Checks if the user belongs to the "System" group.
+ *
+ * Returns false — never NULL — when there is no user. The function used to be
+ * STRICT, and outside a platform session current_userid() is NULL, so it
+ * answered NULL without running. Callers are written as
+ * `IF NOT IsSystem() THEN AccessDenied()`, and `NOT NULL` is NULL: the IF fell
+ * through and the guard silently let the call past. A permission check must
+ * refuse when it cannot tell who is asking.
+ *
+ * The explicit check replaces STRICT rather than joining it — with STRICT the
+ * body never runs for a NULL argument, so the check would be unreachable.
+ *
  * @param {uuid} pMember - User ID (default: current user)
  * @return {boolean}
  * @since 1.0.0
@@ -3152,11 +3163,15 @@ CREATE OR REPLACE FUNCTION IsSystem (
 ) RETURNS   boolean
 AS $$
 BEGIN
-  RETURN IsUserRole(GetGroup('system'), pMember);
+  IF pMember IS NULL THEN
+    RETURN false;
+  END IF;
+
+  RETURN coalesce(IsUserRole(GetGroup('system'), pMember), false);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
-   STABLE STRICT
+   STABLE
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -3164,6 +3179,18 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * @brief Checks if the user belongs to the "Administrators" group.
+ *
+ * Returns false — never NULL — when there is no user. See IsSystem above for
+ * the whole of the reasoning; this function had the same defect and it is the
+ * one guards are actually written against: `IF NOT IsAdmin() THEN
+ * AccessDenied()` appears 55 times in one configuration project alone, and
+ * every one of them was a no-op for a caller without a session.
+ *
+ * Not to be confused with is_admin() below, which also answers true for the
+ * apibot service account. That one is a convenience for code that wants to
+ * treat the API bot as privileged; it is not a substitute in a guard, where it
+ * would widen access rather than close it.
+ *
  * @param {uuid} pMember - User ID (default: current user)
  * @return {boolean}
  * @since 1.0.0
@@ -3173,11 +3200,15 @@ CREATE OR REPLACE FUNCTION IsAdmin (
 ) RETURNS   boolean
 AS $$
 BEGIN
-  RETURN IsUserRole(GetGroup('administrator'), pMember);
+  IF pMember IS NULL THEN
+    RETURN false;
+  END IF;
+
+  RETURN coalesce(IsUserRole(GetGroup('administrator'), pMember), false);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
-   STABLE STRICT
+   STABLE
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
