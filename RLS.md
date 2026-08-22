@@ -287,13 +287,16 @@ HAVING (bit_or(a.allow) & ~bit_or(a.deny)) & B'100' = B'100'
 
 ## Access Views — view-level filtering mechanism
 
-### Two Access view patterns
+An Access view answers exactly one question: **which object ids may the current
+user read?** It returns a single column, `object`. It is never joined into
+`Object{Class}`; the join is added **at runtime** by `api.sql()`, and is skipped
+entirely for administrators, who by definition have full access and would only
+pay for the check.
 
-db-platform uses **two patterns** for Access views in different contexts:
+### The `Access{Entity}` view
 
-#### Pattern 1: Entity-specific Access view (for configuration layer)
-
-Used in `Object{Class}` views **in the configuration layer**. Each entity defines its own Access view:
+**Configuration layer** — one view per entity, filtered through the denormalised
+`db.aou.entity` column (indexed by `db.aou (entity, userid, mask)`):
 
 ```sql
 CREATE OR REPLACE VIEW AccessAccount
@@ -301,67 +304,161 @@ AS
 WITH _membergroup AS (
   SELECT current_userid() AS userid UNION SELECT userid FROM db.member_group WHERE member = current_userid()
 ) SELECT object
-    FROM db.account t INNER JOIN db.aou         a ON a.object = t.id
-                      INNER JOIN _membergroup   m ON a.userid = m.userid
+    FROM db.aou t INNER JOIN _membergroup m ON t.userid = m.userid
+   WHERE t.entity = GetEntity('account')
    GROUP BY object
-   HAVING (bit_or(a.allow) & ~bit_or(a.deny)) & B'100' = B'100';
+  HAVING (bit_or(t.allow) & ~bit_or(t.deny)) & B'100' = B'100';
 
 GRANT SELECT ON AccessAccount TO administrator;
 ```
 
-**Key points**:
-- `HAVING ... & B'100' = B'100'` — requires SELECT permission
-- Returns rows from the entity table (e.g. `db.account`)
-
-#### Pattern 2: Platform-level Access view
-
-In the **platform layer** (`entity/object/view.sql`):
+**Platform layer** — generic, no entity filter, scope filter instead
+(`entity/object/view.sql`, `entity/object/document/view.sql`):
 
 ```sql
-CREATE OR REPLACE VIEW AccessObject AS
-  WITH access AS (
-    SELECT * FROM aou(current_userid())
-  )
-  SELECT o.* FROM Object o INNER JOIN access ac ON o.id = ac.object
-  WHERE o.scope = current_scope();
+CREATE OR REPLACE VIEW AccessDocument
+AS
+WITH _membergroup AS (
+  SELECT current_userid() AS userid UNION SELECT userid FROM db.member_group WHERE member = current_userid()
+) SELECT a.object
+    FROM db.aou a INNER JOIN _membergroup m ON a.userid = m.userid
+                  INNER JOIN db.document  d ON a.object = d.object
+   WHERE d.scope = current_scope()
+   GROUP BY a.object
+  HAVING (bit_or(a.allow) & ~bit_or(a.deny)) & B'100' = B'100';
 ```
 
-Uses `aou()` function — checks ALL objects (no entity filter).
+Two details of the `HAVING` clause are not decorative:
 
-### Rule: Object{Class} INNER JOIN Access{Class}
+- **Aggregate, do not filter per row.** `bit_or(allow) & ~bit_or(deny)` unions
+  the user's own entry with every entry of the groups they belong to, so a deny
+  in one group overrides an allow in another. A per-row `WHERE a.mask …` cannot
+  express that.
+- **Test the bit, never compare the mask.** `& B'100' = B'100'` passes anyone
+  who may read. `WHERE a.mask = B'100'` is a different, wrong condition: it
+  excludes every user whose mask is wider — including the **owner**, whose
+  `B'111'` row is inserted automatically by `t_object_after_insert`. On one
+  production database that single mistake would hide 4.8 million of 9.6 million
+  AOU rows.
 
-**MANDATORY**: in every `Object{Class}` view, the first JOIN must be:
+### Rule: `Object{Class}` must NOT join `Access{Class}`
+
+`Object{Class}` carries denormalisation and the organisational gates only —
+`DocumentAreaTree` for documents, `scope = current_scope()` for references. It
+must contain **no reference to an Access view**:
 
 ```sql
-FROM db.{entity} t INNER JOIN Access{Entity} ac ON t.id = ac.object
-                   ...remaining JOINs...
+FROM db.{entity} t INNER JOIN db.document          d ON t.document = d.id
+                   ...
+                   INNER JOIN DocumentAreaTree     a ON d.area = a.id
+                   INNER JOIN db.scope            sc ON o.scope = sc.id;
 ```
 
-This ensures automatic filtering by the current user's permissions. Without this JOIN, objects the user has no access to will be visible through the API.
+> Earlier versions of db-platform required the opposite — an
+> `INNER JOIN Access{Entity}` as the first join of `Object{Class}`, with the
+> Access view returning all columns of the entity table. That model is
+> superseded. A project still carrying it, or carrying half of the conversion,
+> is not protected: see the migration guide below.
 
-### Examples
+### Where the join comes from
 
-**Document entity** (ObjectAccount):
+`api/api.sql`, function `api.sql()`:
+
 ```sql
-FROM db.account   t INNER JOIN AccessAccount       ac ON t.id = ac.object
-                    INNER JOIN db.document          d ON t.document = d.id
-                     LEFT JOIN db.document_text    dt ON ...
+  IF pScheme = 'kernel' AND GetAccessMode() THEN
+    SELECT table_name INTO vTable
+      FROM information_schema.tables
+     WHERE table_catalog = current_database()
+       AND table_schema = 'kernel'
+       AND table_name = replace(lower(pTable), 'object', 'access')
+       AND table_type = 'VIEW';
+
+    IF FOUND THEN
+      vJoin := format('INNER JOIN %s.%s aou ON t.id = aou.object', pScheme, vTable);
+      PERFORM set_config('enable_nestloop', 'off', true);
+    END IF;
+  END IF;
 ```
 
-**Reference entity** (ObjectVenue):
+Three preconditions, and the join is silently absent if any of them fails:
+
+| Precondition | If violated |
+|---|---|
+| `pScheme = 'kernel'` | passing `'api'` never adds the join — the usual bug |
+| `GetAccessMode()` is true | administrators get no join, by design |
+| a view named `replace(lower(pTable),'object','access')` exists **in schema `kernel`** | no view, no join, no error |
+
+`GetAccessMode()` is `coalesce(SafeGetVar('access')::boolean, true)` — it
+defaults to **true**, so an unauthenticated session is filtered rather than
+exempt. It is set on sign-in:
+
 ```sql
-FROM db.venue     t INNER JOIN AccessVenue           ac ON t.id = ac.object
-                    INNER JOIN db.reference          r ON t.reference = r.id
-                     LEFT JOIN db.reference_text    rt ON ...
+PERFORM SetAccessMode(NOT IsUserRole(GetGroup('administrator'), uUserId));
 ```
 
-### Why NOT CheckObjectAccess in get_* functions
+Note that `SignIn` and `SessionIn` set it, while `SubstituteUser` does **not** —
+substituting a user does not re-evaluate the access mode.
 
-`api.get_{entity}(pId)` reads from the `api.{entity}` view, which is built on `Object{Entity}`. If `Object{Entity}` already contains `INNER JOIN Access{Entity}` — filtering happens automatically. Adding `CheckObjectAccess(id, B'100')` to WHERE is **redundant and harmful**:
+The `set_config('enable_nestloop','off', true)` alongside the join is
+transaction-local, and exists because the `HAVING` aggregate cannot be estimated
+by the planner: combined with `ORDER BY … LIMIT` it used to collapse into a
+Nested Loop two orders of magnitude slower than the correct plan.
 
-1. **Double check** — access is already verified via JOIN
-2. **N+1 problem** — `CheckObjectAccess` calls `aou()` separately for each row
-3. **Inconsistency** — list/count use the view (with JOIN), while get uses a separate check
+Name derivation is textual and case-insensitive: `ObjectChargePoint →
+accesschargepoint`, `ObjectSLA → accesssla`. A subclass with its own
+`Object{Sub}` view therefore needs its own `Access{Sub}` view — the lookup will
+not fall back to the parent's.
+
+### The four pieces every entity must have
+
+| # | Where | What |
+|---|---|---|
+| 1 | `view.sql` | `Access{Entity}` returning a single `object` column, in schema `kernel` |
+| 2 | `view.sql` | `Object{Entity}` with **no** reference to `Access{Entity}` |
+| 3 | `api.sql` | `api.{entity}` = `SELECT t.* FROM Object{Entity} t INNER JOIN Access{Entity} a ON t.id = a.object` — the static join, used by the by-id read path |
+| 4 | `api.sql` | `api.count_{entity}` / `api.list_{entity}` calling `api.sql('kernel', 'Object{Entity}', …)` |
+
+Point 4 reads oddly — `api.list_{entity}` returns `SETOF api.{entity}` while
+querying `Object{Entity}`. It is correct: the row types are identical, because
+`api.{entity}` is `SELECT t.*` from that very view, and the ACL arrives from the
+runtime join instead of a static one.
+
+Auxiliary and derived lists that are not entity objects — `tariff_schedule`,
+`defect_log`, `object_address`, `model_property`, dashboards, protocol logs —
+stay on `api.sql('api', '<name>', …)`.
+
+### Migrating a project off the old model
+
+Converting `Access{Entity}` from the wide form to the narrow one changes the
+view's column count, which `CREATE OR REPLACE VIEW` cannot do:
+
+```
+ERROR: cannot drop columns from view
+```
+
+So the change ships as a patch that drops the old views with `CASCADE` (which
+takes `api.{entity}` and every function returning `SETOF api.{entity}` with it,
+all recreated by `update.psql`), plus an explicit
+`DROP FUNCTION IF EXISTS api.get_{entity}(uuid)` for each, because their return
+type changes.
+
+Verify the result by reading the generated statement rather than by inspection:
+
+```sql
+SELECT api.sql('kernel','ObjectAccount', null, null, 5);
+-- administrator      → FROM kernel.ObjectAccount t
+-- everyone else      → FROM kernel.ObjectAccount t INNER JOIN kernel.accessaccount aou ON t.id = aou.object
+```
+
+### Why NOT `CheckObjectAccess` in `get_*` functions
+
+`api.get_{entity}(pId)` reads the `api.{entity}` view, which already carries the
+static `INNER JOIN Access{Entity}`. Adding `CheckObjectAccess(id, B'100')` to the
+`WHERE` clause is redundant and harmful:
+
+1. **Double check** — access is already verified by the join.
+2. **N+1** — `CheckObjectAccess` calls `aou()` once per row.
+3. **Inconsistency** — list/count would then use one path and get another.
 
 ---
 
@@ -437,11 +534,26 @@ B'10100'  -- access + select (view only)
 
 When creating a new entity in the configuration layer:
 
-1. **`view.sql`**: create `Access{Entity}` view using the pattern (CTE with `_membergroup` + `_access`, filter by `e.code`)
-2. **`view.sql`**: in `Object{Entity}` view — first JOIN: `INNER JOIN Access{Entity} ac ON t.id = ac.object`
-3. **`init.sql`**: configure `acu` via `AddClass()` / `AddType()` — define which groups get access when objects are created
-4. **`api.sql`**: `api.{entity}` view is built on `Object{Entity}` — filtering is automatic
-5. **Do NOT add** `CheckObjectAccess()` to `api.get_*` — this is duplication
+1. **`view.sql`**: create the `Access{Entity}` view — CTE with `_membergroup`,
+   `SELECT object FROM db.aou`, filter `WHERE t.entity = GetEntity('{entity}')`,
+   and `HAVING (bit_or(allow) & ~bit_or(deny)) & B'100' = B'100'`. One column,
+   `object`.
+2. **`view.sql`**: `Object{Entity}` must **not** reference `Access{Entity}` — it
+   carries denormalisation plus the organisational gate only
+   (`DocumentAreaTree` for documents, `scope = current_scope()` for references).
+3. **`api.sql`**: `api.{entity}` =
+   `SELECT t.* FROM Object{Entity} t INNER JOIN Access{Entity} a ON t.id = a.object`
+   — the static join, for reads by id.
+4. **`api.sql`**: `api.count_{entity}` and `api.list_{entity}` call
+   `api.sql('kernel', 'Object{Entity}', …)`. Passing `'api'` and `'{entity}'`
+   applies **no** filtering and raises nothing.
+5. **`init.sql`**: configure `acu` via `AddClass()` / `AddType()` — define which
+   groups get access when objects are created.
+6. **Do NOT add** `CheckObjectAccess()` to `api.get_*` — the static join already
+   did it, and the call costs one `aou()` per row.
+7. **Verify**: `SELECT api.sql('kernel','Object{Entity}', null, null, 5);` must
+   show the `accessentity` join for a non-administrator and no join for an
+   administrator.
 
 ---
 
