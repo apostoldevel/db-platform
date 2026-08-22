@@ -37,6 +37,7 @@ User management, authentication, authorization, sessions, and access control. Th
 | `db.auth` | External auth records | PK(`userId`, `audience`), `code text` (external user ID) |
 | `db.iptable` | IP whitelist/blacklist | `id serial PK`, `type char` (A=allow/D=deny), `userid uuid FK`, `addr inet`, `range int` |
 | `db.oauth2` | OAuth2 authorization params | `id bigserial PK`, `audience int FK`, `scopes text[]`, `access_type text` (online/offline), `redirect_uri text` |
+| `db.oauth2_consent` | User consent granted to an OAuth2 client | `id bigserial PK`, `userid uuid FK`, `audience int FK`, `scopes text[]`, `revoked timestamptz`, UNIQUE(`userid`,`audience`) |
 | `db.token_header` | Token headers | `id bigserial PK`, `oauth2 bigint FK`, `session varchar(40)`, `salt text`, `agent text`, `host inet` |
 | `db.token` | Tokens | `id bigserial PK`, `header bigint FK`, `type char` (C=code/A=access/R=refresh/I=id), `token text`, `hash varchar(40)`, validity range |
 | `db.session` | Active sessions | `code varchar(40) PK`, `oauth2 bigint FK`, `token bigint FK`, `suid uuid FK`, `userid uuid FK`, `locale/area/interface/scope uuid FKs`, `pwkey text`, `secret text`, `salt text`, `agent text`, `host inet` |
@@ -94,7 +95,7 @@ User management, authentication, authorization, sessions, and access control. Th
 | `api.event_log` | `EventLog` (from log module) |
 | `api.log` | `ApiLog` (from api module) |
 
-## Functions (kernel schema) — 159 total
+## Functions (kernel schema) — 162 total
 
 ### Scope & Context (~12)
 
@@ -128,9 +129,9 @@ User management, authentication, authorization, sessions, and access control. Th
 
 `CreateAccessToken`, `CreateIdToken`, `CreateToken`, `UpdateToken`, `GetToken`, `GetAccessToken`, `AddToken`, `NewTokenCode`, `NewToken`, `ExchangeToken`, `TokenValidation`, `RefreshToken`, `DoubleSHA256`, `GetHashCash`, `HashCash`, `SessionKey`, `GetTokenHash`, `GenSecretKey`, `GenTokenKey`, `GetSignature`, `GetSecretKey`, `StrPwKey`.
 
-### OAuth2 Client (~8)
+### OAuth2 Client (~11)
 
-`CreateOAuth2`, `CreateSystemOAuth2`, `CreateTokenHeader`, `oauth2_system_client_id`, `SetOAuth2ClientId`, `GetOAuth2ClientId`, `oauth2_current_client_id`, `oauth2_current_code`.
+`CreateOAuth2`, `CreateSystemOAuth2`, `CreateTokenHeader`, `oauth2_system_client_id`, `SetOAuth2ClientId`, `GetOAuth2ClientId`, `oauth2_current_client_id`, `oauth2_current_code`, `CheckOAuth2Consent`, `SetOAuth2Consent`, `RevokeOAuth2Consent`.
 
 ### Recovery (~4)
 

@@ -66,7 +66,7 @@ Loaded in dependency order (create.psql):
 | 1 | **kernel** | — | Data types, UUID, JWT, utilities (JSON, AWS-sig, base64) | [kernel/INDEX.md](kernel/INDEX.md) |
 | 2 | **oauth2** | 5 | OAuth2: providers, applications, issuers, audiences | [oauth2/INDEX.md](oauth2/INDEX.md) |
 | 3 | **locale** | 1 | Multi-language support (ISO 639-1) | [locale/INDEX.md](locale/INDEX.md) |
-| 4 | **admin** | 18 | Users, auth, sessions, scope, area, ACL, member_group | [admin/INDEX.md](admin/INDEX.md) |
+| 4 | **admin** | 19 | Users, auth, sessions, scope, area, ACL, member_group, oauth2_consent | [admin/INDEX.md](admin/INDEX.md) |
 | 7 | **exception** | — | Standardized errors (~84 functions) | [exception/INDEX.md](exception/INDEX.md) |
 | 8 | **error** | 2 | Error catalog with locale-aware messages (ERR-GGG-CCC) | [error/INDEX.md](error/INDEX.md) |
 
@@ -291,4 +291,4 @@ Passwords, OAuth2 secrets, payment keys (not committed to VCS).
 | [entity/object/reference/INDEX.md](entity/object/reference/INDEX.md) | Reference entities |
 | [entity/object/document/INDEX.md](entity/object/document/INDEX.md) | Document entities |
 | [workflow/INDEX.md](workflow/INDEX.md) | Workflow engine: 23 tables, 89 functions |
-| [admin/INDEX.md](admin/INDEX.md) | Admin: 18 tables, 159 functions |
+| [admin/INDEX.md](admin/INDEX.md) | Admin: 19 tables, 162 functions |

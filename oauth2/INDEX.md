@@ -61,6 +61,7 @@ OAuth2 infrastructure for client/audience management. Stores providers, applicat
 | `GetAlgorithmName(pId)` | `text` | Get pgcrypto name |
 | `CreateAudience(pProvider, pApplication, pAlgorithm, pCode, pSecret, pName)` | `integer` | Create audience (hashes secret with md5 salt) |
 | `GetAudience(pCode)` | `integer` | Lookup ID by code |
+| `GetInternalAudience(pCode)` | `integer` | Lookup ID by code, internal providers only — `oauth2.audience` is unique by (provider, code) |
 | `GetAudienceCode(pId)` | `text` | Lookup code by ID |
 
 All Add/Create functions require `administrator` role or `kernel` session_user.

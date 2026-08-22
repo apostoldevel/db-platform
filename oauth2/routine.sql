@@ -432,3 +432,42 @@ AS $$
 $$ LANGUAGE sql STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION GetInternalAudience ------------------------------------------------
+--------------------------------------------------------------------------------
+
+/**
+ * @brief Retrieve an audience ID by client code, restricted to internal providers.
+ *
+ * GetAudience matches on code alone, but oauth2.audience is unique by
+ * (provider, code) — the same client_id may exist under an external provider
+ * such as google, and a bare SELECT ... INTO then picks an arbitrary row.
+ * Anything that acts on behalf of a local user must resolve the client here:
+ * an entry belonging to an external provider is registration for verifying
+ * that provider's tokens, not a client of ours.
+ *
+ * Nothing forbids a second internal provider — oauth2.provider is unique by
+ * (type, code) — so the same client_id could in principle appear twice under type
+ * 'I'. The ORDER BY makes the answer stable rather than whatever the plan happened
+ * to return first; an installation that gets there has a naming problem to fix, and
+ * a stable wrong answer is at least reproducible.
+ *
+ * @param {text} pCode - Client identifier (client_id)
+ * @return {integer} - Audience ID of the internal provider's client, or NULL if none
+ * @see GetAudience, AddProvider
+ * @since 1.2.11
+ */
+CREATE OR REPLACE FUNCTION GetInternalAudience (
+  pCode		text
+) RETURNS 	integer
+AS $$
+  SELECT a.id
+    FROM oauth2.audience a INNER JOIN oauth2.provider p ON p.id = a.provider
+   WHERE a.code = pCode
+     AND p.type = 'I'
+   ORDER BY a.id
+   LIMIT 1;
+$$ LANGUAGE sql STABLE STRICT
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;

@@ -1207,6 +1207,163 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- CheckOAuth2Consent ----------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Check whether the user has granted this client access to the requested scopes.
+ *
+ * Handing an authorization code to an already signed-in user is only safe when
+ * the user has said so. Membership in oauth2.audience is registration, not
+ * permission: it is enough to verify a token, and a client registered for that
+ * alone must not be able to collect codes by sending the browser to
+ * /oauth2/authorize.
+ *
+ * Deliberately not STRICT, and NULL-checked: a permission check must answer
+ * false — never NULL — when it cannot tell who is asking. See IsSystem/IsAdmin,
+ * which had that defect and where `NOT NULL` fell straight through the guard.
+ *
+ * @param {uuid} pUserId - User the code would be issued for
+ * @param {integer} pAudience - OAuth 2.0 client (audience) asking for the code
+ * @param {text[]} pScopes - Requested scope codes; NULL or empty asks only that some consent stands
+ * @return {boolean} true when an unrevoked consent covers every requested scope
+ * @see SetOAuth2Consent, RevokeOAuth2Consent
+ * @since 1.2.11
+ */
+CREATE OR REPLACE FUNCTION CheckOAuth2Consent (
+  pUserId       uuid,
+  pAudience     integer,
+  pScopes       text[] DEFAULT null
+) RETURNS       boolean
+AS $$
+DECLARE
+  arGranted     text[];
+BEGIN
+  IF pUserId IS NULL OR pAudience IS NULL THEN
+    RETURN false;
+  END IF;
+
+  SELECT scopes INTO arGranted
+    FROM db.oauth2_consent
+   WHERE userid = pUserId
+     AND audience = pAudience
+     AND revoked IS NULL;
+
+  IF NOT FOUND THEN
+    RETURN false;
+  END IF;
+
+  IF pScopes IS NULL OR array_length(pScopes, 1) IS NULL THEN
+    RETURN true;
+  END IF;
+
+  RETURN coalesce(arGranted, ARRAY[]::text[]) @> pScopes;
+END;
+$$ LANGUAGE plpgsql
+   STABLE
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- SetOAuth2Consent ------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Record that the user granted this client access to the given scopes.
+ *
+ * Widens an existing consent rather than replacing it, and clears any earlier
+ * revocation. Called when the user answers the consent screen — never from a
+ * plain GET, which a third-party page can trigger with the user's cookies.
+ *
+ * @param {uuid} pUserId - User granting the consent
+ * @param {integer} pAudience - OAuth 2.0 client (audience) being granted access
+ * @param {text[]} pScopes - Scope codes being granted
+ * @return {bigint} Consent record identifier
+ * @see CheckOAuth2Consent, RevokeOAuth2Consent
+ * @since 1.2.11
+ */
+CREATE OR REPLACE FUNCTION SetOAuth2Consent (
+  pUserId       uuid,
+  pAudience     integer,
+  pScopes       text[] DEFAULT null
+) RETURNS       bigint
+AS $$
+DECLARE
+  nId           bigint;
+BEGIN
+  IF pUserId IS NULL OR pAudience IS NULL THEN
+    PERFORM AccessDenied();
+  END IF;
+
+  -- Consent is the user's to give. SECURITY DEFINER means this body runs with the
+  -- owner's rights, so the caller's must be checked here and nowhere else.
+  IF pUserId <> current_userid() AND NOT IsAdmin() THEN
+    PERFORM AccessDenied();
+  END IF;
+
+  pScopes := coalesce(pScopes, ARRAY[]::text[]);
+
+  -- One statement, not read-then-write: two "Allow" clicks racing (a double click,
+  -- a browser retry) would both miss the row and both insert, and the unique index
+  -- would turn the second into an unhandled exception.
+  INSERT INTO db.oauth2_consent AS c (userid, audience, scopes)
+  VALUES (pUserId, pAudience, pScopes)
+      ON CONFLICT (userid, audience) DO UPDATE
+     SET scopes = ARRAY(SELECT DISTINCT unnest(c.scopes || EXCLUDED.scopes) ORDER BY 1),
+         updated = Now(),
+         revoked = null
+  RETURNING id INTO nId;
+
+  RETURN nId;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- RevokeOAuth2Consent ---------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Withdraw the user's consent for this client.
+ *
+ * The record is kept and stamped rather than deleted: who granted what, and
+ * when it was taken back, is part of the audit trail.
+ *
+ * @param {uuid} pUserId - User withdrawing the consent
+ * @param {integer} pAudience - OAuth 2.0 client (audience) losing access
+ * @return {boolean} true when a standing consent was withdrawn
+ * @see CheckOAuth2Consent, SetOAuth2Consent
+ * @since 1.2.11
+ */
+CREATE OR REPLACE FUNCTION RevokeOAuth2Consent (
+  pUserId       uuid,
+  pAudience     integer
+) RETURNS       boolean
+AS $$
+DECLARE
+  nId           bigint;
+BEGIN
+  IF pUserId IS NULL OR pAudience IS NULL THEN
+    RETURN false;
+  END IF;
+
+  IF pUserId <> current_userid() AND NOT IsAdmin() THEN
+    PERFORM AccessDenied();
+  END IF;
+
+  UPDATE db.oauth2_consent
+     SET revoked = Now(),
+         updated = Now()
+   WHERE userid = pUserId
+     AND audience = pAudience
+     AND revoked IS NULL
+  RETURNING id INTO nId;
+
+  RETURN nId IS NOT NULL;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- CreateTokenHeader -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**

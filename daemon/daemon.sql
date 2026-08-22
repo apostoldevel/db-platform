@@ -496,6 +496,19 @@ $$ LANGUAGE plpgsql
  *        The caller proves possession of the user's session code; no credentials are
  *        re-entered and no password is required.
  *
+ *        Two things gate the issue, because a signed-in browser carries its cookies
+ *        wherever a third-party page sends it:
+ *
+ *          - the client must belong to an *internal* provider. Membership in
+ *            oauth2.audience under an external provider (google, yandex) is
+ *            registration for verifying that provider's tokens, not a client of
+ *            ours, and must not yield codes for our users;
+ *
+ *          - the user must have granted this client consent covering the requested
+ *            scopes. Registration is not permission. Without a standing consent the
+ *            function refuses with consent_required, and the caller shows the consent
+ *            screen; the answer comes back with pConsent := true.
+ *
  *        Substitution is performed under the *system* OAuth 2.0 client rather than
  *        under the requesting client, so a client registered by an oauth2.audience
  *        row alone — with no matching db.user — is supported. The issued code is
@@ -513,8 +526,9 @@ $$ LANGUAGE plpgsql
  * @param {text} pAccessType - 'online' or 'offline' ('offline' yields a refresh token)
  * @param {text} pAgent - HTTP User-Agent string
  * @param {inet} pHost - Client IP address
+ * @param {boolean} pConsent - true when the user has just answered the consent screen; records the consent and proceeds
  * @return {json} - {"code": ..., "state": ...} on success, or error object on failure
- * @see daemon.token, daemon.authorize
+ * @see daemon.token, daemon.authorize, CheckOAuth2Consent, SetOAuth2Consent, GetInternalAudience
  * @since 1.2.11
  */
 CREATE OR REPLACE FUNCTION daemon.authorization_code (
@@ -525,7 +539,8 @@ CREATE OR REPLACE FUNCTION daemon.authorization_code (
   pState        text DEFAULT null,
   pAccessType   text DEFAULT null,
   pAgent        text DEFAULT null,
-  pHost         inet DEFAULT null
+  pHost         inet DEFAULT null,
+  pConsent      boolean DEFAULT false
 ) RETURNS       json
 AS $$
 DECLARE
@@ -535,6 +550,8 @@ DECLARE
 
   nAudience     integer;
   nOAuth2       bigint;
+
+  arScopes      text[];
 
   vSystemId     text;
   vSystemSecret text;
@@ -566,10 +583,48 @@ BEGIN
 
   uUserId := current_userid();
 
-  SELECT a.id INTO nAudience FROM oauth2.audience a WHERE a.code = pClientId;
+  pConsent := coalesce(pConsent, false);
 
-  IF NOT FOUND THEN
+  -- Internal providers only: an audience row under google or yandex registers that
+  -- provider's tokens for verification, and must not be able to collect codes for
+  -- our users. Resolving by code alone would also be ambiguous — oauth2.audience is
+  -- unique by (provider, code), so SELECT ... INTO would pick an arbitrary row.
+  nAudience := GetInternalAudience(pClientId);
+
+  IF nAudience IS NULL THEN
     RETURN json_build_object('error', json_build_object('code', 401, 'error', 'invalid_client', 'message', 'The OAuth 2.0 client was not FOUND.'));
+  END IF;
+
+  -- The consent gate needs its table. Without this check a database updated with
+  -- routines but not patches (runme.sh --update, no --patch) fails inside
+  -- CheckOAuth2Consent and surfaces as an anonymous 500 from the handler below,
+  -- with nothing in the log to say which step is missing.
+  IF to_regclass('db.oauth2_consent') IS NULL THEN
+    PERFORM WriteToEventLog('E', 5000, 'exception', 'error', 'db.oauth2_consent is missing: apply patch P00000011 before serving authorization codes.');
+    RETURN json_build_object('error', json_build_object('code', 500, 'error', 'server_error', 'message', 'The authorization server is not fully migrated.'));
+  END IF;
+
+  -- Normalised the same way CreateOAuth2 will normalise it below, so that what the
+  -- user consented to and what the code actually carries cannot drift apart.
+  arScopes := ScopeToArray(pScope);
+
+  IF pConsent THEN
+    -- An empty scope expands to *every* scope in db.scope. Recording that as consent
+    -- would turn one click under a short list of permissions into a standing grant
+    -- over everything, and every later request by this client would pass silently.
+    -- The caller is expected to have resolved the scope to something explicit — the
+    -- consent screen shows the user what they are agreeing to, and this is the same
+    -- list.
+    IF NULLIF(pScope, '') IS NULL THEN
+      RETURN json_build_object('error', json_build_object('code', 400, 'error', 'invalid_scope', 'message', 'Consent requires an explicit scope.'));
+    END IF;
+
+    PERFORM SetOAuth2Consent(uUserId, nAudience, arScopes);
+  ELSIF NOT CheckOAuth2Consent(uUserId, nAudience, arScopes) THEN
+    -- Registration is not permission. Ask the user before handing out a code —
+    -- refused here, before the elevation below, so that a request that will not be
+    -- served costs no system login at all.
+    RETURN json_build_object('error', json_build_object('code', 403, 'error', 'consent_required', 'message', 'The user has not granted this client access.'));
   END IF;
 
   -- Elevate: GetSession requires the "substitute user" ACL bit, which the signed-in
@@ -592,7 +647,7 @@ BEGIN
     RETURN json_build_object('error', json_build_object('code', 500, 'error', 'server_error', 'message', 'The system OAuth 2.0 client is not authorized.'));
   END IF;
 
-  nOAuth2 := CreateOAuth2(nAudience, pScope, pAccessType, pRedirectURI, pState);
+  nOAuth2 := CreateOAuth2(nAudience, arScopes, pAccessType, pRedirectURI, pState);
 
   vSession := GetSession(uUserId, nOAuth2, pAgent, pHost, true, false);
 
