@@ -62,17 +62,17 @@ SELECT RegisterError('ERR-401-007', 401, 'E', 'auth', 'fr', 'La signature est in
 SELECT RegisterError('ERR-401-007', 401, 'E', 'auth', 'it', 'La firma è errata o mancante', 'La firma della richiesta è mancante o non corrisponde al valore atteso, indicando una possibile manomissione.', 'Assicurarsi che la richiesta sia firmata con la chiave e l''algoritmo corretti. Rigenerare la firma e riprovare.');
 SELECT RegisterError('ERR-401-007', 401, 'E', 'auth', 'es', 'La firma es incorrecta o falta', 'La firma de la solicitud falta o no coincide con el valor esperado, lo que indica una posible manipulación.', 'Asegúrese de que la solicitud esté firmada con la clave y el algoritmo correctos. Regenere la firma e intente de nuevo.');
 
---------------------------------------------------------------------------------
--- Group 403: Token expiration -------------------------------------------------
---------------------------------------------------------------------------------
-
--- ERR-403-001: TokenExpired
-SELECT RegisterError('ERR-403-001', 403, 'E', 'access', 'en', 'Token not FOUND or has expired', 'The access token was not found in the database or has passed its expiration time.', 'Obtain a new token by re-authenticating. Ensure your client refreshes tokens before they expire.');
-SELECT RegisterError('ERR-403-001', 403, 'E', 'access', 'ru', 'Маркер не найден или истек срок его действия');
-SELECT RegisterError('ERR-403-001', 403, 'E', 'access', 'de', 'Token nicht gefunden oder abgelaufen', 'Das Zugriffstoken wurde in der Datenbank nicht gefunden oder hat seine Gültigkeitsdauer überschritten.', 'Erhalten Sie ein neues Token durch erneute Authentifizierung. Stellen Sie sicher, dass Ihr Client Token vor Ablauf erneuert.');
-SELECT RegisterError('ERR-403-001', 403, 'E', 'access', 'fr', 'Le jeton est introuvable ou a expiré', 'Le jeton d''accès n''a pas été trouvé dans la base de données ou a dépassé sa date d''expiration.', 'Obtenez un nouveau jeton en vous réauthentifiant. Assurez-vous que votre client renouvelle les jetons avant leur expiration.');
-SELECT RegisterError('ERR-403-001', 403, 'E', 'access', 'it', 'Il token non è stato trovato o è scaduto', 'Il token di accesso non è stato trovato nel database o ha superato il tempo di scadenza.', 'Ottenere un nuovo token riautenticandosi. Assicurarsi che il client rinnovi i token prima della scadenza.');
-SELECT RegisterError('ERR-403-001', 403, 'E', 'access', 'es', 'Token no encontrado o ha expirado', 'El token de acceso no se encontró en la base de datos o ha superado su tiempo de expiración.', 'Obtenga un nuevo token reautenticándose. Asegúrese de que su cliente renueve los tokens antes de que expiren.');
+-- ERR-401-008: TokenExpired. RFC 6750 §3.1 puts an expired or unknown bearer
+-- token at 401 with invalid_token, not 403: the request was not authenticated,
+-- which is a thing the caller can fix by presenting a valid token. 403 says the
+-- token was understood and the answer is still no. Registered as ERR-403-001
+-- until 1.2.13.
+SELECT RegisterError('ERR-401-008', 401, 'E', 'auth', 'en', 'Token not FOUND or has expired', 'The access token was not found in the database or has passed its expiration time.', 'Obtain a new token by re-authenticating. Ensure your client refreshes tokens before they expire.');
+SELECT RegisterError('ERR-401-008', 401, 'E', 'auth', 'ru', 'Маркер не найден или истек срок его действия');
+SELECT RegisterError('ERR-401-008', 401, 'E', 'auth', 'de', 'Token nicht gefunden oder abgelaufen', 'Das Zugriffstoken wurde in der Datenbank nicht gefunden oder hat seine Gültigkeitsdauer überschritten.', 'Erhalten Sie ein neues Token durch erneute Authentifizierung. Stellen Sie sicher, dass Ihr Client Token vor Ablauf erneuert.');
+SELECT RegisterError('ERR-401-008', 401, 'E', 'auth', 'fr', 'Le jeton est introuvable ou a expiré', 'Le jeton d''accès n''a pas été trouvé dans la base de données ou a dépassé sa date d''expiration.', 'Obtenez un nouveau jeton en vous réauthentifiant. Assurez-vous que votre client renouvelle les jetons avant leur expiration.');
+SELECT RegisterError('ERR-401-008', 401, 'E', 'auth', 'it', 'Il token non è stato trovato o è scaduto', 'Il token di accesso non è stato trovato nel database o ha superato il tempo di scadenza.', 'Ottenere un nuovo token riautenticandosi. Assicurarsi che il client rinnovi i token prima della scadenza.');
+SELECT RegisterError('ERR-401-008', 401, 'E', 'auth', 'es', 'Token no encontrado o ha expirado', 'El token de acceso no se encontró en la base de datos o ha superado su tiempo de expiración.', 'Obtenga un nuevo token reautenticándose. Asegúrese de que su cliente renueve los tokens antes de que expiren.');
 
 --------------------------------------------------------------------------------
 -- Group 400: Access errors ----------------------------------------------------

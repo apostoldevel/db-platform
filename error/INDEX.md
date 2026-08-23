@@ -98,8 +98,7 @@ Centralized error catalog with locale-aware messages. Every application error co
 
 | HTTP Code | Category | Description | Count |
 |-----------|----------|-------------|-------|
-| 401 | auth | Authentication errors | 7 |
-| 403 | auth | Token expiration | 1 |
+| 401 | auth | Authentication errors | 8 |
 | 400 | access | Access errors | 3 |
 | 400 | auth | Auth errors | 4 |
 | 400 | entity | Entity errors | 6 |

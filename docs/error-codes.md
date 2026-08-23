@@ -30,12 +30,19 @@ SELECT RegisterError('ERR-400-200', 400, 'E', 'validation', 'ru', 'Моя оши
 | ERR-401-005 | UserTempLockError | Account is temporarily locked until %s | auth |
 | ERR-401-006 | PasswordExpired | Password expired | auth |
 | ERR-401-007 | SignatureError | Signature is incorrect or missing | auth |
+| ERR-401-008 | TokenExpired | Token not FOUND or has expired | auth |
 
-## Access Control Errors (ERR-403-xxx)
-
-| Code | Function | Message | Category |
-|------|----------|---------|----------|
-| ERR-403-001 | TokenExpired | Token not FOUND or has expired | access |
+> `TokenExpired` was `ERR-403-001` until 1.2.13. RFC 6750 §3.1 puts an expired or
+> unknown bearer token at 401 with `invalid_token`; 403 says the token was
+> understood and the answer is still no. The status travels inside the identifier,
+> so correcting one meant renaming the other.
+>
+> The platform no longer registers anything in group 403 — but the group is not
+> unused. `SubstituteUser` still raises the legacy form `ERR-40300`, which
+> `ParseMessage` reads as `ERR-403-000`, a code no catalogue holds; and projects
+> register their own, such as ship-safety's `ERR-403-120` for a licence limit.
+> A project adding a code there should pick a free number, not assume the group
+> is theirs.
 
 ## Client Errors (ERR-400-xxx)
 

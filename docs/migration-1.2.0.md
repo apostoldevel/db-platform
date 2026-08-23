@@ -111,7 +111,7 @@ The following table maps all 80 platform error codes from the old `ERR-GGGCC` fo
 
 | Old Code | New Code | Function | Message |
 |----------|----------|----------|---------|
-| ERR-40301 | ERR-403-001 | TokenExpired | Token not FOUND or has expired |
+| ERR-40301 | ERR-403-001 | TokenExpired | Token not FOUND or has expired |[^tokenexpired]
 
 #### Client Errors (400)
 
@@ -524,3 +524,7 @@ grep -rnP "[А-Яа-яЁё]" configuration/<dbname>/ --include="*.sql" \
 - [Platform 1.2.1 Migration Guide](migration-1.2.1.md) -- entity/class/type locale expansion
 - `error/init.sql` -- source of truth for all error registrations
 - `error/routine.sql` -- `ParseMessage()`, `RegisterError()`, and exception-raising functions
+
+[^tokenexpired]: Renamed again in 1.2.13 to `ERR-401-008`. RFC 6750 §3.1 puts an
+    expired or unknown bearer token at 401 with `invalid_token`, and the status
+    travels inside the identifier — see `patch/v1.2/P00000013.sql`.

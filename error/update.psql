@@ -2,3 +2,17 @@
 \ir view.sql
 \ir api.sql
 \ir rest.sql
+
+-- The catalogue itself, not only the code that reads it. create.psql has always
+-- ended this way; update.psql did not, and the asymmetry meant a routine that
+-- raises a newly registered code went live before the code existed.
+--
+-- What that looks like: exception/routine.sql is part of --update, error/init.sql
+-- was not, and the patch that registers new codes runs only under --migrate. So a
+-- pull followed by ./runme.sh --update — the day-to-day command, and the default
+-- with no arguments — left TokenExpired() raising an identifier absent from
+-- db.error_catalog, which answers "Unknown error." in all six locales.
+--
+-- Safe to repeat: init.sql holds nothing but RegisterError calls, and RegisterError
+-- creates what is missing and rewrites the texts of what is not.
+\ir init.sql

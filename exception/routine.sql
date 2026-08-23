@@ -269,7 +269,7 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION TokenExpired() RETURNS void
 AS $$
 BEGIN
-  RAISE EXCEPTION '%', GetExceptionStr(403, 1);
+  RAISE EXCEPTION '%', GetExceptionStr(401, 8);
 END;
 $$ LANGUAGE plpgsql;
 
