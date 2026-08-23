@@ -669,6 +669,23 @@ BEGIN
 
   -- The elevation session is a throwaway: give it the system client's own scope,
   -- not the one the client asked for, which the system user may have no profile in.
+  -- Checked before signing in, and this is not belt-and-braces.
+  --
+  -- SignIn counts a failure against the user: input_error goes up, and at five it
+  -- writes lock_date up to ten hours ahead. The system user is the one messaging and
+  -- verification codes run as. So a secret rotated in oauth2.audience without
+  -- re-running CreateUser used to turn every request that got this far into a failed
+  -- login of that user, and five of them took the whole system's outbound mail down
+  -- for the rest of the working day — from a mismatch that hurts nothing else.
+  --
+  -- CheckPassword answers the same question and touches neither counter.
+  IF NOT CheckPassword(vSystemId, vSystemSecret) THEN
+    PERFORM WriteToEventLog('E', 5000, 'exception', 'error',
+      format('The system OAuth 2.0 client "%s" cannot sign in: %s. The db.user password and the oauth2.audience secret have diverged; re-run CreateUser for that client.',
+             vSystemId, GetErrorMessage()));
+    RETURN json_build_object('error', json_build_object('code', 500, 'error', 'server_error', 'message', 'The authorization server is not configured correctly.'));
+  END IF;
+
   vSystemSession := SignIn(CreateSystemOAuth2(), vSystemId, vSystemSecret, pAgent, pHost);
 
   IF vSystemSession IS NULL THEN
