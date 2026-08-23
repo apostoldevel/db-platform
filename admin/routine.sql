@@ -1602,8 +1602,13 @@ DECLARE
 BEGIN
   vHash := GetTokenHash(pToken, GetSecretKey());
 
+  -- A spent authorization code is found here on purpose; the claim below decides.
+  -- Filtering it out made a sequential replay indistinguishable from a code that
+  -- never existed — "Malformed" and nothing else — so the revocation RFC 6749
+  -- §4.1.2 asks for never happened on the commonest path. A code leaks through a
+  -- redirect, a Referer or a proxy log and is presented later, not in a race.
   SELECT h.id, t.id INTO nHeader, nToken
-    FROM db.token t INNER JOIN db.token_header h ON h.id = t.header AND t.type = pType AND NOT (pType = 'C' AND t.used IS NOT NULL)
+    FROM db.token t INNER JOIN db.token_header h ON h.id = t.header AND t.type = pType
    WHERE t.hash = vHash
      AND t.validFromDate <= Now()
      AND t.validtoDate > Now();
@@ -1649,10 +1654,20 @@ BEGIN
       -- it travels through a browser redirect, so the address bar, the Referer and
       -- any logging proxy have all seen it. Denying alone would leave whoever won
       -- the race holding working tokens.
-      DELETE FROM db.token WHERE header = nHeader;
+      -- Order matters and is not free to choose. db.session.token is NOT NULL and
+      -- references db.token, so deleting the tokens first raises
+      -- session_token_fkey, the whole exchange rolls back, and the caller gets a
+      -- server_error while the winner keeps working tokens — the opposite of a
+      -- revocation. Sessions go first; the header then cascades to its tokens
+      -- (db.token.header is ON DELETE CASCADE). Same order SessionOut uses.
+      DELETE FROM db.session
+       WHERE token IN (SELECT id FROM db.token WHERE header = nHeader)
+          OR code IN (SELECT session FROM db.token_header WHERE id = nHeader);
+
+      DELETE FROM db.token_header WHERE id = nHeader;
 
       PERFORM WriteToEventLog('E', 4001, 'auth', 'error',
-        format('Authorization code presented more than once; tokens issued from it were revoked (header %s).', nHeader));
+        format('Authorization code presented more than once; the session and tokens issued from it were revoked (header %s).', nHeader));
 
       RETURN json_build_object('error', json_build_object('code', 400, 'error', 'invalid_grant', 'message', 'Malformed authorization code.'));
     END IF;
