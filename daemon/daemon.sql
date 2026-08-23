@@ -514,6 +514,11 @@ $$ LANGUAGE plpgsql
  *            and the elevation below, running under the system client, says nothing
  *            about who asked.
  *
+ *          - the user must already have a profile in one of the requested scopes.
+ *            CheckUserProfile would otherwise create one, and for an administrator
+ *            it creates an administrative one; a request arriving as a redirect
+ *            from another site must not provision access.
+ *
  *        Substitution is performed under the *system* OAuth 2.0 client rather than
  *        under the requesting client, so a client registered by an oauth2.audience
  *        row alone — with no matching db.user — is supported. The issued code is
@@ -637,6 +642,33 @@ BEGIN
   -- Normalised the same way CreateOAuth2 will normalise it below, so that what the
   -- user consented to and what the code actually carries cannot drift apart.
   arScopes := ScopeToArray(pScope);
+
+  -- The user must already have a profile in one of the scopes asked for.
+  --
+  -- GetSession calls CheckUserProfile, which creates one when there is none — and
+  -- for a member of the administrator group it creates it with an administrative
+  -- area and the administrator interface. That is reasonable where it was written,
+  -- on a login the user initiated. Here the request arrives as a redirect from
+  -- somebody else's site naming whichever scope it likes, so provisioning would
+  -- mean a third party deciding this user now has access to that scope — and for an
+  -- administrator, privileged access. Granting access is not something an
+  -- authorization request should do as a side effect.
+  --
+  -- Scope codes are matched through db.scope_alias as well: ScopeToArray accepts an
+  -- alias and returns it unchanged, so comparing against db.scope.code alone would
+  -- refuse a request that names a scope by its other name.
+  IF NOT EXISTS (
+      SELECT 1
+        FROM db.profile p
+       WHERE p.userid = uUserId
+         AND p.scope IN (SELECT s.id FROM db.scope s WHERE s.code = ANY(arScopes)
+                          UNION
+                         SELECT a.scope FROM db.scope_alias a WHERE a.code = ANY(arScopes)))
+  THEN
+    PERFORM WriteToEventLog('E', 4003, 'auth', 'error',
+      format('No profile for this user in the requested scope; refused to create one from an authorization request (client %s).', pClientId));
+    RETURN json_build_object('error', json_build_object('code', 401, 'error', 'access_denied', 'message', 'The user has no profile in the requested scope.'));
+  END IF;
 
   IF pConsent THEN
     -- An empty scope expands to *every* scope in db.scope. Recording that as consent
