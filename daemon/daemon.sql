@@ -499,7 +499,17 @@ BEGIN
         PERFORM CreateProfile(uUserId, uScope, profile.family_name, profile.given_name, null, profile.locale, profile.area, profile.interface, profile.email_verified, profile.phone_verified, profile.picture);
       END IF;
 
+      -- Our own audience for the application the external one is registered
+      -- under: the session being issued belongs to this portal, not to the
+      -- provider. A deployment that adds a portal and registers an external
+      -- audience under it without adding our own would otherwise pass NULL
+      -- into CreateOAuth2 and fail somewhere further down with nothing naming
+      -- the cause -- on a login that was correct in every other respect.
       SELECT id INTO nAudience FROM oauth2.audience WHERE provider = GetProvider('default') AND application = nApplication;
+
+      IF NOT FOUND THEN
+        PERFORM AudienceNotFound();
+      END IF;
 
       vSession := GetSession(uUserId, CreateOAuth2(nAudience, pScope, 'offline'), pAgent, pHost, true, false);
 
