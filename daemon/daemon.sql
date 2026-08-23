@@ -537,6 +537,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pAgent - HTTP User-Agent string
  * @param {inet} pHost - Client IP address
  * @param {boolean} pConsent - true when the user has just answered the consent screen; records the consent and proceeds
+ * @param {integer} pMaxAge - OpenID Connect max_age: refuse with login_required when the session was authenticated longer ago than this many seconds
  * @return {json} - {"code": ..., "state": ...} on success, or error object on failure
  * @see daemon.token, daemon.authorize, CheckOAuth2Consent, SetOAuth2Consent, GetInternalAudience
  * @since 1.2.11
@@ -550,7 +551,8 @@ CREATE OR REPLACE FUNCTION daemon.authorization_code (
   pAccessType   text DEFAULT null,
   pAgent        text DEFAULT null,
   pHost         inet DEFAULT null,
-  pConsent      boolean DEFAULT false
+  pConsent      boolean DEFAULT false,
+  pMaxAge       integer DEFAULT null
 ) RETURNS       json
 AS $$
 DECLARE
@@ -594,6 +596,24 @@ BEGIN
   END IF;
 
   uUserId := current_userid();
+
+  -- OpenID Connect max_age: "Maximum Authentication Age … If the elapsed time is
+  -- greater than this value, the OP MUST attempt to actively re-authenticate the
+  -- End-User."
+  --
+  -- Measured from db.session.created, which is when the user actually
+  -- authenticated, not from updated, which every request moves. Without this a
+  -- relying party had no way to ask for a fresh sign-in: a session left open on a
+  -- shared browser answered exactly like one opened a moment ago, and the caller
+  -- could only take it or leave it. login_required is the answer the specification
+  -- names, and the caller turns it into the sign-in page.
+  IF pMaxAge IS NOT NULL THEN
+    IF EXISTS (SELECT 1 FROM db.session
+                WHERE code = pSession
+                  AND created < Now() - make_interval(secs => greatest(pMaxAge, 0))) THEN
+      RETURN json_build_object('error', json_build_object('code', 401, 'error', 'login_required', 'message', 'The session is older than the requested max_age.'));
+    END IF;
+  END IF;
 
   pConsent := coalesce(pConsent, false);
 
