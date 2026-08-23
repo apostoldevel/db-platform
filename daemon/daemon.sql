@@ -21,6 +21,7 @@ DECLARE
 
   ErrorCode     int;
   ErrorMessage  text;
+  vErrorId      text;
 BEGIN
   RETURN TokenValidation(pToken);
 EXCEPTION
@@ -29,12 +30,12 @@ WHEN others THEN
 
   PERFORM SetErrorMessage(vMessage);
 
-  SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
+  SELECT * INTO ErrorCode, ErrorMessage, vErrorId FROM ParseMessage(vMessage);
 
   PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
   PERFORM WriteToEventLog('D', ErrorCode, 'exception', 'context', vContext);
 
-  RETURN json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
+  RETURN json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'error', vErrorId, 'message', ErrorMessage));
 END;
 $$ LANGUAGE plpgsql
   SECURITY DEFINER
@@ -61,6 +62,7 @@ DECLARE
 
   ErrorCode     int;
   ErrorMessage  text;
+  vErrorId      text;
 BEGIN
   RETURN RefreshToken(pToken, pRefresh);
 EXCEPTION
@@ -69,12 +71,12 @@ WHEN others THEN
 
   PERFORM SetErrorMessage(vMessage);
 
-  SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
+  SELECT * INTO ErrorCode, ErrorMessage, vErrorId FROM ParseMessage(vMessage);
 
   PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
   PERFORM WriteToEventLog('D', ErrorCode, 'exception', 'context', vContext);
 
-  RETURN json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
+  RETURN json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'error', vErrorId, 'message', ErrorMessage));
 END;
 $$ LANGUAGE plpgsql
   SECURITY DEFINER
@@ -106,6 +108,7 @@ DECLARE
 
   ErrorCode     int;
   ErrorMessage  text;
+  vErrorId      text;
 BEGIN
   PERFORM TokenValidation(pToken);
 
@@ -129,12 +132,12 @@ WHEN others THEN
 
   PERFORM SetErrorMessage(vMessage);
 
-  SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
+  SELECT * INTO ErrorCode, ErrorMessage, vErrorId FROM ParseMessage(vMessage);
 
   PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
   PERFORM WriteToEventLog('D', ErrorCode, 'exception', 'context', vContext);
 
-  RETURN json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
+  RETURN json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'error', vErrorId, 'message', ErrorMessage));
 END;
 $$ LANGUAGE plpgsql
   SECURITY DEFINER
@@ -173,6 +176,7 @@ DECLARE
 
   ErrorCode     int;
   ErrorMessage  text;
+  vErrorId      text;
 BEGIN
   SELECT userId INTO uUserId FROM db.session WHERE code = pSession;
 
@@ -194,12 +198,12 @@ WHEN others THEN
 
   PERFORM SetErrorMessage(vMessage);
 
-  SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
+  SELECT * INTO ErrorCode, ErrorMessage, vErrorId FROM ParseMessage(vMessage);
 
   PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
   PERFORM WriteToEventLog('D', ErrorCode, 'exception', 'context', vContext);
 
-  RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
+  RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'error', vErrorId, 'message', ErrorMessage));
 
   RETURN;
 END;
@@ -224,6 +228,7 @@ DECLARE
 
   ErrorCode     int;
   ErrorMessage  text;
+  vErrorId      text;
 BEGIN
   PERFORM InitListen();
 EXCEPTION
@@ -232,12 +237,12 @@ WHEN others THEN
 
   PERFORM SetErrorMessage(vMessage);
 
-  SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
+  SELECT * INTO ErrorCode, ErrorMessage, vErrorId FROM ParseMessage(vMessage);
 
   PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
   PERFORM WriteToEventLog('D', ErrorCode, 'exception', 'context', vContext);
 
-  RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
+  RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'error', vErrorId, 'message', ErrorMessage));
 
   RETURN;
 END;
@@ -299,6 +304,7 @@ DECLARE
 
   ErrorCode     int;
   ErrorMessage  text;
+  vErrorId      text;
 BEGIN
   SELECT convert_from(url_decode(r[2]), 'utf8')::jsonb INTO payload FROM regexp_split_to_array(pToken, '\.') r;
 
@@ -406,12 +412,12 @@ WHEN others THEN
 
   PERFORM SetErrorMessage(vMessage);
 
-  SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
+  SELECT * INTO ErrorCode, ErrorMessage, vErrorId FROM ParseMessage(vMessage);
 
   PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
   PERFORM WriteToEventLog('D', ErrorCode, 'exception', 'context', vContext);
 
-  RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
+  RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'error', vErrorId, 'message', ErrorMessage));
 
   RETURN;
 END;
@@ -450,6 +456,7 @@ DECLARE
 
   ErrorCode     int;
   ErrorMessage  text;
+  vErrorId      text;
 BEGIN
   IF SessionIn(pSession, pAgent, pHost) IS NULL THEN
     PERFORM AuthenticateError(GetErrorMessage());
@@ -476,12 +483,12 @@ WHEN others THEN
 
   PERFORM SetErrorMessage(vMessage);
 
-  SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
+  SELECT * INTO ErrorCode, ErrorMessage, vErrorId FROM ParseMessage(vMessage);
 
   PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
   PERFORM WriteToEventLog('D', ErrorCode, 'exception', 'context', vContext);
 
-  RETURN json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
+  RETURN json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'error', vErrorId, 'message', ErrorMessage));
 END;
 $$ LANGUAGE plpgsql
   SECURITY DEFINER
@@ -579,8 +586,15 @@ DECLARE
 
   ErrorCode     int;
   ErrorMessage  text;
+  vErrorId      text;
 BEGIN
   IF NULLIF(pClientId, '') IS NULL THEN
+  -- The "error" field here is an RFC 6749 §5.2 code, not a catalogue identifier:
+  -- this is a protocol response, and the protocol says what belongs in it. The
+  -- exception handlers of this file put vErrorId in the same field, which is the
+  -- other shape daemon.* answers with — see api.* for the same convention. Where a
+  -- handler ends in a response like this one, vErrorId is read from ParseMessage
+  -- and deliberately not used.
     RETURN json_build_object('error', json_build_object('code', 400, 'error', 'invalid_request', 'message', 'Missing parameter: client_id'));
   END IF;
 
@@ -591,7 +605,7 @@ BEGIN
   pAccessType := coalesce(pAccessType, 'online');
 
   IF SessionIn(pSession, pAgent, pHost) IS NULL THEN
-    SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(GetErrorMessage());
+    SELECT * INTO ErrorCode, ErrorMessage, vErrorId FROM ParseMessage(GetErrorMessage());
     RETURN json_build_object('error', json_build_object('code', 401, 'error', 'access_denied', 'message', ErrorMessage));
   END IF;
 
@@ -741,7 +755,7 @@ BEGIN
   vSystemSession := SignIn(CreateSystemOAuth2(), vSystemId, vSystemSecret, pAgent, pHost);
 
   IF vSystemSession IS NULL THEN
-    SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(GetErrorMessage());
+    SELECT * INTO ErrorCode, ErrorMessage, vErrorId FROM ParseMessage(GetErrorMessage());
     PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
     RETURN json_build_object('error', json_build_object('code', 500, 'error', 'server_error', 'message', 'The system OAuth 2.0 client is not authorized.'));
   END IF;
@@ -750,7 +764,7 @@ BEGIN
 
   vSession := GetSession(uUserId, nOAuth2, pAgent, pHost, true, false);
 
-  SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(GetErrorMessage());
+  SELECT * INTO ErrorCode, ErrorMessage, vErrorId FROM ParseMessage(GetErrorMessage());
 
   PERFORM SignOut(vSystemSession);
 
@@ -778,7 +792,7 @@ WHEN others THEN
 
   PERFORM SetErrorMessage(vMessage);
 
-  SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
+  SELECT * INTO ErrorCode, ErrorMessage, vErrorId FROM ParseMessage(vMessage);
 
   PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
   PERFORM WriteToEventLog('D', ErrorCode, 'exception', 'context', vContext);
@@ -870,7 +884,7 @@ DECLARE
 
   ErrorCode             int;
   ErrorMessage          text;
-
+  vErrorId              text;
   passed                boolean;
 BEGIN
   grant_type := pPayload->>'grant_type';
@@ -982,7 +996,7 @@ BEGIN
     vSession := SignIn(nOAuth2, vUsername, vPassword, pAgent, pHost);
 
     IF vSession IS NULL THEN
-      SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(GetErrorMessage());
+      SELECT * INTO ErrorCode, ErrorMessage, vErrorId FROM ParseMessage(GetErrorMessage());
       PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
       RETURN json_build_object('error', json_build_object('code', 401, 'error', 'access_denied', 'message', ErrorMessage));
     END IF;
@@ -1013,7 +1027,7 @@ BEGIN
     uUserId := CheckRecoveryTicket(uTicket, vCode);
 
     IF uUserId IS NULL THEN
-      SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(GetErrorMessage());
+      SELECT * INTO ErrorCode, ErrorMessage, vErrorId FROM ParseMessage(GetErrorMessage());
       RETURN json_build_object('error', json_build_object('code', 401, 'error', 'access_denied', 'message', ErrorMessage));
     END IF;
 
@@ -1037,7 +1051,7 @@ BEGIN
 
     vSession := GetSession(uUserId, nOAuth2, pAgent, pHost, true, true);
 
-    SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(GetErrorMessage());
+    SELECT * INTO ErrorCode, ErrorMessage, vErrorId FROM ParseMessage(GetErrorMessage());
 
     PERFORM SignOut(vOAuthSession);
 
@@ -1107,7 +1121,7 @@ WHEN others THEN
 
   PERFORM SetErrorMessage(vMessage);
 
-  SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
+  SELECT * INTO ErrorCode, ErrorMessage, vErrorId FROM ParseMessage(vMessage);
 
   PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
   PERFORM WriteToEventLog('D', ErrorCode, 'exception', 'context', vContext);
@@ -1143,6 +1157,7 @@ DECLARE
 
   ErrorCode     int;
   ErrorMessage  text;
+  vErrorId      text;
 BEGIN
   token := TokenValidation(pToken);
 
@@ -1159,12 +1174,12 @@ WHEN others THEN
 
   PERFORM SetErrorMessage(vMessage);
 
-  SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
+  SELECT * INTO ErrorCode, ErrorMessage, vErrorId FROM ParseMessage(vMessage);
 
   PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
   PERFORM WriteToEventLog('D', ErrorCode, 'exception', 'context', vContext);
 
-  RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
+  RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'error', vErrorId, 'message', ErrorMessage));
 
   RETURN;
 END;
@@ -1197,6 +1212,7 @@ DECLARE
 
   ErrorCode     int;
   ErrorMessage  text;
+  vErrorId      text;
 BEGIN
   token := TokenValidation(pToken);
 
@@ -1211,12 +1227,12 @@ WHEN others THEN
 
   PERFORM SetErrorMessage(vMessage);
 
-  SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
+  SELECT * INTO ErrorCode, ErrorMessage, vErrorId FROM ParseMessage(vMessage);
 
   PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
   PERFORM WriteToEventLog('D', ErrorCode, 'exception', 'context', vContext);
 
-  RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
+  RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'error', vErrorId, 'message', ErrorMessage));
 
   RETURN;
 END;
@@ -1254,6 +1270,7 @@ DECLARE
 
   ErrorCode     int;
   ErrorMessage  text;
+  vErrorId      text;
 BEGIN
   IF NULLIF(pPath, '') IS NULL THEN
     PERFORM RouteIsEmpty();
@@ -1262,7 +1279,12 @@ BEGIN
   pPath := lower(pPath);
 
   IF pPath = ANY (string_to_array(RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject\API\Route', 'Blacklist'), ',')) THEN
-    RETURN NEXT json_build_object('error', json_build_object('code', 401, 'message', 'Unauthorized'));
+    -- Identified like every other error object this file returns. Without it this
+    -- was the one 401 from daemon.* a caller could not name, and so could not tell
+    -- from an expired token — which is the distinction the identifier exists for.
+    -- ERR-401-001 is the catalogue's "Login failed": the route is closed to an
+    -- unauthenticated caller, which is what happened.
+    RETURN NEXT json_build_object('error', json_build_object('code', 401, 'error', 'ERR-401-001', 'message', 'Unauthorized'));
     RETURN;
   END IF;
 
@@ -1288,12 +1310,12 @@ WHEN others THEN
 
   PERFORM SetErrorMessage(vMessage);
 
-  SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
+  SELECT * INTO ErrorCode, ErrorMessage, vErrorId FROM ParseMessage(vMessage);
 
   PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
   PERFORM WriteToEventLog('D', ErrorCode, 'exception', 'context', vContext);
 
-  RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
+  RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'error', vErrorId, 'message', ErrorMessage));
 
   RETURN;
 END;
@@ -1338,6 +1360,7 @@ DECLARE
 
   ErrorCode     int;
   ErrorMessage  text;
+  vErrorId      text;
 BEGIN
   IF NULLIF(pPath, '') IS NULL THEN
     PERFORM RouteIsEmpty();
@@ -1371,12 +1394,12 @@ WHEN others THEN
 
   PERFORM SetErrorMessage(vMessage);
 
-  SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
+  SELECT * INTO ErrorCode, ErrorMessage, vErrorId FROM ParseMessage(vMessage);
 
   PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
   PERFORM WriteToEventLog('D', ErrorCode, 'exception', 'context', vContext);
 
-  RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
+  RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'error', vErrorId, 'message', ErrorMessage));
 
   RETURN;
 END;
@@ -1421,6 +1444,7 @@ DECLARE
 
   ErrorCode     int;
   ErrorMessage  text;
+  vErrorId      text;
 BEGIN
   IF NULLIF(pPath, '') IS NULL THEN
     PERFORM RouteIsEmpty();
@@ -1452,12 +1476,12 @@ WHEN others THEN
 
   PERFORM SetErrorMessage(vMessage);
 
-  SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
+  SELECT * INTO ErrorCode, ErrorMessage, vErrorId FROM ParseMessage(vMessage);
 
   PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
   PERFORM WriteToEventLog('D', ErrorCode, 'exception', 'context', vContext);
 
-  RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
+  RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'error', vErrorId, 'message', ErrorMessage));
 
   RETURN;
 END;
@@ -1509,7 +1533,7 @@ DECLARE
 
   ErrorCode     int;
   ErrorMessage  text;
-
+  vErrorId      text;
   passed        boolean;
 BEGIN
   IF NULLIF(pPath, '') IS NULL THEN
@@ -1564,12 +1588,12 @@ WHEN others THEN
 
   PERFORM SetErrorMessage(vMessage);
 
-  SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
+  SELECT * INTO ErrorCode, ErrorMessage, vErrorId FROM ParseMessage(vMessage);
 
   PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
   PERFORM WriteToEventLog('D', ErrorCode, 'exception', 'context', vContext);
 
-  RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
+  RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'error', vErrorId, 'message', ErrorMessage));
 
   RETURN;
 END;
@@ -1613,6 +1637,7 @@ DECLARE
 
   ErrorCode     int;
   ErrorMessage  text;
+  vErrorId      text;
 BEGIN
   IF NULLIF(pPath, '') IS NULL THEN
     PERFORM RouteIsEmpty();
@@ -1648,12 +1673,12 @@ WHEN others THEN
 
   PERFORM SetErrorMessage(vMessage);
 
-  SELECT * INTO ErrorCode, ErrorMessage FROM ParseMessage(vMessage);
+  SELECT * INTO ErrorCode, ErrorMessage, vErrorId FROM ParseMessage(vMessage);
 
   PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
   PERFORM WriteToEventLog('D', ErrorCode, 'exception', 'context', vContext);
 
-  RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'message', ErrorMessage));
+  RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'error', vErrorId, 'message', ErrorMessage));
 
   RETURN;
 END;
