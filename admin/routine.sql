@@ -3089,6 +3089,90 @@ $$ LANGUAGE plpgsql
   SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- FUNCTION current_provider ---------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Resolve the provider identifier for the current session's OAuth 2.0 audience.
+ *
+ * Who authenticated this session, as opposed to which application it belongs
+ * to. The two are not interchangeable: a portal's own sign-in form and a sign-in
+ * through an external identity provider on that same portal are the same
+ * application by construction -- the external audience has to be registered
+ * under it, or daemon.login could not find the portal's own audience to issue
+ * the session with. The provider is what tells them apart.
+ *
+ * Which matters wherever an implicit decision is taken about a caller who has
+ * just arrived: an external provider vouches for an identity, not for a right
+ * to create anything.
+ *
+ * @param {text} pSession - Session code (defaults to current session)
+ * @return {integer} Provider identifier
+ * @since 1.2.16
+ */
+CREATE OR REPLACE FUNCTION current_provider (
+  pSession      text DEFAULT current_session()
+) RETURNS       integer
+AS $$
+DECLARE
+  nOAuth2       bigint;
+  nAudience     integer;
+  nProvider     integer;
+BEGIN
+  SELECT oauth2 INTO nOAuth2 FROM db.session WHERE code = pSession;
+  SELECT audience INTO nAudience FROM db.oauth2 WHERE id = nOAuth2;
+  SELECT provider INTO nProvider FROM oauth2.audience WHERE id = nAudience;
+
+  RETURN nProvider;
+END;
+$$ LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION current_provider_code ----------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Resolve the provider code for the current session.
+ * @param {integer} pProvider - Provider identifier (defaults to current provider)
+ * @return {text} Provider code
+ * @since 1.2.16
+ */
+CREATE OR REPLACE FUNCTION current_provider_code (
+  pProvider     integer DEFAULT current_provider()
+) RETURNS       text
+AS $$
+BEGIN
+  RETURN GetProviderCode(pProvider);
+END;
+$$ LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION current_provider_type ----------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Resolve the provider type for the current session: 'I' internal, 'E' external.
+ *
+ * The question worth asking in most cases is not which provider, but whether it
+ * is one of ours at all.
+ *
+ * @param {integer} pProvider - Provider identifier (defaults to current provider)
+ * @return {char} Provider type
+ * @since 1.2.16
+ */
+CREATE OR REPLACE FUNCTION current_provider_type (
+  pProvider     integer DEFAULT current_provider()
+) RETURNS       char
+AS $$
+BEGIN
+  RETURN GetProviderType(pProvider);
+END;
+$$ LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- FUNCTION acl ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**

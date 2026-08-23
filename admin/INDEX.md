@@ -99,7 +99,7 @@ User management, authentication, authorization, sessions, and access control. Th
 
 ### Scope & Context (~12)
 
-`CreateScope`, `EditScope`, `DeleteScope`, `GetScope`, `GetScopeName`, `ScopeToArray`, `current_scope`, `current_scope_code`, `GetOAuth2Scopes`, `current_scopes`, `current_application`, `current_application_code`.
+`CreateScope`, `EditScope`, `DeleteScope`, `GetScope`, `GetScopeName`, `ScopeToArray`, `current_scope`, `current_scope_code`, `GetOAuth2Scopes`, `current_scopes`, `current_application`, `current_application_code`, `current_provider`, `current_provider_code`, `current_provider_type`.
 
 ### Area Management (~20)
 
