@@ -372,9 +372,8 @@ BEGIN
       -- Claim names come from oauth2.provider_claim. A provider with no rule is
       -- read by the OpenID Connect names: they are right for everyone who
       -- follows the specification -- Google among them, which is why the rule
-      -- table can stay empty and nothing about that provider changes -- and
-      -- wrong only where a provider invented its own, which is when a rule is
-      -- written.
+      -- table can stay empty and its fields are still read -- and wrong only
+      -- where a provider invented its own, which is when a rule is written.
       jPayload := token.payload::jsonb;
 
       SELECT c.claims, c.email_trusted INTO jClaims, bEmailTrusted
@@ -448,22 +447,40 @@ BEGIN
         END IF;
 
         -- Tested on uUserId rather than FOUND: the SELECT above is conditional,
-        -- and the EXISTS below would overwrite FOUND before it could be read.
+        -- and would leave FOUND from whatever ran before it.
         IF uUserId IS NULL THEN
-          -- db.user(email) is unique. An address that is taken but unconfirmed
-          -- was not linked above, and handing it to api.signup would fail the
-          -- login on that constraint. Create the account WITHOUT the address:
-          -- the person gets in, and attaches the address later by signing in as
-          -- its owner.
+          -- An unconfirmed address is not stored either. Checking only the
+          -- address arriving now would be half the invariant: an unconfirmed
+          -- address written to db.user becomes, from that moment, a row that
+          -- the confirmed branch above links to. Someone signing up through a
+          -- provider we do not trust with addresses could claim anyone's, wait,
+          -- and collect them when the owner arrives through a provider we do
+          -- trust. db.user has nowhere to record that an address was never
+          -- confirmed -- email_verified lives on db.profile, per scope -- so
+          -- the address is simply not written.
           --
-          -- Which of the two to do here is policy, not invariant. This default
-          -- keeps the login working and asks nothing of the client; a
-          -- deployment that would rather refuse outright is the reason to make
-          -- it configurable, and the place to put that is a column on
+          -- Which also covers the constraint: db.user(email) is unique, and a
+          -- confirmed address that is already taken was linked above rather
+          -- than reaching this point.
+          --
+          -- The person gets in, and attaches the address later by signing in as
+          -- its owner. That last part is policy rather than invariant -- a
+          -- deployment would be within its rights to refuse the login outright
+          -- instead, and the place for that switch is a column on
           -- oauth2.provider_claim. Not built until something needs it.
-          IF account.email IS NOT NULL
-             AND EXISTS (SELECT 1 FROM db.user WHERE email = account.email) THEN
+          IF NOT profile.email_verified THEN
             account.email := null;
+          END IF;
+
+          -- db.user(type, username) is unique too, and the local part of an
+          -- address is a poor unique key across providers: alice@one and
+          -- alice@two are both "alice". With one provider this took two
+          -- accounts under the same domain rules to hit; with two it is
+          -- ordinary, and api.signup would raise on the second -- leaving that
+          -- person unable to sign in at all, ever. The provider's own
+          -- identifier is unique within the provider, so fall back to it.
+          IF EXISTS (SELECT FROM db.user WHERE type = 'U' AND username = account.username) THEN
+            account.username := vProviderCode || '-' || claim.sub;
           END IF;
 
           jName := jsonb_build_object('name', account.name, 'first', profile.given_name, 'last', profile.family_name);

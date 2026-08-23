@@ -77,8 +77,19 @@ COMMENT ON COLUMN oauth2.provider_claim.updated IS 'When the rule was last chang
 
 DO $$
 BEGIN
+  -- db.provider_claim belongs to a project, not to the platform, so its shape
+  -- is not ours to assume. Read it only if it is the shape this carry-over was
+  -- written for; anything else is left alone and said out loud, rather than
+  -- failing the migration on a raw "column does not exist".
   IF EXISTS (SELECT FROM information_schema.tables
               WHERE table_schema = 'db' AND table_name = 'provider_claim') THEN
+
+    IF NOT (SELECT count(*) = 3 FROM information_schema.columns
+             WHERE table_schema = 'db' AND table_name = 'provider_claim'
+               AND column_name IN ('provider', 'claims', 'updated')) THEN
+      RAISE NOTICE 'db.provider_claim exists in an unexpected shape: nothing carried over, move the rules by hand';
+      RETURN;
+    END IF;
 
     INSERT INTO oauth2.provider_claim (provider, claims, updated)
     SELECT p.id, o.claims, o.updated

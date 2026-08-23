@@ -42,7 +42,7 @@ None.
 | `daemon.session_close(pToken, pCloseAll, pMessage)` | `json` | Close session(s); pCloseAll closes all user sessions |
 | `daemon.authorize(pSession, pAgent, pHost)` | `json` | Authorize session code → access token + expiry |
 | `daemon.authorization_code(pSession, pClientId, pRedirectURI, pScope, pState, pAccessType, pAgent, pHost, pConsent, pMaxAge)` | `json` | Issue an authorization code to a client for an already signed-in user (GET `/oauth2/authorize` with a live session). Internal providers only, only for clients whose application is of type `'W'`/`'N'` (a service client has no browser) — otherwise `unauthorized_client` — and only when the user's consent covers the requested scopes, otherwise `consent_required`. `pConsent := true` records the consent answered on the consent screen |
-| `daemon.login(pToken, pAgent, pHost, pScope)` | `json` | OAuth2 JWT Bearer login; handles external providers (Google, etc.), auto-creates user/profile |
+| `daemon.login(pToken, pAgent, pHost, pScope)` | `json` | OAuth2 JWT Bearer login for an external provider; claim names come from `oauth2.provider_claim` (no rule = OpenID Connect names), auto-creates user/profile. Links to an existing account by e-mail only where the provider confirmed the address |
 
 ### OAuth2 Token Endpoint
 
