@@ -687,7 +687,7 @@ BEGIN
 
   IF vSession IS NULL THEN
     PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
-    RETURN json_build_object('error', json_build_object('code', 401, 'error', 'access_denied', 'message', ErrorMessage));
+    RETURN json_build_object('error', json_build_object('code', 401, 'error', 'access_denied', 'message', 'The user could not be signed in to this client.'));
   END IF;
 
   vCode := oauth2_current_code(vSession);
@@ -714,7 +714,23 @@ WHEN others THEN
   PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
   PERFORM WriteToEventLog('D', ErrorCode, 'exception', 'context', vContext);
 
-  RETURN json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'error', 'server_error', 'message', ErrorMessage));
+  -- GetSession refuses by raising, not by returning NULL — AccessDenied,
+  -- LoginError, UserLockError, PasswordExpired and LoginIPTableError all land here.
+  -- Reporting them as server_error told the client the server had broken when in
+  -- fact it had decided, and RFC 6749 §4.1.2.1 asks for access_denied. Worse, the
+  -- reason travelled with it: the caller puts error_description into a redirect, so
+  -- "the account is locked until 14:20" ended up in the address bar, the Referer
+  -- and the browser history.
+  --
+  -- Mapped by the code ParseMessage already extracted, rather than by matching the
+  -- message, which is localised, or the raising function, which the handler cannot
+  -- see. 4xx is a decision about this request; anything else is the server failing.
+  -- The reason itself stays in the event log, written just above.
+  IF ErrorCode BETWEEN 400 AND 499 THEN
+    RETURN json_build_object('error', json_build_object('code', 401, 'error', 'access_denied', 'message', 'The user could not be signed in to this client.'));
+  END IF;
+
+  RETURN json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'error', 'server_error', 'message', 'The authorization server could not complete the request.'));
 END;
 $$ LANGUAGE plpgsql
   SECURITY DEFINER
