@@ -1595,6 +1595,7 @@ AS $$
 DECLARE
   nHeader       bigint;
   nToken        bigint;
+  nClaimed      bigint;
 
   vType         text;
   vHash         text;
@@ -1623,7 +1624,40 @@ BEGIN
     RETURN json_build_object('error', json_build_object('code', 400, 'error', 'invalid_grant', 'message', format('Malformed %s', vType)));
   END IF;
 
-  IF pType IN ('C', 'R') THEN
+  IF pType = 'C' THEN
+
+    -- Claimed in one statement, not read-then-write.
+    --
+    -- The SELECT above already skips a spent code, but only for a caller that
+    -- arrives after the UPDATE has committed. Two exchanges of the same code at
+    -- once both passed it under READ COMMITTED: the second UPDATE waited for the
+    -- first, then applied, and NewToken ran twice — two independent sets of tokens
+    -- from one code. The WHERE clause makes the claim the thing that decides, so
+    -- exactly one of them can win.
+    UPDATE db.token SET used = Now()
+     WHERE id = nToken
+       AND used IS NULL
+    RETURNING id INTO nClaimed;
+
+    IF nClaimed IS NULL THEN
+
+      -- RFC 6749 §4.1.2: "If an authorization code is used more than once, the
+      -- authorization server MUST deny the request and SHOULD revoke (when
+      -- possible) all tokens previously issued based on that authorization code."
+      --
+      -- A second presentation means the code reached someone it should not have —
+      -- it travels through a browser redirect, so the address bar, the Referer and
+      -- any logging proxy have all seen it. Denying alone would leave whoever won
+      -- the race holding working tokens.
+      DELETE FROM db.token WHERE header = nHeader;
+
+      PERFORM WriteToEventLog('E', 4001, 'auth', 'error',
+        format('Authorization code presented more than once; tokens issued from it were revoked (header %s).', nHeader));
+
+      RETURN json_build_object('error', json_build_object('code', 400, 'error', 'invalid_grant', 'message', 'Malformed authorization code.'));
+    END IF;
+
+  ELSIF pType = 'R' THEN
     UPDATE db.token SET used = Now() WHERE id = nToken;
   END IF;
 
