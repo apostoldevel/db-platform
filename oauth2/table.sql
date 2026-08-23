@@ -125,3 +125,21 @@ CREATE UNIQUE INDEX ON oauth2.audience (provider, code);
 CREATE INDEX ON oauth2.audience (provider);
 CREATE INDEX ON oauth2.audience (code);
 CREATE INDEX ON oauth2.audience (code text_pattern_ops);
+
+--------------------------------------------------------------------------------
+-- oauth2.provider_claim -------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE TABLE oauth2.provider_claim (
+    provider      integer PRIMARY KEY REFERENCES oauth2.provider(id) ON DELETE CASCADE,
+    claims        jsonb NOT NULL,
+    email_trusted boolean NOT NULL DEFAULT false,
+    updated       timestamptz NOT NULL DEFAULT Now()
+);
+
+COMMENT ON TABLE oauth2.provider_claim IS 'Claim mapping for an external identity provider. A provider with no row here is read by the OpenID Connect claim names, which is correct for every provider that follows the specification.';
+
+COMMENT ON COLUMN oauth2.provider_claim.provider IS 'External provider this rule belongs to.';
+COMMENT ON COLUMN oauth2.provider_claim.claims IS 'Mapping {"<account field>": "<claim name in the token>"}, e.g. {"email": "default_email", "given_name": "first_name"}. Only the fields whose names differ from the OpenID Connect ones need an entry.';
+COMMENT ON COLUMN oauth2.provider_claim.email_trusted IS 'Whether an address from this provider counts as verified when the token carries no email_verified claim of its own. Yandex, for one, never sends that claim; without this flag its users can never be linked to an existing account by address. Turn it on only for a provider that verifies the address itself — it is what allows a token to reach an account that already exists.';
+COMMENT ON COLUMN oauth2.provider_claim.updated IS 'When the rule was last changed.';

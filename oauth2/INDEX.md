@@ -26,6 +26,7 @@ OAuth2 infrastructure for client/audience management. Stores providers, applicat
 | `oauth2.issuer` | Token issuers | `id serial PK`, `provider int FK`, `code text UNIQUE(provider,code)` |
 | `oauth2.algorithm` | Hashing algorithms | `id serial PK`, `code text` (HS256, etc.), `name text` (pgcrypto name) |
 | `oauth2.audience` | OAuth2 clients | `id serial PK`, `provider int FK`, `application int FK`, `algorithm int`, `code text`, `secret text`, `hash text` |
+| `oauth2.provider_claim` | Claim mapping for an external provider (no row = OpenID Connect names) | `provider int PK FK`, `claims jsonb`, `email_trusted boolean`, `updated timestamptz` |
 
 ## Views
 

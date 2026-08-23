@@ -254,7 +254,22 @@ $$ LANGUAGE plpgsql
 -- daemon.login ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Sign in using an external JWT token (e.g. Google OAuth), creating a local session.
+ * @brief Sign in using an external JWT token, creating a local session.
+ *
+ * The token must be signed with the secret of the audience it names, so a
+ * foreign provider's token reaches this only after the caller has verified it
+ * and re-signed the payload -- which is also where the token is proved to have
+ * been issued to us, and not to some other client of the same provider.
+ *
+ * Claim names are read through oauth2.provider_claim. A provider with no rule
+ * there is read by the OpenID Connect names, which is right for every provider
+ * that follows the specification.
+ *
+ * An existing account is reached by e-mail address only where the provider
+ * confirmed the address -- through its own email_verified claim, or through
+ * oauth2.provider_claim.email_trusted for a provider that sends none. Where the
+ * address is taken but unconfirmed, the account is created without it.
+ *
  * @param {text} pToken - External JWT access token
  * @param {text} pAgent - HTTP User-Agent string
  * @param {inet} pHost - Client IP address
@@ -274,7 +289,6 @@ DECLARE
 
   token         record;
   claim         record;
-  google        record;
   signup        record;
 
   account       db.user%rowtype;
@@ -288,6 +302,14 @@ DECLARE
   nApplication  integer;
 
   jName         jsonb;
+
+  jPayload      jsonb;
+  jClaims       jsonb;
+
+  bEmailTrusted boolean;
+
+  vEmailVerified text;
+  vLocale       text;
 
   vProviderType char;
   vProviderCode text;
@@ -347,32 +369,103 @@ BEGIN
 
       uScope := current_scope();
 
-      IF vProviderCode = 'google' THEN
-        FOR google IN SELECT * FROM json_to_record(token.payload) AS x(email text, email_verified bool, name text, given_name text, family_name text, locale text, picture text)
-        LOOP
-          account.username := substr(google.email, 1, strpos(google.email, '@') - 1);
-          account.name := google.name;
-          account.email := google.email;
+      -- Claim names come from oauth2.provider_claim. A provider with no rule is
+      -- read by the OpenID Connect names: they are right for everyone who
+      -- follows the specification -- Google among them, which is why the rule
+      -- table can stay empty and nothing about that provider changes -- and
+      -- wrong only where a provider invented its own, which is when a rule is
+      -- written.
+      jPayload := token.payload::jsonb;
 
-          profile.scope := uScope;
-          profile.locale := GetLocale(google.locale);
-          profile.area := GetAreaGuest(uScope);
-          profile.interface := '00000000-0000-4004-a000-000000000003'::uuid;
-          profile.given_name := google.given_name;
-          profile.family_name := google.family_name;
-          profile.email_verified := google.email_verified;
-          profile.picture := google.picture;
-        END LOOP;
+      SELECT c.claims, c.email_trusted INTO jClaims, bEmailTrusted
+        FROM oauth2.provider_claim c WHERE c.provider = nProvider;
+
+      jClaims := coalesce(jClaims, '{}'::jsonb);
+
+      account.email := jPayload->>coalesce(jClaims->>'email', 'email');
+      account.name  := jPayload->>coalesce(jClaims->>'name', 'name');
+
+      profile.given_name  := jPayload->>coalesce(jClaims->>'given_name', 'given_name');
+      profile.family_name := jPayload->>coalesce(jClaims->>'family_name', 'family_name');
+      profile.picture     := jPayload->>coalesce(jClaims->>'picture', 'picture');
+
+      -- Read without a cast. With one provider the claim was always a JSON
+      -- boolean; with any provider it is whatever that provider sends, and
+      -- 'verified'::boolean raises -- landing in the handler at the bottom as a
+      -- 500 on a login that should simply have treated the address as
+      -- unconfirmed.
+      --
+      -- Absent and unreadable are answered differently, and the difference
+      -- matters: this value is the only thing standing between a token and an
+      -- account that already holds the same address. No claim at all is what
+      -- the provider-level flag is for -- Yandex sends none, and without the
+      -- flag its users could never reach an account they already own. A claim
+      -- that is there but says something unrecognised is not a confirmation of
+      -- anything, and the flag does not get to override it.
+      vEmailVerified := lower(jPayload->>coalesce(jClaims->>'email_verified', 'email_verified'));
+
+      IF vEmailVerified IS NULL THEN
+        profile.email_verified := coalesce(bEmailTrusted, false);
+      ELSE
+        profile.email_verified := vEmailVerified IN ('true', 't', '1', 'yes', 'on');
+      END IF;
+
+      -- Locale arrives as `ru`, as `ru-RU`, or not at all. GetLocale answers
+      -- NULL to a code it does not know, which would leave the profile without
+      -- one -- so fall back to the scope's.
+      vLocale := jPayload->>coalesce(jClaims->>'locale', 'locale');
+
+      profile.scope     := uScope;
+      profile.locale    := coalesce(GetLocale(vLocale), current_locale());
+      profile.area      := GetAreaGuest(uScope);
+      profile.interface := '00000000-0000-4004-a000-000000000003'::uuid;
+
+      -- Account name: the local part of the address, or -- with no address --
+      -- the provider's identifier for the user. The second reads badly, but
+      -- inventing a name for a person is not the system's to do.
+      IF account.email IS NOT NULL AND strpos(account.email, '@') > 1 THEN
+        account.username := substr(account.email, 1, strpos(account.email, '@') - 1);
       ELSE
         account.username := claim.sub;
       END IF;
 
+      account.name := coalesce(
+        account.name,
+        nullif(trim(concat_ws(' ', profile.family_name, profile.given_name)), ''),
+        account.username
+      );
+
       SELECT a.userid INTO uUserId FROM db.auth a WHERE a.audience = nAudience AND a.code = claim.sub;
 
       IF NOT FOUND THEN
-        SELECT id INTO uUserId FROM db.user WHERE email = account.email;
+        -- Linking to an existing account by address happens only where the
+        -- provider CONFIRMED that address. Without this, a token carrying
+        -- somebody else's unconfirmed address takes over the local account that
+        -- holds it -- the whole point of the check, and the reason it is the
+        -- only gate to the SELECT below.
+        IF profile.email_verified THEN
+          SELECT id INTO uUserId FROM db.user WHERE email = account.email;
+        END IF;
 
-        IF NOT FOUND THEN
+        -- Tested on uUserId rather than FOUND: the SELECT above is conditional,
+        -- and the EXISTS below would overwrite FOUND before it could be read.
+        IF uUserId IS NULL THEN
+          -- db.user(email) is unique. An address that is taken but unconfirmed
+          -- was not linked above, and handing it to api.signup would fail the
+          -- login on that constraint. Create the account WITHOUT the address:
+          -- the person gets in, and attaches the address later by signing in as
+          -- its owner.
+          --
+          -- Which of the two to do here is policy, not invariant. This default
+          -- keeps the login working and asks nothing of the client; a
+          -- deployment that would rather refuse outright is the reason to make
+          -- it configurable, and the place to put that is a column on
+          -- oauth2.provider_claim. Not built until something needs it.
+          IF account.email IS NOT NULL
+             AND EXISTS (SELECT 1 FROM db.user WHERE email = account.email) THEN
+            account.email := null;
+          END IF;
+
           jName := jsonb_build_object('name', account.name, 'first', profile.given_name, 'last', profile.family_name);
 
           SELECT * INTO signup FROM api.signup(null, account.username, null, jName, account.phone, account.email, jsonb_build_object('provider', vProviderCode) || row_to_json(profile)::jsonb);
