@@ -137,9 +137,16 @@ User management, authentication, authorization, sessions, and access control. Th
 
 `AddRecoveryTicket`, `NewRecoveryTicket`, `GetRecoveryTicket`, `CheckRecoveryTicket`.
 
-### ACL & Roles (~8)
+### ACL & Roles (~10)
 
-`acl`, `GetAccessControlListMask`, `CheckAccessControlList`, `chmod`, `SubstituteUser`, `IsUserRole`, `IsAdmin`, `is_admin`.
+`acl`, `GetAccessControlListMask`, `CheckAccessControlList`, `chmod`, `SubstituteUser`, `IsUserRole`, `IsAdmin`, `is_admin`, `EnterSystemContext`, `LeaveSystemContext`.
+
+`EnterSystemContext` / `LeaveSystemContext` are a pair: server-side code that must
+act with more authority than its caller signs in as the system client, substitutes
+a user, and hands everything back. Restoring is the caller's job and belongs in an
+EXCEPTION block — `LeaveSystemContext` never raises, so it is safe in one. Roles
+allowed through without the substitute-user bit come from `pTrustedRoles`,
+defaulting to the platform's own `kernel`, `daemon`, `apibot`.
 
 ### Locale/Date Context (~10)
 

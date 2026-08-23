@@ -1,0 +1,61 @@
+--------------------------------------------------------------------------------
+-- EnterSystemContext / LeaveSystemContext --------------------------------------
+--------------------------------------------------------------------------------
+
+-- The pair moves into the platform from the configuration layer of a project that
+-- had worked it out already. Every project needs it: server-side code that must
+-- act with more authority than its caller, on a path where the caller may have no
+-- session at all.
+--
+-- The platform version takes a third parameter, pTrustedRoles, because the roles
+-- allowed through without the substitute-user bit differ per project — the version
+-- this comes from named its own OCPP and OCPI roles inline, which is exactly what
+-- cannot be carried into shared code.
+--
+-- That third parameter makes an OVERLOAD, not a replacement: every parameter has a
+-- default, so with both definitions present EnterSystemContext() matches two
+-- candidates and PostgreSQL refuses the call as ambiguous. The two-argument form is
+-- therefore dropped here rather than left to shadow.
+--
+-- A project that was passing its own roles inline must now pass them at the call
+-- site: EnterSystemContext('apibot', 'system', ARRAY['ocpp', 'ocpi']). Where the
+-- caller is one of the platform's own roles — kernel, admin, daemon, apibot — or
+-- holds the substitute-user bit, nothing changes.
+
+-- **This DROP cannot finish the job on its own, and a project with its own copy
+-- must delete it.**
+--
+-- migrate.sh applies patches first, then platform/update.psql, then
+-- configuration/update.psql. So in a single run this drops the two-argument form,
+-- the platform creates the three-argument one — and the project's configuration
+-- layer recreates the two-argument one right after, leaving both. The patch is
+-- then recorded in db.patch_log and will not run again, so removing the copy later
+-- leaves the old signature behind until someone drops it by hand.
+--
+-- Concretely, for a project carrying the copy this pair came from:
+--   1. delete EnterSystemContext/LeaveSystemContext from
+--      configuration/<project>/admin/routine.sql;
+--   2. pass the project's own server roles at the call sites that reach this from
+--      a path with no session — EnterSystemContext('apibot', 'system',
+--      ARRAY['ocpp', 'ocpi']) — since the platform default is its own three;
+--   3. run this DROP by hand if the patch has already been recorded.
+--
+-- Until then every call written as EnterSystemContext() or EnterSystemContext('x')
+-- fails with "function entersystemcontext() is not unique": both definitions have
+-- defaults on every parameter, so neither is a better candidate.
+--
+-- Schema-qualified, as P00000012 does for daemon.authorization_code: search_path
+-- during a patch is "$user", kernel, public, and the name should not depend on it.
+
+DROP FUNCTION IF EXISTS kernel.EnterSystemContext(text, text);
+
+--------------------------------------------------------------------------------
+-- Note on this version ---------------------------------------------------------
+--------------------------------------------------------------------------------
+
+-- 1.2.14 carries two unrelated changes with different deployment costs. The error
+-- identifier in daemon.* needs nothing but --update. This pair needs the step
+-- above, by hand, in any project that already had its own copy. A project that
+-- cannot take the second right now cannot take the first either; splitting them
+-- across versions was considered and rejected, because they were written together
+-- and a project skipping one would be reading a VERSION that means neither.

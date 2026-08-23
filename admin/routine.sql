@@ -6522,3 +6522,232 @@ END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION EnterSystemContext -------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Signs the current connection in as the system OAuth 2.0 client and
+ *        substitutes the given user, returning a handle that
+ *        LeaveSystemContext() uses to put everything back.
+ *
+ *        Server-side code that must act with more authority than its caller — a
+ *        webhook creating a guest account, a user deleting their own, a job that
+ *        runs on nobody's behalf — used to open-code the same seven lines of
+ *        SignIn and SubstituteUser wherever it was needed. Every one of those
+ *        copies that forgot to close what it opened left a row in db.session
+ *        behind: measured at 89 per test run in one project before this pair
+ *        replaced the copies there.
+ *
+ *        Restoring is the caller's job and belongs in an EXCEPTION block, because
+ *        a raise inside a block with no handler of its own propagates past the
+ *        close:
+ *
+ *          jContext := EnterSystemContext();
+ *          BEGIN
+ *            ... work ...
+ *          EXCEPTION WHEN others THEN
+ *            PERFORM LeaveSystemContext(jContext);
+ *            RAISE;
+ *          END;
+ *          PERFORM LeaveSystemContext(jContext);
+ *
+ * @param {text} pUserName - User to substitute into (default 'apibot')
+ * @param {text} pApplication - OAuth 2.0 application whose audience to sign in as
+ *                              (default 'system')
+ * @param {text[]} pTrustedRoles - Database roles that may enter without holding
+ *                                 the substitute-user bit. null means the three
+ *                                 server roles this platform connects as — kernel,
+ *                                 daemon, apibot — and deliberately not admin,
+ *                                 which is a DBA login rather than a service. A
+ *                                 project that connects as a role of its own and
+ *                                 reaches this on a path with no session — a
+ *                                 provider webhook has none — names it here rather
+ *                                 than replacing the function. NULL elements are
+ *                                 dropped: one would otherwise make the check below
+ *                                 answer NULL and be skipped.
+ * @return {jsonb} Context handle: {"session": <opened>, "restore": <previous>}
+ * @throws ACCESS_DENIED when the caller is neither a trusted role nor holds the
+ *                       substitute-user bit
+ * @see LeaveSystemContext
+ * @since 1.2.14
+ */
+CREATE OR REPLACE FUNCTION EnterSystemContext (
+  pUserName     text DEFAULT 'apibot',
+  pApplication  text DEFAULT 'system',
+  pTrustedRoles text[] DEFAULT null
+) RETURNS       jsonb
+AS $$
+DECLARE
+  nAudience     integer;
+  vClient       text;
+  vSecret       text;
+  vPrevious     text;
+  vSession      text;
+BEGIN
+  -- The three server roles this platform creates and connects as. Not 'admin':
+  -- that is a DBA login with CREATEROLE, it reaches kernel through membership in
+  -- administrator, and it holds no session of its own — so trusting it here would
+  -- hand a system context to anyone at a psql prompt, which the version this comes
+  -- from did not do.
+  --
+  -- array_remove, and not for tidiness. A NULL element makes = ANY() answer NULL
+  -- rather than false, NOT NULL is NULL, and IF NULL THEN does not run its body —
+  -- so a single NULL in this array skips the check below entirely and lets anyone
+  -- in. A caller building the list from current_setting(..., true) on an unset GUC
+  -- produces exactly that array.
+  pTrustedRoles := array_remove(
+                     coalesce(pTrustedRoles, ARRAY['kernel', 'daemon', 'apibot']),
+                     null);
+
+  -- Two ways through, and the second is the real one. A trusted role passes
+  -- unconditionally because production code reaches here on paths with no session
+  -- of its own — there is no session owner to check. Everyone else passes only by
+  -- already holding the substitute-user bit, the same guard SubstituteUser carries
+  -- and for the same reason: whoever satisfies it can call SubstituteUser directly,
+  -- so this grants nothing new. What it denies is a client that merely has EXECUTE
+  -- here reaching the system client's secret, which is otherwise out of reach —
+  -- schema oauth2 is not readable by application roles.
+  --
+  -- session_userid() returns suid, the original session owner, unchanged by an
+  -- earlier substitution. So this cannot be ratcheted: entering once does not make
+  -- the next entry cheaper.
+  IF NOT coalesce(session_user = ANY(pTrustedRoles), false) THEN
+    IF NOT CheckAccessControlList(B'00010000000000000', session_userid()) THEN
+      PERFORM AccessDenied();
+    END IF;
+  END IF;
+
+  SELECT a.id, a.code, a.secret INTO nAudience, vClient, vSecret
+    FROM oauth2.audience a
+   WHERE a.application = GetApplication(pApplication)
+   ORDER BY a.code
+   LIMIT 1;
+
+  IF NOT FOUND THEN
+    PERFORM AuthenticateError(format('OAuth2 audience not found for application "%s".', pApplication));
+  END IF;
+
+  vPrevious := current_session();
+
+  vSession := SignIn(CreateSystemOAuth2(), vClient, vSecret);
+
+  IF vSession IS NULL THEN
+    PERFORM AuthenticateError(GetErrorMessage());
+  END IF;
+
+  PERFORM SubstituteUser(GetUser(pUserName), vSecret);
+
+  -- The audience travels in the handle. LeaveSystemContext used to find it again
+  -- by code, and oauth2.audience is unique by (provider, code) rather than by code
+  -- alone — the same client_id under two providers is a normal layout — so that
+  -- lookup could return either row and hand back a secret belonging to the other.
+  RETURN jsonb_build_object('session', vSession,
+                            'restore', vPrevious,
+                            'audience', nAudience);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION LeaveSystemContext -------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Closes the session EnterSystemContext() opened and re-enters the one
+ *        that was active before it. Idempotent and never raises, so it is safe in
+ *        an EXCEPTION handler — where a second failure would otherwise replace the
+ *        error the caller was already handling.
+ *
+ *        Substituting back before SessionOut is required, not tidiness: SessionOut
+ *        checks the logout ACL bit of the session's CURRENT user, and the
+ *        substituted user is not guaranteed to hold it. session_userid() returns
+ *        suid — the original owner — so the session is always handed back to the
+ *        client that opened it before being closed.
+ *
+ * @param {jsonb} pContext - Handle returned by EnterSystemContext()
+ * @return {void}
+ * @see EnterSystemContext
+ * @since 1.2.14
+ */
+CREATE OR REPLACE FUNCTION LeaveSystemContext (
+  pContext      jsonb
+) RETURNS       void
+AS $$
+DECLARE
+  nAudience     integer;
+  vSession      text;
+  vRestore      text;
+  vSecret       text;
+BEGIN
+  IF pContext IS NULL THEN
+    RETURN;
+  END IF;
+
+  vSession  := pContext->>'session';
+  vRestore  := pContext->>'restore';
+  nAudience := (pContext->>'audience')::integer;
+
+  IF vSession IS NOT NULL THEN
+
+    -- Substituting back first. SessionOut checks the logout ACL bit of the
+    -- session's CURRENT user, and the substituted user is not guaranteed to hold
+    -- it; session_userid() returns suid, so the session goes back to whoever
+    -- opened it.
+    BEGIN
+      IF nAudience IS NOT NULL THEN
+        SELECT a.secret INTO vSecret FROM oauth2.audience a WHERE a.id = nAudience;
+      ELSE
+        -- A handle made before the audience travelled in it. Ordered, so that at
+        -- least the same row comes back every time.
+        SELECT a.secret INTO vSecret
+          FROM oauth2.audience a
+         WHERE a.code = session_username(vSession)
+         ORDER BY a.id
+         LIMIT 1;
+      END IF;
+
+      IF FOUND THEN
+        PERFORM SubstituteUser(session_userid(vSession), vSecret, vSession);
+      END IF;
+    EXCEPTION WHEN others THEN
+      -- Report, do not raise: this is called from the caller's own EXCEPTION
+      -- block, where raising would replace the error being handled with this one.
+      PERFORM SafeWriteToEventLog('W', 5001, 'session',
+        format('LeaveSystemContext: could not substitute back into session "%s": %s',
+               vSession, SQLERRM));
+    END;
+
+    -- Its own block. Closing the session is the whole purpose of this function,
+    -- and it must not be skipped because the substitution above failed — that is
+    -- exactly how a row is left in db.session for good, which is what the pair
+    -- exists to stop.
+    BEGIN
+      IF ValidSession(vSession) THEN
+        PERFORM SessionOut(vSession, false);
+      END IF;
+    EXCEPTION WHEN others THEN
+      -- Not silence. A session that is still valid and would not close is a leak,
+      -- and the only place it can be noticed is here.
+      PERFORM SafeWriteToEventLog('E', 5002, 'session',
+        format('LeaveSystemContext: session "%s" could not be closed: %s',
+               vSession, SQLERRM));
+    END;
+  END IF;
+
+  IF vRestore IS NOT NULL THEN
+    BEGIN
+      PERFORM SessionIn(vRestore);
+    EXCEPTION WHEN others THEN
+      -- SessionOut clears the connection's session either way, so failing to get
+      -- back in leaves it with none at all — and the caller finds out from the
+      -- next api call rather than from here.
+      PERFORM SafeWriteToEventLog('E', 5003, 'session',
+        format('LeaveSystemContext: could not re-enter session "%s": %s',
+               vRestore, SQLERRM));
+    END;
+  END IF;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;

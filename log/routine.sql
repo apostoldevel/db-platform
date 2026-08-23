@@ -73,6 +73,49 @@ $$ LANGUAGE plpgsql
  * @see NewEventLog
  * @since 1.0.0
  */
+--------------------------------------------------------------------------------
+-- FUNCTION SafeWriteToEventLog ------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Writes to the event log and never raises.
+ *
+ *        For use inside an EXCEPTION handler. WriteToEventLog can fail there for
+ *        reasons that have nothing to do with the message — no session in context,
+ *        a permission the handler's role lacks, a rolled-back subtransaction — and
+ *        a raise from a logging call replaces the error being handled with itself,
+ *        which is the one thing a handler must not do.
+ *
+ *        Losing the line is the lesser harm, and it is the only remaining outcome.
+ *
+ * @param {char} pType - Severity: 'M' message, 'W' warning, 'E' error, 'D' debug
+ * @param {integer} pCode - Event code
+ * @param {text} pEvent - Event name
+ * @param {text} pText - Message text
+ * @param {uuid} pObject - Related object, if any
+ * @return {void}
+ * @see WriteToEventLog
+ * @since 1.2.14
+ */
+CREATE OR REPLACE FUNCTION SafeWriteToEventLog (
+  pType     char,
+  pCode     integer,
+  pEvent    text,
+  pText     text,
+  pObject   uuid DEFAULT null
+) RETURNS   void
+AS $$
+BEGIN
+  PERFORM WriteToEventLog(pType, pCode, pEvent, pText, pObject);
+EXCEPTION WHEN others THEN
+  NULL;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION WriteToEventLog ----------------------------------------------------
+--------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION WriteToEventLog (
   pType     char,
   pCode     integer,
