@@ -5903,7 +5903,14 @@ BEGIN
       PERFORM UserLockError();
     END IF;
 
-    IF up.lock_date IS NOT NULL AND up.lock_date <= now() THEN
+    -- lock_date is written with two opposite meanings and this reader must handle
+    -- the one it was not written for. UserLock stamps it with now() — "locked since"
+    -- — and also sets status bit 1, which the check just above already catches.
+    -- SignIn writes now() + interval after five failed attempts — "locked until" —
+    -- and sets no bit. Comparing <= now() therefore let a user through for exactly
+    -- as long as the lock was meant to hold, and then refused them for good once it
+    -- expired, since nothing clears the stamp unless they manage to sign in.
+    IF up.lock_date IS NOT NULL AND up.lock_date > now() THEN
       PERFORM UserLockError();
     END IF;
 
@@ -6404,7 +6411,9 @@ BEGIN
     PERFORM UserLockError();
   END IF;
 
-  IF up.lock_date IS NOT NULL AND up.lock_date <= now() THEN
+  -- See SessionIn: lock_date means "locked until" when SignIn writes it, and the
+  -- administrative lock is caught by the status bit above.
+  IF up.lock_date IS NOT NULL AND up.lock_date > now() THEN
     PERFORM UserLockError();
   END IF;
 
