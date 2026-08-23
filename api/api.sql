@@ -191,7 +191,6 @@ BEGIN
 
     IF FOUND THEN
       vJoin := format('INNER JOIN %s.%s aou ON t.id = aou.object', pScheme, vTable);
-      PERFORM set_config('enable_nestloop', 'off', true);
     END IF;
   END IF;
 
