@@ -41,7 +41,7 @@ None.
 | `daemon.session_open(pToken, pAgent, pHost)` | `json` | Open session from JWT token |
 | `daemon.session_close(pToken, pCloseAll, pMessage)` | `json` | Close session(s); pCloseAll closes all user sessions |
 | `daemon.authorize(pSession, pAgent, pHost)` | `json` | Authorize session code → access token + expiry |
-| `daemon.authorization_code(pSession, pClientId, pRedirectURI, pScope, pState, pAccessType, pAgent, pHost, pConsent)` | `json` | Issue an authorization code to a client for an already signed-in user (GET `/oauth2/authorize` with a live session). Internal providers only, and only when the user's consent covers the requested scopes — otherwise `consent_required`. `pConsent := true` records the consent answered on the consent screen |
+| `daemon.authorization_code(pSession, pClientId, pRedirectURI, pScope, pState, pAccessType, pAgent, pHost, pConsent)` | `json` | Issue an authorization code to a client for an already signed-in user (GET `/oauth2/authorize` with a live session). Internal providers only, only for clients whose application is of type `'W'`/`'N'` (a service client has no browser) — otherwise `unauthorized_client` — and only when the user's consent covers the requested scopes, otherwise `consent_required`. `pConsent := true` records the consent answered on the consent screen |
 | `daemon.login(pToken, pAgent, pHost, pScope)` | `json` | OAuth2 JWT Bearer login; handles external providers (Google, etc.), auto-creates user/profile |
 
 ### OAuth2 Token Endpoint

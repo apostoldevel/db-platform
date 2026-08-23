@@ -509,6 +509,11 @@ $$ LANGUAGE plpgsql
  *            function refuses with consent_required, and the caller shows the consent
  *            screen; the answer comes back with pConsent := true.
  *
+ *          - the client must be one that can host a user agent — an application of
+ *            type 'W' or 'N'. A service client has no browser to sign a user in to,
+ *            and the elevation below, running under the system client, says nothing
+ *            about who asked.
+ *
  *        Substitution is performed under the *system* OAuth 2.0 client rather than
  *        under the requesting client, so a client registered by an oauth2.audience
  *        row alone — with no matching db.user — is supported. The issued code is
@@ -550,6 +555,8 @@ DECLARE
 
   nAudience     integer;
   nOAuth2       bigint;
+
+  vApplicationType char;
 
   arScopes      text[];
 
@@ -593,6 +600,29 @@ BEGIN
 
   IF nAudience IS NULL THEN
     RETURN json_build_object('error', json_build_object('code', 401, 'error', 'invalid_client', 'message', 'The OAuth 2.0 client was not FOUND.'));
+  END IF;
+
+  -- The requesting client's own right to ask, checked apart from the elevation
+  -- below. The elevation runs under the system client and therefore proves nothing
+  -- about who asked: without this, any audience row at all would do.
+  --
+  -- What is asked for here is an authorization code for a user who is signed in to
+  -- a browser. Only a client that can host a user agent has any use for one, and
+  -- oauth2.application already records which those are: 'W' web and 'N' native. A
+  -- service client ('S') has no browser and no user — a code issued to one would be
+  -- a user's session handed to a machine-to-machine account.
+  --
+  -- Compare the ticket grant below, which reaches the same conclusion differently:
+  -- it signs in as the requesting client with that client's own secret, which is
+  -- possible there and not here, because the caller is a browser that cannot hold
+  -- one.
+  SELECT p.type INTO vApplicationType
+    FROM oauth2.audience a
+         INNER JOIN oauth2.application p ON p.id = a.application
+   WHERE a.id = nAudience;
+
+  IF coalesce(vApplicationType, 'S') NOT IN ('W', 'N') THEN
+    RETURN json_build_object('error', json_build_object('code', 401, 'error', 'unauthorized_client', 'message', 'The client is not authorized to obtain an authorization code.'));
   END IF;
 
   -- The consent gate needs its table. Without this check a database updated with
