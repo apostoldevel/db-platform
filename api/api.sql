@@ -164,6 +164,7 @@ DECLARE
   vWhere        text;
   vOrderBy      text;
   vJoin         text;
+  vWith         text;
 
   vCondition    text;
   vField        text;
@@ -190,11 +191,31 @@ BEGIN
        AND table_type = 'VIEW';
 
     IF FOUND THEN
-      vJoin := format('INNER JOIN %s.%s aou ON t.id = aou.object', pScheme, vTable);
+      -- Materialise the access set once, then join to it, instead of joining the
+      -- Access<X> view directly. Access<X> is a blocking aggregate
+      -- (GROUP BY object HAVING bit_or(allow) & ~bit_or(deny) & B'100' = B'100'): it
+      -- cannot return a first row before it has computed them all. The planner, unable
+      -- to cost a HAVING over an aggregate, estimates rows=1 and — under ORDER BY … LIMIT
+      -- — picks a Nested Loop chasing a cheap startup a blocking aggregate can never give,
+      -- re-running the expensive side per row (observed 54ms → 7.9s on a neighbouring
+      -- project). MATERIALIZED takes away that illusion: the set is built once as a CTE
+      -- and the join is an ordinary scan over a known-size relation.
+      --
+      -- This is INSURANCE against a rare catastrophic plan on grown data, NOT a speed-up.
+      -- On small data the two plans are indistinguishable — there is nothing to measure
+      -- here, so quote no percentage; the 54ms → 7.9s above is from a production-scale
+      -- sibling project, not from this stand. Do not reapply it as an optimisation.
+      -- The materialisation costs nothing extra, the aggregate was always computed in
+      -- full and LIMIT never shortened it. Scope is this one query — unlike
+      -- enable_nestloop, which is transaction-scoped (one HTTP call is one transaction),
+      -- would stay off for point lookups by key later in the same batch, and was the
+      -- T037 dead end.
+      vWith := format('WITH aou AS MATERIALIZED (SELECT object FROM %s.%s)', pScheme, vTable) || E'\n';
+      vJoin := 'INNER JOIN aou ON t.id = aou.object';
     END IF;
   END IF;
 
-  vSelect := 'SELECT ' || coalesce(vFields, 't.*') || E'\n  FROM ' || pScheme || '.' || pTable || ' t ' || coalesce(vJoin, '');
+  vSelect := coalesce(vWith, '') || 'SELECT ' || coalesce(vFields, 't.*') || E'\n  FROM ' || pScheme || '.' || pTable || ' t ' || coalesce(vJoin, '');
 
   IF pFilter IS NOT NULL THEN
     PERFORM CheckJsonbKeys(pTable || '/filter', arColumns, pFilter);
