@@ -17,6 +17,7 @@
 \ir './kladr/update.psql'
 \ir './file/update.psql'
 \ir './entity/update.psql'
+\ir './mq/update.psql'
 \ir './notice/update.psql'
 \ir './comment/update.psql'
 \ir './notification/update.psql'

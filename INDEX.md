@@ -1,7 +1,7 @@
 # db-platform — INDEX
 
 > PostgreSQL Framework for Backend Development
-> Version: 1.2.1 | License: MIT
+> Version: 1.2.17 | License: MIT
 > GitHub: https://github.com/apostoldevel/db-platform
 
 ---
@@ -55,7 +55,7 @@ patch.psql    →  platform/patch.psql   →  configuration/patch.psql
 
 ---
 
-## 26 modules
+## 27 modules
 
 Loaded in dependency order (create.psql):
 
@@ -97,23 +97,24 @@ Loaded in dependency order (create.psql):
 | 17 | **kladr** | 3 | Russian address classifier (KLADR) | [kladr/INDEX.md](kladr/INDEX.md) |
 | 18 | **file** | 1 | Virtual FS: files, directories, UNIX mask, S3 buckets | [file/INDEX.md](file/INDEX.md) |
 | 19 | **entity** | 27 | Entity system: object, reference, document. AOU/AOM access control | [entity/INDEX.md](entity/INDEX.md) |
+| 20 | **mq** | 8 | Store-and-forward message transport: channels, message log, watermarks, ingest registry, dead letters | [mq/INDEX.md](mq/INDEX.md) |
 
 ### Communication
 
 | # | Module | Tables | Description | INDEX |
 |--:|--------|-------:|-------------|-------|
-| 20 | **notice** | 1 | User notifications | [notice/INDEX.md](notice/INDEX.md) |
-| 21 | **comment** | 1 | Threaded comments on objects | [comment/INDEX.md](comment/INDEX.md) |
-| 22 | **notification** | 1 | Event audit trail + dispatch | [notification/INDEX.md](notification/INDEX.md) |
-| 23 | **verification** | 1 | Email/phone verification codes | [verification/INDEX.md](verification/INDEX.md) |
-| 24 | **observer** | 2 | Pub/Sub: publishers, listeners, filter routing | [observer/INDEX.md](observer/INDEX.md) |
+| 21 | **notice** | 1 | User notifications | [notice/INDEX.md](notice/INDEX.md) |
+| 22 | **comment** | 1 | Threaded comments on objects | [comment/INDEX.md](comment/INDEX.md) |
+| 23 | **notification** | 1 | Event audit trail + dispatch | [notification/INDEX.md](notification/INDEX.md) |
+| 24 | **verification** | 1 | Email/phone verification codes | [verification/INDEX.md](verification/INDEX.md) |
+| 25 | **observer** | 2 | Pub/Sub: publishers, listeners, filter routing | [observer/INDEX.md](observer/INDEX.md) |
 
 ### Reporting
 
 | # | Module | Tables | Description | INDEX |
 |--:|--------|-------:|-------------|-------|
-| 25 | **report** | 5 | Reports: tree, form, routine, ready | [report/INDEX.md](report/INDEX.md) |
-| 26 | **reports** | — | Pre-built report definitions | [reports/INDEX.md](reports/INDEX.md) |
+| 26 | **report** | 5 | Reports: tree, form, routine, ready | [report/INDEX.md](report/INDEX.md) |
+| 27 | **reports** | — | Pre-built report definitions | [reports/INDEX.md](reports/INDEX.md) |
 
 ---
 
