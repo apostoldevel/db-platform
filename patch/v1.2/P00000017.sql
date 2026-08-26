@@ -211,6 +211,13 @@ CREATE TRIGGER t_mq_link_after
 
 ALTER TABLE mq.session ADD COLUMN link integer REFERENCES mq.link(id);
 
+-- mq.next_session asks mq.session three times per pair, and all three are "the
+-- latest rows of one pair in one direction". Without this index each is a scan
+-- of that pair's whole history: measured at five years of hourly sessions
+-- (43 800 rows), 8.9 ms against 0.67 ms.
+
+CREATE INDEX ON mq.session (peer, channel, direction, finished DESC NULLS FIRST);
+
 COMMENT ON COLUMN mq.session.link IS 'Kind of link this session ran over. A fact recorded after the event, not a stored "current link": which link a node is reachable over is a fact about the world the database cannot verify, and a stored copy of it goes stale silently. Without this column a short session cannot be told from a cheap one, and no claim about whether a schedule was actually honoured can be checked.';
 
 --------------------------------------------------------------------------------

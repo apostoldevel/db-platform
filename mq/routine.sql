@@ -1499,6 +1499,31 @@ AS $$
 DECLARE
   nId           bigint;
 BEGIN
+  -- A session whose process never came back would otherwise stay open for
+  -- good. next_session releases the pair after the timeout, so it becomes due
+  -- again and a second session opens beside the first -- and nobody closes the
+  -- first, because there is nobody left to. The table then accumulates open
+  -- sessions, and both the plan and anyone reading it see more exchanges in
+  -- flight than there are processes.
+  --
+  -- Opening a session on the same triple IS the proof that any earlier open one
+  -- is over: two concurrent sessions on one pair in one direction would
+  -- double-send. So the earlier one is closed here, mechanically, rather than
+  -- left to the discipline of whichever process starts next.
+  --
+  -- Closed as failed, not as something softer: a session that ended without a
+  -- word is a failure, and the backoff that follows is the right answer to a
+  -- process that keeps dying.
+
+  UPDATE mq.session
+     SET finished = Now(),
+         result = 'failed',
+         message = 'abandoned: superseded by a new session on the same pair'
+   WHERE peer = pPeer
+     AND channel = pChannel
+     AND direction = pDirection
+     AND finished IS NULL;
+
   INSERT INTO mq.session (peer, channel, direction, link)
   VALUES (pPeer, pChannel, pDirection, pLink)
   RETURNING id INTO nId;

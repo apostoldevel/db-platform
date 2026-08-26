@@ -256,11 +256,48 @@ physically they are one session; so the second one is named in the comment on
 lanes it applies to. `evidential` is derived (`lifetime IS NULL AND retention IS NULL`), never
 declared — a second column saying so could disagree with the first.
 
-`MQPlan` is a cross join of nodes, channels and link kinds with `mq.next_session` called per row,
-so its cost grows as their product: a hub with a hundred edges, five channels and three link kinds
-builds fifteen hundred rows and asks the session history once for each. That is an administrator's
-overview, refreshed by hand — not something a process should poll in a loop. A process asks
-`mq.next_session` about the one pair it is working on.
+### Which of the two a process reads
+
+**A process starts at `/mq/plan/list`, not at `/mq/session/next`.** The two look
+interchangeable and are not: `mq.next_session` returns one `timestamptz`, and NULL in it means two
+opposite things — "this lane does not travel here by rule" (out of service, below the threshold),
+which is a working state, and "no schedule was ever set", which is an unfinished installation.
+`MQPlan.state` keeps them apart; the bare function cannot, and a caller that takes it as its entry
+point never learns there was a distinction. `/mq/session/next` answers the narrow question about a
+pair already known to be configured.
+
+Filtering and sorting on the plan go through the platform's query-parameter framework
+(`/mq/plan/list` with a filter on `due`), not through a second endpoint: two mechanisms answering
+one question drift apart in silence.
+
+### What it costs
+
+Measured on a stand, not estimated — the shape of the query invites a much worse guess than the
+truth:
+
+| What | Numbers | Time |
+|---|---|---|
+| Whole plan | 50 nodes × 8 channels × 3 link kinds = 1200 rows | ~280 ms |
+| Whole plan, filtered by `due` | same | ~230 ms — the filter saves little, because `due` has to be computed before it can be filtered on |
+| One `mq.next_session` | one pair, a year of hourly sessions | ~2.7 ms |
+| One `mq.next_session` | one pair, five years (43 800 sessions) | 8.9 ms without the index on `mq.session (peer, channel, direction, finished DESC)`, **0.67 ms with it** |
+
+So: the plan is an **administrator's overview**, cheap enough to open by hand and far too expensive
+to poll in a loop; a process asks `mq.next_session` about the pair it is working on and lives on
+`NOTIFY mq_cmd` between reads. The index is the part that matters as the installation ages — the
+history of one pair is what grows, and on a young stand its absence is invisible.
+
+### Who may read it
+
+The whole exchange surface — plan, schedule, channels, nodes, messages — is behind **membership of
+the `mq` group**, checked in `rest.mq`, and is **global by design**: nodes and channels are not a
+tenant's objects. They have no class, no `db.object` row and therefore no `Access<X>` a list could
+be routed through, so `api.sql` is called with the `api` scheme and adds no access join — as it
+does for every other `mq` list. The barrier is membership, and the group holds services
+(`apibot`), not people. Verified from the calling environment rather than asserted: a signed-in
+tenant user gets `ERR-400-001` from `/mq/plan/list` and `/mq/schedule/list`, and a member of the
+group gets rows.
+
 
 **Changes take effect without a restart.** Every write to `mq.schedule` or `mq.link` sends
 `NOTIFY mq_cmd` with what changed, in codes. On a vessel restarting a process is an event;
@@ -284,6 +321,9 @@ adjusting an interval must not be one.
 - **The interval of an evidential lane sets the window of undetectable truncation.** It is not a
   performance knob, and the comment on `mq.schedule.period` says so where the administrator reads
   it.
+- **Opening a session closes any session still open on the same pair and direction**, as `failed`.
+  Two concurrent sessions on one pair in one direction would double-send, so a new one is itself
+  the proof that the earlier one is over — and a process that died leaves nothing to close it.
 - **`mq.session.link` is recorded after the event, never stored as "the current link".** What a
   node is reachable over right now is a fact about the world the database cannot verify, and a
   stored copy goes stale in silence.
