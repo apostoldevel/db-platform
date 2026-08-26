@@ -298,6 +298,16 @@ does for every other `mq` list. The barrier is membership, and the group holds s
 tenant user gets `ERR-400-001` from `/mq/plan/list` and `/mq/schedule/list`, and a member of the
 group gets rows.
 
+Note that this is *stricter* than row filtering, not looser: a person does not see a narrowed list,
+they see nothing at all. **The whole argument rests on one condition — the `mq` group holds
+services, not people.** The day someone wants a master to see the schedule of their own vessel,
+that condition is gone and the question of row filtering comes back; and it comes back **quietly**,
+because widening the group changes no code and raises nothing. What has to be reconsidered then, in
+this order: whether these tables become entities with a class and an `Access<X>` (which is what
+would let the lists route through `api.sql('kernel', 'Object<X>')`), or whether a separate,
+narrowed read is added for people and the group stays what it is. Widening the group without
+choosing between those two is the failure, and it will look exactly like a working list.
+
 
 **Changes take effect without a restart.** Every write to `mq.schedule` or `mq.link` sends
 `NOTIFY mq_cmd` with what changed, in codes. On a vessel restarting a process is an event;
