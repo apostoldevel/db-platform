@@ -3,7 +3,7 @@
 --------------------------------------------------------------------------------
 /**
  * @brief Dispatch REST JSON API requests for the message transport.
- * @param {text} pPath - REST route path (e.g. /mq/queue, /mq/accept)
+ * @param {text} pPath - REST route path (e.g. /mq/queue, /mq/accept, /mq/plan/list)
  * @param {jsonb} pPayload - Request payload
  * @return {SETOF json} - JSON response rows
  * @throws RouteIsEmpty - When pPath is NULL
@@ -192,12 +192,12 @@ BEGIN
       PERFORM JsonIsEmpty();
     END IF;
 
-    arKeys := array_cat(arKeys, ARRAY['peer', 'channel', 'direction']);
+    arKeys := array_cat(arKeys, ARRAY['peer', 'channel', 'direction', 'link']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(peer text, channel text, direction text)
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(peer text, channel text, direction text, link text)
     LOOP
-      RETURN NEXT json_build_object('id', api.mq_session_open(r.peer, r.channel, r.direction));
+      RETURN NEXT json_build_object('id', api.mq_session_open(r.peer, r.channel, r.direction, r.link));
     END LOOP;
 
   WHEN '/mq/session/close' THEN
@@ -240,6 +240,182 @@ BEGIN
     FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(channel text)
     LOOP
       RETURN NEXT json_build_object('channel', r.channel, 'removed', api.mq_purge(r.channel));
+    END LOOP;
+
+  WHEN '/mq/link/create' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['code', 'name', 'metered', 'threshold', 'description']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(code text, name text, metered boolean, threshold integer, description text)
+    LOOP
+      FOR e IN SELECT * FROM api.mq_create_link(r.code, r.name, r.metered, r.threshold, r.description)
+      LOOP
+        RETURN NEXT row_to_json(e);
+      END LOOP;
+    END LOOP;
+
+  WHEN '/mq/link/edit' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['code', 'name', 'metered', 'threshold', 'enabled', 'description']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(code text, name text, metered boolean, threshold integer, enabled boolean, description text)
+    LOOP
+      FOR e IN SELECT * FROM api.mq_edit_link(r.code, r.name, r.metered, r.threshold, r.enabled, r.description)
+      LOOP
+        RETURN NEXT row_to_json(e);
+      END LOOP;
+    END LOOP;
+
+  WHEN '/mq/link/list' THEN
+
+    IF pPayload IS NOT NULL THEN
+      arKeys := array_cat(arKeys, ARRAY['fields']);
+      PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+    END IF;
+
+    FOR e IN SELECT * FROM api.mq_link ORDER BY threshold, code
+    LOOP
+      RETURN NEXT row_to_json(e);
+    END LOOP;
+
+  WHEN '/mq/schedule/set' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['channel', 'link', 'period', 'batch', 'timeout', 'backoff', 'catchup', 'peer']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(channel text, link text, period interval, batch integer, timeout interval, backoff interval, catchup interval, peer text)
+    LOOP
+      FOR e IN SELECT * FROM api.mq_set_schedule(r.channel, r.link, r.period, r.batch, r.timeout, r.backoff, r.catchup, r.peer)
+      LOOP
+        RETURN NEXT row_to_json(e);
+      END LOOP;
+    END LOOP;
+
+  WHEN '/mq/schedule/delete' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['channel', 'link', 'peer']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(channel text, link text, peer text)
+    LOOP
+      RETURN NEXT json_build_object('channel', r.channel, 'link', r.link, 'removed', api.mq_delete_schedule(r.channel, r.link, r.peer));
+    END LOOP;
+
+  WHEN '/mq/schedule/get' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['channel', 'link', 'peer']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(channel text, link text, peer text)
+    LOOP
+      FOR e IN SELECT * FROM api.mq_get_schedule(r.channel, r.link, r.peer)
+      LOOP
+        RETURN NEXT row_to_json(e);
+      END LOOP;
+    END LOOP;
+
+  WHEN '/mq/schedule/count' THEN
+
+    IF pPayload IS NOT NULL THEN
+      arKeys := array_cat(arKeys, ARRAY['search', 'filter', 'reclimit', 'recoffset', 'orderby']);
+      PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+    ELSE
+      pPayload := '{}';
+    END IF;
+
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
+    LOOP
+      FOR e IN SELECT * FROM api.count_mq_schedule(r.search, r.filter) AS count
+      LOOP
+        RETURN NEXT row_to_json(e);
+      END LOOP;
+    END LOOP;
+
+  WHEN '/mq/schedule/list' THEN
+
+    IF pPayload IS NOT NULL THEN
+      arKeys := array_cat(arKeys, ARRAY['fields', 'search', 'filter', 'reclimit', 'recoffset', 'orderby']);
+      PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+    ELSE
+      pPayload := '{}';
+    END IF;
+
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(fields jsonb, search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
+    LOOP
+      FOR e IN EXECUTE format('SELECT %s FROM api.list_mq_schedule($1, $2, $3, $4, $5)', JsonbToFields(r.fields, GetColumns('mq_schedule', 'api'))) USING r.search, r.filter, r.reclimit, r.recoffset, r.orderby
+      LOOP
+        RETURN NEXT row_to_json(e);
+      END LOOP;
+    END LOOP;
+
+  WHEN '/mq/plan/count' THEN
+
+    IF pPayload IS NOT NULL THEN
+      arKeys := array_cat(arKeys, ARRAY['search', 'filter', 'reclimit', 'recoffset', 'orderby']);
+      PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+    ELSE
+      pPayload := '{}';
+    END IF;
+
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
+    LOOP
+      FOR e IN SELECT * FROM api.count_mq_plan(r.search, r.filter) AS count
+      LOOP
+        RETURN NEXT row_to_json(e);
+      END LOOP;
+    END LOOP;
+
+  WHEN '/mq/plan/list' THEN
+
+    IF pPayload IS NOT NULL THEN
+      arKeys := array_cat(arKeys, ARRAY['fields', 'search', 'filter', 'reclimit', 'recoffset', 'orderby']);
+      PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+    ELSE
+      pPayload := '{}';
+    END IF;
+
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(fields jsonb, search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb)
+    LOOP
+      FOR e IN EXECUTE format('SELECT %s FROM api.list_mq_plan($1, $2, $3, $4, $5)', JsonbToFields(r.fields, GetColumns('mq_plan', 'api'))) USING r.search, r.filter, r.reclimit, r.recoffset, r.orderby
+      LOOP
+        RETURN NEXT row_to_json(e);
+      END LOOP;
+    END LOOP;
+
+  WHEN '/mq/session/next' THEN
+
+    IF pPayload IS NULL THEN
+      PERFORM JsonIsEmpty();
+    END IF;
+
+    arKeys := array_cat(arKeys, ARRAY['peer', 'channel', 'link']);
+    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(peer text, channel text, link text)
+    LOOP
+      RETURN NEXT json_build_object('peer', r.peer, 'channel', r.channel, 'link', r.link, 'due', api.mq_next_session(r.peer, r.channel, r.link));
     END LOOP;
 
   WHEN '/mq/channel/list' THEN

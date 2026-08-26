@@ -1,7 +1,7 @@
 # db-platform — INDEX
 
 > PostgreSQL Framework for Backend Development
-> Version: 1.2.17 | License: MIT
+> Version: 1.2.18 | License: MIT
 > GitHub: https://github.com/apostoldevel/db-platform
 
 ---
@@ -97,7 +97,7 @@ Loaded in dependency order (create.psql):
 | 17 | **kladr** | 3 | Russian address classifier (KLADR) | [kladr/INDEX.md](kladr/INDEX.md) |
 | 18 | **file** | 1 | Virtual FS: files, directories, UNIX mask, S3 buckets | [file/INDEX.md](file/INDEX.md) |
 | 19 | **entity** | 27 | Entity system: object, reference, document. AOU/AOM access control | [entity/INDEX.md](entity/INDEX.md) |
-| 20 | **mq** | 8 | Store-and-forward message transport: channels, message log, watermarks, ingest registry, dead letters | [mq/INDEX.md](mq/INDEX.md) |
+| 20 | **mq** | 10 | Store-and-forward message transport: channels, message log, watermarks, ingest registry, dead letters, link kinds and the session schedule on the pair | [mq/INDEX.md](mq/INDEX.md) |
 
 ### Communication
 

@@ -61,6 +61,33 @@ GRANT SELECT ON api.mq_session TO administrator;
 GRANT SELECT ON api.mq_session TO apibot;
 
 --------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW api.mq_link
+AS
+  SELECT * FROM MQLink;
+
+GRANT SELECT ON api.mq_link TO administrator;
+GRANT SELECT ON api.mq_link TO apibot;
+
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW api.mq_schedule
+AS
+  SELECT * FROM MQSchedule;
+
+GRANT SELECT ON api.mq_schedule TO administrator;
+GRANT SELECT ON api.mq_schedule TO apibot;
+
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW api.mq_plan
+AS
+  SELECT * FROM MQPlan;
+
+GRANT SELECT ON api.mq_plan TO administrator;
+GRANT SELECT ON api.mq_plan TO apibot;
+
+--------------------------------------------------------------------------------
 -- api.mq_channel_id -----------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -115,6 +142,36 @@ BEGIN
     -- either a mistake in configuration or somebody else's traffic, and
     -- registering it silently would file that traffic as legitimate.
     RAISE EXCEPTION 'ERR-40000: Node "%" not found.', pCode;
+  END IF;
+
+  RETURN nId;
+END;
+$$ LANGUAGE plpgsql STABLE
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.mq_link_id --------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+/**
+ * @brief Resolve a link code, refusing an unknown one.
+ * @param {text} pCode - Link code
+ * @return {integer} - Link identifier
+ * @throws ERR-40000 - When there is no such link
+ * @since 1.2.18
+ */
+CREATE OR REPLACE FUNCTION api.mq_link_id (
+  pCode     text
+) RETURNS   integer
+AS $$
+DECLARE
+  nId       integer;
+BEGIN
+  nId := mq.get_link(pCode);
+
+  IF nId IS NULL THEN
+    RAISE EXCEPTION 'ERR-40000: Link "%" not found.', pCode;
   END IF;
 
   RETURN nId;
@@ -339,16 +396,19 @@ $$ LANGUAGE SQL
  * @param {text} pPeer - Node code
  * @param {text} pChannel - Channel code
  * @param {text} pDirection - send or receive
+ * @param {text} pLink - Code of the link this session runs over
  * @return {bigint} - Session identifier
  * @since 1.2.17
  */
 CREATE OR REPLACE FUNCTION api.mq_session_open (
   pPeer         text,
   pChannel      text,
-  pDirection    text
+  pDirection    text,
+  pLink         text DEFAULT null
 ) RETURNS       bigint
 AS $$
-  SELECT mq.session_open(api.mq_peer_id(pPeer), api.mq_channel_id(pChannel), pDirection);
+  SELECT mq.session_open(api.mq_peer_id(pPeer), api.mq_channel_id(pChannel), pDirection,
+                         CASE WHEN pLink IS NULL THEN null ELSE api.mq_link_id(pLink) END);
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -625,6 +685,302 @@ CREATE OR REPLACE FUNCTION api.list_mq_watermark (
 AS $$
 BEGIN
   RETURN QUERY EXECUTE api.sql('api', 'mq_watermark', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.mq_create_link ----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+/**
+ * @brief Register a kind of link.
+ * @param {text} pCode - Link code, unique and stable
+ * @param {text} pName - Human-readable name
+ * @param {boolean} pMetered - Whether traffic is billed by volume
+ * @param {integer} pThreshold - Lowest lane priority this link admits (1..3)
+ * @param {text} pDescription - What this kind of link is and what it costs
+ * @return {SETOF api.mq_link} - The registered link
+ * @since 1.2.18
+ */
+CREATE OR REPLACE FUNCTION api.mq_create_link (
+  pCode         text,
+  pName         text,
+  pMetered      boolean DEFAULT false,
+  pThreshold    integer DEFAULT 3,
+  pDescription  text DEFAULT null
+) RETURNS       SETOF api.mq_link
+AS $$
+BEGIN
+  RETURN QUERY SELECT * FROM api.mq_link WHERE id = mq.create_link(pCode, pName, pMetered, pThreshold, pDescription);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.mq_edit_link ------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+/**
+ * @brief Change a kind of link. NULL leaves the current value in place.
+ * @param {text} pCode - Link code
+ * @param {text} pName - New name
+ * @param {boolean} pMetered - Whether traffic is billed by volume
+ * @param {integer} pThreshold - New threshold
+ * @param {boolean} pEnabled - Whether the link kind is in service
+ * @param {text} pDescription - New description
+ * @return {SETOF api.mq_link} - The changed link
+ * @since 1.2.18
+ */
+CREATE OR REPLACE FUNCTION api.mq_edit_link (
+  pCode         text,
+  pName         text DEFAULT null,
+  pMetered      boolean DEFAULT null,
+  pThreshold    integer DEFAULT null,
+  pEnabled      boolean DEFAULT null,
+  pDescription  text DEFAULT null
+) RETURNS       SETOF api.mq_link
+AS $$
+DECLARE
+  nId           integer;
+BEGIN
+  nId := api.mq_link_id(pCode);
+
+  PERFORM mq.edit_link(nId, pName, pMetered, pThreshold, pEnabled, pDescription);
+
+  RETURN QUERY SELECT * FROM api.mq_link WHERE id = nId;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.mq_set_schedule ---------------------------------------------------------
+--------------------------------------------------------------------------------
+
+/**
+ * @brief Set the session schedule on a pair, creating or replacing the row.
+ * @param {text} pChannel - Channel code
+ * @param {text} pLink - Link code
+ * @param {interval} pPeriod - How often a session opens. On an evidential lane
+ *        this also sets the window in which a truncated tail of the log stays
+ *        undetectable -- see the comment on mq.schedule.period and the
+ *        evidential column of api.mq_plan.
+ * @param {integer} pBatch - Largest number of messages per session
+ * @param {interval} pTimeout - How long a session may stay open
+ * @param {interval} pBackoff - First delay after a failed session
+ * @param {interval} pCatchup - Interval used while the node is behind
+ * @param {text} pPeer - Node code; NULL sets the default for every node
+ * @return {SETOF api.mq_schedule} - The schedule row now in force
+ * @since 1.2.18
+ */
+CREATE OR REPLACE FUNCTION api.mq_set_schedule (
+  pChannel      text,
+  pLink         text,
+  pPeriod       interval,
+  pBatch        integer DEFAULT null,
+  pTimeout      interval DEFAULT null,
+  pBackoff      interval DEFAULT null,
+  pCatchup      interval DEFAULT null,
+  pPeer         text DEFAULT null
+) RETURNS       SETOF api.mq_schedule
+AS $$
+DECLARE
+  nId           integer;
+BEGIN
+  nId := mq.set_schedule(api.mq_channel_id(pChannel), api.mq_link_id(pLink), pPeriod,
+                         pBatch, pTimeout, pBackoff, pCatchup,
+                         CASE WHEN pPeer IS NULL THEN null ELSE api.mq_peer_id(pPeer) END);
+
+  RETURN QUERY SELECT * FROM api.mq_schedule WHERE id = nId;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.mq_delete_schedule ------------------------------------------------------
+--------------------------------------------------------------------------------
+
+/**
+ * @brief Remove a schedule row.
+ * @param {text} pChannel - Channel code
+ * @param {text} pLink - Link code
+ * @param {text} pPeer - Node code; NULL removes the default row
+ * @return {boolean} - Whether a row was removed
+ * @since 1.2.18
+ */
+CREATE OR REPLACE FUNCTION api.mq_delete_schedule (
+  pChannel      text,
+  pLink         text,
+  pPeer         text DEFAULT null
+) RETURNS       boolean
+AS $$
+  SELECT mq.delete_schedule(api.mq_channel_id(pChannel), api.mq_link_id(pLink),
+                            CASE WHEN pPeer IS NULL THEN null ELSE api.mq_peer_id(pPeer) END);
+$$ LANGUAGE SQL
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.mq_get_schedule ---------------------------------------------------------
+--------------------------------------------------------------------------------
+
+/**
+ * @brief The schedule in force for a node on a pair.
+ * @param {text} pChannel - Channel code
+ * @param {text} pLink - Link code
+ * @param {text} pPeer - Node code; NULL considers only the default row
+ * @return {record} - id, period, batch, timeout, backoff, catchup, scope
+ * @since 1.2.18
+ */
+CREATE OR REPLACE FUNCTION api.mq_get_schedule (
+  pChannel      text,
+  pLink         text,
+  pPeer         text DEFAULT null
+) RETURNS TABLE (
+  id            integer,
+  period        interval,
+  batch         integer,
+  timeout       interval,
+  backoff       interval,
+  catchup       interval,
+  scope         text
+)
+AS $$
+  SELECT * FROM mq.get_schedule(api.mq_channel_id(pChannel), api.mq_link_id(pLink),
+                                CASE WHEN pPeer IS NULL THEN null ELSE api.mq_peer_id(pPeer) END);
+$$ LANGUAGE SQL STABLE
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.mq_next_session ---------------------------------------------------------
+--------------------------------------------------------------------------------
+
+/**
+ * @brief When the next sending session on a pair is due.
+ * @param {text} pPeer - Node code
+ * @param {text} pChannel - Channel code
+ * @param {text} pLink - Code of the link the process is connected over
+ * @return {timestamptz} - When to open the next session; NULL when this lane
+ *                         does not travel over this link at all
+ * @since 1.2.18
+ */
+CREATE OR REPLACE FUNCTION api.mq_next_session (
+  pPeer         text,
+  pChannel      text,
+  pLink         text
+) RETURNS       timestamptz
+AS $$
+  SELECT mq.next_session(api.mq_peer_id(pPeer), api.mq_channel_id(pChannel), api.mq_link_id(pLink));
+$$ LANGUAGE SQL STABLE
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.count_mq_schedule -------------------------------------------------------
+--------------------------------------------------------------------------------
+
+/**
+ * @brief Count schedule rows matching search/filter criteria.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Exact-match filter object
+ * @return {SETOF bigint} - Record count
+ * @since 1.2.18
+ */
+CREATE OR REPLACE FUNCTION api.count_mq_schedule (
+  pSearch    jsonb default null,
+  pFilter    jsonb default null
+) RETURNS    SETOF bigint
+AS $$
+BEGIN
+  RETURN QUERY EXECUTE api.sql('api', 'mq_schedule', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.list_mq_schedule --------------------------------------------------------
+--------------------------------------------------------------------------------
+
+/**
+ * @brief List schedule rows with optional search, filter and pagination.
+ * @param {jsonb} pSearch - Full-text search criteria
+ * @param {jsonb} pFilter - Column-level filter conditions
+ * @param {integer} pLimit - Maximum number of rows to return
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Sort specification
+ * @return {SETOF api.mq_schedule} - Matching schedule rows
+ * @since 1.2.18
+ */
+CREATE OR REPLACE FUNCTION api.list_mq_schedule (
+  pSearch       jsonb default null,
+  pFilter       jsonb default null,
+  pLimit        integer default null,
+  pOffSet       integer default null,
+  pOrderBy      jsonb default null
+) RETURNS       SETOF api.mq_schedule
+AS $$
+BEGIN
+  RETURN QUERY EXECUTE api.sql('api', 'mq_schedule', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.count_mq_plan -----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+/**
+ * @brief Count plan rows matching search/filter criteria.
+ * @param {jsonb} pSearch - Search conditions array
+ * @param {jsonb} pFilter - Exact-match filter object
+ * @return {SETOF bigint} - Record count
+ * @since 1.2.18
+ */
+CREATE OR REPLACE FUNCTION api.count_mq_plan (
+  pSearch    jsonb default null,
+  pFilter    jsonb default null
+) RETURNS    SETOF bigint
+AS $$
+BEGIN
+  RETURN QUERY EXECUTE api.sql('api', 'mq_plan', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(peer)"]'::jsonb);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.list_mq_plan ------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+/**
+ * @brief What happens on every (node, channel, link): whether the lane travels
+ *        there, which schedule governs it, when the next session is due and how
+ *        far behind the node is.
+ * @param {jsonb} pSearch - Full-text search criteria
+ * @param {jsonb} pFilter - Column-level filter conditions
+ * @param {integer} pLimit - Maximum number of rows to return
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Sort specification
+ * @return {SETOF api.mq_plan} - Matching plan rows
+ * @since 1.2.18
+ */
+CREATE OR REPLACE FUNCTION api.list_mq_plan (
+  pSearch       jsonb default null,
+  pFilter       jsonb default null,
+  pLimit        integer default null,
+  pOffSet       integer default null,
+  pOrderBy      jsonb default null
+) RETURNS       SETOF api.mq_plan
+AS $$
+BEGIN
+  RETURN QUERY EXECUTE api.sql('api', 'mq_plan', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

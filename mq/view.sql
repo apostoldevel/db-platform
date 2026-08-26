@@ -87,11 +87,18 @@ GRANT SELECT ON MQDead TO administrator;
 
 CREATE OR REPLACE VIEW MQSession
 AS
+  -- link and linkcode are LAST, not next to the channel they belong with.
+  -- CREATE OR REPLACE VIEW may append columns and may not insert one in the
+  -- middle: it refuses with "cannot change name of view column", and the tidy
+  -- reading order would cost every installation a dropped view and everything
+  -- that depends on it.
   SELECT s.id, s.peer, p.code AS peercode, s.channel, c.code AS channelcode,
-         s.direction, s.started, s.finished, s.messages, s.bytes, s.result, s.message
+         s.direction, s.started, s.finished, s.messages, s.bytes, s.result, s.message,
+         s.link, l.code AS linkcode
     FROM mq.session s
    INNER JOIN mq.peer p ON p.id = s.peer
-   INNER JOIN mq.channel c ON c.id = s.channel;
+   INNER JOIN mq.channel c ON c.id = s.channel
+    LEFT JOIN mq.link l ON l.id = s.link;
 
 GRANT SELECT ON MQSession TO administrator;
 
@@ -105,3 +112,76 @@ AS
     FROM mq.ingest i LEFT JOIN mq.channel c ON c.id = i.channel;
 
 GRANT SELECT ON MQIngest TO administrator;
+
+--------------------------------------------------------------------------------
+-- MQLink ----------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW MQLink
+AS
+  SELECT * FROM mq.link;
+
+GRANT SELECT ON MQLink TO administrator;
+
+--------------------------------------------------------------------------------
+-- MQSchedule ------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+-- The rows as they are stored: the default rows (peercode NULL) and the rows
+-- that narrow them to one node. What is in force for a given node is a
+-- different question, and MQPlan answers it.
+
+CREATE OR REPLACE VIEW MQSchedule
+AS
+  SELECT s.id, s.peer, p.code AS peercode, s.channel, c.code AS channelcode,
+         s.link, l.code AS linkcode, s.period, s.batch, s.timeout, s.backoff,
+         s.catchup, s.created, s.updated
+    FROM mq.schedule s
+   INNER JOIN mq.channel c ON c.id = s.channel
+   INNER JOIN mq.link l ON l.id = s.link
+    LEFT JOIN mq.peer p ON p.id = s.peer;
+
+GRANT SELECT ON MQSchedule TO administrator;
+
+--------------------------------------------------------------------------------
+-- MQPlan ----------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+-- What actually happens on every (node, channel, link): whether the lane
+-- travels there, which schedule row governs it, when the next session is due
+-- and how far behind the node is. It is the answer to "why is nothing moving",
+-- and it needs no process running to be read.
+--
+-- The state is a CODE, not a sentence. A view that returned a translated
+-- explanation would be a user-facing string in a function body, which the
+-- i18n rule exists to prevent; a code is translated once by whoever displays
+-- it, in every language the installation speaks.
+--
+-- evidential is the flag the period comment refers to: a lane that never
+-- expires and is kept forever is a lane whose interval also sets the window in
+-- which a truncated tail of the log stays undetectable. It is derived, not
+-- declared -- a second column saying so could disagree with the first.
+
+CREATE OR REPLACE VIEW MQPlan
+AS
+  SELECT p.id AS peer, p.code AS peercode, c.id AS channel, c.code AS channelcode,
+         l.id AS link, l.code AS linkcode,
+         c.priority, l.threshold, l.metered,
+         c.lifetime IS NULL AND c.retention IS NULL AS evidential,
+         CASE WHEN NOT p.enabled THEN 'peer-disabled'
+              WHEN NOT c.enabled THEN 'channel-disabled'
+              WHEN NOT l.enabled THEN 'link-disabled'
+              WHEN c.priority > l.threshold THEN 'below-threshold'
+              WHEN s.id IS NULL THEN 'no-schedule'
+              ELSE 'scheduled'
+         END AS state,
+         s.id AS schedule, s.scope, s.period, s.batch, s.timeout, s.backoff, s.catchup,
+         mq.next_session(p.id, c.id, l.id) AS due,
+         mq.depth(p.id, c.id) AS depth
+    FROM mq.peer p
+   CROSS JOIN mq.channel c
+   CROSS JOIN mq.link l
+    LEFT JOIN LATERAL mq.get_schedule(c.id, l.id, p.id) s ON true
+   WHERE NOT p.local;
+
+GRANT SELECT ON MQPlan TO administrator;

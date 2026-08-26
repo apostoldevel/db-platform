@@ -245,6 +245,356 @@ $$ LANGUAGE plpgsql STABLE
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- LINK ------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+/**
+ * @brief Register a kind of link.
+ * @param {text} pCode - Link code, unique and stable
+ * @param {text} pName - Human-readable name
+ * @param {boolean} pMetered - Whether traffic is billed by volume
+ * @param {integer} pThreshold - Lowest lane priority this link admits (1..3)
+ * @param {text} pDescription - What this kind of link is and what it costs
+ * @return {integer} - Link identifier
+ * @since 1.2.18
+ */
+CREATE OR REPLACE FUNCTION mq.create_link (
+  pCode         text,
+  pName         text,
+  pMetered      boolean DEFAULT false,
+  pThreshold    integer DEFAULT 3,
+  pDescription  text DEFAULT null
+) RETURNS       integer
+AS $$
+DECLARE
+  nId           integer;
+BEGIN
+  INSERT INTO mq.link (code, name, description, metered, threshold)
+  VALUES (pCode, pName, pDescription, coalesce(pMetered, false), coalesce(pThreshold, 3))
+  RETURNING id INTO nId;
+
+  RETURN nId;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+
+/**
+ * @brief Change a kind of link. NULL leaves the current value in place.
+ * @param {integer} pId - Link identifier
+ * @param {text} pName - New name
+ * @param {boolean} pMetered - Whether traffic is billed by volume
+ * @param {integer} pThreshold - New threshold
+ * @param {boolean} pEnabled - Whether the link kind is in service
+ * @param {text} pDescription - New description
+ * @return {void}
+ * @since 1.2.18
+ */
+CREATE OR REPLACE FUNCTION mq.edit_link (
+  pId           integer,
+  pName         text DEFAULT null,
+  pMetered      boolean DEFAULT null,
+  pThreshold    integer DEFAULT null,
+  pEnabled      boolean DEFAULT null,
+  pDescription  text DEFAULT null
+) RETURNS       void
+AS $$
+BEGIN
+  UPDATE mq.link
+     SET name = coalesce(pName, name),
+         description = coalesce(pDescription, description),
+         metered = coalesce(pMetered, metered),
+         threshold = coalesce(pThreshold, threshold),
+         enabled = coalesce(pEnabled, enabled),
+         updated = Now()
+   WHERE id = pId;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'ERR-40000: Link "%" not found.', pId;
+  END IF;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+
+/**
+ * @brief Find a kind of link by code.
+ * @param {text} pCode - Link code
+ * @return {integer} - Link identifier, NULL when there is no such link
+ * @since 1.2.18
+ */
+CREATE OR REPLACE FUNCTION mq.get_link (
+  pCode     text
+) RETURNS   integer
+AS $$
+  SELECT id FROM mq.link WHERE code = pCode;
+$$ LANGUAGE SQL STABLE STRICT
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- SCHEDULE --------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+/**
+ * @brief Set the session schedule on a pair, creating or replacing the row.
+ * @param {integer} pChannel - Channel
+ * @param {integer} pLink - Kind of link
+ * @param {interval} pPeriod - How often a session opens
+ * @param {integer} pBatch - Largest number of messages per session
+ * @param {interval} pTimeout - How long a session may stay open
+ * @param {interval} pBackoff - First delay after a failed session
+ * @param {interval} pCatchup - Interval used while the node is behind
+ * @param {integer} pPeer - Node this row applies to; NULL is the default for every node
+ * @return {integer} - Schedule identifier
+ * @since 1.2.18
+ */
+CREATE OR REPLACE FUNCTION mq.set_schedule (
+  pChannel      integer,
+  pLink         integer,
+  pPeriod       interval,
+  pBatch        integer DEFAULT null,
+  pTimeout      interval DEFAULT null,
+  pBackoff      interval DEFAULT null,
+  pCatchup      interval DEFAULT null,
+  pPeer         integer DEFAULT null
+) RETURNS       integer
+AS $$
+DECLARE
+  nId           integer;
+BEGIN
+  -- ON CONFLICT cannot serve here: the uniqueness is carried by two PARTIAL
+  -- indexes (one for the default row, one for the per-node row), and an
+  -- inference clause matches neither. The read-then-write is safe under the
+  -- indexes -- a concurrent insert loses on the index, it does not duplicate.
+
+  UPDATE mq.schedule
+     SET period = pPeriod,
+         batch = coalesce(pBatch, batch),
+         timeout = coalesce(pTimeout, timeout),
+         backoff = coalesce(pBackoff, backoff),
+         catchup = coalesce(pCatchup, catchup),
+         updated = Now()
+   WHERE channel = pChannel
+     AND link = pLink
+     AND peer IS NOT DISTINCT FROM pPeer
+  RETURNING id INTO nId;
+
+  IF NOT FOUND THEN
+    INSERT INTO mq.schedule (peer, channel, link, period, batch, timeout, backoff, catchup)
+    VALUES (pPeer, pChannel, pLink, pPeriod, coalesce(pBatch, 100),
+            coalesce(pTimeout, interval '5 minutes'), coalesce(pBackoff, interval '1 minute'),
+            coalesce(pCatchup, interval '30 seconds'))
+    RETURNING id INTO nId;
+  END IF;
+
+  RETURN nId;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+
+/**
+ * @brief Remove a schedule row.
+ * @param {integer} pChannel - Channel
+ * @param {integer} pLink - Kind of link
+ * @param {integer} pPeer - Node the row applies to; NULL is the default row
+ * @return {boolean} - Whether a row was removed
+ * @since 1.2.18
+ */
+CREATE OR REPLACE FUNCTION mq.delete_schedule (
+  pChannel      integer,
+  pLink         integer,
+  pPeer         integer DEFAULT null
+) RETURNS       boolean
+AS $$
+BEGIN
+  DELETE FROM mq.schedule
+   WHERE channel = pChannel
+     AND link = pLink
+     AND peer IS NOT DISTINCT FROM pPeer;
+
+  RETURN FOUND;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+
+/**
+ * @brief The schedule in force for a node on a pair: the row naming the node
+ *        when there is one, the default row otherwise.
+ * @param {integer} pChannel - Channel
+ * @param {integer} pLink - Kind of link
+ * @param {integer} pPeer - Node asking; NULL considers only the default row
+ * @return {record} - id, period, batch, timeout, backoff, catchup, scope
+ * @since 1.2.18
+ */
+CREATE OR REPLACE FUNCTION mq.get_schedule (
+  pChannel      integer,
+  pLink         integer,
+  pPeer         integer DEFAULT null
+) RETURNS TABLE (
+  id            integer,
+  period        interval,
+  batch         integer,
+  timeout       interval,
+  backoff       interval,
+  catchup       interval,
+  scope         text
+)
+AS $$
+  -- Written in SQL rather than PL/pgSQL deliberately. A RETURNS TABLE in
+  -- PL/pgSQL declares OUT variables with these very names, and every unqualified
+  -- reference to a column called period or batch inside the body would then
+  -- resolve to the variable instead of the column -- ambiguous at best, silently
+  -- wrong at worst. A SQL body has no such variables at all.
+  SELECT s.id, s.period, s.batch, s.timeout, s.backoff, s.catchup,
+         CASE WHEN s.peer IS NULL THEN 'default' ELSE 'peer' END
+    FROM mq.schedule s
+   WHERE s.channel = pChannel
+     AND s.link = pLink
+     AND (s.peer IS NULL OR s.peer = pPeer)
+   ORDER BY s.peer NULLS LAST
+   LIMIT 1;
+$$ LANGUAGE SQL STABLE
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+
+/**
+ * @brief How far a node is behind us on a channel: what we have published and
+ *        it has not confirmed.
+ * @param {integer} pPeer - Node on the other end
+ * @param {integer} pChannel - Channel
+ * @return {bigint} - Number of messages outstanding, 0 when the node is level
+ * @since 1.2.18
+ */
+CREATE OR REPLACE FUNCTION mq.depth (
+  pPeer         integer,
+  pChannel      integer
+) RETURNS       bigint
+AS $$
+  SELECT coalesce((SELECT max(m.serial)
+                     FROM mq.message m
+                    WHERE m.channel = pChannel
+                      AND m.source = (SELECT p.id FROM mq.peer p WHERE p.local)), 0)
+       - coalesce((SELECT w.sent
+                     FROM mq.watermark w
+                    WHERE w.peer = pPeer AND w.channel = pChannel), 0);
+$$ LANGUAGE SQL STABLE STRICT
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+
+/**
+ * @brief When the next sending session on a pair is due.
+ * @param {integer} pPeer - Node on the other end
+ * @param {integer} pChannel - Channel
+ * @param {integer} pLink - Kind of link the process is connected over
+ * @return {timestamptz} - When to open the next session; NULL when this lane
+ *                         does not travel over this link at all
+ * @since 1.2.18
+ */
+CREATE OR REPLACE FUNCTION mq.next_session (
+  pPeer         integer,
+  pChannel      integer,
+  pLink         integer
+) RETURNS       timestamptz
+AS $$
+DECLARE
+  r             record;
+  s             record;
+  nFailed       integer;
+  tLast         timestamptz;
+BEGIN
+  -- Does this lane travel here at all? Four ways it may not, and they are asked
+  -- in this order so the answer to "why is nothing moving" is the first one
+  -- true rather than whichever the query happened to notice.
+
+  SELECT c.priority, c.enabled AS channelenabled, l.threshold, l.enabled AS linkenabled,
+         p.enabled AS peerenabled, p.local
+    INTO r
+    FROM mq.channel c, mq.link l, mq.peer p
+   WHERE c.id = pChannel AND l.id = pLink AND p.id = pPeer;
+
+  IF NOT FOUND OR r.local OR NOT r.peerenabled OR NOT r.channelenabled OR NOT r.linkenabled THEN
+    RETURN null;
+  END IF;
+
+  IF r.priority > r.threshold THEN
+    RETURN null;
+  END IF;
+
+  SELECT * INTO s FROM mq.get_schedule(pChannel, pLink, pPeer);
+
+  IF NOT FOUND THEN
+    RETURN null;
+  END IF;
+
+  -- An open session holds the lane: nothing new is due until it has either
+  -- closed or outlived its timeout.
+
+  SELECT max(x.started) INTO tLast
+    FROM mq.session x
+   WHERE x.peer = pPeer AND x.channel = pChannel AND x.direction = 'send' AND x.finished IS NULL;
+
+  IF tLast IS NOT NULL THEN
+    RETURN tLast + s.timeout;
+  END IF;
+
+  SELECT max(x.finished) INTO tLast
+    FROM mq.session x
+   WHERE x.peer = pPeer AND x.channel = pChannel AND x.direction = 'send';
+
+  IF tLast IS NULL THEN
+    RETURN Now();
+  END IF;
+
+  -- Consecutive failures since the last session that carried something. A
+  -- partial session counts as progress and clears the backoff: something did
+  -- get through, and on this link a session broken in the middle is ordinary
+  -- weather rather than a fault.
+
+  SELECT count(*) INTO nFailed
+    FROM mq.session x
+   WHERE x.peer = pPeer AND x.channel = pChannel AND x.direction = 'send'
+     AND x.result = 'failed'
+     AND x.started > coalesce((SELECT max(y.started)
+                                 FROM mq.session y
+                                WHERE y.peer = pPeer AND y.channel = pChannel
+                                  AND y.direction = 'send' AND y.result IN ('ok', 'partial')), '-infinity');
+
+  IF nFailed > 0 THEN
+    -- Doubling, capped by the period: the schedule is already the longest wait
+    -- that buys anything. least() also keeps the multiplication away from the
+    -- range where an interval overflows.
+    RETURN tLast + least(s.backoff * power(2, least(nFailed, 16) - 1), s.period);
+  END IF;
+
+  -- Behind: the catch-up interval, not the ordinary one. Breaks in service run
+  -- to twelve hours on this link, so catching up is the ordinary path.
+
+  IF mq.depth(pPeer, pChannel) > 0 THEN
+    RETURN tLast + s.catchup;
+  END IF;
+
+  RETURN tLast + s.period;
+END;
+$$ LANGUAGE plpgsql STABLE
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- BINDING ---------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -1135,20 +1485,22 @@ $$ LANGUAGE plpgsql
  * @param {integer} pPeer - Node on the other end
  * @param {integer} pChannel - Channel
  * @param {text} pDirection - send or receive
+ * @param {integer} pLink - Kind of link this session runs over
  * @return {bigint} - Session identifier
  * @since 1.2.17
  */
 CREATE OR REPLACE FUNCTION mq.session_open (
   pPeer         integer,
   pChannel      integer,
-  pDirection    text
+  pDirection    text,
+  pLink         integer DEFAULT null
 ) RETURNS       bigint
 AS $$
 DECLARE
   nId           bigint;
 BEGIN
-  INSERT INTO mq.session (peer, channel, direction)
-  VALUES (pPeer, pChannel, pDirection)
+  INSERT INTO mq.session (peer, channel, direction, link)
+  VALUES (pPeer, pChannel, pDirection, pLink)
   RETURNING id INTO nId;
 
   RETURN nId;

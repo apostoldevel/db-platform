@@ -41,7 +41,9 @@ registered per message type. Both live in the platform; a project picks one.
 | `mq.watermark` | Cursor on the pair (node, channel) | PK(`peer`, `channel`), `sent bigint`, `received bigint`, `floor bigint`, `skipped bigint`, `stalled int`, `refused int` |
 | `mq.ingest` | Reception registry, one handler per type | `type text PK`, `handler text`, `channel`, `enabled` |
 | `mq.dead` | Refused, with the reason | PK(`source`, `channel`, `serial`) → `mq.message`, `reason text`, `attempt int`, `state` (parked/resolved) |
-| `mq.session` | What an exchange carried | `id bigserial PK`, `peer`, `channel`, `direction` (send/receive), `messages`, `bytes`, `result` (ok/partial/failed) |
+| `mq.session` | What an exchange carried | `id bigserial PK`, `peer`, `channel`, `link`, `direction` (send/receive), `messages`, `bytes`, `result` (ok/partial/failed) |
+| `mq.link` | A kind of link, with the lowest lane priority it admits | `id serial PK`, `code text UNIQUE`, `metered bool`, `threshold 1..3`, `enabled` |
+| `mq.schedule` | Session settings on the pair (channel, link) | `id serial PK`, `peer` (NULL = default for every node), `channel`, `link`, `period interval`, `batch int`, `timeout`, `backoff`, `catchup` |
 
 ## Views
 
@@ -57,6 +59,9 @@ registered per message type. Both live in the platform; a project picks one.
 | `MQDead` | Dead letters joined to the message they refer to |
 | `MQSession` | Exchange sessions with codes |
 | `MQIngest` | The reception registry |
+| `MQLink` | `mq.link` |
+| `MQSchedule` | Schedule rows as stored, with codes |
+| `MQPlan` | What happens on every (node, channel, link): whether the lane travels there, which row governs it, when the next session is due, how far behind the node is |
 
 ## Functions
 
@@ -72,6 +77,9 @@ registered per message type. Both live in the platform; a project picks one.
 | `mq.get_peer(pCode)` | `integer` | Resolve a code (NULL when unknown) |
 | `mq.local_peer()` | `integer` | Which node this database is; **raises** when none is registered |
 | `mq.create_binding(pChannel, pClass, pAction, pType, pRoute, pProjection)` | `integer` | Bind a class to a channel |
+| `mq.create_link(pCode, pName, pMetered, pThreshold, pDescription)` | `integer` | Register a kind of link |
+| `mq.edit_link(pId, ...)` | `void` | Change one |
+| `mq.get_link(pCode)` | `integer` | Resolve a code (NULL when unknown) |
 
 ### Publishing
 
@@ -105,7 +113,12 @@ registered per message type. Both live in the platform; a project picks one.
 
 | Function | Returns | Purpose |
 |----------|---------|---------|
-| `mq.session_open(pPeer, pChannel, pDirection)` | `bigint` | Open a session |
+| `mq.set_schedule(pChannel, pLink, pPeriod, pBatch, pTimeout, pBackoff, pCatchup, pPeer)` | `integer` | Set the schedule on a pair; a row naming a node overrides the default |
+| `mq.delete_schedule(pChannel, pLink, pPeer)` | `boolean` | Remove one |
+| `mq.get_schedule(pChannel, pLink, pPeer)` | `(id, period, batch, timeout, backoff, catchup, scope)` | The row in force, and **which** row it is |
+| `mq.next_session(pPeer, pChannel, pLink)` | `timestamptz` | When the next sending session is due; **NULL when the lane does not travel over that link at all** |
+| `mq.depth(pPeer, pChannel)` | `bigint` | How much that node has not confirmed |
+| `mq.session_open(pPeer, pChannel, pDirection, pLink)` | `bigint` | Open a session |
 | `mq.session_close(pId, pResult, pMessages, pBytes, pMessage)` | `void` | Close it with its outcome |
 | `mq.compact(pChannel)` | `integer` | Keep the last message per key on a compacted channel |
 | `mq.purge(pChannel)` | `integer` | Drop what retention no longer requires — never a message a live node has not confirmed |
@@ -113,21 +126,24 @@ registered per message type. Both live in the platform; a project picks one.
 ## API
 
 `api.mq_channel`, `api.mq_peer`, `api.mq_message`, `api.mq_watermark`, `api.mq_dead`,
-`api.mq_session` (views); `api.mq_publish`, `api.mq_queue`, `api.mq_accept`, `api.mq_confirm`,
+`api.mq_session`, `api.mq_link`, `api.mq_schedule`, `api.mq_plan` (views); `api.mq_publish`, `api.mq_queue`, `api.mq_accept`, `api.mq_confirm`,
 `api.mq_retry`, `api.mq_floor`, `api.mq_advance`, `api.mq_session_open`, `api.mq_session_close`,
-`api.mq_compact`, `api.mq_purge`;
-`api.list_*` / `api.count_*` for message, dead, session and watermark.
+`api.mq_compact`, `api.mq_purge`, `api.mq_create_link`, `api.mq_edit_link`, `api.mq_set_schedule`,
+`api.mq_delete_schedule`, `api.mq_get_schedule`, `api.mq_next_session`;
+`api.list_*` / `api.count_*` for message, dead, session, watermark, schedule and plan.
 
 **The API speaks codes.** Identifiers are local to each database — the same channel is 3 here and 7
 there — so anything crossing the boundary as a number would silently mean a different lane on the
-far side. `api.mq_channel_id` / `api.mq_peer_id` resolve a code and refuse an unknown one rather
+far side. `api.mq_channel_id` / `api.mq_peer_id` / `api.mq_link_id` resolve a code and refuse an unknown one rather
 than registering it.
 
 ## REST
 
 `POST /api/v1/mq/...`: `publish`, `queue`, `floor`, `accept`, `advance`, `confirm`, `retry`, `compact`, `purge`,
-`channel/list`, `session/open`, `session/close`, `session/list`, `session/count`, `message/list`,
-`message/count`, `dead/list`, `dead/count`, `watermark/list`, `watermark/count`.
+`channel/list`, `session/open`, `session/close`, `session/next`, `session/list`, `session/count`,
+`message/list`, `message/count`, `dead/list`, `dead/count`, `watermark/list`, `watermark/count`,
+`link/create`, `link/edit`, `link/list`, `schedule/set`, `schedule/get`, `schedule/delete`,
+`schedule/list`, `schedule/count`, `plan/list`, `plan/count`.
 
 Access is the `mq` group, looked up **by code**: the platform's system identifiers and the ones
 projects assign share one range with nothing dividing it, and `...-000000000006` is already a group
@@ -195,6 +211,61 @@ a hash chain breaks on a record removed from what was accepted, not on one that 
 What a floor does skip is counted in `mq.watermark.skipped`, so a legitimate compaction and a jump
 over a hundred records never look alike.
 
+## When a session opens — the schedule on the pair
+
+`mq.channel` says what a lane *is*; `mq.link` says what the wire *is*; `mq.schedule` sits on the
+pair and says how the lane is carried over that wire. The same ship reaches shore over a metered
+satellite terminal at sea and over a berth network in port, and the two are not the same setting
+by a different value — they are different rows.
+
+The setting deliberately does **not** live on `mq.channel`, where the design sketch put it. It
+belongs to a pair, and a pair fits on one row only as `jsonb` — the free-form configuration this
+module exists to get away from.
+
+| Question | Where it is answered |
+|---|---|
+| Does this lane travel over this link at all? | `mq.link.threshold` — **and only there** |
+| How often, how much, how long, how it retries | `mq.schedule` on (channel, link) |
+| Does this particular ship differ? | `mq.schedule` row naming the peer; it wins over the default (`peer IS NULL`) |
+| What is actually going to happen? | `MQPlan` — one row per (node, channel, link), with `state`, `due` and `depth` |
+
+**One gate, not two.** Whether a lane is carried is decided by the threshold on the link. A
+schedule row says *how*, never *whether*. Two mechanisms able to silence the same lane eventually
+disagree, and neither raises anything when they do.
+
+`mq.next_session` answers "when next" and is the whole point of the table:
+
+1. lane, link, node or channel out of service, or the lane below the link's threshold → `NULL`;
+2. no schedule row → `NULL` (**not** the same answer as the previous one, and `MQPlan.state` keeps
+   them apart: `no-schedule` versus `below-threshold`);
+3. a session still open → `started + timeout`; past that it is treated as lost;
+4. never exchanged → now;
+5. consecutive failures → `backoff`, doubled per failure and **capped by the period** — a `partial`
+   session counts as progress and clears the count;
+6. behind (`mq.depth > 0`) → `catchup`, not `period`. Breaks of twelve hours are ordinary here, so
+   catching up is the ordinary path: a ship idle for a month must not need a month to catch up;
+7. otherwise → `period`.
+
+**The interval of an evidential lane is a parameter of evidential strength, not of performance.**
+The hub anchors the hash of the last link it received *per session*, so the window in which a
+truncated tail of the log stays undetectable **equals the time since the last session**. An hour
+changed to a day widens that window twenty-four times. The two questions the value answers — how
+fresh the far side is, and how large that window is — are not split into two settings because
+physically they are one session; so the second one is named in the comment on
+`mq.schedule.period`, which is where an administrator meets it, and `MQPlan.evidential` marks the
+lanes it applies to. `evidential` is derived (`lifetime IS NULL AND retention IS NULL`), never
+declared — a second column saying so could disagree with the first.
+
+`MQPlan` is a cross join of nodes, channels and link kinds with `mq.next_session` called per row,
+so its cost grows as their product: a hub with a hundred edges, five channels and three link kinds
+builds fifteen hundred rows and asks the session history once for each. That is an administrator's
+overview, refreshed by hand — not something a process should poll in a loop. A process asks
+`mq.next_session` about the one pair it is working on.
+
+**Changes take effect without a restart.** Every write to `mq.schedule` or `mq.link` sends
+`NOTIFY mq_cmd` with what changed, in codes. On a vessel restarting a process is an event;
+adjusting an interval must not be one.
+
 ## Invariants worth knowing before touching this
 
 - **The serial is a counter in `mq.channel`, not a sequence.** A sequence leaves gaps when a
@@ -208,6 +279,14 @@ over a hundred records never look alike.
   nodes that have never synchronised at all, which have no cursor row yet. Those are precisely the
   nodes that need the log from zero. How long a silent node may hold the log is the owner's call
   and is deliberately not decided here.
+- **Whether a lane travels is decided in exactly one place** — `mq.link.threshold`. A schedule row
+  governs how, never whether.
+- **The interval of an evidential lane sets the window of undetectable truncation.** It is not a
+  performance knob, and the comment on `mq.schedule.period` says so where the administrator reads
+  it.
+- **`mq.session.link` is recorded after the event, never stored as "the current link".** What a
+  node is reachable over right now is a fact about the world the database cannot verify, and a
+  stored copy goes stale in silence.
 - **There is no path here that disables triggers.** Reception writes through the ordinary
   `Create<X>`/`api` path; the original identifier can be passed in (`CreateObject` reads
   `object.id` from the session variable), while `owner`, `suid` and the dates are assigned by the
