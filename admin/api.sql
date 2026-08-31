@@ -2097,8 +2097,8 @@ AS $$
         SELECT pUserId
          UNION
         SELECT userid FROM db.member_group WHERE member = pUserId
-      )
-    )
+      ) AND area != current_brand()
+    ) AND type != '00000000-0000-4002-a000-000000000002'
     UNION
     SELECT a.id, a.parent
       FROM db.area a, area_tree t
