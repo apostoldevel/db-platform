@@ -479,12 +479,21 @@ BEGIN
           -- ordinary, and api.signup would raise on the second -- leaving that
           -- person unable to sign in at all, ever. The provider's own
           -- identifier is unique within the provider, so fall back to it.
-          IF EXISTS (SELECT FROM db.user WHERE type = 'U' AND username = account.username) THEN
+          -- lower(), because the question these two ask is not "is this string
+          -- present" but "will CreateUser refuse this name" -- and CreateUser
+          -- (admin/routine.sql) looks the name up as `username = lower(pRoleName)`
+          -- while inserting pRoleName verbatim. Compared exactly, both checks
+          -- answer "free" for Alice@Example.com while alice@example.com is
+          -- sitting in the table; no surrogate is chosen, and CreateUser then
+          -- raises RoleExists -- which is precisely the "unable to sign in at
+          -- all, ever" this branch exists to prevent. The predicate here has to
+          -- agree with the one that will actually refuse, not with the index.
+          IF EXISTS (SELECT FROM db.user WHERE type = 'U' AND username = lower(account.username)) THEN
             IF nullif(account.email, '') IS NOT NULL THEN
               account.username := account.email;
             END IF;
 
-            IF EXISTS (SELECT FROM db.user WHERE type = 'U' AND username = account.username) THEN
+            IF EXISTS (SELECT FROM db.user WHERE type = 'U' AND username = lower(account.username)) THEN
               account.username := vProviderCode || '-' || claim.sub;
             END IF;
           END IF;
