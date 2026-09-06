@@ -3391,12 +3391,16 @@ CREATE OR REPLACE FUNCTION IsUserRole (
 ) RETURNS       boolean
 AS $$
 BEGIN
+  IF pRoleId IS NULL OR pUserId IS NULL THEN
+    RETURN false;
+  END IF;
+
   PERFORM FROM db.member_group WHERE userid = pRoleId AND member = pUserId;
   RETURN FOUND;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
-   STABLE STRICT
+   STABLE
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
@@ -3418,6 +3422,10 @@ DECLARE
   uUserId       uuid;
   uRoleId       uuid;
 BEGIN
+  IF pRole IS NULL OR pUser IS NULL THEN
+    RETURN false;
+  END IF;
+
   SELECT id INTO uUserId FROM db.user WHERE username = pUser AND type = 'U';
   SELECT id INTO uRoleId FROM db.user WHERE username = pRole AND type = 'G';
 
@@ -3425,7 +3433,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
-   STABLE STRICT
+   STABLE
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
