@@ -480,7 +480,13 @@ BEGIN
           -- person unable to sign in at all, ever. The provider's own
           -- identifier is unique within the provider, so fall back to it.
           IF EXISTS (SELECT FROM db.user WHERE type = 'U' AND username = account.username) THEN
-            account.username := vProviderCode || '-' || claim.sub;
+            IF nullif(account.email, '') IS NOT NULL THEN
+			  account.username := account.email;
+			END IF;
+
+            IF EXISTS (SELECT FROM db.user WHERE type = 'U' AND username = account.username) THEN
+              account.username := vProviderCode || '-' || claim.sub;
+            END IF;
           END IF;
 
           jName := jsonb_build_object('name', account.name, 'first', profile.given_name, 'last', profile.family_name);
