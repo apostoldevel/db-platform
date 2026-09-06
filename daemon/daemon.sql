@@ -481,8 +481,8 @@ BEGIN
           -- identifier is unique within the provider, so fall back to it.
           IF EXISTS (SELECT FROM db.user WHERE type = 'U' AND username = account.username) THEN
             IF nullif(account.email, '') IS NOT NULL THEN
-			  account.username := account.email;
-			END IF;
+              account.username := account.email;
+            END IF;
 
             IF EXISTS (SELECT FROM db.user WHERE type = 'U' AND username = account.username) THEN
               account.username := vProviderCode || '-' || claim.sub;
