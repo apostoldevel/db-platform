@@ -188,7 +188,22 @@ COMMENT ON COLUMN db.user.passwordchange IS 'Force password change on next login
 COMMENT ON COLUMN db.user.passwordnotchange IS 'Prohibit the user from changing their own password.';
 COMMENT ON COLUMN db.user.readonly IS 'Read-only flag; prevents modification of system accounts.';
 
-CREATE UNIQUE INDEX ON db.user (type, username);
+-- Case-insensitive uniqueness, case-preserving storage (T229, decision of
+-- 2026-09-09). The login is stored exactly as the person typed it — "userName"
+-- stays "userName" — and no second account may be created as "UserName",
+-- "Username" or "username". A plain unique index on (type, username) enforces
+-- the storage rule and not the identity rule: it let those four coexist, and
+-- measured on 2026-09-09 the ordinary signup path created two of them.
+--
+-- Every identity comparison in the platform and in the configuration is
+-- lower(username) = lower(<parameter>), so this index is what those comparisons
+-- read; the columns are still written verbatim, which is the point.
+-- Named explicitly, and that is not decoration: an unnamed CREATE INDEX is
+-- named by PostgreSQL after the expression, so a fresh install would get
+-- user_type_lower_idx while a base patched by P00000018 keeps
+-- user_type_username_idx. The same schema under two names is how the next
+-- patch comes to drop an index that is not there.
+CREATE UNIQUE INDEX user_type_username_idx ON db.user (type, lower(username));
 CREATE UNIQUE INDEX ON db.user (hash);
 CREATE UNIQUE INDEX ON db.user (phone);
 CREATE UNIQUE INDEX ON db.user (email);
@@ -222,8 +237,13 @@ BEGIN
     NEW.phone := TrimPhone(nullif(trim(NEW.phone), ''));
   END IF;
 
-  NEW.readonly := NEW.username IN ('system', 'administrator', 'guest', 'daemon', 'apibot', 'mailbot');
-  NEW.readonly := NEW.readonly OR coalesce((SELECT a.name = NEW.username FROM oauth2.audience a WHERE a.name = NEW.username), false);
+  -- lower() on both sides here for the same reason as everywhere else since
+  -- T229: the reserved names are the platform's own, and a row that differs
+  -- from one of them only by case must be recognised as that name, not treated
+  -- as a new one. The unique index makes such a row impossible to create, so
+  -- this is the second lock on the same door rather than the only one.
+  NEW.readonly := lower(NEW.username) IN ('system', 'administrator', 'guest', 'daemon', 'apibot', 'mailbot');
+  NEW.readonly := NEW.readonly OR coalesce((SELECT true FROM oauth2.audience a WHERE lower(a.name) = lower(NEW.username)), false);
 
   RETURN NEW;
 END;

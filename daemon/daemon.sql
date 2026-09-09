@@ -113,7 +113,7 @@ BEGIN
   PERFORM TokenValidation(pToken);
 
   FOR r IN
-    SELECT id, 'username' AS identifier FROM db.user WHERE username = pValue AND type = 'U'
+    SELECT id, 'username' AS identifier FROM db.user WHERE lower(username) = lower(pValue) AND type = 'U'
     UNION
     SELECT id, 'email' AS identifier FROM db.user WHERE email = pValue AND type = 'U'
     UNION
@@ -488,12 +488,12 @@ BEGIN
           -- raises RoleExists -- which is precisely the "unable to sign in at
           -- all, ever" this branch exists to prevent. The predicate here has to
           -- agree with the one that will actually refuse, not with the index.
-          IF EXISTS (SELECT FROM db.user WHERE type = 'U' AND username = lower(account.username)) THEN
+          IF EXISTS (SELECT FROM db.user WHERE type = 'U' AND lower(username) = lower(account.username)) THEN
             IF nullif(account.email, '') IS NOT NULL THEN
               account.username := account.email;
             END IF;
 
-            IF EXISTS (SELECT FROM db.user WHERE type = 'U' AND username = lower(account.username)) THEN
+            IF EXISTS (SELECT FROM db.user WHERE type = 'U' AND lower(username) = lower(account.username)) THEN
               account.username := vProviderCode || '-' || claim.sub;
             END IF;
           END IF;

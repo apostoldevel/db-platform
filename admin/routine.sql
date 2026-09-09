@@ -3426,8 +3426,8 @@ BEGIN
     RETURN false;
   END IF;
 
-  SELECT id INTO uUserId FROM db.user WHERE username = pUser AND type = 'U';
-  SELECT id INTO uRoleId FROM db.user WHERE username = pRole AND type = 'G';
+  SELECT id INTO uUserId FROM db.user WHERE lower(username) = lower(pUser) AND type = 'U';
+  SELECT id INTO uRoleId FROM db.user WHERE lower(username) = lower(pRole) AND type = 'G';
 
   RETURN IsUserRole(uRoleId, uUserId);
 END;
@@ -3577,7 +3577,7 @@ BEGIN
     END IF;
   END IF;
 
-  SELECT id INTO uId FROM db.user WHERE username = lower(pRoleName) AND type = 'U';
+  SELECT id INTO uId FROM db.user WHERE lower(username) = lower(pRoleName) AND type = 'U';
 
   IF FOUND THEN
     PERFORM RoleExists(pRoleName);
@@ -3639,7 +3639,7 @@ BEGIN
     END IF;
   END IF;
 
-  SELECT id INTO uId FROM groups WHERE username = lower(pRoleName);
+  SELECT id INTO uId FROM groups WHERE lower(username) = lower(pRoleName);
 
   IF FOUND THEN
     PERFORM RoleExists(pRoleName);
@@ -3711,6 +3711,26 @@ BEGIN
   IF coalesce((SELECT true FROM pg_roles WHERE rolname = lower(r.username)), false) THEN
     IF lower(r.username) <> lower(pRoleName) THEN
       PERFORM SystemRoleError();
+    END IF;
+  END IF;
+
+  -- Renaming has to ask the same question creating does, and until T229 it asked
+  -- nothing at all: UpdateUser had no occupancy check of any kind, and the only
+  -- thing standing between a rename and a duplicate was the unique index. With
+  -- the index now case-insensitive, "Ivan.Petrov" → "ivan.petrov" stops being a
+  -- silent second account and becomes a refusal — but without this check the
+  -- refusal arrives as a bare 23505 from the index, which the transport turns
+  -- into an empty 500 (see the note in configuration/csms/api/api.sql on why a
+  -- raw exception cannot be shown). The catalogue answer already exists; this is
+  -- what makes it reachable.
+  --
+  -- Two doors lead here and both are outside-facing: /user/set through
+  -- api.update_user, and /client/set /tenant/set through EditClient, whose
+  -- trigger renames the user when the client code changes.
+  IF pRoleName IS NOT NULL AND lower(pRoleName) <> lower(r.username) THEN
+    PERFORM FROM db.user WHERE type = 'U' AND lower(username) = lower(pRoleName) AND id <> pId;
+    IF FOUND THEN
+      PERFORM RoleExists(pRoleName);
     END IF;
   END IF;
 
@@ -3875,7 +3895,7 @@ AS $$
 DECLARE
   uId           uuid;
 BEGIN
-  SELECT id INTO uId FROM db.user WHERE type = 'U' AND username = lower(pRoleName);
+  SELECT id INTO uId FROM db.user WHERE type = 'U' AND lower(username) = lower(pRoleName);
 
   IF NOT FOUND THEN
     PERFORM UserNotFound(pRoleName);
@@ -3965,7 +3985,7 @@ AS $$
 DECLARE
   uId           uuid;
 BEGIN
-  SELECT id INTO uId FROM db.user WHERE type = 'U' AND username = pRoleName;
+  SELECT id INTO uId FROM db.user WHERE type = 'U' AND lower(username) = lower(pRoleName);
 
   IF NOT FOUND THEN
     PERFORM UserNotFound(pRoleName);
@@ -3995,7 +4015,7 @@ AS $$
 DECLARE
   uId           uuid;
 BEGIN
-  SELECT id INTO uId FROM db.user WHERE type = 'G' AND username = pRoleName;
+  SELECT id INTO uId FROM db.user WHERE type = 'G' AND lower(username) = lower(pRoleName);
 
   IF NOT FOUND THEN
     PERFORM UnknownRoleName(pRoleName);
@@ -6142,7 +6162,7 @@ BEGIN
     PERFORM LoginError();
   END IF;
 
-  SELECT * INTO up FROM db.user WHERE type = 'U' AND username = pRoleName;
+  SELECT * INTO up FROM db.user WHERE type = 'U' AND lower(username) = lower(pRoleName);
 
   IF NOT FOUND THEN
     PERFORM LoginError();
@@ -6275,7 +6295,7 @@ BEGIN
     PERFORM SetCurrentUserId(null);
     PERFORM SetOAuth2ClientId(null);
 
-    SELECT * INTO up FROM db.user WHERE type = 'U' AND username = pRoleName;
+    SELECT * INTO up FROM db.user WHERE type = 'U' AND lower(username) = lower(pRoleName);
 
     IF FOUND AND NOT up.readonly THEN
       UPDATE db.profile

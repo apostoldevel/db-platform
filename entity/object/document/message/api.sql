@@ -608,7 +608,7 @@ BEGIN
 
   nCount := 0;
 
-  SELECT id, type INTO uUserId, vType FROM db.user WHERE status & B'0100' != B'0100' AND username = pRoleName;
+  SELECT id, type INTO uUserId, vType FROM db.user WHERE status & B'0100' != B'0100' AND lower(username) = lower(pRoleName);
 
   IF NOT FOUND THEN
     RETURN 0;

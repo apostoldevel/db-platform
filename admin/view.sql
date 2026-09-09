@@ -107,7 +107,7 @@ AS
                    INNER JOIN db.locale    l ON l.id = p.locale
                    INNER JOIN db.area      a ON a.id = p.area
                    INNER JOIN db.interface i ON i.id = p.interface
-                    LEFT JOIN pg_roles     r ON r.rolname = u.username
+                    LEFT JOIN pg_roles     r ON r.rolname = lower(u.username)
    WHERE u.type = 'U';
 
 GRANT SELECT ON users TO administrator;
