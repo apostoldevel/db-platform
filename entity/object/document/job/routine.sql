@@ -148,3 +148,50 @@ AS $$
 $$ LANGUAGE sql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- RescheduleJob ---------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Move a job's next run one scheduler period forward from its current
+ *        daterun. Clamped to Now() on both sides: a daterun in the future is
+ *        first pulled back to Now() so a period is never added twice, and a
+ *        result in the past is raised to Now() so the job runs at the next pass
+ *        rather than "as soon as possible, repeatedly". A scheduler without a
+ *        period counts as 0 seconds. Shared by the done and fail handlers.
+ * @param {uuid} pObject - Job identifier
+ * @return {timestamptz} - The new daterun
+ * @since 1.2.20
+ */
+CREATE OR REPLACE FUNCTION RescheduleJob (
+  pObject    uuid
+) RETURNS    timestamptz
+AS $$
+DECLARE
+  uScheduler uuid;
+  dtDateRun  timestamptz;
+
+  iPeriod    interval;
+BEGIN
+  SELECT scheduler, daterun INTO uScheduler, dtDateRun FROM db.job WHERE id = pObject;
+  SELECT period INTO iPeriod FROM db.scheduler WHERE id = uScheduler;
+
+  iPeriod := coalesce(iPeriod, '0 seconds'::interval);
+
+  IF dtDateRun > Now() THEN
+    dtDateRun := Now();
+  END IF;
+
+  dtDateRun := dtDateRun + iPeriod;
+
+  IF dtDateRun < Now() THEN
+    dtDateRun := Now();
+  END IF;
+
+  UPDATE db.job SET daterun = dtDateRun WHERE id = pObject;
+
+  RETURN dtDateRun;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;

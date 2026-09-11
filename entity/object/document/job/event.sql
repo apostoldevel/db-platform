@@ -196,28 +196,8 @@ CREATE OR REPLACE FUNCTION EventJobDone (
   pObject    uuid default context_object()
 ) RETURNS    void
 AS $$
-DECLARE
-  uScheduler uuid;
-  dtDateRun  timestamptz;
-
-  iPeriod    interval;
 BEGIN
-  SELECT scheduler, daterun INTO uScheduler, dtDateRun FROM db.job WHERE id = pObject;
-  SELECT period INTO iPeriod FROM db.scheduler WHERE id = uScheduler;
-
-  iPeriod := coalesce(iPeriod, '0 seconds'::interval);
-
-  IF dtDateRun > Now() THEN
-    dtDateRun := Now();
-  END IF;
-
-  dtDateRun := dtDateRun + iPeriod;
-
-  IF dtDateRun < Now() THEN
-    dtDateRun := Now();
-  END IF;
-
-  UPDATE db.job SET daterun = dtDateRun WHERE id = pObject;
+  PERFORM RescheduleJob(pObject);
 
   PERFORM WriteToEventLog('M', 2012, 'workflow.job', 'done', 'Job done.', pObject);
 END;
@@ -228,6 +208,24 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 /**
  * @brief Handle the "fail" workflow event when a job execution fails.
+ *
+ * The `failed` state is of type `enabled`, so the scheduler's pick-up query
+ * (api.job('enabled'), daterun <= Now()) returns a failed job on its very next
+ * pass. Left alone, a job whose body keeps failing therefore runs once per
+ * pass (about every second) instead of once per period. This handler decides
+ * when a failed job goes again, the same way EventJobDone decides it for a
+ * successful one:
+ *
+ *   periodic.job  - daterun moves one period forward (RescheduleJob), so the
+ *                   job waits out its period exactly as it would after success;
+ *   any other type (disposable.job) - the job is disabled: a one-time job that
+ *                   failed does not restart by itself. The `fail` event and the
+ *                   error label are already recorded; `enable` re-arms it and
+ *                   it runs at the next pass.
+ *
+ * The state is already `failed` when this runs: the class registers
+ * ChangeObjectState() before EventJobFail() on the fail action, which is what
+ * makes the nested disable resolvable.
  * @param {uuid} pObject - Job identifier (defaults to context object)
  * @return {void}
  * @since 1.0.0
@@ -236,8 +234,20 @@ CREATE OR REPLACE FUNCTION EventJobFail (
   pObject    uuid default context_object()
 ) RETURNS    void
 AS $$
+DECLARE
+  vType      text;
 BEGIN
   PERFORM WriteToEventLog('W', 2021, 'workflow.job', 'fail', 'Job failed.', pObject);
+
+  SELECT t.code INTO vType
+    FROM db.object o INNER JOIN db.type t ON t.id = o.type
+   WHERE o.id = pObject;
+
+  IF vType = 'periodic.job' THEN
+    PERFORM RescheduleJob(pObject);
+  ELSE
+    PERFORM DoDisable(pObject);
+  END IF;
 END;
 $$ LANGUAGE plpgsql;
 
