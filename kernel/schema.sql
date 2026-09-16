@@ -21,3 +21,8 @@ GRANT USAGE ON SCHEMA rest TO apibot;
 -- apibot (permission denied → 500 in the caller). Grant SELECT at creation
 -- time instead of per view. Existing bases: patch/v1.2/P00000019.
 ALTER DEFAULT PRIVILEGES FOR ROLE kernel IN SCHEMA api GRANT SELECT ON TABLES TO apibot;
+
+-- The same rule for administrator: every module grants each api.* view to it by
+-- hand, one statement per view, and two views were missed (api.users, api.whoami — T307).
+-- Existing bases: patch/v1.2/P00000021.
+ALTER DEFAULT PRIVILEGES FOR ROLE kernel IN SCHEMA api GRANT SELECT ON TABLES TO administrator;

@@ -1317,36 +1317,33 @@ GRANT SELECT ON api.object_data TO administrator;
 /**
  * @brief Set a key-value data entry for an object.
  * @param {uuid} pId - Object identifier
- * @param {uuid} pType - Data format (text, json, xml, base64)
+ * @param {text} pType - Data format: text | json | xml | base64 (NULL → text, the column default)
  * @param {text} pCode - Data key
- * @param {text} pData - Data value
- * @return {SETOF api.object_data} - Updated data record
+ * @param {text} pData - Data value; NULL deletes the entry
+ * @return {SETOF api.object_data} - Updated data record (empty after a delete)
  * @throws AccessDenied - When the user lacks update access
- * @throws IncorrectCode - When the data type is invalid
+ * @throws IncorrectCode - When the data type is not one of the four
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.set_object_data (
   pId           uuid,
-  pType         uuid,
+  pType         text,
   pCode         text,
   pData         text
 ) RETURNS       SETOF api.object_data
 AS $$
 DECLARE
-  r             record;
-  uType         uuid;
-  arTypes       text[];
+  -- The domain of db.object_data.type — the same four values as its CHECK
+  -- constraint. Until T308 this list was collected by scanning the whole
+  -- table for the values already in use, which both cost a full scan per call
+  -- and rejected any format nobody had stored yet.
+  arTypes       text[] := ARRAY['text', 'json', 'xml', 'base64'];
 BEGIN
   IF NOT CheckObjectAccess(pId, B'010') THEN
     PERFORM AccessDenied();
   END IF;
 
-  pType := lower(pType);
-
-  FOR r IN SELECT type FROM db.object_data
-  LOOP
-    arTypes := array_append(arTypes, r.type);
-  END LOOP;
+  pType := coalesce(lower(pType), 'text');
 
   IF array_position(arTypes, pType) IS NULL THEN
     PERFORM IncorrectCode(pType, arTypes);
@@ -1354,7 +1351,7 @@ BEGIN
 
   PERFORM SetObjectData(pId, pType, pCode, pData);
 
-  RETURN QUERY SELECT * FROM api.get_object_data(pId, uType, pCode);
+  RETURN QUERY SELECT * FROM api.get_object_data(pId, pType, pCode);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1394,7 +1391,7 @@ BEGIN
 
     FOR r IN SELECT * FROM json_to_recordset(pData) AS data(type text, code text, data text)
     LOOP
-      RETURN NEXT api.set_object_data(pId, r.type, r.code, r.data);
+      RETURN QUERY SELECT * FROM api.set_object_data(pId, r.type, r.code, r.data);
     END LOOP;
   ELSE
     PERFORM JsonIsEmpty();
