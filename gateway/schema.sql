@@ -8,9 +8,9 @@
 -- `clean-architecture/track-a-gateway.md` §5 and `gateway-contract.md` — the
 -- К-numbers in the comments below refer to that contract. Moved here from the
 -- csms configuration (T301, 16.09.2026): the C++ module is public, so is its
--- schema. The OAuth2 audience `gateway-<domain>` (К3) is NOT part of this
--- module — the identity belongs to the brand and is created by the project's
--- oauth2.sql next to `web-`, `service-`, …
+-- schema. The module has no OAuth2 identity of its own: the /api/v2 modules
+-- authenticate the control socket under the project's existing `service-<domain>`
+-- audience (К3 ed. 5, owner's decision 16.09.2026).
 
 CREATE SCHEMA IF NOT EXISTS gateway;
 

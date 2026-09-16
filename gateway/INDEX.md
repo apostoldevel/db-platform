@@ -10,9 +10,10 @@ tells every worker about a transition with `pg_notify('gateway', …)`, and carr
 §5 and `gateway-contract.md` (the К-numbers below). Moved here from the csms configuration on
 2026-09-16 (T301): the C++ module is public, so is its schema.
 
-**Not part of the module:** the OAuth2 audience `gateway-<domain>` (К3). The identity belongs to
-the brand — the project's `oauth2.sql` creates it next to `web-`, `service-`, `android-`, `ios-`,
-guarded on `secret.gateway`.
+**No OAuth2 identity of its own:** the modules authenticate the control socket with a
+`client_credentials` token of the project's existing `service-<domain>` audience (К3 ed. 5, owner's
+decision 16.09.2026). A separate `gateway-<domain>` audience existed in the design from T268 to T316
+and was dropped.
 
 ## Dependencies
 
@@ -81,6 +82,6 @@ USAGE on `log_id_seq`; `administrator` — `SELECT` on both.
   where a relative `\ir` does not resolve).
 - **A heartbeat must touch only `seen`** (or `address`, `capacity`): any UPDATE that changes
   `state` journals and notifies.
-- **The audience is not here.** A fresh install without `secret.gateway` in the brand bundle has
-  the schema and the wrappers but no `gateway-<domain>` audience — `oauth2.sql` says so with a
-  NOTICE and the module's control socket answers 401 until the bundle carries the secret.
+- **No `secret.gateway` anywhere.** The control socket takes `service-<domain>` tokens; a 401 there
+  means the module was given the wrong client id or secret (`OAUTH2_SECRET_SERVICE`), not a
+  missing audience.
