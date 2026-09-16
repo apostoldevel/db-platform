@@ -643,7 +643,7 @@ CREATE OR REPLACE FUNCTION api.count_class_access (
 ) RETURNS    SETOF bigint
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'class_access', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
+  RETURN QUERY EXECUTE api.sql('api', 'class_access', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(*)"]'::jsonb);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1441,7 +1441,7 @@ CREATE OR REPLACE FUNCTION api.count_method_access (
 ) RETURNS    SETOF bigint
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'method_access', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
+  RETURN QUERY EXECUTE api.sql('api', 'method_access', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(*)"]'::jsonb);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

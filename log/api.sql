@@ -55,6 +55,7 @@ $$ LANGUAGE SQL
  * @brief Write a custom event to the log via the API and return the created entry.
  * @param {text} pType - Event severity: M=message, W=warning, E=error
  * @param {integer} pCode - Application-defined numeric event code
+ * @param {text} pScope - Event subsystem (NULL → 'api')
  * @param {text} pText - Human-readable event description
  * @return {SETOF api.event_log} - The newly created log entry
  * @see AddEventLog
@@ -70,7 +71,10 @@ AS $$
 DECLARE
   nId           bigint;
 BEGIN
-  nId := AddEventLog(pType, pCode, coalesce(pScope, 'api'), 'manual', pText);
+  -- Named notation on purpose: with five positional arguments both AddEventLog
+  -- overloads match (type, code, event, text, category) and (type, code, scope,
+  -- event, text) — 42725 "is not unique". Only the scoped overload has pScope.
+  nId := AddEventLog(pType => pType::char, pCode => pCode, pScope => coalesce(pScope, 'api'), pEvent => 'manual', pText => pText);
   RETURN QUERY SELECT * FROM api.get_event_log(nId);
 END;
 $$ LANGUAGE plpgsql

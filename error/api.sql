@@ -30,7 +30,9 @@ AS $$
 DECLARE
   uId           uuid;
 BEGIN
-  uId := CreateErrorCatalog(pCode, pHttpCode, pSeverity, pCategory);
+  -- An explicit NULL from the REST layer must land on the column default, not
+  -- on the NOT NULL constraint.
+  uId := CreateErrorCatalog(pCode, pHttpCode, coalesce(pSeverity, 'E'), coalesce(pCategory, 'validation'));
 
   IF pMessage IS NOT NULL THEN
     PERFORM SetErrorCatalogText(uId, current_locale(), pMessage, pDescription, pResolution);

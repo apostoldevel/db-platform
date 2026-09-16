@@ -1238,7 +1238,7 @@ CREATE OR REPLACE FUNCTION api.count_object_file (
 ) RETURNS    SETOF bigint
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'object_file', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
+  RETURN QUERY EXECUTE api.sql('api', 'object_file', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(*)"]'::jsonb);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1523,7 +1523,7 @@ CREATE OR REPLACE FUNCTION api.count_object_data (
 ) RETURNS    SETOF bigint
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'object_data', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
+  RETURN QUERY EXECUTE api.sql('api', 'object_data', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(*)"]'::jsonb);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

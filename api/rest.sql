@@ -461,23 +461,6 @@ BEGIN
       END LOOP;
     END LOOP;
 
-  WHEN '/user/profile' THEN
-
-    IF pPayload IS NOT NULL THEN
-      arKeys := array_cat(arKeys, ARRAY['id', 'code', 'fields']);
-      PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
-    ELSE
-      pPayload := '{}';
-    END IF;
-
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, code text, fields jsonb)
-    LOOP
-      FOR e IN EXECUTE format('SELECT %s FROM api.profile($1)', JsonbToFields(r.fields, GetColumns('profile', 'api'))) USING coalesce(r.id, GetClient(coalesce(r.code, current_username())))
-      LOOP
-        RETURN NEXT row_to_json(e);
-      END LOOP;
-    END LOOP;
-
   WHEN '/user/profile/set' THEN
 
     IF pPayload IS NULL THEN

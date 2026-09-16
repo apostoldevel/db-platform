@@ -76,7 +76,7 @@ BEGIN
   END IF;
 
   INSERT INTO db.form_field (form, key, type, label, format, value, data, mutable, sequence)
-  VALUES (pForm, pKey, pType, pLabel, pFormat, pValue, pData, pMutable, coalesce(pSequence, 1));
+  VALUES (pForm, pKey, pType, pLabel, pFormat, pValue, pData, coalesce(pMutable, false), coalesce(pSequence, 1));
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

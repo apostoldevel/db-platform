@@ -454,7 +454,9 @@ CREATE OR REPLACE FUNCTION api.add_user (
 ) RETURNS               uuid
 AS $$
 BEGIN
-  RETURN CreateUser(pUserName, pPassword, pName, pPhone, pEmail, pDescription, pPasswordChange, pPasswordNotChange);
+  -- An explicit NULL (a REST payload without the key, api.set_user's own
+  -- defaults) means "the default", not NULL: both columns are NOT NULL.
+  RETURN CreateUser(pUserName, pPassword, pName, pPhone, pEmail, pDescription, coalesce(pPasswordChange, true), coalesce(pPasswordNotChange, false));
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

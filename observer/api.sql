@@ -67,7 +67,7 @@ CREATE OR REPLACE FUNCTION api.count_publisher (
 ) RETURNS    SETOF bigint
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'publisher', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
+  RETURN QUERY EXECUTE api.sql('api', 'publisher', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(*)"]'::jsonb);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -265,7 +265,7 @@ CREATE OR REPLACE FUNCTION api.count_listener (
 ) RETURNS    SETOF bigint
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'listener', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
+  RETURN QUERY EXECUTE api.sql('api', 'listener', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(*)"]'::jsonb);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
