@@ -55,7 +55,7 @@ patch.psql    →  platform/patch.psql   →  configuration/patch.psql
 
 ---
 
-## 27 modules
+## 28 modules
 
 Loaded in dependency order (create.psql):
 
@@ -115,6 +115,12 @@ Loaded in dependency order (create.psql):
 |--:|--------|-------:|-------------|-------|
 | 26 | **report** | 5 | Reports: tree, form, routine, ready | [report/INDEX.md](report/INDEX.md) |
 | 27 | **reports** | — | Pre-built report definitions | [reports/INDEX.md](reports/INDEX.md) |
+
+### Gateway
+
+| # | Module | Tables | Description | INDEX |
+|--:|--------|-------:|-------------|-------|
+| 28 | **gateway** | 2 | GatewayAPI (track A, `/api/v2`): module instance registry, transition journal + `pg_notify('gateway')`, `gateway.route`, `api.authorize_local` / `api.log_request` / `api.parse_message` for the pool role | [gateway/INDEX.md](gateway/INDEX.md) |
 
 ---
 

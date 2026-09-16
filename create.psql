@@ -25,3 +25,4 @@
 \ir './observer/create.psql'
 \ir './report/create.psql'
 \ir './reports/create.psql'
+\ir './gateway/create.psql'

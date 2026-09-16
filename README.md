@@ -65,6 +65,7 @@ Execution order is always platform first, then configuration. Both layers share 
 | 23 | observer | Pub/Sub event system | 2 |
 | 24 | report | Report definition and generation framework | 5 |
 | 25 | reports | Pre-built report definitions and routines | — |
+| 26 | gateway | GatewayAPI (/api/v2) module registry, transition journal + NOTIFY, pool-role api.* wrappers | 2 |
 
 ## Quick Start
 
@@ -123,6 +124,7 @@ platform/
 ├── observer/          Pub/Sub events
 ├── report/            Report framework
 ├── reports/           Built-in reports
+├── gateway/           GatewayAPI (/api/v2) module registry + pool-role wrappers
 ├── patch/             Migration scripts
 ├── wiki/              Documentation source
 ├── create.psql        Full install script
