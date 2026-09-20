@@ -50,7 +50,6 @@ CREATE TABLE mq.channel (
     lifetime    interval,
     compaction  boolean NOT NULL DEFAULT false,
     retention   interval,
-    serial      bigint NOT NULL DEFAULT 0,
     enabled     boolean NOT NULL DEFAULT true,
     created     timestamptz NOT NULL DEFAULT Now(),
     updated     timestamptz NOT NULL DEFAULT Now()
@@ -68,12 +67,54 @@ COMMENT ON COLUMN mq.channel.delivery IS 'Delivery guarantee: at-most-once (may 
 COMMENT ON COLUMN mq.channel.lifetime IS 'How long a message stays worth delivering. NULL means it never expires — the correct value for anything evidential; a duration is right for telemetry, which nobody wants a week late.';
 COMMENT ON COLUMN mq.channel.compaction IS 'Keep only the last message per key. Turns the channel into a snapshot: a node joining for the first time reads it from zero and arrives at the current state without replaying every revision.';
 COMMENT ON COLUMN mq.channel.retention IS 'How long delivered messages are kept in the log. NULL means forever, which is what an evidential channel needs.';
-COMMENT ON COLUMN mq.channel.serial IS 'Counter of the last serial issued on this channel by THIS node. Kept in the row rather than in a sequence on purpose: a sequence leaves gaps when a transaction rolls back, and the receiving side checks for gaps to detect a truncated tail.';
 COMMENT ON COLUMN mq.channel.enabled IS 'Whether the channel is in service.';
 COMMENT ON COLUMN mq.channel.created IS 'When the channel was created.';
 COMMENT ON COLUMN mq.channel.updated IS 'When the channel was last changed.';
 
 CREATE INDEX ON mq.channel (priority);
+
+--------------------------------------------------------------------------------
+-- mq.stream -------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+-- A stream is a channel's log towards ONE recipient, or towards everyone: the
+-- pair (channel, target), and the serial counter lives here, one per stream.
+--
+-- The counter is per stream and not per channel because of what a serial is
+-- for. The receiving side moves its cursor over an unbroken run and stops at
+-- the first number that never arrives — that is how a truncated tail is
+-- detected. A hub serving many ships that numbered a lane once for all of
+-- them would hand every ship a log full of holes where the other ships'
+-- messages are, and the cursor would stop at the first one for ever; on an
+-- evidential lane, where no floor is admitted, that is a dead end by
+-- construction. So a message addressed to one node is numbered in that node's
+-- stream, and a message for everyone in the stream to everyone — Kafka's
+-- partition per consumer, with the broadcast log kept as a partition of its
+-- own so that a node joining later can still read the current state from
+-- zero (see mq.channel.compaction).
+--
+-- target 0 is "everyone". It is a sentinel and not NULL on purpose: the pair
+-- is a primary key here and part of one in mq.message and mq.watermark, and
+-- NULL is not equal to NULL.
+--
+-- Kept as a counter in a row rather than a sequence for the reason the
+-- channel counter was: a sequence leaves gaps when a transaction rolls back,
+-- and a gap is exactly what the far end reads as a truncated tail.
+
+CREATE TABLE mq.stream (
+    channel     integer NOT NULL REFERENCES mq.channel(id) ON DELETE CASCADE,
+    target      integer NOT NULL DEFAULT 0,
+    serial      bigint NOT NULL DEFAULT 0,
+    updated     timestamptz NOT NULL DEFAULT Now(),
+    PRIMARY KEY (channel, target)
+);
+
+COMMENT ON TABLE mq.stream IS 'Serial counter of THIS node per stream (channel, target). target 0 is the stream to everyone; otherwise the mq.peer the stream is addressed to.';
+
+COMMENT ON COLUMN mq.stream.channel IS 'Channel.';
+COMMENT ON COLUMN mq.stream.target IS 'Recipient node (mq.peer.id), or 0 for everyone. No foreign key: 0 is not a peer.';
+COMMENT ON COLUMN mq.stream.serial IS 'Last serial issued on this stream by this node. A counter in the row, not a sequence: a rollback takes the number back, so the log has no gaps of its own making.';
+COMMENT ON COLUMN mq.stream.updated IS 'When the counter last moved.';
 
 --------------------------------------------------------------------------------
 -- mq.peer ---------------------------------------------------------------------
@@ -339,13 +380,16 @@ CREATE INDEX ON mq.binding (class);
 -- that has to prove what it accepted needs the incoming half kept exactly as
 -- the outgoing half is.
 --
--- (source, channel, serial) as the primary key IS the idempotency: a repeat
--- delivery conflicts and changes nothing, which is what makes "at least once"
--- safe to build on.
+-- (source, channel, target, serial) as the primary key IS the idempotency: a
+-- repeat delivery conflicts and changes nothing, which is what makes "at least
+-- once" safe to build on. The target is part of it because the serial is
+-- numbered per stream (see mq.stream): the same number exists once in the
+-- stream to everyone and once in the stream to each node.
 
 CREATE TABLE mq.message (
     source      integer NOT NULL REFERENCES mq.peer(id),
     channel     integer NOT NULL REFERENCES mq.channel(id),
+    target      integer NOT NULL DEFAULT 0,
     serial      bigint NOT NULL,
     type        text NOT NULL,
     route       text,
@@ -355,14 +399,15 @@ CREATE TABLE mq.message (
     created     timestamptz NOT NULL DEFAULT Now(),
     received    timestamptz,
     expires     timestamptz,
-    PRIMARY KEY (source, channel, serial)
+    PRIMARY KEY (source, channel, target, serial)
 );
 
 COMMENT ON TABLE mq.message IS 'Message log of every channel, both directions. Append-only: a message is not deleted when it is read, only when retention or compaction removes it.';
 
 COMMENT ON COLUMN mq.message.source IS 'Node that published the message. Equal to the local peer for everything this node produced.';
 COMMENT ON COLUMN mq.message.channel IS 'Channel the message belongs to.';
-COMMENT ON COLUMN mq.message.serial IS 'Serial number within (source, channel), monotonic and without gaps. Order and gap detection both rest on it — which is why it is a counter in mq.channel and not a sequence.';
+COMMENT ON COLUMN mq.message.target IS 'Node the message is addressed to (mq.peer.id), or 0 for everyone. On the receiving side it is 0 or the local node: a message addressed to somebody else is refused by mq.accept, not filed.';
+COMMENT ON COLUMN mq.message.serial IS 'Serial number within the stream (source, channel, target), monotonic and without gaps. Order and gap detection both rest on it — which is why it is a counter in mq.stream and not a sequence.';
 COMMENT ON COLUMN mq.message.type IS 'Message type. The receiving side looks up its ingest handler by this name.';
 COMMENT ON COLUMN mq.message.route IS 'Routing key the message was published with.';
 COMMENT ON COLUMN mq.message.key IS 'Compaction key. On a compacted channel only the last message per key survives; NULL keeps the message out of compaction altogether.';
@@ -372,8 +417,8 @@ COMMENT ON COLUMN mq.message.created IS 'When the message was published, by the 
 COMMENT ON COLUMN mq.message.received IS 'When the message arrived here. NULL for messages this node published itself.';
 COMMENT ON COLUMN mq.message.expires IS 'When the message stops being worth delivering, computed from the channel lifetime at publication. NULL never expires.';
 
-CREATE INDEX ON mq.message (channel, serial);
-CREATE INDEX ON mq.message (channel, key) WHERE key IS NOT NULL;
+CREATE INDEX ON mq.message (channel, target, serial);
+CREATE INDEX ON mq.message (channel, target, key) WHERE key IS NOT NULL;
 CREATE INDEX ON mq.message (expires) WHERE expires IS NOT NULL;
 
 --------------------------------------------------------------------------------
@@ -387,7 +432,7 @@ CREATE OR REPLACE FUNCTION mq.ft_message_after_insert()
 RETURNS trigger AS $$
 BEGIN
   IF NEW.received IS NULL THEN
-    PERFORM pg_notify('mq', json_build_object('channel', NEW.channel, 'serial', NEW.serial, 'type', NEW.type)::text);
+    PERFORM pg_notify('mq', json_build_object('channel', NEW.channel, 'target', NEW.target, 'serial', NEW.serial, 'type', NEW.type)::text);
   END IF;
 
   RETURN NEW;
@@ -411,7 +456,8 @@ CREATE TRIGGER t_mq_message_after_insert
 -- mq.watermark ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 
--- The cursor, and it lives on the pair (peer, channel) — not on the peer.
+-- The cursor, and it lives on the triple (peer, channel, target) — not on the
+-- peer, and not on the pair either.
 --
 -- One cursor covering several classes of data is a modelling error, not an
 -- arithmetic one: a slow lane gets skipped by another lane's answer, and the
@@ -422,10 +468,19 @@ CREATE TRIGGER t_mq_message_after_insert
 -- on the fact of acceptance, never by the sender on the fact of sending. A
 -- message that did not apply must not be stepped over because the peer said it
 -- had scanned that far.
+--
+-- The third key column is the stream (see mq.stream). Serials are numbered per
+-- stream, so a node exchanging one channel with a peer holds two cursors on
+-- it: one for the stream to everyone (target 0) and one for the stream
+-- addressed to that node. On the sender the pair (peer P, target P) is P's
+-- own stream and (P, 0) is P's progress on the broadcast; on the receiver
+-- (source S, target = local) and (S, 0) likewise. A row with any other target
+-- is meaningless and nothing writes one.
 
 CREATE TABLE mq.watermark (
     peer        integer NOT NULL REFERENCES mq.peer(id) ON DELETE CASCADE,
     channel     integer NOT NULL REFERENCES mq.channel(id) ON DELETE CASCADE,
+    target      integer NOT NULL DEFAULT 0,
     sent        bigint NOT NULL DEFAULT 0,
     received    bigint NOT NULL DEFAULT 0,
     floor       bigint NOT NULL DEFAULT 0,
@@ -433,13 +488,14 @@ CREATE TABLE mq.watermark (
     stalled     integer NOT NULL DEFAULT 0,
     refused     integer NOT NULL DEFAULT 0,
     updated     timestamptz NOT NULL DEFAULT Now(),
-    PRIMARY KEY (peer, channel)
+    PRIMARY KEY (peer, channel, target)
 );
 
-COMMENT ON TABLE mq.watermark IS 'Exchange cursor for the pair (node, channel). Kept per pair rather than per node so that a slow lane cannot be skipped by another lane''s answer.';
+COMMENT ON TABLE mq.watermark IS 'Exchange cursor for the triple (node, channel, stream). Kept per stream rather than per node so that a slow lane cannot be skipped by another lane''s answer, and per stream rather than per channel because serials are numbered per stream.';
 
 COMMENT ON COLUMN mq.watermark.peer IS 'The other node.';
 COMMENT ON COLUMN mq.watermark.channel IS 'The channel this cursor belongs to.';
+COMMENT ON COLUMN mq.watermark.target IS 'The stream: 0 for the stream to everyone, otherwise the node the stream is addressed to — the other node on the sender, this node on the receiver.';
 COMMENT ON COLUMN mq.watermark.sent IS 'Our serial up to which THAT node has confirmed reception. Moved by its report, which is its own received — never by the act of sending.';
 COMMENT ON COLUMN mq.watermark.received IS 'That node''s serial up to which WE have accepted without a gap. Moved by the receiver on the fact of acceptance; a gap holds it back, so the missing message is asked for again at the next session.';
 COMMENT ON COLUMN mq.watermark.floor IS 'Lowest serial the sender declared as never deliverable — compacted away or expired. Without it the rule above becomes a trap: the first compaction removes serial 1, the cursor of a node starting at zero waits for it forever, and every session re-sends the whole tail on a metered link.';
@@ -502,20 +558,22 @@ COMMENT ON COLUMN mq.ingest.updated IS 'When the registration was last changed.'
 CREATE TABLE mq.dead (
     source      integer NOT NULL,
     channel     integer NOT NULL,
+    target      integer NOT NULL DEFAULT 0,
     serial      bigint NOT NULL,
     reason      text NOT NULL,
     attempt     integer NOT NULL DEFAULT 1,
     state       text NOT NULL DEFAULT 'parked' CHECK (state IN ('parked', 'resolved')),
     created     timestamptz NOT NULL DEFAULT Now(),
     updated     timestamptz NOT NULL DEFAULT Now(),
-    PRIMARY KEY (source, channel, serial),
-    FOREIGN KEY (source, channel, serial) REFERENCES mq.message(source, channel, serial) ON DELETE CASCADE
+    PRIMARY KEY (source, channel, target, serial),
+    FOREIGN KEY (source, channel, target, serial) REFERENCES mq.message(source, channel, target, serial) ON DELETE CASCADE
 );
 
 COMMENT ON TABLE mq.dead IS 'Messages that arrived and were refused, with the reason and the number of attempts. Parking one keeps the channel moving; the message itself stays in mq.message.';
 
 COMMENT ON COLUMN mq.dead.source IS 'Node that published the refused message.';
 COMMENT ON COLUMN mq.dead.channel IS 'Channel it arrived on.';
+COMMENT ON COLUMN mq.dead.target IS 'Stream it arrived on: 0 for everyone, otherwise this node.';
 COMMENT ON COLUMN mq.dead.serial IS 'Serial of the refused message.';
 COMMENT ON COLUMN mq.dead.reason IS 'Why it was refused, in the words of the handler that refused it. A refusal with no reason recorded is the failure mode this table exists to prevent.';
 COMMENT ON COLUMN mq.dead.attempt IS 'How many times acceptance has been attempted.';

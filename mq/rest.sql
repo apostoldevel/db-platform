@@ -50,21 +50,21 @@ BEGIN
       PERFORM JsonIsEmpty();
     END IF;
 
-    arKeys := array_cat(arKeys, ARRAY['channel', 'type', 'payload', 'key', 'route', 'signature']);
+    arKeys := array_cat(arKeys, ARRAY['channel', 'type', 'payload', 'key', 'route', 'signature', 'target']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(channel text, type text, payload jsonb, key text, route text, signature text)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(channel text, type text, payload jsonb, key text, route text, signature text, target text)
       LOOP
-        RETURN NEXT json_build_object('channel', r.channel, 'serial', api.mq_publish(r.channel, r.type, r.payload, r.key, r.route, r.signature));
+        RETURN NEXT json_build_object('channel', r.channel, 'target', r.target, 'serial', api.mq_publish(r.channel, r.type, r.payload, r.key, r.route, r.signature, r.target));
       END LOOP;
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(channel text, type text, payload jsonb, key text, route text, signature text)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(channel text, type text, payload jsonb, key text, route text, signature text, target text)
       LOOP
-        RETURN NEXT json_build_object('channel', r.channel, 'serial', api.mq_publish(r.channel, r.type, r.payload, r.key, r.route, r.signature));
+        RETURN NEXT json_build_object('channel', r.channel, 'target', r.target, 'serial', api.mq_publish(r.channel, r.type, r.payload, r.key, r.route, r.signature, r.target));
       END LOOP;
 
     END IF;
@@ -75,12 +75,12 @@ BEGIN
       PERFORM JsonIsEmpty();
     END IF;
 
-    arKeys := array_cat(arKeys, ARRAY['peer', 'channel', 'reclimit']);
+    arKeys := array_cat(arKeys, ARRAY['peer', 'channel', 'reclimit', 'target']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(peer text, channel text, reclimit integer)
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(peer text, channel text, reclimit integer, target text)
     LOOP
-      FOR e IN SELECT * FROM api.mq_queue(r.peer, r.channel, r.reclimit)
+      FOR e IN SELECT * FROM api.mq_queue(r.peer, r.channel, r.reclimit, r.target)
       LOOP
         RETURN NEXT row_to_json(e);
       END LOOP;
@@ -92,7 +92,7 @@ BEGIN
       PERFORM JsonIsEmpty();
     END IF;
 
-    arKeys := array_cat(arKeys, ARRAY['source', 'channel', 'serial', 'type', 'payload', 'key', 'route', 'signature', 'created']);
+    arKeys := array_cat(arKeys, ARRAY['source', 'channel', 'serial', 'type', 'payload', 'key', 'route', 'signature', 'created', 'target']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
     -- A batch arrives as an array and is accepted message by message: one
@@ -102,18 +102,18 @@ BEGIN
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 
-      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(source text, channel text, serial bigint, type text, payload jsonb, key text, route text, signature text, created timestamp with time zone)
+      FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(source text, channel text, serial bigint, type text, payload jsonb, key text, route text, signature text, created timestamp with time zone, target text)
       LOOP
-        RETURN NEXT json_build_object('source', r.source, 'channel', r.channel, 'serial', r.serial,
-                                      'applied', api.mq_accept(r.source, r.channel, r.serial, r.type, r.payload, r.key, r.route, r.signature, r.created));
+        RETURN NEXT json_build_object('source', r.source, 'channel', r.channel, 'target', r.target, 'serial', r.serial,
+                                      'applied', api.mq_accept(r.source, r.channel, r.serial, r.type, r.payload, r.key, r.route, r.signature, r.created, r.target));
       END LOOP;
 
     ELSE
 
-      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(source text, channel text, serial bigint, type text, payload jsonb, key text, route text, signature text, created timestamp with time zone)
+      FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(source text, channel text, serial bigint, type text, payload jsonb, key text, route text, signature text, created timestamp with time zone, target text)
       LOOP
-        RETURN NEXT json_build_object('source', r.source, 'channel', r.channel, 'serial', r.serial,
-                                      'applied', api.mq_accept(r.source, r.channel, r.serial, r.type, r.payload, r.key, r.route, r.signature, r.created));
+        RETURN NEXT json_build_object('source', r.source, 'channel', r.channel, 'target', r.target, 'serial', r.serial,
+                                      'applied', api.mq_accept(r.source, r.channel, r.serial, r.type, r.payload, r.key, r.route, r.signature, r.created, r.target));
       END LOOP;
 
     END IF;
@@ -124,17 +124,17 @@ BEGIN
       PERFORM JsonIsEmpty();
     END IF;
 
-    arKeys := array_cat(arKeys, ARRAY['peer', 'channel', 'upto']);
+    arKeys := array_cat(arKeys, ARRAY['peer', 'channel', 'upto', 'target']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(peer text, channel text, upto bigint)
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(peer text, channel text, upto bigint, target text)
     LOOP
-      FOR e IN SELECT * FROM api.mq_floor(r.peer, r.channel, r.upto)
+      FOR e IN SELECT * FROM api.mq_floor(r.peer, r.channel, r.upto, r.target)
       LOOP
         -- The kind travels with the number: the receiving side weighs a claim
         -- it can check differently from one it cannot, and dropping it here
         -- would leave it unable to tell them apart.
-        RETURN NEXT json_build_object('peer', r.peer, 'channel', r.channel, 'floor', e.floor, 'kind', e.kind);
+        RETURN NEXT json_build_object('peer', r.peer, 'channel', r.channel, 'target', r.target, 'floor', e.floor, 'kind', e.kind);
       END LOOP;
     END LOOP;
 
@@ -144,16 +144,16 @@ BEGIN
       PERFORM JsonIsEmpty();
     END IF;
 
-    arKeys := array_cat(arKeys, ARRAY['source', 'channel', 'floor', 'kind']);
+    arKeys := array_cat(arKeys, ARRAY['source', 'channel', 'floor', 'kind', 'target']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(source text, channel text, floor bigint, kind text)
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(source text, channel text, floor bigint, kind text, target text)
     LOOP
-      FOR e IN SELECT * FROM api.mq_advance(r.source, r.channel, r.floor, r.kind)
+      FOR e IN SELECT * FROM api.mq_advance(r.source, r.channel, r.floor, r.kind, r.target)
       LOOP
         -- The fate of the floor goes back with the cursor. The sender decides
         -- what to do next from it, and it happened in a database it cannot read.
-        RETURN NEXT json_build_object('source', r.source, 'channel', r.channel, 'received', e.received, 'floor', e.floor);
+        RETURN NEXT json_build_object('source', r.source, 'channel', r.channel, 'target', r.target, 'received', e.received, 'floor', e.floor);
       END LOOP;
     END LOOP;
 
@@ -163,12 +163,12 @@ BEGIN
       PERFORM JsonIsEmpty();
     END IF;
 
-    arKeys := array_cat(arKeys, ARRAY['peer', 'channel', 'serial', 'floor']);
+    arKeys := array_cat(arKeys, ARRAY['peer', 'channel', 'serial', 'floor', 'target']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(peer text, channel text, serial bigint, floor text)
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(peer text, channel text, serial bigint, floor text, target text)
     LOOP
-      RETURN NEXT json_build_object('peer', r.peer, 'channel', r.channel, 'sent', api.mq_confirm(r.peer, r.channel, r.serial, r.floor));
+      RETURN NEXT json_build_object('peer', r.peer, 'channel', r.channel, 'target', r.target, 'sent', api.mq_confirm(r.peer, r.channel, r.serial, r.floor, r.target));
     END LOOP;
 
   WHEN '/mq/retry' THEN
@@ -177,13 +177,13 @@ BEGIN
       PERFORM JsonIsEmpty();
     END IF;
 
-    arKeys := array_cat(arKeys, ARRAY['source', 'channel', 'serial']);
+    arKeys := array_cat(arKeys, ARRAY['source', 'channel', 'serial', 'target']);
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
 
-    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(source text, channel text, serial bigint)
+    FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(source text, channel text, serial bigint, target text)
     LOOP
-      RETURN NEXT json_build_object('source', r.source, 'channel', r.channel, 'serial', r.serial,
-                                    'applied', api.mq_retry(r.source, r.channel, r.serial));
+      RETURN NEXT json_build_object('source', r.source, 'channel', r.channel, 'target', r.target, 'serial', r.serial,
+                                    'applied', api.mq_retry(r.source, r.channel, r.serial, r.target));
     END LOOP;
 
   WHEN '/mq/session/open' THEN

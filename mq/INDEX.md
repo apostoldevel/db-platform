@@ -34,13 +34,14 @@ registered per message type. Both live in the platform; a project picks one.
 
 | Table | Description | Key Columns |
 |-------|-------------|-------------|
-| `mq.channel` | A lane with an enumerated policy | `id serial PK`, `code text UNIQUE`, `direction` (edge-to-hub/hub-to-edge/both), `priority 1..3`, `delivery` (at-most-once/at-least-once), `lifetime interval`, `compaction bool`, `retention interval`, `serial bigint` (this node's counter) |
+| `mq.channel` | A lane with an enumerated policy | `id serial PK`, `code text UNIQUE`, `direction` (edge-to-hub/hub-to-edge/both), `priority 1..3`, `delivery` (at-most-once/at-least-once), `lifetime interval`, `compaction bool`, `retention interval` |
+| `mq.stream` | This node's serial counter per **stream** (channel, target); `target 0` = everyone | PK(`channel`, `target`), `serial bigint` — since 1.2.23, was `mq.channel.serial` |
 | `mq.peer` | Nodes, including this one | `id serial PK`, `code text UNIQUE`, `role` (hub/edge), `local bool` (unique where true), `area uuid`, `key text`, `seen timestamptz` |
 | `mq.binding` | Which class publishes where | `id serial PK`, `channel`, `class uuid`, `action uuid`, `type text`, `route text`, `projection jsonb` |
-| `mq.message` | The log, both directions | PK(`source`, `channel`, `serial`), `type text`, `route`, `key`, `payload jsonb`, `signature`, `created`, `received`, `expires` |
-| `mq.watermark` | Cursor on the pair (node, channel) | PK(`peer`, `channel`), `sent bigint`, `received bigint`, `floor bigint`, `skipped bigint`, `stalled int`, `refused int` |
+| `mq.message` | The log, both directions | PK(`source`, `channel`, `target`, `serial`) — `target` 0 = everyone, else the recipient `mq.peer`; serials are per stream, `type text`, `route`, `key`, `payload jsonb`, `signature`, `created`, `received`, `expires` |
+| `mq.watermark` | Cursor on the triple (node, channel, stream) | PK(`peer`, `channel`, `target`), `sent bigint`, `received bigint`, `floor bigint`, `skipped bigint`, `stalled int`, `refused int` |
 | `mq.ingest` | Reception registry, one handler per type | `type text PK`, `handler text`, `channel`, `enabled` |
-| `mq.dead` | Refused, with the reason | PK(`source`, `channel`, `serial`) → `mq.message`, `reason text`, `attempt int`, `state` (parked/resolved) |
+| `mq.dead` | Refused, with the reason | PK(`source`, `channel`, `target`, `serial`) → `mq.message`, `reason text`, `attempt int`, `state` (parked/resolved) |
 | `mq.session` | What an exchange carried | `id bigserial PK`, `peer`, `channel`, `link`, `direction` (send/receive), `messages`, `bytes`, `result` (ok/partial/failed) |
 | `mq.link` | A kind of link, with the lowest lane priority it admits | `id serial PK`, `code text UNIQUE`, `metered bool`, `threshold 1..3`, `enabled` |
 | `mq.schedule` | Session settings on the pair (channel, link) | `id serial PK`, `peer` (NULL = default for every node), `channel`, `link`, `period interval`, `batch int`, `timeout`, `backoff`, `catchup` |
@@ -85,22 +86,22 @@ registered per message type. Both live in the platform; a project picks one.
 
 | Function | Returns | Purpose |
 |----------|---------|---------|
-| `mq.publish(pChannel, pType, pPayload, pKey, pRoute, pSignature)` | `bigint` | Issue the next serial on the channel and write the message |
-| `mq.publish_object(pObject, pAction, pPayload)` | `integer` | Publish through whatever bindings the object's class has |
+| `mq.publish(pChannel, pType, pPayload, pKey, pRoute, pSignature, pTarget)` | `bigint` | Issue the next serial on the stream (channel, target) and write the message; `pTarget` NULL = everyone, else a node this one can address (enabled, not itself) |
+| `mq.publish_object(pObject, pAction, pPayload, pTarget)` | `integer` | Publish through whatever bindings the object's class has |
 | `mq.object_payload(pObject, pProjection)` | `jsonb` | Body built from `db.object` by a projection |
 
 ### Exchange
 
 | Function | Returns | Purpose |
 |----------|---------|---------|
-| `mq.queue(pPeer, pChannel, pLimit)` | `SETOF mq.message` | What that node has not confirmed, oldest first, unexpired |
-| `mq.floor(pPeer, pChannel, pUpto)` | `(floor, kind)` | Serial below which that node will never be sent anything again, **and the grounds** — `batch` (checkable) or `channel` (not) |
-| `mq.confirm(pPeer, pChannel, pSerial, pFloor)` | `void` | Record its confirmation; the cursor never walks backwards. **Refuses a second report in a row from a peer stuck at a gap it cannot cross** — unless the peer says it refused our floor, which means a broken batch rather than a missing step |
-| `mq.accept(pSource, pChannel, pSerial, pType, pPayload, pKey, pRoute, pSignature, pCreated)` | `boolean` | Write an incoming message, then apply it. FALSE means parked, not lost |
-| `mq.apply(pSource, pChannel, pSerial)` | `text` | Call the registered handler; NULL on success, the reason otherwise |
-| `mq.retry(pSource, pChannel, pSerial)` | `boolean` | Try a parked message again, counting the attempt |
-| `mq.advance(pSource, pChannel, pFloor, pKind)` | `(received, floor)` | Move the reception cursor over the unbroken run, and over a floor **the receiver could verify** — returning what became of that floor |
-| `mq.park(pSource, pChannel, pSerial, pReason)` | `void` | Record a refusal with its reason, and `NOTIFY mq_dead` |
+| `mq.queue(pPeer, pChannel, pLimit, pTarget)` | `SETOF mq.message` | What that node has not confirmed **on one stream**, oldest first, unexpired. `pTarget` NULL/0 = the stream to everyone, `pPeer` = its own; another node's stream is refused |
+| `mq.floor(pPeer, pChannel, pUpto, pTarget)` | `(floor, kind)` | Serial below which that node will never be sent anything again, **and the grounds** — `batch` (checkable) or `channel` (not) |
+| `mq.confirm(pPeer, pChannel, pSerial, pFloor, pTarget)` | `void` | Record its confirmation; the cursor never walks backwards. **Refuses a second report in a row from a peer stuck at a gap it cannot cross** — unless the peer says it refused our floor, which means a broken batch rather than a missing step |
+| `mq.accept(pSource, pChannel, pSerial, pType, pPayload, pKey, pRoute, pSignature, pCreated, pTarget)` | `boolean` | Write an incoming message, then apply it. FALSE means parked, not lost. A message addressed to another node (`pTarget` not 0 and not this node) is refused, not filed |
+| `mq.apply(pSource, pChannel, pSerial, pTarget)` | `text` | Call the registered handler; NULL on success, the reason otherwise |
+| `mq.retry(pSource, pChannel, pSerial, pTarget)` | `boolean` | Try a parked message again, counting the attempt |
+| `mq.advance(pSource, pChannel, pFloor, pKind, pTarget)` | `(received, floor)` | Move the reception cursor over the unbroken run, and over a floor **the receiver could verify** — returning what became of that floor |
+| `mq.park(pSource, pChannel, pSerial, pReason, pTarget)` | `void` | Record a refusal with its reason, and `NOTIFY mq_dead` |
 
 ### Reception registry
 
@@ -117,7 +118,7 @@ registered per message type. Both live in the platform; a project picks one.
 | `mq.delete_schedule(pChannel, pLink, pPeer)` | `boolean` | Remove one |
 | `mq.get_schedule(pChannel, pLink, pPeer)` | `(id, period, batch, timeout, backoff, catchup, scope)` | The row in force, and **which** row it is |
 | `mq.next_session(pPeer, pChannel, pLink)` | `timestamptz` | When the next sending session is due; **NULL when the lane does not travel over that link at all** |
-| `mq.depth(pPeer, pChannel)` | `bigint` | How much that node has not confirmed |
+| `mq.depth(pPeer, pChannel)` | `bigint` | How much that node has not confirmed, over both of its streams |
 | `mq.session_open(pPeer, pChannel, pDirection, pLink)` | `bigint` | Open a session |
 | `mq.session_close(pId, pResult, pMessages, pBytes, pMessage)` | `void` | Close it with its outcome |
 | `mq.compact(pChannel)` | `integer` | Keep the last message per key on a compacted channel |
@@ -152,12 +153,18 @@ of a project's own in more than one installation.
 ## The shape of one session — and why the floor is not optional
 
 ```
-sender                                               receiver
-------                                               --------
-mq.queue(peer, channel, limit)   ── messages ───▶    mq.accept(...) for each
-mq.floor(peer, channel, upto)    ── floor, kind ─▶   mq.advance(source, channel, floor, kind)
-mq.confirm(peer, channel, N, F)  ◀── received, F ────┘
+sender                                                    receiver
+------                                                    --------
+mq.queue(peer, channel, limit, target)   ── messages ──▶  mq.accept(..., target) for each
+mq.floor(peer, channel, upto, target)    ── floor, kind ▶ mq.advance(source, channel, floor, kind, target)
+mq.confirm(peer, channel, N, F, target)  ◀── received, F ─┘
 ```
+
+Once per **stream** (since 1.2.23): a node exchanging a channel has two — the stream to everyone
+(`target` NULL/0, the only one there was before) and its own (`target` = the node) — each with its
+own serials and its own cursor row. A session runs the sequence above for one stream, then the
+other; a batch never mixes them. `api.*` takes the target as a node code (`NULL` = everyone),
+`rest.mq` as the key `target`.
 
 **Skip the floor and the exchange deadlocks — silently, and only in the field.** The receiving
 cursor moves over an unbroken run, so it stops at the first serial that never arrives. To the
@@ -315,8 +322,20 @@ adjusting an interval must not be one.
 
 ## Invariants worth knowing before touching this
 
-- **The serial is a counter in `mq.channel`, not a sequence.** A sequence leaves gaps when a
-  transaction rolls back, and a gap is exactly how the receiving side detects a truncated tail.
+- **The serial is a counter in `mq.stream`, not a sequence**, and it is per stream (channel,
+  target). A sequence leaves gaps when a transaction rolls back, and a gap is exactly how the
+  receiving side detects a truncated tail — which is also why a message addressed to one node is
+  numbered in that node's stream: numbered in the channel, every other node's messages would be
+  gaps to it, and on an evidential lane no floor may step over them.
+- **A node is never handed, and never files, another node's stream.** `mq.queue`/`mq.floor`/
+  `mq.confirm` refuse to serve it, `mq.accept`/`mq.advance`/`mq.retry`/`mq.park` refuse to take
+  it; broadcast is a stream of its own (`target 0`) so that a node joining later still reads a
+  compacted lane from zero. **Two preconditions live outside this module:** the node code in
+  `api.*`/`rest.mq` is what the caller says — isolation holds once the transport binds the caller
+  to `mq.peer.key`; and a hub-to-edge message is isolated only if it is published **with** a
+  target — `mq.publish`/`mq.publish_object` without one broadcast, as they always did.
+- **`mq.channel.updated` no longer moves on every publication** (since 1.2.23) — the counter and
+  its timestamp are `mq.stream.serial`/`updated`.
 - **`received` is moved by the receiver on the fact of acceptance**, never by the sender on the
   fact of sending, and only over an unbroken run. A gap holds it back — so a message that never
   arrived is asked for again; a *parked* message does not — its row is in the log, so it is

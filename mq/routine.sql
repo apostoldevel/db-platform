@@ -471,8 +471,9 @@ $$ LANGUAGE SQL STABLE
 --------------------------------------------------------------------------------
 
 /**
- * @brief How far a node is behind us on a channel: what we have published and
- *        it has not confirmed.
+ * @brief How far a node is behind us on a channel: what we have published for
+ *        it and it has not confirmed, over both of its streams — the one to
+ *        everyone and its own.
  * @param {integer} pPeer - Node on the other end
  * @param {integer} pChannel - Channel
  * @return {bigint} - Number of messages outstanding, 0 when the node is level
@@ -483,13 +484,10 @@ CREATE OR REPLACE FUNCTION mq.depth (
   pChannel      integer
 ) RETURNS       bigint
 AS $$
-  SELECT coalesce((SELECT max(m.serial)
-                     FROM mq.message m
-                    WHERE m.channel = pChannel
-                      AND m.source = (SELECT p.id FROM mq.peer p WHERE p.local)), 0)
-       - coalesce((SELECT w.sent
-                     FROM mq.watermark w
-                    WHERE w.peer = pPeer AND w.channel = pChannel), 0);
+  SELECT coalesce(sum(coalesce(s.serial, 0) - coalesce(w.sent, 0)), 0)::bigint
+    FROM (VALUES (0), (pPeer)) AS t(target)
+    LEFT JOIN mq.stream s ON s.channel = pChannel AND s.target = t.target
+    LEFT JOIN mq.watermark w ON w.peer = pPeer AND w.channel = pChannel AND w.target = t.target;
 $$ LANGUAGE SQL STABLE STRICT
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -643,8 +641,9 @@ $$ LANGUAGE plpgsql
  * @param {text} pKey - Compaction key (NULL keeps the message out of compaction)
  * @param {text} pRoute - Routing key
  * @param {text} pSignature - Signature of this node over the message
- * @return {bigint} - Serial issued within the channel
- * @throws ERR-40000 - When the channel does not exist or is out of service
+ * @param {integer} pTarget - Node the message is for; NULL publishes to everyone
+ * @return {bigint} - Serial issued within the stream (channel, target)
+ * @throws ERR-40000 - When the channel does not exist or is out of service, or the target is not a node this one can send to
  * @since 1.2.17
  */
 CREATE OR REPLACE FUNCTION mq.publish (
@@ -653,33 +652,53 @@ CREATE OR REPLACE FUNCTION mq.publish (
   pPayload      jsonb,
   pKey          text DEFAULT null,
   pRoute        text DEFAULT null,
-  pSignature    text DEFAULT null
+  pSignature    text DEFAULT null,
+  pTarget       integer DEFAULT null
 ) RETURNS       bigint
 AS $$
 DECLARE
+  nTarget       integer;
   nSerial       bigint;
   iLifetime     interval;
 BEGIN
-  -- The counter is taken by UPDATE ... RETURNING rather than from a sequence,
-  -- and the difference matters at the far end: a sequence hands out a number
-  -- that a rollback then abandons, and a gap in the log is exactly how the
-  -- receiving side detects a truncated tail. Here a rollback takes the number
-  -- back with it. The row lock also serialises publication on the channel,
-  -- which is what makes the order well defined.
-
-  UPDATE mq.channel
-     SET serial = serial + 1,
-         updated = Now()
-   WHERE id = pChannel
-     AND enabled
-  RETURNING serial, lifetime INTO nSerial, iLifetime;
+  SELECT lifetime INTO iLifetime FROM mq.channel WHERE id = pChannel AND enabled;
 
   IF NOT FOUND THEN
     RAISE EXCEPTION 'ERR-40000: Channel "%" does not exist or is out of service.', pChannel;
   END IF;
 
-  INSERT INTO mq.message (source, channel, serial, type, route, key, payload, signature, expires)
-  VALUES (mq.local_peer(), pChannel, nSerial, pType, pRoute, pKey, pPayload, pSignature,
+  -- The recipient is checked at publication, not at delivery: a message
+  -- addressed to a node that does not exist, is switched off, or is this node
+  -- itself would sit in its own stream for ever, and nothing would ever ask
+  -- for it. NULL is everyone — the stream that a node joining later reads
+  -- from zero.
+
+  nTarget := coalesce(pTarget, 0);
+
+  IF nTarget <> 0 THEN
+    PERFORM FROM mq.peer WHERE id = nTarget AND enabled AND NOT local;
+
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'ERR-40000: Node "%" is not a node this one can address: unknown, out of service, or this node itself.', nTarget;
+    END IF;
+  END IF;
+
+  -- The counter is taken by INSERT ... ON CONFLICT DO UPDATE ... RETURNING
+  -- rather than from a sequence, and the difference matters at the far end: a
+  -- sequence hands out a number that a rollback then abandons, and a gap in
+  -- the log is exactly how the receiving side detects a truncated tail. Here a
+  -- rollback takes the number back with it. The row lock also serialises
+  -- publication on the stream, which is what makes the order well defined.
+
+  INSERT INTO mq.stream AS s (channel, target, serial)
+  VALUES (pChannel, nTarget, 1)
+  ON CONFLICT (channel, target) DO UPDATE
+     SET serial = s.serial + 1,
+         updated = Now()
+  RETURNING s.serial INTO nSerial;
+
+  INSERT INTO mq.message (source, channel, target, serial, type, route, key, payload, signature, expires)
+  VALUES (mq.local_peer(), pChannel, nTarget, nSerial, pType, pRoute, pKey, pPayload, pSignature,
           CASE WHEN iLifetime IS NULL THEN null ELSE Now() + iLifetime END);
 
   RETURN nSerial;
@@ -695,13 +714,15 @@ $$ LANGUAGE plpgsql
  * @param {uuid} pObject - Object being published
  * @param {uuid} pAction - Action that fired
  * @param {jsonb} pPayload - Message body; NULL builds one from the object by the binding's projection
+ * @param {integer} pTarget - Node the messages are for; NULL publishes to everyone
  * @return {integer} - Number of messages published
  * @since 1.2.17
  */
 CREATE OR REPLACE FUNCTION mq.publish_object (
   pObject   uuid,
   pAction   uuid DEFAULT null,
-  pPayload  jsonb DEFAULT null
+  pPayload  jsonb DEFAULT null,
+  pTarget   integer DEFAULT null
 ) RETURNS   integer
 AS $$
 DECLARE
@@ -730,7 +751,7 @@ BEGIN
 
     jPayload := coalesce(pPayload, mq.object_payload(pObject, r.projection));
 
-    PERFORM mq.publish(r.channel, r.type, jPayload, pObject::text, r.route);
+    PERFORM mq.publish(r.channel, r.type, jPayload, pObject::text, r.route, null, pTarget);
 
     nCount := nCount + 1;
   END LOOP;
@@ -773,28 +794,50 @@ $$ LANGUAGE SQL STABLE
 --------------------------------------------------------------------------------
 
 /**
- * @brief Messages a node has not confirmed yet, oldest first.
+ * @brief Messages of one stream a node has not confirmed yet, oldest first.
+ *
+ * A node exchanging a channel has two streams on it — the one to everyone and
+ * its own — and a session carries them one at a time, each with its own
+ * cursor: queue, floor, advance, confirm, then the other stream. Mixing the
+ * two in one batch would put two independent numberings in one list, and the
+ * cursor arithmetic downstream has no way to tell them apart. Without a
+ * target this is the stream to everyone, which is what every caller of this
+ * function meant before streams existed. A node never sees another node's
+ * stream: that is the whole point.
+ *
  * @param {integer} pPeer - Node the messages are for
  * @param {integer} pChannel - Channel
  * @param {integer} pLimit - Batch size
+ * @param {integer} pTarget - Stream: NULL or 0 for everyone, or pPeer for its own
  * @return {SETOF mq.message} - Messages to hand over
+ * @throws ERR-40000 - When the stream asked for is another node's
  * @since 1.2.17
  */
 CREATE OR REPLACE FUNCTION mq.queue (
   pPeer     integer,
   pChannel  integer,
-  pLimit    integer DEFAULT 100
+  pLimit    integer DEFAULT 100,
+  pTarget   integer DEFAULT null
 ) RETURNS   SETOF mq.message
 AS $$
+BEGIN
+  IF coalesce(pTarget, 0) NOT IN (0, pPeer) THEN
+    RAISE EXCEPTION 'ERR-40000: Stream of node "%" is not for node "%".', pTarget, pPeer;
+  END IF;
+
+  RETURN QUERY
   SELECT m.*
     FROM mq.message m
    WHERE m.channel = pChannel
      AND m.source = mq.local_peer()
-     AND m.serial > coalesce((SELECT w.sent FROM mq.watermark w WHERE w.peer = pPeer AND w.channel = pChannel), 0)
+     AND m.target = coalesce(pTarget, 0)
+     AND m.serial > coalesce((SELECT w.sent FROM mq.watermark w
+                               WHERE w.peer = pPeer AND w.channel = pChannel AND w.target = coalesce(pTarget, 0)), 0)
      AND (m.expires IS NULL OR m.expires > Now())
    ORDER BY m.serial
    LIMIT coalesce(pLimit, 100);
-$$ LANGUAGE SQL STABLE
+END;
+$$ LANGUAGE plpgsql STABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -806,6 +849,7 @@ $$ LANGUAGE SQL STABLE
  * @param {integer} pChannel - Channel
  * @param {bigint} pSerial - Serial the node reports as accepted
  * @param {text} pFloor - What the peer did with our floor: honoured, refused or none
+ * @param {integer} pTarget - Stream: NULL or 0 for everyone, or pPeer for its own
  * @return {void}
  * @throws ERR-40000 - When the peer is stuck and the session declared no floor twice running
  * @since 1.2.17
@@ -814,20 +858,26 @@ CREATE OR REPLACE FUNCTION mq.confirm (
   pPeer     integer,
   pChannel  integer,
   pSerial   bigint,
-  pFloor    text DEFAULT null
+  pFloor    text DEFAULT null,
+  pTarget   integer DEFAULT null
 ) RETURNS   void
 AS $$
 DECLARE
+  nTarget   integer := coalesce(pTarget, 0);
   nStalled  integer;
   bGap      boolean;
   bPending  boolean;
 BEGIN
+  IF nTarget NOT IN (0, pPeer) THEN
+    RAISE EXCEPTION 'ERR-40000: Stream of node "%" is not for node "%".', pTarget, pPeer;
+  END IF;
+
   -- greatest(), so a late or repeated report cannot walk the cursor backwards
   -- and cause the same batch to be sent for a third time.
 
-  INSERT INTO mq.watermark AS w (peer, channel, sent)
-  VALUES (pPeer, pChannel, pSerial)
-  ON CONFLICT (peer, channel) DO UPDATE
+  INSERT INTO mq.watermark AS w (peer, channel, target, sent)
+  VALUES (pPeer, pChannel, nTarget, pSerial)
+  ON CONFLICT (peer, channel, target) DO UPDATE
      SET sent = greatest(w.sent, excluded.sent),
          updated = Now();
 
@@ -848,13 +898,13 @@ BEGIN
   -- number in a table does not.
 
   SELECT NOT EXISTS (SELECT FROM mq.message
-                      WHERE channel = pChannel AND source = mq.local_peer()
+                      WHERE channel = pChannel AND source = mq.local_peer() AND target = nTarget
                         AND serial = pSerial + 1
                         AND (expires IS NULL OR expires > Now()))
     INTO bGap;
 
   SELECT EXISTS (SELECT FROM mq.message
-                  WHERE channel = pChannel AND source = mq.local_peer()
+                  WHERE channel = pChannel AND source = mq.local_peer() AND target = nTarget
                     AND serial > pSerial
                     AND (expires IS NULL OR expires > Now()))
     INTO bPending;
@@ -878,12 +928,12 @@ BEGIN
        SET refused = refused + 1,
            stalled = 0,
            updated = Now()
-     WHERE peer = pPeer AND channel = pChannel;
+     WHERE peer = pPeer AND channel = pChannel AND target = nTarget;
 
   ELSIF bGap AND bPending THEN
     UPDATE mq.watermark
        SET stalled = stalled + 1
-     WHERE peer = pPeer AND channel = pChannel
+     WHERE peer = pPeer AND channel = pChannel AND target = nTarget
     RETURNING stalled INTO nStalled;
 
     -- coalesce, not a bare comparison: the row is created by the INSERT above,
@@ -893,15 +943,15 @@ BEGIN
     -- is the failure this whole guard is built to avoid.
 
     IF coalesce(nStalled, 1) <= 1 THEN
-      PERFORM pg_notify('mq_stalled', json_build_object('peer', pPeer, 'channel', pChannel, 'serial', pSerial)::text);
+      PERFORM pg_notify('mq_stalled', json_build_object('peer', pPeer, 'channel', pChannel, 'target', nTarget, 'serial', pSerial)::text);
     ELSE
-      RAISE EXCEPTION 'ERR-40000: Node "%" is stuck below serial % on channel % and the session is not declaring a floor.', pPeer, pSerial + 1, pChannel
+      RAISE EXCEPTION 'ERR-40000: Node "%" is stuck below serial % on channel % (stream %) and the session is not declaring a floor.', pPeer, pSerial + 1, pChannel, nTarget
         USING HINT = 'Call mq.floor after the batch and hand the result to mq.advance on the receiving side; if the floor was refused, pass that back to mq.confirm.';
     END IF;
   ELSE
     UPDATE mq.watermark
        SET stalled = 0
-     WHERE peer = pPeer AND channel = pChannel AND stalled <> 0;
+     WHERE peer = pPeer AND channel = pChannel AND target = nTarget AND stalled <> 0;
   END IF;
 END;
 $$ LANGUAGE plpgsql
@@ -975,6 +1025,7 @@ $$ LANGUAGE plpgsql
  * @param {integer} pChannel - Channel
  * @param {bigint} pSerial - Serial
  * @param {text} pReason - Why it was refused
+ * @param {integer} pTarget - Stream: NULL or 0 for everyone, or this node
  * @return {void}
  * @since 1.2.17
  */
@@ -982,19 +1033,26 @@ CREATE OR REPLACE FUNCTION mq.park (
   pSource   integer,
   pChannel  integer,
   pSerial   bigint,
-  pReason   text
+  pReason   text,
+  pTarget   integer DEFAULT null
 ) RETURNS   void
 AS $$
+DECLARE
+  nTarget   integer := coalesce(pTarget, 0);
 BEGIN
-  INSERT INTO mq.dead AS d (source, channel, serial, reason)
-  VALUES (pSource, pChannel, pSerial, pReason)
-  ON CONFLICT (source, channel, serial) DO UPDATE
+  IF nTarget NOT IN (0, mq.local_peer()) THEN
+    RAISE EXCEPTION 'ERR-40000: Stream of node "%" is not this node''s.', nTarget;
+  END IF;
+
+  INSERT INTO mq.dead AS d (source, channel, target, serial, reason)
+  VALUES (pSource, pChannel, nTarget, pSerial, pReason)
+  ON CONFLICT (source, channel, target, serial) DO UPDATE
      SET reason = excluded.reason,
          attempt = d.attempt + 1,
          state = 'parked',
          updated = Now();
 
-  PERFORM pg_notify('mq_dead', json_build_object('source', pSource, 'channel', pChannel, 'serial', pSerial, 'reason', pReason)::text);
+  PERFORM pg_notify('mq_dead', json_build_object('source', pSource, 'channel', pChannel, 'target', nTarget, 'serial', pSerial, 'reason', pReason)::text);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1007,24 +1065,31 @@ $$ LANGUAGE plpgsql
  * @param {integer} pSource - Node that published it
  * @param {integer} pChannel - Channel
  * @param {bigint} pSerial - Serial
+ * @param {integer} pTarget - Stream: NULL or 0 for everyone, or this node
  * @return {text} - NULL when the handler accepted it, the reason for refusal otherwise
  * @since 1.2.17
  */
 CREATE OR REPLACE FUNCTION mq.apply (
   pSource   integer,
   pChannel  integer,
-  pSerial   bigint
+  pSerial   bigint,
+  pTarget   integer DEFAULT null
 ) RETURNS   text
 AS $$
 DECLARE
+  nTarget   integer := coalesce(pTarget, 0);
   m         mq.message%rowtype;
   h         mq.ingest%rowtype;
   vReason   text;
 BEGIN
-  SELECT * INTO m FROM mq.message WHERE source = pSource AND channel = pChannel AND serial = pSerial;
+  IF nTarget NOT IN (0, mq.local_peer()) THEN
+    RETURN format('stream of node %s is not this node''s', nTarget);
+  END IF;
+
+  SELECT * INTO m FROM mq.message WHERE source = pSource AND channel = pChannel AND target = nTarget AND serial = pSerial;
 
   IF NOT FOUND THEN
-    RETURN format('message %s/%s/%s is not in the log', pSource, pChannel, pSerial);
+    RETURN format('message %s/%s/%s/%s is not in the log', pSource, pChannel, nTarget, pSerial);
   END IF;
 
   SELECT * INTO h FROM mq.ingest WHERE type = m.type;
@@ -1065,14 +1130,16 @@ $$ LANGUAGE plpgsql
  * @brief Accept an incoming message: write it to the log, then apply it.
  * @param {integer} pSource - Node that published it
  * @param {integer} pChannel - Channel
- * @param {bigint} pSerial - Serial within (source, channel)
+ * @param {bigint} pSerial - Serial within the stream (source, channel, target)
  * @param {text} pType - Message type
  * @param {jsonb} pPayload - Message body
  * @param {text} pKey - Compaction key
  * @param {text} pRoute - Routing key
  * @param {text} pSignature - Signature of the sending node
  * @param {timestamptz} pCreated - When the sender published it
+ * @param {integer} pTarget - Node the message is addressed to: NULL or 0 for everyone, or this node
  * @return {boolean} - TRUE when applied, FALSE when parked in mq.dead
+ * @throws ERR-40000 - When the message is this node's own, or addressed to another node
  * @since 1.2.17
  */
 CREATE OR REPLACE FUNCTION mq.accept (
@@ -1084,14 +1151,26 @@ CREATE OR REPLACE FUNCTION mq.accept (
   pKey          text DEFAULT null,
   pRoute        text DEFAULT null,
   pSignature    text DEFAULT null,
-  pCreated      timestamptz DEFAULT null
+  pCreated      timestamptz DEFAULT null,
+  pTarget       integer DEFAULT null
 ) RETURNS       boolean
 AS $$
 DECLARE
+  nTarget       integer := coalesce(pTarget, 0);
   vReason       text;
 BEGIN
   IF pSource = mq.local_peer() THEN
     RAISE EXCEPTION 'ERR-40000: A node cannot accept its own message as incoming.';
+  END IF;
+
+  -- A message for another node is refused at the door, not filed and not
+  -- applied. The sender is not supposed to hand it over in the first place
+  -- (mq.queue never lists another node's stream), so its arrival is either a
+  -- broken sender or somebody trying — and neither is a reason to keep
+  -- somebody else's fact in this log.
+
+  IF nTarget NOT IN (0, mq.local_peer()) THEN
+    RAISE EXCEPTION 'ERR-40000: Message %/%/%/% is addressed to another node.', pSource, pChannel, nTarget, pSerial;
   END IF;
 
   -- Writing the message first, applying second, is deliberate: the log records
@@ -1104,24 +1183,24 @@ BEGIN
   -- handler is not called a second time. Applying somebody else's fact twice
   -- is not a duplicate row, it is a second record in a journal.
 
-  INSERT INTO mq.message (source, channel, serial, type, route, key, payload, signature, created, received)
-  VALUES (pSource, pChannel, pSerial, pType, pRoute, pKey, pPayload, pSignature, coalesce(pCreated, Now()), Now())
-  ON CONFLICT (source, channel, serial) DO NOTHING;
+  INSERT INTO mq.message (source, channel, target, serial, type, route, key, payload, signature, created, received)
+  VALUES (pSource, pChannel, nTarget, pSerial, pType, pRoute, pKey, pPayload, pSignature, coalesce(pCreated, Now()), Now())
+  ON CONFLICT (source, channel, target, serial) DO NOTHING;
 
   IF NOT FOUND THEN
     UPDATE mq.peer SET seen = Now() WHERE id = pSource;
 
     RETURN NOT EXISTS (SELECT FROM mq.dead
-                        WHERE source = pSource AND channel = pChannel AND serial = pSerial
+                        WHERE source = pSource AND channel = pChannel AND target = nTarget AND serial = pSerial
                           AND state = 'parked');
   END IF;
 
   UPDATE mq.peer SET seen = Now() WHERE id = pSource;
 
-  vReason := mq.apply(pSource, pChannel, pSerial);
+  vReason := mq.apply(pSource, pChannel, pSerial, nTarget);
 
   IF vReason IS NOT NULL THEN
-    PERFORM mq.park(pSource, pChannel, pSerial, vReason);
+    PERFORM mq.park(pSource, pChannel, pSerial, vReason, nTarget);
   END IF;
 
   -- The cursor moves in both cases, and only as far as the log is unbroken.
@@ -1129,7 +1208,7 @@ BEGIN
   -- accounted for and visible. A MISSING serial does hold it back, so the
   -- message that never arrived is asked for again at the next session.
 
-  PERFORM FROM mq.advance(pSource, pChannel);
+  PERFORM FROM mq.advance(pSource, pChannel, null, 'batch', nTarget);
 
   RETURN vReason IS NULL;
 END;
@@ -1144,31 +1223,38 @@ $$ LANGUAGE plpgsql
  * @param {integer} pSource - Node that published it
  * @param {integer} pChannel - Channel
  * @param {bigint} pSerial - Serial
+ * @param {integer} pTarget - Stream: NULL or 0 for everyone, or this node
  * @return {boolean} - TRUE when it applied this time
  * @since 1.2.17
  */
 CREATE OR REPLACE FUNCTION mq.retry (
   pSource   integer,
   pChannel  integer,
-  pSerial   bigint
+  pSerial   bigint,
+  pTarget   integer DEFAULT null
 ) RETURNS   boolean
 AS $$
 DECLARE
+  nTarget   integer := coalesce(pTarget, 0);
   vReason   text;
 BEGIN
-  vReason := mq.apply(pSource, pChannel, pSerial);
+  IF nTarget NOT IN (0, mq.local_peer()) THEN
+    RAISE EXCEPTION 'ERR-40000: Stream of node "%" is not this node''s.', nTarget;
+  END IF;
+
+  vReason := mq.apply(pSource, pChannel, pSerial, nTarget);
 
   IF vReason IS NULL THEN
     UPDATE mq.dead
        SET state = 'resolved',
            attempt = attempt + 1,
            updated = Now()
-     WHERE source = pSource AND channel = pChannel AND serial = pSerial;
+     WHERE source = pSource AND channel = pChannel AND target = nTarget AND serial = pSerial;
   ELSE
-    PERFORM mq.park(pSource, pChannel, pSerial, vReason);
+    PERFORM mq.park(pSource, pChannel, pSerial, vReason, nTarget);
   END IF;
 
-  PERFORM FROM mq.advance(pSource, pChannel);
+  PERFORM FROM mq.advance(pSource, pChannel, null, 'batch', nTarget);
 
   RETURN vReason IS NULL;
 END;
@@ -1185,23 +1271,30 @@ $$ LANGUAGE plpgsql
  * @param {integer} pPeer - Node the messages are for
  * @param {integer} pChannel - Channel
  * @param {bigint} pUpto - Last serial handed over in this session (NULL when nothing was)
+ * @param {integer} pTarget - Stream: NULL or 0 for everyone, or pPeer for its own
  * @return {TABLE} - floor bigint, kind text ('batch' or 'channel')
  * @since 1.2.17
  */
 CREATE OR REPLACE FUNCTION mq.floor (
   pPeer         integer,
   pChannel      integer,
-  pUpto         bigint DEFAULT null
+  pUpto         bigint DEFAULT null,
+  pTarget       integer DEFAULT null
 ) RETURNS TABLE (
   floor         bigint,
   kind          text
 )
 AS $$
 DECLARE
+  nTarget       integer := coalesce(pTarget, 0);
   nSent         bigint;
   nNext         bigint;
   nIssued       bigint;
 BEGIN
+  IF nTarget NOT IN (0, pPeer) THEN
+    RAISE EXCEPTION 'ERR-40000: Stream of node "%" is not for node "%".', pTarget, pPeer;
+  END IF;
+
   -- Only the SENDER can answer this. To the receiver, a serial that never
   -- arrives looks the same whether it was compacted away, expired on the shelf,
   -- or is still sitting in a queue waiting for the next window -- and the three
@@ -1233,13 +1326,14 @@ BEGIN
     RETURN;
   END IF;
 
-  SELECT coalesce(sent, 0) INTO nSent FROM mq.watermark WHERE peer = pPeer AND channel = pChannel;
+  SELECT coalesce(sent, 0) INTO nSent FROM mq.watermark WHERE peer = pPeer AND channel = pChannel AND target = nTarget;
   nSent := coalesce(nSent, 0);
 
   SELECT min(serial) INTO nNext
     FROM mq.message
    WHERE channel = pChannel
      AND source = mq.local_peer()
+     AND target = nTarget
      AND serial > nSent
      AND (expires IS NULL OR expires > Now());
 
@@ -1268,7 +1362,7 @@ BEGIN
   -- over. This is the stuck channel, whose remaining serials are all gone, and
   -- the case where a floor matters most.
 
-  SELECT serial INTO nIssued FROM mq.channel WHERE id = pChannel;
+  SELECT serial INTO nIssued FROM mq.stream WHERE channel = pChannel AND target = nTarget;
 
   RETURN QUERY SELECT greatest(coalesce(nIssued, 0), nSent), 'channel'::text;
 END;
@@ -1284,6 +1378,7 @@ $$ LANGUAGE plpgsql STABLE
  * @param {integer} pChannel - Channel
  * @param {bigint} pFloor - Serial the sender declares as never deliverable (NULL trusts nothing)
  * @param {text} pKind - Grounds of the claim: batch or channel
+ * @param {integer} pTarget - Stream: NULL or 0 for everyone, or this node
  * @return {TABLE} - received bigint, floor text ('honoured', 'refused' or 'none')
  * @throws ERR-40000 - When a floor is offered on a channel where nothing may disappear
  * @since 1.2.17
@@ -1292,13 +1387,15 @@ CREATE OR REPLACE FUNCTION mq.advance (
   pSource       integer,
   pChannel      integer,
   pFloor        bigint DEFAULT null,
-  pKind         text DEFAULT 'batch'
+  pKind         text DEFAULT 'batch',
+  pTarget       integer DEFAULT null
 ) RETURNS TABLE (
   received      bigint,
   floor         text
 )
 AS $$
 DECLARE
+  nTarget       integer := coalesce(pTarget, 0);
   nReceived     bigint;
   nFrom         bigint;
   nEnd          bigint;
@@ -1308,6 +1405,14 @@ DECLARE
   bPerishable   boolean;
   vFloor        text := 'none';
 BEGIN
+  -- The receiving side of the guard mq.queue keeps on the sending side: a
+  -- cursor row for another node's stream would be meaningless and this is a
+  -- public route (/mq/advance takes the target from the caller).
+
+  IF nTarget NOT IN (0, mq.local_peer()) THEN
+    RAISE EXCEPTION 'ERR-40000: Stream of node "%" is not this node''s.', nTarget;
+  END IF;
+
   -- Every column below is qualified, and it is not style: RETURNS TABLE
   -- declares OUT variables named `received` and `floor`, which are exactly the
   -- names of the columns this function reads. An unqualified reference is
@@ -1316,7 +1421,7 @@ BEGIN
 
   SELECT coalesce(w.received, 0) INTO nReceived
     FROM mq.watermark w
-   WHERE w.peer = pSource AND w.channel = pChannel;
+   WHERE w.peer = pSource AND w.channel = pChannel AND w.target = nTarget;
 
   nReceived := coalesce(nReceived, 0);
   nFrom := nReceived;
@@ -1368,7 +1473,7 @@ BEGIN
 
     IF pKind = 'batch' THEN
       PERFORM FROM mq.message m
-       WHERE m.source = pSource AND m.channel = pChannel AND m.serial = pFloor;
+       WHERE m.source = pSource AND m.channel = pChannel AND m.target = nTarget AND m.serial = pFloor;
 
       IF FOUND THEN
         vFloor := 'honoured';
@@ -1379,7 +1484,7 @@ BEGIN
     ELSIF pKind = 'channel' THEN
       SELECT max(m.serial) INTO nHighest
         FROM mq.message m
-       WHERE m.source = pSource AND m.channel = pChannel;
+       WHERE m.source = pSource AND m.channel = pChannel AND m.target = nTarget;
 
       IF coalesce(nHighest, 0) > nReceived THEN
         vFloor := 'refused';
@@ -1402,9 +1507,9 @@ BEGIN
     -- which it was rather than guessing.
 
     IF vFloor = 'refused' THEN
-      INSERT INTO mq.watermark AS w (peer, channel, refused)
-      VALUES (pSource, pChannel, 1)
-      ON CONFLICT (peer, channel) DO UPDATE
+      INSERT INTO mq.watermark AS w (peer, channel, target, refused)
+      VALUES (pSource, pChannel, nTarget, 1)
+      ON CONFLICT (peer, channel, target) DO UPDATE
          SET refused = w.refused + 1,
              updated = Now();
 
@@ -1415,7 +1520,7 @@ BEGIN
       -- they claimed 10000" is a sender that is broken, and only the second one
       -- stops being a question about the weather.
 
-      PERFORM pg_notify('mq_refused', json_build_object('source', pSource, 'channel', pChannel, 'floor', nClaimed, 'kind', pKind)::text);
+      PERFORM pg_notify('mq_refused', json_build_object('source', pSource, 'channel', pChannel, 'target', nTarget, 'floor', nClaimed, 'kind', pKind)::text);
     END IF;
   END IF;
 
@@ -1427,7 +1532,7 @@ BEGIN
 
     SELECT (pFloor - nReceived) - count(*) INTO nSkipped
       FROM mq.message m
-     WHERE m.source = pSource AND m.channel = pChannel
+     WHERE m.source = pSource AND m.channel = pChannel AND m.target = nTarget
        AND m.serial > nReceived AND m.serial <= pFloor;
 
     nFrom := pFloor;
@@ -1439,16 +1544,17 @@ BEGIN
   -- is asked for at the next session instead of being stepped over.
 
   PERFORM FROM mq.message m
-   WHERE m.source = pSource AND m.channel = pChannel AND m.serial = nFrom + 1;
+   WHERE m.source = pSource AND m.channel = pChannel AND m.target = nTarget AND m.serial = nFrom + 1;
 
   IF FOUND THEN
     SELECT min(m.serial) INTO nEnd
       FROM mq.message m
      WHERE m.source = pSource
        AND m.channel = pChannel
+       AND m.target = nTarget
        AND m.serial > nFrom
        AND NOT EXISTS (SELECT FROM mq.message x
-                        WHERE x.source = m.source AND x.channel = m.channel AND x.serial = m.serial + 1);
+                        WHERE x.source = m.source AND x.channel = m.channel AND x.target = m.target AND x.serial = m.serial + 1);
   ELSE
     nEnd := nFrom;
   END IF;
@@ -1458,16 +1564,16 @@ BEGIN
     RETURN;
   END IF;
 
-  INSERT INTO mq.watermark AS w (peer, channel, received, floor, skipped)
-  VALUES (pSource, pChannel, nEnd, coalesce(pFloor, 0), nSkipped)
-  ON CONFLICT (peer, channel) DO UPDATE
+  INSERT INTO mq.watermark AS w (peer, channel, target, received, floor, skipped)
+  VALUES (pSource, pChannel, nTarget, nEnd, coalesce(pFloor, 0), nSkipped)
+  ON CONFLICT (peer, channel, target) DO UPDATE
      SET received = greatest(w.received, excluded.received),
          floor = greatest(w.floor, excluded.floor),
          skipped = w.skipped + excluded.skipped,
          updated = Now();
 
   IF nSkipped > 0 THEN
-    PERFORM pg_notify('mq_floor', json_build_object('source', pSource, 'channel', pChannel, 'floor', pFloor, 'skipped', nSkipped)::text);
+    PERFORM pg_notify('mq_floor', json_build_object('source', pSource, 'channel', pChannel, 'target', nTarget, 'floor', pFloor, 'skipped', nSkipped)::text);
   END IF;
 
   RETURN QUERY SELECT nEnd, vFloor;
@@ -1599,17 +1705,22 @@ BEGIN
   -- of replaying every revision ever published. Messages with no key stay: a
   -- NULL key means "this is not a state, do not fold it".
 
+  -- Folded per stream, not per channel: the last revision of a key in the
+  -- stream to everyone and the last one addressed to a single node are two
+  -- different states, and a node reading only its own stream must still find
+  -- the last one it was sent.
+
   WITH superseded AS (
-    SELECT m.source, m.channel, m.serial
+    SELECT m.source, m.channel, m.target, m.serial
       FROM mq.message m
      WHERE m.channel = pChannel
        AND m.key IS NOT NULL
        AND m.serial < (SELECT max(x.serial) FROM mq.message x
-                        WHERE x.channel = m.channel AND x.source = m.source AND x.key = m.key)
+                        WHERE x.channel = m.channel AND x.source = m.source AND x.target = m.target AND x.key = m.key)
   )
   DELETE FROM mq.message d
    USING superseded s
-   WHERE d.source = s.source AND d.channel = s.channel AND d.serial = s.serial;
+   WHERE d.source = s.source AND d.channel = s.channel AND d.target = s.target AND d.serial = s.serial;
 
   GET DIAGNOSTICS nCount = ROW_COUNT;
 
@@ -1658,14 +1769,25 @@ BEGIN
   -- owner's call ("how long may a ship stay quiet before we forget its tail"),
   -- and until it is made, retention alone never deletes an unconfirmed message.
 
+  -- A message addressed to one node is answered for by that node alone: its
+  -- own cursor on its own stream. The stream to everyone waits for everyone,
+  -- as before. A node that was DELETED takes its cursor with it (the
+  -- watermark cascades), so its stream is never purged here — deleting a
+  -- node is not "it confirmed everything", and what it never received is
+  -- kept until somebody decides otherwise, as with a silent node.
+
   DELETE FROM mq.message m
    WHERE m.channel = pChannel
      AND m.created < Now() - iRetention
      AND (m.source <> mq.local_peer()
-          OR m.serial <= coalesce((SELECT min(coalesce(w.sent, 0))
-                                     FROM mq.peer p
-                                     LEFT JOIN mq.watermark w ON w.peer = p.id AND w.channel = pChannel
-                                    WHERE p.enabled AND NOT p.local), 0));
+          OR (m.target <> 0
+              AND m.serial <= coalesce((SELECT w.sent FROM mq.watermark w
+                                         WHERE w.peer = m.target AND w.channel = pChannel AND w.target = m.target), 0))
+          OR (m.target = 0
+              AND m.serial <= coalesce((SELECT min(coalesce(w.sent, 0))
+                                          FROM mq.peer p
+                                          LEFT JOIN mq.watermark w ON w.peer = p.id AND w.channel = pChannel AND w.target = 0
+                                         WHERE p.enabled AND NOT p.local), 0)));
 
   GET DIAGNOSTICS nCount = ROW_COUNT;
 

@@ -2,9 +2,18 @@
 -- MQChannel -------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
+-- serial stays where the column used to be: it is the counter of the stream
+-- to everyone (mq.stream, target 0), which is what the column meant while the
+-- channel had one stream. CREATE OR REPLACE VIEW cannot move or drop a column,
+-- and a reader of "the channel's counter" keeps its answer.
+
 CREATE OR REPLACE VIEW MQChannel
 AS
-  SELECT * FROM mq.channel;
+  SELECT c.id, c.code, c.name, c.description, c.direction, c.priority, c.delivery,
+         c.lifetime, c.compaction, c.retention,
+         coalesce((SELECT s.serial FROM mq.stream s WHERE s.channel = c.id AND s.target = 0), 0) AS serial,
+         c.enabled, c.created, c.updated
+    FROM mq.channel c;
 
 GRANT SELECT ON MQChannel TO administrator;
 
@@ -34,15 +43,24 @@ GRANT SELECT ON MQBinding TO administrator;
 -- MQMessage -------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
+-- target and targetcode are LAST, not next to the serial they qualify, for the
+-- reason MQSession gives for link: CREATE OR REPLACE VIEW may append a column
+-- and may not move one. They name the stream — 0 / NULL code is the stream to
+-- everyone, otherwise the node the message is addressed to — and serials are
+-- unique within (source, channel, target), so a reader that orders or
+-- de-duplicates by serial must do it within the stream.
+
 CREATE OR REPLACE VIEW MQMessage
 AS
   SELECT m.source, p.code AS sourcecode, m.channel, c.code AS channelcode, m.serial,
          m.type, m.route, m.key, m.payload, m.signature, m.created, m.received, m.expires,
-         d.reason AS deadreason, d.attempt AS deadattempt, d.state AS deadstate
+         d.reason AS deadreason, d.attempt AS deadattempt, d.state AS deadstate,
+         m.target, t.code AS targetcode
     FROM mq.message m
    INNER JOIN mq.peer p ON p.id = m.source
    INNER JOIN mq.channel c ON c.id = m.channel
-    LEFT JOIN mq.dead d ON d.source = m.source AND d.channel = m.channel AND d.serial = m.serial;
+    LEFT JOIN mq.peer t ON t.id = m.target
+    LEFT JOIN mq.dead d ON d.source = m.source AND d.channel = m.channel AND d.target = m.target AND d.serial = m.serial;
 
 GRANT SELECT ON MQMessage TO administrator;
 
@@ -50,19 +68,23 @@ GRANT SELECT ON MQMessage TO administrator;
 -- MQWatermark -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 
--- The queue depth on the pair is the difference between what this node has
--- published and what the other one has confirmed. It is the honest answer to
--- "is the exchange healthy", and it does not need a process running to be read.
+-- The queue depth on the stream is the difference between what this node has
+-- published on it and what the other one has confirmed. It is the honest answer
+-- to "is the exchange healthy", and it does not need a process running to be
+-- read. One row per stream: a node exchanging a channel shows two — the stream
+-- to everyone (targetcode NULL) and its own. target and targetcode are last,
+-- as in MQMessage.
 
 CREATE OR REPLACE VIEW MQWatermark
 AS
   SELECT w.peer, p.code AS peercode, w.channel, c.code AS channelcode,
          w.sent, w.received, w.floor, w.skipped, w.updated,
-         coalesce((SELECT max(m.serial) FROM mq.message m
-                    WHERE m.channel = w.channel AND m.source = (SELECT id FROM mq.peer WHERE local)), 0) - w.sent AS depth
+         coalesce((SELECT s.serial FROM mq.stream s WHERE s.channel = w.channel AND s.target = w.target), 0) - w.sent AS depth,
+         w.target, t.code AS targetcode
     FROM mq.watermark w
    INNER JOIN mq.peer p ON p.id = w.peer
-   INNER JOIN mq.channel c ON c.id = w.channel;
+   INNER JOIN mq.channel c ON c.id = w.channel
+    LEFT JOIN mq.peer t ON t.id = w.target;
 
 GRANT SELECT ON MQWatermark TO administrator;
 
@@ -73,11 +95,13 @@ GRANT SELECT ON MQWatermark TO administrator;
 CREATE OR REPLACE VIEW MQDead
 AS
   SELECT d.source, p.code AS sourcecode, d.channel, c.code AS channelcode, d.serial,
-         m.type, m.route, m.payload, d.reason, d.attempt, d.state, d.created, d.updated
+         m.type, m.route, m.payload, d.reason, d.attempt, d.state, d.created, d.updated,
+         d.target, t.code AS targetcode
     FROM mq.dead d
    INNER JOIN mq.peer p ON p.id = d.source
    INNER JOIN mq.channel c ON c.id = d.channel
-   INNER JOIN mq.message m ON m.source = d.source AND m.channel = d.channel AND m.serial = d.serial;
+    LEFT JOIN mq.peer t ON t.id = d.target
+   INNER JOIN mq.message m ON m.source = d.source AND m.channel = d.channel AND m.target = d.target AND m.serial = d.serial;
 
 GRANT SELECT ON MQDead TO administrator;
 

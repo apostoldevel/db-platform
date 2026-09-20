@@ -151,6 +151,26 @@ $$ LANGUAGE plpgsql STABLE
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- api.mq_target_id ------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+/**
+ * @brief Resolve the node a message or a stream is addressed to.
+ * @param {text} pCode - Node code; NULL or empty is the stream to everyone
+ * @return {integer} - Node identifier, or 0 for everyone
+ * @throws ERR-40000 - When there is no such node
+ * @since 1.2.23
+ */
+CREATE OR REPLACE FUNCTION api.mq_target_id (
+  pCode     text
+) RETURNS   integer
+AS $$
+  SELECT CASE WHEN NULLIF(pCode, '') IS NULL THEN 0 ELSE api.mq_peer_id(pCode) END;
+$$ LANGUAGE SQL STABLE
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- api.mq_link_id --------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -192,7 +212,8 @@ $$ LANGUAGE plpgsql STABLE
  * @param {text} pKey - Compaction key
  * @param {text} pRoute - Routing key
  * @param {text} pSignature - Signature of this node over the message
- * @return {bigint} - Serial issued within the channel
+ * @param {text} pTarget - Code of the node the message is for; NULL publishes to everyone
+ * @return {bigint} - Serial issued within the stream (channel, target)
  * @since 1.2.17
  */
 CREATE OR REPLACE FUNCTION api.mq_publish (
@@ -201,10 +222,11 @@ CREATE OR REPLACE FUNCTION api.mq_publish (
   pPayload      jsonb,
   pKey          text DEFAULT null,
   pRoute        text DEFAULT null,
-  pSignature    text DEFAULT null
+  pSignature    text DEFAULT null,
+  pTarget       text DEFAULT null
 ) RETURNS       bigint
 AS $$
-  SELECT mq.publish(api.mq_channel_id(pChannel), pType, pPayload, pKey, pRoute, pSignature);
+  SELECT mq.publish(api.mq_channel_id(pChannel), pType, pPayload, pKey, pRoute, pSignature, api.mq_target_id(pTarget));
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -218,19 +240,21 @@ $$ LANGUAGE SQL
  * @param {text} pPeer - Node code
  * @param {text} pChannel - Channel code
  * @param {bigint} pUpto - Last serial handed over in this session
- * @return {bigint} - Floor of the channel for that node
+ * @param {text} pTarget - Stream: NULL for everyone, or the node's own code
+ * @return {bigint} - Floor of the stream for that node
  * @since 1.2.17
  */
 CREATE OR REPLACE FUNCTION api.mq_floor (
   pPeer     text,
   pChannel  text,
-  pUpto     bigint DEFAULT null
+  pUpto     bigint DEFAULT null,
+  pTarget   text DEFAULT null
 ) RETURNS TABLE (
   floor     bigint,
   kind      text
 )
 AS $$
-  SELECT * FROM mq.floor(api.mq_peer_id(pPeer), api.mq_channel_id(pChannel), pUpto);
+  SELECT * FROM mq.floor(api.mq_peer_id(pPeer), api.mq_channel_id(pChannel), pUpto, api.mq_target_id(pTarget));
 $$ LANGUAGE SQL STABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -245,6 +269,7 @@ $$ LANGUAGE SQL STABLE
  * @param {text} pChannel - Channel code
  * @param {bigint} pFloor - Serial the sender declares as never deliverable
  * @param {text} pKind - Grounds of the claim, as mq.floor returned them: batch or channel
+ * @param {text} pTarget - Stream: NULL for everyone, or this node's own code
  * @return {TABLE} - received bigint, floor text (honoured, refused or none)
  * @since 1.2.17
  */
@@ -252,13 +277,14 @@ CREATE OR REPLACE FUNCTION api.mq_advance (
   pSource   text,
   pChannel  text,
   pFloor    bigint DEFAULT null,
-  pKind     text DEFAULT 'batch'
+  pKind     text DEFAULT 'batch',
+  pTarget   text DEFAULT null
 ) RETURNS TABLE (
   received  bigint,
   floor     text
 )
 AS $$
-  SELECT * FROM mq.advance(api.mq_peer_id(pSource), api.mq_channel_id(pChannel), pFloor, coalesce(pKind, 'batch'));
+  SELECT * FROM mq.advance(api.mq_peer_id(pSource), api.mq_channel_id(pChannel), pFloor, coalesce(pKind, 'batch'), api.mq_target_id(pTarget));
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -272,19 +298,21 @@ $$ LANGUAGE SQL
  * @param {text} pPeer - Node code
  * @param {text} pChannel - Channel code
  * @param {integer} pLimit - Batch size
+ * @param {text} pTarget - Stream: NULL for everyone, or the node's own code
  * @return {SETOF api.mq_message} - Messages to hand over
  * @since 1.2.17
  */
 CREATE OR REPLACE FUNCTION api.mq_queue (
   pPeer     text,
   pChannel  text,
-  pLimit    integer DEFAULT 100
+  pLimit    integer DEFAULT 100,
+  pTarget   text DEFAULT null
 ) RETURNS   SETOF api.mq_message
 AS $$
   SELECT v.*
-    FROM mq.queue(api.mq_peer_id(pPeer), api.mq_channel_id(pChannel), pLimit) q
+    FROM mq.queue(api.mq_peer_id(pPeer), api.mq_channel_id(pChannel), pLimit, api.mq_target_id(pTarget)) q
    INNER JOIN api.mq_message v
-      ON v.source = q.source AND v.channel = q.channel AND v.serial = q.serial
+      ON v.source = q.source AND v.channel = q.channel AND v.target = q.target AND v.serial = q.serial
    ORDER BY v.serial;
 $$ LANGUAGE SQL STABLE
    SECURITY DEFINER
@@ -305,6 +333,7 @@ $$ LANGUAGE SQL STABLE
  * @param {text} pRoute - Routing key
  * @param {text} pSignature - Signature of the sending node
  * @param {timestamptz} pCreated - When the sender published it
+ * @param {text} pTarget - Code of the node the message is addressed to; NULL is everyone
  * @return {boolean} - TRUE when applied, FALSE when parked in mq.dead
  * @since 1.2.17
  */
@@ -317,11 +346,12 @@ CREATE OR REPLACE FUNCTION api.mq_accept (
   pKey          text DEFAULT null,
   pRoute        text DEFAULT null,
   pSignature    text DEFAULT null,
-  pCreated      timestamptz DEFAULT null
+  pCreated      timestamptz DEFAULT null,
+  pTarget       text DEFAULT null
 ) RETURNS       boolean
 AS $$
   SELECT mq.accept(api.mq_peer_id(pSource), api.mq_channel_id(pChannel), pSerial,
-                   pType, pPayload, pKey, pRoute, pSignature, pCreated);
+                   pType, pPayload, pKey, pRoute, pSignature, pCreated, api.mq_target_id(pTarget));
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -336,6 +366,7 @@ $$ LANGUAGE SQL
  * @param {text} pChannel - Channel code
  * @param {bigint} pSerial - Serial the node reports as accepted
  * @param {text} pFloor - What the peer did with our floor: honoured, refused or none
+ * @param {text} pTarget - Stream: NULL for everyone, or the node's own code
  * @return {bigint} - The serial recorded
  * @since 1.2.17
  */
@@ -343,20 +374,23 @@ CREATE OR REPLACE FUNCTION api.mq_confirm (
   pPeer     text,
   pChannel  text,
   pSerial   bigint,
-  pFloor    text DEFAULT null
+  pFloor    text DEFAULT null,
+  pTarget   text DEFAULT null
 ) RETURNS   bigint
 AS $$
 DECLARE
   nPeer     integer;
   nChannel  integer;
+  nTarget   integer;
   nSent     bigint;
 BEGIN
   nPeer := api.mq_peer_id(pPeer);
   nChannel := api.mq_channel_id(pChannel);
+  nTarget := api.mq_target_id(pTarget);
 
-  PERFORM mq.confirm(nPeer, nChannel, pSerial, pFloor);
+  PERFORM mq.confirm(nPeer, nChannel, pSerial, pFloor, nTarget);
 
-  SELECT sent INTO nSent FROM mq.watermark WHERE peer = nPeer AND channel = nChannel;
+  SELECT sent INTO nSent FROM mq.watermark WHERE peer = nPeer AND channel = nChannel AND target = nTarget;
 
   RETURN nSent;
 END;
@@ -373,16 +407,18 @@ $$ LANGUAGE plpgsql
  * @param {text} pSource - Code of the node that published it
  * @param {text} pChannel - Channel code
  * @param {bigint} pSerial - Serial
+ * @param {text} pTarget - Stream: NULL for everyone, or this node's own code
  * @return {boolean} - TRUE when it applied this time
  * @since 1.2.17
  */
 CREATE OR REPLACE FUNCTION api.mq_retry (
   pSource   text,
   pChannel  text,
-  pSerial   bigint
+  pSerial   bigint,
+  pTarget   text DEFAULT null
 ) RETURNS   boolean
 AS $$
-  SELECT mq.retry(api.mq_peer_id(pSource), api.mq_channel_id(pChannel), pSerial);
+  SELECT mq.retry(api.mq_peer_id(pSource), api.mq_channel_id(pChannel), pSerial, api.mq_target_id(pTarget));
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
