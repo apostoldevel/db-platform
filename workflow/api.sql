@@ -1301,13 +1301,23 @@ BEGIN
   LOOP
     PERFORM FROM db.oma WHERE object = pObject AND method = r.id AND userid = current_userid();
     IF NOT FOUND THEN
+      -- The cache is filled lazily and the check above is not atomic with the
+      -- insert: two requests of one user for the same object (a screen that
+      -- loads /<entity>/method for several rows at once) both miss and both
+      -- insert — the second one used to die on oma_pkey (23505, an HTTP 500
+      -- without an ERR- code). Same guard as CheckObjectMethodAccess; DO
+      -- NOTHING, not DO UPDATE — the cache is invalidated by DELETE when the
+      -- method's AMU changes (chmodm), never by overwriting the mask. The
+      -- skipped insert is followed by a fresh statement snapshot (READ
+      -- COMMITTED), so the query below sees the row the other transaction
+      -- committed.
       WITH access AS (
         SELECT method, bit_or(allow) & ~bit_or(deny) AS mask
           FROM db.amu
          WHERE method = r.id
            AND userid IN (SELECT current_userid() UNION SELECT userid FROM db.member_group WHERE member = current_userid())
          GROUP BY method
-      ) INSERT INTO db.oma SELECT pObject, method, current_userid(), mask FROM access;
+      ) INSERT INTO db.oma SELECT pObject, method, current_userid(), mask FROM access ON CONFLICT (object, method, userid) DO NOTHING;
     END IF;
   END LOOP;
 
