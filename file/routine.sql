@@ -181,7 +181,7 @@ BEGIN
   END IF;
 
   INSERT INTO db.file (id, type, mask, owner, root, parent, link, level, path, name, size, date, data, mime, text, hash, done, fail)
-  VALUES (coalesce(pId, gen_kernel_uuid('8')), coalesce(pType, '-'), coalesce(pMask, B'111110100'), coalesce(pOwner, current_userid()), pRoot, pParent, pLink, nLevel, CollectFilePath(pParent), pName, coalesce(pSize, 0), coalesce(pDate, Now()), pData, pMime, pText, pHash, pDone, pFail)
+  VALUES (coalesce(pId, gen_kernel_uuid('8')), coalesce(pType, '-'), coalesce(pMask, B'111110000'), coalesce(pOwner, current_userid()), pRoot, pParent, pLink, nLevel, CollectFilePath(pParent), pName, coalesce(pSize, 0), coalesce(pDate, Now()), pData, pMime, pText, pHash, pDone, pFail)
   RETURNING id INTO uId;
 
   RETURN uId;
@@ -479,6 +479,169 @@ CREATE OR REPLACE FUNCTION GetFile (
 AS $$
   SELECT id FROM db.file WHERE path = pPath AND name = pName;
 $$ LANGUAGE sql STABLE STRICT
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- GetFileMask -----------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Fetch the 3-bit segment of a file's POSIX-style mask that applies to a user.
+ *
+ * The mirror of GetObjectMask for db.file: {owner:rwx}{group:rwx}{other:rwx}.
+ * The owner takes the first segment. The "group" of a file is the subtree of
+ * the area tree under the owner: the user takes the second segment when the
+ * user is a member of an area the owner belongs to, or of one above it
+ * (IsMemberArea walks up from the owner's area), or when the user sees the
+ * area of a document the file is attached to (db.object_file →
+ * db.document.area) and that document's owner is the file's owner — the
+ * relation the platform itself creates in NewObjectFile. Everyone else takes
+ * the third segment.
+ *
+ * Area membership is the platform's own notion of a tenant: users of one
+ * tenant sit under one area, and tenants never share a branch below the
+ * areas every account passes through. Those shared areas — root, system,
+ * guest — are left out of the owner's memberships on purpose: the service
+ * accounts live in root, and a project may park a self-registered user in
+ * guest before it assigns a tenant; neither makes two tenants one group.
+ * The walk goes one way for the same reason: "the owner is above the user"
+ * would make a file re-owned to the platform administrator (DeleteUser does
+ * that) readable by every tenant, and an attachment made by a stranger
+ * (api.set_object_file with a foreign pFile) is not the owner's document. So
+ * a valid session of another tenant lands on the "other" segment, which
+ * NewFile leaves empty.
+ *
+ * @param {uuid} pId - File identifier
+ * @param {uuid} pUserId - User identifier (defaults to current)
+ * @return {bit} - 3-bit mask segment, NULL when the file does not exist
+ * @see GetObjectMask, IsMemberArea
+ * @since 1.2.22
+ */
+CREATE OR REPLACE FUNCTION GetFileMask (
+  pId        uuid,
+  pUserId    uuid DEFAULT current_userid()
+) RETURNS    bit
+AS $$
+  SELECT CASE
+         WHEN pUserId = f.owner THEN SubString(f.mask FROM 1 FOR 3)
+         WHEN EXISTS (
+                SELECT 1
+                  FROM db.member_area m INNER JOIN db.area a ON a.id = m.area
+                 WHERE m.member = f.owner
+                   AND a.type NOT IN (GetAreaType('root'), GetAreaType('system'), GetAreaType('guest'))
+                   AND IsMemberArea(m.area, pUserId)
+                 UNION ALL
+                SELECT 1
+                  FROM db.object_file t INNER JOIN db.object   o ON o.id = t.object AND o.owner = f.owner
+                                        INNER JOIN db.document d ON d.id = t.object
+                 WHERE t.file = f.id
+                   AND IsMemberArea(d.area, pUserId)
+              ) THEN SubString(f.mask FROM 4 FOR 3)
+         ELSE SubString(f.mask FROM 7 FOR 3)
+         END
+    FROM db.file f
+   WHERE f.id = pId
+$$ LANGUAGE SQL STABLE
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- CheckFileAccess -------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Check whether a user has a specific access permission on a file.
+ *
+ * The mirror of CheckObjectAccess for db.file. Answers false — never NULL —
+ * when there is no user or no such file: a permission check must refuse when
+ * it cannot tell who is asking (see IsAdmin).
+ *
+ * Bypasses, each with a precedent in the platform: the kernel connection
+ * (installation and DDL, as in chmodo); administrators and the system group
+ * (the OAuth2 service accounts — the bot sessions of FileServer and PGFile
+ * read files on behalf of the platform, not of a user); and read access to
+ * anything under the "public" root, which PutFileToS3 already publishes with
+ * a public-read ACL.
+ *
+ * @param {uuid} pId - File identifier
+ * @param {bit} pMask - Required permission bits (B'100' for read)
+ * @param {uuid} pUserId - User identifier (defaults to current)
+ * @return {boolean} - TRUE if the user has the required permission
+ * @see CheckObjectAccess, GetFileMask
+ * @since 1.2.22
+ */
+CREATE OR REPLACE FUNCTION CheckFileAccess (
+  pId        uuid,
+  pMask      bit,
+  pUserId    uuid DEFAULT current_userid()
+) RETURNS    boolean
+AS $$
+DECLARE
+  bMask      bit(3);
+BEGIN
+  IF pId IS NULL OR pMask IS NULL THEN
+    RETURN false;
+  END IF;
+
+  IF session_user = 'kernel' THEN
+    RETURN true;
+  END IF;
+
+  IF pUserId IS NULL THEN
+    RETURN false;
+  END IF;
+
+  IF IsAdmin(pUserId) OR IsSystem(pUserId) THEN
+    RETURN true;
+  END IF;
+
+  bMask := GetFileMask(pId, pUserId);
+
+  IF bMask IS NULL THEN
+    RETURN false;
+  END IF;
+
+  IF EXISTS (SELECT 1 FROM db.file f INNER JOIN db.file r ON r.id = f.root WHERE f.id = pId AND r.name = 'public') THEN
+    bMask := bMask | B'100';
+  END IF;
+
+  RETURN coalesce(bMask & pMask = pMask, false);
+END;
+$$ LANGUAGE plpgsql STABLE
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- DecodeFileAccess ------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Decode the effective access of a user to a file into boolean flags.
+ *
+ * Unlike DecodeObjectAccess this is the effective answer, not the raw mask
+ * segment: each flag is CheckFileAccess for that bit, bypasses and the
+ * "public" root included. It exists for a caller that already holds the
+ * bytes and only needs the verdict — FileServer serving a cached copy from
+ * disk must ask exactly this, or the cache becomes a way around the barrier.
+ *
+ * @param {uuid} pId - File identifier
+ * @param {uuid} pUserId - User identifier (defaults to current)
+ * @return {record} - (r: read, w: write, x: execute) booleans
+ * @see CheckFileAccess
+ * @since 1.2.22
+ */
+CREATE OR REPLACE FUNCTION DecodeFileAccess (
+  pId        uuid,
+  pUserId    uuid DEFAULT current_userid(),
+  OUT r      boolean,
+  OUT w      boolean,
+  OUT x      boolean
+) RETURNS    record
+AS $$
+BEGIN
+  r := CheckFileAccess(pId, B'100', pUserId);
+  w := CheckFileAccess(pId, B'010', pUserId);
+  x := CheckFileAccess(pId, B'001', pUserId);
+END;
+$$ LANGUAGE plpgsql STABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 

@@ -1,0 +1,41 @@
+--------------------------------------------------------------------------------
+-- P00000022 -------------------------------------------------------------------
+--------------------------------------------------------------------------------
+-- db.file.mask: the default no longer grants read to "other".
+--
+-- Until now nothing read the mask at all: api.get_file returned any file to
+-- any valid session, and FileServer served it (ship-safety T126, 16.09.2026 —
+-- a valid session of another tenant reads the file; the same hole in the
+-- C++14 CFileServer and in every project on this platform). update.psql of
+-- this version brings the barrier — GetFileMask / CheckFileAccess in
+-- file/routine.sql, wired into api.get_file — which reads the mask as
+-- {owner:rwx}{group:rwx}{other:rwx}, "group" being the branch of the area
+-- tree (one tenant). With the old default B'111110100' the third segment
+-- grants read, and a valid session of another tenant would still pass. The
+-- default becomes B'111110000', as db.aom already has it (B'111100000'):
+-- owner everything, the branch read+write, everybody else nothing. NewFile
+-- carries the same value in its coalesce, so the two agree for every insert
+-- path (AddFile, NewFilePath, NewObjectFile) — this patch only aligns the
+-- column default with it.
+--
+-- Rows that already exist keep B'111110100' and stay readable by any valid
+-- session, exactly as before the barrier — a change of data is the project's
+-- decision, not the platform's. A project that wants old files isolated runs
+-- its own UPDATE db.file SET mask = mask & B'111111000' (or sets other:r on
+-- the files that are meant to be shared). Files under the "public" root need
+-- nothing: CheckFileAccess grants read there, as PutFileToS3 publishes them
+-- with a public-read ACL.
+--
+-- What the barrier of this version covers is the read of the bytes:
+-- api.get_file, and api.decode_file_access for a caller that already holds
+-- them. api.list_file / api.count_file still list every file's metadata to
+-- any valid session, and api.set_file / api.delete_file still take any id —
+-- the write bit is computed (CheckFileAccess(id, B'010')) but not yet asked
+-- for there. Named here so that nobody reads "barrier" as "the file module
+-- is tenant-safe".
+--
+-- Idempotent: SET DEFAULT is a catalog-only change.
+
+ALTER TABLE db.file ALTER COLUMN mask SET DEFAULT B'111110000';
+
+COMMENT ON COLUMN db.file.mask IS 'UNIX-style permission bitmask: 9 bits {owner:rwx}{group:rwx}{other:rwx}; group = the branch of the area tree (see GetFileMask). Default grants nothing to other.';

@@ -108,16 +108,53 @@ $$ LANGUAGE plpgsql
 
 /**
  * @brief Fetch a single file record with its binary data by identifier.
+ *
+ * Read access is checked as for an object (CheckFileAccess: owner, area
+ * branch, mask). A file the current session may not read is returned as an
+ * empty set, indistinguishable from a file that does not exist — the same
+ * answer Object<X> views give, and the one FileServer already maps to 404.
+ *
  * @param {uuid} pId - File identifier
- * @return {SETOF api.file_data} - File metadata and content
+ * @return {SETOF api.file_data} - File metadata and content; empty when not found or not readable
+ * @see CheckFileAccess
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_file (
   pId       uuid
 ) RETURNS   SETOF api.file_data
 AS $$
-  SELECT * FROM api.file_data WHERE id = pId;
+  SELECT * FROM api.file_data WHERE id = pId AND CheckFileAccess(pId, B'100');
 $$ LANGUAGE sql STABLE STRICT
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.decode_file_access ------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Decode the effective access of a user to a file (read, write, execute).
+ *
+ * The contract for a module that serves a file it already holds — FileServer
+ * with a copy in its disk cache: after api.authorize(session) it asks
+ * `SELECT r FROM api.decode_file_access(api.get_file_id(name, path))` and
+ * serves only on true. Same verdict api.get_file gives, without the bytes.
+ *
+ * @param {uuid} pId - File identifier
+ * @param {uuid} pUserId - User identifier (defaults to current)
+ * @return {record} - (r: read, w: write, x: execute) booleans; all false when the file does not exist
+ * @see DecodeFileAccess, api.decode_object_access
+ * @since 1.2.22
+ */
+CREATE OR REPLACE FUNCTION api.decode_file_access (
+  pId       uuid,
+  pUserId   uuid DEFAULT null,
+  OUT r     boolean,
+  OUT w     boolean,
+  OUT x     boolean
+) RETURNS   record
+AS $$
+  SELECT * FROM DecodeFileAccess(pId, coalesce(pUserId, current_userid()));
+$$ LANGUAGE SQL STABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 

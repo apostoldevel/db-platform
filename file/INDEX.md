@@ -16,7 +16,7 @@ Hierarchical file system abstraction layer. Supports documents, directories, sym
 |--------|-------|
 | `db` | 1 table (file) + 5 triggers |
 | `kernel` | 3 views, ~15 functions |
-| `api` | 2 views, 6 functions |
+| `api` | 2 views, 7 functions |
 | `rest` | `rest.file` dispatcher (5 routes) |
 
 ## Tables — 1
@@ -27,7 +27,7 @@ Hierarchical file system abstraction layer. Supports documents, directories, sym
 
 **Type codes:** `-` = file, `d` = directory, `l` = symbolic link, `s` = storage (S3 bucket config).
 
-**Mask bits (9-bit):** `rwx` for user/group/other (UNIX-style). Default: `B'111110100'` (user: rw-, group: r--, other: r--).
+**Mask bits (9-bit):** `rwx` for owner/group/other (UNIX-style); "group" is the branch of the area tree the owner belongs to (see `GetFileMask`). Default: `B'111110000'` (owner: rwx, group: rw-, other: ---) — since 1.2.22 (P00000022); before that `B'111110100'`, and nothing read the mask.
 
 **Unique constraints:** `(root, parent, name)`, `(path, name)`.
 
@@ -73,6 +73,14 @@ Hierarchical file system abstraction layer. Supports documents, directories, sym
 | `DeleteFile(pId)` | `boolean` | Single file deletion |
 | `DeleteFiles(pId)` | `void` | Recursive cascade delete (children first) |
 
+### Access
+
+| Function | Returns | Purpose |
+|----------|---------|---------|
+| `GetFileMask(pId, pUserId)` | `bit(3)` | Mask segment for the user: owner / user at or above an owner's area (root, system, guest excluded), or sees the area of an attached document of the same owner / other; mirror of `GetObjectMask` |
+| `DecodeFileAccess(pId, pUserId)` | `record (r, w, x)` | Effective access as booleans, bypasses included — the verdict without the bytes |
+| `CheckFileAccess(pId, pMask, pUserId)` | `boolean` | Permission check; bypass for `kernel`, administrators, `system` (bot sessions), read under the `public` root; mirror of `CheckObjectAccess` |
+
 ### Query
 
 | Function | Returns | Purpose |
@@ -90,13 +98,14 @@ Hierarchical file system abstraction layer. Supports documents, directories, sym
 
 S3 config read from registry: `CONFIG\S3` keys: `Region`, `Endpoint`, `AccessKey`, `SecretKey`.
 
-## Functions (api schema) — 6
+## Functions (api schema) — 7
 
 | Function | Returns | Purpose |
 |----------|---------|---------|
 | `api.set_file(pId, pType, pMask, ..., pPath, ...)` | `SETOF api.file` | Create/update file, handles path→root mapping, decodes base64 data |
-| `api.get_file(pId)` | `SETOF api.file_data` | Get file with base64-encoded content |
+| `api.get_file(pId)` | `SETOF api.file_data` | Get file with base64-encoded content; empty set when not readable by the current session (`CheckFileAccess`) |
 | `api.get_file_id(pName, pPath)` | `uuid` | Resolve file ID by name + path |
+| `api.decode_file_access(pId, pUserId)` | `record (r, w, x)` | Effective access verdict; contract for FileServer's disk-cache path (since 1.2.22) |
 | `api.delete_file(pId)` | `boolean` | Delete file |
 | `api.count_file(pSearch, pFilter)` | `SETOF bigint` | Count with search/filter |
 | `api.list_file(pSearch, pFilter, pLimit, pOffSet, pOrderBy)` | `SETOF api.file` | List with search/filter/pagination |

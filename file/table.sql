@@ -13,7 +13,7 @@ CREATE TABLE db.file (
     link        uuid REFERENCES db.file(id),
     owner       uuid NOT NULL REFERENCES db.user(id),
     type        char NOT NULL CHECK (type IN ('-', 'd', 'l', 's')),
-    mask        bit(9) DEFAULT B'111110100' NOT NULL,
+    mask        bit(9) DEFAULT B'111110000' NOT NULL,
     level       integer NOT NULL,
     path        text NOT NULL,
     name        text NOT NULL,
@@ -36,7 +36,7 @@ COMMENT ON COLUMN db.file.parent IS 'Parent directory identifier.';
 COMMENT ON COLUMN db.file.link IS 'Linked file identifier (for symlink-type entries).';
 COMMENT ON COLUMN db.file.owner IS 'Owner user identifier.';
 COMMENT ON COLUMN db.file.type IS 'Entry type: "-" = file, "d" = directory, "l" = link, "s" = storage (S3 bucket).';
-COMMENT ON COLUMN db.file.mask IS 'UNIX-style permission bitmask: 9 bits {owner:rwx}{group:rwx}{other:rwx}.';
+COMMENT ON COLUMN db.file.mask IS 'UNIX-style permission bitmask: 9 bits {owner:rwx}{group:rwx}{other:rwx}; group = the branch of the area tree (see GetFileMask). Default grants nothing to other.';
 COMMENT ON COLUMN db.file.level IS 'Nesting depth in the directory tree (0 = root).';
 COMMENT ON COLUMN db.file.path IS 'Absolute path to the parent directory.';
 COMMENT ON COLUMN db.file.name IS 'File or directory name.';
