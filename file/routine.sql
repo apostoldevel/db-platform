@@ -522,26 +522,35 @@ CREATE OR REPLACE FUNCTION GetFileMask (
   pUserId    uuid DEFAULT current_userid()
 ) RETURNS    bit
 AS $$
-  SELECT CASE
-         WHEN pUserId = f.owner THEN SubString(f.mask FROM 1 FOR 3)
-         WHEN EXISTS (
-                SELECT 1
-                  FROM db.member_area m INNER JOIN db.area a ON a.id = m.area
-                 WHERE m.member = f.owner
-                   AND a.type NOT IN (GetAreaType('root'), GetAreaType('system'), GetAreaType('guest'))
-                   AND IsMemberArea(m.area, pUserId)
-                 UNION ALL
-                SELECT 1
-                  FROM db.object_file t INNER JOIN db.object   o ON o.id = t.object AND o.owner = f.owner
-                                        INNER JOIN db.document d ON d.id = t.object
-                 WHERE t.file = f.id
-                   AND IsMemberArea(d.area, pUserId)
-              ) THEN SubString(f.mask FROM 4 FOR 3)
-         ELSE SubString(f.mask FROM 7 FOR 3)
-         END
-    FROM db.file f
-   WHERE f.id = pId
-$$ LANGUAGE SQL STABLE
+BEGIN
+  -- plpgsql, not SQL, and not for style: a SQL function's body is checked when
+  -- it is created, and db.object_file / db.document belong to the entity
+  -- module, which create.psql loads AFTER this one. As a SQL function this
+  -- installed on every existing base (the tables were there) and failed on
+  -- every fresh one (1.2.22, found by the first --init after it).
+  RETURN (
+    SELECT CASE
+           WHEN pUserId = f.owner THEN SubString(f.mask FROM 1 FOR 3)
+           WHEN EXISTS (
+                  SELECT 1
+                    FROM db.member_area m INNER JOIN db.area a ON a.id = m.area
+                   WHERE m.member = f.owner
+                     AND a.type NOT IN (GetAreaType('root'), GetAreaType('system'), GetAreaType('guest'))
+                     AND IsMemberArea(m.area, pUserId)
+                   UNION ALL
+                  SELECT 1
+                    FROM db.object_file t INNER JOIN db.object   o ON o.id = t.object AND o.owner = f.owner
+                                          INNER JOIN db.document d ON d.id = t.object
+                   WHERE t.file = f.id
+                     AND IsMemberArea(d.area, pUserId)
+                ) THEN SubString(f.mask FROM 4 FOR 3)
+           ELSE SubString(f.mask FROM 7 FOR 3)
+           END
+      FROM db.file f
+     WHERE f.id = pId
+  );
+END;
+$$ LANGUAGE plpgsql STABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
