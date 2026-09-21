@@ -1109,6 +1109,25 @@ $$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 /**
+ * @brief Raise an error when a caller passes an empty string for a field the
+ *        account cannot lose (UpdateUser: name, email). NULL means "keep",
+ *        '' means "clear" — this is the answer when clearing is not allowed.
+ * @param {text} pField - Field name as the caller knows it (name, email)
+ * @return {void}
+ * @since 1.2.25
+ * @see UpdateUser
+ */
+CREATE OR REPLACE FUNCTION ClearFieldError (
+  pField        text
+) RETURNS       void
+AS $$
+BEGIN
+  RAISE EXCEPTION '%', format(GetExceptionStr(400, 54), pField);
+END;
+$$ LANGUAGE plpgsql;
+
+--------------------------------------------------------------------------------
+/**
  * @brief Raise an error when the action has already been completed.
  * @return {void}
  * @since 1.0.0

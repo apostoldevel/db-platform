@@ -477,6 +477,7 @@ $$ LANGUAGE plpgsql
  * @param {boolean} pPasswordChange - Require password change on next login
  * @param {boolean} pPasswordNotChange - Prohibit the user from changing their own password
  * @return {void}
+ * @throws ClearFieldError (ERR-400-054) when pName or pEmail is '' and the account holds a value; '' clears pPhone, NULL keeps any field
  * @see UpdateUser
  * @since 1.0.0
  */

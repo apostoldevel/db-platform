@@ -3660,20 +3660,24 @@ $$ LANGUAGE plpgsql
 -- UpdateUser ------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Updates a user account. NULL parameters are left unchanged.
+ * @brief Updates a user account. NULL parameters are left unchanged; an empty
+ *        string clears pPhone (and pDescription). pName and pEmail cannot be
+ *        cleared: an empty string for a value the account holds is refused
+ *        (an empty string for an already empty email is a no-op).
  *        Requires the 'update user' ACL bit when updating another user.
  * @param {uuid} pId - User identifier
  * @param {text} pRoleName - New username
  * @param {text} pPassword - New password
- * @param {text} pName - Full display name
- * @param {text} pPhone - Phone number
- * @param {text} pEmail - Email address
- * @param {text} pDescription - Description
+ * @param {text} pName - Full display name (NULL keeps, '' is refused)
+ * @param {text} pPhone - Phone number (NULL keeps, '' clears)
+ * @param {text} pEmail - Email address (NULL keeps, '' is refused unless already empty)
+ * @param {text} pDescription - Description (NULL keeps, '' clears)
  * @param {boolean} pPasswordChange - Force password change on next login
  * @param {boolean} pPasswordNotChange - Prevent user from changing own password
  * @return {void}
  * @throws UserNotFound if user does not exist
  * @throws ACCESS_DENIED if caller lacks update permission
+ * @throws ClearFieldError if pName or pEmail is '' and the account holds a value (ERR-400-054)
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION UpdateUser (
@@ -3734,9 +3738,28 @@ BEGIN
     END IF;
   END IF;
 
-  pName := coalesce(NULLIF(pName, ''), r.name);
-  pPhone := coalesce(NULLIF(pPhone, ''), r.phone);
-  pEmail := coalesce(NULLIF(pEmail, ''), r.email);
+  -- An empty string is the only "clear this" a caller can say. Both doors
+  -- (rest.* through jsonb_to_record, /api/v2 through a Go *string) turn an
+  -- absent key and a JSON null into the same NULL, and NULL keeps the stored
+  -- value. Until T332 '' was folded into NULL as well, so a form that emptied
+  -- the phone got 200 with the old number in the answer. Now '' clears phone
+  -- (as it always did description); name and email are what the login and the
+  -- notifications stand on, so a value they hold is refused rather than
+  -- dropped — and '' for an email that is already empty is the no-op it asks
+  -- for (23 of 80 users on the dev base have none; a form that sends every
+  -- field must stay usable).
+  IF pName = '' THEN
+    PERFORM ClearFieldError('name');
+  END IF;
+
+  IF pEmail = '' AND NULLIF(r.email, '') IS NOT NULL THEN
+    PERFORM ClearFieldError('email');
+  END IF;
+
+  pName := coalesce(pName, r.name);
+  pPhone := coalesce(pPhone, r.phone);
+  pEmail := coalesce(pEmail, r.email);
+  pDescription := coalesce(pDescription, r.description);
 
   pPasswordChange := coalesce(pPasswordChange, r.passwordchange);
   pPasswordNotChange := coalesce(pPasswordNotChange, r.passwordnotchange);
@@ -3746,7 +3769,7 @@ BEGIN
          name = coalesce(pName, username),
          phone = CheckNull(pPhone),
          email = CheckNull(pEmail),
-         description = CheckNull(coalesce(pDescription, r.description, '')),
+         description = CheckNull(pDescription),
          passwordchange = pPasswordChange,
          passwordnotchange = pPasswordNotChange
    WHERE id = pId;

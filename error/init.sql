@@ -522,6 +522,14 @@ SELECT RegisterError('ERR-400-053', 400, 'E', 'workflow', 'es', 'Ya ha completad
 -- Group 400: JSON validation errors -------------------------------------------
 --------------------------------------------------------------------------------
 
+-- ERR-400-054: ClearFieldError
+SELECT RegisterError('ERR-400-054', 400, 'E', 'validation', 'en', 'Field "%s" cannot be cleared', 'An empty string was passed for a field whose value the account cannot lose, such as the name or the e-mail the login is tied to.', 'Send a non-empty value, or leave the field out (or null) to keep the current one.');
+SELECT RegisterError('ERR-400-054', 400, 'E', 'validation', 'ru', 'Поле "%s" нельзя очистить');
+SELECT RegisterError('ERR-400-054', 400, 'E', 'validation', 'de', 'Feld "%s" kann nicht geleert werden', 'Für ein Feld, dessen Wert das Konto nicht verlieren darf (z. B. Name oder die mit der Anmeldung verknüpfte E-Mail), wurde eine leere Zeichenkette übergeben.', 'Senden Sie einen nicht leeren Wert oder lassen Sie das Feld weg (oder null), um den aktuellen Wert beizubehalten.');
+SELECT RegisterError('ERR-400-054', 400, 'E', 'validation', 'fr', 'Le champ "%s" ne peut pas être vidé', 'Une chaîne vide a été transmise pour un champ dont le compte ne peut pas perdre la valeur, comme le nom ou l''e-mail lié à la connexion.', 'Envoyez une valeur non vide, ou omettez le champ (ou null) pour conserver la valeur actuelle.');
+SELECT RegisterError('ERR-400-054', 400, 'E', 'validation', 'it', 'Il campo "%s" non può essere svuotato', 'È stata passata una stringa vuota per un campo il cui valore l''account non può perdere, come il nome o l''e-mail legata all''accesso.', 'Inviare un valore non vuoto, oppure omettere il campo (o null) per mantenere quello attuale.');
+SELECT RegisterError('ERR-400-054', 400, 'E', 'validation', 'es', 'El campo "%s" no se puede vaciar', 'Se pasó una cadena vacía para un campo cuyo valor la cuenta no puede perder, como el nombre o el correo electrónico vinculado al inicio de sesión.', 'Envíe un valor no vacío, u omita el campo (o null) para conservar el actual.');
+
 -- ERR-400-060: JsonIsEmpty
 SELECT RegisterError('ERR-400-060', 400, 'E', 'validation', 'en', 'JSON must not be empty', 'The request body must contain a non-empty JSON payload, but it was empty or null.', 'Include a valid JSON object in the request body.');
 SELECT RegisterError('ERR-400-060', 400, 'E', 'validation', 'ru', 'JSON не должен быть пустым');

@@ -126,6 +126,7 @@ SELECT RegisterError('ERR-400-200', 400, 'E', 'validation', 'ru', 'Моя оши
 | ERR-400-047 | InvalidVerificationCodeType | Invalid verification type code: %s | validation |
 | ERR-400-048 | InvalidPhoneNumber | Invalid phone number: %s | validation |
 | ERR-400-049 | ObjectIsNull | Object id not specified | validation |
+| ERR-400-054 | ClearFieldError | Field "%s" cannot be cleared | validation |
 | ERR-400-066 | ValueOutOfRange | Value [%s] is out of range | validation |
 | ERR-400-067 | DateValidityPeriod | The start date must not exceed the end date | validation |
 

@@ -63,9 +63,9 @@ None.
 
 `ChangeClassError`, `StateByCodeNotFound`, `MethodActionNotFound`, `MethodNotFound`, `MethodByCodeNotFound`, `ActionAlreadyCompleted`.
 
-### Validation & Input (10)
+### Validation & Input (11)
 
-`InvalidCodes`, `IncorrectCode`, `IncorrectLocaleCode`, `IncorrectKeyInArray`, `IncorrectValueInArray`, `InvalidScope`, `InvalidPhoneNumber`, `IncorrectDateInterval`, `IncorrectJsonKey`, `IncorrectJsonType`.
+`InvalidCodes`, `IncorrectCode`, `IncorrectLocaleCode`, `IncorrectKeyInArray`, `IncorrectValueInArray`, `InvalidScope`, `InvalidPhoneNumber`, `IncorrectDateInterval`, `IncorrectJsonKey`, `IncorrectJsonType`, `ClearFieldError` (UpdateUser: '' for name, or for an email the account holds — NULL keeps, '' clears phone).
 
 ### Registry & Config (3)
 
