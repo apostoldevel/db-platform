@@ -54,3 +54,26 @@ AS
   ) SELECT t.*, array_to_string(sortlist, '.', '0') AS Index FROM tree t;
 
 GRANT SELECT ON FileTree TO administrator;
+
+--------------------------------------------------------------------------------
+-- FileObject ------------------------------------------------------------------
+--------------------------------------------------------------------------------
+-- The list side of the read barrier (1.2.24). FileTree under the name shape
+-- api.sql() recognises: api.sql('kernel', 'FileObject', …) derives the access
+-- view as replace(lower('FileObject'), 'object', 'access') = FileAccess, attaches
+-- `WITH aou AS MATERIALIZED (SELECT object FROM kernel.fileaccess)` at run time
+-- and skips it for the administrator — the dynamic model every Object<X> /
+-- Access<X> pair uses. The usual prefix form is taken: ObjectFile is the
+-- attachment view of the entity module, and its derived name AccessFile would
+-- have joined on a column FileTree does not have.
+--
+-- FileAccess itself is defined in entity/object/document/view.sql: the rule it
+-- states reads db.object_file and db.document, and the entity module loads
+-- after this one (the trap GetFileMask documents). Nothing here resolves the
+-- name before run time.
+
+CREATE OR REPLACE VIEW FileObject
+AS
+  SELECT * FROM FileTree;
+
+GRANT SELECT ON FileObject TO administrator;

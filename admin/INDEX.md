@@ -103,7 +103,7 @@ User management, authentication, authorization, sessions, and access control. Th
 
 ### Area Management (~20)
 
-`CreateArea`, `EditArea`, `DeleteArea`, `GetArea`, `GetAreaRoot`, `GetAreaSystem`, `GetAreaGuest`, `GetAreaDefault`, `GetAreaCode`, `GetAreaName`, `GetAreaScope`, `GetAreaType/Code/Name`, `AreaTree`, `SetAreaSequence`, `SortArea`, `AddMemberToArea`, `DeleteAreaForMember`, `DeleteMemberFromArea`, `SetArea`, `IsMemberArea`, `SetDefaultArea`, `GetDefaultArea`.
+`CreateArea`, `EditArea`, `DeleteArea`, `GetArea`, `GetAreaRoot`, `GetAreaSystem`, `GetAreaGuest`, `GetAreaDefault`, `GetAreaCode`, `GetAreaName`, `GetAreaScope`, `GetAreaType/Code/Name`, `AreaTree`, `SetAreaSequence`, `SortArea`, `AddMemberToArea`, `DeleteAreaForMember`, `DeleteMemberFromArea`, `SetArea`, `IsMemberArea` (STABLE since 1.2.24), `SetDefaultArea`, `GetDefaultArea`.
 
 ### Interface Management (~14)
 

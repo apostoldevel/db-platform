@@ -156,6 +156,54 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- CheckObjectArea -------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Check whether an object is inside the area the current session sees.
+ *
+ * The second half of visibility, next to CheckObjectAccess. db.aou answers who
+ * holds which bits, but class-level masks put a row of every role group on
+ * every object of the class — so a user of one tenant holds a read bit on the
+ * documents of another. What separates tenants is the AREA: a document is
+ * visible when its area is in DocumentAreaTree of the session, and every
+ * Document view joins that tree statically. A generic path that reaches a
+ * document by id alone (api.object_file, api.object_data) has to ask the same
+ * question, and this is it: true for anything that is not a document, and for
+ * a document whose area the session sees; false for a document outside it —
+ * the same answer as for a document that does not exist (1.2.24).
+ *
+ * plpgsql, not SQL, and not for style: db.document and DocumentAreaTree belong
+ * to the document module, which create.psql loads after this file; a SQL body
+ * is checked when it is created. Per call it is one primary-key read and the
+ * area tree of the session (a recursive walk over db.area, tens of rows);
+ * views that filter every row by it are the attachment views, which a caller
+ * narrows by object first.
+ *
+ * @param {uuid} pObject - Object identifier
+ * @return {boolean} - TRUE unless the object is a document outside the session's area tree
+ * @see CheckObjectAccess, DocumentAreaTree
+ * @since 1.2.24
+ */
+CREATE OR REPLACE FUNCTION CheckObjectArea (
+  pObject    uuid
+) RETURNS    boolean
+AS $$
+BEGIN
+  IF pObject IS NULL THEN
+    RETURN false;
+  END IF;
+
+  RETURN (
+    SELECT coalesce(bool_or(a.id IS NOT NULL), true)
+      FROM db.document d LEFT JOIN DocumentAreaTree a ON a.id = d.area
+     WHERE d.id = pObject
+  );
+END;
+$$ LANGUAGE plpgsql STABLE
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- DecodeObjectAccess ----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**

@@ -451,8 +451,18 @@ BEGIN
     END LOOP;
   END IF;
 
+  -- A /count carries no page: reclimit is pinned to 0 (api.sql then emits no
+  -- LIMIT). For a batch — an array of requests — the key goes into EACH
+  -- element: appended to the array it was a third element, and the batch
+  -- answered N + 1 rows (1.2.24, ship-safety T207).
   IF arPath[nLength] = 'count' THEN
-    pPayload := pPayload || jsonb_build_object('reclimit', 0);
+    IF jsonb_typeof(pPayload) = 'array' THEN
+      SELECT coalesce(jsonb_agg(CASE WHEN jsonb_typeof(e) = 'object' THEN e || jsonb_build_object('reclimit', 0) ELSE e END), '[]'::jsonb)
+        INTO pPayload
+        FROM jsonb_array_elements(pPayload) AS e;
+    ELSE
+      pPayload := pPayload || jsonb_build_object('reclimit', 0);
+    END IF;
   END IF;
 
   nApiId := AddApiLog(pPath, pPayload);

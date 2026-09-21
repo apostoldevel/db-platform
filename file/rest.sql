@@ -134,6 +134,10 @@ BEGIN
     END LOOP;
 
   WHEN '/file/delete' THEN
+    -- The name and path resolve through api.get_file_id, the one point
+    -- /file/get resolves through (the path normalised the same way) — but only
+    -- with a name given: api.get_file_id reads a missing name as index.html,
+    -- which is the right default for a GET and a silent target for a DELETE.
 
     IF pPayload IS NULL THEN
       PERFORM JsonIsEmpty();
@@ -146,14 +150,14 @@ BEGIN
 
       FOR r IN SELECT * FROM jsonb_to_recordset(pPayload) AS x(id uuid, path text, name text)
       LOOP
-        RETURN NEXT json_build_object('success', api.delete_file(coalesce(r.id, GetFile(r.name, r.path))));
+        RETURN NEXT json_build_object('success', api.delete_file(coalesce(r.id, CASE WHEN r.name IS NOT NULL THEN api.get_file_id(r.name, r.path) END)));
       END LOOP;
 
     ELSE
 
       FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(id uuid, path text, name text)
       LOOP
-        RETURN NEXT json_build_object('success', api.delete_file(coalesce(r.id, GetFile(r.name, r.path))));
+        RETURN NEXT json_build_object('success', api.delete_file(coalesce(r.id, CASE WHEN r.name IS NOT NULL THEN api.get_file_id(r.name, r.path) END)));
       END LOOP;
 
     END IF;

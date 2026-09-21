@@ -1,0 +1,45 @@
+--------------------------------------------------------------------------------
+-- P00000024 -------------------------------------------------------------------
+--------------------------------------------------------------------------------
+-- api.log_request gains a trailing parameter: pError text DEFAULT null — the
+-- catalogue code of a refused request, so that a 4xx line in db.api_log says
+-- what was refused (go-platform T185 writes refusals since 1.2.23's pin; the
+-- code is what it could not record).
+--
+-- The old signature is DROPPED here: CREATE OR REPLACE with a new parameter
+-- list creates an overload, and a call that omits the defaults then fails as
+-- "function api.log_request(text, text, jsonb, integer, interval, uuid) is
+-- not unique" (apostol-csms P00000040, P00000023 of this line). update.psql
+-- of this version creates the new one right after this patch. Re-runnable.
+--
+-- Everything else in 1.2.24 — the read barrier on api.list_file /
+-- api.count_file (the pair FileObject / FileAccess), the write bit on
+-- api.set_file / api.delete_file, CheckFilePublish under /public, the file
+-- right in NewObjectFile, the area in api.object_file / api.object_data
+-- (CheckObjectArea), IsMemberArea STABLE, /count per batch element in api.run
+-- — is routines and views, carried by update.psql; no schema moves.
+--
+-- FOR A CONSUMING PROJECT. Two of those change what a user session may do:
+--
+-- 1. Writing under /public now needs the w bit of the directory the entry
+--    lands in (CheckFilePublish), and the /public root itself is created by
+--    the kernel, an administrator or the system group only. A project whose
+--    users publish under a user session — media generated for the user
+--    (copyfrog, talking-to-ai: NewFilePath('/public/') + SetFile as the
+--    user), firmware uploaded by an operator to /public/firmware/ (csms) —
+--    creates the root and the directory in its own init.sql or patch (as
+--    kernel) and hands the directory over: chown to the account that writes
+--    there, or open its group/other w bit on purpose. Opening the root's
+--    other:w gives publishing to every valid session, which is the hole this
+--    version closes — delegate directories, not the root.
+--
+-- 2. api.object_file / api.object_data and their api.* functions ask the
+--    document's area (CheckObjectArea) next to the aou bits: a user session
+--    no longer reaches the attachments and data of a document outside its
+--    area tree by the object's id. Bot sessions in the root area see the
+--    whole scope as before.
+--
+-- Between this DROP and the CREATE of update.psql a running Go module fails
+-- api.log_request — the usual window of the migrate-then-update deploy.
+
+DROP FUNCTION IF EXISTS api.log_request(text, text, jsonb, integer, interval, uuid);

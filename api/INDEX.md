@@ -75,7 +75,7 @@ REST API infrastructure: path hierarchy, endpoint registration, route dispatchin
 | Function | Returns | Purpose |
 |----------|---------|---------|
 | `ExecuteDynamicMethod(pPath, pMethod, pPayload)` | `SETOF json` | Execute endpoint definition as dynamic PL/pgSQL |
-| `api.run(pPath, pJson)` | `SETOF json` | Generic method execution — error responses include `error` field with structured `ERR-GGG-CCC` code (since 1.2.0) |
+| `api.run(pPath, pJson)` | `SETOF json` | Generic method execution — error responses include `error` field with structured `ERR-GGG-CCC` code (since 1.2.0); a `/count` gets `reclimit: 0` in each element of a batch, not appended to the array (since 1.2.24) |
 
 ### API Logging
 

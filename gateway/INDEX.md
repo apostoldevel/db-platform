@@ -57,7 +57,7 @@ USAGE on `log_id_seq`; `administrator` — `SELECT` on both.
 | Function | Returns | Purpose |
 |----------|---------|---------|
 | `api.authorize_local(pSession, pAgent, pHost)` | `record (authorized, userid, message)` | `Authorize` for a pooled connection: after authorising, moves every `current.*` context GUC from the session level to the transaction level, so after COMMIT/ROLLBACK the backend carries no identity. Same shape as `api.authorize`. Until `SessionIn` carries a `pLocal` parameter this is the guarantee |
-| `api.log_request(pMethod, pPath, pPayload, pStatus, pRuntime, pRequestId)` | `bigint` | One `/api/v2` request into `db.api_log` the way `api.run` journals `/api/v1`: `AddApiLog` (a configuration may override it with its redaction list) + `runtime`; method, status and `X-Request-Id` travel in `json` under `_request` — `db.api_log` has no columns for them |
+| `api.log_request(pMethod, pPath, pPayload, pStatus, pRuntime, pRequestId, pError)` | `bigint` | One `/api/v2` request into `db.api_log` the way `api.run` journals `/api/v1`: `AddApiLog` (a configuration may override it with its redaction list) + `runtime`; method, status, `X-Request-Id` and — since 1.2.24 (P00000024) — the catalogue code of a refusal (`pError`) travel in `json` under `_request` — `db.api_log` has no columns for them. Needs no session: a refusal is written after `ROLLBACK TO SAVEPOINT` or in a fresh transaction |
 | `api.parse_message(pMessage)` | `record (code, message, error)` | `ParseMessage` reached through `api.*` — `apibot` has no USAGE on schema `kernel`, a direct grant would be dead. Feeds problem+json (К7) |
 
 ## Files

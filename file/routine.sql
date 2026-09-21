@@ -126,6 +126,73 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- CheckFilePublish ------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Check whether the current session may write an entry under the "public" root.
+ *
+ * Everything under /public is served without a session — by the path, not by
+ * the mask (CheckFileAccess grants the read bit under that root, PutFileToS3
+ * uploads it with a public-read ACL). Writing there is therefore publishing to
+ * the world, and until 1.2.24 any session could: api.set_file with a path
+ * under /public created the directories and the file, and a missing /public
+ * root was created under the caller, who then owned it. One call, and a tenant
+ * publishes what it likes.
+ *
+ * The right to publish is the platform's own notion, not a special case: the
+ * w bit of the DIRECTORY the entry lands in, as CheckFileAccess reads it —
+ * the kernel, an administrator and the system group pass by its bypasses,
+ * everyone else by the directory's mask. Delegation goes by directories: an
+ * administrator creates /public/<tenant>/ and hands it over (owner, or the
+ * group bit for the tenant's branch), and that tenant publishes there and
+ * nowhere else; opening the root itself (other:w) would hand publishing to
+ * every valid session, which is what this gate stops. The root — an entry
+ * named "public" with no parent — is created and changed by the bypasses
+ * alone, so that it is never owned by whoever asked first. Anything outside
+ * that root passes: this is a gate on one name, the rest of the tree is
+ * governed by the masks as before.
+ *
+ * @param {uuid} pRoot - Root of the entry being written (NULL when the entry is a root)
+ * @param {uuid} pParent - Parent directory (NULL for a root)
+ * @param {text} pName - Name of the entry
+ * @return {boolean} - TRUE if the write is allowed
+ * @see CheckFileAccess, NewFile, EditFile
+ * @since 1.2.24
+ */
+CREATE OR REPLACE FUNCTION CheckFilePublish (
+  pRoot     uuid,
+  pParent   uuid,
+  pName     text
+) RETURNS   boolean
+AS $$
+DECLARE
+  uRoot     uuid;
+BEGIN
+  IF pParent IS NULL THEN
+    IF pName IS DISTINCT FROM 'public' THEN
+      RETURN true;
+    END IF;
+
+    RETURN session_user = 'kernel' OR IsAdmin() OR IsSystem();
+  END IF;
+
+  uRoot := pRoot;
+  IF uRoot IS NULL THEN
+    SELECT root INTO uRoot FROM db.file WHERE id = pParent;
+  END IF;
+
+  PERFORM FROM db.file WHERE id = uRoot AND parent IS NULL AND name = 'public';
+  IF NOT FOUND THEN
+    RETURN true;
+  END IF;
+
+  RETURN CheckFileAccess(pParent, B'010');
+END;
+$$ LANGUAGE plpgsql STABLE
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- NewFile ---------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -148,6 +215,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pDone - Success callback function name (schema.func)
  * @param {text} pFail - Failure callback function name (schema.func)
  * @return {uuid} - Identifier of the newly created file record
+ * @throws AccessDenied - When the entry lands under the "public" root and the session may not publish (CheckFilePublish)
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION NewFile (
@@ -178,6 +246,10 @@ BEGIN
 
   IF pParent IS NOT NULL THEN
     SELECT level + 1 INTO nLevel FROM db.file WHERE id = pParent;
+  END IF;
+
+  IF NOT CheckFilePublish(pRoot, pParent, pName) THEN
+    PERFORM AccessDenied();
   END IF;
 
   INSERT INTO db.file (id, type, mask, owner, root, parent, link, level, path, name, size, date, data, mime, text, hash, done, fail)
@@ -277,6 +349,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pDone - New success callback
  * @param {text} pFail - New failure callback
  * @return {bool} - TRUE if a row was updated
+ * @throws AccessDenied - When the entry would land under the "public" root and the session may not publish (CheckFilePublish)
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION EditFile (
@@ -297,7 +370,17 @@ CREATE OR REPLACE FUNCTION EditFile (
   pFail     text DEFAULT null
 ) RETURNS   bool
 AS $$
+DECLARE
+  r         record;
 BEGIN
+  -- An update is a write at the destination: the entry's root, parent and
+  -- name after it decide whether the content lands under /public — a move
+  -- into the root as much as new bytes for a file already there.
+  SELECT root, parent, name INTO r FROM db.file WHERE id = pId;
+  IF FOUND AND NOT CheckFilePublish(coalesce(pRoot, r.root), coalesce(pParent, r.parent), coalesce(pName, r.name)) THEN
+    PERFORM AccessDenied();
+  END IF;
+
   UPDATE db.file
     SET root = coalesce(pRoot, root),
         parent = coalesce(pParent, parent),
@@ -609,7 +692,7 @@ BEGIN
     RETURN false;
   END IF;
 
-  IF EXISTS (SELECT 1 FROM db.file f INNER JOIN db.file r ON r.id = f.root WHERE f.id = pId AND r.name = 'public') THEN
+  IF EXISTS (SELECT 1 FROM db.file f INNER JOIN db.file r ON r.id = f.root WHERE f.id = pId AND r.parent IS NULL AND r.name = 'public') THEN
     bMask := bMask | B'100';
   END IF;
 

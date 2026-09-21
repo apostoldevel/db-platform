@@ -40,9 +40,9 @@ object (abstract)
 | `t_document_before_update_type` | Validate entity consistency |
 | `t_document_update_area` | Validate area/scope match |
 
-### Views — 6
+### Views — 7
 
-`DocumentAreaTree`, `DocumentAreaTreeId`, `Document`, `CurrentDocument`, `AccessDocument`, `ObjectDocument`.
+`DocumentAreaTree`, `DocumentAreaTreeId`, `Document`, `CurrentDocument`, `AccessDocument`, `ObjectDocument`, and `FileAccess` — the read set of the `file` module's pair `FileObject` / `FileAccess`, defined here because its group clause reads `db.object_file` and `db.document` (since 1.2.24; see `file/INDEX.md`).
 
 ### Functions — 14
 

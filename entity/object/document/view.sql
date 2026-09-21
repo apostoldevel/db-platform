@@ -35,6 +35,79 @@ AS
 GRANT SELECT ON DocumentAreaTreeId TO administrator;
 
 --------------------------------------------------------------------------------
+-- FileAccess ------------------------------------------------------------------
+--------------------------------------------------------------------------------
+-- The set of files the current session may READ — the pair of FileObject
+-- (file/view.sql), attached by api.sql('kernel', 'FileObject', …) to
+-- api.list_file / api.count_file at run time and skipped for the
+-- administrator. Column `object` is what the dynamic join expects (t.id =
+-- aou.object), here it carries the file id.
+--
+-- The same verdict CheckFileAccess(id, B'100') gives, restated as one query
+-- over db.file instead of a call per row: the call costs ~85 µs of lookups
+-- (IsAdmin, IsSystem, the owner's areas, IsMemberArea walking up the tree),
+-- which is 0.85 s on 10 000 files — the volume a fleet's attachments reach
+-- within a year. Set-based, the walk goes once: `_area` is every area the
+-- session (or a group of theirs) is a member of and everything below it —
+-- exactly the areas IsMemberArea(area, user) answers true for. A view and a
+-- function stating one rule is the platform's shape for objects too
+-- (AccessObject / CheckObjectAccess); a probe comparing the two over every
+-- file and every session of a stand is the check that they agree.
+--
+-- It lives here, not in file/view.sql, because the group clause reads
+-- db.object_file and db.document — tables of the entity module, which
+-- create.psql loads after file (the trap GetFileMask documents: a view is
+-- checked when it is created).
+
+CREATE OR REPLACE VIEW FileAccess
+AS
+  WITH RECURSIVE _me AS (
+    SELECT current_userid() AS userid
+  ), _member AS (
+    SELECT userid FROM _me
+     UNION
+    SELECT g.userid FROM db.member_group g INNER JOIN _me m ON m.userid = g.member
+  ), _area AS (
+    SELECT m.area AS id
+      FROM db.member_area m INNER JOIN _member u ON u.userid = m.member
+     UNION
+    SELECT a.id
+      FROM db.area a INNER JOIN _area t ON a.parent = t.id
+  ), _owner AS (
+    -- owners whose areas the session is a member of (root, system, guest left out)
+    SELECT m.member
+      FROM db.member_area m INNER JOIN db.area a ON a.id = m.area
+                            INNER JOIN _area   t ON t.id = m.area
+     WHERE a.type NOT IN (GetAreaType('root'), GetAreaType('system'), GetAreaType('guest'))
+  ), _attached AS (
+    -- files attached to a document of their own owner inside the session's area tree
+    SELECT x.file
+      FROM db.object_file x INNER JOIN db.document d ON d.id = x.object
+                            INNER JOIN _area       t ON t.id = d.area
+                            INNER JOIN db.object   o ON o.id = x.object
+                            INNER JOIN db.file     f ON f.id = x.file AND f.owner = o.owner
+  )
+  -- Uncorrelated scalar subqueries on purpose: each becomes an InitPlan the
+  -- executor evaluates once, where the bare call would run per row. The
+  -- order is CheckFileAccess's: the kernel reads everything; no session reads
+  -- nothing; an administrator or the system group reads everything; then the
+  -- public root and the mask segment.
+  SELECT f.id AS object
+    FROM db.file f
+   WHERE (SELECT session_user = 'kernel')
+      OR (SELECT userid IS NOT NULL FROM _me)
+         AND ( (SELECT IsAdmin(userid) OR IsSystem(userid) FROM _me)
+            OR f.root IN (SELECT id FROM db.file WHERE parent IS NULL AND name = 'public')
+            OR CASE
+               WHEN f.owner = (SELECT userid FROM _me)       THEN SubString(f.mask FROM 1 FOR 1)
+               WHEN f.owner IN (SELECT member FROM _owner)   THEN SubString(f.mask FROM 4 FOR 1)
+               WHEN f.id    IN (SELECT file FROM _attached)  THEN SubString(f.mask FROM 4 FOR 1)
+               ELSE SubString(f.mask FROM 7 FOR 1)
+               END = B'1' );
+
+GRANT SELECT ON FileAccess TO administrator;
+
+--------------------------------------------------------------------------------
 -- Document --------------------------------------------------------------------
 --------------------------------------------------------------------------------
 

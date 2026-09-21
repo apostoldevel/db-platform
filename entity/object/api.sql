@@ -966,9 +966,17 @@ $$ LANGUAGE plpgsql
 -- api.object_file -------------------------------------------------------------
 --------------------------------------------------------------------------------
 
+-- Files of the objects the session sees: the aou bits (AccessObject) AND the
+-- area of a document (CheckObjectArea) — class-level masks put an aou row of
+-- every role group on every object of the class, so the bits alone showed a
+-- tenant the attachments of another by the object's id (1.2.24, ship-safety
+-- T192/T177). Per row the check is a key read and the session's area tree;
+-- callers narrow by object first.
+
 CREATE OR REPLACE VIEW api.object_file
 AS
-  SELECT f.* FROM ObjectFile f INNER JOIN AccessObject o ON f.object = o.object;
+  SELECT f.* FROM ObjectFile f INNER JOIN AccessObject o ON f.object = o.object
+   WHERE CheckObjectArea(f.object);
 
 GRANT SELECT ON api.object_file TO administrator;
 
@@ -1015,7 +1023,7 @@ CREATE OR REPLACE FUNCTION api.set_object_file (
 ) RETURNS   SETOF api.object_file
 AS $$
 BEGIN
-  IF NOT CheckObjectAccess(pObject, B'010') THEN
+  IF NOT (CheckObjectAccess(pObject, B'010') AND CheckObjectArea(pObject)) THEN
     PERFORM AccessDenied();
   END IF;
 
@@ -1108,7 +1116,7 @@ CREATE OR REPLACE FUNCTION api.get_object_files_json (
 ) RETURNS    json
 AS $$
 BEGIN
-  IF NOT CheckObjectAccess(pId, B'100') THEN
+  IF NOT (CheckObjectAccess(pId, B'100') AND CheckObjectArea(pId)) THEN
     PERFORM AccessDenied();
   END IF;
 
@@ -1133,7 +1141,7 @@ CREATE OR REPLACE FUNCTION api.get_object_files_jsonb (
 ) RETURNS    jsonb
 AS $$
 BEGIN
-  IF NOT CheckObjectAccess(pId, B'100') THEN
+  IF NOT (CheckObjectAccess(pId, B'100') AND CheckObjectArea(pId)) THEN
     PERFORM AccessDenied();
   END IF;
 
@@ -1166,7 +1174,7 @@ AS $$
 DECLARE
   vClass    text;
 BEGIN
-  IF NOT CheckObjectAccess(pObject, B'100') THEN
+  IF NOT (CheckObjectAccess(pObject, B'100') AND CheckObjectArea(pObject)) THEN
     PERFORM AccessDenied();
   END IF;
 
@@ -1212,7 +1220,7 @@ CREATE OR REPLACE FUNCTION api.delete_object_file (
 ) RETURNS   boolean
 AS $$
 BEGIN
-  IF NOT CheckObjectAccess(pObject, B'001') THEN
+  IF NOT (CheckObjectAccess(pObject, B'001') AND CheckObjectArea(pObject)) THEN
     PERFORM AccessDenied();
   END IF;
 
@@ -1287,7 +1295,7 @@ CREATE OR REPLACE FUNCTION api.clear_object_files (
 ) RETURNS   void
 AS $$
 BEGIN
-  IF NOT CheckObjectAccess(pId, B'001') THEN
+  IF NOT (CheckObjectAccess(pId, B'001') AND CheckObjectArea(pId)) THEN
     PERFORM AccessDenied();
   END IF;
 
@@ -1305,9 +1313,12 @@ $$ LANGUAGE plpgsql
 -- api.object_data -------------------------------------------------------------
 --------------------------------------------------------------------------------
 
+-- Same gate as api.object_file: bits and area.
+
 CREATE OR REPLACE VIEW api.object_data
 AS
-  SELECT d.* FROM ObjectData d INNER JOIN AccessObject o ON d.object = o.object;
+  SELECT d.* FROM ObjectData d INNER JOIN AccessObject o ON d.object = o.object
+   WHERE CheckObjectArea(d.object);
 
 GRANT SELECT ON api.object_data TO administrator;
 
@@ -1339,7 +1350,7 @@ DECLARE
   -- and rejected any format nobody had stored yet.
   arTypes       text[] := ARRAY['text', 'json', 'xml', 'base64'];
 BEGIN
-  IF NOT CheckObjectAccess(pId, B'010') THEN
+  IF NOT (CheckObjectAccess(pId, B'010') AND CheckObjectArea(pId)) THEN
     PERFORM AccessDenied();
   END IF;
 
@@ -1440,7 +1451,7 @@ CREATE OR REPLACE FUNCTION api.get_object_data_json (
 ) RETURNS    json
 AS $$
 BEGIN
-  IF NOT CheckObjectAccess(pId, B'100') THEN
+  IF NOT (CheckObjectAccess(pId, B'100') AND CheckObjectArea(pId)) THEN
     PERFORM AccessDenied();
   END IF;
 
@@ -1465,7 +1476,7 @@ CREATE OR REPLACE FUNCTION api.get_object_data_jsonb (
 ) RETURNS    jsonb
 AS $$
 BEGIN
-  IF NOT CheckObjectAccess(pId, B'100') THEN
+  IF NOT (CheckObjectAccess(pId, B'100') AND CheckObjectArea(pId)) THEN
     PERFORM AccessDenied();
   END IF;
 
@@ -1494,7 +1505,7 @@ CREATE OR REPLACE FUNCTION api.get_object_data (
 ) RETURNS    SETOF api.object_data
 AS $$
 BEGIN
-  IF NOT CheckObjectAccess(pId, B'100') THEN
+  IF NOT (CheckObjectAccess(pId, B'100') AND CheckObjectArea(pId)) THEN
     PERFORM AccessDenied();
   END IF;
 

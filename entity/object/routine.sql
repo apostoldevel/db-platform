@@ -1680,6 +1680,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pDone - Callback on success
  * @param {text} pFail - Callback on failure
  * @return {uuid} - File identifier
+ * @throws AccessDenied - When an existing file (given as pFile, or found at pPath/pName) is attached and the session may not read it (CheckFileAccess — a pFile nothing carries refuses the same way, except for the bypasses, which still hit the foreign key)
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION NewObjectFile (
@@ -1702,7 +1703,16 @@ DECLARE
   uParent   uuid;
   vType     char;
   vClass    text;
+  bExists   boolean;
 BEGIN
+  -- Attaching a file that already exists — handed in as pFile, or found at
+  -- the path — binds it to the object, and api.get_object_file then serves it
+  -- by the OBJECT's rights. So the session must be able to read the file
+  -- itself first, or any private file of anyone could be read through an
+  -- object of one's own (1.2.24, ship-safety T193). A file created here is
+  -- the caller's own and needs no such check.
+  bExists := pFile IS NOT NULL;
+
   IF pFile IS NULL THEN
     vClass := GetClassCode(GetObjectClass(pObject));
 
@@ -1738,7 +1748,13 @@ BEGIN
     pFile := GetFile(uParent, pName);
     IF pFile IS NULL THEN
       pFile := NewFile(null, uRoot, uParent, pName, vType, GetObjectOwner(pObject), null, null, pSize, pDate, pData, pMime, pText, pHash, pDone, pFail);
+    ELSE
+      bExists := true;
     END IF;
+  END IF;
+
+  IF bExists AND NOT CheckFileAccess(pFile, B'100') THEN
+    PERFORM AccessDenied();
   END IF;
 
   INSERT INTO db.object_file (object, file)

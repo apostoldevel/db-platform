@@ -6,9 +6,16 @@
 -- api.file --------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
+-- Point reads through the view see only what the session may read — the
+-- verdict of CheckFileAccess per row, which is right for a lookup by id and
+-- wrong for a scan (~85 µs a row). Lists and counts therefore do not go
+-- through this view: api.list_file / api.count_file take the set-based pair
+-- FileObject / FileAccess through api.sql('kernel', …), as every Object<X>
+-- does (1.2.24, ОБ-14).
+
 CREATE OR REPLACE VIEW api.file
 AS
-  SELECT * FROM FileTree;
+  SELECT t.* FROM FileTree t WHERE CheckFileAccess(t.id, B'100');
 
 GRANT SELECT ON api.file TO administrator;
 
@@ -18,7 +25,7 @@ GRANT SELECT ON api.file TO administrator;
 
 CREATE OR REPLACE VIEW api.file_data
 AS
-  SELECT * FROM FileData;
+  SELECT t.* FROM FileData t WHERE CheckFileAccess(t.id, B'100');
 
 GRANT SELECT ON api.file_data TO administrator;
 
@@ -46,7 +53,8 @@ GRANT SELECT ON api.file_data TO administrator;
  * @param {text} pDone - Success callback function name
  * @param {text} pFail - Failure callback function name
  * @return {SETOF api.file} - The created or updated file record
- * @see SetFile, NewFilePath
+ * @throws AccessDenied - When the file exists and the session holds no write bit on it (CheckFileAccess), or the entry lands under /public and the session may not publish (CheckFilePublish)
+ * @see SetFile, NewFilePath, CheckFileAccess
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.set_file (
@@ -78,6 +86,13 @@ BEGIN
     SELECT id INTO pId FROM db.file WHERE path = NormalizeFilePath(pPath) AND name = pName;
   END IF;
 
+  -- An existing file is written only with the write bit on it: the mask
+  -- decides for a change of content, name or place as it does for reading.
+  -- An id nothing carries stays what it was — SetFile's no-op — not a refusal.
+  IF pId IS NOT NULL AND EXISTS (SELECT 1 FROM db.file WHERE id = pId) AND NOT CheckFileAccess(pId, B'010') THEN
+    PERFORM AccessDenied();
+  END IF;
+
   IF pPath IS NULL THEN
     SELECT path INTO pPath FROM db.file WHERE id = pId;
   END IF;
@@ -96,6 +111,8 @@ BEGIN
 
   pId := SetFile(pId, pType, pMask::bit(9), pOwner, pRoot, pParent, pLink, pName, pSize, pDate, decode(pData, 'base64'), pMime, pText, pHash, pDone, pFail);
 
+  -- Through the gated view: a write the session may not read back (w without
+  -- r, or pOwner someone else) succeeds and answers an empty set.
   RETURN QUERY SELECT * FROM api.file WHERE id = pId;
 END;
 $$ LANGUAGE plpgsql
@@ -187,9 +204,15 @@ $$ LANGUAGE plpgsql
 
 /**
  * @brief Delete a file by identifier.
+ *
+ * A file that does not exist answers false, as before; one that exists is
+ * deleted only with the write bit on it (CheckFileAccess) — the same bit
+ * api.set_file asks for, since 1.2.24.
+ *
  * @param {uuid} pId - File identifier to delete
  * @return {boolean} - TRUE if the file was deleted
- * @see DeleteFile
+ * @throws AccessDenied - When the file exists and the session holds no write bit on it
+ * @see DeleteFile, CheckFileAccess
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.delete_file (
@@ -197,6 +220,15 @@ CREATE OR REPLACE FUNCTION api.delete_file (
 ) RETURNS   boolean
 AS $$
 BEGIN
+  PERFORM FROM db.file WHERE id = pId;
+  IF NOT FOUND THEN
+    RETURN false;
+  END IF;
+
+  IF NOT CheckFileAccess(pId, B'010') THEN
+    PERFORM AccessDenied();
+  END IF;
+
   RETURN DeleteFile(pId);
 END
 $$ LANGUAGE plpgsql
@@ -208,7 +240,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 /**
- * @brief Count file records matching search/filter criteria.
+ * @brief Count file records matching search/filter criteria — those the session may read.
+ *
+ * Through the pair FileObject / FileAccess (file/view.sql,
+ * entity/object/document/view.sql): api.sql('kernel', …) attaches the access
+ * set at run time and skips it for the administrator, the dynamic model of
+ * every Object<X>. Until 1.2.24 this counted the whole tree for any session.
+ *
  * @param {jsonb} pSearch - Search conditions array
  * @param {jsonb} pFilter - Exact-match filter object
  * @return {SETOF bigint} - Record count
@@ -220,7 +258,7 @@ CREATE OR REPLACE FUNCTION api.count_file (
 ) RETURNS    SETOF bigint
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'file', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
+  RETURN QUERY EXECUTE api.sql('kernel', 'FileObject', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -231,7 +269,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 /**
- * @brief List files with optional search, filtering, pagination, and sorting.
+ * @brief List files with optional search, filtering, pagination, and sorting — those the session may read (see api.count_file).
  * @param {jsonb} pSearch - Search conditions: [{"condition":"AND|OR","field":"<col>","compare":"EQL|NEQ|LSS|LEQ|GTR|GEQ|GIN|LKE|ISN|INN","value":"<val>"},...]
  * @param {jsonb} pFilter - Key-value filter: {"<column>":"<value>"}
  * @param {integer} pLimit - Maximum number of rows to return
@@ -249,7 +287,7 @@ CREATE OR REPLACE FUNCTION api.list_file (
 ) RETURNS   SETOF api.file
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'file', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+  RETURN QUERY EXECUTE api.sql('kernel', 'FileObject', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

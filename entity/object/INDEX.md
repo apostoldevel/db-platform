@@ -111,6 +111,7 @@ table.sql → security.sql → view.sql → routine.sql → api.sql → rest.sql
 | `access_entity(pUserId, pEntity)` | `SETOF record` | All accessible objects of entity type |
 | `GetObjectAccessMask(pObject, pUserId)` | `bit` | Computed mask from aou |
 | `CheckObjectAccess(pObject, pMask, pUserId)` | `boolean` | Test permission (falls back to aom) |
+| `CheckObjectArea(pObject)` | `boolean` | The other half of visibility: true unless the object is a document outside the session's `DocumentAreaTree` (plpgsql — the document module loads later). Gates `api.object_file` / `api.object_data` and their `api.*` functions (since 1.2.24) |
 | `DecodeObjectAccess(pObject, pUserId)` | `record(s,u,d)` | Boolean select/update/delete |
 | `chmodo(pObject, pMask, pUserId)` | `void` | Set AOU from 6-bit mask (admin only) |
 | `AccessObjectUser(pEntity, pUserId, pScope)` | `TABLE(object)` | All accessible objects in scope |
@@ -163,7 +164,7 @@ table.sql → security.sql → view.sql → routine.sql → api.sql → rest.sql
 
 ### File Operations
 
-`NewObjectFile`, `EditObjectFile`, `DeleteObjectFile`, `ClearObjectFiles`, `SetObjectFile`, `GetObjectFiles`, `GetObjectFilesJson`, `GetObjectFilesJsonb`.
+`NewObjectFile` (attaching an existing file — given as `pFile` or found at the path — needs read access to it: `CheckFileAccess`, `AccessDenied` otherwise, since 1.2.24), `EditObjectFile`, `DeleteObjectFile`, `ClearObjectFiles`, `SetObjectFile`, `GetObjectFiles`, `GetObjectFilesJson`, `GetObjectFilesJsonb`.
 
 ### Arbitrary Data
 

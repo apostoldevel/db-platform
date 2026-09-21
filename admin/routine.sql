@@ -5124,6 +5124,12 @@ $$ LANGUAGE plpgsql
 /**
  * @brief Checks whether a user has access to an area (including inherited parent areas
  *        and group memberships).
+ *
+ * STABLE since 1.2.24: it only reads. Marked VOLATILE (the default) the planner
+ * had to call it once per row wherever it stood in a WHERE clause with
+ * constant arguments, and GetFileMask / CheckFileAccess — STABLE themselves —
+ * were built on a volatile call.
+ *
  * @param {uuid} pArea - Area identifier
  * @param {uuid} pMember - User or group identifier (defaults to current user)
  * @return {boolean} true if the user has area access
@@ -5157,7 +5163,7 @@ BEGIN
 
   RETURN coalesce(nCount, 0) <> 0;
 END;
-$$ LANGUAGE plpgsql
+$$ LANGUAGE plpgsql STABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
