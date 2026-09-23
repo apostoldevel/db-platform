@@ -184,6 +184,13 @@ BEGIN
     IF SessionIn(pSession, pAgent, pHost) IS NULL THEN
       PERFORM AuthenticateError(GetErrorMessage());
     END IF;
+  ELSE
+    -- A warm pool connection already carries this user, and the full SessionIn
+    -- (ValidSession runs crypt()) is skipped per event on purpose. But then a
+    -- user locked, or whose password expired, since the connection warmed up
+    -- kept receiving events and never got the 401 WebSocketAPI closes on
+    -- (T416). The status checks are one indexed read — they run every time.
+    PERFORM CheckSessionUser(uUserId, pHost);
   END IF;
 
   FOR r IN SELECT * FROM EventListener(pPublisher, pSession, pIdentity, pData) AS data

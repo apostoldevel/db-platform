@@ -6046,6 +6046,71 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- FUNCTION CheckSessionUser ---------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Whether a user may still act through a session: exists, not locked,
+ *        password not expired, host allowed. Raises the same errors SessionIn
+ *        always raised; answers nothing on success.
+ *
+ *        Split out of SessionIn so that a caller which skips the costly session
+ *        key check (ValidSession runs crypt()) on a connection that already
+ *        carries the user — daemon.observer, once per event — still refuses a
+ *        user locked or expired since then (T416).
+ *
+ * @param {uuid} pUserId - User identifier
+ * @param {inet} pHost - Client IP address
+ * @return {void}
+ * @throws LoginError, UserLockError, PasswordExpired, LoginIPTableError
+ * @see SessionIn
+ * @since 1.2.26
+ */
+CREATE OR REPLACE FUNCTION CheckSessionUser (
+  pUserId       uuid,
+  pHost         inet DEFAULT null
+) RETURNS       void
+AS $$
+DECLARE
+  up            db.user%rowtype;
+BEGIN
+  SELECT * INTO up FROM db.user WHERE id = pUserId;
+
+  IF NOT FOUND THEN
+    PERFORM LoginError();
+  END IF;
+
+  IF get_bit(up.status, 1) = 1 THEN
+    PERFORM UserLockError();
+  END IF;
+
+  -- lock_date is written with two opposite meanings and this reader must handle
+  -- the one it was not written for. UserLock stamps it with now() — "locked since"
+  -- — and also sets status bit 1, which the check just above already catches.
+  -- SignIn writes now() + interval after five failed attempts — "locked until" —
+  -- and sets no bit. Comparing <= now() therefore let a user through for exactly
+  -- as long as the lock was meant to hold, and then refused them for good once it
+  -- expired, since nothing clears the stamp unless they manage to sign in.
+  IF up.lock_date IS NOT NULL AND up.lock_date > now() THEN
+    PERFORM UserLockError();
+  END IF;
+
+  IF get_bit(up.status, 0) = 1 THEN
+    PERFORM PasswordExpired();
+  END IF;
+
+  IF up.expiry_date IS NOT NULL AND up.expiry_date <= now() THEN
+    PERFORM PasswordExpired();
+  END IF;
+
+  IF NOT CheckIPTable(up.id, pHost) THEN
+    PERFORM LoginIPTableError(pHost);
+  END IF;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- FUNCTION SessionIn ----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
@@ -6085,36 +6150,7 @@ BEGIN
 
     SELECT * INTO up FROM db.user WHERE id = uUserId;
 
-    IF NOT FOUND THEN
-      PERFORM LoginError();
-    END IF;
-
-    IF get_bit(up.status, 1) = 1 THEN
-      PERFORM UserLockError();
-    END IF;
-
-    -- lock_date is written with two opposite meanings and this reader must handle
-    -- the one it was not written for. UserLock stamps it with now() — "locked since"
-    -- — and also sets status bit 1, which the check just above already catches.
-    -- SignIn writes now() + interval after five failed attempts — "locked until" —
-    -- and sets no bit. Comparing <= now() therefore let a user through for exactly
-    -- as long as the lock was meant to hold, and then refused them for good once it
-    -- expired, since nothing clears the stamp unless they manage to sign in.
-    IF up.lock_date IS NOT NULL AND up.lock_date > now() THEN
-      PERFORM UserLockError();
-    END IF;
-
-    IF get_bit(up.status, 0) = 1 THEN
-      PERFORM PasswordExpired();
-    END IF;
-
-    IF up.expiry_date IS NOT NULL AND up.expiry_date <= now() THEN
-      PERFORM PasswordExpired();
-    END IF;
-
-    IF NOT CheckIPTable(up.id, pHost) THEN
-      PERFORM LoginIPTableError(pHost);
-    END IF;
+    PERFORM CheckSessionUser(uUserId, pHost);
 
     SELECT audience INTO nAudience FROM db.oauth2 WHERE id = nOAuth2;
 
