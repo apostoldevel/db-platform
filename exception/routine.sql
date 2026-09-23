@@ -275,6 +275,23 @@ $$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 /**
+ * @brief Raise an error when a session is refused on re-entry by the user's IP table.
+ * @param {inet} pHost - The address that was refused (NULL shown as "unknown")
+ * @return {void}
+ * @see LoginIpTableError
+ * @since 1.2.27
+ */
+CREATE OR REPLACE FUNCTION SessionIpTableError (
+  pHost   inet
+) RETURNS void
+AS $$
+BEGIN
+  RAISE EXCEPTION '%', format(GetExceptionStr(401, 9), coalesce(host(NULLIF(pHost, UnspecifiedHost())), 'unknown'));
+END;
+$$ LANGUAGE plpgsql;
+
+--------------------------------------------------------------------------------
+/**
  * @brief Raise an error when access to the requested resource is denied.
  * @return {void}
  * @since 1.0.0

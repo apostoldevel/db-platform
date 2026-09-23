@@ -74,6 +74,17 @@ SELECT RegisterError('ERR-401-008', 401, 'E', 'auth', 'fr', 'Le jeton est introu
 SELECT RegisterError('ERR-401-008', 401, 'E', 'auth', 'it', 'Il token non è stato trovato o è scaduto', 'Il token di accesso non è stato trovato nel database o ha superato il tempo di scadenza.', 'Ottenere un nuovo token riautenticandosi. Assicurarsi che il client rinnovi i token prima della scadenza.');
 SELECT RegisterError('ERR-401-008', 401, 'E', 'auth', 'es', 'Token no encontrado o ha expirado', 'El token de acceso no se encontró en la base de datos o ha superado su tiempo de expiración.', 'Obtenga un nuevo token reautenticándose. Asegúrese de que su cliente renueve los tokens antes de que expiren.');
 
+-- ERR-401-009: SessionIpTableError. A session refused on re-entry by the user's
+-- IP table. The session is no longer usable from that address, which is an
+-- authentication failure (401) — a WebSocket closes on it — while a refused
+-- password login keeps ERR-400-044. Added in 1.2.27.
+SELECT RegisterError('ERR-401-009', 401, 'E', 'auth', 'en', 'Session refused. Limited access by IP-address: %s', 'The user''s IP table does not admit this address, so the session cannot be used from it.', 'Connect from an allowed IP address or ask an administrator to update the IP whitelist.');
+SELECT RegisterError('ERR-401-009', 401, 'E', 'auth', 'ru', 'Сессия отклонена. Ограничен доступ по IP-адресу: %s');
+SELECT RegisterError('ERR-401-009', 401, 'E', 'auth', 'de', 'Sitzung abgelehnt. Eingeschränkter Zugang nach IP-Adresse: %s', 'Die IP-Tabelle des Benutzers lässt diese Adresse nicht zu, daher kann die Sitzung von dort nicht verwendet werden.', 'Verbinden Sie sich von einer erlaubten IP-Adresse oder bitten Sie einen Administrator, die IP-Whitelist zu aktualisieren.');
+SELECT RegisterError('ERR-401-009', 401, 'E', 'auth', 'fr', 'Session refusée. Accès limité par adresse IP: %s', 'La table IP de l''utilisateur n''admet pas cette adresse, la session ne peut donc pas être utilisée depuis celle-ci.', 'Connectez-vous depuis une adresse IP autorisée ou demandez à un administrateur de mettre à jour la liste blanche des IP.');
+SELECT RegisterError('ERR-401-009', 401, 'E', 'auth', 'it', 'Sessione rifiutata. Accesso limitato tramite indirizzo IP: %s', 'La tabella IP dell''utente non ammette questo indirizzo, quindi la sessione non può essere usata da esso.', 'Connettersi da un indirizzo IP consentito o chiedere a un amministratore di aggiornare la whitelist degli IP.');
+SELECT RegisterError('ERR-401-009', 401, 'E', 'auth', 'es', 'Sesión rechazada. Acceso limitado por dirección IP: %s', 'La tabla IP del usuario no admite esta dirección, por lo que la sesión no puede usarse desde ella.', 'Conéctese desde una dirección IP permitida o pida a un administrador que actualice la lista blanca de IP.');
+
 --------------------------------------------------------------------------------
 -- Group 400: Access errors ----------------------------------------------------
 --------------------------------------------------------------------------------

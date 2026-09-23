@@ -574,9 +574,19 @@ $$ LANGUAGE plpgsql
 /**
  * @brief Checks IP access for a user: deny list takes precedence over allow list.
  *        Sets an error message if access is restricted.
+ *
+ *        pHost NULL means «no address given here», and what that is depends on
+ *        where we are. Inside a client request — a daemon.* entry, which calls
+ *        SetClientHost first — it is that client's address, and a client whose
+ *        address did not arrive is checked as UnspecifiedHost(), which no allow
+ *        list admits. Outside one — a provider callback re-entering a stored
+ *        session, LeaveSystemContext restoring the previous one — there is no
+ *        client address to check, and NULL passes (1.2.27).
+ *
  * @param {uuid} pUserId - User identifier
- * @param {inet} pHost - IP address to check
+ * @param {inet} pHost - IP address to check; NULL — see above
  * @return {boolean} true if access is allowed
+ * @see SetClientHost, UnspecifiedHost
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION CheckIPTable (
@@ -588,6 +598,10 @@ DECLARE
   denied        boolean;
   allow         boolean;
 BEGIN
+  IF pHost IS NULL THEN
+    pHost := NULLIF(current_setting('daemon.client_host', true), '')::inet;
+  END IF;
+
   denied := coalesce(CheckIPTable(pUserId, 'D', pHost), false);
 
   IF NOT denied THEN
@@ -605,6 +619,54 @@ END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- FUNCTION UnspecifiedHost ----------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief The address a client request is checked as when its host is unknown.
+ *
+ *        0.0.0.0, the unspecified address: inside no allow-list range a real
+ *        client would be given, so a user with an IP table is refused, while
+ *        one without it passes as before. A deny-all entry (0.0.0.0/0) still
+ *        denies it. Used for the check only — no stored host is replaced.
+ *
+ * @return {inet} '0.0.0.0'
+ * @see CheckIPTable, SetClientHost
+ * @since 1.2.27
+ */
+CREATE OR REPLACE FUNCTION UnspecifiedHost()
+RETURNS         inet
+AS $$
+  SELECT '0.0.0.0'::inet;
+$$ LANGUAGE sql IMMUTABLE;
+
+--------------------------------------------------------------------------------
+-- FUNCTION SetClientHost ------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Marks the current transaction as a client request from pHost.
+ *
+ *        Called first by every daemon.* entry that receives a client host.
+ *        CheckIPTable reads it when it is handed no address, so a request
+ *        whose host did not arrive cannot pass a user's allow list by that
+ *        absence, while a server-side re-entry — not inside a client request —
+ *        still passes. Transaction-local: it does not outlive the request on a
+ *        pooled connection.
+ *
+ * @param {inet} pHost - Client address; NULL = unknown
+ * @return {void}
+ * @see CheckIPTable, UnspecifiedHost
+ * @since 1.2.27
+ */
+CREATE OR REPLACE FUNCTION SetClientHost (
+  pHost         inet
+) RETURNS       void
+AS $$
+BEGIN
+  PERFORM set_config('daemon.client_host', host(coalesce(pHost, UnspecifiedHost())), true);
+END;
+$$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 -- CheckSessionLimit -----------------------------------------------------------
@@ -6056,12 +6118,16 @@ $$ LANGUAGE plpgsql
  *        Split out of SessionIn so that a caller which skips the costly session
  *        key check (ValidSession runs crypt()) on a connection that already
  *        carries the user — daemon.observer, once per event — still refuses a
- *        user locked or expired since then (T416).
+ *        user locked or expired since then.
+ *
+ *        A refusal by the IP table is ERR-401-009 here, not the ERR-400-044 of
+ *        a password login: the session exists and cannot be used from this
+ *        address, which is an authentication failure a client must act on.
  *
  * @param {uuid} pUserId - User identifier
  * @param {inet} pHost - Client IP address
  * @return {void}
- * @throws LoginError, UserLockError, PasswordExpired, LoginIPTableError
+ * @throws LoginError, UserLockError, PasswordExpired, SessionIpTableError
  * @see SessionIn
  * @since 1.2.26
  */
@@ -6103,7 +6169,7 @@ BEGIN
   END IF;
 
   IF NOT CheckIPTable(up.id, pHost) THEN
-    PERFORM LoginIPTableError(pHost);
+    PERFORM SessionIpTableError(pHost);
   END IF;
 END;
 $$ LANGUAGE plpgsql

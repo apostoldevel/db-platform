@@ -178,6 +178,7 @@ DECLARE
   ErrorMessage  text;
   vErrorId      text;
 BEGIN
+  PERFORM SetClientHost(pHost);  -- a client request: see CheckIPTable
   SELECT userId INTO uUserId FROM db.session WHERE code = pSession;
 
   IF NOT FOUND OR current_userid() IS DISTINCT FROM uUserId THEN
@@ -188,8 +189,8 @@ BEGIN
     -- A warm pool connection already carries this user, and the full SessionIn
     -- (ValidSession runs crypt()) is skipped per event on purpose. But then a
     -- user locked, or whose password expired, since the connection warmed up
-    -- kept receiving events and never got the 401 WebSocketAPI closes on
-    -- (T416). The status checks are one indexed read — they run every time.
+    -- kept receiving events and never got the 401 WebSocketAPI closes the
+    -- socket on. The status checks are one indexed read — they run every time.
     PERFORM CheckSessionUser(uUserId, pHost);
   END IF;
 
@@ -335,6 +336,7 @@ DECLARE
   ErrorMessage  text;
   vErrorId      text;
 BEGIN
+  PERFORM SetClientHost(pHost);  -- a client request: see CheckIPTable
   SELECT convert_from(url_decode(r[2]), 'utf8')::jsonb INTO payload FROM regexp_split_to_array(pToken, '\.') r;
 
   iss := coalesce(payload->>'iss', 'null');
@@ -600,6 +602,7 @@ DECLARE
   ErrorMessage  text;
   vErrorId      text;
 BEGIN
+  PERFORM SetClientHost(pHost);  -- a client request: see CheckIPTable
   IF SessionIn(pSession, pAgent, pHost) IS NULL THEN
     PERFORM AuthenticateError(GetErrorMessage());
   END IF;
@@ -730,6 +733,7 @@ DECLARE
   ErrorMessage  text;
   vErrorId      text;
 BEGIN
+  PERFORM SetClientHost(pHost);  -- a client request: see CheckIPTable
   IF NULLIF(pClientId, '') IS NULL THEN
   -- The "error" field here is an RFC 6749 §5.2 code, not a catalogue identifier:
   -- this is a protocol response, and the protocol says what belongs in it. The
@@ -1029,6 +1033,7 @@ DECLARE
   vErrorId              text;
   passed                boolean;
 BEGIN
+  PERFORM SetClientHost(pHost);  -- a client request: see CheckIPTable
   grant_type := pPayload->>'grant_type';
 
   IF grant_type IS NULL THEN
@@ -1301,6 +1306,7 @@ DECLARE
   ErrorMessage  text;
   vErrorId      text;
 BEGIN
+  PERFORM SetClientHost(pHost);  -- a client request: see CheckIPTable
   token := TokenValidation(pToken);
 
   IF SessionIn(token->>'sub', pAgent, pHost) IS NULL THEN
@@ -1414,6 +1420,7 @@ DECLARE
   ErrorMessage  text;
   vErrorId      text;
 BEGIN
+  PERFORM SetClientHost(pHost);  -- a client request: see CheckIPTable
   IF NULLIF(pPath, '') IS NULL THEN
     PERFORM RouteIsEmpty();
   END IF;
@@ -1504,6 +1511,7 @@ DECLARE
   ErrorMessage  text;
   vErrorId      text;
 BEGIN
+  PERFORM SetClientHost(pHost);  -- a client request: see CheckIPTable
   IF NULLIF(pPath, '') IS NULL THEN
     PERFORM RouteIsEmpty();
   END IF;
@@ -1588,6 +1596,7 @@ DECLARE
   ErrorMessage  text;
   vErrorId      text;
 BEGIN
+  PERFORM SetClientHost(pHost);  -- a client request: see CheckIPTable
   IF NULLIF(pPath, '') IS NULL THEN
     PERFORM RouteIsEmpty();
   END IF;
@@ -1678,6 +1687,7 @@ DECLARE
   vErrorId      text;
   passed        boolean;
 BEGIN
+  PERFORM SetClientHost(pHost);  -- a client request: see CheckIPTable
   IF NULLIF(pPath, '') IS NULL THEN
     PERFORM RouteIsEmpty();
   END IF;
@@ -1781,6 +1791,7 @@ DECLARE
   ErrorMessage  text;
   vErrorId      text;
 BEGIN
+  PERFORM SetClientHost(pHost);  -- a client request: see CheckIPTable
   IF NULLIF(pPath, '') IS NULL THEN
     PERFORM RouteIsEmpty();
   END IF;

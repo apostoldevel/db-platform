@@ -41,6 +41,7 @@ DECLARE
   vName             text;
   vValue            text;
 BEGIN
+  PERFORM SetClientHost(pHost);  -- a client request (К7: X-Forwarded-For): see CheckIPTable
   authorized := Authorize(pSession, pAgent, pHost);
   userid := current_userid();
   message := GetErrorMessage();
