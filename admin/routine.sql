@@ -1593,8 +1593,12 @@ DECLARE
 
   Token         jsonb;
 BEGIN
+  -- Every rotation takes the header lock first, whichever token it came from
+  -- (refresh, or token exchange of an access/id token): two rotations of one
+  -- header at once close each other's refresh token.
   SELECT oauth2, session INTO nOauth2, vSession
-    FROM db.token_header WHERE id = pHeader;
+    FROM db.token_header WHERE id = pHeader
+     FOR UPDATE;
 
   SELECT access_type, scopes, state INTO vAccessType, arScopes, vState
     FROM db.oauth2 WHERE id = nOauth2;
@@ -1635,6 +1639,88 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- CurrentToken ----------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Returns the token set currently live under a header, without issuing a new one.
+ *        Used by ExchangeToken for a refresh token presented again within the reuse window.
+ * @param {bigint} pHeader - Token header identifier
+ * @return {jsonb} Same shape as NewToken, expires_in counted from now; NULL when the header
+ *                 holds no live access and refresh pair
+ * @see NewToken, ExchangeToken
+ * @since 1.2.28
+ */
+CREATE OR REPLACE FUNCTION CurrentToken (
+  pHeader       bigint
+) RETURNS       jsonb
+AS $$
+DECLARE
+  access_token  text;
+  refresh_token text;
+  id_token      text;
+
+  dtAccessTo    timestamptz;
+
+  arScopes      text[];
+
+  vSession      text;
+  vState        text;
+
+  Token         jsonb;
+BEGIN
+  SELECT h.session, o.scopes, o.state INTO vSession, arScopes, vState
+    FROM db.token_header h INNER JOIN db.oauth2 o ON o.id = h.oauth2
+   WHERE h.id = pHeader;
+
+  IF NOT FOUND THEN
+    RETURN null;
+  END IF;
+
+  -- Wall clock and newest first: the caller may have waited for the rotation, whose
+  -- Now() is ahead of the caller's, so the range it closed still looks open by Now().
+  SELECT t.token, t.validToDate INTO access_token, dtAccessTo
+    FROM db.token t
+   WHERE t.header = pHeader AND t.type = 'A' AND t.validToDate > clock_timestamp()
+   ORDER BY t.validFromDate DESC
+   LIMIT 1;
+
+  SELECT t.token INTO refresh_token
+    FROM db.token t
+   WHERE t.header = pHeader AND t.type = 'R' AND t.used IS NULL AND t.validToDate > clock_timestamp()
+   ORDER BY t.validFromDate DESC
+   LIMIT 1;
+
+  IF access_token IS NULL OR refresh_token IS NULL THEN
+    RETURN null;
+  END IF;
+
+  Token := jsonb_build_object('session', vSession, 'secret', session_secret(vSession), 'access_token', access_token, 'token_type', 'Bearer', 'expires_in', trunc(extract(EPOCH FROM dtAccessTo)) - trunc(extract(EPOCH FROM clock_timestamp())), 'scope', array_to_string(arScopes, ' '));
+
+  IF vState IS NOT NULL THEN
+    Token := Token || jsonb_build_object('state', vState);
+  END IF;
+
+  Token := Token || jsonb_build_object('refresh_token', refresh_token);
+
+  IF arScopes && ARRAY['openid', 'profile'] THEN
+    SELECT t.token INTO id_token
+      FROM db.token t
+     WHERE t.header = pHeader AND t.type = 'I' AND t.validToDate > clock_timestamp()
+     ORDER BY t.validFromDate DESC
+     LIMIT 1;
+
+    IF id_token IS NOT NULL THEN
+      Token := Token || jsonb_build_object('id_token', id_token);
+    END IF;
+  END IF;
+
+  RETURN Token;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- ExchangeToken ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
@@ -1659,36 +1745,49 @@ DECLARE
   nToken        bigint;
   nClaimed      bigint;
 
+  dtUsed        timestamptz;
+  dtValidTo     timestamptz;
+
+  jToken        jsonb;
+  jMalformed    json;
+
   vType         text;
   vHash         text;
+
+  -- How long a rotated refresh token still returns the pair its rotation issued.
+  cReuseWindow  constant interval := '30 sec';
 BEGIN
   vHash := GetTokenHash(pToken, GetSecretKey());
+
+  CASE pType
+  WHEN 'C' THEN
+    vType := 'authorization code.';
+  WHEN 'A' THEN
+    vType := 'access token.';
+  WHEN 'R' THEN
+    vType := 'refresh token.';
+  WHEN 'I' THEN
+    vType := 'id token.';
+  END CASE;
+
+  jMalformed := json_build_object('error', json_build_object('code', 400, 'error', 'invalid_grant', 'message', format('Malformed %s', vType)));
 
   -- A spent authorization code is found here on purpose; the claim below decides.
   -- Filtering it out made a sequential replay indistinguishable from a code that
   -- never existed — "Malformed" and nothing else — so the revocation RFC 6749
   -- §4.1.2 asks for never happened on the commonest path. A code leaks through a
   -- redirect, a Referer or a proxy log and is presented later, not in a race.
+  --
+  -- A refresh token rotated within the reuse window is found too: its range is
+  -- already closed by the rotation, and the branch below decides what it gets.
   SELECT h.id, t.id INTO nHeader, nToken
     FROM db.token t INNER JOIN db.token_header h ON h.id = t.header AND t.type = pType
    WHERE t.hash = vHash
      AND t.validFromDate <= Now()
-     AND t.validtoDate > Now();
+     AND (t.validtoDate > Now() OR (pType = 'R' AND t.used > Now() - cReuseWindow));
 
   IF NOT FOUND THEN
-
-    CASE pType
-    WHEN 'C' THEN
-      vType := 'authorization code.';
-    WHEN 'A' THEN
-      vType := 'access token.';
-    WHEN 'R' THEN
-      vType := 'refresh token.';
-    WHEN 'I' THEN
-      vType := 'id token.';
-    END CASE;
-
-    RETURN json_build_object('error', json_build_object('code', 400, 'error', 'invalid_grant', 'message', format('Malformed %s', vType)));
+    RETURN jMalformed;
   END IF;
 
   IF pType = 'C' THEN
@@ -1735,6 +1834,54 @@ BEGIN
     END IF;
 
   ELSIF pType = 'R' THEN
+
+    -- Rotation is serialised on the header, and a refresh used moments ago gets
+    -- the pair its rotation issued instead of a refusal.
+    --
+    -- A client that finds its access token expired often refreshes from several
+    -- requests at once, all carrying the same refresh token. Without a lock both
+    -- passed the SELECT above, both rotated, and the second AddToken closed the
+    -- refresh token the first had just handed out; the client kept whichever
+    -- response it processed last — in about half the races a closed one — and
+    -- was refused on the next expiry. A plain claim, as for a code, would log the
+    -- loser out instead. So the loser waits for the winner and receives the
+    -- header's current pair; both clients end up holding the same live tokens.
+    --
+    -- Outside the window a spent refresh token is refused as before. The lock is
+    -- the header's, not the token's, because the rotation writes new rows; NewToken
+    -- takes the same lock again. Under READ COMMITTED the loser re-reads below; a
+    -- stricter isolation level would fail it with a serialization error instead.
+    PERFORM FROM db.token_header WHERE id = nHeader FOR UPDATE;
+
+    IF NOT FOUND THEN
+      RETURN jMalformed;
+    END IF;
+
+    -- A fresh statement, so a rotation committed while we waited is visible.
+    SELECT used, validToDate INTO dtUsed, dtValidTo FROM db.token WHERE id = nToken;
+
+    IF NOT FOUND THEN
+      RETURN jMalformed;
+    END IF;
+
+    IF dtUsed IS NOT NULL THEN
+      -- clock_timestamp(), not Now(): our transaction may have started before the
+      -- rotation we waited for, and the window is measured from that rotation.
+      IF clock_timestamp() - dtUsed <= cReuseWindow THEN
+        jToken := CurrentToken(nHeader);
+        IF jToken IS NOT NULL THEN
+          RETURN jToken;
+        END IF;
+      END IF;
+
+      RETURN jMalformed;
+    END IF;
+
+    -- Closed by a rotation we waited for, which may be later than our Now().
+    IF dtValidTo <= clock_timestamp() THEN
+      RETURN jMalformed;
+    END IF;
+
     UPDATE db.token SET used = Now() WHERE id = nToken;
   END IF;
 
