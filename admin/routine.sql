@@ -1744,6 +1744,7 @@ DECLARE
   nHeader       bigint;
   nToken        bigint;
   nClaimed      bigint;
+  nAudience     integer;
 
   dtUsed        timestamptz;
   dtValidTo     timestamptz;
@@ -1780,13 +1781,23 @@ BEGIN
   --
   -- A refresh token rotated within the reuse window is found too: its range is
   -- already closed by the rotation, and the branch below decides what it gets.
-  SELECT h.id, t.id INTO nHeader, nToken
+  SELECT h.id, t.id, a.audience INTO nHeader, nToken, nAudience
     FROM db.token t INNER JOIN db.token_header h ON h.id = t.header AND t.type = pType
+                    INNER JOIN db.oauth2 a ON a.id = h.oauth2
    WHERE t.hash = vHash
      AND t.validFromDate <= Now()
      AND (t.validtoDate > Now() OR (pType = 'R' AND t.used > Now() - cReuseWindow));
 
   IF NOT FOUND THEN
+    RETURN jMalformed;
+  END IF;
+
+  -- A refresh token belongs to the client it was issued to and to no one else,
+  -- the same rule daemon.token applies to an authorization code. Without it a
+  -- refresh token issued to one client was rotated under another client's
+  -- credentials and came back with that client's audience. Checked before the
+  -- rotation below, so a refused attempt does not spend the owner's token.
+  IF pType = 'R' AND nAudience IS DISTINCT FROM pAudience THEN
     RETURN jMalformed;
   END IF;
 
