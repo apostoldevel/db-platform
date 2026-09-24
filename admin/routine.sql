@@ -1730,6 +1730,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pToken - Token string to exchange
  * @param {interval} pInterval - Validity duration for new tokens (defaults to '1 hour')
  * @param {char} pType - Token type to exchange: 'A', 'C', 'R', or 'I' (defaults to 'A')
+ *        Every type but the code must belong to pAudience.
  * @return {json} New token set or error JSON object
  * @since 1.0.0
  */
@@ -1792,12 +1793,14 @@ BEGIN
     RETURN jMalformed;
   END IF;
 
-  -- A refresh token belongs to the client it was issued to and to no one else,
-  -- the same rule daemon.token applies to an authorization code. Without it a
-  -- refresh token issued to one client was rotated under another client's
-  -- credentials and came back with that client's audience. Checked before the
-  -- rotation below, so a refused attempt does not spend the owner's token.
-  IF pType = 'R' AND nAudience IS DISTINCT FROM pAudience THEN
+  -- A token belongs to the client it was issued to and to no one else. Without
+  -- this a refresh token issued to one client was rotated under another client's
+  -- credentials and came back with that client's audience; an access or id token
+  -- presented to the token-exchange grant did the same. Checked before the
+  -- rotation below, so a refused attempt does not spend the owner's token. An
+  -- authorization code is checked by its caller (daemon.token), which also
+  -- compares the redirect URI.
+  IF pType <> 'C' AND nAudience IS DISTINCT FROM pAudience THEN
     RETURN jMalformed;
   END IF;
 
