@@ -4464,10 +4464,140 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- RegisterProtectedGroup ------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Marks a group as protected: its membership grants rights by itself,
+ *        so only an administrator includes into or excludes from it.
+ *        Re-runnable. The platform registers administrator, system, message,
+ *        replication and mq; a configuration adds its own (a group checked by
+ *        name in its code, such as a superuser group).
+ * @param {text} pCode - Group name
+ * @return {void}
+ * @throws GroupNotFound when there is no such group
+ * @since 1.2.31
+ */
+CREATE OR REPLACE FUNCTION RegisterProtectedGroup (
+  pCode         text
+) RETURNS       void
+AS $$
+BEGIN
+  INSERT INTO db.protected_group (id) VALUES (GetGroup(pCode)) ON CONFLICT (id) DO NOTHING;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- IsProtectedGroup ------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Whether a group is protected (see RegisterProtectedGroup).
+ * @param {uuid} pGroup - Group identifier
+ * @return {boolean}
+ * @since 1.2.31
+ */
+CREATE OR REPLACE FUNCTION IsProtectedGroup (
+  pGroup        uuid
+) RETURNS       boolean
+AS $$
+BEGIN
+  RETURN EXISTS (SELECT FROM db.protected_group WHERE id = pGroup);
+END;
+$$ LANGUAGE plpgsql STABLE
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- CheckGroupChange ------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Refuses a change of a group's members that would raise someone above
+ *        the caller. The ACL bits of AddMemberToGroup and the two exclusions
+ *        say only that the caller may change memberships at all, not of which
+ *        group — so a company owner holding the bit could include himself into
+ *        administrator (ship-safety T288).
+ *
+ *        The kernel role and an administrator pass. A protected group
+ *        (db.protected_group) is refused to everyone else. Then, for a user
+ *        session, the group's own ACL must not grant a bit the caller's
+ *        effective ACL lacks. apibot is not held to that last rule: the
+ *        service flows (sign-up, registration by code) run as apibot
+ *        (SubstituteUser), whose ACL has no sign-in bits, and include the new
+ *        user into ordinary groups that do — the rule would break them; what
+ *        they may reach is decided by the protected list. The other members
+ *        of system have no inclusion bit at all.
+ *
+ *        pGroup must be a group: a user in that place is refused.
+ *
+ *        Only the ACL of the group is compared — not its class, method and
+ *        object grants: a group whose membership means more than its ACL
+ *        (a name checked in code, such as a superuser group) is to be
+ *        registered as protected (RegisterProtectedGroup).
+ * @param {uuid} pGroup - Group whose members change
+ * @param {boolean} pInclude - An inclusion (true) or an exclusion
+ * @return {void}
+ * @throws ProtectedGroupError, GroupExceedsRightsError
+ * @since 1.2.31
+ */
+CREATE OR REPLACE FUNCTION CheckGroupChange (
+  pGroup        uuid,
+  pInclude      boolean DEFAULT true
+) RETURNS       void
+AS $$
+DECLARE
+  vGroup        text;
+  bGroup        bit varying;
+  bOwn          bit varying;
+BEGIN
+  SELECT username INTO vGroup FROM db.user WHERE id = pGroup AND type = 'G';
+
+  -- a user is not a group: a membership row "member of a user" would read as
+  -- membership in that user's areas and rights (IsMemberArea, acl, IsUserRole).
+  -- Refused on inclusion; an exclusion of such a row left from before is let
+  -- through, so that it can be cleaned up
+  IF vGroup IS NULL THEN
+    IF pInclude THEN
+      PERFORM ObjectNotFound('group', 'id', pGroup);
+    END IF;
+    RETURN;
+  END IF;
+
+  IF session_user = 'kernel' OR IsAdmin() THEN
+    RETURN;
+  END IF;
+
+  IF IsProtectedGroup(pGroup) THEN
+    PERFORM ProtectedGroupError(vGroup);
+  END IF;
+
+  IF current_userid() = GetUser('apibot') THEN
+    RETURN;
+  END IF;
+
+  SELECT mask INTO bGroup FROM db.acl WHERE userid = pGroup;
+
+  IF bGroup IS NULL THEN
+    RETURN;
+  END IF;
+
+  bOwn := GetAccessControlListMask();
+
+  IF bOwn IS NULL OR length(bOwn) <> length(bGroup) OR bit_count(bGroup & ~bOwn) > 0 THEN
+    PERFORM GroupExceedsRightsError(vGroup);
+  END IF;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- AddMemberToGroup ------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Adds a user to a group. Requires the 'include user to group' ACL bit.
+ * @brief Adds a user to a group. Requires the 'include user to group' ACL bit
+ *        and passes CheckGroupChange: a protected group only for an
+ *        administrator, and no group granting more than the caller holds.
  * @param {uuid} pMember - User identifier
  * @param {uuid} pGroup - Group identifier
  * @return {void}
@@ -4485,6 +4615,8 @@ BEGIN
       PERFORM AccessDenied();
     END IF;
   END IF;
+
+  PERFORM CheckGroupChange(pGroup, true);
 
   INSERT INTO db.member_group (userid, member) VALUES (pGroup, pMember) ON CONFLICT (userid, member) DO NOTHING;
 END;
@@ -4516,6 +4648,8 @@ BEGIN
     END IF;
   END IF;
 
+  PERFORM CheckGroupChange(userid, false) FROM db.member_group WHERE userid = coalesce(pGroup, userid) AND member = pMember;
+
   DELETE FROM db.member_group WHERE userid = coalesce(pGroup, userid) AND member = pMember;
 END;
 $$ LANGUAGE plpgsql
@@ -4545,6 +4679,8 @@ BEGIN
       PERFORM AccessDenied();
     END IF;
   END IF;
+
+  PERFORM CheckGroupChange(pGroup, false);
 
   DELETE FROM db.member_group WHERE userid = pGroup AND member = coalesce(pMember, member);
 END;

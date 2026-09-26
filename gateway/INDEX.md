@@ -34,6 +34,8 @@ and was dropped.
 |-------|-------------|-------------|
 | `gateway.node` | One row per registered `/api/v2` module instance; written only by the GatewayAPI worker holding the instance's control socket, only on a state transition (`seen` moves once per heartbeat interval). Rows are never deleted by the database | `module text`, `instance text` (PK together), `address text` (data plane host:port, К7), `prefixes text[]`, `state text` CHECK ready/draining/suspect/offline/overloaded (К8), `capacity int`, `worker int` (pid), `registered`, `seen`, `updated timestamptz` |
 | `gateway.log` | Journal of transitions, one row per INSERT / state UPDATE / DELETE on `gateway.node`, written by the trigger | `id bigserial PK`, `datetime`, `module`, `instance`, `state_from`, `state_to`, `worker`, `reason text` (from the session GUC `gateway.reason`) |
+| `gateway.request` (1.2.31, UNLOGGED) | One `/api/v2` request opened by `daemon.begin` and not yet closed by `daemon.end`: the verified identity `daemon.call` restores the context from. Only `kernel` reads or writes it; a rolled-back transaction takes its row with it | `pid int`, `xid bigint` (PK together: `pg_backend_pid()`, `txid_current()`), `session`, `context jsonb`, `method`, `path`, `agent`, `host inet`, `request_id uuid`, `started`, `log bigint` (`db.api_log`) |
+| `gateway.function` (1.2.31) | Allow list of `daemon.call` — closed by default | `signature text PK` (`name(type, …)` without the schema), `name`, `level` CHECK session / administrator |
 
 Grants: `daemon`, `apibot` — `SELECT, INSERT, UPDATE, DELETE` on `node`, `SELECT, INSERT` on `log`,
 USAGE on `log_id_seq`; `administrator` — `SELECT` on both.
@@ -52,6 +54,23 @@ USAGE on `log_id_seq`; `administrator` — `SELECT` on both.
 |----------|---------|---------|
 | `gateway.ft_node_notify()` | `trigger` | AFTER INSERT/UPDATE/DELETE on `gateway.node`: journals into `gateway.log` and `pg_notify('gateway', json)`. Skips an UPDATE that does not change `state` (heartbeat), so a fleet cannot turn the channel into a metronome. DELETE is journaled as → `offline`. Payload: `op, module, instance, state, state_from, address, prefixes, worker`. `reason` is read from `current_setting('gateway.reason', true)` — the worker sets it with `set_config(…, true)` before the statement |
 
+### Route guards and the allow list of `daemon.call` (1.2.31, `routine.sql`)
+
+The entry points are `daemon.begin` / `daemon.call` / `daemon.end` (see `daemon/INDEX.md`).
+
+| Function | Returns | Purpose |
+|----------|---------|---------|
+| `GuardSession(pPath, pPayload, pMethod)` | `boolean` | Route guard: an open session that is **not** a member of `system` (the service audience is obtainable without a secret — ship-safety T289; a route `system` needs gets a guard of its own) |
+| `GuardAdministrator(…)` | `boolean` | Route guard: `IsAdmin()` — the `/api/v2` twin of the check at the top of `rest.admin` / `rest.workflow` / `rest.registry` |
+| `GuardRead(…)` | `boolean` | Route guard for a platform reference: `GET` → `GuardSession`, anything else → `GuardAdministrator` |
+| `RegisterRouteGuard(pPrefix, pGuard, pMethods[], pVersion = 'v2')` | `void` | Declares the guard of `/api/<version>/<prefix>` for exactly the methods given. The prefix is plain segments (`a-z0-9_-`): a guard decides for its **whole subtree** — `QueryPath` stops at the first segment it does not know, so `vessels/{id}/x` is judged by the guard of `vessels`. Re-runnable and declarative: one endpoint per (path, method), a repeat replaces its definition, a method left out loses its route. `RegisterRoute` is not re-runnable (a repeat adds a second row for the pair) |
+| `RegisterGatewayFunction(pSignature, pLevel = 'session')` | `void` | Opens `api.<fn>` to `daemon.call`. Refuses: outside schema `api`; by name — session openers, `run`/`sql`, the journal wrappers, `send_mail/sms/push*`, recovery and registration by code, `replication_apply*`; by body — any function calling `SubstituteUser`, `SignIn`, `Login`, `SessionIn`, `SetCurrentUserId`, `SetSessionUserId`; a second form of a name with the same key set |
+| `UnregisterGatewayFunction(pSignature)` | `void` | Closes it again |
+| `GatewayFunctionArgs(oid)` / `GatewayFunctionKeys(oid)` | `SETOF record` / `text[]` | IN parameters of a function: position, name, key (name without the leading `p`), type |
+| `GatewayContext()` / `SetGatewayContext(jsonb)` | `jsonb` / `void` | The nine `current.*` context GUCs as an object; put back at the **transaction** level only (session level cleared) |
+| `ResetGatewayVars()` | `void` | Clears every GUC the platform takes identity or intent from — the nine `current.*`, `current.key`, `object.id`, `context.*` — at both levels. First line of `daemon.begin` (a value set before the request is never taken as verified), and before the context is put back in `call`/`end` |
+| `InitGatewayRoutes()` / `InitGatewayFunctions()` / `InitGateway()` | `void` | The platform's own `/api/v2` routes (31 prefixes of the go-platform modules) and allow list (levels as the Go code needs them). Re-runnable: `init.sql` and the end of `update.psql`. A configuration registers its own prefixes and functions the same way |
+
 ### `api.*` wrappers for the pool role (`apibot`)
 
 | Function | Returns | Purpose |
@@ -67,13 +86,18 @@ USAGE on `log_id_seq`; `administrator` — `SELECT` on both.
 | `schema.sql` | yes | — | schema, USAGE grants, comment |
 | `table.sql` | yes | — | `node`, `log`, indexes, trigger function + trigger, table grants |
 | `view.sql` | yes | yes | `gateway.route` |
+| `routine.sql` (1.2.31) | yes | yes | route guards, the registrars, the context helpers, `InitGateway*` |
 | `api.sql` | yes | yes | the three `api.*` wrappers |
+
+`update.psql` ends with `InitGateway()` — gateway is the last module, so every function of schema
+`api` exists by then.
 
 ## Patches
 
 | Patch | Content |
 |-------|---------|
 | `patch/v1.2/P00000020.sql` | Self-contained, idempotent snapshot of schema + tables + trigger + view + grants. On a base that already has the schema from a project patch (csms `P00000044`) it adds the `administrator` grants and the comments; on any other base it creates the schema |
+| `patch/v1.2/P00000026.sql` | 1.2.31: `gateway.request`, `gateway.function`, `PATCH` in `db.route.method`, `db.protected_group`, error group 403. Routes and the allow list are written by `update.psql` after it |
 
 ## Traps
 
@@ -82,6 +106,16 @@ USAGE on `log_id_seq`; `administrator` — `SELECT` on both.
   where a relative `\ir` does not resolve).
 - **A heartbeat must touch only `seen`** (or `address`, `capacity`): any UPDATE that changes
   `state` journals and notifies.
+- **Never trust `current.*` on the daemon road.** The `daemon` connection can `set_config` any of
+  them; `daemon.call` puts the context back from `gateway.request` before every call. A new
+  function that reads identity from elsewhere (a GUC of its own) is outside that guarantee.
+- **A route guard is not tied to the functions.** Every function of level `session` is reachable
+  under any route whose guard lets the session in; a finer guard of a configuration protects the
+  route, not the functions. What a non-administrator must not reach is `administrator` in the list.
+- **`InitGatewayFunctions` only adds and updates levels.** A function taken out of the list stays open on a
+  database that had it: closing one takes an explicit `UnregisterGatewayFunction` (in `update.psql` or a patch).
+- **The allow list is by signature, the call by name.** Two forms of a name with the same key set
+  cannot both be open; open one and give the other a name of its own (`set_session_area_by_code`).
 - **No `secret.gateway` anywhere.** The control socket takes `service-<domain>` tokens; a 401 there
   means the module was given the wrong client id or secret (`OAUTH2_SECRET_SERVICE`), not a
   missing audience.

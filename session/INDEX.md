@@ -33,6 +33,7 @@ None.
 |----------|---------|---------|
 | `api.set_session_area(pArea uuid)` | `SETOF record` | Set session area by UUID |
 | `api.set_session_area(pArea text)` | `SETOF record` | Set session area by code |
+| `api.set_session_area_by_code(pCode text)` | `void` | The same under a name of its own: both forms of `set_session_area` take the key `area`, and `daemon.call` chooses a form by its keys (1.2.31) |
 | `api.set_session_interface(pInterface uuid)` | `SETOF record` | Set session interface by UUID |
 | `api.set_session_interface(pInterface text)` | `SETOF record` | Set session interface by code |
 | `api.set_session_locale(pLocale uuid)` | `SETOF record` | Set session locale by UUID |

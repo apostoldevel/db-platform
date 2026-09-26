@@ -127,6 +127,57 @@ CREATE TRIGGER t_gateway_node_notify
 -- grants: the GatewayAPI worker writes as daemon (worker pool) or apibot ------
 --------------------------------------------------------------------------------
 
+--------------------------------------------------------------------------------
+-- gateway.request -------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE UNLOGGED TABLE gateway.request (
+    pid         integer NOT NULL,
+    xid         bigint NOT NULL,
+    session     text NOT NULL,
+    context     jsonb NOT NULL,
+    method      text NOT NULL,
+    path        text NOT NULL,
+    agent       text,
+    host        inet,
+    request_id  uuid,
+    started     timestamptz NOT NULL DEFAULT clock_timestamp(),
+    log         bigint,
+    PRIMARY KEY (pid, xid)
+);
+
+COMMENT ON TABLE gateway.request IS 'One /api/v2 request opened by daemon.begin and not yet closed by daemon.end — the verified identity of the transaction. daemon.call restores the session context from here on every call instead of trusting the current.* GUCs, which the daemon connection can set itself. No role but kernel writes it; a rolled-back transaction takes its row with it.';
+
+COMMENT ON COLUMN gateway.request.pid        IS 'Backend of the request (pg_backend_pid()).';
+COMMENT ON COLUMN gateway.request.xid        IS 'Transaction of the request (txid_current()).';
+COMMENT ON COLUMN gateway.request.session    IS 'Session code the token was verified for.';
+COMMENT ON COLUMN gateway.request.context    IS 'The current.* context set by SessionIn, re-applied before every daemon.call and saved after it.';
+COMMENT ON COLUMN gateway.request.method     IS 'HTTP method of the request.';
+COMMENT ON COLUMN gateway.request.path       IS 'Request path as received (/api/v2/…).';
+COMMENT ON COLUMN gateway.request.agent      IS 'User-Agent, for UpdateSessionStats at daemon.end.';
+COMMENT ON COLUMN gateway.request.host       IS 'Client address (X-Forwarded-For), for UpdateSessionStats at daemon.end.';
+COMMENT ON COLUMN gateway.request.request_id IS 'X-Request-Id from the gateway.';
+COMMENT ON COLUMN gateway.request.started    IS 'When daemon.begin ran, for the runtime written by daemon.end.';
+COMMENT ON COLUMN gateway.request.log        IS 'db.api_log line written by daemon.begin and completed by daemon.end.';
+
+--------------------------------------------------------------------------------
+-- gateway.function ------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE TABLE gateway.function (
+    signature   text PRIMARY KEY,
+    name        text NOT NULL,
+    level       text NOT NULL DEFAULT 'session' CHECK (level IN ('session', 'administrator'))
+);
+
+COMMENT ON TABLE gateway.function IS 'The functions of schema api that daemon.call may reach — closed by default. Filled by RegisterGatewayFunction, re-run on every update.';
+
+COMMENT ON COLUMN gateway.function.signature IS 'Function signature as regprocedure prints it, without the schema: name(type, …).';
+COMMENT ON COLUMN gateway.function.name      IS 'Function name, what daemon.call is given.';
+COMMENT ON COLUMN gateway.function.level     IS 'session — any session a route guard let in; administrator — members of administrator only, checked by daemon.call itself.';
+
+CREATE INDEX ON gateway.function (name);
+
 GRANT SELECT, INSERT, UPDATE, DELETE ON gateway.node TO daemon, apibot;
 GRANT SELECT, INSERT ON gateway.log TO daemon, apibot;
 GRANT USAGE ON SEQUENCE gateway.log_id_seq TO daemon, apibot;

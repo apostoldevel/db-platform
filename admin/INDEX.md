@@ -111,7 +111,7 @@ User management, authentication, authorization, sessions, and access control. Th
 
 ### User & Group Management (~16)
 
-`CreateUser`, `UpdateUser`, `DeleteUser`, `GetUser`, `GetUsername`, `GetUserFullName`, `CreateGroup`, `UpdateGroup`, `DeleteGroup`, `GetGroup`, `GetGroupUsername`, `GetGroupName`, `AddMemberToGroup`, `DeleteGroupForMember`, `DeleteMemberFromGroup`, `UserLock`, `UserUnLock`.
+`CreateUser`, `UpdateUser`, `DeleteUser`, `GetUser`, `GetUsername`, `GetUserFullName`, `CreateGroup`, `UpdateGroup`, `DeleteGroup`, `GetGroup`, `GetGroupUsername`, `GetGroupName`, `AddMemberToGroup`, `DeleteGroupForMember`, `DeleteMemberFromGroup` (all three pass `CheckGroupChange` since 1.2.31), `CheckGroupChange` (the target must be a group — a user in its place is refused; kernel and administrator pass; a protected group → `ERR-403-014`; for any caller but `apibot` (the sign-up flows), a group whose ACL grants a bit the caller lacks → `ERR-403-015`; only `db.acl` is compared — a group whose membership means more must be registered protected), `RegisterProtectedGroup(code)`, `IsProtectedGroup(uuid)` (table `db.protected_group`: administrator, system, message, replication, mq; a configuration adds its own), `UserLock`, `UserUnLock`.
 
 ### Profile (~3)
 
@@ -188,7 +188,7 @@ defaulting to the platform's own `kernel`, `daemon`, `apibot`.
 
 ### Area (12)
 
-`api.get_area_type`, `api.add_area`, `api.update_area`, `api.set_area`, `api.delete_area`, `api.safely_delete_area`, `api.clear_area`, `api.get_area`, `api.get_area_id`, `api.list_area`, `api.count_area`.
+`api.get_area_type`, `api.list_area_type` (1.2.31), `api.list_locale` (1.2.31), `api.is_administrator()` (1.2.31, whether the current user is an administrator — for a caller that must not read the group list), `api.add_area`, `api.update_area`, `api.set_area`, `api.delete_area`, `api.safely_delete_area`, `api.clear_area`, `api.get_area`, `api.get_area_id`, `api.list_area`, `api.count_area`.
 
 ### Interface (9)
 

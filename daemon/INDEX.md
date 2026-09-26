@@ -70,6 +70,19 @@ Core OAuth2 token endpoint supporting 7 grant types:
 | `daemon.signed_fetch(pMethod, pPath, pJson, pSession, pNonce, pSignature, ...)` | `SETOF json` | HMAC-SHA256 signed request with nonce/time window validation |
 | `daemon.fetch(pToken, pMethod, pPath, pPayload, ...)` | `SETOF json` | API request with JWT Bearer token |
 
+### `/api/v2` road (1.2.31)
+
+One request is one transaction: `begin` → `call` × n → `end`. The verified identity lives in
+`gateway.request` (kernel only), not in the `current.*` GUCs the `daemon` connection can set.
+
+| Function | Returns | Purpose |
+|----------|---------|---------|
+| `daemon.begin(pToken, pAgent, pHost, pMethod, pPath, pPayload, pRequestId)` | `record (authorized, userid, status, error, message)` | `ResetGatewayVars` → `TokenValidation` → `SessionIn` → context at the transaction level → the route guard (`QueryPath`/`GetEndpoint`; path must start `/api/v2/`, no dot segment, `%` or `//`; no route = refusal). A token the database does not accept is always 401. Drops request rows of transactions that committed without `end`. Never raises: a refusal is `authorized = false` with status and catalogue code (`ERR-403-010` for a route), already journalled — commit, no `end` |
+| `daemon.call(pFunction, pArgs jsonb)` | `SETOF json` | One `api.<fn>` from the allow list (`gateway.function`), form chosen by keys (parameter names without `p`; absent key → default, JSON null → NULL); context restored from `gateway.request` before and saved after; level administrator → `IsAdmin()`. Raises on a refusal (`ERR-403-011/012/013`) and on the function's error |
+| `daemon.end(pStatus, pMessage)` | `record (log_id, status, error, message)` | Completes the journal line (status never rewritten; from `pMessage` only when `pStatus` is NULL), `UpdateSessionStats` below 400, drops the request row |
+| `daemon.error(pCode, pLocale)` | `SETOF json` | A catalogue entry without a session |
+| `daemon.routes(pVersion = 'v2')` | `SETOF record (path, method)` | The routes of a version — what a module checks before announcing a prefix |
+
 ### Event System
 
 | Function | Returns | Purpose |

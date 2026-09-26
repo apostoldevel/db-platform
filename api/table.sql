@@ -74,7 +74,7 @@ COMMENT ON COLUMN db.endpoint.definition IS 'Dynamic PL/pgSQL expression execute
 --------------------------------------------------------------------------------
 
 CREATE TABLE db.route (
-    method      text NOT NULL DEFAULT 'POST' CHECK (method IN ('GET', 'POST', 'PUT', 'DELETE')),
+    method      text NOT NULL DEFAULT 'POST' CHECK (method IN ('GET', 'POST', 'PUT', 'PATCH', 'DELETE')),
     path        uuid NOT NULL REFERENCES db.path(id),
     endpoint    uuid NOT NULL REFERENCES db.endpoint(id),
     PRIMARY KEY (method, path, endpoint)
@@ -82,7 +82,7 @@ CREATE TABLE db.route (
 
 COMMENT ON TABLE db.route IS 'API route: binds an HTTP method + path to an endpoint.';
 
-COMMENT ON COLUMN db.route.method IS 'HTTP method (GET, POST, PUT, DELETE).';
+COMMENT ON COLUMN db.route.method IS 'HTTP method (GET, POST, PUT, PATCH, DELETE; PATCH since 1.2.31 for /api/v2).';
 COMMENT ON COLUMN db.route.path IS 'Reference to the path node in db.path.';
 COMMENT ON COLUMN db.route.endpoint IS 'Reference to the endpoint in db.endpoint.';
 

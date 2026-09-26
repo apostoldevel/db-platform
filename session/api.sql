@@ -61,6 +61,30 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- api.set_session_area_by_code ------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Set the current session area by code. The same as the text form of
+ *        api.set_session_area, under a name of its own: the two forms of
+ *        set_session_area take the same key (area), and daemon.call chooses a
+ *        form by its keys, so only the uuid form is open there.
+ * @param {text} pCode - Area code
+ * @return {void}
+ * @since 1.2.31
+ */
+CREATE OR REPLACE FUNCTION api.set_session_area_by_code (
+  pCode     text
+) RETURNS   void
+AS $$
+BEGIN
+  PERFORM api.set_session_area(pCode);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+
+--------------------------------------------------------------------------------
 -- api.set_session_interface ---------------------------------------------------
 --------------------------------------------------------------------------------
 /**

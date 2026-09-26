@@ -4,6 +4,9 @@
 \echo [M] call table.sql
 \ir table.sql
 
+\echo [M] call routine.sql
+\ir routine.sql
+
 \echo [M] call view.sql
 \ir view.sql
 

@@ -43,3 +43,7 @@ SELECT CreateGroup('message', 'Сообщения', 'Группа для пол�
 SELECT AddMemberToGroup(GetUser('admin'), GetGroup('message'));
 
 SELECT CreateGroup('replication', 'Репликация', 'Группа для пользователей, которым разрешено тиражировать данные в системе', '00000000-0000-4000-a000-000000000005');
+
+-- Membership of these groups grants rights by itself: only an administrator
+-- changes it (CheckGroupChange). mq is registered by its own module.
+SELECT RegisterProtectedGroup(code) FROM unnest(ARRAY['system', 'administrator', 'message', 'replication']) AS code;

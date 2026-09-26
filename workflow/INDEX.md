@@ -159,7 +159,7 @@ Default ACU on class creation (via trigger):
 
 ### api schema — 12 views
 
-`api.entity`, `api.type`, `api.class` (with access filtering), `api.class_access`, `api.state_type`, `api.state`, `api.action`, `api.method` (based on AccessMethod), `api.method_access`, `api.transition`, `api.event_type`, `api.event`, `api.priority`.
+`api.entity`, `api.type`, `api.class` (with access filtering), `api.class_access`, `api.state_type` (and `api.list_state_type`, 1.2.31), `api.state`, `api.action`, `api.method` (based on AccessMethod), `api.method_access`, `api.transition`, `api.event_type`, `api.event`, `api.priority`.
 
 ## Functions (kernel schema) — 89 total
 

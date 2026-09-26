@@ -300,6 +300,67 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- api.list_my_listener --------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief The subscriptions of the current session, without the session code.
+ *        api.list_listener and api.get_listener show every session's
+ *        subscriptions with their codes — an administrator's view; this is
+ *        what a user asks for "my subscriptions", filtered here, in the
+ *        database, not by the caller.
+ * @return {SETOF record} - publisher, identity, filter, params
+ * @since 1.2.31
+ */
+CREATE OR REPLACE FUNCTION api.list_my_listener (
+  OUT publisher text,
+  OUT identity  text,
+  OUT filter    jsonb,
+  OUT params    jsonb
+) RETURNS       SETOF record
+AS $$
+BEGIN
+  RETURN QUERY
+    SELECT l.publisher, l.identity, l.filter, l.params
+      FROM db.listener l
+     WHERE l.session = current_session()
+     ORDER BY l.publisher, l.identity;
+END;
+$$ LANGUAGE plpgsql STABLE
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.get_my_listener ---------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief One subscription of the current session, without the session code.
+ * @param {text} pPublisher - Publisher code
+ * @param {text} pIdentity - Subscriber identity
+ * @return {SETOF record} - publisher, identity, filter, params
+ * @since 1.2.31
+ */
+CREATE OR REPLACE FUNCTION api.get_my_listener (
+  pPublisher    text,
+  pIdentity     text,
+  OUT publisher text,
+  OUT identity  text,
+  OUT filter    jsonb,
+  OUT params    jsonb
+) RETURNS       SETOF record
+AS $$
+BEGIN
+  RETURN QUERY
+    SELECT l.publisher, l.identity, l.filter, l.params
+      FROM db.listener l
+     WHERE l.session = current_session()
+       AND l.publisher = pPublisher
+       AND l.identity = pIdentity;
+END;
+$$ LANGUAGE plpgsql STABLE
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- api.subscribe_observer ------------------------------------------------------
 --------------------------------------------------------------------------------
 /**

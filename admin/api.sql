@@ -294,6 +294,36 @@ CREATE OR REPLACE VIEW api.locale
 AS
   SELECT * FROM Locale;
 
+--------------------------------------------------------------------------------
+-- api.list_locale -------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief List locales with optional filters (added for the /api/v2 road, where
+ *        a module reads through functions, not views).
+ * @param {jsonb} pSearch - Search conditions
+ * @param {jsonb} pFilter - Filter: '{"<field>": "<value>"}'
+ * @param {integer} pLimit - Maximum number of rows to return
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Sort by the fields specified in the array
+ * @return {SETOF api.locale}
+ * @since 1.2.31
+ */
+CREATE OR REPLACE FUNCTION api.list_locale (
+  pSearch   jsonb DEFAULT null,
+  pFilter   jsonb DEFAULT null,
+  pLimit    integer DEFAULT null,
+  pOffSet   integer DEFAULT null,
+  pOrderBy  jsonb DEFAULT null
+) RETURNS   SETOF api.locale
+AS $$
+BEGIN
+  RETURN QUERY EXECUTE api.sql('api', 'locale', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+
 GRANT SELECT ON api.locale TO administrator;
 
 --------------------------------------------------------------------------------
@@ -1651,6 +1681,36 @@ $$ LANGUAGE SQL
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- api.list_area_type ----------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief List area types with optional filters (added for the /api/v2 road, where
+ *        a module reads through functions, not views).
+ * @param {jsonb} pSearch - Search conditions
+ * @param {jsonb} pFilter - Filter: '{"<field>": "<value>"}'
+ * @param {integer} pLimit - Maximum number of rows to return
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Sort by the fields specified in the array
+ * @return {SETOF api.area_type}
+ * @since 1.2.31
+ */
+CREATE OR REPLACE FUNCTION api.list_area_type (
+  pSearch   jsonb DEFAULT null,
+  pFilter   jsonb DEFAULT null,
+  pLimit    integer DEFAULT null,
+  pOffSet   integer DEFAULT null,
+  pOrderBy  jsonb DEFAULT null
+) RETURNS   SETOF api.area_type
+AS $$
+BEGIN
+  RETURN QUERY EXECUTE api.sql('api', 'area_type', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+
+--------------------------------------------------------------------------------
 
 CREATE OR REPLACE VIEW api.area
 AS
@@ -2500,6 +2560,26 @@ BEGIN
   PERFORM kernel.chmodm(pMethod, pMask::bit(6), pUserId);
 END;
 $$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.is_administrator --------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Whether the current user is an administrator (a member of the
+ *        administrator group). For a caller that must not read the group list
+ *        to learn the id of the group — api.is_user_role needs it.
+ * @return {boolean}
+ * @since 1.2.31
+ */
+CREATE OR REPLACE FUNCTION api.is_administrator (
+) RETURNS       boolean
+AS $$
+BEGIN
+  RETURN coalesce(IsAdmin(), false);
+END;
+$$ LANGUAGE plpgsql STABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 

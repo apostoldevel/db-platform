@@ -130,7 +130,10 @@ AS $$
 DECLARE
   uId            uuid;
 BEGIN
-  IF NOT regexp_like(pDefinition, '^SELECT \* FROM rest\.[a-z_]+\(\$1, \$2\);$') THEN
+  -- two forms only: a /api/v1 dispatcher, and a /api/v2 route guard
+  -- (RegisterRouteGuard: an identifier taking path, payload and method)
+  IF NOT (regexp_like(pDefinition, '^SELECT \* FROM rest\.[a-z_]+\(\$1, \$2\);$')
+       OR regexp_like(pDefinition, '^SELECT [A-Za-z_][A-Za-z0-9_]*\(\$1, \$2, \$3\);$')) THEN
     RAISE EXCEPTION 'Invalid endpoint definition format: %', pDefinition;
   END IF;
 

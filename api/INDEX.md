@@ -25,7 +25,7 @@ REST API infrastructure: path hierarchy, endpoint registration, route dispatchin
 |-------|-------------|-------------|
 | `db.path` | API path hierarchy (tree) | `id uuid PK`, `root uuid FK(self)`, `parent uuid FK(self)`, `name text`, `level int`; UNIQUE(`root`,`parent`,`name`) |
 | `db.endpoint` | Endpoint definitions | `id uuid PK`, `definition text` (PL/pgSQL function body) |
-| `db.route` | Route→endpoint mapping | PK(`method text`, `path uuid FK`, `endpoint uuid FK`); method ∈ {GET,POST,PUT,DELETE} |
+| `db.route` | Route→endpoint mapping | PK(`method text`, `path uuid FK`, `endpoint uuid FK`); method ∈ {GET,POST,PUT,PATCH,DELETE} (PATCH since 1.2.31, P00000026) |
 | `db.api_log` | API request/response log | `id bigserial PK`, `datetime timestamptz`, `session char(40)`, `username text`, `path text`, `nonce double`, `signature text`, `json jsonb` (sanitized), `eventId bigint FK(db.log)`, `runtime interval` |
 
 ## Views
@@ -62,7 +62,7 @@ REST API infrastructure: path hierarchy, endpoint registration, route dispatchin
 
 | Function | Returns | Purpose |
 |----------|---------|---------|
-| `AddEndPoint(pDefinition)` | `uuid` | Create endpoint |
+| `AddEndPoint(pDefinition)` | `uuid` | Create endpoint. Two definition forms only: `SELECT * FROM rest.<x>($1, $2);` (an `/api/v1` dispatcher) and, since 1.2.31, `SELECT <guard>($1, $2, $3);` (an `/api/v2` route guard, `RegisterRouteGuard`) |
 | `EditEndPoint(pId, pDefinition)` | `void` | Update endpoint |
 | `GetEndpoint(pPath, pMethod)` | `uuid` | Lookup endpoint for path+method |
 | `GetEndpointDefinition(pId)` | `text` | Get endpoint code |

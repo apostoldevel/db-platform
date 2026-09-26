@@ -111,7 +111,9 @@ Standard publisher/listener CRUD plus count functions:
 | `api.set_listener(pPublisher, pSession, pIdentity, pFilter, pParams)` | `SETOF api.listener` | Upsert listener |
 | `api.get_listener(pPublisher, pSession, pIdentity)` | `SETOF api.listener` | Retrieve listener by key |
 | `api.count_listener(pSearch, pFilter)` | `SETOF bigint` | Count listeners with search/filter |
-| `api.list_listener(pSearch, pFilter, pLimit, pOffSet, pOrderBy)` | `SETOF api.listener` | List listeners with search/filter/pagination |
+| `api.list_listener(pSearch, pFilter, pLimit, pOffSet, pOrderBy)` | `SETOF api.listener` | List listeners with search/filter/pagination — every session's, with session codes: an administrator's view |
+| `api.list_my_listener()` | `SETOF record (publisher, identity, filter, params)` | The current session's subscriptions, without the session code — filtered in the database (1.2.31) |
+| `api.get_my_listener(pPublisher, pIdentity)` | `SETOF record` | One subscription of the current session (1.2.31) |
 | `api.subscribe_observer(pPublisher, pSession, pIdentity, pFilter, pParams)` | `SETOF api.listener` | Subscribe (uses `current_session()` if NULL) |
 | `api.unsubscribe_observer(pPublisher, pSession, pIdentity)` | `boolean` | Unsubscribe (uses `current_session()` if NULL) |
 

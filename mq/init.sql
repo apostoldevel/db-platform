@@ -10,6 +10,7 @@
 -- by code -- GetGroup('mq') -- not by a literal.
 
 SELECT AddMemberToGroup(GetUser('apibot'), CreateGroup('mq', 'Обмен сообщениями', 'Группа для пользователей и служб, которым разрешён обмен сообщениями между узлами'));
+SELECT RegisterProtectedGroup('mq');
 
 -- The local node. Named after the database and given the hub role, because a
 -- single installation is a hub until a deployment says otherwise; an edge node

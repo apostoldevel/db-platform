@@ -91,6 +91,10 @@ None.
 
 `AudienceNotFound`, `IssuerNotFound`, `InvalidVerificationCodeType`.
 
+### Forbidden, group 403 (6, since 1.2.31)
+
+`RouteNotGranted` (`ERR-403-010`), `GatewayRequestNotOpen` (`ERR-403-011`), `GatewayFunctionNotOpen` (`ERR-403-012`), `GatewayFunctionAdminOnly` (`ERR-403-013`), `ProtectedGroupError` (`ERR-403-014`), `GroupExceedsRightsError` (`ERR-403-015`).
+
 ### Misc (3)
 
 `PasswordExpired`, `NonceExpired`, `LoginIpTableError`.

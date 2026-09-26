@@ -102,6 +102,129 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- MY NOTIFICATIONS ------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- api.my_notification (view) --------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief The notifications the current user may read: an administrator reads
+ *        all, anyone else those about objects CheckObjectAccess lets him read.
+ *        api.notification is unfiltered (an administrator's view), and the
+ *        AOU of Notification() alone is granted per group — a group spans
+ *        companies — so the read goes through CheckObjectAccess (AOU and the
+ *        class mask) and CheckObjectArea (the area: what separates tenants
+ *        on the platform), as get_object_file does; a configuration may add
+ *        its own barrier to CheckObjectAccess. security_barrier keeps the
+ *        caller's search and filter above the access condition.
+ *
+ *        A member of system and a session on the apibot or kernel connection
+ *        pass CheckObjectAccess and read everything: on /api/v2 the route
+ *        guards keep system out, and /api/v1 has no route to this view.
+ *        count and an unbounded list scan the whole journal — give a date
+ *        (datetime) when the journal is large. For a caller that is not an
+ *        administrator: /api/v2 (1.2.31).
+ * @since 1.2.31
+ */
+CREATE OR REPLACE VIEW api.my_notification WITH (security_barrier)
+AS
+  SELECT n.*
+    FROM Notification n
+   WHERE (SELECT IsAdmin()) OR (CheckObjectAccess(n.object, B'100') AND CheckObjectArea(n.object));
+
+--------------------------------------------------------------------------------
+-- api.my_notification ---------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief The current user's notifications since a moment — api.notification
+ *        without a user argument: the user is the session's.
+ * @param {timestamptz} pDateFrom - Start timestamp (inclusive)
+ * @return {SETOF api.my_notification}
+ * @since 1.2.31
+ */
+CREATE OR REPLACE FUNCTION api.my_notification (
+  pDateFrom     timestamptz
+) RETURNS       SETOF api.my_notification
+AS $$
+BEGIN
+  RETURN QUERY SELECT * FROM api.my_notification WHERE datetime >= pDateFrom;
+END;
+$$ LANGUAGE plpgsql STABLE
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.get_my_notification -----------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief One notification of the current user by id.
+ * @param {uuid} pId - Notification identifier
+ * @return {SETOF api.my_notification}
+ * @since 1.2.31
+ */
+CREATE OR REPLACE FUNCTION api.get_my_notification (
+  pId           uuid
+) RETURNS       SETOF api.my_notification
+AS $$
+BEGIN
+  RETURN QUERY SELECT * FROM api.my_notification WHERE id = pId;
+END;
+$$ LANGUAGE plpgsql STABLE
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.count_my_notification ---------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Count the current user's notifications.
+ * @param {jsonb} pSearch - Search conditions
+ * @param {jsonb} pFilter - Filter: '{"<field>": "<value>"}'
+ * @return {SETOF bigint}
+ * @since 1.2.31
+ */
+CREATE OR REPLACE FUNCTION api.count_my_notification (
+  pSearch       jsonb DEFAULT null,
+  pFilter       jsonb DEFAULT null
+) RETURNS       SETOF bigint
+AS $$
+BEGIN
+  RETURN QUERY EXECUTE api.sql('api', 'my_notification', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- api.list_my_notification ----------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief List the current user's notifications.
+ * @param {jsonb} pSearch - Search conditions
+ * @param {jsonb} pFilter - Filter: '{"<field>": "<value>"}'
+ * @param {integer} pLimit - Maximum number of rows to return
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Sort by the fields specified in the array
+ * @return {SETOF api.my_notification}
+ * @since 1.2.31
+ */
+CREATE OR REPLACE FUNCTION api.list_my_notification (
+  pSearch       jsonb DEFAULT null,
+  pFilter       jsonb DEFAULT null,
+  pLimit        integer DEFAULT null,
+  pOffSet       integer DEFAULT null,
+  pOrderBy      jsonb DEFAULT null
+) RETURNS       SETOF api.my_notification
+AS $$
+BEGIN
+  RETURN QUERY EXECUTE api.sql('api', 'my_notification', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- OBJECT METHOD HISTORY -------------------------------------------------------
 --------------------------------------------------------------------------------
 

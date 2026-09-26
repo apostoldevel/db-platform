@@ -65,6 +65,7 @@ All FK columns have `ON DELETE CASCADE`.
 | `api.get_notification(pId)` | `SETOF api.notification` | Get by ID |
 | `api.count_notification(pSearch, pFilter)` | `SETOF bigint` | Count notifications with search/filter |
 | `api.list_notification(pSearch, pFilter, pLimit, pOffSet, pOrderBy)` | `SETOF api.notification` | List with search/filter/pagination |
+| `api.my_notification` (view) / `api.my_notification(pDateFrom)` / `api.get_my_notification(pId)` / `api.count_my_notification(…)` / `api.list_my_notification(…)` | `SETOF api.my_notification` | The current user's notifications: all for an administrator, otherwise those about objects `CheckObjectAccess` lets him read (a configuration's barrier applies). No user argument — for `/api/v2` (1.2.31) |
 | `api.get_object_method_history(pId)` | `SETOF api.object_method_history` | Get history for object |
 | `api.count_object_method_history(pSearch, pFilter)` | `SETOF bigint` | Count method history with search/filter |
 | `api.list_object_method_history(pSearch, pFilter, pLimit, pOffSet, pOrderBy)` | `SETOF api.object_method_history` | List history |

@@ -615,6 +615,18 @@ CREATE INDEX ON db.member_group (userid);
 CREATE INDEX ON db.member_group (member);
 
 --------------------------------------------------------------------------------
+-- db.protected_group ----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+CREATE TABLE db.protected_group (
+    id            uuid PRIMARY KEY REFERENCES db.user(id) ON DELETE CASCADE
+);
+
+COMMENT ON TABLE db.protected_group IS 'Groups whose membership grants rights by itself (administrator, system, message, replication, mq; a configuration adds its own with RegisterProtectedGroup): only an administrator includes into or excludes from them.';
+
+COMMENT ON COLUMN db.protected_group.id IS 'The protected group.';
+
+--------------------------------------------------------------------------------
 -- db.member_area --------------------------------------------------------------
 --------------------------------------------------------------------------------
 

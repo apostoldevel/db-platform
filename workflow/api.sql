@@ -706,6 +706,36 @@ $$ LANGUAGE SQL
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- api.list_state_type ---------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief List state types with optional filters (added for the /api/v2 road, where
+ *        a module reads through functions, not views).
+ * @param {jsonb} pSearch - Search conditions
+ * @param {jsonb} pFilter - Filter: '{"<field>": "<value>"}'
+ * @param {integer} pLimit - Maximum number of rows to return
+ * @param {integer} pOffSet - Number of rows to skip
+ * @param {jsonb} pOrderBy - Sort by the fields specified in the array
+ * @return {SETOF api.state_type}
+ * @since 1.2.31
+ */
+CREATE OR REPLACE FUNCTION api.list_state_type (
+  pSearch   jsonb DEFAULT null,
+  pFilter   jsonb DEFAULT null,
+  pLimit    integer DEFAULT null,
+  pOffSet   integer DEFAULT null,
+  pOrderBy  jsonb DEFAULT null
+) RETURNS   SETOF api.state_type
+AS $$
+BEGIN
+  RETURN QUERY EXECUTE api.sql('api', 'state_type', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+
+--------------------------------------------------------------------------------
 
 CREATE OR REPLACE VIEW api.state
 AS

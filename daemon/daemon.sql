@@ -1838,3 +1838,463 @@ END;
 $$ LANGUAGE plpgsql
   SECURITY DEFINER
   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- /api/v2 — daemon.begin / daemon.call / daemon.end ---------------------------
+--------------------------------------------------------------------------------
+-- The road of the Go modules behind GatewayAPI (ship-safety T260 + T288). One
+-- request is one transaction:
+--
+--   BEGIN
+--     SELECT * FROM daemon.begin(token, agent, host, method, path, payload, request_id);
+--     SAVEPOINT request;
+--     SELECT * FROM daemon.call(function, args);   -- as many as the request needs
+--     [ROLLBACK TO SAVEPOINT request;]             -- on a refusal
+--     SELECT * FROM daemon.end(status, message);
+--   COMMIT
+--
+-- begin verifies the token once, opens the session context at the transaction
+-- level and runs the guard of the route; call reaches only the functions of
+-- schema api registered with RegisterGatewayFunction; end completes the
+-- journal line. The verified identity lives in gateway.request, which only
+-- kernel writes — never in the current.* GUCs, which the daemon connection can
+-- set itself.
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- daemon.begin ----------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Opens one /api/v2 request: TokenValidation → SessionIn → the guard of
+ *        the route. Never raises: a refusal comes back as authorized = false
+ *        with the status and the catalogue code, and its journal line is
+ *        already written — the caller commits and does not call daemon.end.
+ *
+ *        The path must lie under /api/v2/; the route is the deepest registered
+ *        node of the path (QueryPath) and its endpoint for the method
+ *        (GetEndpoint) is the guard, executed with the path after /api/v2, the
+ *        payload and the method. No route, no guard, or a guard that says no —
+ *        ERR-403-010: the gateway is closed by default. A token the database
+ *        does not accept is always 401: a code of group 401 as raised,
+ *        anything else as ERR-401-002 carrying the original text.
+ * @param {text} pToken - Bearer token
+ * @param {text} pAgent - User-Agent
+ * @param {inet} pHost - Client address (X-Forwarded-For)
+ * @param {text} pMethod - HTTP method (HEAD comes as GET)
+ * @param {text} pPath - Full request path, /api/v2/…
+ * @param {jsonb} pPayload - Request body
+ * @param {uuid} pRequestId - X-Request-Id
+ * @return {record} - authorized, userid; on a refusal status, error, message
+ * @since 1.2.31
+ */
+CREATE OR REPLACE FUNCTION daemon.begin (
+  pToken        text,
+  pAgent        text,
+  pHost         inet,
+  pMethod       text,
+  pPath         text,
+  pPayload      jsonb DEFAULT null,
+  pRequestId    uuid DEFAULT null,
+  OUT authorized boolean,
+  OUT userid    uuid,
+  OUT status    integer,
+  OUT error     text,
+  OUT message   text
+) RETURNS       record
+AS $$
+DECLARE
+  token         jsonb;
+
+  uPath         uuid;
+  uEndpoint     uuid;
+
+  bGranted      boolean;
+
+  nLog          bigint;
+  nCode         integer;
+
+  vSession      text;
+  vRest         text;
+  vMessage      text;
+
+  dtStarted     timestamptz := clock_timestamp();
+BEGIN
+  authorized := false;
+  pMethod := upper(pMethod);
+
+  -- nothing the connection set before the request is taken as verified
+  PERFORM ResetGatewayVars();
+
+  -- requests of this backend, or of any, left open by a transaction that
+  -- committed without daemon.end: drop them (a row is keyed by a live xid)
+  -- SKIP LOCKED: a row another request is dropping at this moment is left to
+  -- it — begin never waits on a lock (a wait could end in lock_timeout and
+  -- a raise, which begin does not do)
+  DELETE FROM gateway.request
+   WHERE ctid IN (SELECT r.ctid FROM gateway.request r
+                   WHERE r.xid <> txid_current() AND txid_status(r.xid) IS DISTINCT FROM 'in progress'
+                     FOR UPDATE SKIP LOCKED);
+
+  -- identity: a refusal here leaves no session context behind
+  BEGIN
+    PERFORM SetClientHost(pHost);  -- a client request: see CheckIPTable
+
+    token := TokenValidation(pToken);
+    vSession := token->>'sub';
+
+    IF SessionIn(vSession, pAgent, pHost) IS NULL THEN
+      PERFORM AuthenticateError(GetErrorMessage());
+    END IF;
+
+    PERFORM SetGatewayContext(GatewayContext());
+  EXCEPTION
+  WHEN others THEN
+    GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT;
+
+    -- a token the database does not accept is 401 whatever raised it (RFC 6750
+    -- §3.1, invalid_token): an unknown issuer or a revoked session is "present
+    -- credentials again", not a client error. A code of group 401 is kept;
+    -- anything else is reported as ERR-401-002 with the original text.
+    SELECT p.code INTO nCode FROM ParseMessage(vMessage) p;
+    IF nCode IS DISTINCT FROM 401 THEN
+      vMessage := format(GetExceptionStr(401, 2), vMessage);
+    END IF;
+  END;
+
+  -- the route and its guard
+  IF vMessage IS NULL THEN
+    BEGIN
+      -- under /api/v2/, and no dot segment or percent-escape: a guard judges
+      -- the deepest registered prefix of the path, so the path must be the
+      -- one the module routed, not one that reads differently after decoding
+      IF pPath IS NULL OR pPath NOT LIKE '/api/v2/%' OR regexp_like(pPath, '(^|/)\.\.?(/|$)|%|//') THEN
+        PERFORM RouteNotGranted(pMethod, pPath);
+      END IF;
+
+      uPath := QueryPath(pPath);
+      uEndpoint := GetEndpoint(uPath, pMethod);
+
+      IF uEndpoint IS NULL THEN
+        PERFORM RouteNotGranted(pMethod, pPath);
+      END IF;
+
+      SELECT '/' || array_to_string(a[3:], '/') INTO vRest FROM path_to_array(pPath) AS a;
+
+      EXECUTE GetEndpointDefinition(uEndpoint) INTO bGranted USING vRest, pPayload, pMethod;
+
+      IF NOT coalesce(bGranted, false) THEN
+        PERFORM RouteNotGranted(pMethod, pPath);
+      END IF;
+    EXCEPTION
+    WHEN others THEN
+      GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT;
+    END;
+  END IF;
+
+  IF vMessage IS NOT NULL THEN
+    SELECT p.code, p.message, p.error INTO nCode, message, error FROM ParseMessage(vMessage) p;
+    status := coalesce(nullif(nCode, -1), 500);
+
+    nLog := AddApiLog(pPath, coalesce(pPayload, '{}'::jsonb)
+                             || jsonb_build_object('_request', jsonb_strip_nulls(jsonb_build_object(
+                                  'method', pMethod, 'id', pRequestId, 'status', status, 'error', error))));
+    UPDATE db.api_log SET runtime = clock_timestamp() - dtStarted WHERE id = nLog;
+
+    PERFORM SetGatewayContext('{}');
+
+    RETURN;
+  END IF;
+
+  nLog := AddApiLog(pPath, coalesce(pPayload, '{}'::jsonb)
+                           || jsonb_build_object('_request', jsonb_strip_nulls(jsonb_build_object('method', pMethod, 'id', pRequestId))));
+
+  INSERT INTO gateway.request (pid, xid, session, context, method, path, agent, host, request_id, started, log)
+  VALUES (pg_backend_pid(), txid_current(), vSession, GatewayContext(), pMethod, pPath, pAgent, pHost, pRequestId, dtStarted, nLog)
+  ON CONFLICT (pid, xid) DO UPDATE
+     SET session = EXCLUDED.session, context = EXCLUDED.context, method = EXCLUDED.method, path = EXCLUDED.path,
+         agent = EXCLUDED.agent, host = EXCLUDED.host, request_id = EXCLUDED.request_id, started = EXCLUDED.started,
+         log = EXCLUDED.log;
+
+  authorized := true;
+  userid := current_userid();
+END;
+$$ LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- daemon.call -----------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Calls one function of schema api for the request opened by
+ *        daemon.begin in this transaction. Raises on a refusal and on an error
+ *        of the function: the caller rolls back to its savepoint and passes
+ *        the text to daemon.end.
+ *
+ *        The session context is put back from gateway.request before the call
+ *        — whatever the connection set in between is overwritten — and after
+ *        it area, operation date and the debug, log and notification modes
+ *        are saved (identity and the access mode stay the request's), moved
+ *        to the transaction level (a set_session_* writes the
+ *        session level, which would outlive the transaction on a pooled
+ *        connection).
+ *
+ *        The function must be in the allow list (gateway.function); of its
+ *        registered forms the one is taken whose keys cover pArgs and whose
+ *        parameters without a default are all given. Keys are the parameter
+ *        names without the leading p. A key left out takes the default, a
+ *        JSON null passes NULL. Values: json/jsonb as the JSON value, an array
+ *        from a JSON array, anything else from its text. Only names and types
+ *        from the catalogue enter the query text; values go as a parameter.
+ *        A form registered at the administrator level is refused to others.
+ *        A call that leaves another session or user in place than the
+ *        request's is refused after the fact (ERR-403-012) — the caller's
+ *        rollback to its savepoint undoes it.
+ * @param {text} pFunction - Function name in schema api, without the schema
+ * @param {jsonb} pArgs - Object of arguments
+ * @return {SETOF json} - One element per row: an object for a row type, the value for a scalar, null for void
+ * @since 1.2.31
+ */
+CREATE OR REPLACE FUNCTION daemon.call (
+  pFunction     text,
+  pArgs         jsonb DEFAULT null
+) RETURNS       SETOF json
+AS $$
+DECLARE
+  r             record;
+  f             record;
+  e             record;
+
+  uOid          oid;
+
+  vLevel        text;
+  vSQL          text;
+  vArgs         text;
+
+  arGiven       text[];
+  arKeys        text[];
+  arRequired    text[];
+
+  jContext      jsonb;
+BEGIN
+  SELECT * INTO r FROM gateway.request WHERE pid = pg_backend_pid() AND xid = txid_current();
+
+  IF NOT FOUND THEN
+    PERFORM GatewayRequestNotOpen();
+  END IF;
+
+  PERFORM ResetGatewayVars();
+  PERFORM SetGatewayContext(r.context);
+
+  pArgs := coalesce(pArgs, '{}'::jsonb);
+
+  IF jsonb_typeof(pArgs) <> 'object' THEN
+    PERFORM GatewayFunctionNotOpen(pFunction);
+  END IF;
+
+  SELECT coalesce(array_agg(k), '{}') INTO arGiven FROM jsonb_object_keys(pArgs) AS k;
+
+  FOR f IN
+    SELECT g.level, to_regprocedure('api.' || g.signature) AS oid
+      FROM gateway.function g
+     WHERE g.name = pFunction
+  LOOP
+    CONTINUE WHEN f.oid IS NULL;
+
+    arKeys := GatewayFunctionKeys(f.oid);
+    SELECT arKeys[1:(p.pronargs - p.pronargdefaults)] INTO arRequired FROM pg_proc p WHERE p.oid = f.oid;
+
+    IF arGiven <@ arKeys AND coalesce(arRequired, '{}') <@ arGiven THEN
+      IF uOid IS NOT NULL THEN
+        PERFORM GatewayFunctionNotOpen(pFunction);  -- two forms fit: refuse rather than guess
+      END IF;
+
+      uOid := f.oid;
+      vLevel := f.level;
+    END IF;
+  END LOOP;
+
+  IF uOid IS NULL THEN
+    PERFORM GatewayFunctionNotOpen(pFunction);
+  END IF;
+
+  IF vLevel = 'administrator' AND NOT coalesce(IsAdmin(), false) THEN
+    PERFORM GatewayFunctionAdminOnly(pFunction);
+  END IF;
+
+  SELECT string_agg(
+           format('%I => %s', a.name,
+             CASE
+             WHEN a.type IN ('json'::regtype::oid, 'jsonb'::regtype::oid) THEN format('($1->%L)::%s', a.key, format_type(a.type, null))
+             WHEN t.typcategory = 'A' THEN format('(CASE WHEN jsonb_typeof($1->%L) = ''array'' THEN ARRAY(SELECT e FROM jsonb_array_elements_text($1->%L) WITH ORDINALITY AS x(e, o) ORDER BY o) END)::%s', a.key, a.key, format_type(a.type, null))
+             WHEN a.type = 'bpchar'::regtype::oid THEN format('($1->>%L)::bpchar', a.key)
+             ELSE format('($1->>%L)::%s', a.key, format_type(a.type, null))
+             END), ', ' ORDER BY a.ord)
+    INTO vArgs
+    FROM GatewayFunctionArgs(uOid) a
+    JOIN pg_type t ON t.oid = a.type
+   WHERE a.key = ANY (arGiven);
+
+  -- called by name with every argument cast to the chosen form's exact type:
+  -- PostgreSQL resolves exactly that form (two forms that would both fit are
+  -- refused above, and an exact cast leaves no tie)
+  vSQL := format('SELECT to_json(t) AS value FROM api.%I(%s) AS t', pFunction, coalesce(vArgs, ''));
+
+  FOR e IN EXECUTE vSQL USING pArgs
+  LOOP
+    RETURN NEXT e.value;
+  END LOOP;
+
+  -- the function must not have switched the identity it ran under: a check at
+  -- run time, whatever the depth or the form of the call that would do it
+  -- (RegisterGatewayFunction's look at the body is a hint, not the barrier)
+  IF current_session() IS DISTINCT FROM r.session OR current_userid()::text IS DISTINCT FROM r.context->>'user' THEN
+    PERFORM GatewayFunctionNotOpen(pFunction);
+  END IF;
+
+  -- what a call may change and a later call must see: area, operation date,
+  -- debug, log and notification modes (the set_session_* setters). Identity
+  -- and the access mode stay the request's: a call that turned access
+  -- checking off (SetAccessMode) does not leave it off for the next one
+  SELECT r.context || coalesce(jsonb_object_agg(k, v), '{}')
+    INTO jContext
+    FROM jsonb_each_text(GatewayContext()) AS x(k, v)
+   WHERE k IN ('area', 'oper_date', 'debug', 'log', 'notification');
+
+  PERFORM SetGatewayContext(jContext);
+  UPDATE gateway.request SET context = jContext WHERE pid = r.pid AND xid = r.xid;
+
+  RETURN;
+END;
+$$ LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- daemon.end ------------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Closes the request opened by daemon.begin: completes its journal line
+ *        with the status on the wire, the refusal code and the runtime, and
+ *        drops the request. Call it after ROLLBACK TO SAVEPOINT on a refusal —
+ *        the request row was written before the savepoint and survives it.
+ *
+ *        The status is the caller's and is never rewritten; only when it is
+ *        NULL is it taken from pMessage (a catalogue code gives its group,
+ *        other text 500), or 200 when there is no message. error is filled
+ *        only when pMessage carries a catalogue code.
+ * @param {integer} pStatus - HTTP status the module answers with
+ * @param {text} pMessage - Text of the error caught, NULL on success
+ * @return {record} - log_id, status, error, message
+ * @since 1.2.31
+ */
+CREATE OR REPLACE FUNCTION daemon.end (
+  pStatus       integer,
+  pMessage      text DEFAULT null,
+  OUT log_id    bigint,
+  OUT status    integer,
+  OUT error     text,
+  OUT message   text
+) RETURNS       record
+AS $$
+DECLARE
+  r             record;
+  nCode         integer;
+BEGIN
+  SELECT * INTO r FROM gateway.request WHERE pid = pg_backend_pid() AND xid = txid_current();
+
+  IF NOT FOUND THEN
+    PERFORM GatewayRequestNotOpen();
+  END IF;
+
+  PERFORM ResetGatewayVars();
+  PERFORM SetGatewayContext(r.context);
+
+  IF pMessage IS NOT NULL THEN
+    SELECT p.code, p.message, p.error INTO nCode, message, error FROM ParseMessage(pMessage) p;
+  END IF;
+
+  status := coalesce(pStatus, nullif(nCode, -1), CASE WHEN pMessage IS NULL THEN 200 ELSE 500 END);
+
+  UPDATE db.api_log
+     SET json = coalesce(json, '{}'::jsonb)
+                || jsonb_build_object('_request', coalesce(json->'_request', '{}'::jsonb)
+                                      || jsonb_strip_nulls(jsonb_build_object('status', status, 'error', error))),
+         runtime = clock_timestamp() - r.started
+   WHERE id = r.log;
+
+  IF status < 400 THEN
+    PERFORM UpdateSessionStats(r.session, r.agent, r.host);
+  END IF;
+
+  DELETE FROM gateway.request WHERE pid = r.pid AND xid = r.xid;
+
+  log_id := r.log;
+END;
+$$ LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- daemon.error ----------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief A catalogue entry without a session — for a module that needs the
+ *        texts of its refusals before any request (Runner.Detect in
+ *        go-platform). The catalogue is public (docs/error-codes.md).
+ * @param {text} pCode - ERR-GGG-CCC
+ * @param {text} pLocale - ISO 639-1 code; the default locale when NULL or unknown, then en
+ * @return {SETOF json} - code, http_code, severity, category, message, description, resolution
+ * @since 1.2.31
+ */
+CREATE OR REPLACE FUNCTION daemon.error (
+  pCode         text,
+  pLocale       text DEFAULT null
+) RETURNS       SETOF json
+AS $$
+BEGIN
+  RETURN QUERY
+    SELECT json_build_object('code', c.code, 'http_code', c.http_code, 'severity', c.severity, 'category', c.category,
+                             'message', t.message, 'description', t.description, 'resolution', t.resolution)
+      FROM db.error_catalog c
+      JOIN LATERAL (
+             SELECT x.message, x.description, x.resolution
+               FROM db.error_catalog_text x
+              WHERE x.error_id = c.id
+                AND x.locale IN (GetLocale(coalesce(pLocale, locale_code())), GetLocale('en'))
+              ORDER BY (x.locale = GetLocale('en'))
+              LIMIT 1
+           ) t ON true
+     WHERE c.code = pCode;
+END;
+$$ LANGUAGE plpgsql STABLE
+  SECURITY DEFINER
+  SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- daemon.routes ---------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief The routes of an API version and their methods — what a Go module
+ *        checks at start: a prefix it serves with a method that has no route
+ *        here would be refused on every request, so it does not announce it.
+ * @param {text} pVersion - Version segment
+ * @return {SETOF record} - path (/api/v2/…), method
+ * @since 1.2.31
+ */
+CREATE OR REPLACE FUNCTION daemon.routes (
+  pVersion      text DEFAULT 'v2',
+  OUT path      text,
+  OUT method    text
+) RETURNS       SETOF record
+AS $$
+BEGIN
+  RETURN QUERY
+    SELECT x.path, x.method
+      FROM (SELECT CollectPath(r.path) AS path, r.method FROM db.route r) x
+     WHERE x.path LIKE '/api/' || pVersion || '/%'
+     ORDER BY x.path, x.method;
+END;
+$$ LANGUAGE plpgsql STABLE
+  SECURITY DEFINER
+  SET search_path = kernel, pg_temp;

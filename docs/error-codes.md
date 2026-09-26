@@ -37,12 +37,24 @@ SELECT RegisterError('ERR-400-200', 400, 'E', 'validation', 'ru', 'Моя оши
 > understood and the answer is still no. The status travels inside the identifier,
 > so correcting one meant renaming the other.
 >
-> The platform no longer registers anything in group 403 — but the group is not
-> unused. `SubstituteUser` still raises the legacy form `ERR-40300`, which
-> `ParseMessage` reads as `ERR-403-000`, a code no catalogue holds; and projects
-> register their own, such as ship-safety's `ERR-403-120` for a licence limit.
-> A project adding a code there should pick a free number, not assume the group
-> is theirs.
+> Since 1.2.31 the platform registers group 403 again, from `ERR-403-010` up —
+> never `001`: libapostol still reads `ERR-403-001` as an expired token and
+> renews its service token on it (`service_token_sql.cpp`), so a refusal under
+> that number would look like one. `SubstituteUser` still raises the legacy form
+> `ERR-40300`, which `ParseMessage` reads as `ERR-403-000`, a code no catalogue
+> holds; and projects register their own, such as ship-safety's `ERR-403-120`
+> for a licence limit. A project adding a code there should pick a free number.
+
+## Forbidden (ERR-403-xxx)
+
+| Code | Function | Message | Category |
+|------|----------|---------|----------|
+| ERR-403-010 | RouteNotGranted | Access to %s %s is not granted | access |
+| ERR-403-011 | GatewayRequestNotOpen | No open request: call daemon.begin first | access |
+| ERR-403-012 | GatewayFunctionNotOpen | Function "%s" is not open to the gateway | access |
+| ERR-403-013 | GatewayFunctionAdminOnly | Function "%s" requires an administrator | access |
+| ERR-403-014 | ProtectedGroupError | Group "%s" is protected: only an administrator may change its members | access |
+| ERR-403-015 | GroupExceedsRightsError | Group "%s" grants rights you do not have | access |
 
 ## Client Errors (ERR-400-xxx)
 

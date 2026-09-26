@@ -1474,3 +1474,115 @@ BEGIN
   RAISE EXCEPTION '%', GetExceptionStr(400, 100);
 END;
 $$ LANGUAGE plpgsql;
+
+--------------------------------------------------------------------------------
+-- Group 403: Forbidden --------------------------------------------------------
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+/**
+ * @brief Raise when a /api/v2 route is not open to the session: its guard
+ *        refused, or no guard is registered for it (closed by default).
+ * @param {text} pMethod - HTTP method of the request
+ * @param {text} pPath - Request path
+ * @return {void}
+ * @since 1.2.31
+ * @see daemon.begin, RegisterRouteGuard
+ */
+CREATE OR REPLACE FUNCTION RouteNotGranted (
+  pMethod   text,
+  pPath     text
+) RETURNS   void
+AS $$
+BEGIN
+  RAISE EXCEPTION '%', format(GetExceptionStr(403, 10), pMethod, pPath);
+END;
+$$ LANGUAGE plpgsql;
+
+--------------------------------------------------------------------------------
+/**
+ * @brief Raise when daemon.call or daemon.end finds no request opened by
+ *        daemon.begin in the same transaction.
+ * @return {void}
+ * @since 1.2.31
+ * @see daemon.begin
+ */
+CREATE OR REPLACE FUNCTION GatewayRequestNotOpen (
+) RETURNS   void
+AS $$
+BEGIN
+  RAISE EXCEPTION '%', GetExceptionStr(403, 11);
+END;
+$$ LANGUAGE plpgsql;
+
+--------------------------------------------------------------------------------
+/**
+ * @brief Raise when daemon.call names a function outside the gateway allow
+ *        list, or passes keys that select none of its registered forms.
+ * @param {text} pFunction - Function name as passed to daemon.call
+ * @return {void}
+ * @since 1.2.31
+ * @see daemon.call, RegisterGatewayFunction
+ */
+CREATE OR REPLACE FUNCTION GatewayFunctionNotOpen (
+  pFunction text
+) RETURNS   void
+AS $$
+BEGIN
+  RAISE EXCEPTION '%', format(GetExceptionStr(403, 12), pFunction);
+END;
+$$ LANGUAGE plpgsql;
+
+--------------------------------------------------------------------------------
+/**
+ * @brief Raise when daemon.call reaches a function registered at the
+ *        administrator level under a session that is not an administrator.
+ * @param {text} pFunction - Function name
+ * @return {void}
+ * @since 1.2.31
+ * @see daemon.call, RegisterGatewayFunction
+ */
+CREATE OR REPLACE FUNCTION GatewayFunctionAdminOnly (
+  pFunction text
+) RETURNS   void
+AS $$
+BEGIN
+  RAISE EXCEPTION '%', format(GetExceptionStr(403, 13), pFunction);
+END;
+$$ LANGUAGE plpgsql;
+
+--------------------------------------------------------------------------------
+/**
+ * @brief Raise when a session that is not an administrator changes the
+ *        members of a protected group.
+ * @param {text} pGroup - Group name
+ * @return {void}
+ * @since 1.2.31
+ * @see AddMemberToGroup, RegisterProtectedGroup
+ */
+CREATE OR REPLACE FUNCTION ProtectedGroupError (
+  pGroup    text
+) RETURNS   void
+AS $$
+BEGIN
+  RAISE EXCEPTION '%', format(GetExceptionStr(403, 14), pGroup);
+END;
+$$ LANGUAGE plpgsql;
+
+--------------------------------------------------------------------------------
+/**
+ * @brief Raise when the members of a group are changed by a caller whose own
+ *        access control list does not cover the group's.
+ * @param {text} pGroup - Group name
+ * @return {void}
+ * @since 1.2.31
+ * @see AddMemberToGroup
+ */
+CREATE OR REPLACE FUNCTION GroupExceedsRightsError (
+  pGroup    text
+) RETURNS   void
+AS $$
+BEGIN
+  RAISE EXCEPTION '%', format(GetExceptionStr(403, 15), pGroup);
+END;
+$$ LANGUAGE plpgsql;

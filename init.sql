@@ -20,6 +20,7 @@ SELECT SetArea('00000000-0000-4003-a001-000000000001', '00000000-0000-4000-a002-
 SELECT InitWorkFlow();
 SELECT InitEntity();
 SELECT InitAPI();
+SELECT InitGateway();
 
 SELECT CreatePublisher('notify', 'Уведомления', 'Уведомления о системных событиях.');
 SELECT CreatePublisher('notice', 'Извещения', 'Системные извещения.');
