@@ -6364,6 +6364,21 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * @brief Updates session activity statistics: marks user as online, updates last input time and IP.
+ *
+ *        Statistics, not state, and written at the end of a request whose own
+ *        work may already hold rows of the same user (set_session_locale takes
+ *        the session, then the profile). Waiting here for a row another
+ *        request holds closes a cycle — user → profile → session against the
+ *        order the request's work took — and PostgreSQL answers 40P01 to one
+ *        of them. So a row another transaction holds is skipped, not waited
+ *        for, and the next request of the user writes it again. The holder is
+ *        usually a request of the same user, but may be CheckOffline or
+ *        SessionOut writing the opposite: the user then reads offline until
+ *        the next request. A row this transaction already holds is not
+ *        skipped. The user row is written only when its online bits are not
+ *        set yet. One wait remains: when the session has been idle for over
+ *        an hour, the trigger rotates its token (a unique key), and the
+ *        update waits for a transaction adding a listener to the session.
  * @param {varchar} pSession - Session code
  * @param {text} pAgent - User-Agent string
  * @param {inet} pHost - Client IP address
@@ -6386,18 +6401,32 @@ BEGIN
    WHERE s.code = pSession;
 
   IF FOUND THEN
-    UPDATE db.user SET status = set_bit(set_bit(status, 3, 0), 2, 1) WHERE id = uUserId;
+    PERFORM FROM db.user
+      WHERE id = uUserId AND (get_bit(status, 2) = 0 OR get_bit(status, 3) = 1)
+        FOR NO KEY UPDATE SKIP LOCKED;
 
-    UPDATE db.profile
-       SET input_last = now(),
-           lc_ip = coalesce(pHost, lc_ip)
-     WHERE userid = uUserId AND scope = uScope;
+    IF FOUND THEN
+      UPDATE db.user SET status = set_bit(set_bit(status, 3, 0), 2, 1) WHERE id = uUserId;
+    END IF;
 
-    UPDATE db.session
-       SET updated = localtimestamp,
-           agent = coalesce(pAgent, agent),
-           host = coalesce(pHost, host)
-     WHERE code = pSession;
+    PERFORM FROM db.profile WHERE userid = uUserId AND scope = uScope FOR NO KEY UPDATE SKIP LOCKED;
+
+    IF FOUND THEN
+      UPDATE db.profile
+         SET input_last = now(),
+             lc_ip = coalesce(pHost, lc_ip)
+       WHERE userid = uUserId AND scope = uScope;
+    END IF;
+
+    PERFORM FROM db.session WHERE code = pSession FOR NO KEY UPDATE SKIP LOCKED;
+
+    IF FOUND THEN
+      UPDATE db.session
+         SET updated = localtimestamp,
+             agent = coalesce(pAgent, agent),
+             host = coalesce(pHost, host)
+       WHERE code = pSession;
+    END IF;
   END IF;
 END;
 $$ LANGUAGE plpgsql

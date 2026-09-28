@@ -2125,7 +2125,9 @@ BEGIN
   SELECT string_agg(
            format('%I => %s', a.name,
              CASE
-             WHEN a.type IN ('json'::regtype::oid, 'jsonb'::regtype::oid) THEN format('($1->%L)::%s', a.key, format_type(a.type, null))
+             -- a JSON null is SQL NULL here too: $1->key gives 'null'::jsonb, which
+             -- a function reads as a value (a filter "null" is not "no filter")
+             WHEN a.type IN ('json'::regtype::oid, 'jsonb'::regtype::oid) THEN format('nullif($1->%L, ''null''::jsonb)::%s', a.key, format_type(a.type, null))
              WHEN t.typcategory = 'A' THEN format('(CASE WHEN jsonb_typeof($1->%L) = ''array'' THEN ARRAY(SELECT e FROM jsonb_array_elements_text($1->%L) WITH ORDINALITY AS x(e, o) ORDER BY o) END)::%s', a.key, a.key, format_type(a.type, null))
              WHEN a.type = 'bpchar'::regtype::oid THEN format('($1->>%L)::bpchar', a.key)
              ELSE format('($1->>%L)::%s', a.key, format_type(a.type, null))
