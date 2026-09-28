@@ -175,6 +175,12 @@ SELECT RegisterError('ERR-400-200', 400, 'E', 'validation', 'ru', 'Моя оши
 | ERR-400-091 | RouteNotFound | Route not found: %s | entity |
 | ERR-400-092 | EndPointNotSet | Endpoint not set for path: %s | entity |
 
+### Area tree
+
+| Code | Function | Message | Category |
+|------|----------|---------|----------|
+| ERR-400-093 | AreaParentCycle | Area "%s" cannot be placed under "%s": that would make a cycle | validation |
+
 ### System
 
 | Code | Function | Message | Category |

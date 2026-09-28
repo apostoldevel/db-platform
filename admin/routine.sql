@@ -5082,6 +5082,7 @@ $$ LANGUAGE plpgsql
  * @param {timestamptz} pValidToDate - Validity end
  * @return {void}
  * @throws ACCESS_DENIED if caller is not an administrator
+ * @throws AreaParentCycle if the new parent is the area itself or one of its descendants (since 1.2.32)
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION EditArea (
@@ -5101,6 +5102,7 @@ DECLARE
   vCode             text;
   uType             uuid;
   uParent           uuid;
+  uNewParent        uuid;
   uScope            uuid;
 
   nLevel            integer;
@@ -5125,11 +5127,45 @@ BEGIN
     END IF;
   END IF;
 
-  pParent := coalesce(CheckNull(pParent), uParent);
+  -- the parent the caller asked for; NULL keeps the one in the row
+  uNewParent := CheckNull(pParent);
+
+  pParent := coalesce(uNewParent, uParent);
   pSequence := coalesce(pSequence, nSequence);
 
+  IF uNewParent IS NOT NULL THEN
+    -- Every named parent is checked, not only one that differs from uParent:
+    -- uParent was read before any lock, and a move committed since then would
+    -- make a stale comparison skip the check.
+    --
+    -- Two moves checked at once would each see the tree before the other and
+    -- could close a cycle together (X under Y's child, Y under X's child), so
+    -- moves are serialised; the walk below is a new statement and, under READ
+    -- COMMITTED, reads the tree as the previous move committed it (under
+    -- REPEATABLE READ it would read the transaction's snapshot and miss it).
+    -- The lock is taken after the area rows this transaction may already
+    -- hold; two transactions each editing several areas can deadlock on it,
+    -- and the server answers one of them 40P01 rather than hanging. The key is
+    -- in the two-integer space, apart from the single bigint keys projects use.
+    PERFORM pg_advisory_xact_lock(hashtext('platform'), 'db.area'::regclass::oid::integer);
+
+    -- UNION, not UNION ALL, and no depth cap: the walk ends even over a cycle
+    -- already in the data, and a cap would let a longer chain through.
+    PERFORM FROM (
+      WITH RECURSIVE up AS (
+        SELECT a.id, a.parent FROM db.area a WHERE a.id = uNewParent
+         UNION
+        SELECT a.id, a.parent FROM db.area a INNER JOIN up u ON a.id = u.parent
+      ) SELECT 1 FROM up WHERE up.id = pId
+    ) AS cycle;
+
+    IF FOUND THEN
+      PERFORM AreaParentCycle(pCode, GetAreaCode(uNewParent));
+    END IF;
+  END IF;
+
   UPDATE db.area
-     SET parent = coalesce(pParent, parent),
+     SET parent = coalesce(uNewParent, parent),
          type = coalesce(pType, type),
          scope = coalesce(pScope, scope),
          code = coalesce(pCode, code),

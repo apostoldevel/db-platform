@@ -55,9 +55,9 @@ None.
 
 `ObjectNotFound` (uuid + text overloads), `IncorrectEntity`, `IncorrectClassType`, `IncorrectDocumentType`, `ObjectIsNull`, `NotFound`, `ChangeObjectStateError`.
 
-### Area & Domain (6)
+### Area & Domain (7)
 
-`RootAreaError`, `AreaError`, `GuestAreaError`, `DefaultAreaDocumentError`, `ChangeAreaError`, `IncorrectAreaCode`.
+`RootAreaError`, `AreaError`, `GuestAreaError`, `DefaultAreaDocumentError`, `ChangeAreaError`, `IncorrectAreaCode`, `AreaParentCycle` (since 1.2.32 — `EditArea` refuses a parent under the area, ERR-400-093).
 
 ### State & Workflow (6)
 

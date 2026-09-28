@@ -541,6 +541,26 @@ $$ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 /**
+ * @brief Raise an error when an area would be placed under itself or under one
+ *        of its own descendants.
+ * @param {text} pArea - Code of the area being moved
+ * @param {text} pParent - Code of the requested parent
+ * @return {void}
+ * @since 1.2.32
+ * @see EditArea
+ */
+CREATE OR REPLACE FUNCTION AreaParentCycle (
+  pArea      text,
+  pParent    text
+) RETURNS    void
+AS $$
+BEGIN
+  RAISE EXCEPTION '%', format(GetExceptionStr(400, 93), pArea, pParent);
+END;
+$$ LANGUAGE plpgsql;
+
+--------------------------------------------------------------------------------
+/**
  * @brief Raise an error when a user does not have access to a specific area.
  * @param {text} pUser - Username lacking access
  * @param {text} pArea - Area name the user cannot access

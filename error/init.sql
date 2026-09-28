@@ -749,6 +749,14 @@ SELECT RegisterError('ERR-400-092', 400, 'E', 'entity', 'fr', 'Point de terminai
 SELECT RegisterError('ERR-400-092', 400, 'E', 'entity', 'it', 'Endpoint non impostato per percorso: %s', 'Esiste una route per il percorso specificato ma non è stata configurata alcuna funzione endpoint.', 'Registrare una funzione endpoint per questa route nella configurazione REST.');
 SELECT RegisterError('ERR-400-092', 400, 'E', 'entity', 'es', 'Punto final no establecido para la ruta: %s', 'Existe una ruta para la ruta proporcionada pero no se ha configurado ninguna función de punto final.', 'Registre una función de punto final para esta ruta en la configuración REST.');
 
+-- ERR-400-093: AreaParentCycle. EditArea refused a parent that is the area itself or lies under it: the area tree would close into a cycle, and every walk up it would never end. Added in 1.2.32.
+SELECT RegisterError('ERR-400-093', 400, 'E', 'validation', 'en', 'Area "%s" cannot be placed under "%s": that would make a cycle', 'The requested parent is the area itself or one of its descendants.', 'Choose a parent outside the subtree of the area.');
+SELECT RegisterError('ERR-400-093', 400, 'E', 'validation', 'ru', 'Область «%s» нельзя подчинить «%s»: получился бы цикл', 'Указанный родитель — сама область или один из её потомков.', 'Выберите родителя вне поддерева области.');
+SELECT RegisterError('ERR-400-093', 400, 'E', 'validation', 'de', 'Bereich "%s" kann nicht unter "%s" gestellt werden: das ergäbe einen Zyklus', 'Das angeforderte übergeordnete Element ist der Bereich selbst oder einer seiner Nachkommen.', 'Wählen Sie ein übergeordnetes Element außerhalb des Teilbaums des Bereichs.');
+SELECT RegisterError('ERR-400-093', 400, 'E', 'validation', 'fr', 'La zone « %s » ne peut pas être placée sous « %s » : cela créerait un cycle', 'Le parent demandé est la zone elle-même ou l''un de ses descendants.', 'Choisissez un parent en dehors du sous-arbre de la zone.');
+SELECT RegisterError('ERR-400-093', 400, 'E', 'validation', 'it', 'L''area "%s" non può essere posta sotto "%s": si creerebbe un ciclo', 'Il genitore richiesto è l''area stessa o uno dei suoi discendenti.', 'Scegliere un genitore al di fuori del sottoalbero dell''area.');
+SELECT RegisterError('ERR-400-093', 400, 'E', 'validation', 'es', 'El área «%s» no puede colocarse bajo «%s»: se formaría un ciclo', 'El padre solicitado es la propia área o uno de sus descendientes.', 'Elija un padre fuera del subárbol del área.');
+
 --------------------------------------------------------------------------------
 -- Group 400: System errors ----------------------------------------------------
 --------------------------------------------------------------------------------
