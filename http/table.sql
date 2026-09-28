@@ -54,7 +54,11 @@ CREATE TABLE http.request (
   command       text,
   message       text,
   error         text,
-  data          jsonb
+  data          jsonb,
+  expire        interval,
+  max_attempts  integer,
+  attempts      integer NOT NULL DEFAULT 0,
+  attempted     timestamptz
 );
 
 COMMENT ON TABLE http.request IS 'Outbound HTTP request queue. PGFetch listens via NOTIFY and executes queued rows.';
@@ -76,6 +80,10 @@ COMMENT ON COLUMN http.request.command IS 'Application-level command tag associa
 COMMENT ON COLUMN http.request.message IS 'Free-form message or description attached to the request.';
 COMMENT ON COLUMN http.request.error IS 'Error description text populated when the request fails (state = 3).';
 COMMENT ON COLUMN http.request.data IS 'Arbitrary JSON payload for caller-defined metadata.';
+COMMENT ON COLUMN http.request.expire IS 'Lifetime counted from datetime, set by the producer. NULL: the row is outside the resend contract — http.sweep never hands it out nor closes it.';
+COMMENT ON COLUMN http.request.max_attempts IS 'How many resends http.sweep may hand out, set by the producer. NULL or 0: no resend.';
+COMMENT ON COLUMN http.request.attempts IS 'Resends handed out by http.sweep. The first send on NOTIFY does not count.';
+COMMENT ON COLUMN http.request.attempted IS 'When http.sweep last handed the row out for a resend.';
 
 CREATE INDEX ON http.request (state);
 CREATE INDEX ON http.request (method);

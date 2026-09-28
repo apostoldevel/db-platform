@@ -56,6 +56,8 @@ $$ LANGUAGE plpgsql
  * @param {text} pCommand - Application-level command tag
  * @param {text} pMessage - Free-form message attached to the request
  * @param {jsonb} pData - Arbitrary JSON metadata
+ * @param {interval} pExpire - Lifetime of the request; NULL: never resent (see http.sweep)
+ * @param {integer} pMaxAttempts - Resends allowed within the lifetime; NULL or 0: never resent
  * @return {uuid} - ID of the newly created request
  * @since 1.0.0
  */
@@ -72,14 +74,16 @@ CREATE OR REPLACE FUNCTION http.create_request (
   pProfile      text DEFAULT null,
   pCommand      text DEFAULT null,
   pMessage      text DEFAULT null,
-  pData         jsonb DEFAULT null
+  pData         jsonb DEFAULT null,
+  pExpire       interval DEFAULT null,
+  pMaxAttempts  integer DEFAULT null
 ) RETURNS       uuid
 AS $$
 DECLARE
   uId           uuid;
 BEGIN
-  INSERT INTO http.request (state, type, method, resource, headers, content, done, fail, stream, agent, profile, command, message, data)
-  VALUES (1, coalesce(pType, 'curl'), pMethod, pResource, pHeaders, pContent, pDone, pFail, pStream, pAgent, pProfile, pCommand, pMessage, pData)
+  INSERT INTO http.request (state, type, method, resource, headers, content, done, fail, stream, agent, profile, command, message, data, expire, max_attempts)
+  VALUES (1, coalesce(pType, 'curl'), pMethod, pResource, pHeaders, pContent, pDone, pFail, pStream, pAgent, pProfile, pCommand, pMessage, pData, pExpire, pMaxAttempts)
   RETURNING id INTO uId;
 
   RETURN uId;
@@ -145,6 +149,125 @@ CREATE OR REPLACE FUNCTION http.request (
 AS $$
   SELECT * FROM http.request WHERE id = pId;
 $$ LANGUAGE SQL STABLE STRICT
+   SECURITY DEFINER
+   SET search_path = http, pg_temp;
+
+--------------------------------------------------------------------------------
+-- http.take -------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+/**
+ * @brief Hand a request row to the sender (PGFetch) — the row if it is to be sent, nothing if not.
+ * @param {uuid} pId - Request identifier
+ * @return {SETOF http.request} - The row to send (0 or 1). No row means: do not send, drop the task
+ *   silently — the request is gone, already done or failed (state 2/3), or its lifetime has elapsed.
+ *   An elapsed row is closed here on the way (state 3, no callback): a sender never calls the
+ *   producer back for a request it did not send.
+ * @see http.sweep
+ * @since 1.2.32
+ */
+CREATE OR REPLACE FUNCTION http.take (
+  pId       uuid
+) RETURNS   SETOF http.request
+AS $$
+DECLARE
+  r         http.request%rowtype;
+BEGIN
+  SELECT * INTO r FROM http.request WHERE id = pId AND state <= 1;
+
+  IF NOT FOUND THEN
+    RETURN;
+  END IF;
+
+  IF r.expire IS NOT NULL AND r.datetime + r.expire <= now() THEN
+    UPDATE http.request
+       SET state = 3,
+           error = format('expired: not sent, lifetime %s elapsed (resends %s of %s)', r.expire, r.attempts, coalesce(r.max_attempts, 0))
+     WHERE id = pId AND state <= 1;
+
+    RETURN;
+  END IF;
+
+  RETURN NEXT r;
+END;
+$$ LANGUAGE plpgsql STRICT
+   SECURITY DEFINER
+   SET search_path = http, pg_temp;
+
+--------------------------------------------------------------------------------
+-- http.sweep ------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+/**
+ * @brief Hand out requests to resend — rows whose NOTIFY the sender may have missed.
+ * @param {interval} pAge - The longest a request may be in flight: a row created or last handed out
+ *   less than pAge ago may still be on its way and is left alone. Must exceed the sender's timeout.
+ * @param {integer} pLimit - At most this many rows handed out per call; a full batch means: call again
+ * @return {SETOF uuid} - Requests to send again, oldest first; each marked attempts + 1, attempted = now()
+ * @note Resend is at-least-once: a row sent whose response was not stored (the connection dropped
+ *   mid-flight) goes again, with the same headers — a producer that must not repeat puts its
+ *   idempotency key there, or sets no expire. Ages count from datetime, the INSERT, not the COMMIT:
+ *   expire and pAge must exceed the producer's longest transaction. No expire on a stream.
+ * @note Only rows under the resend contract (expire IS NOT NULL) are touched. Of those older than pAge
+ *   and not handed out within pAge, the live ones (lifetime not elapsed, attempts < max_attempts) are
+ *   handed out; the rest are closed on the way — state 3 with the reason, no callback. Closed rows do
+ *   not count against pLimit. FOR UPDATE SKIP LOCKED: two concurrent calls never take the same row.
+ * @see http.take
+ * @since 1.2.32
+ */
+CREATE OR REPLACE FUNCTION http.sweep (
+  pAge      interval,
+  pLimit    integer DEFAULT 100
+) RETURNS   SETOF uuid
+AS $$
+BEGIN
+  IF pAge <= interval '0' OR pLimit <= 0 THEN
+    RETURN;
+  END IF;
+
+  UPDATE http.request r
+     SET state = 3,
+         error = CASE
+                   WHEN r.datetime + r.expire <= now()
+                   THEN format('abandoned: not resent, lifetime %s elapsed (resends %s of %s)', r.expire, r.attempts, coalesce(r.max_attempts, 0))
+                   ELSE format('abandoned: not resent, resends %s of %s used', r.attempts, coalesce(r.max_attempts, 0))
+                 END
+    FROM (
+      SELECT id
+        FROM http.request
+       WHERE state <= 1
+         AND expire IS NOT NULL
+         AND datetime < now() - pAge
+         AND (attempted IS NULL OR attempted < now() - pAge)
+         AND (datetime + expire <= now() OR attempts >= coalesce(max_attempts, 0))
+         FOR UPDATE SKIP LOCKED
+    ) c
+   WHERE r.id = c.id;
+
+  RETURN QUERY
+    WITH handed AS (
+    UPDATE http.request r
+       SET attempts = r.attempts + 1,
+           attempted = now()
+      FROM (
+        SELECT id
+          FROM http.request
+         WHERE state <= 1
+           AND expire IS NOT NULL
+           AND datetime < now() - pAge
+           AND (attempted IS NULL OR attempted < now() - pAge)
+           AND datetime + expire > now()
+           AND attempts < coalesce(max_attempts, 0)
+         ORDER BY datetime
+         LIMIT pLimit
+           FOR UPDATE SKIP LOCKED
+      ) c
+     WHERE r.id = c.id
+    RETURNING r.id, r.datetime
+    )
+    SELECT h.id FROM handed h ORDER BY h.datetime;
+END;
+$$ LANGUAGE plpgsql STRICT
    SECURITY DEFINER
    SET search_path = http, pg_temp;
 
@@ -342,6 +465,8 @@ $$ LANGUAGE plpgsql
  * @param {text} type - Transport type: native or curl
  * @param {jsonb} data - Arbitrary JSON metadata
  * @param {text} stream - Callback function name for SSE streaming data
+ * @param {interval} expire - Lifetime of the request; NULL: never resent (see http.sweep)
+ * @param {integer} max_attempts - Resends allowed within the lifetime; NULL or 0: never resent
  * @return {uuid} - ID of the created request
  * @see http.create_request
  * @since 1.0.0
@@ -359,7 +484,9 @@ CREATE OR REPLACE FUNCTION http.fetch (
   message       text DEFAULT null,
   type          text DEFAULT null,
   data          jsonb DEFAULT null,
-  stream        text DEFAULT null
+  stream        text DEFAULT null,
+  expire        interval DEFAULT null,
+  max_attempts  integer DEFAULT null
 ) RETURNS       uuid
 AS $$
 BEGIN
@@ -384,7 +511,7 @@ BEGIN
     END IF;
   END IF;
 
-  RETURN http.create_request(resource, type, method, headers, content, done, fail, stream, agent, profile, command, message, data);
+  RETURN http.create_request(resource, type, method, headers, content, done, fail, stream, agent, profile, command, message, data, expire, max_attempts);
 END;
 $$ LANGUAGE plpgsql
   SECURITY DEFINER
@@ -409,6 +536,8 @@ $$ LANGUAGE plpgsql
  * @param {text} type - Transport type: native or curl
  * @param {jsonb} data - Arbitrary JSON metadata
  * @param {text} stream - Callback function name for SSE streaming data
+ * @param {interval} expire - Lifetime of the request; NULL: never resent (see http.sweep)
+ * @param {integer} max_attempts - Resends allowed within the lifetime; NULL or 0: never resent
  * @return {uuid} - ID of the created request
  * @see http.create_request
  * @since 1.0.0
@@ -426,11 +555,13 @@ CREATE OR REPLACE FUNCTION http.fetch (
   message       text DEFAULT null,
   type          text DEFAULT null,
   data          jsonb DEFAULT null,
-  stream        text DEFAULT null
+  stream        text DEFAULT null,
+  expire        interval DEFAULT null,
+  max_attempts  integer DEFAULT null
 ) RETURNS       uuid
 AS $$
 BEGIN
-  RETURN http.create_request(resource, type, method, headers, convert_to(content, 'utf8'), done, fail, stream, agent, profile, command, message, data);
+  RETURN http.create_request(resource, type, method, headers, convert_to(content, 'utf8'), done, fail, stream, agent, profile, command, message, data, expire, max_attempts);
 END;
 $$ LANGUAGE plpgsql
   SECURITY DEFINER
@@ -455,6 +586,8 @@ $$ LANGUAGE plpgsql
  * @param {text} type - Transport type: native or curl
  * @param {jsonb} data - Arbitrary JSON metadata
  * @param {text} stream - Callback function name for SSE streaming data
+ * @param {interval} expire - Lifetime of the request; NULL: never resent (see http.sweep)
+ * @param {integer} max_attempts - Resends allowed within the lifetime; NULL or 0: never resent
  * @return {uuid} - ID of the created request
  * @see http.create_request
  * @since 1.0.0
@@ -472,7 +605,9 @@ CREATE OR REPLACE FUNCTION http.fetch (
   message       text DEFAULT null,
   type          text DEFAULT null,
   data          jsonb DEFAULT null,
-  stream        text DEFAULT null
+  stream        text DEFAULT null,
+  expire        interval DEFAULT null,
+  max_attempts  integer DEFAULT null
 ) RETURNS       uuid
 AS $$
 BEGIN
@@ -480,7 +615,7 @@ BEGIN
     headers := jsonb_build_object('Content-Type', 'application/json', 'Accept', 'application/json');
   END IF;
 
-  RETURN http.create_request(resource, type, method, headers, convert_to(content::text, 'utf8'), done, fail, stream, agent, profile, command, message, data);
+  RETURN http.create_request(resource, type, method, headers, convert_to(content::text, 'utf8'), done, fail, stream, agent, profile, command, message, data, expire, max_attempts);
 END;
 $$ LANGUAGE plpgsql
   SECURITY DEFINER
