@@ -65,7 +65,7 @@ HTTP request/response queue with logging and callback mechanism. Provides an out
 | `http.fetch(..., content text, ...)` | text→bytea | Queue HTTP request with text body (UTF8 encoded) |
 | `http.fetch(..., content jsonb, ...)` | JSON→bytea | Queue HTTP request with JSON body (auto Content-Type header) |
 
-All fetch overloads validate callback function names against `pg_catalog.pg_proc`, and take the trailing `expire interval`, `max_attempts integer` (both default NULL).
+Callback names (`done`, `fail`, `stream`) are checked in `http.create_request`, so on every fetch overload and on a direct call: exactly `schema.function` in lower case (`^[a-z_][a-z0-9_]*\.[a-z_][a-z0-9_]*$`) — the sender calls the function by that name — and an existing function of that name in `pg_catalog.pg_proc`; otherwise the request is refused (`Invalid callback function name` / `Not found function`). All fetch overloads take the trailing `expire interval`, `max_attempts integer` (both default NULL).
 
 ### Resend contract (1.2.32)
 

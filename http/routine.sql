@@ -59,7 +59,13 @@ $$ LANGUAGE plpgsql
  * @param {interval} pExpire - Lifetime of the request; NULL: never resent (see http.sweep)
  * @param {integer} pMaxAttempts - Resends allowed within the lifetime; NULL or 0: never resent
  * @return {uuid} - ID of the newly created request
+ * @throws Invalid callback function name - a callback is not exactly schema.function in lower case
+ * @throws Not found function - a callback names no existing function
  * @since 1.0.0
+ *
+ * Every callback (pDone, pFail, pStream) is checked here, on every path that creates a request: the
+ * sender calls the function by that name, so only a plain two-part lower-case identifier
+ * of an existing function is accepted.
  */
 CREATE OR REPLACE FUNCTION http.create_request (
   pResource     text,
@@ -81,7 +87,22 @@ CREATE OR REPLACE FUNCTION http.create_request (
 AS $$
 DECLARE
   uId           uuid;
+  vCallback     text;
 BEGIN
+  FOREACH vCallback IN ARRAY ARRAY[pDone, pFail, pStream]
+  LOOP
+    CONTINUE WHEN vCallback IS NULL;
+
+    IF vCallback !~ '^[a-z_][a-z0-9_]*\.[a-z_][a-z0-9_]*$' THEN
+      RAISE EXCEPTION 'Invalid callback function name: %', vCallback;
+    END IF;
+
+    PERFORM FROM pg_namespace n INNER JOIN pg_proc p ON n.oid = p.pronamespace WHERE n.nspname = split_part(vCallback, '.', 1) AND p.proname = split_part(vCallback, '.', 2);
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'Not found function: %', vCallback;
+    END IF;
+  END LOOP;
+
   INSERT INTO http.request (state, type, method, resource, headers, content, done, fail, stream, agent, profile, command, message, data, expire, max_attempts)
   VALUES (1, coalesce(pType, 'curl'), pMethod, pResource, pHeaders, pContent, pDone, pFail, pStream, pAgent, pProfile, pCommand, pMessage, pData, pExpire, pMaxAttempts)
   RETURNING id INTO uId;
@@ -451,7 +472,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 /**
- * @brief Enqueue an outbound HTTP request with callback validation (bytea content).
+ * @brief Enqueue an outbound HTTP request (bytea content); callbacks are checked by http.create_request.
  * @param {text} resource - Target URL or resource path
  * @param {text} method - HTTP method, defaults to GET
  * @param {jsonb} headers - HTTP headers to send
@@ -490,27 +511,6 @@ CREATE OR REPLACE FUNCTION http.fetch (
 ) RETURNS       uuid
 AS $$
 BEGIN
-  IF done IS NOT NULL THEN
-    PERFORM FROM pg_namespace n INNER JOIN pg_proc p ON n.oid = p.pronamespace WHERE n.nspname = split_part(done, '.', 1) AND p.proname = split_part(done, '.', 2);
-    IF NOT FOUND THEN
-      RAISE EXCEPTION 'Not found function: %', done;
-    END IF;
-  END IF;
-
-  IF fail IS NOT NULL THEN
-    PERFORM FROM pg_namespace n INNER JOIN pg_proc p ON n.oid = p.pronamespace WHERE n.nspname = split_part(fail, '.', 1) AND p.proname = split_part(fail, '.', 2);
-    IF NOT FOUND THEN
-      RAISE EXCEPTION 'Not found function: %', fail;
-    END IF;
-  END IF;
-
-  IF stream IS NOT NULL THEN
-    PERFORM FROM pg_namespace n INNER JOIN pg_proc p ON n.oid = p.pronamespace WHERE n.nspname = split_part(stream, '.', 1) AND p.proname = split_part(stream, '.', 2);
-    IF NOT FOUND THEN
-      RAISE EXCEPTION 'Not found function: %', stream;
-    END IF;
-  END IF;
-
   RETURN http.create_request(resource, type, method, headers, content, done, fail, stream, agent, profile, command, message, data, expire, max_attempts);
 END;
 $$ LANGUAGE plpgsql

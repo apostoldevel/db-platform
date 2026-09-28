@@ -82,7 +82,22 @@ CREATE OR REPLACE FUNCTION http.create_request (
 AS $$
 DECLARE
   uId           uuid;
+  vCallback     text;
 BEGIN
+  FOREACH vCallback IN ARRAY ARRAY[pDone, pFail, pStream]
+  LOOP
+    CONTINUE WHEN vCallback IS NULL;
+
+    IF vCallback !~ '^[a-z_][a-z0-9_]*\.[a-z_][a-z0-9_]*$' THEN
+      RAISE EXCEPTION 'Invalid callback function name: %', vCallback;
+    END IF;
+
+    PERFORM FROM pg_namespace n INNER JOIN pg_proc p ON n.oid = p.pronamespace WHERE n.nspname = split_part(vCallback, '.', 1) AND p.proname = split_part(vCallback, '.', 2);
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'Not found function: %', vCallback;
+    END IF;
+  END LOOP;
+
   INSERT INTO http.request (state, type, method, resource, headers, content, done, fail, stream, agent, profile, command, message, data, expire, max_attempts)
   VALUES (1, coalesce(pType, 'curl'), pMethod, pResource, pHeaders, pContent, pDone, pFail, pStream, pAgent, pProfile, pCommand, pMessage, pData, pExpire, pMaxAttempts)
   RETURNING id INTO uId;
@@ -114,27 +129,6 @@ CREATE OR REPLACE FUNCTION http.fetch (
 ) RETURNS       uuid
 AS $$
 BEGIN
-  IF done IS NOT NULL THEN
-    PERFORM FROM pg_namespace n INNER JOIN pg_proc p ON n.oid = p.pronamespace WHERE n.nspname = split_part(done, '.', 1) AND p.proname = split_part(done, '.', 2);
-    IF NOT FOUND THEN
-      RAISE EXCEPTION 'Not found function: %', done;
-    END IF;
-  END IF;
-
-  IF fail IS NOT NULL THEN
-    PERFORM FROM pg_namespace n INNER JOIN pg_proc p ON n.oid = p.pronamespace WHERE n.nspname = split_part(fail, '.', 1) AND p.proname = split_part(fail, '.', 2);
-    IF NOT FOUND THEN
-      RAISE EXCEPTION 'Not found function: %', fail;
-    END IF;
-  END IF;
-
-  IF stream IS NOT NULL THEN
-    PERFORM FROM pg_namespace n INNER JOIN pg_proc p ON n.oid = p.pronamespace WHERE n.nspname = split_part(stream, '.', 1) AND p.proname = split_part(stream, '.', 2);
-    IF NOT FOUND THEN
-      RAISE EXCEPTION 'Not found function: %', stream;
-    END IF;
-  END IF;
-
   RETURN http.create_request(resource, type, method, headers, content, done, fail, stream, agent, profile, command, message, data, expire, max_attempts);
 END;
 $$ LANGUAGE plpgsql
