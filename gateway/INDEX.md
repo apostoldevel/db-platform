@@ -108,10 +108,12 @@ The entry points are `daemon.begin` / `daemon.call` / `daemon.end` (see `daemon/
   where a relative `\ir` does not resolve).
 - **The trigger body lives twice** — `table.sql` (fresh install) and the latest patch that carries it
   (P00000032). A change to it is a new patch with the new body, and `diff` of the two function sections
-  must be empty. apostol-csms configuration `P00000044` also carries the P00000020 body: on a base where
-  migrate applies it after P00000032 (its `db.patch_log` lacks P00000044 — a csms base older than v1.13.0,
-  or a source-clone install migrated without `--baseline`) the payload loses `node` until P00000032 is
-  re-run.
+  must be empty. apostol-csms configuration `P00000044` also carries the P00000020 body, but from
+  apostol-csms commit `c374921` on creates it only while `gateway.node` has no `node` column — so on any
+  base the platform body stands, also where migrate applies P00000044 after P00000032 (its
+  `db.patch_log` lacks P00000044 — a csms base older than v1.13.0, or a source-clone install migrated
+  without `--baseline`). A csms base that runs an older `P00000044` after P00000032 still loses `node`
+  from the payload and the journal until P00000032 is re-run.
 - **A worker is `node`, not `worker`.** A pid repeats across pods and containers on one database;
   `worker` stays for the binaries that do not write `node` (their rows carry `node = NULL`).
 - **A heartbeat must touch only `seen`** (or `address`, `capacity`): any UPDATE that changes

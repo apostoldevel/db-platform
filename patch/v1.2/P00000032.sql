@@ -25,15 +25,16 @@
 -- unchanged (P00000020): only its function is replaced.
 --
 -- ORDER. migrate.sh runs platform patches before configuration ones, and
--- apostol-csms configuration P00000044 re-creates gateway.ft_node_notify with
--- the body of P00000020: on any base where migrate applies P00000044 after
--- this patch the columns stay, the payload and the journal lose `node`, and
--- migrate still ends with rc 0. That is a csms base whose db.patch_log lacks
--- P00000044 — one older than csms v1.13.0, or a source-clone install followed
--- by `install.sh --migrate` without `--baseline` (migrate.sh then replays every
--- patch; the image path baselines first). Such a base needs this file once
--- more after its migrate. A base that has P00000044 in db.patch_log is not
--- affected.
+-- apostol-csms configuration P00000044 carries gateway.ft_node_notify with the
+-- body of P00000020. From apostol-csms commit c374921 on it creates the
+-- function (and its trigger) only while gateway.node has no `node` column, so
+-- on any base the body below stands — also where migrate applies P00000044
+-- after this patch (a csms base whose db.patch_log lacks P00000044: one older
+-- than csms v1.13.0, or a source-clone install followed by `install.sh
+-- --migrate` without `--baseline`). A csms base that runs a P00000044 older
+-- than that commit after this patch still reverts the function: the columns
+-- stay, the payload and the journal lose `node`, migrate ends with rc 0 — such
+-- a base needs this file once more after its migrate.
 --
 -- Single phase, kernel: DDL only, no session. Re-runnable: a second run
 -- changes nothing.
