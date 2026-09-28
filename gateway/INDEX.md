@@ -32,13 +32,14 @@ and was dropped.
 
 | Table | Description | Key Columns |
 |-------|-------------|-------------|
-| `gateway.node` | One row per registered `/api/v2` module instance; written only by the GatewayAPI worker holding the instance's control socket, only on a state transition (`seen` moves once per heartbeat interval). Rows are never deleted by the database | `module text`, `instance text` (PK together), `address text` (data plane host:port, К7), `prefixes text[]`, `state text` CHECK ready/draining/suspect/offline/overloaded (К8), `capacity int`, `worker int` (pid), `registered`, `seen`, `updated timestamptz` |
-| `gateway.log` | Journal of transitions, one row per INSERT / state UPDATE / DELETE on `gateway.node`, written by the trigger | `id bigserial PK`, `datetime`, `module`, `instance`, `state_from`, `state_to`, `worker`, `reason text` (from the session GUC `gateway.reason`) |
+| `gateway.node` | One row per registered `/api/v2` module instance; written only by the GatewayAPI worker holding the instance's control socket, only on a state transition (`seen` moves once per heartbeat interval). Rows are never deleted by the database | `module text`, `instance text` (PK together), `address text` (data plane host:port, К7), `prefixes text[]`, `state text` CHECK ready/draining/suspect/offline/overloaded (К8), `capacity int`, `worker int` (pid), `registered`, `seen`, `updated timestamptz`, `node text` (P00000032: identity of the holding gateway process across pods — a pid repeats between them; NULL from a binary that does not write it) |
+| `gateway.log` | Journal of transitions, one row per INSERT / state UPDATE / DELETE on `gateway.node`, written by the trigger | `id bigserial PK`, `datetime`, `module`, `instance`, `state_from`, `state_to`, `worker`, `reason text` (from the session GUC `gateway.reason`), `node text` (P00000032: the row's `node` at the transition — the holder, like `worker`) |
 | `gateway.request` (1.2.31, UNLOGGED) | One `/api/v2` request opened by `daemon.begin` and not yet closed by `daemon.end`: the verified identity `daemon.call` restores the context from. Only `kernel` reads or writes it; a rolled-back transaction takes its row with it | `pid int`, `xid bigint` (PK together: `pg_backend_pid()`, `txid_current()`), `session`, `context jsonb`, `method`, `path`, `agent`, `host inet`, `request_id uuid`, `started`, `log bigint` (`db.api_log`) |
 | `gateway.function` (1.2.31) | Allow list of `daemon.call` — closed by default | `signature text PK` (`name(type, …)` without the schema), `name`, `level` CHECK session / administrator |
 
 Grants: `daemon`, `apibot` — `SELECT, INSERT, UPDATE, DELETE` on `node`, `SELECT, INSERT` on `log`,
-USAGE on `log_id_seq`; `administrator` — `SELECT` on both.
+USAGE on `log_id_seq`; `administrator` — `SELECT` on both. Table-level, so they cover columns added later
+(`node`, P00000032) — no column grants anywhere.
 
 ## Views
 
@@ -52,7 +53,7 @@ USAGE on `log_id_seq`; `administrator` — `SELECT` on both.
 
 | Function | Returns | Purpose |
 |----------|---------|---------|
-| `gateway.ft_node_notify()` | `trigger` | AFTER INSERT/UPDATE/DELETE on `gateway.node`: journals into `gateway.log` and `pg_notify('gateway', json)`. Skips an UPDATE that does not change `state` (heartbeat), so a fleet cannot turn the channel into a metronome. DELETE is journaled as → `offline`. Payload: `op, module, instance, state, state_from, address, prefixes, worker`. `reason` is read from `current_setting('gateway.reason', true)` — the worker sets it with `set_config(…, true)` before the statement |
+| `gateway.ft_node_notify()` | `trigger` | AFTER INSERT/UPDATE/DELETE on `gateway.node`: journals into `gateway.log` and `pg_notify('gateway', json)`. Skips an UPDATE that does not change `state` (heartbeat), so a fleet cannot turn the channel into a metronome. DELETE is journaled as → `offline`. Payload: `op, module, instance, state, state_from, address, prefixes, worker` and, since P00000032, `node, updated` — of the row after the statement (of the deleted row on DELETE); `node` is `null` from a binary that does not write it. Journals `node` the same way. `reason` is read from `current_setting('gateway.reason', true)` — the worker sets it with `set_config(…, true)` before the statement |
 
 ### Route guards and the allow list of `daemon.call` (1.2.31, `routine.sql`)
 
@@ -98,12 +99,21 @@ The entry points are `daemon.begin` / `daemon.call` / `daemon.end` (see `daemon/
 |-------|---------|
 | `patch/v1.2/P00000020.sql` | Self-contained, idempotent snapshot of schema + tables + trigger + view + grants. On a base that already has the schema from a project patch (csms `P00000044`) it adds the `administrator` grants and the comments; on any other base it creates the schema |
 | `patch/v1.2/P00000026.sql` | 1.2.31: `gateway.request`, `gateway.function`, `PATCH` in `db.route.method`, `db.protected_group`, error group 403. Routes and the allow list are written by `update.psql` after it |
+| `patch/v1.2/P00000032.sql` | apostol-csms T592: `node text` in `gateway.node` and `gateway.log` (`ADD COLUMN IF NOT EXISTS`, under `lock_timeout`), comments, and `ft_node_notify` — a snapshot of the body in `table.sql` (journal `node`; payload `node`, `updated`). `worker` keeps its type. Re-runnable |
 
 ## Traps
 
 - **`update.psql` never re-runs `table.sql`** — a change to the tables or the trigger needs a
   patch; the patch is a snapshot on purpose (`migrate.sh` may run it from a scratch directory
   where a relative `\ir` does not resolve).
+- **The trigger body lives twice** — `table.sql` (fresh install) and the latest patch that carries it
+  (P00000032). A change to it is a new patch with the new body, and `diff` of the two function sections
+  must be empty. apostol-csms configuration `P00000044` also carries the P00000020 body: on a base where
+  migrate applies it after P00000032 (its `db.patch_log` lacks P00000044 — a csms base older than v1.13.0,
+  or a source-clone install migrated without `--baseline`) the payload loses `node` until P00000032 is
+  re-run.
+- **A worker is `node`, not `worker`.** A pid repeats across pods and containers on one database;
+  `worker` stays for the binaries that do not write `node` (their rows carry `node = NULL`).
 - **A heartbeat must touch only `seen`** (or `address`, `capacity`): any UPDATE that changes
   `state` journals and notifies.
 - **Never trust `current.*` on the daemon road.** The `daemon` connection can `set_config` any of
