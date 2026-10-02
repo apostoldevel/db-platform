@@ -1721,6 +1721,23 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- RefreshTokenReuseWindow -----------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief How long a rotated refresh token still counts as live: the refresh
+ *        grant returns the pair its rotation issued, and revocation
+ *        (daemon.session_revoke) finds it. One value for both, so a token the
+ *        grant accepts is never one revocation reports as gone.
+ * @return {interval}
+ * @since 1.2.32
+ */
+CREATE OR REPLACE FUNCTION RefreshTokenReuseWindow()
+RETURNS         interval
+AS $$
+  SELECT interval '30 sec';
+$$ LANGUAGE sql IMMUTABLE;
+
+--------------------------------------------------------------------------------
 -- ExchangeToken ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
@@ -1757,7 +1774,7 @@ DECLARE
   vHash         text;
 
   -- How long a rotated refresh token still returns the pair its rotation issued.
-  cReuseWindow  constant interval := '30 sec';
+  cReuseWindow  constant interval := RefreshTokenReuseWindow();
 BEGIN
   vHash := GetTokenHash(pToken, GetSecretKey());
 
@@ -6821,19 +6838,21 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
--- SessionOut ------------------------------------------------------------------
+-- SessionClose ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Signs out by session key. Optionally closes all user sessions.
- *        Requires the 'logout' ACL bit. Marks the user as offline when no sessions remain.
+ * @brief Closes a session by key without any access check: the caller vouches
+ *        for the right. SessionOut calls this after the logout ACL check;
+ *        daemon.session_revoke calls it for the holder of a live token
+ *        (RFC 7009 knows no refusal by the user's rights). Optionally closes
+ *        all user sessions. Marks the user as offline when no sessions remain.
  * @param {varchar} pSession - Session code
  * @param {boolean} pCloseAll - true to close all sessions for the user
  * @param {text} pMessage - Optional log message
- * @return {boolean} true on success
- * @throws ACCESS_DENIED if caller lacks logout permission
- * @since 1.0.0
+ * @return {boolean} true when the session existed and was closed
+ * @since 1.2.32
  */
-CREATE OR REPLACE FUNCTION SessionOut (
+CREATE OR REPLACE FUNCTION SessionClose (
   pSession      varchar,
   pCloseAll     boolean,
   pMessage      text DEFAULT null
@@ -6850,10 +6869,6 @@ BEGIN
     message := 'Выход из системы';
 
     SELECT userid INTO uUserId FROM db.session WHERE code = pSession;
-
-    IF NOT CheckAccessControlList(B'00000000000000010', uUserId) THEN
-      PERFORM AccessDenied();
-    END IF;
 
     PERFORM DoLogout(uUserId);
 
@@ -6889,6 +6904,45 @@ BEGIN
     PERFORM SetOAuth2ClientId(null);
 
     RETURN true;
+  END IF;
+
+  RETURN false;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- SessionOut ------------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Signs out by session key. Optionally closes all user sessions.
+ *        Requires the 'logout' ACL bit; the closing itself is SessionClose.
+ * @param {varchar} pSession - Session code
+ * @param {boolean} pCloseAll - true to close all sessions for the user
+ * @param {text} pMessage - Optional log message
+ * @return {boolean} true on success
+ * @throws ACCESS_DENIED if caller lacks logout permission
+ * @since 1.0.0
+ */
+CREATE OR REPLACE FUNCTION SessionOut (
+  pSession      varchar,
+  pCloseAll     boolean,
+  pMessage      text DEFAULT null
+) RETURNS       boolean
+AS $$
+DECLARE
+  uUserId       uuid;
+BEGIN
+  IF ValidSession(pSession) THEN
+
+    SELECT userid INTO uUserId FROM db.session WHERE code = pSession;
+
+    IF NOT CheckAccessControlList(B'00000000000000010', uUserId) THEN
+      PERFORM AccessDenied();
+    END IF;
+
+    RETURN SessionClose(pSession, pCloseAll, pMessage);
   END IF;
 
   RAISE EXCEPTION 'ERR-40000: %', GetErrorMessage();

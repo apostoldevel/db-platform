@@ -1389,6 +1389,122 @@ $$ LANGUAGE plpgsql
   SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- daemon.session_revoke -------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Token revocation (RFC 7009): closes the session an access, a
+ *        refresh or an id token belongs to, whichever it is.
+ *
+ *        The token is looked up by its hash among the live tokens of the three
+ *        types — the same rows TokenValidation, the refresh grant (a rotated
+ *        refresh token inside RefreshTokenReuseWindow included) and the token
+ *        exchange of an id token accept —
+ *        so the hint is accepted and not used: one search covers both types
+ *        (§2.1 lets the server search beyond the hint). A token found closes its session
+ *        through SessionClose — the workhorse SessionOut calls after its ACL
+ *        check — and with it every token of the header: the refresh token and
+ *        the access tokens issued from the same grant (§2.1 SHOULD). A token
+ *        not found — unknown, expired,
+ *        rotated longer ago than the reuse window, or a code — changes nothing
+ *        and is no error (§2.2): {"revoked": false}.
+ *
+ *        The right to revoke is holding the token; the client is not
+ *        authenticated here, and the logout ACL bit does not gate this door:
+ *        it guards the session against a request riding on it (/sign/out),
+ *        while the token holder can already do anything the session can.
+ *        Reuse detection beyond the window belongs to the
+ *        refresh grant, not to this door. The header is locked before the
+ *        session row, as the refresh grant does; SessionClose takes them the
+ *        other way round, and the two on one session at once can end in 40P01.
+ * @param {text} pToken - The token to revoke
+ * @param {text} pTokenTypeHint - access_token | refresh_token | NULL; not used for the search
+ * @return {SETOF json} - {"revoked": true|false}, or an error object on failure
+ * @since 1.2.32
+ */
+CREATE OR REPLACE FUNCTION daemon.session_revoke (
+  pToken            text,
+  pTokenTypeHint    text DEFAULT null
+) RETURNS           SETOF json
+AS $$
+DECLARE
+  nHeader           bigint;
+  nToken            bigint;
+
+  vHash             text;
+  vSession          text;
+
+  vMessage          text;
+  vContext          text;
+
+  ErrorCode         int;
+  ErrorMessage      text;
+  vErrorId          text;
+BEGIN
+  vHash := GetTokenHash(coalesce(pToken, ''), GetSecretKey());
+
+  SELECT t.header, t.id INTO nHeader, nToken
+    FROM db.token t
+   WHERE t.hash = vHash
+     AND t.type IN ('A', 'R', 'I')
+     AND t.validFromDate <= Now()
+     AND (t.validToDate > Now() OR (t.type = 'R' AND t.used > Now() - RefreshTokenReuseWindow()));
+
+  IF NOT FOUND THEN
+    RETURN NEXT json_build_object('revoked', false);
+    RETURN;
+  END IF;
+
+  -- Serialised with the refresh grant, which rotates under the same lock: a
+  -- rotation committed while we waited has closed the token, and a fresh
+  -- statement sees it.
+  SELECT session INTO vSession FROM db.token_header WHERE id = nHeader FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RETURN NEXT json_build_object('revoked', false);
+    RETURN;
+  END IF;
+
+  PERFORM FROM db.token
+    WHERE id = nToken
+      AND (validToDate > clock_timestamp() OR (type = 'R' AND clock_timestamp() - used <= RefreshTokenReuseWindow()));
+
+  IF NOT FOUND THEN
+    RETURN NEXT json_build_object('revoked', false);
+    RETURN;
+  END IF;
+
+  PERFORM FROM db.session WHERE code = vSession;
+
+  IF FOUND THEN
+    PERFORM SessionClose(vSession, false, 'Token revoked (RFC 7009).');
+  ELSE
+    -- a header whose session is already gone: its tokens die with it
+    DELETE FROM db.token_header WHERE id = nHeader;
+  END IF;
+
+  RETURN NEXT json_build_object('revoked', true);
+
+  RETURN;
+EXCEPTION
+WHEN others THEN
+  GET STACKED DIAGNOSTICS vMessage = MESSAGE_TEXT, vContext = PG_EXCEPTION_CONTEXT;
+
+  PERFORM SetErrorMessage(vMessage);
+
+  SELECT * INTO ErrorCode, ErrorMessage, vErrorId FROM ParseMessage(vMessage);
+
+  PERFORM WriteToEventLog('E', ErrorCode, 'exception', 'error', ErrorMessage);
+  PERFORM WriteToEventLog('D', ErrorCode, 'exception', 'context', vContext);
+
+  RETURN NEXT json_build_object('error', json_build_object('code', coalesce(nullif(ErrorCode, -1), 500), 'error', vErrorId, 'message', ErrorMessage));
+
+  RETURN;
+END;
+$$ LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- daemon.unauthorized_fetch ---------------------------------------------------
 --------------------------------------------------------------------------------
 /**

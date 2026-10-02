@@ -431,7 +431,7 @@ BEGIN
   -- a function that opens or switches a session is never open either,
   -- whatever its name: the session of a /api/v2 request is daemon.begin's
   IF regexp_like(regexp_replace(regexp_replace((SELECT prosrc FROM pg_proc WHERE oid = uOid), '--[^\n]*', '', 'g'), '/\*.*?\*/', '', 'g'),
-                 '\m(SubstituteUser|SignIn|Login|SessionIn|SetCurrentUserId|SetSessionUserId|SetCurrentSession|SetAccessMode|EnterSystemContext|LeaveSystemContext|Authenticate|Authorize|CheckSession|GetAccessToken|GetSession|SessionOut|SignOut)"?\s*\(', 'i') THEN
+                 '\m(SubstituteUser|SignIn|Login|SessionIn|SetCurrentUserId|SetSessionUserId|SetCurrentSession|SetAccessMode|EnterSystemContext|LeaveSystemContext|Authenticate|Authorize|CheckSession|GetAccessToken|GetSession|SessionOut|SessionClose|SignOut)"?\s*\(', 'i') THEN
     RAISE EXCEPTION 'RegisterGatewayFunction: api.% opens or switches a session and is never open to the gateway', vName;
   END IF;
 

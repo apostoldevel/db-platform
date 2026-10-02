@@ -123,11 +123,11 @@ User management, authentication, authorization, sessions, and access control. Th
 
 ### Session Management (~10)
 
-`SetCurrentSession`, `GetCurrentSession`, `current_session`, `session_secret`, `SessionIn`, `SessionOut`, `ValidSession`, `CheckSession`, `CheckOffline`, `UpdateSessionStats`, `CheckSessionLimit`.
+`SetCurrentSession`, `GetCurrentSession`, `current_session`, `session_secret`, `SessionIn`, `SessionOut`, `SessionClose`, `ValidSession`, `CheckSession`, `CheckOffline`, `UpdateSessionStats`, `CheckSessionLimit`.
 
 ### Token & Cryptography (~20)
 
-`CreateAccessToken`, `CreateIdToken`, `CreateToken`, `UpdateToken`, `GetToken`, `GetAccessToken`, `AddToken`, `NewTokenCode`, `NewToken`, `ExchangeToken`, `TokenValidation`, `RefreshToken`, `DoubleSHA256`, `GetHashCash`, `HashCash`, `SessionKey`, `GetTokenHash`, `GenSecretKey`, `GenTokenKey`, `GetSignature`, `GetSecretKey`, `StrPwKey`.
+`CreateAccessToken`, `CreateIdToken`, `CreateToken`, `UpdateToken`, `GetToken`, `GetAccessToken`, `AddToken`, `NewTokenCode`, `NewToken`, `ExchangeToken`, `TokenValidation`, `RefreshToken`, `RefreshTokenReuseWindow`, `DoubleSHA256`, `GetHashCash`, `HashCash`, `SessionKey`, `GetTokenHash`, `GenSecretKey`, `GenTokenKey`, `GetSignature`, `GetSecretKey`, `StrPwKey`.
 
 ### OAuth2 Client (~11)
 
