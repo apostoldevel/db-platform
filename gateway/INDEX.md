@@ -70,7 +70,7 @@ The entry points are `daemon.begin` / `daemon.call` / `daemon.end` (see `daemon/
 | `GatewayFunctionArgs(oid)` / `GatewayFunctionKeys(oid)` | `SETOF record` / `text[]` | IN parameters of a function: position, name, key (name without the leading `p`), type |
 | `GatewayContext()` / `SetGatewayContext(jsonb)` | `jsonb` / `void` | The nine `current.*` context GUCs as an object; put back at the **transaction** level only (session level cleared) |
 | `ResetGatewayVars()` | `void` | Clears every GUC the platform takes identity or intent from — the nine `current.*`, `current.key`, `object.id`, `context.*` — at both levels. First line of `daemon.begin` (a value set before the request is never taken as verified), and before the context is put back in `call`/`end` |
-| `InitGatewayRoutes()` / `InitGatewayFunctions()` / `InitGateway()` | `void` | The platform's own `/api/v2` routes (31 prefixes of the go-platform modules) and allow list (levels as the Go code needs them). Re-runnable: `init.sql` and the end of `update.psql`. A configuration registers its own prefixes and functions the same way |
+| `InitGatewayRoutes()` / `InitGatewayFunctions()` / `InitGateway()` | `void` | The platform's own `/api/v2` routes (31 prefixes of the go-platform modules) and allow list (levels as the Go code needs them). Re-runnable. Called at install by `init.sql` (`create.psql`) and once, for a base installed before the change, by `patch/v1.2/P00000031.sql`; `update.psql` does not call it (T757). A configuration registers its own prefixes and functions the same way |
 
 ### `api.*` wrappers for the pool role (`apibot`)
 
@@ -89,16 +89,19 @@ The entry points are `daemon.begin` / `daemon.call` / `daemon.end` (see `daemon/
 | `view.sql` | yes | yes | `gateway.route` |
 | `routine.sql` (1.2.31) | yes | yes | route guards, the registrars, the context helpers, `InitGateway*` |
 | `api.sql` | yes | yes | the three `api.*` wrappers |
+| `init.sql` | yes | — | `SELECT InitGateway();` — the routes and the allow list, once per install |
 
-`update.psql` ends with `InitGateway()` — gateway is the last module, so every function of schema
-`api` exists by then.
+`create.psql` ends with `init.sql` (`InitGateway()`) — gateway is the last module, so every function of
+schema `api` exists by then. `update.psql` registers nothing since T757: routes and allow list are written
+at install and by a patch (`P00000031` for the bases installed earlier), not on every update.
 
 ## Patches
 
 | Patch | Content |
 |-------|---------|
 | `patch/v1.2/P00000020.sql` | Self-contained, idempotent snapshot of schema + tables + trigger + view + grants. On a base that already has the schema from a project patch (csms `P00000044`) it adds the `administrator` grants and the comments; on any other base it creates the schema |
-| `patch/v1.2/P00000026.sql` | 1.2.31: `gateway.request`, `gateway.function`, `PATCH` in `db.route.method`, `db.protected_group`, error group 403. Routes and the allow list are written by `update.psql` after it |
+| `patch/v1.2/P00000026.sql` | 1.2.31: `gateway.request`, `gateway.function`, `PATCH` in `db.route.method`, `db.protected_group`, error group 403. Routes and the allow list were then written by `InitGateway()` at the end of `update.psql`; since `P00000031` at install and by that patch |
+| `patch/v1.2/P00000031.sql` | apostol-csms T757: the registration moves from update to install — loads `routine.sql` and calls `InitGateway()` once, so a base installed earlier gets the new `/api/v2` prefixes and allow-list functions. Re-runnable (the registrars are upserts) |
 | `patch/v1.2/P00000032.sql` | apostol-csms T592: `node text` in `gateway.node` and `gateway.log` (`ADD COLUMN IF NOT EXISTS`, under `lock_timeout`), comments, and `ft_node_notify` — a snapshot of the body in `table.sql` (journal `node`; payload `node`, `updated`). `worker` keeps its type. Re-runnable |
 
 ## Traps
@@ -125,7 +128,7 @@ The entry points are `daemon.begin` / `daemon.call` / `daemon.end` (see `daemon/
   under any route whose guard lets the session in; a finer guard of a configuration protects the
   route, not the functions. What a non-administrator must not reach is `administrator` in the list.
 - **`InitGatewayFunctions` only adds and updates levels.** A function taken out of the list stays open on a
-  database that had it: closing one takes an explicit `UnregisterGatewayFunction` (in `update.psql` or a patch).
+  database that had it: closing one takes an explicit `UnregisterGatewayFunction` (in a patch — `update.psql` no longer registers anything).
 - **The allow list is by signature, the call by name.** Two forms of a name with the same key set
   cannot both be open; open one and give the other a name of its own (`set_session_area_by_code`).
 - **No `secret.gateway` anywhere.** The control socket takes `service-<domain>` tokens; a 401 there
