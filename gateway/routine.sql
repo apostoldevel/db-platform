@@ -198,8 +198,11 @@ $$ LANGUAGE plpgsql STABLE
  *        configuration. Every guard mirrors the check of the module's /api/v1
  *        dispatcher, and is stricter where that dispatcher had none: the whole
  *        event log, the API log and writes to the references are an
- *        administrator's. Re-runnable: called by init.sql and at the end of
- *        update.psql.
+ *        administrator's. The entity document/reference prefixes (jobs,
+ *        messages, references, agents, programs, schedulers, vendors,
+ *        versions) are declared here as well — a document takes GuardSession,
+ *        a reference GuardRead (csms T757). Re-runnable: called by init.sql
+ *        and at the end of update.psql.
  * @return {void}
  * @since 1.2.31
  */
@@ -208,6 +211,7 @@ CREATE OR REPLACE FUNCTION InitGatewayRoutes (
 AS $$
 BEGIN
   PERFORM RegisterRouteGuard('actions', 'GuardAdministrator', ARRAY['GET']);
+  PERFORM RegisterRouteGuard('agents', 'GuardRead', ARRAY['GET', 'PATCH', 'POST']);
   PERFORM RegisterRouteGuard('api-log', 'GuardAdministrator', ARRAY['GET']);
   PERFORM RegisterRouteGuard('area-types', 'GuardAdministrator', ARRAY['GET']);
   PERFORM RegisterRouteGuard('areas', 'GuardAdministrator', ARRAY['DELETE', 'GET', 'PATCH', 'POST']);
@@ -219,17 +223,22 @@ BEGIN
   PERFORM RegisterRouteGuard('events', 'GuardAdministrator', ARRAY['DELETE', 'GET', 'PATCH', 'POST']);
   PERFORM RegisterRouteGuard('groups', 'GuardAdministrator', ARRAY['DELETE', 'GET', 'PATCH', 'POST']);
   PERFORM RegisterRouteGuard('interfaces', 'GuardAdministrator', ARRAY['DELETE', 'GET', 'PATCH', 'POST']);
+  PERFORM RegisterRouteGuard('jobs', 'GuardSession', ARRAY['GET', 'PATCH', 'POST']);
   PERFORM RegisterRouteGuard('kladr', 'GuardRead', ARRAY['GET']);
   PERFORM RegisterRouteGuard('locales', 'GuardAdministrator', ARRAY['GET']);
   PERFORM RegisterRouteGuard('me', 'GuardSession', ARRAY['GET', 'PATCH']);
   PERFORM RegisterRouteGuard('me/event-log', 'GuardSession', ARRAY['GET']);
+  PERFORM RegisterRouteGuard('messages', 'GuardSession', ARRAY['GET', 'PATCH', 'POST']);
   PERFORM RegisterRouteGuard('methods', 'GuardAdministrator', ARRAY['DELETE', 'GET', 'PATCH', 'POST', 'PUT']);
   PERFORM RegisterRouteGuard('notifications', 'GuardSession', ARRAY['GET']);
   PERFORM RegisterRouteGuard('objects', 'GuardSession', ARRAY['DELETE', 'GET', 'POST', 'PUT']);
   PERFORM RegisterRouteGuard('observer', 'GuardSession', ARRAY['GET']);
   PERFORM RegisterRouteGuard('priorities', 'GuardAdministrator', ARRAY['GET']);
+  PERFORM RegisterRouteGuard('programs', 'GuardRead', ARRAY['GET', 'PATCH', 'POST']);
+  PERFORM RegisterRouteGuard('references', 'GuardRead', ARRAY['GET', 'PATCH', 'POST']);
   PERFORM RegisterRouteGuard('registry', 'GuardAdministrator', ARRAY['DELETE', 'GET', 'PUT']);
   PERFORM RegisterRouteGuard('resources', 'GuardRead', ARRAY['DELETE', 'GET', 'PATCH', 'POST']);
+  PERFORM RegisterRouteGuard('schedulers', 'GuardRead', ARRAY['GET', 'PATCH', 'POST']);
   PERFORM RegisterRouteGuard('search', 'GuardSession', ARRAY['GET']);
   PERFORM RegisterRouteGuard('sessions', 'GuardAdministrator', ARRAY['GET']);
   PERFORM RegisterRouteGuard('state-types', 'GuardAdministrator', ARRAY['GET']);
@@ -237,7 +246,9 @@ BEGIN
   PERFORM RegisterRouteGuard('transitions', 'GuardAdministrator', ARRAY['DELETE', 'GET', 'PATCH', 'POST']);
   PERFORM RegisterRouteGuard('types', 'GuardAdministrator', ARRAY['DELETE', 'GET', 'PATCH', 'POST']);
   PERFORM RegisterRouteGuard('users', 'GuardAdministrator', ARRAY['DELETE', 'GET', 'PATCH', 'POST', 'PUT']);
+  PERFORM RegisterRouteGuard('vendors', 'GuardRead', ARRAY['GET', 'PATCH', 'POST']);
   PERFORM RegisterRouteGuard('verification', 'GuardAdministrator', ARRAY['GET', 'POST']);
+  PERFORM RegisterRouteGuard('versions', 'GuardRead', ARRAY['GET', 'PATCH', 'POST']);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -489,7 +500,13 @@ $$ LANGUAGE plpgsql
  *        by code through set_session_area_by_code). list_listener and
  *        get_listener show every session's subscriptions with their codes and
  *        are an administrator's; a user reads list_my_listener. A
- *        configuration opens its own functions itself.
+ *        configuration opens its own functions itself. The entity
+ *        document/reference api functions are opened here as well: the job
+ *        family for the go-platform job module (its routes are GuardSession),
+ *        and get_<x>(uuid) for the platform document/reference kinds — the
+ *        integration test walks the journal and reads the get_<entity> of
+ *        their top rows (csms T757; the remaining entity kinds are the second
+ *        T751 seam, opened separately).
  *        Re-runnable: called by init.sql and at the end of update.psql.
  * @return {void}
  * @since 1.2.31
@@ -633,9 +650,11 @@ BEGIN
       ('user_unlock(uuid)', 'administrator'),
       ('write_to_log(text,integer,text,text)', 'administrator'),
       ('"current_user"()', 'session'),
+      ('add_job(uuid,uuid,uuid,uuid,timestamp with time zone,text,text,text)', 'session'),
       ('clear_object_files(uuid)', 'session'),
       ('count_address_tree(jsonb,jsonb)', 'session'),
       ('count_error(jsonb,jsonb)', 'session'),
+      ('count_job(jsonb,jsonb)', 'session'),
       ('count_notification(jsonb,jsonb)', 'administrator'),
       ('count_object(jsonb,jsonb)', 'session'),
       ('count_object_file(jsonb,jsonb)', 'session'),
@@ -653,20 +672,29 @@ BEGIN
       ('get_address_tree(integer)', 'session'),
       ('get_address_tree_history(integer)', 'session'),
       ('get_address_tree_string(character varying,integer,integer)', 'session'),
+      ('get_agent(uuid)', 'session'),
       ('get_error(uuid)', 'session'),
       ('get_error_by_code(text)', 'session'),
+      ('get_job(uuid)', 'session'),
+      ('get_message(uuid)', 'session'),
       ('get_my_listener(text, text)', 'session'),
       ('get_notification(uuid)', 'administrator'),
       ('get_object(uuid)', 'session'),
       ('get_object_file(uuid,uuid,text,text)', 'session'),
       ('get_object_methods(uuid)', 'session'),
+      ('get_program(uuid)', 'session'),
       ('get_publisher(text)', 'session'),
+      ('get_reference(uuid)', 'session'),
       ('get_resource(uuid)', 'session'),
+      ('get_scheduler(uuid)', 'session'),
       ('get_user_log(bigint)', 'session'),
+      ('get_vendor(uuid)', 'session'),
+      ('get_version(uuid)', 'session'),
       ('is_administrator()', 'session'),
       ('is_user_role(uuid, uuid)', 'administrator'),
       ('list_address_tree(jsonb,jsonb,integer,integer,jsonb)', 'session'),
       ('list_error(jsonb,jsonb,integer,integer,jsonb)', 'session'),
+      ('list_job(jsonb,jsonb,integer,integer,jsonb)', 'session'),
       ('list_my_listener()', 'session'),
       ('my_notification(timestamp with time zone)', 'session'),
       ('get_my_notification(uuid)', 'session'),
@@ -682,6 +710,7 @@ BEGIN
       ('oper_date()', 'session'),
       ('publisher(text)', 'session'),
       ('search(text,jsonb,text)', 'session'),
+      ('set_job(uuid,uuid,uuid,uuid,uuid,timestamp with time zone,text,text,text)', 'session'),
       ('set_object_files_json(uuid,json)', 'session'),
       ('set_session_area(uuid)', 'session'),
       ('set_session_area_by_code(text)', 'session'),
