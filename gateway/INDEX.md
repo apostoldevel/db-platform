@@ -32,7 +32,7 @@ and was dropped.
 
 | Table | Description | Key Columns |
 |-------|-------------|-------------|
-| `gateway.node` | One row per registered `/api/v2` module instance; written only by the GatewayAPI worker holding the instance's control socket, only on a state transition (`seen` moves once per heartbeat interval). Rows are never deleted by the database | `module text`, `instance text` (PK together), `address text` (data plane host:port, К7), `prefixes text[]`, `state text` CHECK ready/draining/suspect/offline/overloaded (К8), `capacity int`, `worker int` (pid), `registered`, `seen`, `updated timestamptz`, `node text` (P00000032: identity of the holding gateway process across pods — a pid repeats between them; NULL from a binary that does not write it) |
+| `gateway.node` | One row per registered `/api/v2` module instance; written only by the GatewayAPI worker holding the instance's control socket, only on a state transition (`seen` moves once per heartbeat interval). Rows are never deleted by the database | `module text`, `instance text` (PK together), `address text` (data plane host:port, К7), `prefixes text[]`, `state text` CHECK ready/draining/suspect/offline/overloaded (К8), `capacity int`, `worker int` (pid), `registered`, `seen`, `updated timestamptz`, `node text` (P00000032: identity of the holding gateway process across pods — a pid repeats between them; NULL on a row inserted by a binary that does not write it) |
 | `gateway.log` | Journal of transitions, one row per INSERT / state UPDATE / DELETE on `gateway.node`, written by the trigger | `id bigserial PK`, `datetime`, `module`, `instance`, `state_from`, `state_to`, `worker`, `reason text` (from the session GUC `gateway.reason`), `node text` (P00000032: the row's `node` at the transition — the holder, like `worker`) |
 | `gateway.request` (1.2.31, UNLOGGED) | One `/api/v2` request opened by `daemon.begin` and not yet closed by `daemon.end`: the verified identity `daemon.call` restores the context from. Only `kernel` reads or writes it; a rolled-back transaction takes its row with it | `pid int`, `xid bigint` (PK together: `pg_backend_pid()`, `txid_current()`), `session`, `context jsonb`, `method`, `path`, `agent`, `host inet`, `request_id uuid`, `started`, `log bigint` (`db.api_log`) |
 | `gateway.function` (1.2.31) | Allow list of `daemon.call` — closed by default | `signature text PK` (`name(type, …)` without the schema), `name`, `level` CHECK session / administrator |
@@ -109,13 +109,13 @@ The entry points are `daemon.begin` / `daemon.call` / `daemon.end` (see `daemon/
 - **The trigger body lives twice** — `table.sql` (fresh install) and the latest patch that carries it
   (P00000032). A change to it is a new patch with the new body, and `diff` of the two function sections
   must be empty. apostol-csms configuration `P00000044` also carries the P00000020 body, but from
-  apostol-csms commit `c374921` on creates it only while `gateway.node` has no `node` column — so on any
+  apostol-csms T592 on creates it only while `gateway.node` has no `node` column — so on any
   base the platform body stands, also where migrate applies P00000044 after P00000032 (its
   `db.patch_log` lacks P00000044 — a csms base older than v1.13.0, or a source-clone install migrated
-  without `--baseline`). A csms base that runs an older `P00000044` after P00000032 still loses `node`
+  without `--baseline`). A csms base that runs a `P00000044` without that condition (a checkout from before T592) after P00000032 still loses `node`
   from the payload and the journal until P00000032 is re-run.
 - **A worker is `node`, not `worker`.** A pid repeats across pods and containers on one database;
-  `worker` stays for the binaries that do not write `node` (their rows carry `node = NULL`).
+  `worker` stays for the binaries that do not write `node` (the rows they insert carry `node = NULL`; a row they re-register keeps the previous holder's `node`).
 - **A heartbeat must touch only `seen`** (or `address`, `capacity`): any UPDATE that changes
   `state` journals and notifies.
 - **Never trust `current.*` on the daemon road.** The `daemon` connection can `set_config` any of

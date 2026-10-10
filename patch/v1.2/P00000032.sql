@@ -10,9 +10,13 @@
 --
 --   gateway.node.node, gateway.log.node — text, nullable, no default. `worker`
 --   keeps its type: a binary that knows nothing of `node` writes exactly as
---   before and its rows carry node = NULL. Columns without a default: metadata
---   only, no rewrite; each ALTER takes ACCESS EXCLUSIVE for a moment, under
---   lock_timeout — the gateway workers write gateway.node on every transition.
+--   before and the rows it INSERTS carry node = NULL. A row it merely
+--   re-registers (INSERT … ON CONFLICT DO UPDATE with a SET list that has no
+--   `node`) keeps the node of the previous holder, so until every binary writes
+--   `node` the pair (node, worker) of such a row may be false. Columns
+--   without a default: metadata only, no rewrite; each ALTER takes ACCESS
+--   EXCLUSIVE for a moment, under lock_timeout — the gateway workers write
+--   gateway.node on every transition.
 --   Table-level grants (daemon, apibot, administrator) cover the new columns.
 --
 --   gateway.ft_node_notify — journals `node` into gateway.log; the NOTIFY
@@ -26,15 +30,16 @@
 --
 -- ORDER. migrate.sh runs platform patches before configuration ones, and
 -- apostol-csms configuration P00000044 carries gateway.ft_node_notify with the
--- body of P00000020. From apostol-csms commit c374921 on it creates the
--- function (and its trigger) only while gateway.node has no `node` column, so
+-- body of P00000020. In the apostol-csms release that carries T592 it creates
+-- the function (and its trigger) only while gateway.node has no `node` column, so
 -- on any base the body below stands — also where migrate applies P00000044
 -- after this patch (a csms base whose db.patch_log lacks P00000044: one older
 -- than csms v1.13.0, or a source-clone install followed by `install.sh
--- --migrate` without `--baseline`). A csms base that runs a P00000044 older
--- than that commit after this patch still reverts the function: the columns
--- stay, the payload and the journal lose `node`, migrate ends with rc 0 — such
--- a base needs this file once more after its migrate.
+-- --migrate` without `--baseline`). A csms base that runs a P00000044 without
+-- that condition (a checkout from before T592) after this patch still reverts
+-- the function: the columns stay, the payload and the journal lose `node`,
+-- migrate ends with rc 0 — such a base needs this file once more after its
+-- migrate.
 --
 -- Single phase, kernel: DDL only, no session. Re-runnable: a second run
 -- changes nothing.
@@ -47,8 +52,8 @@ ALTER TABLE gateway.log ADD COLUMN IF NOT EXISTS node text;
 
 RESET lock_timeout;
 
-COMMENT ON COLUMN gateway.node.node       IS 'Identity of the gateway process holding the control socket, unique across pods and containers (T592): a pid alone repeats between them. NULL — written by a binary that does not know the column.';
-COMMENT ON COLUMN gateway.log.node IS 'gateway.node.node of the row at the transition (T592) — the process holding the instance, like `worker` its pid; not necessarily the one that wrote it (a sweep by another worker keeps the holder). NULL from a binary that does not know the column.';
+COMMENT ON COLUMN gateway.node.node       IS 'Identity of the gateway process holding the control socket, unique across pods and containers (T592): a pid alone repeats between them. NULL — the row was inserted by a binary that does not know the column; such a binary re-registering a row leaves the previous holder''s value in place.';
+COMMENT ON COLUMN gateway.log.node IS 'gateway.node.node of the row at the transition (T592) — the process holding the instance, like `worker` its pid; not necessarily the one that wrote it (a sweep by another worker keeps the holder). NULL when the row carried none (inserted by a binary that does not know the column).';
 
 --------------------------------------------------------------------------------
 -- gateway.ft_node_notify ------------------------------------------------------

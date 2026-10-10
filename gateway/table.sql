@@ -31,7 +31,7 @@ COMMENT ON COLUMN gateway.node.worker     IS 'pid of the gateway worker holding 
 COMMENT ON COLUMN gateway.node.registered IS 'When this (module, instance) was last (re)registered.';
 COMMENT ON COLUMN gateway.node.seen       IS 'Last heartbeat, one write per interval.';
 COMMENT ON COLUMN gateway.node.updated    IS 'Last state change.';
-COMMENT ON COLUMN gateway.node.node       IS 'Identity of the gateway process holding the control socket, unique across pods and containers (T592): a pid alone repeats between them. NULL — written by a binary that does not know the column.';
+COMMENT ON COLUMN gateway.node.node       IS 'Identity of the gateway process holding the control socket, unique across pods and containers (T592): a pid alone repeats between them. NULL — the row was inserted by a binary that does not know the column; such a binary re-registering a row leaves the previous holder''s value in place.';
 
 CREATE INDEX ON gateway.node (state);
 
@@ -53,7 +53,7 @@ CREATE TABLE gateway.log (
 
 COMMENT ON TABLE gateway.log IS 'Journal of instance state transitions (track-a-gateway.md §5): one row per transition, written by the trigger below from every INSERT / state UPDATE / DELETE on gateway.node. `reason` is what the worker put into the row (replaced, socket closed, heartbeat timeout, …).';
 
-COMMENT ON COLUMN gateway.log.node IS 'gateway.node.node of the row at the transition (T592) — the process holding the instance, like `worker` its pid; not necessarily the one that wrote it (a sweep by another worker keeps the holder). NULL from a binary that does not know the column.';
+COMMENT ON COLUMN gateway.log.node IS 'gateway.node.node of the row at the transition (T592) — the process holding the instance, like `worker` its pid; not necessarily the one that wrote it (a sweep by another worker keeps the holder). NULL when the row carried none (inserted by a binary that does not know the column).';
 
 CREATE INDEX ON gateway.log (module, instance, datetime);
 
