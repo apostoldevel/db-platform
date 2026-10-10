@@ -6,8 +6,3 @@
 
 \echo [M] call api.sql
 \ir api.sql
-
--- gateway is the last module: every function of schema api exists by now.
--- Routes and the allow list are data, re-declared on every update (T260/T288).
-\echo [M] gateway: routes and allow list
-DO $$ BEGIN PERFORM InitGateway(); END $$;
