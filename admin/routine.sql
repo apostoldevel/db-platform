@@ -1994,8 +1994,10 @@ $$ LANGUAGE sql STABLE STRICT
 -- GetAccessToken --------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Retrieves a valid access token for the user, or creates a new one via SignIn
- *        if no active token exists and the user has an OAuth 2.0 audience configured.
+ * @brief Retrieves a valid access token of the user's own OAuth 2.0 audience,
+ *        or creates a new one via SignIn if no matching active token exists.
+ *        A user that is not an OAuth 2.0 client gets any active token of its
+ *        last session, as before.
  * @param {text} pUserName - Username (login)
  * @param {text} pPassword - Password
  * @return {text} JWT access token, or NULL on failure
@@ -2016,20 +2018,27 @@ DECLARE
 BEGIN
   uUserId := GetUser(pUserName);
 
+  SELECT id INTO nAudience FROM oauth2.audience WHERE code = pUserName;
+
   SELECT code INTO vSession FROM db.session WHERE userid = uUserId ORDER BY created DESC LIMIT 1;
 
-  SELECT token INTO vToken
-    FROM db.token_header h INNER JOIN db.token t ON h.id = t.header AND t.type = 'A'
+  -- An OAuth2 client-user accumulates tokens of different audiences on its
+  -- sessions (anyone can log it in via another client); the reuse branch must
+  -- return a token of the requested audience, not any active one (T763).
+  SELECT t.token INTO vToken
+    FROM db.token_header h
+         INNER JOIN db.oauth2 o ON h.oauth2 = o.id
+         INNER JOIN db.token t ON h.id = t.header AND t.type = 'A'
    WHERE h.session = vSession
      AND t.validFromDate <= Now()
-     AND t.validtoDate > Now();
+     AND t.validtoDate > Now()
+     AND (nAudience IS NULL OR o.audience = nAudience)
+   ORDER BY t.validtoDate DESC
+   LIMIT 1;
 
-  IF vToken IS NULL THEN
-    SELECT id INTO nAudience FROM oauth2.audience WHERE code = pUserName;
-    IF FOUND THEN
-      vSession := SignIn(CreateOAuth2(nAudience, ScopeToArray(null), 'offline'), pUserName, pPassword);
-      SELECT t->>'access_token' INTO vToken FROM CreateToken(nAudience, oauth2_current_code(vSession), INTERVAL '1 day') AS t;
-    END IF;
+  IF vToken IS NULL AND nAudience IS NOT NULL THEN
+    vSession := SignIn(CreateOAuth2(nAudience, ScopeToArray(null), 'offline'), pUserName, pPassword);
+    SELECT t->>'access_token' INTO vToken FROM CreateToken(nAudience, oauth2_current_code(vSession), INTERVAL '1 day') AS t;
   END IF;
 
   RETURN vToken;
