@@ -341,6 +341,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pLabel - Display label
  * @param {text} pDescription - Description
  * @return {SETOF api.message} - The sent message record
+ * @throws AccessDenied - When the caller is neither in the 'message' group nor a system caller
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.send_message (
@@ -357,6 +358,16 @@ AS $$
 DECLARE
   uMessageId    uuid;
 BEGIN
+  -- T783: the REST route is open to any logged-in user (rest.message checks only
+  -- the session); without this guard a self-registered driver relays arbitrary
+  -- mail through the brand SMTP profile. Same idiom as api.send_push_to_role,
+  -- extended with the 'system' group for SubstituteUser-style callers.
+  IF session_user <> 'kernel' THEN
+    IF NOT IsUserRole(GetGroup('message')) AND NOT IsUserRole(GetGroup('system'), session_userid()) THEN
+      PERFORM AccessDenied();
+    END IF;
+  END IF;
+
   uMessageId := SendMessage(pParent, pAgent, pProfile, pAddress, pSubject, pContent, pLabel, pDescription);
   RETURN QUERY SELECT * FROM api.message WHERE id = uMessageId;
 END;
@@ -377,6 +388,7 @@ $$ LANGUAGE plpgsql
  * @return {SETOF api.message} - The sent email message record
  * @throws EmailAddressNotSet - When the user has no email
  * @throws EmailAddressNotVerified - When the email is not verified
+ * @throws AccessDenied - When the caller is neither in the 'message' group nor a system caller
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.send_mail (
@@ -399,6 +411,15 @@ DECLARE
   bVerified     bool;
   vOAuthSecret  text;
 BEGIN
+  -- T783: guard before the SubstituteUser branch below, while session_userid()
+  -- is still the login user. Idiom of api.send_push_to_role, extended with the
+  -- 'system' group which this body's first branch serves.
+  IF session_user <> 'kernel' THEN
+    IF NOT IsUserRole(GetGroup('message')) AND NOT IsUserRole(GetGroup('system'), session_userid()) THEN
+      PERFORM AccessDenied();
+    END IF;
+  END IF;
+
   IF IsUserRole(GetGroup('system'), session_userid()) THEN
     SELECT secret INTO vOAuthSecret FROM oauth2.audience WHERE code = session_username();
     PERFORM SubstituteUser(GetUser('apibot'), vOAuthSecret);
@@ -447,6 +468,7 @@ $$ LANGUAGE plpgsql
  * @return {SETOF api.message} - The sent SMS message record
  * @throws PhoneNumberNotSet - When the user has no phone number
  * @throws PhoneNumberNotVerified - When the phone is not verified
+ * @throws AccessDenied - When the caller is neither in the 'message' group nor a system caller
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.send_sms (
@@ -463,6 +485,13 @@ DECLARE
   bVerified     bool;
   vOAuthSecret  text;
 BEGIN
+  -- T783: guard before the SubstituteUser branch below (see api.send_mail).
+  IF session_user <> 'kernel' THEN
+    IF NOT IsUserRole(GetGroup('message')) AND NOT IsUserRole(GetGroup('system'), session_userid()) THEN
+      PERFORM AccessDenied();
+    END IF;
+  END IF;
+
   IF IsUserRole(GetGroup('system'), session_userid()) THEN
     SELECT secret INTO vOAuthSecret FROM oauth2.audience WHERE code = session_username();
     PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
@@ -501,6 +530,7 @@ $$ LANGUAGE plpgsql
  * @param {jsonb} pAndroid - Android-specific options
  * @param {jsonb} pApns - APNs-specific options
  * @return {SETOF api.message} - The sent push message record
+ * @throws AccessDenied - When the caller is neither in the 'message' group nor a system caller
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.send_push (
@@ -517,6 +547,13 @@ DECLARE
   uMessageId    uuid;
   vOAuthSecret  text;
 BEGIN
+  -- T783: guard before the SubstituteUser branch below (see api.send_mail).
+  IF session_user <> 'kernel' THEN
+    IF NOT IsUserRole(GetGroup('message')) AND NOT IsUserRole(GetGroup('system'), session_userid()) THEN
+      PERFORM AccessDenied();
+    END IF;
+  END IF;
+
   IF IsUserRole(GetGroup('system'), session_userid()) THEN
     SELECT secret INTO vOAuthSecret FROM oauth2.audience WHERE code = session_username();
     PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
@@ -542,6 +579,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pPriority - Android priority ('normal' or 'high')
  * @param {text} pCollapse - Collapse key for grouping
  * @return {SETOF api.message} - The sent push message record
+ * @throws AccessDenied - When the caller is neither in the 'message' group nor a system caller
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.send_push_data (
@@ -557,6 +595,13 @@ DECLARE
   uMessageId    uuid;
   vOAuthSecret  text;
 BEGIN
+  -- T783: guard before the SubstituteUser branch below (see api.send_mail).
+  IF session_user <> 'kernel' THEN
+    IF NOT IsUserRole(GetGroup('message')) AND NOT IsUserRole(GetGroup('system'), session_userid()) THEN
+      PERFORM AccessDenied();
+    END IF;
+  END IF;
+
   IF IsUserRole(GetGroup('system'), session_userid()) THEN
     SELECT secret INTO vOAuthSecret FROM oauth2.audience WHERE code = session_username();
     PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
@@ -634,28 +679,10 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.send_push_all -----------------------------------------------------------
 --------------------------------------------------------------------------------
-/**
- * @brief Broadcast a push notification to all registered users.
- * @param {text} pTitle - Notification title
- * @param {text} pBody - Notification body text
- * @return {integer} - Number of users notified
- * @throws AccessDenied - When the caller lacks the 'message' role
- * @since 1.0.0
- */
-CREATE OR REPLACE FUNCTION api.send_push_all (
-  pTitle        text,
-  pBody         text
-) RETURNS       integer
-AS $$
-BEGIN
-  IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(GetGroup('message')) THEN
-      PERFORM AccessDenied();
-    END IF;
-  END IF;
+-- Moved to the CSMS configuration layer (configuration/csms/broadcast/api.sql):
+-- the implementation is the configuration's SendPushAll (broadcast campaign),
+-- so the platform wrapper both depended on a configuration function and
+-- mis-declared its result (integer vs the campaign uuid). Existing bases lose
+-- the old wrapper through platform patch v1.2/P00000033 (T783).
 
-  RETURN SendPushAll(pTitle, pBody);
-END;
-$$ LANGUAGE plpgsql
-   SECURITY DEFINER
-   SET search_path = kernel, pg_temp;
+--------------------------------------------------------------------------------
