@@ -14,6 +14,7 @@ CREATE TABLE gateway.node (
     registered  timestamptz NOT NULL DEFAULT Now(),
     seen        timestamptz NOT NULL DEFAULT Now(),
     updated     timestamptz NOT NULL DEFAULT Now(),
+    node        text,
     PRIMARY KEY (module, instance)
 );
 
@@ -30,6 +31,7 @@ COMMENT ON COLUMN gateway.node.worker     IS 'pid of the gateway worker holding 
 COMMENT ON COLUMN gateway.node.registered IS 'When this (module, instance) was last (re)registered.';
 COMMENT ON COLUMN gateway.node.seen       IS 'Last heartbeat, one write per interval.';
 COMMENT ON COLUMN gateway.node.updated    IS 'Last state change.';
+COMMENT ON COLUMN gateway.node.node       IS 'Identity of the gateway process holding the control socket, unique across pods and containers (T592): a pid alone repeats between them. NULL — the row was inserted by a binary that does not know the column; such a binary re-registering a row leaves the previous holder''s value in place.';
 
 CREATE INDEX ON gateway.node (state);
 
@@ -45,10 +47,13 @@ CREATE TABLE gateway.log (
     state_from  text,
     state_to    text NOT NULL,
     worker      integer,
-    reason      text
+    reason      text,
+    node        text
 );
 
 COMMENT ON TABLE gateway.log IS 'Journal of instance state transitions (track-a-gateway.md §5): one row per transition, written by the trigger below from every INSERT / state UPDATE / DELETE on gateway.node. `reason` is what the worker put into the row (replaced, socket closed, heartbeat timeout, …).';
+
+COMMENT ON COLUMN gateway.log.node IS 'gateway.node.node of the row at the transition (T592) — the process holding the instance, like `worker` its pid; not necessarily the one that wrote it (a sweep by another worker keeps the holder). NULL when the row carried none (inserted by a binary that does not know the column).';
 
 CREATE INDEX ON gateway.log (module, instance, datetime);
 
@@ -65,7 +70,11 @@ CREATE INDEX ON gateway.log (module, instance, datetime);
  *        modules cannot turn the channel into a metronome.
  *
  * Payload (JSON): {"op": "INSERT|UPDATE|DELETE", "module", "instance",
- *                  "state", "state_from", "address", "prefixes", "worker"}.
+ *                  "state", "state_from", "address", "prefixes", "worker",
+ *                  "node", "updated"}.
+ * `node` and `updated` (T592) are those of the row after the statement — of
+ * the deleted row on DELETE; `node` is null from a binary that does not write
+ * it. The first eight keys are unchanged since P00000020.
  * NOTIFY is transactional: a listener sees the row committed.
  *
  * `reason` travels through the row itself: the worker writes it into a session
@@ -81,26 +90,34 @@ DECLARE
   vFrom       text;
   vTo         text;
   vReason     text;
+  vNode       text;
+  vUpdated    timestamptz;
 BEGIN
   vReason := nullif(current_setting('gateway.reason', true), '');
 
   IF TG_OP = 'DELETE' THEN
     vFrom := OLD.state;
     vTo   := 'offline';
+    vNode := OLD.node;
+    vUpdated := OLD.updated;
   ELSIF TG_OP = 'INSERT' THEN
     vFrom := null;
     vTo   := NEW.state;
+    vNode := NEW.node;
+    vUpdated := NEW.updated;
   ELSE
     IF NEW.state IS NOT DISTINCT FROM OLD.state THEN
       RETURN NULL;          -- heartbeat / address refresh: no journal, no NOTIFY
     END IF;
     vFrom := OLD.state;
     vTo   := NEW.state;
+    vNode := NEW.node;
+    vUpdated := NEW.updated;
   END IF;
 
-  INSERT INTO gateway.log (module, instance, state_from, state_to, worker, reason)
+  INSERT INTO gateway.log (module, instance, state_from, state_to, worker, reason, node)
   VALUES (coalesce(NEW.module, OLD.module), coalesce(NEW.instance, OLD.instance), vFrom, vTo,
-          coalesce(NEW.worker, OLD.worker), vReason);
+          coalesce(NEW.worker, OLD.worker), vReason, vNode);
 
   PERFORM pg_notify('gateway', json_build_object(
     'op',         vOp,
@@ -110,7 +127,9 @@ BEGIN
     'state_from', vFrom,
     'address',    coalesce(NEW.address, OLD.address),
     'prefixes',   coalesce(NEW.prefixes, OLD.prefixes),
-    'worker',     coalesce(NEW.worker, OLD.worker)
+    'worker',     coalesce(NEW.worker, OLD.worker),
+    'node',       vNode,
+    'updated',    vUpdated
   )::text);
 
   RETURN NULL;
