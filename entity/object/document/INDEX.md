@@ -78,7 +78,7 @@ Auto-generates hex code, calculates `dateRun = Now() + scheduler.period`.
 
 ### Functions — 7
 
-`CreateJob`, `EditJob`, `GetJob`. API: `api.add_job` (default type `'periodic.job'`), `api.update_job`, `api.set_job`, `api.get_job`, `api.list_job`, `api.get_job_id`, `api.job(pStateType, pDateFrom)` (jobs due to run).
+`CreateJob`, `EditJob`, `GetJob`. API: `api.add_job` (default type `'periodic.job'`), `api.update_job`, `api.set_job`, `api.get_job`, `api.list_job`, `api.get_job_id`, `api.job(pStateType, pDateFrom)` (jobs due to run). `api.add_job` / `api.update_job` (and `api.set_job` through them) — platform administrator only, `kernel` passes (since 1.2.34, T848): a job makes the TaskScheduler run raw SQL as the system. `api.job` — the TaskScheduler's feed — hands out only a job and a program both owned by an administrator.
 
 ### Types — 2
 

@@ -15,7 +15,7 @@ Hierarchical file system abstraction layer. Supports documents, directories, sym
 | Schema | Usage |
 |--------|-------|
 | `db` | 1 table (file) + 5 triggers |
-| `kernel` | 4 views (+ `FileAccess`, defined in `entity/object/document`), ~16 functions |
+| `kernel` | 4 views (+ `FileAccess`, defined in `entity/object/document`), ~18 functions |
 | `api` | 2 views, 7 functions |
 | `rest` | `rest.file` dispatcher (5 routes) |
 
@@ -27,7 +27,7 @@ Hierarchical file system abstraction layer. Supports documents, directories, sym
 
 **Type codes:** `-` = file, `d` = directory, `l` = symbolic link, `s` = storage (S3 bucket config).
 
-**Mask bits (9-bit):** `rwx` for owner/group/other (UNIX-style); "group" is the branch of the area tree the owner belongs to (see `GetFileMask`). Default: `B'111110000'` (owner: rwx, group: rw-, other: ---) — since 1.2.22 (P00000022); before that `B'111110100'`, and nothing read the mask. Since 1.2.24 the `r` bit gates `api.get_file`, `api.list_file` / `api.count_file` and the `api.file` views; the `w` bit gates `api.set_file` / `api.delete_file` on an existing file and, on a directory under the `public` root, who may publish there (`CheckFilePublish`).
+**Mask bits (9-bit):** `rwx` for owner/group/other (UNIX-style); "group" is the branch of the area tree the owner belongs to (see `GetFileMask`). Membership in a lobby area makes no group: `root`, `system`, `guest` by type (owner's side), plus the areas a project declares in the registry `CONFIG\File` `LobbyArea` (area codes, comma-separated; both sides of the walk) — a brand area every end user is a direct member of. The platform never writes this key; absent or empty — the rule is as before it (since 1.2.34). Default: `B'111110000'` (owner: rwx, group: rw-, other: ---) — since 1.2.22 (P00000022); before that `B'111110100'`, and nothing read the mask. Since 1.2.24 the `r` bit gates `api.get_file`, `api.list_file` / `api.count_file` and the `api.file` views; the `w` bit gates `api.set_file` / `api.delete_file` on an existing file and, on a directory under the `public` root, who may publish there (`CheckFilePublish`).
 
 **Unique constraints:** `(root, parent, name)`, `(path, name)`.
 
@@ -79,7 +79,9 @@ Hierarchical file system abstraction layer. Supports documents, directories, sym
 
 | Function | Returns | Purpose |
 |----------|---------|---------|
-| `GetFileMask(pId, pUserId)` | `bit(3)` | Mask segment for the user: owner / user at or above an owner's area (root, system, guest excluded), or sees the area of an attached document of the same owner / other; mirror of `GetObjectMask` |
+| `GetFileLobbyArea()` | `uuid[]` | Areas declared in `CONFIG\File` `LobbyArea` (codes matched in every scope, unknown codes ignored); empty array, never NULL (since 1.2.34) |
+| `IsFileGroupMember(pArea, pMember, pLobby)` | `boolean` | `IsMemberArea` for the file group: the walk up passes through the areas in `pLobby` but membership in them does not count; empty `pLobby` — `IsMemberArea`'s answer (since 1.2.34) |
+| `GetFileMask(pId, pUserId)` | `bit(3)` | Mask segment for the user: owner / user at or above an owner's area (root, system, guest and declared lobbies excluded; the walk skips declared lobbies — `IsFileGroupMember`), or sees the area of an attached document of the same owner / other; mirror of `GetObjectMask` |
 | `DecodeFileAccess(pId, pUserId)` | `record (r, w, x)` | Effective access as booleans, bypasses included — the verdict without the bytes |
 | `CheckFileAccess(pId, pMask, pUserId)` | `boolean` | Permission check; bypass for `kernel`, administrators, `system` (bot sessions), read under the `public` root; mirror of `CheckObjectAccess` |
 | `CheckFilePublish(pRoot, pParent, pName)` | `boolean` | May the session write an entry under the `public` root: the `w` bit of the directory it lands in (`CheckFileAccess`, bypasses included) — delegation goes by directories; creating or changing the root — bypasses only. Anything outside `/public` passes (since 1.2.24) |

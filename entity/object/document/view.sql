@@ -54,6 +54,11 @@ GRANT SELECT ON DocumentAreaTreeId TO administrator;
 -- (AccessObject / CheckObjectAccess); a probe comparing the two over every
 -- file and every session of a stand is the check that they agree.
 --
+-- Lobby areas a project declared (GetFileLobbyArea) are GetFileMask's: they
+-- do not seed `_area` — so membership in them alone reaches nothing below —
+-- and they are not an owner's area in `_owner`; the descent from a non-lobby
+-- seed still passes through them, as IsFileGroupMember's walk up does.
+--
 -- It lives here, not in file/view.sql, because the group clause reads
 -- db.object_file and db.document — tables of the entity module, which
 -- create.psql loads after file (the trap GetFileMask documents: a view is
@@ -63,6 +68,8 @@ CREATE OR REPLACE VIEW FileAccess
 AS
   WITH RECURSIVE _me AS (
     SELECT current_userid() AS userid
+  ), _lobby AS (
+    SELECT unnest(GetFileLobbyArea()) AS id
   ), _member AS (
     SELECT userid FROM _me
      UNION
@@ -70,15 +77,17 @@ AS
   ), _area AS (
     SELECT m.area AS id
       FROM db.member_area m INNER JOIN _member u ON u.userid = m.member
+     WHERE m.area NOT IN (SELECT id FROM _lobby)
      UNION
     SELECT a.id
       FROM db.area a INNER JOIN _area t ON a.parent = t.id
   ), _owner AS (
-    -- owners whose areas the session is a member of (root, system, guest left out)
+    -- owners whose areas the session is a member of (root, system, guest and declared lobbies left out)
     SELECT m.member
       FROM db.member_area m INNER JOIN db.area a ON a.id = m.area
                             INNER JOIN _area   t ON t.id = m.area
      WHERE a.type NOT IN (GetAreaType('root'), GetAreaType('system'), GetAreaType('guest'))
+       AND a.id NOT IN (SELECT id FROM _lobby)
   ), _attached AS (
     -- files attached to a document of their own owner inside the session's area tree
     SELECT x.file

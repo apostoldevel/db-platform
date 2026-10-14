@@ -24,6 +24,7 @@ GRANT SELECT ON api.program TO administrator;
  * @param {text} pBody - SQL/PL/pgSQL source code
  * @param {text} pDescription - Optional description
  * @return {uuid} - ID of the created program
+ * @throws AccessDenied - When the caller is not a platform administrator (T848)
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.add_program (
@@ -36,6 +37,15 @@ CREATE OR REPLACE FUNCTION api.add_program (
 ) RETURNS       uuid
 AS $$
 BEGIN
+  -- T848: a program body is raw SQL the TaskScheduler runs as the system (role
+  -- apibot, a bot session); its REST routes are open to any session. Writing one
+  -- is the platform administrator's alone — not the system group: the OAuth2
+  -- client accounts are members of it, and client_credentials with a public
+  -- client's secret (web, mobile) signs in as one. The kernel installs.
+  IF session_user <> 'kernel' AND NOT IsAdmin() THEN
+    PERFORM AccessDenied();
+  END IF;
+
   RETURN CreateProgram(pParent, coalesce(pType, GetType('plpgsql.program')), pCode, pName, pBody, pDescription);
 END;
 $$ LANGUAGE plpgsql
@@ -56,6 +66,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pDescription - New description (NULL keeps current)
  * @return {void}
  * @throws ObjectNotFound - When program with given ID does not exist
+ * @throws AccessDenied - When the caller is not a platform administrator (T848)
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.update_program (
@@ -69,6 +80,15 @@ CREATE OR REPLACE FUNCTION api.update_program (
 ) RETURNS       void
 AS $$
 BEGIN
+  -- T848: a program body is raw SQL the TaskScheduler runs as the system (role
+  -- apibot, a bot session); its REST routes are open to any session. Writing one
+  -- is the platform administrator's alone — not the system group: the OAuth2
+  -- client accounts are members of it, and client_credentials with a public
+  -- client's secret (web, mobile) signs in as one. The kernel installs.
+  IF session_user <> 'kernel' AND NOT IsAdmin() THEN
+    PERFORM AccessDenied();
+  END IF;
+
   PERFORM FROM db.program WHERE id = pId;
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('program', 'id', pId);

@@ -566,6 +566,88 @@ $$ LANGUAGE sql STABLE STRICT
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- GetFileLobbyArea ------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief The areas a project declared as lobbies for file access.
+ *
+ * A lobby is an area every account of a project passes through, so being a
+ * member of it says nothing about which tenant one belongs to. root, system
+ * and guest are such areas by type, and GetFileMask leaves them out of the
+ * owner's memberships in code. A project may have one of its own: an area
+ * that is the working area of every end user and the parent of every
+ * tenant's area (a brand area). Membership in it must not make a group
+ * either — otherwise every end user takes the group bits of every tenant's
+ * files. The project names such areas in the registry: CONFIG\File
+ * LobbyArea, area codes, comma-separated. Codes are matched in every scope;
+ * a code that names no area is ignored.
+ *
+ * The platform never writes this key: a project's patch writes it only when
+ * it is absent, and a value seeded here would make that patch skip the
+ * project's own area. Absent or empty — no declared lobby, the rule is the
+ * one before the key existed.
+ *
+ * @return {uuid[]} - Declared lobby area ids; an empty array, never NULL
+ * @see GetFileMask, IsFileGroupMember, FileAccess
+ * @since 1.2.34
+ */
+CREATE OR REPLACE FUNCTION GetFileLobbyArea (
+) RETURNS    uuid[]
+AS $$
+  SELECT coalesce(array_agg(a.id), '{}')
+    FROM db.area a
+   WHERE a.code IN (SELECT trim(c)
+                      FROM unnest(string_to_array(RegGetValueString('CURRENT_CONFIG', 'CONFIG\File', 'LobbyArea'), ',')) AS c
+                     WHERE trim(c) <> '');
+$$ LANGUAGE sql STABLE
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- IsFileGroupMember -----------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief IsMemberArea for the file "group": the walk up skips lobby areas.
+ *
+ * Answers whether the user (directly or through one of their groups) is a
+ * member of the area or of an area above it — as IsMemberArea does — except
+ * that membership in an area listed in pLobby does not count, while the walk
+ * still passes through it to the areas above. With an empty pLobby the answer
+ * is IsMemberArea's. IsMemberArea itself stays as it is: sessions and the
+ * user's profile rely on membership in the lobby being real.
+ *
+ * @param {uuid} pArea - Area to start the walk from
+ * @param {uuid} pMember - User identifier
+ * @param {uuid[]} pLobby - Areas whose membership does not count (GetFileLobbyArea)
+ * @return {boolean} - TRUE if the user is a member of a non-lobby area on the way up
+ * @see IsMemberArea, GetFileLobbyArea, GetFileMask
+ * @since 1.2.34
+ */
+CREATE OR REPLACE FUNCTION IsFileGroupMember (
+  pArea      uuid,
+  pMember    uuid,
+  pLobby     uuid[]
+) RETURNS    boolean
+AS $$
+  -- UNION, not UNION ALL: nothing in db.area forbids a parent cycle, and a
+  -- walk that cannot end would hang every file read
+  WITH RECURSIVE area_tree(id, parent) AS (
+    SELECT id, parent FROM db.area WHERE id = pArea
+     UNION
+    SELECT a.id, a.parent
+      FROM db.area a INNER JOIN area_tree t ON a.id = t.parent
+  )
+  SELECT EXISTS (
+    SELECT 1
+      FROM area_tree a INNER JOIN db.member_area m ON m.area = a.id
+     WHERE a.id <> ALL (coalesce(pLobby, '{}'))
+       AND m.member IN (SELECT pMember UNION ALL SELECT userid FROM db.member_group WHERE member = pMember)
+  );
+$$ LANGUAGE sql STABLE
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- GetFileMask -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
@@ -594,10 +676,18 @@ $$ LANGUAGE sql STABLE STRICT
  * a valid session of another tenant lands on the "other" segment, which
  * NewFile leaves empty.
  *
+ * A project may have a shared area of its own — a brand area every end user
+ * is a direct member of, above every tenant's area. It declares it in
+ * CONFIG\File LobbyArea (GetFileLobbyArea), and a declared lobby counts on
+ * neither side: not as an area of the owner, and not as the area the walk up
+ * finds the user in (IsFileGroupMember, which passes through it). root,
+ * system and guest keep their old place — left out on the owner's side only;
+ * without the key the rule is the one before it.
+ *
  * @param {uuid} pId - File identifier
  * @param {uuid} pUserId - User identifier (defaults to current)
  * @return {bit} - 3-bit mask segment, NULL when the file does not exist
- * @see GetObjectMask, IsMemberArea
+ * @see GetObjectMask, IsMemberArea, GetFileLobbyArea, IsFileGroupMember
  * @since 1.2.22
  */
 CREATE OR REPLACE FUNCTION GetFileMask (
@@ -605,7 +695,11 @@ CREATE OR REPLACE FUNCTION GetFileMask (
   pUserId    uuid DEFAULT current_userid()
 ) RETURNS    bit
 AS $$
+DECLARE
+  uLobby     uuid[];
 BEGIN
+  uLobby := GetFileLobbyArea();
+
   -- plpgsql, not SQL, and not for style: a SQL function's body is checked when
   -- it is created, and db.object_file / db.document belong to the entity
   -- module, which create.psql loads AFTER this one. As a SQL function this
@@ -619,13 +713,14 @@ BEGIN
                     FROM db.member_area m INNER JOIN db.area a ON a.id = m.area
                    WHERE m.member = f.owner
                      AND a.type NOT IN (GetAreaType('root'), GetAreaType('system'), GetAreaType('guest'))
-                     AND IsMemberArea(m.area, pUserId)
+                     AND a.id <> ALL (uLobby)
+                     AND IsFileGroupMember(m.area, pUserId, uLobby)
                    UNION ALL
                   SELECT 1
                     FROM db.object_file t INNER JOIN db.object   o ON o.id = t.object AND o.owner = f.owner
                                           INNER JOIN db.document d ON d.id = t.object
                    WHERE t.file = f.id
-                     AND IsMemberArea(d.area, pUserId)
+                     AND IsFileGroupMember(d.area, pUserId, uLobby)
                 ) THEN SubString(f.mask FROM 4 FOR 3)
            ELSE SubString(f.mask FROM 7 FOR 3)
            END

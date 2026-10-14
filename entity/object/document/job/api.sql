@@ -28,6 +28,17 @@ GRANT SELECT ON api.service_job TO apibot;
 --------------------------------------------------------------------------------
 /**
  * @brief Retrieve jobs by state type, filtered by execution date within the current scope.
+ *
+ * The TaskScheduler's feed: it runs each body as raw SQL under the system's
+ * bot session. Only a job and a program both owned by a platform
+ * administrator are handed out (T848) — the second line behind the gates of
+ * api.add_/update_job and api.add_/update_program, for an object put into the
+ * base past them (CreateJob/CreateProgram called directly) by a non-admin.
+ * It reads the owner only: it does not catch an object whose owner was
+ * rewritten to the administrator — DeleteUser re-owns every object of the
+ * deleted user — nor an admin-owned program whose body a non-admin edited
+ * before the gates existed.
+ *
  * @param {uuid} pStateType - State type identifier (e.g., enabled, disabled)
  * @param {timestamptz} pDateFrom - Return jobs scheduled on or before this timestamp
  * @return {SETOF record} - Job records with id, typecode, statecode, created, daterun, body
@@ -49,9 +60,12 @@ AS $$
                   INNER JOIN db.type    t ON o.type = t.id
                   INNER JOIN db.state   s ON o.state = s.id
                   INNER JOIN db.program p ON j.program = p.id
+                  INNER JOIN db.object po ON p.id = po.id
      WHERE j.dateRun <= pDateFrom
        AND o.state_type = pStateType
-       AND o.scope = current_scope();
+       AND o.scope = current_scope()
+       AND IsAdmin(o.owner)
+       AND IsAdmin(po.owner);
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -96,6 +110,7 @@ $$ LANGUAGE SQL
  * @param {text} pLabel - Display label
  * @param {text} pDescription - Job description
  * @return {uuid} - Identifier of the created job
+ * @throws AccessDenied - When the caller is not a platform administrator (T848)
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.add_job (
@@ -110,6 +125,15 @@ CREATE OR REPLACE FUNCTION api.add_job (
 ) RETURNS           uuid
 AS $$
 BEGIN
+  -- T848: a job makes the TaskScheduler run a program body — raw SQL — as the
+  -- system (role apibot, a bot session); its REST routes are open to any session. Writing one
+  -- is the platform administrator's alone — not the system group: the OAuth2
+  -- client accounts are members of it, and client_credentials with a public
+  -- client's secret (web, mobile) signs in as one. The kernel installs.
+  IF session_user <> 'kernel' AND NOT IsAdmin() THEN
+    PERFORM AccessDenied();
+  END IF;
+
   RETURN CreateJob(pParent, coalesce(pType, GetType('periodic.job')), pScheduler, pProgram, pDateRun, pCode, pLabel, pDescription);
 END;
 $$ LANGUAGE plpgsql
@@ -132,6 +156,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pDescription - New description (NULL keeps current)
  * @return {void}
  * @throws ObjectNotFound - When no job matches pId
+ * @throws AccessDenied - When the caller is not a platform administrator (T848)
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.update_job (
@@ -147,6 +172,15 @@ CREATE OR REPLACE FUNCTION api.update_job (
 ) RETURNS           void
 AS $$
 BEGIN
+  -- T848: a job makes the TaskScheduler run a program body — raw SQL — as the
+  -- system (role apibot, a bot session); its REST routes are open to any session. Writing one
+  -- is the platform administrator's alone — not the system group: the OAuth2
+  -- client accounts are members of it, and client_credentials with a public
+  -- client's secret (web, mobile) signs in as one. The kernel installs.
+  IF session_user <> 'kernel' AND NOT IsAdmin() THEN
+    PERFORM AccessDenied();
+  END IF;
+
   PERFORM FROM db.job WHERE id = pId;
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('job', 'id', pId);

@@ -114,6 +114,7 @@ REST: `/form/field`, `/form/field/count`, `/form/field/set`, `/form/field/get`, 
 | **Types** | `plpgsql.program` |
 | **Functions** | `CreateProgram`, `EditProgram`, `GetProgram` |
 | **API extra** | `api.count_program(pSearch, pFilter)` — count with search/filter; `api.get_program_id(pCode)` — UUID/code resolution |
+| **Access** | `api.add_program` / `api.update_program` (and `api.set_program` through them) — platform administrator only, `kernel` passes (since 1.2.34, T848): the body is raw SQL the TaskScheduler runs as the system. Not the `system` group: OAuth2 client accounts are members of it |
 
 ## SCHEDULER
 
