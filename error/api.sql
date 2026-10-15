@@ -15,6 +15,7 @@
  * @param {text} pDescription - Detailed explanation for documentation and support agents
  * @param {text} pResolution - Recommended steps to resolve the error
  * @return {uuid} - ID of the created error catalog entry
+ * @throws AccessDenied - When the caller is not a platform administrator
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.add_error (
@@ -30,6 +31,14 @@ AS $$
 DECLARE
   uId           uuid;
 BEGIN
+  -- The catalogue is the platform's: every user reads its messages, and its
+  -- routes were open to any session (apostol-csms T870: a driver rewrote the
+  -- text of ERR-401-001). Writing it is the platform administrator's alone;
+  -- the kernel installs.
+  IF session_user <> 'kernel' AND NOT IsAdmin() THEN
+    PERFORM AccessDenied();
+  END IF;
+
   -- An explicit NULL from the REST layer must land on the column default, not
   -- on the NOT NULL constraint.
   uId := CreateErrorCatalog(pCode, pHttpCode, coalesce(pSeverity, 'E'), coalesce(pCategory, 'validation'));
@@ -55,6 +64,7 @@ $$ LANGUAGE plpgsql
  * @param {char} pSeverity - New severity level (NULL keeps current)
  * @param {text} pCategory - New functional category (NULL keeps current)
  * @return {void}
+ * @throws AccessDenied - When the caller is not a platform administrator
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.update_error (
@@ -66,6 +76,14 @@ CREATE OR REPLACE FUNCTION api.update_error (
 ) RETURNS       void
 AS $$
 BEGIN
+  -- The catalogue is the platform's: every user reads its messages, and its
+  -- routes were open to any session (apostol-csms T870: a driver rewrote the
+  -- text of ERR-401-001). Writing it is the platform administrator's alone;
+  -- the kernel installs.
+  IF session_user <> 'kernel' AND NOT IsAdmin() THEN
+    PERFORM AccessDenied();
+  END IF;
+
   PERFORM EditErrorCatalog(pId, pCode, pHttpCode, pSeverity, pCategory);
 END;
 $$ LANGUAGE plpgsql
@@ -86,6 +104,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pDescription - Detailed explanation
  * @param {text} pResolution - Recommended resolution steps
  * @return {SETOF api.error_catalog} - The created or updated error catalog row
+ * @throws AccessDenied - When the caller is not a platform administrator
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.set_error (
@@ -100,6 +119,14 @@ CREATE OR REPLACE FUNCTION api.set_error (
 ) RETURNS       SETOF api.error_catalog
 AS $$
 BEGIN
+  -- The catalogue is the platform's: every user reads its messages, and its
+  -- routes were open to any session (apostol-csms T870: a driver rewrote the
+  -- text of ERR-401-001). Writing it is the platform administrator's alone;
+  -- the kernel installs.
+  IF session_user <> 'kernel' AND NOT IsAdmin() THEN
+    PERFORM AccessDenied();
+  END IF;
+
   IF pId IS NULL THEN
     pId := api.add_error(pCode, pHttpCode, pSeverity, pCategory, pMessage, pDescription, pResolution);
   ELSE

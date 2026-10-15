@@ -782,7 +782,12 @@ DECLARE
   uOldState     uuid;
   uNewState     uuid;
 BEGIN
-  IF session_user <> 'apibot' THEN
+  -- apibot runs the platform's own work (schedulers, callbacks of the payment
+  -- providers in the payer's session) and is not asked for the right on the
+  -- method. A request of /api/v2 is a person's whatever role the pool logs in
+  -- as (IsGatewayRequest, gateway module): there the right is asked as on any
+  -- other road (apostol-csms T798).
+  IF (CASE WHEN session_user <> 'apibot' THEN true ELSE IsGatewayRequest() END) THEN
     IF NOT CheckObjectMethodAccess(pObject, pMethod, B'100') THEN
       SELECT label INTO sLabel FROM db.method_text WHERE method = pMethod AND locale = current_locale();
       PERFORM ExecuteMethodError(sLabel);

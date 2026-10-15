@@ -121,6 +121,7 @@ $$ LANGUAGE SQL
  * @param {text} pName - Display name
  * @param {text} pDescription - Description (optional)
  * @return {uuid} - Identifier of the newly created type
+ * @throws AccessDenied - When the caller is not a platform administrator
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.add_type (
@@ -131,6 +132,17 @@ CREATE OR REPLACE FUNCTION api.add_type (
 ) RETURNS       uuid
 AS $$
 BEGIN
+  -- A type is the key every rule of a class reads (GetType, typecode). The
+  -- doors in front of this function admit the administrator only — the head of
+  -- rest.workflow, the administrator level of daemon.call — but a project may
+  -- route to it from its own dispatcher (apostol-csms T870: /connector/type/set
+  -- renamed any type of the platform for any signed-in user). The rule lives
+  -- here: writing a type is the platform administrator's alone; the kernel
+  -- installs.
+  IF session_user <> 'kernel' AND NOT IsAdmin() THEN
+    PERFORM AccessDenied();
+  END IF;
+
   RETURN AddType(pClass, pCode, pName, pDescription);
 END;
 $$ LANGUAGE plpgsql
@@ -148,6 +160,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pName - New display name (NULL keeps existing)
  * @param {text} pDescription - New description (NULL keeps existing)
  * @return {void}
+ * @throws AccessDenied - When the caller is not a platform administrator
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.update_type (
@@ -159,6 +172,17 @@ CREATE OR REPLACE FUNCTION api.update_type (
 ) RETURNS       void
 AS $$
 BEGIN
+  -- A type is the key every rule of a class reads (GetType, typecode). The
+  -- doors in front of this function admit the administrator only — the head of
+  -- rest.workflow, the administrator level of daemon.call — but a project may
+  -- route to it from its own dispatcher (apostol-csms T870: /connector/type/set
+  -- renamed any type of the platform for any signed-in user). The rule lives
+  -- here: writing a type is the platform administrator's alone; the kernel
+  -- installs.
+  IF session_user <> 'kernel' AND NOT IsAdmin() THEN
+    PERFORM AccessDenied();
+  END IF;
+
   PERFORM EditType(pId, pClass, pCode, pName, pDescription);
 END;
 $$ LANGUAGE plpgsql
@@ -206,6 +230,7 @@ $$ LANGUAGE plpgsql
  * @brief Delete an object type by its identifier.
  * @param {uuid} pId - Type identifier
  * @return {void}
+ * @throws AccessDenied - When the caller is not a platform administrator
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.delete_type (
@@ -213,6 +238,17 @@ CREATE OR REPLACE FUNCTION api.delete_type (
 ) RETURNS     void
 AS $$
 BEGIN
+  -- A type is the key every rule of a class reads (GetType, typecode). The
+  -- doors in front of this function admit the administrator only — the head of
+  -- rest.workflow, the administrator level of daemon.call — but a project may
+  -- route to it from its own dispatcher (apostol-csms T870: /connector/type/set
+  -- renamed any type of the platform for any signed-in user). The rule lives
+  -- here: writing a type is the platform administrator's alone; the kernel
+  -- installs.
+  IF session_user <> 'kernel' AND NOT IsAdmin() THEN
+    PERFORM AccessDenied();
+  END IF;
+
   PERFORM DeleteType(pId);
 END;
 $$ LANGUAGE plpgsql

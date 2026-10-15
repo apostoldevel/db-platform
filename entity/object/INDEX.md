@@ -142,7 +142,7 @@ table.sql → security.sql → view.sql → routine.sql → api.sql → rest.sql
 | Function | Returns | Purpose |
 |----------|---------|---------|
 | `ExecuteAction(pClass, pAction)` | `void` | Recursive event handler chain |
-| `ExecuteMethod(pObject, pMethod, pParams)` | `jsonb` | Full method dispatch with method_stack |
+| `ExecuteMethod(pObject, pMethod, pParams)` | `jsonb` | Full method dispatch with method_stack. Asks for the right on the method (`CheckObjectMethodAccess`) on every road but `apibot` outside an `/api/v2` request (`IsGatewayRequest`, 1.2.34) |
 | `ExecuteMethodForAllChild(pObject, pClass, pMethod, pAction, pParams)` | `jsonb` | Execute on all children |
 | `ExecuteObjectAction(pObject, pAction, pParams)` | `jsonb` | Find method for action, execute |
 

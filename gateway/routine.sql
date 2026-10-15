@@ -36,6 +36,31 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- IsGatewayRequest ------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Whether this transaction serves an /api/v2 request: daemon.begin
+ *        verified the token and opened gateway.request for it.
+ * @details The row is keyed by (backend pid, xid) and only kernel writes it, so
+ *          a connection cannot claim it; begin assigns the xid, so
+ *          txid_current_if_assigned() assigns none on any other road. On this
+ *          road the caller is a person whatever role the connection logs in
+ *          as: ExecuteMethod asks for the right on the method here even under
+ *          apibot (apostol-csms T798).
+ * @return {boolean}
+ * @since 1.2.34
+ */
+CREATE OR REPLACE FUNCTION IsGatewayRequest (
+) RETURNS       boolean
+AS $$
+BEGIN
+  RETURN EXISTS (SELECT FROM gateway.request WHERE pid = pg_backend_pid() AND xid = txid_current_if_assigned());
+END;
+$$ LANGUAGE plpgsql STABLE
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- SetGatewayContext -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**

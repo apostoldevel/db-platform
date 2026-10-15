@@ -66,9 +66,9 @@ Centralized error catalog with locale-aware messages. Every application error co
 
 | Function | Returns | Purpose |
 |----------|---------|---------|
-| `api.add_error(pCode, pHttpCode, pSeverity, pCategory, pMessage, pDescription, pResolution)` | `uuid` | Create a new entry with a message for the current locale |
-| `api.update_error(pId, pCode, pHttpCode, pSeverity, pCategory)` | `void` | Update an existing entry |
-| `api.set_error(pId, pCode, pHttpCode, pSeverity, pCategory, pMessage, pDescription, pResolution)` | `SETOF api.error_catalog` | Upsert: create when pId is NULL, otherwise update; returns the row |
+| `api.add_error(pCode, pHttpCode, pSeverity, pCategory, pMessage, pDescription, pResolution)` | `uuid` | Create a new entry with a message for the current locale. Platform administrator only (kernel installs) — 1.2.34 |
+| `api.update_error(pId, pCode, pHttpCode, pSeverity, pCategory)` | `void` | Update an existing entry. Platform administrator only — 1.2.34 |
+| `api.set_error(pId, pCode, pHttpCode, pSeverity, pCategory, pMessage, pDescription, pResolution)` | `SETOF api.error_catalog` | Upsert: create when pId is NULL, otherwise update; returns the row. Platform administrator only — 1.2.34 |
 | `api.get_error(pId uuid)` | `SETOF api.error_catalog` | Retrieve a single entry by ID |
 | `api.get_error_by_code(pCode text)` | `SETOF api.error_catalog` | Retrieve a single entry by code string |
 | `api.count_error(pSearch, pFilter)` | `SETOF bigint` | Count entries with search/filter |

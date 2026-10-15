@@ -163,7 +163,7 @@ DECLARE
   vSelect       text;
   vWhere        text;
   vOrderBy      text;
-  vJoin         text;
+  vFrom         text;
   vWith         text;
 
   vCondition    text;
@@ -191,31 +191,41 @@ BEGIN
        AND table_type = 'VIEW';
 
     IF FOUND THEN
-      -- Materialise the access set once, then join to it, instead of joining the
-      -- Access<X> view directly. Access<X> is a blocking aggregate
-      -- (GROUP BY object HAVING bit_or(allow) & ~bit_or(deny) & B'100' = B'100'): it
-      -- cannot return a first row before it has computed them all. The planner, unable
-      -- to cost a HAVING over an aggregate, estimates rows=1 and — under ORDER BY … LIMIT
-      -- — picks a Nested Loop chasing a cheap startup a blocking aggregate can never give,
-      -- re-running the expensive side per row (observed 54ms → 7.9s on a neighbouring
-      -- project). MATERIALIZED takes away that illusion: the set is built once as a CTE
-      -- and the join is an ordinary scan over a known-size relation.
+      -- Materialise the access set once and filter the view by it as a semi-join,
+      -- inside the FROM: (SELECT * FROM <view> WHERE id IN (SELECT object FROM aou)) t.
       --
-      -- This is INSURANCE against a rare catastrophic plan on grown data, NOT a speed-up.
-      -- On small data the two plans are indistinguishable — there is nothing to measure
-      -- here, so quote no percentage; the 54ms → 7.9s above is from a production-scale
-      -- sibling project, not from this stand. Do not reapply it as an optimisation.
-      -- The materialisation costs nothing extra, the aggregate was always computed in
-      -- full and LIMIT never shortened it. Scope is this one query — unlike
-      -- enable_nestloop, which is transaction-scoped (one HTTP call is one transaction),
-      -- would stay off for point lookups by key later in the same batch, and was the
-      -- T037 dead end.
+      -- Access<X> is a blocking aggregate (GROUP BY object HAVING bit_or(allow) &
+      -- ~bit_or(deny) & B'100' = B'100'). The planner cannot cost a HAVING over an
+      -- aggregate and estimates rows=1. Joined to it (INNER JOIN aou, the form before
+      -- 1.2.34), that estimate makes aou the outer side of a Nested Loop and the view —
+      -- itself a join of several tables — is run once per accessible object: on the
+      -- apostol-csms dev base a tenant's owner listing payment providers (2 380
+      -- accessible objects) took 74.9 s, 27.1 s with the join alone (T879).
+      -- MATERIALIZED alone did not cure it: the set is built once, but its size is
+      -- still estimated as 1.
+      --
+      -- As a semi-join the plan is measured, not guaranteed: the estimate is still 1,
+      -- but on that base the view was scanned once against the hashed set. Measured
+      -- there (T879 p3) on 38 Object<X> views x 4 non-admin sessions, same rows in
+      -- every case: 14 calls over 40 s fell to 0.3-18 s, the total from 829 s to
+      -- 343 s. The price: where a session's set is empty or tiny, the old loop ended
+      -- in 7-22 ms and the semi-join scans the whole view, 0.4-1.0 s on that volume.
+      -- A view slow by itself (ObjectDocument, 37 s) is slow in both forms. The rows
+      -- are the same in both forms: every access set is unique on object, so the
+      -- join never multiplied a row.
+      --
+      -- In the FROM, not in the WHERE: the WHERE below is built from the caller's
+      -- search, whose lstr/rstr place unpaired parentheses; ANDed into it, the access
+      -- condition could be closed off and OR-ed around. A subquery in the FROM is a
+      -- separate scope — the planner flattens it, the caller cannot reach into it.
+      -- Not enable_nestloop either: transaction-scoped, it stays off for every point
+      -- lookup later in the same call (the T037 dead end).
       vWith := format('WITH aou AS MATERIALIZED (SELECT object FROM %s.%s)', pScheme, vTable) || E'\n';
-      vJoin := 'INNER JOIN aou ON t.id = aou.object';
+      vFrom := format('(SELECT * FROM %s.%s WHERE id IN (SELECT object FROM aou)) t', pScheme, pTable);
     END IF;
   END IF;
 
-  vSelect := coalesce(vWith, '') || 'SELECT ' || coalesce(vFields, 't.*') || E'\n  FROM ' || pScheme || '.' || pTable || ' t ' || coalesce(vJoin, '');
+  vSelect := coalesce(vWith, '') || 'SELECT ' || coalesce(vFields, 't.*') || E'\n  FROM ' || coalesce(vFrom, pScheme || '.' || pTable || ' t ');
 
   IF pFilter IS NOT NULL THEN
     PERFORM CheckJsonbKeys(pTable || '/filter', arColumns, pFilter);

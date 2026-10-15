@@ -50,6 +50,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pData - New description
  * @return {void}
  * @throws ObjectNotFound - When the object does not exist
+ * @throws AccessDenied - When a caller other than a platform administrator changes the type or the parent
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.update_object (
@@ -60,10 +61,25 @@ CREATE OR REPLACE FUNCTION api.update_object (
   pData         text default null
 ) RETURNS       void
 AS $$
+DECLARE
+  uParent       uuid;
+  uType         uuid;
 BEGIN
-  PERFORM FROM db.object WHERE id = pId;
+  SELECT parent, type INTO uParent, uType FROM db.object WHERE id = pId;
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('object', 'id', pId);
+  END IF;
+
+  -- A type or a parent written here bypasses the class: no method, no event,
+  -- only the update bit on the object. A retyped document leaves every rule
+  -- keyed on its type (apostol-csms T870: a commission invoice retyped by its
+  -- payer dropped out of the debt). Changing either is the platform
+  -- administrator's alone; the label and the description stay with the update
+  -- bit. Entities change their type through Edit<Entity>, with its events.
+  IF (pType IS DISTINCT FROM uType AND pType IS NOT NULL) OR (pParent IS DISTINCT FROM uParent AND pParent IS NOT NULL) THEN
+    IF session_user <> 'kernel' AND NOT IsAdmin() THEN
+      PERFORM AccessDenied();
+    END IF;
   END IF;
 
   PERFORM EditObject(pId, pParent, pType, pLabel, pData, current_locale());
@@ -251,6 +267,7 @@ $$ LANGUAGE plpgsql
  * @return {void}
  * @throws ObjectNotFound - When the object does not exist
  * @throws StateByCodeNotFound - When 'deleted' state is not defined for the class
+ * @throws AccessDenied - When the caller is not a platform administrator
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.object_force_delete (
@@ -260,6 +277,15 @@ AS $$
 DECLARE
   uState        uuid;
 BEGIN
+  -- The state is written past the class: no method, no event, no right on a
+  -- method — only the update bit on the object. Every rule a class keeps in its
+  -- delete event is skipped (apostol-csms T868: a tenant's owner took its own
+  -- commission invoice out of the debt this way). Force is the platform
+  -- administrator's alone.
+  IF session_user <> 'kernel' AND NOT IsAdmin() THEN
+    PERFORM AccessDenied();
+  END IF;
+
   PERFORM FROM db.object o WHERE o.id = pId;
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('object', 'id', pId);

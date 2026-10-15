@@ -374,8 +374,9 @@ FROM db.{entity} t INNER JOIN db.document          d ON t.document = d.id
        AND table_type = 'VIEW';
 
     IF FOUND THEN
-      vJoin := format('INNER JOIN %s.%s aou ON t.id = aou.object', pScheme, vTable);
-      PERFORM set_config('enable_nestloop', 'off', true);
+      -- a semi-join on the materialized set, inside the FROM (1.2.34; reasons in api/api.sql)
+      vWith := format('WITH aou AS MATERIALIZED (SELECT object FROM %s.%s)', pScheme, vTable) || E'\n';
+      vFrom := format('(SELECT * FROM %s.%s WHERE id IN (SELECT object FROM aou)) t', pScheme, pTable);
     END IF;
   END IF;
 ```
@@ -447,7 +448,8 @@ Verify the result by reading the generated statement rather than by inspection:
 ```sql
 SELECT api.sql('kernel','ObjectAccount', null, null, 5);
 -- administrator      → FROM kernel.ObjectAccount t
--- everyone else      → FROM kernel.ObjectAccount t INNER JOIN kernel.accessaccount aou ON t.id = aou.object
+-- everyone else      → WITH aou AS MATERIALIZED (SELECT object FROM kernel.accessaccount)
+--                       … FROM (SELECT * FROM kernel.ObjectAccount WHERE id IN (SELECT object FROM aou)) t
 ```
 
 ### Why NOT `CheckObjectAccess` in `get_*` functions
