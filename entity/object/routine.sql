@@ -488,14 +488,22 @@ $$ LANGUAGE sql STABLE STRICT
  * @brief Add or update a state entry in the object state history.
  * @param {uuid} pObject - Object identifier
  * @param {uuid} pState - New state identifier
- * @param {timestamptz} pDateFrom - Effective date (defaults to oper_date)
+ * @param {timestamptz} pDateFrom - Effective date (defaults to Now(): the moment of the change)
  * @return {uuid} - Object state record identifier
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION AddObjectState (
   pObject       uuid,
   pState        uuid,
-  pDateFrom     timestamptz DEFAULT oper_date()
+  -- Now(), not oper_date(): a session sets its oper_date itself
+  -- (/session/set/oper_date), and a change dated at the start of a period
+  -- overwrites that row of the history — a tenant's owner erased a suspension
+  -- this way and walked past every rule that reads the history (apostol-csms
+  -- T868). Without an oper_date (every session in production) oper_date() was
+  -- Now() already, so nothing changes there. As before, two changes in one
+  -- transaction share Now() and the second overwrites the first.
+  -- oper_date stays the "as of" date of reading.
+  pDateFrom     timestamptz DEFAULT Now()
 ) RETURNS       uuid
 AS $$
 DECLARE
