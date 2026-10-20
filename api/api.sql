@@ -121,14 +121,16 @@ $$ LANGUAGE plpgsql
  * @brief Build a dynamic SQL SELECT query with search, filter, pagination, and ordering.
  * @param {text} pScheme - Schema name (e.g. 'api')
  * @param {text} pTable - View/table name within the schema
- * @param {jsonb} pSearch - Search conditions: [{"condition":"AND|OR","field":"<col>","compare":"<op>","value":"<val>"}, ...]
- * @param {jsonb} pFilter - Simple key-value filter: {"<col>": "<val>"}
+ * @param {jsonb} pSearch - Search conditions: [{"condition":"AND|OR","field":"<col>","compare":"<op>","value":"<val>","lstr":"(","rstr":")"}, ...]
+ * @param {jsonb} pFilter - Simple key-value filter: {"<col>": "<val>"} or {"<col>": [<val>, ...]}; always ANDed
+ *                          to the whole search as a group: WHERE (<search>) AND <filter>
  * @param {integer} pLimit - Maximum number of rows (default 500)
  * @param {integer} pOffSet - Number of rows to skip
  * @param {jsonb} pOrderBy - Array of column names for ORDER BY
  * @param {jsonb} pFields - Array of column names for SELECT (NULL = all)
  * @param {jsonb} pGroupBy - Array of column names for GROUP BY
  * @return {text} - Complete SQL query string ready for EXECUTE
+ * @throws IncorrectValueInArray - When the lstr/rstr brackets of pSearch do not balance
  *
  * Compare operators:
  *   EQL = equal, NEQ = not equal, LSS = less than, LEQ = less or equal,
@@ -172,6 +174,12 @@ DECLARE
   vValue        text;
   vLStr         text;
   vRStr         text;
+  vExpr         text;
+  vSearchWhere  text;
+  vFilterWhere  text;
+
+  jFilter       jsonb;
+  nDepth        integer;
 
   arValues      text[];
   arColumns     text[];
@@ -215,9 +223,8 @@ BEGIN
       -- join never multiplied a row.
       --
       -- In the FROM, not in the WHERE: the WHERE below is built from the caller's
-      -- search, whose lstr/rstr place unpaired parentheses; ANDed into it, the access
-      -- condition could be closed off and OR-ed around. A subquery in the FROM is a
-      -- separate scope — the planner flattens it, the caller cannot reach into it.
+      -- search and filter. A subquery in the FROM is a separate scope — the planner
+      -- flattens it, and no condition of the caller can reach into it.
       -- Not enable_nestloop either: transaction-scoped, it stays off for every point
       -- lookup later in the same call (the T037 dead end).
       vWith := format('WITH aou AS MATERIALIZED (SELECT object FROM %s.%s)', pScheme, vTable) || E'\n';
@@ -227,107 +234,152 @@ BEGIN
 
   vSelect := coalesce(vWith, '') || 'SELECT ' || coalesce(vFields, 't.*') || E'\n  FROM ' || coalesce(vFrom, pScheme || '.' || pTable || ' t ');
 
+  -- The search and the filter are built into two separate fragments and joined
+  -- as `WHERE (<search>) AND <filter>`. The filter is where a caller passes an
+  -- access bound (e.g. {"id": [...]}), so it applies to the result of the whole
+  -- search, whatever conditions (AND/OR) the search itself contains. The brackets
+  -- a search may carry (lstr/rstr) must balance, so that a search cannot close
+  -- the outer group itself.
   IF pFilter IS NOT NULL THEN
     PERFORM CheckJsonbKeys(pTable || '/filter', arColumns, pFilter);
 
     FOR r IN SELECT * FROM jsonb_each(pFilter)
     LOOP
       IF jsonb_typeof(r.value) = 'array' THEN
-        pSearch := coalesce(pSearch, '[]'::jsonb) || jsonb_build_object('field', r.key, 'valarr', r.value);
+        jFilter := coalesce(jFilter, '[]'::jsonb) || jsonb_build_object('field', r.key, 'valarr', r.value, 'bound', true);
       ELSE
-        pSearch := coalesce(pSearch, '[]'::jsonb) || jsonb_build_object('field', r.key, 'value', r.value);
+        jFilter := coalesce(jFilter, '[]'::jsonb) || jsonb_build_object('field', r.key, 'value', r.value, 'bound', true);
       END IF;
     END LOOP;
   END IF;
 
   IF pSearch IS NOT NULL THEN
-
     IF jsonb_typeof(pSearch) = 'array' THEN
-
+      -- 'bound' is not accepted here: only the filter elements above carry it.
       PERFORM CheckJsonbKeys(pTable || '/search', ARRAY['condition', 'field', 'compare', 'value', 'valarr', 'lstr', 'rstr'], pSearch);
-
-      FOR r IN SELECT * FROM jsonb_to_recordset(pSearch) AS x(condition text, field text, compare text, value text, valarr jsonb, lstr text, rstr text)
-      LOOP
-        vCondition := coalesce(upper(r.condition), 'AND');
-        vField     := coalesce(lower(r.field), '');
-        vCompare   := coalesce(upper(r.compare), 'EQL');
-        vLStr      := CASE WHEN r.lstr = '(' THEN '(' ELSE '' END;
-        vRStr      := CASE WHEN r.rstr = ')' THEN ')' ELSE '' END;
-
-        vField := quote_literal_json(vField);
-
-        arValues := array_cat(null, ARRAY['AND', 'OR']);
-        IF NOT vCondition = ANY (arValues) THEN
-          PERFORM IncorrectValueInArray(vCondition, 'condition', arValues);
-        END IF;
-
-        IF NOT vField = ANY (arColumns) THEN
-          PERFORM IncorrectValueInArray(vField, 'field', arColumns);
-        END IF;
-
-        IF r.valarr IS NOT NULL THEN
-          vValue := jsonb_array_to_string(r.valarr, ',');
-
-          IF vValue IS NOT NULL THEN
-            vCompare := coalesce(nullif(upper(vCompare), 'EQL'), 'IN');
-
-            arValues := array_cat(null, ARRAY['IN', 'NOT IN']);
-            IF NOT vCompare = ANY (arValues) THEN
-              PERFORM IncorrectValueInArray(coalesce(r.compare, ''), 'compare', arValues);
-            END IF;
-
-            IF vWhere IS NULL THEN
-              vWhere := E'\n WHERE ' || vField || ' ' || vCompare || ' (' || vValue || ')';
-            ELSE
-              vWhere := vWhere || E'\n   ' || vCondition || ' ' || vField || ' ' || vCompare || ' (' || vValue  || ')';
-            END IF;
-          END IF;
-
-        ELSE
-          vValue := quote_nullable(r.value);
-
-          arValues := array_cat(null, ARRAY['EQL', 'NEQ', 'LSS', 'LEQ', 'GTR', 'GEQ', 'GIN', 'AND', 'OR', 'XOR', 'NOT', 'ISN', 'INN', 'LKE', 'IKE', 'SIM', 'PSX', 'PSI', 'PSN', 'PIN']);
-          IF NOT vCompare = ANY (arValues) THEN
-            PERFORM IncorrectValueInArray(vCompare, 'compare', arValues);
-          END IF;
-
-          IF NOT (vCompare = ANY (ARRAY['ISN', 'INN'])) AND nullif(r.value, '') IS NULL THEN
-            CONTINUE;
-          END IF;
-
-          IF vField = 'statetypecode' THEN
-            vField := 'statetype';
-            SELECT id INTO uId FROM db.state_type WHERE code = r.value;
-            vValue := quote_nullable(uId);
-          ELSIF vField = 'typecode' THEN
-            vField := 'type';
-            SELECT id INTO uId FROM db.type WHERE code = r.value;
-            vValue := quote_nullable(uId);
-          ELSIF vField = 'classcode' THEN
-            vField := 'class';
-            SELECT id INTO uId FROM db.class_tree WHERE code = r.value;
-            vValue := quote_nullable(uId);
-          ELSIF vField = 'entitycode' THEN
-            vField := 'entity';
-            SELECT id INTO uId FROM db.entity WHERE code = r.value;
-            vValue := quote_nullable(uId);
-          END IF;
-
-          IF vCompare IN ('AND', 'OR', 'XOR', 'NOT') THEN
-            vValue := vValue || ' = ' || vValue;
-          END IF;
-
-          IF vWhere IS NULL THEN
-            vWhere := E'\n WHERE ' || vLStr || vField || GetCompare(vCompare) || vValue || vRStr;
-          ELSE
-            vWhere := vWhere || E'\n   ' || vCondition || ' ' || vLStr || vField || GetCompare(vCompare) || vValue || vRStr;
-          END IF;
-        END IF;
-
-      END LOOP;
-
     ELSE
       PERFORM IncorrectJsonType(jsonb_typeof(pSearch), 'array');
+    END IF;
+  END IF;
+
+  IF pSearch IS NOT NULL OR jFilter IS NOT NULL THEN
+
+    nDepth := 0;
+
+    -- The search elements first, then the filter elements, in array order.
+    FOR r IN SELECT * FROM jsonb_to_recordset(coalesce(pSearch, '[]'::jsonb) || coalesce(jFilter, '[]'::jsonb)) AS x(condition text, field text, compare text, value text, valarr jsonb, lstr text, rstr text, bound boolean)
+    LOOP
+      vCondition := coalesce(upper(r.condition), 'AND');
+      vField     := coalesce(lower(r.field), '');
+      vCompare   := coalesce(upper(r.compare), 'EQL');
+      vLStr      := CASE WHEN r.lstr = '(' THEN '(' ELSE '' END;
+      vRStr      := CASE WHEN r.rstr = ')' THEN ')' ELSE '' END;
+
+      vField := quote_literal_json(vField);
+
+      arValues := array_cat(null, ARRAY['AND', 'OR']);
+      IF NOT vCondition = ANY (arValues) THEN
+        PERFORM IncorrectValueInArray(vCondition, 'condition', arValues);
+      END IF;
+
+      IF NOT vField = ANY (arColumns) THEN
+        PERFORM IncorrectValueInArray(vField, 'field', arColumns);
+      END IF;
+
+      vExpr := null;
+
+      IF r.valarr IS NOT NULL THEN
+        vValue := jsonb_array_to_string(r.valarr, ',');
+
+        IF vValue IS NOT NULL THEN
+          vCompare := coalesce(nullif(upper(vCompare), 'EQL'), 'IN');
+
+          arValues := array_cat(null, ARRAY['IN', 'NOT IN']);
+          IF NOT vCompare = ANY (arValues) THEN
+            PERFORM IncorrectValueInArray(coalesce(r.compare, ''), 'compare', arValues);
+          END IF;
+
+          -- lstr/rstr are not applied to a valarr element.
+          vExpr := vField || ' ' || vCompare || ' (' || vValue || ')';
+        END IF;
+
+      ELSE
+        vValue := quote_nullable(r.value);
+
+        arValues := array_cat(null, ARRAY['EQL', 'NEQ', 'LSS', 'LEQ', 'GTR', 'GEQ', 'GIN', 'AND', 'OR', 'XOR', 'NOT', 'ISN', 'INN', 'LKE', 'IKE', 'SIM', 'PSX', 'PSI', 'PSN', 'PIN']);
+        IF NOT vCompare = ANY (arValues) THEN
+          PERFORM IncorrectValueInArray(vCompare, 'compare', arValues);
+        END IF;
+
+        IF NOT (vCompare = ANY (ARRAY['ISN', 'INN'])) AND nullif(r.value, '') IS NULL THEN
+          CONTINUE;
+        END IF;
+
+        IF vField = 'statetypecode' THEN
+          vField := 'statetype';
+          SELECT id INTO uId FROM db.state_type WHERE code = r.value;
+          vValue := quote_nullable(uId);
+        ELSIF vField = 'typecode' THEN
+          vField := 'type';
+          SELECT id INTO uId FROM db.type WHERE code = r.value;
+          vValue := quote_nullable(uId);
+        ELSIF vField = 'classcode' THEN
+          vField := 'class';
+          SELECT id INTO uId FROM db.class_tree WHERE code = r.value;
+          vValue := quote_nullable(uId);
+        ELSIF vField = 'entitycode' THEN
+          vField := 'entity';
+          SELECT id INTO uId FROM db.entity WHERE code = r.value;
+          vValue := quote_nullable(uId);
+        END IF;
+
+        IF vCompare IN ('AND', 'OR', 'XOR', 'NOT') THEN
+          vValue := vValue || ' = ' || vValue;
+        END IF;
+
+        vExpr := vLStr || vField || GetCompare(vCompare) || vValue || vRStr;
+
+        IF NOT coalesce(r.bound, false) THEN
+          -- Count only the brackets that reach the text: a running depth below
+          -- zero closes a group the search did not open.
+          nDepth := nDepth + length(vLStr);
+          IF nDepth - length(vRStr) < 0 THEN
+            PERFORM IncorrectValueInArray(')', pTable || '/search', ARRAY['balanced brackets']);
+          END IF;
+          nDepth := nDepth - length(vRStr);
+        END IF;
+      END IF;
+
+      IF vExpr IS NOT NULL THEN
+        IF coalesce(r.bound, false) THEN
+          IF vFilterWhere IS NULL THEN
+            vFilterWhere := vExpr;
+          ELSE
+            vFilterWhere := vFilterWhere || E'\n   ' || vCondition || ' ' || vExpr;
+          END IF;
+        ELSE
+          IF vSearchWhere IS NULL THEN
+            vSearchWhere := vExpr;
+          ELSE
+            vSearchWhere := vSearchWhere || E'\n   ' || vCondition || ' ' || vExpr;
+          END IF;
+        END IF;
+      END IF;
+
+    END LOOP;
+
+    IF nDepth > 0 THEN
+      PERFORM IncorrectValueInArray('(', pTable || '/search', ARRAY['balanced brackets']);
+    END IF;
+
+    -- Search alone and filter alone give a plain WHERE; the brackets around the
+    -- search appear only when both are present.
+    IF vSearchWhere IS NOT NULL AND vFilterWhere IS NOT NULL THEN
+      vWhere := E'\n WHERE (' || vSearchWhere || E')\n   AND ' || vFilterWhere;
+    ELSIF vSearchWhere IS NOT NULL THEN
+      vWhere := E'\n WHERE ' || vSearchWhere;
+    ELSIF vFilterWhere IS NOT NULL THEN
+      vWhere := E'\n WHERE ' || vFilterWhere;
     END IF;
 
   END IF;
