@@ -23,6 +23,7 @@ GRANT SELECT ON api.reference TO administrator;
  * @param {text} pName - Display name
  * @param {text} pDescription - Optional description
  * @return {uuid} - ID of the created reference
+ * @throws AccessDenied - When the type is a program or a scheduler and the caller is not a platform administrator
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.add_reference (
@@ -34,6 +35,17 @@ CREATE OR REPLACE FUNCTION api.add_reference (
 ) RETURNS       uuid
 AS $$
 BEGIN
+  -- This is the generic road to any reference type. A program or a
+  -- scheduler is the administrator's alone (api.add_program, api.add_scheduler),
+  -- and made here it would be a bare object — class and code, no body or period —
+  -- that holds the code against the administrator's own /program/set and
+  -- /scheduler/set (ERR-400-030) and against a seed (unique code in the scope).
+  IF session_user <> 'kernel' AND NOT IsAdmin() AND EXISTS (
+       SELECT 1 FROM db.type t INNER JOIN db.class_tree c ON c.id = t.class
+        WHERE t.id = pType AND c.code IN ('program', 'scheduler')) THEN
+    PERFORM AccessDenied();
+  END IF;
+
   RETURN CreateReference(pParent, pType, pCode, pName, pDescription);
 END;
 $$ LANGUAGE plpgsql
@@ -53,6 +65,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pDescription - New description (NULL keeps current)
  * @return {void}
  * @throws ObjectNotFound - When reference with given ID does not exist
+ * @throws AccessDenied - When the reference or the new type is a program or a scheduler and the caller is not a platform administrator
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.update_reference (
@@ -65,6 +78,16 @@ CREATE OR REPLACE FUNCTION api.update_reference (
 ) RETURNS       void
 AS $$
 BEGIN
+  -- See api.add_reference — the class of the object and of the new type both count.
+  IF session_user <> 'kernel' AND NOT IsAdmin() AND EXISTS (
+       SELECT 1 FROM db.class_tree c
+        WHERE c.code IN ('program', 'scheduler')
+          AND c.id IN (SELECT r.class FROM db.reference r WHERE r.id = pId
+                       UNION ALL
+                       SELECT t.class FROM db.type t WHERE t.id = pType)) THEN
+    PERFORM AccessDenied();
+  END IF;
+
   PERFORM FROM db.reference WHERE id = pId;
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('reference', 'id', pId);

@@ -26,6 +26,7 @@ GRANT SELECT ON api.scheduler TO administrator;
  * @param {timestamptz} pDateStop - End of active window
  * @param {text} pDescription - Optional description
  * @return {uuid} - ID of the created scheduler
+ * @throws AccessDenied - When the caller is not a platform administrator
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.add_scheduler (
@@ -40,6 +41,14 @@ CREATE OR REPLACE FUNCTION api.add_scheduler (
 ) RETURNS       uuid
 AS $$
 BEGIN
+  -- A scheduler sets the pace of the jobs the TaskScheduler runs as the
+  -- system. Same lock as program and job: the platform administrator alone,
+  -- not the system group (the OAuth2 client accounts are members of it).
+  -- The kernel installs.
+  IF session_user <> 'kernel' AND NOT IsAdmin() THEN
+    PERFORM AccessDenied();
+  END IF;
+
   RETURN CreateScheduler(pParent, coalesce(pType, GetType('job.scheduler')), pCode, pName, pPeriod, pDateStart, pDateStop, pDescription);
 END;
 $$ LANGUAGE plpgsql
@@ -62,6 +71,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pDescription - New description (NULL keeps current)
  * @return {void}
  * @throws ObjectNotFound - When scheduler with given ID does not exist
+ * @throws AccessDenied - When the caller is not a platform administrator
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.update_scheduler (
@@ -77,6 +87,12 @@ CREATE OR REPLACE FUNCTION api.update_scheduler (
 ) RETURNS       void
 AS $$
 BEGIN
+  -- See api.add_scheduler. Before the lookup, so a refusal does not tell
+  -- a caller which ids exist.
+  IF session_user <> 'kernel' AND NOT IsAdmin() THEN
+    PERFORM AccessDenied();
+  END IF;
+
   PERFORM FROM db.scheduler WHERE id = pId;
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('scheduler', 'id', pId);
@@ -103,6 +119,7 @@ $$ LANGUAGE plpgsql
  * @param {timestamptz} pDateStop - End of active window
  * @param {text} pDescription - Optional description
  * @return {SETOF api.scheduler} - The created or updated scheduler row
+ * @throws AccessDenied - When the caller is not a platform administrator, through api.add_scheduler / api.update_scheduler
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.set_scheduler (

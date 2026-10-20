@@ -124,6 +124,7 @@ REST: `/form/field`, `/form/field/count`, `/form/field/set`, `/form/field/get`, 
 | **Types** | `job.scheduler` |
 | **Functions** | `CreateScheduler`, `EditScheduler`, `GetScheduler` |
 | **API extra** | `api.count_scheduler(pSearch, pFilter)` — count with search/filter; `api.get_scheduler_id(pCode)` — UUID/code resolution |
+| **Access** | `api.add_scheduler` / `api.update_scheduler` (and `api.set_scheduler` through them) — platform administrator only, `kernel` passes (since 1.2.36): a scheduler sets the pace of the jobs the TaskScheduler runs as the system, and program and job are closed the same way. Not the `system` group: OAuth2 client accounts are members of it. The generic road is gated the same way: `api.add_reference` / `api.update_reference` refuse a `program` or `scheduler` type to a non-administrator (a bare object of the class would hold the code against the administrator's own `/scheduler/set`) |
 
 ## VENDOR
 
