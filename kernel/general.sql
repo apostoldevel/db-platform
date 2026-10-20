@@ -1273,6 +1273,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * @brief Convert a JSONB array of field names into a SQL-safe comma-separated column list.
+ *
+ * A plain name must be one of pFields (checked byte-for-byte, as before).
+ * An aggregate — AGG([DISTINCT] col|*) [AS alias] with AGG one of
+ * sum/count/max/min/avg, `*` only for count — is rebuilt from validated,
+ * quote_ident'ed tokens; no parenthesised argument (subquery or nested
+ * call) is accepted, and the column inside is checked against pFields too.
+ *
  * @param {jsonb} pJson - JSONB array of column names to select; aggregate expressions are auto-allowed
  * @param {text[]} pFields - Allowed column names for validation
  * @return {text} - Comma-separated quoted column names, or '*' if pJson is NULL/empty
@@ -1286,20 +1293,62 @@ CREATE OR REPLACE FUNCTION JsonbToFields (
 AS $$
 DECLARE
   r         record;
+  m         text[];
+  vAgg      text;
+  vArg      text;
+  vExpr     text;
+  arOut     text[];
 BEGIN
   pJson := NULLIF(pJson, '{}');
   pJson := NULLIF(pJson, '[]');
 
+  -- A NULL list (GetColumns of an unknown relation returns NULL) must refuse,
+  -- not pass: `x = ANY (NULL)` is NULL, `NOT NULL` is NULL, and IF reads NULL
+  -- as false — the check below would be skipped for every aggregate. The same
+  -- for a NULL ELEMENT of the list: `'zzz' = ANY ('{id,NULL}')` is NULL.
+  pFields := coalesce(array_remove(pFields, NULL), '{}'::text[]);
+
   IF pJson IS NOT NULL THEN
+
+    IF jsonb_typeof(pJson) != 'array' THEN
+      PERFORM IncorrectJsonType(jsonb_typeof(pJson), 'array');
+    END IF;
+
     FOR r IN SELECT * FROM jsonb_array_elements_text(pJson)
     LOOP
-      IF regexp_like(r.value, '^(sum|count|max|min|avg)\s*\(\s*(?:DISTINCT\s+)?(\*|[A-Za-z_][A-Za-z0-9_]*|\([^)]*\))\s*\)(\s+AS\s+[A-Za-z_][A-Za-z0-9_]*)?$', 'i') THEN
-        pFields := array_append(pFields, r.value);
+      m := regexp_match(r.value, '^(sum|count|max|min|avg)\s*\(\s*(?:(DISTINCT)\s+)?(\*|[A-Za-z_][A-Za-z0-9_]*)\s*\)(?:\s+AS\s+([A-Za-z_][A-Za-z0-9_]*))?$', 'i');
+
+      IF m IS NOT NULL THEN
+        vAgg := lower(m[1]);
+
+        IF m[3] = '*' THEN
+          IF vAgg != 'count' THEN
+            PERFORM IncorrectValueInArray(r.value, 'fields', pFields);
+          END IF;
+          vArg := '*';
+        ELSE
+          IF NOT (lower(m[3]) = ANY (pFields)) THEN
+            PERFORM IncorrectValueInArray(r.value, 'fields', pFields);
+          END IF;
+          vArg := quote_ident(lower(m[3]));
+        END IF;
+
+        vExpr := vAgg || '(' || CASE WHEN m[2] IS NOT NULL THEN 'DISTINCT ' ELSE '' END || vArg || ')';
+
+        IF m[4] IS NOT NULL THEN
+          vExpr := vExpr || ' AS ' || quote_ident(lower(m[4]));
+        END IF;
+
+        arOut := array_append(arOut, vExpr);
+      ELSE
+        IF array_position(pFields, coalesce(r.value, '')) IS NULL THEN
+          PERFORM IncorrectValueInArray(coalesce(r.value, ''), 'fields', pFields);
+        END IF;
+        arOut := array_append(arOut, r.value);
       END IF;
     END LOOP;
 
-    PERFORM CheckJsonbValues('fields', pFields, pJson);
-    RETURN array_to_string(array_quote_literal_json(JsonbToStrArray(pJson)), ',');
+    RETURN array_to_string(array_quote_literal_json(arOut), ',');
   END IF;
 
   RETURN '*';
@@ -1314,9 +1363,12 @@ $$ LANGUAGE plpgsql
 /**
  * @brief Validate and convert a JSONB array into a safe ORDER BY clause.
  *
- * Accepts plain column names (with optional ASC/DESC suffix) and safe
- * function-call expressions whose arguments reference at least one known
- * column.  Rejects everything else via CheckJsonbValues.
+ * Accepts plain column names only, with an optional ASC/DESC suffix.
+ * Rejects everything else via CheckJsonbValues.
+ *
+ * A function call is not accepted as an ordering term: the documented
+ * contract (wiki/13-Query-Parameters.md) is a plain list of fields with
+ * ASC/DESC.
  *
  * @param {jsonb} pJson - JSONB array of ORDER BY expressions
  * @param {text[]} pFields - Allowed column names (typically from GetColumns)
@@ -1329,9 +1381,6 @@ CREATE OR REPLACE FUNCTION JsonbToOrderBy (
   pFields   text[]
 ) RETURNS   text
 AS $$
-DECLARE
-  r         record;
-  vIdents   text[];
 BEGIN
   pJson := NULLIF(pJson, '[]');
 
@@ -1342,28 +1391,197 @@ BEGIN
     pFields := array_cat(pFields, array_add_text(pFields, ' DESC'));
     pFields := array_cat(pFields, array_add_text(pFields, ' ASC'));
 
-    -- Auto-allow safe function calls on known columns
-    FOR r IN SELECT * FROM jsonb_array_elements_text(pJson)
-    LOOP
-      IF array_position(pFields, r.value) IS NULL THEN
-        -- Full-match: func(args) [asc|desc]
-        -- No nested parentheses allowed — [^()]* rejects subqueries
-        IF regexp_like(r.value, '^[a-z_][a-z0-9_]*\s*\([^()]*\)(\s+(asc|desc))?$', 'i') THEN
-          -- Verify at least one known column name inside parentheses
-          SELECT array_agg(m[1]) INTO vIdents
-            FROM regexp_matches(r.value, '([A-Za-z_][A-Za-z0-9_]*)', 'g') AS m;
-          IF vIdents && pFields THEN
-            pFields := array_append(pFields, r.value);
-          END IF;
-        END IF;
-      END IF;
-    END LOOP;
-
     PERFORM CheckJsonbValues('orderby', pFields, pJson);
     RETURN array_to_string(array_quote_literal_json(JsonbToStrArray(pJson)), ',');
   END IF;
 
   RETURN NULL;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- JsonbToAggregateQuery ---------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Validate and build the fields/group-by/order-by of an aggregated
+ *        `/<entity>/list` request (the `groupby` key) in one pass.
+ *
+ * Shared by the `groupby` branch of the `transaction`, `transaction_value`,
+ * `product`, `feature`, `client` and `notification` dispatchers, so that all
+ * six validate their input in one place.
+ *
+ * `fields` accepts, per element: a real column (pColumns); an aggregate
+ * AGG([DISTINCT] col|*) [AS alias], AGG one of sum/count/max/min/avg, `*`
+ * only for count; or `date_trunc('unit', col) [AS alias]` with unit one of
+ * day/hour/week/month/quarter/year (the one shape a dashboard query needs,
+ * kept as an explicit, narrow allowance, nothing wider). Every token is rebuilt from
+ * validated parts (quote_ident/quote_literal); nothing from the input
+ * reaches the SQL text unchanged. `groupby` and `orderby` accept only a
+ * real column or an alias introduced by `fields` — no function calls, no
+ * literals, no numeric positions. A JSON null element, a NULL column list (or
+ * a NULL element in it) and a `fields` that declares no alias at all are
+ * refused like any unknown name (left alone, each makes a comparison NULL,
+ * which IF reads as false, and the check is skipped).
+ *
+ * @param {jsonb} pFields - JSONB array, as JsonbToFields plus one date_trunc shape
+ * @param {jsonb} pGroupBy - JSONB array of column names or `fields` aliases
+ * @param {jsonb} pOrderBy - JSONB array of "column|alias [ASC|DESC]"
+ * @param {text[]} pColumns - Allowed column names (typically from GetColumns)
+ * @return {record} - (vFields text, vGroupBy text, vOrderBy text); vOrderBy is NULL if pOrderBy was empty
+ * @throws JsonIsEmpty - When pFields is NULL/empty (grouping needs an aggregation list)
+ * @see JsonbToFields, JsonbToOrderBy
+ * @since 1.2.35
+ */
+CREATE OR REPLACE FUNCTION JsonbToAggregateQuery (
+  pFields   jsonb,
+  pGroupBy  jsonb,
+  pOrderBy  jsonb,
+  pColumns  text[],
+  OUT vFields   text,
+  OUT vGroupBy  text,
+  OUT vOrderBy  text
+) RETURNS   record
+AS $$
+DECLARE
+  r         record;
+  m         text[];
+  vAgg      text;
+  vArg      text;
+  vAlias    text;
+  vExpr     text;
+  vCol      text;
+  vDir      text;
+  arOut     text[];
+  -- '{}', not NULL: with no alias declared, `vCol = ANY (arAliases)` would be
+  -- NULL, `NOT (false OR NULL)` is NULL, IF reads that as false — and the
+  -- groupby/orderby check below would pass any name.
+  arAliases text[] := '{}';
+BEGIN
+  -- A NULL list and a NULL element both turn `x = ANY (pColumns)` into NULL
+  -- (see the note in JsonbToFields): strip them so the check can only say no.
+  pColumns := coalesce(array_remove(pColumns, NULL), '{}'::text[]);
+
+  pFields := NULLIF(pFields, '{}');
+  pFields := NULLIF(pFields, '[]');
+
+  IF pFields IS NULL THEN
+    PERFORM JsonIsEmpty();
+  END IF;
+
+  IF jsonb_typeof(pFields) != 'array' THEN
+    PERFORM IncorrectJsonType(jsonb_typeof(pFields), 'array');
+  END IF;
+
+  FOR r IN SELECT * FROM jsonb_array_elements_text(pFields)
+  LOOP
+    vAlias := NULL;
+
+    -- A JSON null element: regexp_match and `lower(NULL) = ANY (...)` are
+    -- NULL, so every check below would be skipped and an empty fragment built.
+    IF r.value IS NULL THEN
+      PERFORM IncorrectValueInArray('', 'fields', pColumns);
+    END IF;
+
+    m := regexp_match(r.value, '^(sum|count|max|min|avg)\s*\(\s*(?:(DISTINCT)\s+)?(\*|[A-Za-z_][A-Za-z0-9_]*)\s*\)(?:\s+AS\s+([A-Za-z_][A-Za-z0-9_]*))?$', 'i');
+
+    IF m IS NOT NULL THEN
+      vAgg := lower(m[1]);
+
+      IF m[3] = '*' THEN
+        IF vAgg != 'count' THEN
+          PERFORM IncorrectValueInArray(r.value, 'fields', pColumns);
+        END IF;
+        vArg := '*';
+      ELSE
+        IF NOT (lower(m[3]) = ANY (pColumns)) THEN
+          PERFORM IncorrectValueInArray(r.value, 'fields', pColumns);
+        END IF;
+        vArg := quote_ident(lower(m[3]));
+      END IF;
+
+      vExpr := vAgg || '(' || CASE WHEN m[2] IS NOT NULL THEN 'DISTINCT ' ELSE '' END || vArg || ')';
+      vAlias := lower(m[4]);
+    ELSE
+      m := regexp_match(r.value, '^date_trunc\s*\(\s*''(day|hour|week|month|quarter|year)''\s*,\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)(?:\s+AS\s+([A-Za-z_][A-Za-z0-9_]*))?$', 'i');
+
+      IF m IS NOT NULL THEN
+        IF NOT (lower(m[2]) = ANY (pColumns)) THEN
+          PERFORM IncorrectValueInArray(r.value, 'fields', pColumns);
+        END IF;
+        vExpr := 'date_trunc(' || quote_literal(lower(m[1])) || ',' || quote_ident(lower(m[2])) || ')';
+        vAlias := lower(m[3]);
+      ELSE
+        IF NOT (lower(r.value) = ANY (pColumns)) THEN
+          PERFORM IncorrectValueInArray(r.value, 'fields', pColumns);
+        END IF;
+        vExpr := quote_ident(lower(r.value));
+        vAlias := lower(r.value);
+      END IF;
+    END IF;
+
+    IF vAlias IS NOT NULL THEN
+      vExpr := vExpr || ' AS ' || quote_ident(vAlias);
+      arAliases := array_append(arAliases, vAlias);
+    END IF;
+
+    arOut := array_append(arOut, vExpr);
+  END LOOP;
+
+  vFields := array_to_string(arOut, ',');
+
+  arOut := NULL;
+  pGroupBy := NULLIF(pGroupBy, '[]');
+
+  IF pGroupBy IS NOT NULL THEN
+    IF jsonb_typeof(pGroupBy) != 'array' THEN
+      PERFORM IncorrectJsonType(jsonb_typeof(pGroupBy), 'array');
+    END IF;
+
+    FOR r IN SELECT * FROM jsonb_array_elements_text(pGroupBy)
+    LOOP
+      IF r.value IS NULL THEN
+        PERFORM IncorrectValueInArray('', 'groupby', array_cat(pColumns, arAliases));
+      END IF;
+
+      vCol := lower(r.value);
+      IF NOT (vCol = ANY (pColumns) OR vCol = ANY (arAliases)) THEN
+        PERFORM IncorrectValueInArray(r.value, 'groupby', array_cat(pColumns, arAliases));
+      END IF;
+      arOut := array_append(arOut, quote_ident(vCol));
+    END LOOP;
+
+    vGroupBy := array_to_string(arOut, ',');
+  END IF;
+
+  arOut := NULL;
+  pOrderBy := NULLIF(pOrderBy, '[]');
+
+  IF pOrderBy IS NOT NULL THEN
+    IF jsonb_typeof(pOrderBy) != 'array' THEN
+      PERFORM IncorrectJsonType(jsonb_typeof(pOrderBy), 'array');
+    END IF;
+
+    FOR r IN SELECT * FROM jsonb_array_elements_text(pOrderBy)
+    LOOP
+      m := regexp_match(r.value, '^([A-Za-z_][A-Za-z0-9_]*)(?:\s+(asc|desc))?$', 'i');
+
+      IF m IS NULL THEN
+        PERFORM IncorrectValueInArray(coalesce(r.value, ''), 'orderby', array_cat(pColumns, arAliases));
+      END IF;
+
+      vCol := lower(m[1]);
+      IF NOT (vCol = ANY (pColumns) OR vCol = ANY (arAliases)) THEN
+        PERFORM IncorrectValueInArray(r.value, 'orderby', array_cat(pColumns, arAliases));
+      END IF;
+
+      vDir := upper(coalesce(m[2], ''));
+      arOut := array_append(arOut, quote_ident(vCol) || CASE WHEN vDir != '' THEN ' ' || vDir ELSE '' END);
+    END LOOP;
+
+    vOrderBy := array_to_string(arOut, ',');
+  END IF;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

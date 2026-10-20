@@ -20,6 +20,7 @@ DECLARE
   r         record;
   e         record;
   o         record;
+  vAgg      record;
 
   search    jsonb;
 
@@ -125,7 +126,9 @@ BEGIN
     FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(fields jsonb, search jsonb, filter jsonb, reclimit integer, recoffset integer, orderby jsonb, groupby jsonb)
     LOOP
       IF r.groupby IS NOT NULL THEN
-        FOR e IN EXECUTE format('SELECT %s FROM api.list_notification($1, $2, $3, $4, $5) GROUP BY %s', array_to_string(array_quote_literal_json(JsonbToStrArray(r.fields)), ','), array_to_string(array_quote_literal_json(JsonbToStrArray(r.groupby)), ',')) USING r.search, r.filter, r.reclimit, r.recoffset, r.orderby
+        -- fields/groupby are validated before this EXECUTE.
+        SELECT * FROM JsonbToAggregateQuery(r.fields, r.groupby, null, GetColumns('notification', 'api')) INTO vAgg;
+        FOR e IN EXECUTE format('SELECT %s FROM api.list_notification($1, $2, $3, $4, $5) GROUP BY %s', vAgg.vfields, vAgg.vgroupby) USING r.search, r.filter, r.reclimit, r.recoffset, r.orderby
         LOOP
           RETURN NEXT row_to_json(e);
         END LOOP;

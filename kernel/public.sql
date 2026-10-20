@@ -1278,6 +1278,15 @@ GRANT EXECUTE ON FUNCTION quote_literal_json(text) TO PUBLIC;
 --------------------------------------------------------------------------------
 /**
  * @brief Apply JSONB arrow quoting to every element in an array.
+ *
+ * A NULL or an empty array has nothing to quote and is returned as it is
+ * (NULL stays NULL, '{}' stays '{}'): array_length of both is NULL, so there
+ * is no loop to run.
+ *
+ * An element that already holds a single quote is passed through verbatim —
+ * the function makes a `->>` value safe only when it has no quote, so a caller
+ * that builds SQL from user input must whitelist the element first.
+ *
  * @param {anyarray} pArray - Array of strings potentially containing '->>' accessors
  * @return {anyarray} - Array with accessor values properly quoted
  * @see quote_literal_json
@@ -1292,6 +1301,10 @@ DECLARE
   l         integer;
   vStr      text;
 BEGIN
+  IF array_length(pArray, 1) IS NULL THEN
+    RETURN pArray;
+  END IF;
+
   FOR i IN 1..array_length(pArray, 1)
   LOOP
     vStr := pArray[i];

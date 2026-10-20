@@ -153,6 +153,7 @@ Foundation module providing custom data types, schemas, database users, utility 
 | `JsonToFields(json, pFields)` | `text` | JSON field list to SQL SELECT clause |
 | `JsonbToFields(jsonb, pFields)` | `text` | JSONB field list to SQL SELECT (supports aggregates) |
 | `JsonbToOrderBy(pJson, pFields)` | `text` | Validate JSONB array into safe ORDER BY clause |
+| `JsonbToAggregateQuery(pFields, pGroupBy, pOrderBy, pColumns)` | `record` | Fields / GROUP BY / ORDER BY of an aggregated `/list` (`groupby` key) rebuilt from checked tokens |
 
 ### jwt.sql -- JWT Token Functions
 
