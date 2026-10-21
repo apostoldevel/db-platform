@@ -180,6 +180,7 @@ DECLARE
 
   jFilter       jsonb;
   nDepth        integer;
+  bEmptyBound   boolean := false;
 
   arValues      text[];
   arColumns     text[];
@@ -301,6 +302,8 @@ BEGIN
 
           -- lstr/rstr are not applied to a valarr element.
           vExpr := vField || ' ' || vCompare || ' (' || vValue || ')';
+        ELSIF coalesce(r.bound, false) THEN
+          bEmptyBound := true;
         END IF;
 
       ELSE
@@ -312,6 +315,9 @@ BEGIN
         END IF;
 
         IF NOT (vCompare = ANY (ARRAY['ISN', 'INN'])) AND nullif(r.value, '') IS NULL THEN
+          IF coalesce(r.bound, false) THEN
+            bEmptyBound := true;
+          END IF;
           CONTINUE;
         END IF;
 
@@ -370,6 +376,15 @@ BEGIN
 
     IF nDepth > 0 THEN
       PERFORM IncorrectValueInArray('(', pTable || '/search', ARRAY['balanced brackets']);
+    END IF;
+
+    -- A bound with nothing in it (null, '' or []) admits no row. Skipping it, as an
+    -- empty search condition is skipped, would widen the list to everything the rest
+    -- of the query allows: a caller that builds its bound from a function of the
+    -- session gets no bound at all when that function returns NULL.
+    -- A filter that has no key is a different thing and stays unbounded.
+    IF bEmptyBound THEN
+      vFilterWhere := 'false';
     END IF;
 
     -- Search alone and filter alone give a plain WHERE; the brackets around the

@@ -89,14 +89,18 @@ REST API infrastructure: path hierarchy, endpoint registration, route dispatchin
 
 ### api.sql() — Dynamic Query Builder
 
-`api.sql(pSchema, pTable, pFields, pSearch, pFilter, pLimit, pOffSet, pOrderBy)` → `text`
+`api.sql(pScheme, pTable, pSearch, pFilter, pLimit, pOffSet, pOrderBy, pFields, pGroupBy)` → `text`
 
-Generates dynamic SQL SELECT from JSONB search criteria. Used by every `api.list_*` function. Search format:
+Generates dynamic SQL SELECT from JSONB search criteria. Used by every `api.list_*` and `api.count_*` function. Search format:
 ```json
-[{"condition":"AND", "field":"name", "compare":"LKE", "value":"test%"}]
+[{"condition":"AND", "field":"name", "compare":"LKE", "value":"test%", "lstr":"(", "rstr":")"}]
 ```
 
-Compare operators: `EQL`, `NEQ`, `LSS`, `LEQ`, `GTR`, `GEQ`, `GIN`, `LKE`, `ISN`, `INN`.
+Compare operators: `EQL`, `NEQ`, `LSS`, `LEQ`, `GTR`, `GEQ`, `GIN`, `LKE`, `ISN`, `INN`, plus `IKE`, `SIM`, `PSX`, `PSI`, `PSN`, `PIN` and the bitwise `AND`, `OR`, `XOR`, `NOT`.
+
+`pFilter` is the object a caller passes for its own bounds (`{"<column>": "<value>"}` or `{"<column>": [<value>, ...]}`). Search and filter are built as two groups and joined as `WHERE (<search>) AND <filter>`, so no condition of the search, an `OR` included, reaches past the filter. The `lstr`/`rstr` brackets of a search must balance, otherwise `IncorrectValueInArray(..., 'balanced brackets')` is raised.
+
+An empty value is treated differently in the two groups. An empty search condition (`""`, `null`, `[]`) is skipped. A filter key whose value is empty (`null`, `""`, `[]`) is a bound that admits no row: the filter becomes `false`, and the list is empty. A filter with no key at all (`{}`) or no filter is not a bound and leaves the list unbounded.
 
 ### API Query Functions
 
