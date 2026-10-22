@@ -370,7 +370,9 @@ FROM db.{entity} t INNER JOIN db.document          d ON t.document = d.id
       FROM information_schema.tables
      WHERE table_catalog = current_database()
        AND table_schema = 'kernel'
-       AND table_name = replace(lower(pTable), 'object', 'access')
+       AND table_name = CASE WHEN lower(pTable) = 'object'
+                             THEN 'accessobject'
+                             ELSE replace(lower(pTable), 'object', 'access') END
        AND table_type = 'VIEW';
 
     IF FOUND THEN
@@ -387,7 +389,7 @@ Three preconditions, and the join is silently absent if any of them fails:
 |---|---|
 | `pScheme = 'kernel'` | passing `'api'` never adds the join — the usual bug |
 | `GetAccessMode()` is true | administrators get no join, by design |
-| a view named `replace(lower(pTable),'object','access')` exists **in schema `kernel`** | no view, no join, no error |
+| a view named `Access<X>` for the table `Object<X>` (`replace(lower(pTable),'object','access')`; for the table `Object` itself — `AccessObject`) exists **in schema `kernel`** | no view, no join, no error |
 
 `GetAccessMode()` is `coalesce(SafeGetVar('access')::boolean, true)` — it
 defaults to **true**, so an unauthenticated session is filtered rather than

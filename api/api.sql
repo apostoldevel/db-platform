@@ -196,7 +196,9 @@ BEGIN
       FROM information_schema.tables
      WHERE table_catalog = current_database()
        AND table_schema = 'kernel'
-       AND table_name = replace(lower(pTable), 'object', 'access')
+       AND table_name = CASE WHEN lower(pTable) = 'object'
+                             THEN 'accessobject'  -- Object<X> -> Access<X> below would give 'access' for the table Object itself: no such view, no join
+                             ELSE replace(lower(pTable), 'object', 'access') END
        AND table_type = 'VIEW';
 
     IF FOUND THEN
