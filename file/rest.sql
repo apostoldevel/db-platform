@@ -7,6 +7,7 @@
  * @param {text} pPath - REST endpoint path (e.g. "/file/set", "/file/get")
  * @param {jsonb} pPayload - JSON request body
  * @return {SETOF json} - JSON-encoded result rows
+ * @throws IncorrectJsonKey - /file/set: a non-null root, parent, done or fail from a caller who is neither an administrator nor in the system group (since 1.2.36)
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION rest.file (
@@ -19,6 +20,8 @@ DECLARE
   e           record;
 
   arKeys      text[];
+  arWire      text[] := ARRAY['root', 'parent', 'done', 'fail'];
+  vKey        text;
 BEGIN
   IF pPath IS NULL THEN
     PERFORM RouteIsEmpty();
@@ -33,6 +36,27 @@ BEGIN
 
     arKeys := array_cat(arKeys, GetRoutines('set_file', 'api', false));
     PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
+
+    -- A client places a file by `path`; root and parent follow from it. Sent
+    -- without one they are taken on trust, and CheckFilePublish believes the
+    -- root it is given: a file lands in the /public of someone else, and the
+    -- gate on publishing there is walked around. done and fail name a function
+    -- the file worker calls after the transfer and are spliced into its query
+    -- as text. These four belong to the callers inside the database
+    -- (api.set_file stays open to them): through this dispatcher, the wire, a
+    -- value is taken only from an administrator or the system group. A JSON
+    -- null is no value, as a client built on the whole signature sends it.
+    IF NOT IsAdmin() AND NOT IsSystem() THEN
+      SELECT w.k INTO vKey
+        FROM jsonb_array_elements(CASE WHEN jsonb_typeof(pPayload) = 'array' THEN pPayload ELSE jsonb_build_array(pPayload) END) el,
+             unnest(arWire) w(k)
+       WHERE jsonb_typeof(el.value -> w.k) <> 'null'
+       LIMIT 1;
+
+      IF FOUND THEN
+        PERFORM IncorrectJsonKey(pPath, vKey, ARRAY(SELECT u.x FROM unnest(arKeys) WITH ORDINALITY u(x, n) WHERE NOT u.x = ANY(arWire) ORDER BY u.n));
+      END IF;
+    END IF;
 
     IF jsonb_typeof(pPayload) = 'array' THEN
 

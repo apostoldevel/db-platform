@@ -121,7 +121,7 @@ Dispatcher: `rest.file(pPath text, pPayload jsonb)`.
 
 | Path | Purpose |
 |------|---------|
-| `/file/set` | Create/update file (array/single) |
+| `/file/set` | Create/update file (array/single). Since 1.2.36 `root`, `parent`, `done` and `fail` are taken here only from an administrator or the `system` group; from anyone else a non-null value is refused with `ERR-400-061` (`IncorrectJsonKey`, the keys the caller may send listed), a JSON null is no value — place a file by `path`. `api.set_file` called inside the database is not limited |
 | `/file/get` | Fetch file(s) by ID or path+name with field projection |
 | `/file/list` | List files (default orderby: `sortlist` for tree order) |
 | `/file/count` | Count matching files |
