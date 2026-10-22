@@ -35,10 +35,18 @@ GRANT SELECT ON api.file_data TO administrator;
 
 /**
  * @brief Create or update a file, auto-creating intermediate directories from pPath.
+ *
+ * The owner of a file is the session's user, or what the file already has.
+ * Naming anyone else writes under another's name, hands a file over, or — with
+ * a group write bit — takes one over; since 1.2.36 only the kernel, an
+ * administrator and the system group may (the bypasses of CheckFilePublish),
+ * everyone else gets AccessDenied. NULL keeps the default: the session's user
+ * on a new file, the current owner on an existing one.
+ *
  * @param {uuid} pId - File identifier (NULL to create; looked up by path+name if omitted)
  * @param {char} pType - Entry type: "-" file, "d" directory, "l" link, "s" storage
  * @param {int} pMask - Permission bitmask as integer (cast to bit(9) internally)
- * @param {uuid} pOwner - Owner user identifier
+ * @param {uuid} pOwner - Owner user identifier (NULL, the session's user or the file's current owner unless the session is privileged)
  * @param {uuid} pRoot - Root node identifier
  * @param {uuid} pParent - Parent directory identifier
  * @param {uuid} pLink - Link target identifier
@@ -53,7 +61,7 @@ GRANT SELECT ON api.file_data TO administrator;
  * @param {text} pDone - Success callback function name
  * @param {text} pFail - Failure callback function name
  * @return {SETOF api.file} - The created or updated file record
- * @throws AccessDenied - When the file exists and the session holds no write bit on it (CheckFileAccess), or the entry lands under /public and the session may not publish (CheckFilePublish)
+ * @throws AccessDenied - When the file exists and the session holds no write bit on it (CheckFileAccess), when pOwner names a user other than the session's own (new file) or the current owner (existing file) and the session is not privileged, or the entry lands under /public and the session may not publish (CheckFilePublish)
  * @see SetFile, NewFilePath, CheckFileAccess
  * @since 1.0.0
  */
@@ -79,6 +87,7 @@ CREATE OR REPLACE FUNCTION api.set_file (
 AS $$
 DECLARE
   vRoot     text;
+  uOwner    uuid;
 BEGIN
   pPath := NULLIF(NULLIF(pPath, '/'), '');
 
@@ -91,6 +100,17 @@ BEGIN
   -- An id nothing carries stays what it was — SetFile's no-op — not a refusal.
   IF pId IS NOT NULL AND EXISTS (SELECT 1 FROM db.file WHERE id = pId) AND NOT CheckFileAccess(pId, B'010') THEN
     PERFORM AccessDenied();
+  END IF;
+
+  -- The owner is the caller's own, or what the file already has: naming
+  -- anyone else is the privileged sessions' right alone. A file made over to
+  -- the administrator by an ordinary user is that user's authorship forged,
+  -- and one the user cannot read back.
+  IF pOwner IS NOT NULL AND session_user <> 'kernel' AND NOT IsAdmin() AND NOT IsSystem() THEN
+    SELECT owner INTO uOwner FROM db.file WHERE id = pId;
+    IF pOwner IS DISTINCT FROM coalesce(uOwner, current_userid()) THEN
+      PERFORM AccessDenied();
+    END IF;
   END IF;
 
   IF pPath IS NULL THEN
@@ -112,7 +132,7 @@ BEGIN
   pId := SetFile(pId, pType, pMask::bit(9), pOwner, pRoot, pParent, pLink, pName, pSize, pDate, decode(pData, 'base64'), pMime, pText, pHash, pDone, pFail);
 
   -- Through the gated view: a write the session may not read back (w without
-  -- r, or pOwner someone else) succeeds and answers an empty set.
+  -- r) succeeds and answers an empty set.
   RETURN QUERY SELECT * FROM api.file WHERE id = pId;
 END;
 $$ LANGUAGE plpgsql

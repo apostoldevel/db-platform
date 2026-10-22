@@ -107,7 +107,7 @@ S3 config read from registry: `CONFIG\S3` keys: `Region`, `Endpoint`, `AccessKey
 
 | Function | Returns | Purpose |
 |----------|---------|---------|
-| `api.set_file(pId, pType, pMask, ..., pPath, ...)` | `SETOF api.file` | Create/update file, handles path→root mapping, decodes base64 data; an existing file needs the `w` bit (`AccessDenied` otherwise, since 1.2.24) |
+| `api.set_file(pId, pType, pMask, ..., pPath, ...)` | `SETOF api.file` | Create/update file, handles path→root mapping, decodes base64 data; an existing file needs the `w` bit (`AccessDenied` otherwise, since 1.2.24); `pOwner` naming anyone but the session's user (new file) or the file's current owner (existing file) needs the kernel, an administrator or the `system` group (`AccessDenied` otherwise, since 1.2.36) |
 | `api.get_file(pId)` | `SETOF api.file_data` | Get file with base64-encoded content; empty set when not readable by the current session (`CheckFileAccess`) |
 | `api.get_file_id(pName, pPath)` | `uuid` | Resolve file ID by name + path |
 | `api.decode_file_access(pId, pUserId)` | `record (r, w, x)` | Effective access verdict; contract for FileServer's disk-cache path (since 1.2.22) |
