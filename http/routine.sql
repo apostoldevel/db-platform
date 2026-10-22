@@ -1,4 +1,170 @@
 --------------------------------------------------------------------------------
+-- HTTP LOG: CREDENTIAL MASK ---------------------------------------------------
+--------------------------------------------------------------------------------
+
+/**
+ * @brief The one list of what the name of a credential looks like, as a regular expression.
+ * @return {text} - The alternation, to be used case-insensitively
+ * @since 1.2.36
+ *
+ * authorization, cookie, token, secret, password, passwd, passphrase, pwd, credential; cryptogram (a card packet),
+ * csc, cvc, cvv (a card's security code); api / access / secret / private / signing / encryption / session / auth
+ * followed by `key`.
+ */
+CREATE OR REPLACE FUNCTION http.credential_pattern ()
+RETURNS         text
+AS $$
+  SELECT 'authorization|cookie|token|secret|passw(or)?d|passphrase|pwd|credential|cryptogram|csc|cvc|cvv|(api|access|secret|private|signing|encryption|session|auth)[_.-]?key'::text
+$$ LANGUAGE sql IMMUTABLE PARALLEL SAFE
+   SECURITY DEFINER
+   SET search_path = http, pg_temp;
+
+/**
+ * @brief Tells whether the name of an HTTP header, a JSON key or a query-string field carries a credential.
+ * @param {text} pName - The name as received
+ * @param {boolean} pHeader - true for an HTTP header name, false for a key of a body or of a query string
+ * @return {boolean}
+ * @since 1.2.36
+ *
+ * A name rule, not a list: the name (lower case, blanks around it cut) is a credential when it matches
+ * http.credential_pattern(). A header name that merely ends with `key` is one too (`X-Api-Key`, `X-AccessKey`,
+ * `Sec-WebSocket-Key`: fail closed) — except an idempotency key, which a provider looks a request up by.
+ * A bare `key` in a body is not: it names a setting. Neither is `authorization_details` in a body: what the bank
+ * said about the authorisation of a payment is evidence, not a credential (as a header name it stays one).
+ */
+CREATE OR REPLACE FUNCTION http.is_credential_name (
+  pName         text,
+  pHeader       boolean DEFAULT true
+) RETURNS       boolean
+AS $$
+  SELECT (n.name ~ http.credential_pattern()
+          OR (pHeader AND n.name ~ 'key$' AND n.name !~ 'idempoten(ce|cy)[-_]?key$'))
+     AND (pHeader OR n.name <> 'authorization_details')
+    FROM (SELECT lower(btrim(pName, E' \t\r\n')) AS name) n
+$$ LANGUAGE sql IMMUTABLE PARALLEL SAFE
+   SECURITY DEFINER
+   SET search_path = http, pg_temp;
+
+/**
+ * @brief Replaces the value of every credential header of a header object with `***`.
+ * @param {jsonb} pHeaders - HTTP headers of a request: an object, name → value
+ * @return {jsonb} - The same object with `"***"` as the value of each credential header; NULL and a JSON null come
+ *                   back as they are; anything else that is not an object comes back as the marker {"_masked": false}
+ *                   (a header set is an object; a string or an array could still hold "Authorization: ..." as text)
+ * @since 1.2.36
+ *
+ * The name stays and only the value goes: "a header was sent" and "no header was sent" stay different in the log.
+ * Which names count — http.is_credential_name, header rule.
+ */
+CREATE OR REPLACE FUNCTION http.mask_headers (
+  pHeaders      jsonb
+) RETURNS       jsonb
+AS $$
+BEGIN
+  IF pHeaders IS NULL THEN
+    RETURN NULL;
+  END IF;
+
+  CASE jsonb_typeof(pHeaders)
+  WHEN 'object' THEN
+    RETURN coalesce((
+      SELECT jsonb_object_agg(e.key, CASE WHEN http.is_credential_name(e.key, true) THEN to_jsonb('***'::text) ELSE e.value END)
+        FROM jsonb_each(pHeaders) e
+    ), '{}'::jsonb);
+  WHEN 'null' THEN
+    RETURN pHeaders;
+  ELSE
+    RETURN jsonb_build_object('_masked', false);
+  END CASE;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE PARALLEL SAFE
+   SECURITY DEFINER
+   SET search_path = http, pg_temp;
+
+/**
+ * @brief The walk of http.mask_json: one level of a JSON document.
+ * @param {jsonb} pJson - A value of the document
+ * @param {integer} pLevel - The depth of pJson, 0 at the root
+ * @return {jsonb}
+ * @since 1.2.36
+ *
+ * The recursion is bounded: a container nested more than 32 levels deep comes back as `"***"` whole (fail closed — a
+ * real request is never that deep). Without the bound a body a couple of kilobytes long and nested a thousand levels
+ * deep, which PostgreSQL accepts as jsonb, would make the walk raise "stack depth limit exceeded" inside the function
+ * that writes the log — and the exception handlers of the callers write the log again.
+ */
+CREATE OR REPLACE FUNCTION http.mask_json_level (
+  pJson         jsonb,
+  pLevel        integer
+) RETURNS       jsonb
+AS $$
+BEGIN
+  IF pJson IS NULL THEN
+    RETURN NULL;
+  END IF;
+
+  IF pLevel > 32 AND jsonb_typeof(pJson) IN ('object', 'array') THEN
+    RETURN to_jsonb('***'::text);
+  END IF;
+
+  CASE jsonb_typeof(pJson)
+  WHEN 'object' THEN
+    RETURN coalesce((
+      SELECT jsonb_object_agg(e.key,
+               CASE WHEN http.is_credential_name(e.key, false)
+                      OR (lower(btrim(e.key)) = 'number' AND jsonb_typeof(e.value) = 'string'
+                          AND (e.value #>> '{}') ~ '^[0-9][0-9 -]{11,21}[0-9]$')
+                    THEN to_jsonb('***'::text)
+                    ELSE http.mask_json_level(e.value, pLevel + 1) END)
+        FROM jsonb_each(pJson) e
+    ), '{}'::jsonb);
+  WHEN 'array' THEN
+    RETURN coalesce((
+      SELECT jsonb_agg(http.mask_json_level(e.value, pLevel + 1) ORDER BY e.ord)
+        FROM jsonb_array_elements(pJson) WITH ORDINALITY AS e(value, ord)
+    ), '[]'::jsonb);
+  ELSE
+    RETURN pJson;
+  END CASE;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE PARALLEL SAFE
+   SECURITY DEFINER
+   SET search_path = http, pg_temp;
+
+/**
+ * @brief Replaces the value of every credential key of a JSON document, down to 32 levels, with `***`.
+ * @param {jsonb} pJson - The query-string parameters or the body of a request: any JSON value
+ * @return {jsonb} - The same document; NULL and scalars come back as they are
+ * @since 1.2.36
+ *
+ * The key stays, the value goes whatever its type (a string, a number, an object, an array): a credential object is
+ * hidden whole. Which keys count — http.is_credential_name, body rule. One more case by the shape of the value, not of
+ * the name: a `number` key that holds a card number (13–23 digits, blanks and dashes allowed).
+ *
+ * A document that names no credential and has no `number` key is not walked: one regular expression over its text
+ * decides (the text may also match a value that merely contains the word — the walk then removes nothing). Large
+ * bodies of partner integrations pass through without a recursion in plpgsql.
+ */
+CREATE OR REPLACE FUNCTION http.mask_json (
+  pJson         jsonb
+) RETURNS       jsonb
+AS $$
+BEGIN
+  IF jsonb_typeof(pJson) IS NULL OR jsonb_typeof(pJson) NOT IN ('object', 'array') THEN
+    RETURN pJson;
+  END IF;
+
+  IF lower(pJson::text) !~ (http.credential_pattern() || '|" *number *"') THEN
+    RETURN pJson;
+  END IF;
+
+  RETURN http.mask_json_level(pJson, 0);
+END;
+$$ LANGUAGE plpgsql IMMUTABLE PARALLEL SAFE
+   SECURITY DEFINER
+   SET search_path = http, pg_temp;
+
+--------------------------------------------------------------------------------
 -- HTTP LOG --------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -13,6 +179,10 @@
  * @param {text} pContext - PL/pgSQL call-stack trace if logging an error
  * @return {bigint} - Auto-generated log entry ID
  * @since 1.0.0
+ *
+ * The log keeps no credential in the clear: the value of every credential header (Authorization, Cookie, an API key)
+ * and of every credential key of the parameters and of the body, at any depth, is stored as `***` (http.mask_headers,
+ * http.mask_json). The message and the context are stored as they are.
  */
 CREATE OR REPLACE FUNCTION http.write_to_log (
   pPath         text,
@@ -28,7 +198,7 @@ DECLARE
   nId           bigint;
 BEGIN
   INSERT INTO http.log (method, path, headers, params, body, message, context)
-  VALUES (pMethod, pPath, pHeaders, pParams, pBody, pMessage, pContext)
+  VALUES (pMethod, pPath, http.mask_headers(pHeaders), http.mask_json(pParams), http.mask_json(pBody), pMessage, pContext)
   RETURNING id INTO nId;
 
   RETURN nId;

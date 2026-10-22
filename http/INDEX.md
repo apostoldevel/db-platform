@@ -36,7 +36,12 @@ HTTP request/response queue with logging and callback mechanism. Provides an out
 
 | Function | Returns | Purpose |
 |----------|---------|---------|
-| `http.write_to_log(pPath, pHeaders, ...)` | `bigint` | Log inbound HTTP request |
+| `http.write_to_log(pPath, pHeaders, ...)` | `bigint` | Log inbound HTTP request; credential headers and credential keys of params/body are stored as `***` |
+| `http.mask_headers(pHeaders)` | `jsonb` | Header object with the value of every credential header replaced by `***` |
+| `http.mask_json(pJson)` | `jsonb` | JSON document with the value of every credential key (any depth up to 32 levels) replaced by `***`; a `number` key holding a card number too |
+| `http.mask_json_level(pJson, pLevel)` | `jsonb` | One level of the `http.mask_json` walk (bounded recursion) |
+| `http.is_credential_name(pName, pHeader)` | `boolean` | The name rule: does a header / key / field name carry a credential |
+| `http.credential_pattern()` | `text` | The regular expression of credential names, used by the rule and by the cheap gate in `http.mask_json` |
 
 ### Request/Response Management
 
