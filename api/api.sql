@@ -474,7 +474,8 @@ $$ LANGUAGE plpgsql
  * @return {SETOF json} - JSON result rows from the endpoint, or an error object
  * @throws RouteIsEmpty - When pPath is NULL or empty
  * @throws RouteNotFound - When no matching path node exists
- * @throws EndPointNotSet - When no endpoint is bound to the resolved route
+ * @throws EndPointNotSet - When no endpoint is bound to the resolved route, or
+ *         the path is under /api but not /api/v1 (since 1.2.36)
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.run (
@@ -509,6 +510,17 @@ BEGIN
 
   dtBegin := clock_timestamp();
 
+  -- api.run is the /api/v1 dispatcher: RegisterRoute files its routes under v1,
+  -- and /api/v2 belongs to the gateway (daemon.begin admits only that). Without
+  -- this rule QueryPath found a v2 route guard and its definition ran here as
+  -- an endpoint — a raw 500 instead of a refusal (ship-safety T302). Split the
+  -- same way QueryPath splits, so '//' or a trailing '/' read the same; a root
+  -- other than /api keeps its RouteNotFound.
+  arPath := path_to_array(pPath);
+  IF arPath[1] = 'api' AND arPath[2] IS DISTINCT FROM 'v1' THEN
+    PERFORM EndPointNotSet(pPath);
+  END IF;
+
   uPath := QueryPath(pPath);
   IF uPath IS NULL THEN
     PERFORM RouteNotFound(pPath);
@@ -519,7 +531,6 @@ BEGIN
     PERFORM EndPointNotSet(pPath);
   END IF;
 
-  arPath := path_to_array(pPath);
   nLength := array_length(arPath, 1);
 
   pPath := '/';
