@@ -1171,7 +1171,7 @@ BEGIN
     uTicket := pPayload->>'ticket';
     vCode := pPayload->>'code';
 
-    uUserId := CheckRecoveryTicket(uTicket, vCode);
+    uUserId := CheckRecoveryTicket(uTicket, vCode, 'R');
 
     IF uUserId IS NULL THEN
       SELECT * INTO ErrorCode, ErrorMessage, vErrorId FROM ParseMessage(GetErrorMessage());

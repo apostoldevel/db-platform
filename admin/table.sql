@@ -678,7 +678,9 @@ CREATE TABLE db.recovery_ticket (
     used            timestamptz,
     attempts        int NOT NULL DEFAULT 0,
     validFromDate   timestamptz NOT NULL,
-    validToDate     timestamptz NOT NULL
+    validToDate     timestamptz NOT NULL,
+    -- Last, where patch P00000034 appends it: a fresh install and a migrated database get one column order.
+    type            char NOT NULL DEFAULT 'R' CHECK (type IN ('R', 'V'))
 );
 
 COMMENT ON TABLE db.recovery_ticket IS 'Time-limited ticket for password recovery or registration verification.';
@@ -688,6 +690,7 @@ COMMENT ON COLUMN db.recovery_ticket.userId IS 'User account the ticket was issu
 COMMENT ON COLUMN db.recovery_ticket.securityAnswer IS 'Hashed security answer or verification code.';
 COMMENT ON COLUMN db.recovery_ticket.initiator IS 'SHA-1 hash of the initiator identifier (email or phone).';
 COMMENT ON COLUMN db.recovery_ticket.used IS 'Timestamp when the ticket was consumed (NULL = unused).';
+COMMENT ON COLUMN db.recovery_ticket.type IS 'R = password recovery (resets the password, signs in), V = address verification (registration code). Set to V by api.registration_code_by_*.';
 COMMENT ON COLUMN db.recovery_ticket.validFromDate IS 'Start of the ticket validity period.';
 COMMENT ON COLUMN db.recovery_ticket.validToDate IS 'End of the ticket validity period.';
 

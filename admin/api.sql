@@ -871,6 +871,7 @@ $$ LANGUAGE plpgsql
  * @out param {bool} result - TRUE if the answer is correct
  * @out param {text} message - Error or status message
  * @return {record}
+ * @note Accepts a recovery (R) ticket only; a registration (V) ticket answers as a missing one (T330).
  * @see CheckRecoveryTicket
  * @since 1.0.0
  */
@@ -884,7 +885,7 @@ AS $$
 DECLARE
   uUserId           uuid;
 BEGIN
-  uUserId := CheckRecoveryTicket(pTicket, vSecurityAnswer);
+  uUserId := CheckRecoveryTicket(pTicket, vSecurityAnswer, 'R');
 
   result := uUserId IS NOT NULL;
   message := GetErrorMessage();
@@ -904,6 +905,7 @@ $$ LANGUAGE plpgsql
  * @out param {bool} result - TRUE on success
  * @out param {text} message - Error or status message
  * @return {record}
+ * @note Accepts a recovery (R) ticket only; a registration (V) ticket answers as a missing one (T330).
  * @see CheckRecoveryTicket, SetPassword
  * @since 1.0.0
  */
@@ -919,7 +921,7 @@ DECLARE
   uUserId           uuid;
   vOAuthSecret      text;
 BEGIN
-  uUserId := CheckRecoveryTicket(pTicket, vSecurityAnswer);
+  uUserId := CheckRecoveryTicket(pTicket, vSecurityAnswer, 'R');
 
   result := uUserId IS NOT NULL;
   message := GetErrorMessage();
@@ -970,6 +972,11 @@ BEGIN
   ELSE
     uTicket := RegistrationCodeByEmail(pEmail);
   END IF;
+
+  -- A registration code, not a password reset (T330). Set here rather than in
+  -- RegistrationCodeByEmail, which projects override: whatever issued it, a
+  -- ticket handed out by this door is V.
+  UPDATE db.recovery_ticket SET type = 'V' WHERE ticket = uTicket;
 
   RETURN coalesce(uTicket, gen_random_uuid());
 END
@@ -1045,6 +1052,9 @@ BEGIN
     ELSE
       uTicket := RegistrationCodeByPhone(pPhone, pHashCode);
     END IF;
+
+    -- A registration code, not a password reset: see api.registration_code_by_email.
+    UPDATE db.recovery_ticket SET type = 'V' WHERE ticket = uTicket;
   END IF;
 
   RETURN coalesce(uTicket, gen_random_uuid());
@@ -1086,6 +1096,7 @@ $$ LANGUAGE plpgsql
  * @out param {bool} result - TRUE if the code is correct
  * @out param {text} message - Error or status message
  * @return {record}
+ * @note Accepts a registration (V) ticket only (T330).
  * @see CheckRecoveryTicket, AddVerificationCode
  * @since 1.0.0
  */
@@ -1099,7 +1110,7 @@ AS $$
 DECLARE
   uUserId           uuid;
 BEGIN
-  uUserId := CheckRecoveryTicket(pTicket, vCode);
+  uUserId := CheckRecoveryTicket(pTicket, vCode, 'V');
 
   result := uUserId IS NOT NULL;
 

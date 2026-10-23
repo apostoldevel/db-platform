@@ -322,16 +322,25 @@ $$ LANGUAGE plpgsql
 -- CheckRecoveryTicket ---------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief Validates a recovery ticket against a security answer.
+ * @brief Validates a ticket of the given type against a security answer.
  *        Returns the user id on success, NULL on failure. Sets an error message.
+ *
+ *        The type is what keeps a registration code from resetting a password
+ *        (T330): a registration ticket is issued to whoever asked for it -- the
+ *        caller's own account when the caller is signed in -- so a consumer that
+ *        acts on the owner's account (reset the password, sign in) asks for R.
+ *        A ticket of another type answers exactly like a missing one and costs
+ *        no attempt: the type is not something a caller gets to probe.
  * @param {uuid} pTicket - Recovery ticket identifier
  * @param {text} pSecurityAnswer - Plain-text security answer to verify
+ * @param {text} pType - R = password recovery, V = address verification; NULL = either
  * @return {uuid} User identifier on success, NULL on failure
- * @since 1.0.0
+ * @since 1.2.36
  */
 CREATE OR REPLACE FUNCTION CheckRecoveryTicket (
   pTicket           uuid,
-  pSecurityAnswer   text
+  pSecurityAnswer   text,
+  pType             text
 ) RETURNS           uuid
 AS $$
 DECLARE
@@ -357,6 +366,7 @@ BEGIN
   SELECT userId, (securityAnswer = crypt(pSecurityAnswer, securityAnswer)), used IS NOT NULL INTO uUserId, passed, utilized
     FROM db.recovery_ticket
    WHERE ticket = pTicket
+     AND (pType IS NULL OR type = pType)
      AND validFromDate <= Now()
      AND validtoDate > Now()
      AND attempts < 5;
@@ -375,7 +385,7 @@ BEGIN
     END IF;
   ELSE
     -- Check if ticket exists but exceeded attempts
-    PERFORM FROM db.recovery_ticket WHERE ticket = pTicket AND attempts >= 5;
+    PERFORM FROM db.recovery_ticket WHERE ticket = pTicket AND (pType IS NULL OR type = pType) AND attempts >= 5;
     IF FOUND THEN
       PERFORM SetErrorMessage(messages[5]);
     ELSE
@@ -384,6 +394,29 @@ BEGIN
   END IF;
 
   RETURN null;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, public, pg_temp;
+
+--------------------------------------------------------------------------------
+/**
+ * @brief Validates a ticket of any type against a security answer.
+ *        Kept for callers that predate the ticket type -- project signups among
+ *        them. A caller that acts on the owner's account passes the type.
+ * @param {uuid} pTicket - Recovery ticket identifier
+ * @param {text} pSecurityAnswer - Plain-text security answer to verify
+ * @return {uuid} User identifier on success, NULL on failure
+ * @see CheckRecoveryTicket(uuid, text, text)
+ * @since 1.0.0
+ */
+CREATE OR REPLACE FUNCTION CheckRecoveryTicket (
+  pTicket           uuid,
+  pSecurityAnswer   text
+) RETURNS           uuid
+AS $$
+BEGIN
+  RETURN CheckRecoveryTicket(pTicket, pSecurityAnswer, null::text);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

@@ -33,7 +33,7 @@ User management, authentication, authorization, sessions, and access control. Th
 | `db.member_group` | Group membership | PK(`userid`, `member`) |
 | `db.member_area` | Area membership | PK(`area`, `member`) |
 | `db.member_interface` | Interface membership | PK(`interface`, `member`) |
-| `db.recovery_ticket` | Password recovery tickets | `ticket uuid PK`, `userId uuid`, `securityAnswer text`, 1-hour validity |
+| `db.recovery_ticket` | Recovery and registration-code tickets | `ticket uuid PK`, `userId uuid`, `securityAnswer text`, `type char` (`R` recovery, `V` registration code), validity set by the issuer |
 | `db.auth` | External auth records | PK(`userId`, `audience`), `code text` (external user ID) |
 | `db.iptable` | IP whitelist/blacklist | `id serial PK`, `type char` (A=allow/D=deny), `userid uuid FK`, `addr inet`, `range int` |
 | `db.oauth2` | OAuth2 authorization params | `id bigserial PK`, `audience int FK`, `scopes text[]`, `access_type text` (online/offline), `redirect_uri text` |
@@ -135,7 +135,7 @@ User management, authentication, authorization, sessions, and access control. Th
 
 ### Recovery (~4)
 
-`AddRecoveryTicket`, `NewRecoveryTicket`, `GetRecoveryTicket`, `CheckRecoveryTicket`.
+`AddRecoveryTicket`, `NewRecoveryTicket`, `GetRecoveryTicket`, `CheckRecoveryTicket` (3-arg form takes the ticket type, the 2-arg form accepts any).
 
 ### ACL & Roles (~10)
 
