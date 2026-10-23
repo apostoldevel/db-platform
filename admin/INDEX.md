@@ -135,7 +135,7 @@ User management, authentication, authorization, sessions, and access control. Th
 
 ### Recovery (~4)
 
-`AddRecoveryTicket`, `NewRecoveryTicket`, `GetRecoveryTicket`, `CheckRecoveryTicket` (3-arg form takes the ticket type, the 2-arg form accepts any).
+`AddRecoveryTicket`, `NewRecoveryTicket`, `GetRecoveryTicket`, `CheckRecoveryTicket` (3-arg form takes the ticket type; the 2-arg form accepts any type and is deprecated, as is a NULL type).
 
 ### ACL & Roles (~10)
 

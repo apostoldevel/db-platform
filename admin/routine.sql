@@ -404,6 +404,9 @@ $$ LANGUAGE plpgsql
  * @brief Validates a ticket of any type against a security answer.
  *        Kept for callers that predate the ticket type -- project signups among
  *        them. A caller that acts on the owner's account passes the type.
+ * @deprecated Fails open: a ticket of any type answers. Pass the type ('R' or
+ *        'V') through CheckRecoveryTicket(uuid, text, text); a NULL type there
+ *        opens every type just the same, so never pass a variable that may be NULL.
  * @param {uuid} pTicket - Recovery ticket identifier
  * @param {text} pSecurityAnswer - Plain-text security answer to verify
  * @return {uuid} User identifier on success, NULL on failure
