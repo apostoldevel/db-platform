@@ -141,6 +141,13 @@ CREATE TABLE notify.queue (
   -- expire count from here, not from the insert: a producer's long transaction
   -- would otherwise let the row out already expired.
   seen            timestamptz,
+  -- the last wake-up sent for the row after its first one: by the sweep, by a repeat (nack),
+  -- by the settling of the row before it (wake_next), by a retarget. The sweep does not say
+  -- a waiting row again for 3/4 of channel.sweep_every after it, whoever sweeps, and says
+  -- it to ONE subscriber (the next in the ring): otherwise every subscriber's tick wakes
+  -- every live subscriber for every waiting row, and an overloaded executor is answered
+  -- with a storm.
+  woken           timestamptz,
   attempts        integer NOT NULL DEFAULT 0,
   error           text,
   created         timestamptz NOT NULL DEFAULT clock_timestamp(),
@@ -152,6 +159,7 @@ COMMENT ON TABLE notify.queue IS 'Delivery rows of single channels: who took it,
 COMMENT ON COLUMN notify.queue.state IS '0 waiting, 1 taken, 2 confirmed, 3 closed without a confirmation.';
 COMMENT ON COLUMN notify.queue.token IS 'Taken under this token; notify.ack and notify.nack accept only the current one.';
 COMMENT ON COLUMN notify.queue.seen IS 'First observation by a subscriber; grace and expire count from it, not from created.';
+COMMENT ON COLUMN notify.queue.woken IS 'The last wake-up sent for the row after its first (sweep, repeat, next of a key, retarget); the sweep does not say a waiting row again for 3/4 of channel.sweep_every after it, and says it to one subscriber, the next in the ring.';
 COMMENT ON COLUMN notify.queue.attempts IS 'Deliveries so far (a take is one).';
 COMMENT ON COLUMN notify.queue.dedupe IS 'Copied from the channel at insert: a row of a dedupe channel is unique by (channel, key).';
 

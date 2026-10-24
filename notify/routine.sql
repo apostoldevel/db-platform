@@ -28,17 +28,24 @@
 --    legacy data: during a switch both kinds of traffic exist, and a bare row
 --    number on the common channel could not be told from the data of a
 --    producer (which for some channels is a number too).
+--  * A wake-up goes to ONE named subscriber, never to "everybody", and a row that has been
+--    woken is not woken again by the sweep for 3/4 of sweep_every (notify.queue.woken --
+--    the subscriber's own timer is spread +-25 %, so a stricter gate would hold back half
+--    of its ticks), whoever sweeps. A row whose addressee stays silent is offered to the
+--    next live subscriber in the ring, one at a time: the cost of an overloaded executor
+--    is one wake-up per waiting row per tick, not subscribers x subscribers x rows.
 
 --------------------------------------------------------------------------------
 -- INTERNAL --------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
 /**
- * @brief Wake a subscriber (or every live subscriber of a channel) for a row.
- *        Only personal channels are written to, never the channel itself.
+ * @brief Wake one subscriber for a row. Only personal channels are written to, never
+ *        the channel itself. There is no "wake everybody": a storm of wake-ups answers
+ *        an overloaded executor with more load.
  * @param {text} pChannel - Channel
  * @param {bigint} pId - Row identifier, the payload of the wake-up
- * @param {integer} pTarget - Subscriber number; NULL wakes every live subscriber of the channel
+ * @param {integer} pTarget - Subscriber number; NULL wakes nobody
  * @return {void}
  * @since 1.2.36
  */
@@ -48,24 +55,10 @@ CREATE OR REPLACE FUNCTION notify.wake (
   pTarget       integer DEFAULT null
 ) RETURNS       void
 AS $$
-DECLARE
-  r             record;
 BEGIN
   IF pTarget IS NOT NULL THEN
     PERFORM pg_notify(pChannel || ':' || pTarget, pId::text);
-    RETURN;
   END IF;
-
-  FOR r IN
-    SELECT s.id
-      FROM notify.subscriber s
-           INNER JOIN notify.channel c ON c.code = s.channel
-     WHERE s.channel = pChannel
-       AND s.state = 'active'
-       AND s.seen > clock_timestamp() - c.alive
-  LOOP
-    PERFORM pg_notify(pChannel || ':' || r.id, pId::text);
-  END LOOP;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -224,6 +217,37 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 /**
+ * @brief The next live subscriber of a channel after one, in the order of their numbers, wrapping
+ *        round: the one a row is offered to when its addressee stays silent about it. A ring,
+ *        not "the least loaded": the least loaded of the others would be the same one or two
+ *        subscribers every tick, and a responsive subscriber with rows of its own would never
+ *        be offered the row. Walking the ring reaches every live subscriber in turn.
+ * @param {text} pChannel - Channel
+ * @param {integer} pAfter - Subscriber number the walk starts after (the current addressee)
+ * @param {interval} pAlive - alive of the channel
+ * @return {integer} - Subscriber number; pAfter itself when it is the only one alive; NULL when nobody is
+ * @since 1.2.36
+ */
+CREATE OR REPLACE FUNCTION notify.pick_next (
+  pChannel      text,
+  pAfter        integer,
+  pAlive        interval
+) RETURNS       integer
+AS $$
+  SELECT s.id
+    FROM notify.subscriber s
+   WHERE s.channel = pChannel
+     AND s.state = 'active'
+     AND s.seen > clock_timestamp() - pAlive
+   ORDER BY (s.id > pAfter) DESC NULLS LAST, s.id
+   LIMIT 1;
+$$ LANGUAGE sql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+
+/**
  * @brief May a row that was sent be handed out once more.
  * @param {notify.queue} q - The row (attempts counts the deliveries so far)
  * @param {notify.channel} c - Its channel
@@ -290,9 +314,7 @@ BEGIN
     RETURN;
   END IF;
 
-  IF nTarget IS DISTINCT FROM r.target THEN
-    UPDATE notify.queue SET target = nTarget WHERE id = r.id;
-  END IF;
+  UPDATE notify.queue SET target = nTarget, woken = clock_timestamp() WHERE id = r.id;
 
   PERFORM notify.wake(pChannel, r.id, nTarget);
 END;
@@ -405,8 +427,12 @@ BEGIN
 
   nTarget := notify.pick_target(pChannel, c.affinity, pKey, c.target_fn, c.alive);
 
+  -- a negative number of repeats is "none": the CHECK of the queue would refuse it, and the
+  -- producer would be rolled back for a number it passes through (http.request has no CHECK).
   INSERT INTO notify.queue (channel, payload, key, expire, max_attempts, dedupe, target)
-  SELECT pChannel, pPayload, pKey, pExpire, pMaxAttempts, (d.dedupe AND pKey IS NOT NULL), nTarget
+  SELECT pChannel, pPayload, pKey, pExpire,
+         CASE WHEN pMaxAttempts < 0 THEN 0 ELSE pMaxAttempts END,
+         (d.dedupe AND pKey IS NOT NULL), nTarget
     FROM notify.channel d
    WHERE d.code = pChannel
   ON CONFLICT (channel, key) WHERE dedupe DO NOTHING
@@ -760,9 +786,11 @@ BEGIN
   IF notify.can_repeat(q, c) THEN
     nTarget := notify.pick_target(q.channel, c.affinity, q.key, c.target_fn, c.alive);
 
+    -- the repeat is woken here: woken keeps the sweep from offering it elsewhere at once
     UPDATE notify.queue
        SET state = 0, owner = NULL, token = NULL, taken = NULL, lease_until = NULL,
-           target = nTarget, error = pError
+           target = nTarget, error = pError,
+           woken = CASE WHEN nTarget IS NOT NULL THEN clock_timestamp() ELSE woken END
      WHERE id = q.id;
 
     IF nTarget IS NOT NULL THEN
@@ -785,9 +813,10 @@ $$ LANGUAGE plpgsql
  *        rest of this section is done. A channel nobody listens on is looked over by
  *        a job (api.sweep_notify_channel), or its rows would wait for ever and a
  *        row that carries a hold or a command would never be closed.
- *        Waiting rows: mark as seen, readdress where the addressee is gone, wake
- *        every live subscriber once the grace has passed, close the expired and the
- *        unrouted. Taken rows whose lease ran out: give out again or close as
+ *        Waiting rows: mark as seen, readdress where the addressee is gone, offer a row
+ *        whose addressee stayed silent past the grace to the next live subscriber in the ring
+ *        (one wake-up per row per 3/4 sweep_every, whoever sweeps: notify.queue.woken), close
+ *        the expired and the unrouted. Taken rows whose lease ran out: give out again or close as
  *        outcome unknown. Once a minute per channel: delete what is past its
  *        retention. The mode of the channel is not asked (see the top of the file).
  *        on_abandon runs as the owner of this function, whoever calls.
@@ -856,25 +885,31 @@ BEGIN
           nCount := nCount + 1;
         END IF;
       ELSIF nTarget IS DISTINCT FROM q.target THEN
-        UPDATE notify.queue SET target = nTarget WHERE id = q.id;
+        UPDATE notify.queue SET target = nTarget, woken = dNow WHERE id = q.id;
         PERFORM notify.wake(c.code, q.id, nTarget);
         nCount := nCount + 1;
-      ELSIF q.seen + c.grace < dNow THEN
-        -- the holder did not take it: say it again (a lost NOTIFY, a row held back by an earlier one)
+      ELSIF q.seen + c.grace < dNow AND (q.woken IS NULL OR q.woken + c.sweep_every * 3 / 4 <= dNow) THEN
+        -- the holder did not take it: say it again (a lost NOTIFY, a row held back by an earlier one),
+        -- once per tick however many subscribers sweep
+        UPDATE notify.queue SET woken = dNow WHERE id = q.id;
         PERFORM notify.wake(c.code, q.id, nTarget);
       END IF;
     ELSIF q.target IS NULL OR NOT notify.is_alive(q.target, c.alive) THEN
       nTarget := notify.pick_target(c.code, c.affinity, q.key, c.target_fn, c.alive);
 
       IF nTarget IS NOT NULL THEN
-        UPDATE notify.queue SET target = nTarget WHERE id = q.id;
+        UPDATE notify.queue SET target = nTarget, woken = dNow WHERE id = q.id;
         PERFORM notify.wake(c.code, q.id, nTarget);
         nCount := nCount + 1;
       END IF;
-    ELSIF q.seen + c.grace < dNow THEN
-      -- the addressee is alive but silent about this row: now anybody may take it
-      -- (every live subscriber is woken on its own channel)
-      PERFORM notify.wake(c.code, q.id);
+    ELSIF q.seen + c.grace < dNow AND (q.woken IS NULL OR q.woken + c.sweep_every * 3 / 4 <= dNow) THEN
+      -- the addressee is alive but silent about this row: now anybody may take it. Offer it to
+      -- the next live subscriber in the ring (notify.pick_next; the addressee itself when it is
+      -- the only one), ONE wake-up, once per tick whoever sweeps; the next tick offers it to the
+      -- one after, so every live subscriber is reached in turn.
+      nTarget := notify.pick_next(c.code, q.target, c.alive);
+      UPDATE notify.queue SET target = nTarget, woken = dNow WHERE id = q.id;
+      PERFORM notify.wake(c.code, q.id, nTarget);
     END IF;
   END LOOP;
 
@@ -891,7 +926,8 @@ BEGIN
 
       UPDATE notify.queue
          SET state = 0, owner = NULL, token = NULL, taken = NULL, lease_until = NULL,
-             target = nTarget, error = 'lease expired'
+             target = nTarget, error = 'lease expired',
+             woken = CASE WHEN nTarget IS NOT NULL THEN dNow ELSE woken END
        WHERE id = q.id;
 
       IF nTarget IS NOT NULL THEN
@@ -1022,6 +1058,7 @@ BEGIN
   END LOOP;
 
   IF nFirst IS NOT NULL AND nTarget IS NOT NULL THEN
+    UPDATE notify.queue SET woken = clock_timestamp() WHERE id = nFirst;
     PERFORM notify.wake(c.code, nFirst, nTarget);
   END IF;
 
