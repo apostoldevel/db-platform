@@ -54,6 +54,8 @@ HTTP request/response queue with logging and callback mechanism. Provides an out
 | `http.create_response(pRequest, pStatus, ...)` | `uuid` | Store response, compute runtime, call done() |
 | `http.done(pRequest)` | `void` | Set request state=2 (done) |
 | `http.fail(pRequest, pError)` | `void` | Set request state=3 (failed) |
+| `http.try_done(pRequest)` | `boolean` | Close an open request (state ≤ 1) as done; `true` — this call closed it, `false` — an outcome was written already, or no such row. Unlike `http.done`, never overwrites an outcome |
+| `http.try_fail(pRequest, pError)` | `boolean` | The same for state=3; the first error stays |
 
 ### Inbound HTTP API
 

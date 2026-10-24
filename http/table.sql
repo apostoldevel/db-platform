@@ -32,6 +32,7 @@ COMMENT ON COLUMN http.log.runtime IS 'Wall-clock execution time of the request 
 
 CREATE INDEX ON http.log (method);
 CREATE INDEX ON http.log (path);
+CREATE INDEX ON http.log (datetime);
 
 --------------------------------------------------------------------------------
 -- http.request ----------------------------------------------------------------
@@ -90,6 +91,7 @@ CREATE INDEX ON http.request (method);
 CREATE INDEX ON http.request (resource);
 CREATE INDEX ON http.request (agent);
 CREATE INDEX ON http.request (command);
+CREATE INDEX ON http.request (datetime);
 
 --------------------------------------------------------------------------------
 

@@ -836,3 +836,68 @@ END;
 $$ LANGUAGE plpgsql
   SECURITY DEFINER
   SET search_path = http, pg_temp;
+
+--------------------------------------------------------------------------------
+-- http.try_done ---------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+/**
+ * @brief Close an open request as completed (state = 2), unless an outcome has been written already.
+ * @param {uuid} pRequest - ID of the request
+ * @return {boolean} - true: this call closed the row; false: the row is not open (done or failed already) or there is none
+ * @see http.done
+ * @see http.try_fail
+ * @since 1.2.37
+ *
+ * The outcome of a request is written by whoever holds it, and for a while two may: a sender that woke up after it
+ * lost the lock, the next holder of a row that http.sweep handed out again. http.done and http.fail write
+ * unconditionally, so the later of two overwrites the earlier: a stored 200 turns into state 3. This function writes
+ * only into an open row (state 0 or 1) and says whether it did. Of two concurrent calls the row lock lets one through;
+ * the other, re-reading the row, finds it closed and gets false. A producer's callback follows a true only.
+ *
+ * http.done is not replaced: it is also the CORRECTION of an outcome already written (the sender stores a response,
+ * the done callback rolls back, the row is marked failed so that it does not look delivered), and a sender of the
+ * previous release calls it. The same goes for http.fail.
+ */
+CREATE OR REPLACE FUNCTION http.try_done (
+  pRequest  uuid
+) RETURNS   boolean
+AS $$
+BEGIN
+  UPDATE http.request SET state = 2 WHERE id = pRequest AND state <= 1;
+
+  RETURN FOUND;
+END;
+$$ LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = http, pg_temp;
+
+--------------------------------------------------------------------------------
+-- http.try_fail ---------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+/**
+ * @brief Close an open request as failed (state = 3) with the error text, unless an outcome has been written already.
+ * @param {uuid} pRequest - ID of the request
+ * @param {text} pError - Error description text
+ * @return {boolean} - true: this call closed the row; false: the row is not open (done or failed already) or there is none
+ * @see http.fail
+ * @see http.try_done
+ * @since 1.2.37
+ *
+ * A fail that arrives after a done leaves the stored response and state 2 alone, and one after a fail keeps the
+ * first error. See http.try_done.
+ */
+CREATE OR REPLACE FUNCTION http.try_fail (
+  pRequest  uuid,
+  pError    text
+) RETURNS   boolean
+AS $$
+BEGIN
+  UPDATE http.request SET state = 3, error = pError WHERE id = pRequest AND state <= 1;
+
+  RETURN FOUND;
+END;
+$$ LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = http, pg_temp;
