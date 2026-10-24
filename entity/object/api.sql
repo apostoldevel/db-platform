@@ -22,6 +22,7 @@ GRANT SELECT ON api.object TO administrator;
  * @param {text} pLabel - Display label
  * @param {text} pData - Description text
  * @return {uuid} - Newly created object identifier
+ * @throws AccessDenied - When the connection is not kernel's (the generic setters are closed to everyone else, administrators included)
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.add_object (
@@ -32,6 +33,15 @@ CREATE OR REPLACE FUNCTION api.add_object (
 ) RETURNS       uuid
 AS $$
 BEGIN
+  -- The generic setters are closed (apostol-csms T1055, T1064; owner's word
+  -- DECISIONS.md:10195): they write an entity straight through Create/Edit<X>,
+  -- without the class action, so no method, no event and no lifecycle runs.
+  -- Only a kernel connection (install, patch, tests) goes through; an entity
+  -- is created and edited by its own api.add_<entity> / api.update_<entity>.
+  IF session_user <> 'kernel' THEN
+    PERFORM AccessDenied();
+  END IF;
+
   RETURN CreateObject(pParent, pType, pLabel, pData);
 END;
 $$ LANGUAGE plpgsql
@@ -50,7 +60,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pData - New description
  * @return {void}
  * @throws ObjectNotFound - When the object does not exist
- * @throws AccessDenied - When a caller other than a platform administrator changes the type or the parent
+ * @throws AccessDenied - When the connection is not kernel's (see api.add_object)
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.update_object (
@@ -61,25 +71,19 @@ CREATE OR REPLACE FUNCTION api.update_object (
   pData         text default null
 ) RETURNS       void
 AS $$
-DECLARE
-  uParent       uuid;
-  uType         uuid;
 BEGIN
-  SELECT parent, type INTO uParent, uType FROM db.object WHERE id = pId;
-  IF NOT FOUND THEN
-    PERFORM ObjectNotFound('object', 'id', pId);
+  -- See api.add_object. Before 1.2.36 a type or a parent written here was the
+  -- platform administrator's alone and the label stayed with the update bit
+  -- (apostol-csms T870: a commission invoice retyped by its payer dropped out of
+  -- the debt); now the whole road is kernel's, and the guard comes before the
+  -- lookup so that a refused caller learns nothing about the object.
+  IF session_user <> 'kernel' THEN
+    PERFORM AccessDenied();
   END IF;
 
-  -- A type or a parent written here bypasses the class: no method, no event,
-  -- only the update bit on the object. A retyped document leaves every rule
-  -- keyed on its type (apostol-csms T870: a commission invoice retyped by its
-  -- payer dropped out of the debt). Changing either is the platform
-  -- administrator's alone; the label and the description stay with the update
-  -- bit. Entities change their type through Edit<Entity>, with its events.
-  IF (pType IS DISTINCT FROM uType AND pType IS NOT NULL) OR (pParent IS DISTINCT FROM uParent AND pParent IS NOT NULL) THEN
-    IF session_user <> 'kernel' AND NOT IsAdmin() THEN
-      PERFORM AccessDenied();
-    END IF;
+  PERFORM FROM db.object WHERE id = pId;
+  IF NOT FOUND THEN
+    PERFORM ObjectNotFound('object', 'id', pId);
   END IF;
 
   PERFORM EditObject(pId, pParent, pType, pLabel, pData, current_locale());
@@ -99,6 +103,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pLabel - Display label
  * @param {text} pData - Description text
  * @return {SETOF api.object} - The created or updated object
+ * @throws AccessDenied - When the connection is not kernel's (through api.add_object / api.update_object)
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.set_object (

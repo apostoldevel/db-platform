@@ -2,7 +2,7 @@
 
 > Platform module #19 (part of entity system) | Loaded by `entity/object/create.psql`
 
-**The foundational object module.** Every business entity in the platform (documents, references, messages, jobs) is ultimately an `object`. Provides: 14 core tables (object, text, access control, state history, groups, links, references, files, data, coordinates), ~130 kernel functions, 53 REST routes, full-text search (EN/RU), and three-layer access control (AOM/AOU/OMA).
+**The foundational object module.** Every business entity in the platform (documents, references, messages, jobs) is ultimately an `object`. Provides: 14 core tables (object, text, access control, state history, groups, links, references, files, data, coordinates), ~130 kernel functions, 52 REST routes, full-text search (EN/RU), and three-layer access control (AOM/AOU/OMA).
 
 ## Dependencies
 
@@ -196,14 +196,16 @@ table.sql → security.sql → view.sql → routine.sql → api.sql → rest.sql
 | restore | `EventObjectRestore` | — |
 | drop | `EventObjectDrop` | Cascades: comment, notice, object_link, object_file, object_data, object_state, method_stack, notification, log; nulls parent in children; deletes object |
 
-## REST Routes — 53
+## REST Routes — 52
 
 Dispatcher: `rest.object(pPath text, pPayload jsonb)`.
+
+There is no `/object/set` (nor `/document/set`, `/reference/set`) since 1.2.36: the generic setters wrote an entity through `Create<X>` / `Edit<X>` without the class action, so no method, event or lifecycle ran. `api.add_object` / `api.update_object` (and `api.set_object` through them) refuse every connection but `kernel`'s — administrators included; the same holds for the document and reference pairs. An entity is created and edited by its own `api.add_<entity>` / `api.update_<entity>`.
 
 | Group | Routes | Operations |
 |-------|--------|------------|
 | Metadata | 7 | class, type, state, method, access, access/set, access/decode |
-| CRUD | 5 | count, set, get, list, delete/force |
+| CRUD | 4 | count, get, list, delete/force |
 | State History | 3 | state/history/get, list, count |
 | Method/Action | 5 | method/execute, action/execute, method/history/get, list, count |
 | Groups | 7 | group/set, get, list, count, member, member/add, member/delete |

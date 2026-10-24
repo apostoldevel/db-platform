@@ -47,9 +47,11 @@ object (abstract)
 
 `api.add_reference`, `api.update_reference`, `api.set_reference`, `api.get_reference`, `api.count_reference`, `api.list_reference`.
 
-### REST Routes — 6
+`api.add_reference` / `api.update_reference` (and `api.set_reference` through them) refuse every connection but `kernel`'s (since 1.2.36; see `../INDEX.md`, REST Routes).
 
-`/reference/type`, `/reference/method`, `/reference/count`, `/reference/set`, `/reference/get`, `/reference/list`.
+### REST Routes — 5
+
+`/reference/type`, `/reference/method`, `/reference/count`, `/reference/get`, `/reference/list`.
 
 ### Events — 9
 
@@ -124,7 +126,7 @@ REST: `/form/field`, `/form/field/count`, `/form/field/set`, `/form/field/get`, 
 | **Types** | `job.scheduler` |
 | **Functions** | `CreateScheduler`, `EditScheduler`, `GetScheduler` |
 | **API extra** | `api.count_scheduler(pSearch, pFilter)` — count with search/filter; `api.get_scheduler_id(pCode)` — UUID/code resolution |
-| **Access** | `api.add_scheduler` / `api.update_scheduler` (and `api.set_scheduler` through them) — platform administrator only, `kernel` passes (since 1.2.36): a scheduler sets the pace of the jobs the TaskScheduler runs as the system, and program and job are closed the same way. Not the `system` group: OAuth2 client accounts are members of it. The generic road is gated the same way: `api.add_reference` / `api.update_reference` refuse a `program` or `scheduler` type to a non-administrator (a bare object of the class would hold the code against the administrator's own `/scheduler/set`) |
+| **Access** | `api.add_scheduler` / `api.update_scheduler` (and `api.set_scheduler` through them) — platform administrator only, `kernel` passes (since 1.2.36): a scheduler sets the pace of the jobs the TaskScheduler runs as the system, and program and job are closed the same way. Not the `system` group: OAuth2 client accounts are members of it. The generic road is closed altogether: `api.add_reference` / `api.update_reference` refuse every connection but `kernel`'s, and there is no `/reference/set` (a bare object of the class would hold the code against the administrator's own `/scheduler/set`) |
 
 ## VENDOR
 
@@ -164,7 +166,7 @@ reference/
 
 | Entity | Extra Table | Extra Columns | Types | REST Routes |
 |--------|------------|---------------|-------|-------------|
-| reference | db.reference + _text | code, scope | — | 6 |
+| reference | db.reference + _text | code, scope | — | 5 |
 | agent | db.agent | vendor | 4 | 7+ |
 | form | db.form | — | 3 | 8+ |
 | form_field | db.form_field | type, label, format, value, data, mutable, sequence | — | 6 |

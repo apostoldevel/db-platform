@@ -52,9 +52,11 @@ CRUD: `CreateDocument`, `EditDocument`. Text: `NewDocumentText`, `EditDocumentTe
 
 `api.add_document`, `api.update_document`, `api.set_document`, `api.get_document`, `api.count_document`, `api.list_document`, `api.change_document_area`.
 
-### REST Routes — 7
+`api.add_document` / `api.update_document` (and `api.set_document` through them) refuse every connection but `kernel`'s (since 1.2.36; see `../INDEX.md`, REST Routes).
 
-`/document/type`, `/document/method`, `/document/count`, `/document/set`, `/document/get`, `/document/list`, `/document/change/area`.
+### REST Routes — 6
+
+`/document/type`, `/document/method`, `/document/count`, `/document/get`, `/document/list`, `/document/change/area`.
 
 ### Events — 9
 
@@ -224,7 +226,7 @@ document/
 
 | Entity | Tables | Views | Functions | API Functions | REST Routes | Events | States |
 |--------|--------|-------|-----------|---------------|-------------|--------|--------|
-| document | 2 | 6 | 14 | 7 | 7 | 9 | default |
+| document | 2 | 6 | 14 | 7 | 6 | 9 | default |
 | job | 1 | 4 | 7 | 10 | 7+ | 14 | 9 complex |
 | message | 1 | 4 | 29 | 17 | 14+ | 11 | default |
 | inbox | 0 | 1 | 0 | 5 | 0 | 9 | 4 |

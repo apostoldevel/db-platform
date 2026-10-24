@@ -412,31 +412,6 @@ BEGIN
 
     END IF;
 
-  WHEN '/object/set' THEN
-
-    IF pPayload IS NULL THEN
-      PERFORM JsonIsEmpty();
-    END IF;
-
-    arKeys := array_cat(arKeys, GetRoutines('set_object', 'api', false));
-    PERFORM CheckJsonbKeys(pPath, arKeys, pPayload);
-
-    IF jsonb_typeof(pPayload) = 'array' THEN
-
-      FOR r IN EXECUTE format('SELECT row_to_json(api.set_object(%s)) FROM jsonb_to_recordset($1) AS x(%s)', array_to_string(GetRoutines('set_object', 'api', false, 'x'), ', '), array_to_string(GetRoutines('set_object', 'api', true), ', ')) USING pPayload
-      LOOP
-        RETURN NEXT r;
-      END LOOP;
-
-    ELSE
-
-      FOR r IN EXECUTE format('SELECT row_to_json(api.set_object(%s)) FROM jsonb_to_record($1) AS x(%s)', array_to_string(GetRoutines('set_object', 'api', false, 'x'), ', '), array_to_string(GetRoutines('set_object', 'api', true), ', ')) USING pPayload
-      LOOP
-        RETURN NEXT r;
-      END LOOP;
-
-    END IF;
-
   WHEN '/object/get' THEN
 
     IF pPayload IS NULL THEN

@@ -23,6 +23,7 @@ GRANT SELECT ON api.document TO administrator;
  * @param {text} pDescription - Localized description
  * @param {text} pData - Full-text content
  * @return {uuid} - Identifier of the created document
+ * @throws AccessDenied - When the connection is not kernel's (the generic setters are closed to everyone else, administrators included)
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.add_document (
@@ -34,6 +35,11 @@ CREATE OR REPLACE FUNCTION api.add_document (
 ) RETURNS       uuid
 AS $$
 BEGIN
+  -- See api.add_object: closed to every connection but kernel's.
+  IF session_user <> 'kernel' THEN
+    PERFORM AccessDenied();
+  END IF;
+
   RETURN CreateDocument(pParent, pType, pLabel, pDescription, pData);
 END;
 $$ LANGUAGE plpgsql
@@ -53,6 +59,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pData - New full-text content (NULL keeps current)
  * @return {void}
  * @throws ObjectNotFound - When no document matches pId
+ * @throws AccessDenied - When the connection is not kernel's (see api.add_document)
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.update_document (
@@ -65,6 +72,11 @@ CREATE OR REPLACE FUNCTION api.update_document (
 ) RETURNS       void
 AS $$
 BEGIN
+  -- See api.add_object: closed to every connection but kernel's, before the lookup.
+  IF session_user <> 'kernel' THEN
+    PERFORM AccessDenied();
+  END IF;
+
   PERFORM FROM db.document WHERE id = pId;
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('document', 'id', pId);
@@ -88,6 +100,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pDescription - Localized description
  * @param {text} pData - Full-text content
  * @return {SETOF api.document} - The created or updated document
+ * @throws AccessDenied - When the connection is not kernel's (through api.add_document / api.update_document)
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.set_document (
