@@ -198,12 +198,13 @@ module-name/
 ├── api.sql        — api.* views + CRUD functions            (create + update)
 ├── rest.sql       — rest.* dispatcher                       (create + update)
 ├── do.sql         — Configuration hooks                     (create + update)
-├── event.sql      — Event handlers                          (create only)
+├── event.sql      — Event handlers                          (create + update)
 ├── init.sql       — Seed data, workflow registration        (create only)
-├── security.sql   — Access control functions                (create only)
+├── security.sql   — Access control functions                (create + update)
+├── search.sql     — Full-text search functions              (create + update)
 ├── INDEX.md       — Module reference
 ├── create.psql    — Includes all files
-└── update.psql    — Includes view, routine, api, rest, do
+└── update.psql    — Includes view, routine, api, rest, do (+ event, security, search where present)
 ```
 
 ---
@@ -217,7 +218,7 @@ module-name/
 ./runme.sh --update    # Safe: routines + views only
 ./runme.sh --patch     # Tables + routines + views (migrations)
 ./runme.sh --api       # Drop/recreate api schema only
-./runme.sh --test      # Run pgTAP tests
+./runme.sh --test      # Defined by the project; this repository ships no test suite
 ```
 
 ---
@@ -262,15 +263,17 @@ Passwords, OAuth2 secrets, payment keys (not committed to VCS).
 
 ## Wiki (52+ pages)
 
+The wiki lives on GitHub — [github.com/apostoldevel/db-platform/wiki](https://github.com/apostoldevel/db-platform/wiki) — not in this repository.
+
 | Section | Pages | Key pages |
 |---------|-------|-----------|
-| **Concepts** | 01-05 | [04-Workflow.md](wiki/04-Workflow.md) |
-| **API Guide** | 10-13 | [13-Query-Parameters.md](wiki/13-Query-Parameters.md) |
-| **Auth & Session** | 20-29 | [22-Authorization-OAuth2.md](wiki/22-Authorization-OAuth2.md) |
-| **Core Services** | 30-39 | [34-Registry.md](wiki/34-Registry.md) |
-| **Object & Workflow** | 40-48 | [48-Class-Endpoints.md](wiki/48-Class-Endpoints.md) |
-| **Internals** | 60-65 | [63-Entity-System-Internals.md](wiki/63-Entity-System-Internals.md), [64-Access-Control.md](wiki/64-Access-Control.md) |
-| **Developer Guide** | 70-80 | [71-Creating-Entity.md](wiki/71-Creating-Entity.md) (35KB), [74-Workflow-Customization.md](wiki/74-Workflow-Customization.md) |
+| **Concepts** | 01-05 | [04-Workflow.md](https://github.com/apostoldevel/db-platform/wiki/04-Workflow) |
+| **API Guide** | 10-13 | [13-Query-Parameters.md](https://github.com/apostoldevel/db-platform/wiki/13-Query-Parameters) |
+| **Auth & Session** | 20-29 | [22-Authorization-OAuth2.md](https://github.com/apostoldevel/db-platform/wiki/22-Authorization-OAuth2) |
+| **Core Services** | 30-39 | [34-Registry.md](https://github.com/apostoldevel/db-platform/wiki/34-Registry) |
+| **Object & Workflow** | 40-48 | [48-Class-Endpoints.md](https://github.com/apostoldevel/db-platform/wiki/48-Class-Endpoints) |
+| **Internals** | 60-65 | [63-Entity-System-Internals.md](https://github.com/apostoldevel/db-platform/wiki/63-Entity-System-Internals), [64-Access-Control.md](https://github.com/apostoldevel/db-platform/wiki/64-Access-Control) |
+| **Developer Guide** | 70-80 | [71-Creating-Entity.md](https://github.com/apostoldevel/db-platform/wiki/71-Creating-Entity) (35KB), [74-Workflow-Customization.md](https://github.com/apostoldevel/db-platform/wiki/74-Workflow-Customization) |
 
 ---
 

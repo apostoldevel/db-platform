@@ -19,7 +19,7 @@ All commands run from the **project's `db/` directory** (not from this repo dire
 ./runme.sh --create    # DESTRUCTIVE: drop/recreate DB without seed data
 ./runme.sh --init      # First run: create DB users + full install
 ./runme.sh --api       # Drop/recreate api schema only
-./runme.sh --test      # Run pgTAP tests
+./runme.sh --test      # Defined by the project; this repository ships no test suite
 ```
 
 **Automatic patch migration** (alternative to `--patch`):
@@ -118,10 +118,11 @@ entity-name/
 ├── event.sql      — Event handlers (EventXxxCreate, etc.)   (create + update)
 ├── init.sql       — Seed data, workflow registration         (create only)
 ├── exception.sql  — Error-raising functions                  (create + update)
-├── security.sql   — Access control functions                 (create only)
+├── security.sql   — Access control functions                 (create + update)
+├── search.sql     — Full-text search functions               (create + update)
 ├── do.sql         — Configuration hooks                      (create + update)
 ├── create.psql    — Includes all files for full install
-└── update.psql    — Includes only replaceable files (view, routine, api, rest, do)
+└── update.psql    — Includes only the re-run files (view, routine, api, rest, event, security, search, do)
 ```
 
 ### Function naming
@@ -159,7 +160,7 @@ SET search_path = kernel, pg_temp;
 
 - `INDEX.md` — full module list with links to per-module INDEX files
 - `RLS.md` — access control architecture (ACU/AMU/AOU, bitmasks, Access views)
-- `wiki/` — 52-page documentation (API guide, entity creation, workflow customization)
-- `wiki/71-Creating-Entity.md` — step-by-step guide for adding new entities
-- `wiki/74-Workflow-Customization.md` — custom states, methods, transitions
-- `wiki/75-REST-Endpoint-Guide.md` — writing REST dispatchers
+- [Wiki](https://github.com/apostoldevel/db-platform/wiki) — 52-page documentation (API guide, entity creation, workflow customization); it lives on GitHub, not in this repository
+- [71-Creating-Entity](https://github.com/apostoldevel/db-platform/wiki/71-Creating-Entity) — step-by-step guide for adding new entities
+- [74-Workflow-Customization](https://github.com/apostoldevel/db-platform/wiki/74-Workflow-Customization) — custom states, methods, transitions
+- [75-REST-Endpoint-Guide](https://github.com/apostoldevel/db-platform/wiki/75-REST-Endpoint-Guide) — writing REST dispatchers
