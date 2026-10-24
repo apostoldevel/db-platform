@@ -722,7 +722,7 @@ CREATE OR REPLACE FUNCTION db.ft_object_coordinates_after_insert()
 RETURNS trigger AS $$
 BEGIN
   IF NEW.validToDate = MAXDATE() THEN
-    PERFORM pg_notify('geo', json_build_object('id', NEW.id, 'object', NEW.object, 'code', NEW.code)::text);
+    PERFORM notify.send('geo', json_build_object('id', NEW.id, 'object', NEW.object, 'code', NEW.code)::text);
   END IF;
   RETURN NEW;
 END;

@@ -102,7 +102,7 @@ CREATE OR REPLACE FUNCTION http.ft_request_after_insert()
 RETURNS     trigger
 AS $$
 BEGIN
-  PERFORM pg_notify(TG_TABLE_SCHEMA, NEW.id::text);
+  PERFORM notify.send('http', NEW.id::text, NEW.id::text, NEW.expire, NEW.max_attempts);
   RETURN NULL;
 END;
 $$ LANGUAGE plpgsql

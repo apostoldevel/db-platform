@@ -88,7 +88,7 @@ BEGIN
     FROM db.reference a INNER JOIN db.type t ON t.id = a.type
    WHERE a.id = NEW.agent;
 
-  PERFORM pg_notify('message', json_build_object('id', NEW.id, 'class', vClass, 'type', vType, 'agent', vAgent, 'code', NEW.code, 'profile', NEW.profile, 'address', NEW.address, 'subject', NEW.subject)::text);
+  PERFORM notify.send('message', json_build_object('id', NEW.id, 'class', vClass, 'type', vType, 'agent', vAgent, 'code', NEW.code, 'profile', NEW.profile, 'address', NEW.address, 'subject', NEW.subject)::text);
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql

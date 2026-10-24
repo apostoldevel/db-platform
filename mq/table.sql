@@ -271,7 +271,7 @@ BEGIN
 
   IF TG_OP = 'DELETE' THEN r := OLD; ELSE r := NEW; END IF;
 
-  PERFORM pg_notify('mq_cmd', json_build_object(
+  PERFORM notify.send('mq_cmd', json_build_object(
     'object', 'schedule',
     'action', lower(TG_OP),
     'peer', (SELECT p.code FROM mq.peer p WHERE p.id = r.peer),
@@ -309,7 +309,7 @@ DECLARE
 BEGIN
   IF TG_OP = 'DELETE' THEN r := OLD; ELSE r := NEW; END IF;
 
-  PERFORM pg_notify('mq_cmd', json_build_object(
+  PERFORM notify.send('mq_cmd', json_build_object(
     'object', 'link',
     'action', lower(TG_OP),
     'link', r.code
@@ -432,7 +432,7 @@ CREATE OR REPLACE FUNCTION mq.ft_message_after_insert()
 RETURNS trigger AS $$
 BEGIN
   IF NEW.received IS NULL THEN
-    PERFORM pg_notify('mq', json_build_object('channel', NEW.channel, 'target', NEW.target, 'serial', NEW.serial, 'type', NEW.type)::text);
+    PERFORM notify.send('mq', json_build_object('channel', NEW.channel, 'target', NEW.target, 'serial', NEW.serial, 'type', NEW.type)::text);
   END IF;
 
   RETURN NEW;

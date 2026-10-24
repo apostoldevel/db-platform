@@ -44,7 +44,7 @@ CREATE INDEX ON db.notice (status);
 CREATE OR REPLACE FUNCTION db.ft_notice_after_insert()
 RETURNS trigger AS $$
 BEGIN
-  PERFORM pg_notify('notice', json_build_object('id', NEW.id, 'userid', NEW.userid, 'object', NEW.object, 'category', NEW.category)::text);
+  PERFORM notify.send('notice', json_build_object('id', NEW.id, 'userid', NEW.userid, 'object', NEW.object, 'category', NEW.category)::text);
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql

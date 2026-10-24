@@ -943,7 +943,7 @@ BEGIN
     -- is the failure this whole guard is built to avoid.
 
     IF coalesce(nStalled, 1) <= 1 THEN
-      PERFORM pg_notify('mq_stalled', json_build_object('peer', pPeer, 'channel', pChannel, 'target', nTarget, 'serial', pSerial)::text);
+      PERFORM notify.send('mq_stalled', json_build_object('peer', pPeer, 'channel', pChannel, 'target', nTarget, 'serial', pSerial)::text);
     ELSE
       RAISE EXCEPTION 'ERR-40000: Node "%" is stuck below serial % on channel % (stream %) and the session is not declaring a floor.', pPeer, pSerial + 1, pChannel, nTarget
         USING HINT = 'Call mq.floor after the batch and hand the result to mq.advance on the receiving side; if the floor was refused, pass that back to mq.confirm.';
@@ -1052,7 +1052,7 @@ BEGIN
          state = 'parked',
          updated = Now();
 
-  PERFORM pg_notify('mq_dead', json_build_object('source', pSource, 'channel', pChannel, 'target', nTarget, 'serial', pSerial, 'reason', pReason)::text);
+  PERFORM notify.send('mq_dead', json_build_object('source', pSource, 'channel', pChannel, 'target', nTarget, 'serial', pSerial, 'reason', pReason)::text);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1520,7 +1520,7 @@ BEGIN
       -- they claimed 10000" is a sender that is broken, and only the second one
       -- stops being a question about the weather.
 
-      PERFORM pg_notify('mq_refused', json_build_object('source', pSource, 'channel', pChannel, 'target', nTarget, 'floor', nClaimed, 'kind', pKind)::text);
+      PERFORM notify.send('mq_refused', json_build_object('source', pSource, 'channel', pChannel, 'target', nTarget, 'floor', nClaimed, 'kind', pKind)::text);
     END IF;
   END IF;
 
@@ -1573,7 +1573,7 @@ BEGIN
          updated = Now();
 
   IF nSkipped > 0 THEN
-    PERFORM pg_notify('mq_floor', json_build_object('source', pSource, 'channel', pChannel, 'target', nTarget, 'floor', pFloor, 'skipped', nSkipped)::text);
+    PERFORM notify.send('mq_floor', json_build_object('source', pSource, 'channel', pChannel, 'target', nTarget, 'floor', pFloor, 'skipped', nSkipped)::text);
   END IF;
 
   RETURN QUERY SELECT nEnd, vFloor;

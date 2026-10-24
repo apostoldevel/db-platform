@@ -87,7 +87,7 @@ CREATE TRIGGER t_log_insert
 CREATE OR REPLACE FUNCTION db.ft_log_after_insert()
 RETURNS trigger AS $$
 BEGIN
-  PERFORM pg_notify('log', json_build_object('id', NEW.id, 'type', NEW.type, 'code', NEW.code, 'username', NEW.username, 'scope', NEW.scope, 'event', NEW.event, 'category', NEW.category)::text);
+  PERFORM notify.send('log', json_build_object('id', NEW.id, 'type', NEW.type, 'code', NEW.code, 'username', NEW.username, 'scope', NEW.scope, 'event', NEW.event, 'category', NEW.category)::text);
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql

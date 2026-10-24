@@ -55,7 +55,7 @@ patch.psql    →  platform/patch.psql   →  configuration/patch.psql
 
 ---
 
-## 28 modules
+## 29 modules
 
 Loaded in dependency order (create.psql):
 
@@ -121,6 +121,7 @@ Loaded in dependency order (create.psql):
 | # | Module | Tables | Description | INDEX |
 |--:|--------|-------:|-------------|-------|
 | 28 | **gateway** | 2 | GatewayAPI (track A, `/api/v2`): module instance registry, transition journal + `pg_notify('gateway')`, `gateway.route`, `api.authorize_local` / `api.log_request` / `api.parse_message` for the pool role | [gateway/INDEX.md](gateway/INDEX.md) |
+| 29 | **notify** | 3 | Delivery policy per `pg_notify` channel: `notify.send` replaces `pg_notify` at every producer; a `single` channel is a queue row handed to one live subscriber under a token (take / ack / nack / sweep / retarget). Loaded after `api` (`create.psql` line 12); every channel is `legacy` until switched per installation | [notify/INDEX.md](notify/INDEX.md) |
 
 ---
 

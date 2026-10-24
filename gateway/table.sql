@@ -119,7 +119,7 @@ BEGIN
   VALUES (coalesce(NEW.module, OLD.module), coalesce(NEW.instance, OLD.instance), vFrom, vTo,
           coalesce(NEW.worker, OLD.worker), vReason, vNode);
 
-  PERFORM pg_notify('gateway', json_build_object(
+  PERFORM notify.send('gateway', json_build_object(
     'op',         vOp,
     'module',     coalesce(NEW.module, OLD.module),
     'instance',   coalesce(NEW.instance, OLD.instance),

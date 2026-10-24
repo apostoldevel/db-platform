@@ -58,7 +58,7 @@ BEGIN
 	RETURN NEW;
   END IF;
 
-  PERFORM pg_notify('notify', row_to_json(NEW)::text);
+  PERFORM notify.send('notify', row_to_json(NEW)::text);
 
   vEntity := GetEntityCode(NEW.entity);
 
@@ -69,11 +69,11 @@ BEGIN
 
     IF vClass = 'inbox' THEN
       IF vAction = 'create' THEN
-        PERFORM pg_notify('inbox', NEW.object::text);
+        PERFORM notify.send('inbox', NEW.object::text);
       END IF;
     ELSIF vClass = 'outbox' THEN
       IF vAction = 'submit' OR vAction = 'repeat' THEN
-        PERFORM pg_notify('outbox', NEW.object::text);
+        PERFORM notify.send('outbox', NEW.object::text);
       END IF;
     END IF;
 
@@ -82,7 +82,7 @@ BEGIN
     vAction := GetActionCode(NEW.action);
 
     IF vAction = 'execute' THEN
-      PERFORM pg_notify('report', json_build_object('session', current_session(), 'id', NEW.object)::text);
+      PERFORM notify.send('report', json_build_object('session', current_session(), 'id', NEW.object)::text);
     END IF;
   END IF;
 

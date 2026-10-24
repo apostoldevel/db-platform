@@ -1,0 +1,5 @@
+CREATE SCHEMA IF NOT EXISTS notify AUTHORIZATION kernel;
+
+GRANT USAGE ON SCHEMA notify TO administrator;
+GRANT USAGE ON SCHEMA notify TO daemon;
+GRANT USAGE ON SCHEMA notify TO apibot;
