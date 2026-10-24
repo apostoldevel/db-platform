@@ -47,7 +47,7 @@
  * @param {bigint} pId - Row identifier, the payload of the wake-up
  * @param {integer} pTarget - Subscriber number; NULL wakes nobody
  * @return {void}
- * @since 1.2.36
+ * @since 1.2.37
  */
 CREATE OR REPLACE FUNCTION notify.wake (
   pChannel      text,
@@ -71,7 +71,7 @@ $$ LANGUAGE plpgsql
  * @param {integer} pSubscriber - Subscriber number
  * @param {interval} pAlive - The channel's threshold
  * @return {boolean}
- * @since 1.2.36
+ * @since 1.2.37
  */
 CREATE OR REPLACE FUNCTION notify.is_alive (
   pSubscriber   integer,
@@ -98,7 +98,7 @@ $$ LANGUAGE sql
  * @param {text} pFn - Function (text) RETURNS integer
  * @param {text} pKey - Key
  * @return {integer} - Subscriber number; NULL when there is no holder or the function failed
- * @since 1.2.36
+ * @since 1.2.37
  */
 CREATE OR REPLACE FUNCTION notify.route_holder (
   pFn           text,
@@ -133,7 +133,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pKey - Key
  * @param {interval} pAlive - alive of the channel
  * @return {integer} - Subscriber number; NULL when there is no holder, it is not active or silent
- * @since 1.2.36
+ * @since 1.2.37
  */
 CREATE OR REPLACE FUNCTION notify.route_target (
   pFn           text,
@@ -166,7 +166,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pTargetFn - target_fn of the channel (route)
  * @param {interval} pAlive - alive of the channel
  * @return {integer} - Subscriber number; NULL when there is nobody
- * @since 1.2.36
+ * @since 1.2.37
  */
 CREATE OR REPLACE FUNCTION notify.pick_target (
   pChannel      text,
@@ -226,7 +226,7 @@ $$ LANGUAGE plpgsql
  * @param {integer} pAfter - Subscriber number the walk starts after (the current addressee)
  * @param {interval} pAlive - alive of the channel
  * @return {integer} - Subscriber number; pAfter itself when it is the only one alive; NULL when nobody is
- * @since 1.2.36
+ * @since 1.2.37
  */
 CREATE OR REPLACE FUNCTION notify.pick_next (
   pChannel      text,
@@ -252,7 +252,7 @@ $$ LANGUAGE sql
  * @param {notify.queue} q - The row (attempts counts the deliveries so far)
  * @param {notify.channel} c - Its channel
  * @return {boolean}
- * @since 1.2.36
+ * @since 1.2.37
  */
 CREATE OR REPLACE FUNCTION notify.can_repeat (
   q             notify.queue,
@@ -276,7 +276,7 @@ $$ LANGUAGE sql
  * @param {text} pChannel - Channel
  * @param {text} pKey - Key of the row that was settled
  * @return {void}
- * @since 1.2.36
+ * @since 1.2.37
  */
 CREATE OR REPLACE FUNCTION notify.wake_next (
   pChannel      text,
@@ -332,7 +332,7 @@ $$ LANGUAGE plpgsql
  * @param {boolean} pSent - The row was handed out at least once, its outcome is unknown.
  *        false: it never left; on_abandon is called only if the channel says on_expire
  * @return {void}
- * @since 1.2.36
+ * @since 1.2.37
  */
 CREATE OR REPLACE FUNCTION notify.close (
   pId           bigint,
@@ -386,7 +386,7 @@ $$ LANGUAGE plpgsql
  * @param {integer} pMaxAttempts - Repeats allowed after the first delivery; NULL takes the channel's
  * @return {bigint} - The row for a single channel (an existing one for a duplicate of a dedupe
  *         channel); NULL when the channel is a plain broadcast
- * @since 1.2.36
+ * @since 1.2.37
  */
 CREATE OR REPLACE FUNCTION notify.send (
   pChannel      text,
@@ -469,7 +469,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pRole - Role of the process in the application
  * @param {integer} pPid - Backend pid of the LISTEN connection; the caller's by default
  * @return {integer} - Subscriber number. Listen on "<channel>" and "<channel>:<number>"
- * @since 1.2.36
+ * @since 1.2.37
  */
 CREATE OR REPLACE FUNCTION notify.subscribe (
   pNode         text,
@@ -509,7 +509,7 @@ $$ LANGUAGE plpgsql
  * @param {integer} pPid - Backend pid of the LISTEN connection if it changed (a reconnect)
  * @return {text} - active, draining, or NULL when the number is not registered any more
  *         (purged): subscribe again
- * @since 1.2.36
+ * @since 1.2.37
  */
 CREATE OR REPLACE FUNCTION notify.heartbeat (
   pId           integer,
@@ -537,7 +537,7 @@ $$ LANGUAGE plpgsql
  *        and finishes and confirms what it started.
  * @param {integer} pId - Subscriber number
  * @return {void}
- * @since 1.2.36
+ * @since 1.2.37
  */
 CREATE OR REPLACE FUNCTION notify.drain (
   pId           integer
@@ -557,7 +557,7 @@ $$ LANGUAGE plpgsql
  *        stays (draining) until notify.sweep removes it.
  * @param {integer} pId - Subscriber number
  * @return {void}
- * @since 1.2.36
+ * @since 1.2.37
  */
 CREATE OR REPLACE FUNCTION notify.unsubscribe (
   pId           integer
@@ -591,7 +591,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pChannel - Channel
  * @return {SETOF record} - (mode, classified, affinity, alive, sweep_every, lease); no row when
  *         the channel is unknown
- * @since 1.2.36
+ * @since 1.2.37
  */
 CREATE OR REPLACE FUNCTION notify.channel_policy (
   pChannel      text
@@ -622,7 +622,7 @@ $$ LANGUAGE sql STABLE
  * @return {SETOF record} - (payload, key, token, attempts) when the row is the subscriber's to
  *         work on; NO ROWS when it is not (somebody else's, taken, waiting for an earlier row
  *         of its key, or closed here as expired) -- nothing to do
- * @since 1.2.36
+ * @since 1.2.37
  */
 CREATE OR REPLACE FUNCTION notify.take (
   pId           bigint,
@@ -725,7 +725,7 @@ $$ LANGUAGE plpgsql
  * @return {void}
  * @throws NT409 - The token is not current (the row was given out again, closed, or never
  *         taken under this token). The exception rolls back the result written beside it.
- * @since 1.2.36
+ * @since 1.2.37
  */
 CREATE OR REPLACE FUNCTION notify.ack (
   pId           bigint,
@@ -761,7 +761,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pError - Why
  * @return {void}
  * @throws NT409 - The token is not current
- * @since 1.2.36
+ * @since 1.2.37
  */
 CREATE OR REPLACE FUNCTION notify.nack (
   pId           bigint,
@@ -823,7 +823,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pChannel - Channel
  * @param {integer} pLimit - Rows per kind per call
  * @return {integer} - Rows it acted on
- * @since 1.2.36
+ * @since 1.2.37
  */
 CREATE OR REPLACE FUNCTION notify.sweep_channel (
   pChannel      text,
@@ -981,7 +981,7 @@ $$ LANGUAGE plpgsql
  * @param {integer} pSubscriber - Subscriber number; its channel is looked over
  * @param {integer} pLimit - Rows per kind per call
  * @return {integer} - Rows it acted on; 0 for a number that is not registered
- * @since 1.2.36
+ * @since 1.2.37
  */
 CREATE OR REPLACE FUNCTION notify.sweep (
   pSubscriber   integer,
@@ -1016,7 +1016,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pChannel - Channel
  * @param {text} pKey - Key
  * @return {integer} - Waiting rows whose addressee changed
- * @since 1.2.36
+ * @since 1.2.37
  */
 CREATE OR REPLACE FUNCTION notify.retarget (
   pChannel      text,

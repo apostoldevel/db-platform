@@ -36,7 +36,7 @@ GRANT SELECT ON api.notify_queue TO apibot;
  * @param {jsonb} pSearch - Search conditions array
  * @param {jsonb} pFilter - Exact-match filter object
  * @return {SETOF bigint} - Record count
- * @since 1.2.36
+ * @since 1.2.37
  */
 CREATE OR REPLACE FUNCTION api.count_notify_subscriber (
   pSearch    jsonb default null,
@@ -62,7 +62,7 @@ $$ LANGUAGE plpgsql
  * @param {integer} pOffSet - Number of rows to skip
  * @param {jsonb} pOrderBy - Sort specification
  * @return {SETOF api.notify_subscriber} - Matching subscribers
- * @since 1.2.36
+ * @since 1.2.37
  */
 CREATE OR REPLACE FUNCTION api.list_notify_subscriber (
   pSearch       jsonb default null,
@@ -88,7 +88,7 @@ $$ LANGUAGE plpgsql
  * @param {jsonb} pSearch - Search conditions array
  * @param {jsonb} pFilter - Exact-match filter object
  * @return {SETOF bigint} - Record count
- * @since 1.2.36
+ * @since 1.2.37
  */
 CREATE OR REPLACE FUNCTION api.count_notify_queue (
   pSearch    jsonb default null,
@@ -114,7 +114,7 @@ $$ LANGUAGE plpgsql
  * @param {integer} pOffSet - Number of rows to skip
  * @param {jsonb} pOrderBy - Sort specification
  * @return {SETOF api.notify_queue} - Matching rows
- * @since 1.2.36
+ * @since 1.2.37
  */
 CREATE OR REPLACE FUNCTION api.list_notify_queue (
   pSearch       jsonb default null,
@@ -139,7 +139,7 @@ $$ LANGUAGE plpgsql
  * @brief One channel.
  * @param {text} pCode - Channel code
  * @return {SETOF api.notify_channel}
- * @since 1.2.36
+ * @since 1.2.37
  */
 CREATE OR REPLACE FUNCTION api.get_notify_channel (
   pCode         text
@@ -174,7 +174,7 @@ $$ LANGUAGE sql STABLE
  * @param {interval} pSweepEvery - The tick of notify.sweep
  * @return {SETOF api.notify_channel} - The channel after the change
  * @throws ERR-40000 - When there is no such channel
- * @since 1.2.36
+ * @since 1.2.37
  */
 CREATE OR REPLACE FUNCTION api.set_notify_channel (
   pCode           text,
@@ -234,7 +234,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pCode - Channel code
  * @param {integer} pLimit - Rows per kind per call
  * @return {integer} - Rows it acted on; 0 for an unknown channel
- * @since 1.2.36
+ * @since 1.2.37
  */
 CREATE OR REPLACE FUNCTION api.sweep_notify_channel (
   pCode         text,

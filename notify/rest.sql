@@ -9,7 +9,7 @@
  * @throws RouteIsEmpty - When pPath is NULL
  * @throws LoginFailed - When no active session exists
  * @throws AccessDenied - When the caller is not an administrator
- * @since 1.2.36
+ * @since 1.2.37
  */
 CREATE OR REPLACE FUNCTION rest.notify (
   pPath       text,
