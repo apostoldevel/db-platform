@@ -195,3 +195,215 @@ END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- JobRunKey -------------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief The key of one planned run of a job on the notify channel `job`: the job
+ *        and its planned time (`dateRun`) as stored, in UTC, to the microsecond.
+ *        `done` and `fail` move `dateRun` (RescheduleJob), so the next run has
+ *        another key; while it is the same run the key is the same and the channel
+ *        (`dedupe`) hands it out once.
+ * @param {uuid} pJob - Job identifier
+ * @param {timestamptz} pDateRun - Planned time of the run
+ * @return {text} - '<job>:<YYYYMMDD"T"HH24MISS.US>'
+ * @since 1.2.38
+ */
+CREATE OR REPLACE FUNCTION JobRunKey (
+  pJob       uuid,
+  pDateRun   timestamptz
+) RETURNS    text
+AS $$
+  SELECT pJob::text || ':' || to_char(pDateRun AT TIME ZONE 'UTC', 'YYYYMMDD"T"HH24MISS.US');
+$$ LANGUAGE sql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- RearmJob --------------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief A job that becomes runnable again is a NEW planned run: when its
+ *        `dateRun` is already past it is set to now, which gives it a new
+ *        JobRunKey. Without it a re-armed job keeps the key of the run that
+ *        already happened, and the channel's `dedupe` would not hand it out for as
+ *        long as that row is kept. A `dateRun` in the future is left alone: the job
+ *        waits for it. Called by the `enable` and `abort` events.
+ * @param {uuid} pObject - Job identifier
+ * @return {void}
+ * @since 1.2.38
+ */
+CREATE OR REPLACE FUNCTION RearmJob (
+  pObject    uuid
+) RETURNS    void
+AS $$
+BEGIN
+  -- only a job that is runnable now: `enable` of a completed job has a method and no
+  -- transition, the state stays `completed` and its planned time is not touched
+  UPDATE db.job SET daterun = Now()
+   WHERE id = pObject AND daterun < Now()
+     AND GetObjectStateCode(pObject) IN ('enabled', 'aborted', 'failed');
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- JobAbandon ------------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief `on_abandon` of the notify channel `job`: a row was closed without a
+ *        confirmation (the executor died twice, or the row expired).
+ *
+ * The closed row keeps its key (`dedupe`), so the job MUST leave it, or it would
+ * never be handed out again: `executed` (died inside the body) -> `fail`, which
+ * postpones a periodic job by a period and disables a one-time one; `canceled` ->
+ * `abort` (the event re-arms it); due but not yet executed (died before `execute`,
+ * or never handed out) -> RescheduleJob. A job that already moved on -- another planned
+ * time, another state -- is not touched: the closed row is about an earlier run.
+ *
+ * The sweep that closes the row comes from a connection with no session (the
+ * TaskScheduler's pool, role apibot), and a change of a state of an object asks for
+ * one -- the trigger of db.object refuses a user that is not there -- so the work is
+ * done in the system context (EnterSystemContext: kernel, daemon and apibot may
+ * enter), which is left on every path. The reason goes to the event log.
+ * @param {bigint} pId - Row of notify.queue
+ * @param {text} pKey - Key of the row (JobRunKey)
+ * @param {text} pPayload - Payload of the row
+ * @param {text} pReason - Why the row was closed
+ * @return {void}
+ * @since 1.2.38
+ */
+CREATE OR REPLACE FUNCTION JobAbandon (
+  pId        bigint,
+  pKey       text,
+  pPayload   text,
+  pReason    text
+) RETURNS    void
+AS $$
+DECLARE
+  uJob       uuid;
+  dtDateRun  timestamptz;
+  vState     text;
+  jContext   jsonb;
+BEGIN
+  BEGIN
+    uJob := split_part(pKey, ':', 1)::uuid;
+  EXCEPTION WHEN invalid_text_representation THEN
+    RETURN;
+  END;
+
+  -- the object first, then the job: the order the actions take (a workflow action updates the
+  -- object, and RescheduleJob then the job), so that a `done` still in flight cannot deadlock with this
+  PERFORM FROM db.job j INNER JOIN db.object o ON o.id = j.document WHERE j.id = uJob FOR UPDATE OF o;
+
+  SELECT j.daterun, s.code INTO dtDateRun, vState
+    FROM db.job j INNER JOIN db.object o ON o.id = j.document
+                  INNER JOIN db.state  s ON s.id = o.state
+   WHERE j.id = uJob
+     FOR UPDATE OF j;
+
+  IF NOT FOUND OR pKey IS DISTINCT FROM JobRunKey(uJob, dtDateRun) THEN
+    RETURN;
+  END IF;
+
+  IF vState NOT IN ('executed', 'canceled', 'enabled', 'aborted', 'failed') THEN
+    RETURN;
+  END IF;
+
+  jContext := EnterSystemContext();
+
+  BEGIN
+    PERFORM WriteToEventLog('W', 2026, 'workflow.job', 'abandon', left(pReason, 400), uJob);
+
+    IF vState = 'executed' THEN
+      PERFORM DoFail(uJob);
+    ELSIF vState = 'canceled' THEN
+      PERFORM DoAction(uJob, 'abort');
+    ELSE
+      PERFORM RescheduleJob(uJob);
+    END IF;
+  EXCEPTION WHEN others THEN
+    PERFORM LeaveSystemContext(jContext);
+    RAISE;
+  END;
+
+  PERFORM LeaveSystemContext(jContext);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- ReleaseJob ------------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief A job that is `executed` or `canceled` and has no live row of the notify
+ *        channel `job` (a row waiting or taken) on its current run: nobody holds it
+ *        and nothing will find it -- an administrator pressed `execute`, the key was
+ *        edited under a run, `on_abandon` failed, the binary was switched with a job
+ *        running. The poller this replaces cancelled and aborted such a job on its
+ *        next pass (TSK02.FR.02, SCH02.FR.04); api.job_due calls this for it.
+ *
+ *   `canceled`                          -> `abort` (the event re-arms it, so it starts again);
+ *   `executed`, its run has a CLOSED row -> `fail` (the row keeps the key, so it cannot be
+ *                                          offered again: a periodic job waits a period,
+ *                                          a one-time one is disabled -- what JobAbandon does);
+ *   `executed`, its run has no row at all -> nothing: api.job_due offers it (the executor's
+ *                                          api.job_claim hands the body out without a transition).
+ *
+ * The object is locked first, then the job (as the actions do); a row somebody else holds
+ * is skipped. Everything is checked again under the lock.
+ * @param {uuid} pJob - Job identifier
+ * @return {text} - 'abort', 'fail', or NULL when nothing was done
+ * @since 1.2.38
+ */
+CREATE OR REPLACE FUNCTION ReleaseJob (
+  pJob       uuid
+) RETURNS    text
+AS $$
+DECLARE
+  dtDateRun  timestamptz;
+  vState     text;
+  vKey       text;
+BEGIN
+  PERFORM FROM db.job j INNER JOIN db.object o ON o.id = j.document WHERE j.id = pJob FOR UPDATE OF o SKIP LOCKED;
+
+  IF NOT FOUND THEN
+    RETURN NULL;
+  END IF;
+
+  SELECT j.daterun, s.code INTO dtDateRun, vState
+    FROM db.job j INNER JOIN db.object o ON o.id = j.document
+                  INNER JOIN db.state  s ON s.id = o.state
+   WHERE j.id = pJob
+     FOR UPDATE OF j;
+
+  IF NOT FOUND OR vState NOT IN ('executed', 'canceled') THEN
+    RETURN NULL;
+  END IF;
+
+  vKey := JobRunKey(pJob, dtDateRun);
+
+  IF EXISTS (SELECT FROM notify.queue q WHERE q.channel = 'job' AND q.key = vKey AND q.state IN (0, 1)) THEN
+    RETURN NULL;
+  END IF;
+
+  IF vState = 'canceled' THEN
+    PERFORM WriteToEventLog('W', 2026, 'workflow.job', 'release', 'A canceled job nobody holds is aborted.', pJob);
+    PERFORM DoAction(pJob, 'abort');
+    RETURN 'abort';
+  END IF;
+
+  IF NOT EXISTS (SELECT FROM notify.queue q WHERE q.channel = 'job' AND q.key = vKey) THEN
+    RETURN NULL;
+  END IF;
+
+  PERFORM WriteToEventLog('W', 2026, 'workflow.job', 'release', 'An executed job whose run was closed without a confirmation is failed.', pJob);
+  PERFORM DoFail(pJob);
+  RETURN 'fail';
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;

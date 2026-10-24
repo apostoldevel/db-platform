@@ -90,6 +90,9 @@ CREATE OR REPLACE FUNCTION EventJobEnable (
 AS $$
 BEGIN
   PERFORM WriteToEventLog('M', 2001, 'workflow', 'enable', 'Job enabled.', pObject);
+
+  -- a job armed again is a new planned run (see RearmJob)
+  PERFORM RearmJob(pObject);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -266,6 +269,10 @@ CREATE OR REPLACE FUNCTION EventJobAbort (
 AS $$
 BEGIN
   PERFORM WriteToEventLog('W', 2025, 'workflow.job', 'abort', 'Job aborted.', pObject);
+
+  -- `aborted` is runnable at once (SCH.DEV.07): a new planned run, so the channel
+  -- does not take it for the run that was aborted (see RearmJob)
+  PERFORM RearmJob(pObject);
 END;
 $$ LANGUAGE plpgsql;
 

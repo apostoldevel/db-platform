@@ -603,3 +603,14 @@ END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- The channel `job` of the module notify --------------------------------------
+--------------------------------------------------------------------------------
+
+-- The row is inserted by notify/init.sql (it loads earlier, as `legacy`). What a closed
+-- row of the channel does to its job is this module's (JobAbandon): the row names the
+-- function, and the function has to exist before it does. An existing base gets the
+-- same from patch P00000037. A value an operator already set is not overwritten.
+UPDATE notify.channel SET on_abandon = 'JobAbandon', on_expire = true
+ WHERE code = 'job' AND on_abandon IS NULL;

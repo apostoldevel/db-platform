@@ -97,6 +97,190 @@ $$ LANGUAGE SQL
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- FUNCTION api.job_due --------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Hand the jobs that are due to the notify channel `job`: the feed of a
+ *        TaskScheduler that runs on notify instead of polling api.job. Every
+ *        instance calls it about once a second under each scope's session.
+ *
+ * Same filters as the feed api.job (SCH02.FR.01–02): the session's scope, a job and
+ * a program both owned by an administrator (T848). Offered: a job that can be
+ * STARTED (`enabled`, `aborted`, `failed`) and is due (`dateRun` at or before now),
+ * and an `executed` job whose run has no row at all (nobody holds it, nothing else
+ * will find it: its api.job_claim hands the body out without a transition).
+ * It makes no transition for those. `SELECT … FOR UPDATE SKIP LOCKED` keeps a
+ * second caller away from a row this one is handing out and from a row whose
+ * `done` has not committed; the channel's `dedupe` on JobRunKey is the second line
+ * — a job that is still waiting for its executor, or whose run is kept, is offered
+ * again every second and the same row comes back. The payload is the job and its
+ * scope (the executor needs the scope's session); it never carries the body: the
+ * executor asks api.job_claim, which applies the gates again.
+ *
+ * Before it offers, it frees what nobody holds (ReleaseJob): a `canceled` job is
+ * aborted, an `executed` one whose run was closed without a confirmation is failed.
+ *
+ * Does nothing unless the channel `job` is `single` (a binary that still polls
+ * api.job shares the base: N−1), and refuses to work (an error) when it is `single`
+ * without `on_abandon` -- the patch that sets it was not applied, and a row closed
+ * without a confirmation would leave its job stuck.
+ * @return {SETOF record} - The jobs offered: id, key, and the row of notify.queue
+ * @since 1.2.38
+ */
+CREATE OR REPLACE FUNCTION api.job_due (
+  OUT id        uuid,
+  OUT key       text,
+  OUT queue     bigint
+) RETURNS       SETOF record
+AS $$
+DECLARE
+  r             record;
+  vAbandon      text;
+BEGIN
+  SELECT c.on_abandon INTO vAbandon FROM notify.channel c WHERE c.code = 'job' AND c.mode = 'single';
+
+  IF NOT FOUND THEN
+    RETURN;
+  END IF;
+
+  IF vAbandon IS NULL THEN
+    RAISE EXCEPTION 'api.job_due: the channel job is single but has no on_abandon (the patch that sets it, P00000037, was not applied)';
+  END IF;
+
+  FOR r IN
+    SELECT j.id AS job
+      FROM db.job j INNER JOIN db.object  o ON j.document = o.id
+                    INNER JOIN db.state   s ON o.state = s.id
+                    INNER JOIN db.program p ON j.program = p.id
+                    INNER JOIN db.object po ON p.id = po.id
+     WHERE s.code IN ('executed', 'canceled')
+       AND o.scope = current_scope()
+       AND IsAdmin(o.owner)
+       AND IsAdmin(po.owner)
+       AND NOT EXISTS (SELECT FROM notify.queue q WHERE q.channel = 'job' AND q.key = JobRunKey(j.id, j.daterun) AND q.state IN (0, 1))
+     ORDER BY j.daterun, j.id
+  LOOP
+    PERFORM ReleaseJob(r.job);
+  END LOOP;
+
+  FOR r IN
+    SELECT j.id AS job, j.daterun AS dr, o.scope AS sc
+      FROM db.job j INNER JOIN db.object  o ON j.document = o.id
+                    INNER JOIN db.state   s ON o.state = s.id
+                    INNER JOIN db.program p ON j.program = p.id
+                    INNER JOIN db.object po ON p.id = po.id
+     WHERE o.scope = current_scope()
+       AND IsAdmin(o.owner)
+       AND IsAdmin(po.owner)
+       AND ((j.daterun <= Now() AND s.code IN ('enabled', 'aborted', 'failed'))
+         OR (s.code = 'executed' AND NOT EXISTS (SELECT FROM notify.queue q WHERE q.channel = 'job' AND q.key = JobRunKey(j.id, j.daterun))))
+     ORDER BY j.daterun, j.id
+       FOR UPDATE OF j SKIP LOCKED
+  LOOP
+    id    := r.job;
+    key   := JobRunKey(r.job, r.dr);
+    queue := notify.send('job', jsonb_build_object('id', r.job, 'scope', r.sc)::text, key);
+
+    RETURN NEXT;
+  END LOOP;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+REVOKE ALL ON FUNCTION api.job_due() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION api.job_due() TO apibot;
+
+--------------------------------------------------------------------------------
+-- FUNCTION api.job_claim ------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief The executor's first step after it took a row of the channel `job`: its
+ *        own committed transaction that makes the job `executed` and hands back
+ *        what to run. The second step — the body, `done` / `fail` and
+ *        `notify.ack` — is one more transaction (the executor's).
+ *
+ * The job is found again by the filters of the feed (the session's scope, a job and
+ * a program owned by an administrator, T848): the body is read here, never taken
+ * from the payload of the row. Nothing is returned (the executor acknowledges the
+ * row and runs nothing) when the job is gone, is not in this scope, is not an
+ * administrator's, has another planned time than the key (it was edited or moved
+ * on since), is not due yet, or is in a state that cannot be started. Otherwise:
+ *   `enabled`, `aborted`, `failed`  - `execute`, the body is returned;
+ *   `executed`                      - a repeat after the previous executor died: no
+ *                                     transition, the body is returned (its transaction
+ *                                     rolled back, so the work was not done; a late
+ *                                     ack of that executor is refused by the token);
+ *   `canceled`                      - `abort` (the event re-arms the job), nothing returned.
+ * @param {uuid} pId - Job identifier (from the payload of the row)
+ * @param {text} pKey - Key of the row (JobRunKey)
+ * @return {SETOF record} - id, typecode (`periodic.job`: `done`, else `complete`), statecode, daterun, body
+ * @since 1.2.38
+ */
+CREATE OR REPLACE FUNCTION api.job_claim (
+  pId           uuid,
+  pKey          text,
+  OUT id        uuid,
+  OUT typecode  text,
+  OUT statecode text,
+  OUT daterun   timestamptz,
+  OUT body      text
+) RETURNS       SETOF record
+AS $$
+DECLARE
+  r             record;
+  vState        text;
+BEGIN
+  -- the object first, then the job: the order the actions take (see JobAbandon)
+  PERFORM FROM db.job j INNER JOIN db.object o ON o.id = j.document WHERE j.id = pId FOR UPDATE OF o;
+
+  SELECT j.daterun AS dr, y.code AS tc, s.code AS sc, p.body AS bd INTO r
+    FROM db.job j INNER JOIN db.object  o ON j.document = o.id
+                  INNER JOIN db.type    y ON o.type = y.id
+                  INNER JOIN db.state   s ON o.state = s.id
+                  INNER JOIN db.program p ON j.program = p.id
+                  INNER JOIN db.object po ON p.id = po.id
+   WHERE j.id = pId
+     AND o.scope = current_scope()
+     AND IsAdmin(o.owner)
+     AND IsAdmin(po.owner)
+     FOR UPDATE OF j;
+
+  IF NOT FOUND OR pKey IS DISTINCT FROM JobRunKey(pId, r.dr) THEN
+    RETURN;
+  END IF;
+
+  vState := r.sc;
+
+  IF vState IN ('enabled', 'aborted', 'failed') THEN
+    IF r.dr > Now() THEN
+      RETURN;
+    END IF;
+    PERFORM DoAction(pId, 'execute');
+    vState := 'executed';
+  ELSIF vState = 'canceled' THEN
+    PERFORM DoAction(pId, 'abort');
+    RETURN;
+  ELSIF vState <> 'executed' THEN
+    RETURN;
+  END IF;
+
+  id        := pId;
+  typecode  := r.tc;
+  statecode := vState;
+  daterun   := r.dr;
+  body      := r.bd;
+
+  RETURN NEXT;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+REVOKE ALL ON FUNCTION api.job_claim(uuid, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION api.job_claim(uuid, text) TO apibot;
+
+--------------------------------------------------------------------------------
 -- api.add_job -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
