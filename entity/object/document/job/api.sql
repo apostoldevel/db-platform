@@ -109,7 +109,8 @@ $$ LANGUAGE SQL
  * STARTED (`enabled`, `aborted`, `failed`) and is due (`dateRun` at or before now),
  * and an `executed` job whose run has no row at all (nobody holds it, nothing else
  * will find it: its api.job_claim hands the body out without a transition) AND whose
- * `executed` state is older than the channel's `lease`. The age is what tells a
+ * `executed` state is at least as old as the channel's `lease` (JobStateStart: the
+ * start of the LATEST row of the state history). The age is what tells a
  * forgotten job from one that is running right now: a poller of api.job that is still
  * alive (an old binary, or the new one on the legacy path at the moment the channel was
  * switched) makes the job `executed` and runs the body with no row in the queue, and
@@ -126,7 +127,8 @@ $$ LANGUAGE SQL
  * executor asks api.job_claim, which applies the gates again.
  *
  * Before it offers, it frees what nobody holds (ReleaseJob): a `canceled` job is
- * aborted, an `executed` one whose run was closed without a confirmation is failed.
+ * aborted, an `executed` one whose run was closed without a confirmation is failed once
+ * its state is at least as old as the `lease` (a younger one may be a run that is alive).
  *
  * Does nothing unless the channel `job` is `single` (a binary that still polls
  * api.job shares the base: N−1), and refuses to work (an error) when it is `single`
@@ -184,7 +186,7 @@ BEGIN
        AND ((j.daterun <= Now() AND s.code IN ('enabled', 'aborted', 'failed'))
          OR (s.code = 'executed'
              AND NOT EXISTS (SELECT FROM notify.queue q WHERE q.channel = 'job' AND q.key = JobRunKey(j.id, j.daterun))
-             AND EXISTS (SELECT FROM db.object_state os WHERE os.object = o.id AND os.validfromdate <= Now() - iLease AND os.validtodate > Now())))
+             AND JobStateStart(j.id) <= Now() - iLease))
      ORDER BY j.daterun, j.id
        FOR UPDATE OF j SKIP LOCKED
   LOOP
@@ -221,7 +223,16 @@ GRANT EXECUTE ON FUNCTION api.job_due() TO apibot;
  *   `executed`                      - a repeat after the previous executor died: no
  *                                     transition, the body is returned (its transaction
  *                                     rolled back, so the work was not done; a late
- *                                     ack of that executor is refused by the token);
+ *                                     ack of that executor is refused by the token) --
+ *                                     ONLY for a repeat: the row is on its second delivery
+ *                                     or later (`attempts` >= 2), or the `executed` state is
+ *                                     not younger than the channel's `lease`. Otherwise
+ *                                     nothing: somebody else made the job `executed` between
+ *                                     the feed and this call (a poller of api.job that is
+ *                                     still alive, audit of 25.10) and is running the body.
+ *                                     The executor acknowledges the row and runs nothing; the
+ *                                     closed row keeps the key, and ReleaseJob fails the job
+ *                                     only when that run has not ended for the `lease`;
  *   `canceled`                      - `abort` (the event re-arms the job), nothing returned.
  * @param {uuid} pId - Job identifier (from the payload of the row)
  * @param {text} pKey - Key of the row (JobRunKey)
@@ -273,6 +284,11 @@ BEGIN
     PERFORM DoAction(pId, 'abort');
     RETURN;
   ELSIF vState <> 'executed' THEN
+    RETURN;
+  ELSIF NOT (coalesce((SELECT max(q.attempts) FROM notify.queue q WHERE q.channel = 'job' AND q.key = pKey AND q.state = 1), 0) >= 2
+          OR coalesce(JobStateStart(pId) <= Now() - (SELECT c.lease FROM notify.channel c WHERE c.code = 'job'), false))
+  THEN
+    -- not a repeat: the run in progress is somebody else's (the first delivery, the state is young)
     RETURN;
   END IF;
 

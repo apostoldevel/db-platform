@@ -221,6 +221,29 @@ $$ LANGUAGE sql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- JobStateStart ---------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief When the CURRENT state of a job began: the start of the latest row of its
+ *        state history. The age of a run (api.job_due, api.job_claim, ReleaseJob) is
+ *        measured from here. Not "the row valid at Now()": AddObjectState closes the
+ *        previous row with the writer's Now(), so a transaction that began before
+ *        another one committed an `execute` still sees the closed row -- hours old --
+ *        as valid, and would take a run that began a moment ago for a forgotten one.
+ * @param {uuid} pJob - Job identifier
+ * @return {timestamptz} - Start of the latest state; NULL when the job is not there
+ * @since 1.2.38
+ */
+CREATE OR REPLACE FUNCTION JobStateStart (
+  pJob       uuid
+) RETURNS    timestamptz
+AS $$
+  SELECT max(os.validfromdate) FROM db.object_state os INNER JOIN db.job j ON j.document = os.object WHERE j.id = pJob;
+$$ LANGUAGE sql STABLE
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- RearmJob --------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
@@ -353,7 +376,12 @@ $$ LANGUAGE plpgsql
  *   `canceled`                          -> `abort` (the event re-arms it, so it starts again);
  *   `executed`, its run has a CLOSED row -> `fail` (the row keeps the key, so it cannot be
  *                                          offered again: a periodic job waits a period,
- *                                          a one-time one is disabled -- what JobAbandon does);
+ *                                          a one-time one is disabled -- what JobAbandon does),
+ *                                          once its state is not younger than the lease: an
+ *                                          executor that was handed a job a poller of api.job had
+ *                                          executed in between refused it (api.job_claim) and
+ *                                          acknowledged the row, and that body may be running --
+ *                                          failing the job would end a live run;
  *   `executed`, its run has no row at all -> nothing: api.job_due offers it once its state is older
  *                                          than the lease of the channel (the executor's api.job_claim
  *                                          hands the body out without a transition); a younger one is a
@@ -403,6 +431,10 @@ BEGIN
   END IF;
 
   IF NOT EXISTS (SELECT FROM notify.queue q WHERE q.channel = 'job' AND q.key = vKey) THEN
+    RETURN NULL;
+  END IF;
+
+  IF NOT coalesce(JobStateStart(pJob) <= Now() - (SELECT c.lease FROM notify.channel c WHERE c.code = 'job'), false) THEN
     RETURN NULL;
   END IF;
 
