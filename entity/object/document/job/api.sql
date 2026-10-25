@@ -117,7 +117,9 @@ $$ LANGUAGE SQL
  * offering it would run the body twice. A body that outlives the `lease` is no longer
  * covered (the executor's body timeout must be shorter than the `lease` anyway). The
  * price: an administrator's manual `execute` is run after the `lease`, not at the next
- * second; `cancel` on the job makes it run at once (ReleaseJob aborts it).
+ * second; `cancel` on the job makes it run at once (ReleaseJob aborts it). That is for a
+ * job with no row waiting; a manual `execute` while a row waits is refused by
+ * api.job_claim (see there).
  * It makes no transition for those. `SELECT … FOR UPDATE SKIP LOCKED` keeps a
  * second caller away from a row this one is handing out and from a row whose
  * `done` has not committed; the channel's `dedupe` on JobRunKey is the second line
@@ -232,7 +234,13 @@ GRANT EXECUTE ON FUNCTION api.job_due() TO apibot;
  *                                     still alive, audit of 25.10) and is running the body.
  *                                     The executor acknowledges the row and runs nothing; the
  *                                     closed row keeps the key, and ReleaseJob fails the job
- *                                     only when that run has not ended for the `lease`;
+ *                                     only when that run has not ended for the `lease`.
+ *                                     An administrator's manual `execute` made while the row
+ *                                     waits is refused the same way: nothing runs (once the
+ *                                     `lease` ends ReleaseJob fails the job: a periodic job
+ *                                     waits for its next period, a one-time job ends
+ *                                     `disabled`); to run it, `cancel` the `executed` job
+ *                                     before the `lease` ends;
  *   `canceled`                      - `abort` (the event re-arms the job), nothing returned.
  * @param {uuid} pId - Job identifier (from the payload of the row)
  * @param {text} pKey - Key of the row (JobRunKey)
