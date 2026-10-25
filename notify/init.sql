@@ -60,11 +60,18 @@ VALUES
 ON CONFLICT DO NOTHING;
 
 -- The channel http closes the request a row carries (http.abandon: a sent one is "outcome unknown" and
--- its producer is called back, an unsent one is closed quietly). The module http is loaded before this one,
--- so the function is there when the row names it; an installation that was patched has it from P00000038.
+-- its producer is called back, an unsent one is closed quietly). A fresh install loads the module http
+-- before this one, so the function is there when the row names it. A patched installation does not have
+-- it yet when P00000035 includes this file (P00000038 creates it and sets the row itself): the row would
+-- name a function that is not there and notify.ft_channel_check refuses it. Hence the test.
 -- A value an operator already set is not overwritten.
-UPDATE notify.channel SET on_abandon = 'http.abandon', on_expire = true
- WHERE code = 'http' AND on_abandon IS NULL;
+DO $$
+BEGIN
+  IF to_regprocedure('http.abandon(bigint,text,text,text)') IS NOT NULL THEN
+    UPDATE notify.channel SET on_abandon = 'http.abandon', on_expire = true
+     WHERE code = 'http' AND on_abandon IS NULL;
+  END IF;
+END $$;
 
 -- API
 SELECT RegisterRoute('notify', AddEndpoint('SELECT * FROM rest.notify($1, $2);'));
