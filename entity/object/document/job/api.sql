@@ -108,7 +108,15 @@ $$ LANGUAGE SQL
  * a program both owned by an administrator (T848). Offered: a job that can be
  * STARTED (`enabled`, `aborted`, `failed`) and is due (`dateRun` at or before now),
  * and an `executed` job whose run has no row at all (nobody holds it, nothing else
- * will find it: its api.job_claim hands the body out without a transition).
+ * will find it: its api.job_claim hands the body out without a transition) AND whose
+ * `executed` state is older than the channel's `lease`. The age is what tells a
+ * forgotten job from one that is running right now: a poller of api.job that is still
+ * alive (an old binary, or the new one on the legacy path at the moment the channel was
+ * switched) makes the job `executed` and runs the body with no row in the queue, and
+ * offering it would run the body twice. A body that outlives the `lease` is no longer
+ * covered (the executor's body timeout must be shorter than the `lease` anyway). The
+ * price: an administrator's manual `execute` is run after the `lease`, not at the next
+ * second; `cancel` on the job makes it run at once (ReleaseJob aborts it).
  * It makes no transition for those. `SELECT … FOR UPDATE SKIP LOCKED` keeps a
  * second caller away from a row this one is handing out and from a row whose
  * `done` has not committed; the channel's `dedupe` on JobRunKey is the second line
@@ -136,8 +144,9 @@ AS $$
 DECLARE
   r             record;
   vAbandon      text;
+  iLease        interval;
 BEGIN
-  SELECT c.on_abandon INTO vAbandon FROM notify.channel c WHERE c.code = 'job' AND c.mode = 'single';
+  SELECT c.on_abandon, c.lease INTO vAbandon, iLease FROM notify.channel c WHERE c.code = 'job' AND c.mode = 'single';
 
   IF NOT FOUND THEN
     RETURN;
@@ -173,7 +182,9 @@ BEGIN
        AND IsAdmin(o.owner)
        AND IsAdmin(po.owner)
        AND ((j.daterun <= Now() AND s.code IN ('enabled', 'aborted', 'failed'))
-         OR (s.code = 'executed' AND NOT EXISTS (SELECT FROM notify.queue q WHERE q.channel = 'job' AND q.key = JobRunKey(j.id, j.daterun))))
+         OR (s.code = 'executed'
+             AND NOT EXISTS (SELECT FROM notify.queue q WHERE q.channel = 'job' AND q.key = JobRunKey(j.id, j.daterun))
+             AND EXISTS (SELECT FROM db.object_state os WHERE os.object = o.id AND os.validfromdate <= Now() - iLease AND os.validtodate > Now())))
      ORDER BY j.daterun, j.id
        FOR UPDATE OF j SKIP LOCKED
   LOOP

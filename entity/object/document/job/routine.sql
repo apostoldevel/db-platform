@@ -225,11 +225,15 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 /**
  * @brief A job that becomes runnable again is a NEW planned run: when its
- *        `dateRun` is already past it is set to now, which gives it a new
- *        JobRunKey. Without it a re-armed job keeps the key of the run that
- *        already happened, and the channel's `dedupe` would not hand it out for as
- *        long as that row is kept. A `dateRun` in the future is left alone: the job
- *        waits for it. Called by the `enable` and `abort` events.
+ *        `dateRun` is already past it is moved on by one microsecond, which gives it
+ *        a new JobRunKey and leaves it due. Without it a re-armed job keeps the key
+ *        of the run that already happened, and the channel's `dedupe` would not hand
+ *        it out for as long as that row is kept. Not "now": RescheduleJob adds the
+ *        period to the planned time, so a daily job planned for 03:00 and aborted at
+ *        23:15 would be planned for 23:15 from then on; moved by a microsecond it
+ *        stays on 03:00 (as before the channel, when `abort` did not touch it).
+ *        A `dateRun` in the future is left alone: the job waits for it. Called by the
+ *        `enable` and `abort` events.
  * @param {uuid} pObject - Job identifier
  * @return {void}
  * @since 1.2.38
@@ -241,7 +245,7 @@ AS $$
 BEGIN
   -- only a job that is runnable now: `enable` of a completed job has a method and no
   -- transition, the state stays `completed` and its planned time is not touched
-  UPDATE db.job SET daterun = Now()
+  UPDATE db.job SET daterun = daterun + interval '1 microsecond'
    WHERE id = pObject AND daterun < Now()
      AND GetObjectStateCode(pObject) IN ('enabled', 'aborted', 'failed');
 END;
@@ -350,8 +354,10 @@ $$ LANGUAGE plpgsql
  *   `executed`, its run has a CLOSED row -> `fail` (the row keeps the key, so it cannot be
  *                                          offered again: a periodic job waits a period,
  *                                          a one-time one is disabled -- what JobAbandon does);
- *   `executed`, its run has no row at all -> nothing: api.job_due offers it (the executor's
- *                                          api.job_claim hands the body out without a transition).
+ *   `executed`, its run has no row at all -> nothing: api.job_due offers it once its state is older
+ *                                          than the lease of the channel (the executor's api.job_claim
+ *                                          hands the body out without a transition); a younger one is a
+ *                                          body that a poller of api.job is running.
  *
  * The object is locked first, then the job (as the actions do); a row somebody else holds
  * is skipped. Everything is checked again under the lock.
