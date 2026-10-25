@@ -21,7 +21,15 @@
 -- the channel is new (notify.channel is edited through /notify/channel/set).
 --
 -- The values besides mode are the policy the channel will have when it is
--- switched: they are not in force while the mode is legacy.
+-- switched: they are not in force while the mode is legacy, except for rows
+-- already in notify.queue (take, ack, nack and the sweep bring those to their
+-- end whatever the mode is). The other exception belongs to the executor, not
+-- to this module: a TaskScheduler that has T1104 (an earlier one sets no limit)
+-- reads the lease of the channel `job` on every poll (1 s by default), in every
+-- mode, and sets statement_timeout for each statement of a job body at 8/10 of
+-- the lease and, where the server has transaction_timeout (PostgreSQL 17 and
+-- later), for the whole body at 9/10. With that binary the lease of `job` --
+-- 10 minutes as seeded below -- limits a body even while the channel is legacy.
 --
 -- Channels of a configuration are registered by the configuration (its own
 -- notify/init.sql); notify.send records a channel nobody registered as
