@@ -43,7 +43,7 @@ CREATE TABLE notify.channel (
   -- first: max_attempts = 0 means none. expire counts from `seen`.
   expire          interval,
   max_attempts    integer CHECK (max_attempts >= 0),
-  -- emergency brake: false -- no row of the channel is repeated.
+  -- emergency brake: false -- no row of the channel that was SENT is repeated (a row refused as `unsent:` on its first delivery goes back all the same: it never left).
   resend_enabled  boolean NOT NULL DEFAULT true,
   -- function (bigint, text, text, text) -- (queue id, key, payload, reason): called
   -- when a row is closed without a confirmation.

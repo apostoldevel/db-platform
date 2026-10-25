@@ -51,7 +51,7 @@ All `SECURITY DEFINER`, `search_path = kernel, pg_temp`; they are **not** in `ke
 | `notify.heartbeat(pId, pPid)` | `text` | `active`/`draining`, or NULL when the number was purged: subscribe again |
 | `notify.drain(pId)` / `notify.unsubscribe(pId)` | `void` | Stop being chosen / leave (a number rows still refer to stays `draining` until the sweep) |
 | `notify.take(pId, pSubscriber)` | `(payload, key, token, attempts)` | The subscriber's reaction to a wake-up or a sweep; no row when the row is not its to work on. Takes a row in **any** mode |
-| `notify.ack(pId, pToken)` / `notify.nack(pId, pToken, pError)` | `void` | Confirm / refuse under the current token; SQLSTATE `NT409` when it is not current. Call in the SAME transaction that writes the result |
+| `notify.ack(pId, pToken)` / `notify.nack(pId, pToken, pError)` | `void` | Confirm / refuse under the current token; SQLSTATE `NT409` when it is not current. Call in the SAME transaction that writes the result. A refusal whose reason starts with `unsent:` on the **first** delivery sends the row back whatever `max_attempts` and `resend_enabled` say (it never left: handing it out again is no repeat); the second delivery is judged by the usual rule (T1102) |
 | `notify.sweep(pSubscriber, pLimit)` | `integer` | The look-over a subscriber makes on a timer and after a reconnect: `sweep_channel` of its channel |
 | `notify.sweep_channel(pChannel, pLimit)` | `integer` | The look-over itself, also for a channel nobody listens on (closes the expired / unrouted / orphaned and calls `on_abandon`) |
 | `api.sweep_notify_channel(pCode, pLimit)` | `integer` | The same, for a job |

@@ -270,6 +270,28 @@ $$ LANGUAGE sql
 --------------------------------------------------------------------------------
 
 /**
+ * @brief Has the row never left: nothing was handed out, or the only delivery was refused as `unsent:` and the
+ *        row is waiting again. The difference decides how an expired or unrouted row ends: "never sent"
+ *        (quiet) or "outcome unknown" (the producer is told). A row sent back by notify.nack after its first
+ *        delivery has attempts = 1 and an error that starts with `unsent:`, and nothing else gives a waiting
+ *        row that pair (T1102).
+ * @param {notify.queue} q - The row
+ * @return {boolean}
+ * @since 1.2.37
+ */
+CREATE OR REPLACE FUNCTION notify.never_sent (
+  q             notify.queue
+) RETURNS       boolean
+AS $$
+  SELECT q.attempts = 0
+      OR (q.attempts = 1 AND q.state = 0 AND left(coalesce(q.error, ''), 7) = 'unsent:');
+$$ LANGUAGE sql IMMUTABLE
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+
+/**
  * @brief Wake the addressee of the next waiting row of the same key after one of them
  *        was settled. The addressee is worked out again: for a route it may have
  *        changed since the row was written.
@@ -671,7 +693,7 @@ BEGIN
   iExpire := coalesce(q.expire, c.expire);
 
   IF iExpire IS NOT NULL AND q.seen + iExpire < dNow THEN
-    IF q.attempts = 0 THEN
+    IF notify.never_sent(q) THEN
       PERFORM notify.close(q.id, 'unsent: expired', false);
     ELSE
       PERFORM notify.close(q.id, 'orphaned: expired before a repeat, outcome unknown', true);
@@ -755,7 +777,8 @@ $$ LANGUAGE plpgsql
 
 /**
  * @brief Refuse a row the subscriber took: give it out again if a repeat is allowed,
- *        otherwise close it and call on_abandon.
+ *        otherwise close it and call on_abandon. A reason that starts with `unsent:` on the
+ *        first delivery says the row never left: it goes back whatever the repeats say.
  * @param {bigint} pId - Row
  * @param {bigint} pToken - The token notify.take returned
  * @param {text} pError - Why
@@ -783,7 +806,15 @@ BEGIN
 
   SELECT * INTO c FROM notify.channel WHERE code = q.channel;
 
-  IF notify.can_repeat(q, c) THEN
+  -- A refusal that says the row was NOT sent ("unsent: ...") on its first delivery is no repeat: a row
+  -- that never left may go back to the queue whatever max_attempts and resend_enabled say -- both
+  -- are about sending again what was sent. Without this a channel with no repeats (max_attempts 0, the
+  -- HTTP request without an expiry) lost the request when its worker stopped before it was sent
+  -- (T1102). The second delivery is judged by the usual rule: a worker that keeps saying "not sent"
+  -- cannot keep the row going round.
+  IF notify.can_repeat(q, c)
+     OR (q.attempts = 1 AND left(coalesce(pError, ''), 7) = 'unsent:')
+  THEN
     nTarget := notify.pick_target(q.channel, c.affinity, q.key, c.target_fn, c.alive);
 
     -- the repeat is woken here: woken keeps the sweep from offering it elsewhere at once
@@ -861,7 +892,7 @@ BEGIN
     iExpire := coalesce(q.expire, c.expire);
 
     IF iExpire IS NOT NULL AND q.seen + iExpire < dNow THEN
-      IF q.attempts = 0 THEN
+      IF notify.never_sent(q) THEN
         PERFORM notify.close(q.id, 'unsent: expired', false);
       ELSE
         PERFORM notify.close(q.id, 'orphaned: expired before a repeat, outcome unknown', true);
@@ -876,7 +907,7 @@ BEGIN
 
       IF nTarget IS NULL THEN
         IF q.seen + c.grace < dNow THEN
-          IF q.attempts = 0 THEN
+          IF notify.never_sent(q) THEN
             PERFORM notify.close(q.id, 'unrouted: no holder', false);
           ELSE
             PERFORM notify.close(q.id, 'orphaned: no holder after a delivery, outcome unknown', true);
