@@ -403,7 +403,13 @@ $$ LANGUAGE plpgsql STRICT
  *   and not handed out within pAge, the live ones (lifetime not elapsed, attempts < max_attempts) are
  *   handed out; the rest are closed on the way — state 3 with the reason, no callback. Closed rows do
  *   not count against pLimit. FOR UPDATE SKIP LOCKED: two concurrent calls never take the same row.
+ * @note A row that has a delivery row in notify.queue (channel http, key = the request id, any state) is
+ *   not touched, neither handed out nor closed: once the channel http is `single`, the repeat of such a
+ *   row is notify's (lease, max_attempts, on_abandon), and a second mechanism would send it twice. While
+ *   the channel is `legacy` there are no delivery rows, and the function is what it always was. Rows
+ *   from before the switch have none and go on as before (T1102).
  * @see http.take
+ * @see http.retake
  * @since 1.2.32
  */
 CREATE OR REPLACE FUNCTION http.sweep (
@@ -424,37 +430,42 @@ BEGIN
                    ELSE format('abandoned: not resent, resends %s of %s used', r.attempts, coalesce(r.max_attempts, 0))
                  END
     FROM (
-      SELECT id
-        FROM http.request
-       WHERE state <= 1
-         AND expire IS NOT NULL
-         AND datetime < now() - pAge
-         AND (attempted IS NULL OR attempted < now() - pAge)
-         AND (datetime + expire <= now() OR attempts >= coalesce(max_attempts, 0))
-         FOR UPDATE SKIP LOCKED
+      SELECT x.id
+        FROM http.request x
+       WHERE x.state <= 1
+         AND x.expire IS NOT NULL
+         AND x.datetime < now() - pAge
+         AND (x.attempted IS NULL OR x.attempted < now() - pAge)
+         AND (x.datetime + x.expire <= now() OR x.attempts >= coalesce(x.max_attempts, 0))
+         AND NOT EXISTS (SELECT 1 FROM notify.queue q WHERE q.channel = 'http' AND q.key = x.id::text)
+         FOR UPDATE OF x SKIP LOCKED
     ) c
    WHERE r.id = c.id;
 
+  -- MATERIALIZED: the batch is chosen ONCE. Joined to the UPDATE as a sub-select, a LIMIT with
+  -- FOR UPDATE SKIP LOCKED can be re-run per row of the other side (a nested loop on a table the
+  -- planner knows nothing of yet) and hand out more than pLimit rows.
   RETURN QUERY
-    WITH handed AS (
-    UPDATE http.request r
-       SET attempts = r.attempts + 1,
-           attempted = now()
-      FROM (
-        SELECT id
-          FROM http.request
-         WHERE state <= 1
-           AND expire IS NOT NULL
-           AND datetime < now() - pAge
-           AND (attempted IS NULL OR attempted < now() - pAge)
-           AND datetime + expire > now()
-           AND attempts < coalesce(max_attempts, 0)
-         ORDER BY datetime
-         LIMIT pLimit
-           FOR UPDATE SKIP LOCKED
-      ) c
-     WHERE r.id = c.id
-    RETURNING r.id, r.datetime
+    WITH due AS MATERIALIZED (
+      SELECT x.id
+        FROM http.request x
+       WHERE x.state <= 1
+         AND x.expire IS NOT NULL
+         AND x.datetime < now() - pAge
+         AND (x.attempted IS NULL OR x.attempted < now() - pAge)
+         AND x.datetime + x.expire > now()
+         AND x.attempts < coalesce(x.max_attempts, 0)
+         AND NOT EXISTS (SELECT 1 FROM notify.queue q WHERE q.channel = 'http' AND q.key = x.id::text)
+       ORDER BY x.datetime
+       LIMIT pLimit
+         FOR UPDATE OF x SKIP LOCKED
+    ), handed AS (
+      UPDATE http.request r
+         SET attempts = r.attempts + 1,
+             attempted = now()
+        FROM due c
+       WHERE r.id = c.id
+      RETURNING r.id, r.datetime
     )
     SELECT h.id FROM handed h ORDER BY h.datetime;
 END;
@@ -894,6 +905,11 @@ CREATE OR REPLACE FUNCTION http.try_fail (
 ) RETURNS   boolean
 AS $$
 BEGIN
+  -- The delivery row (notify.queue, state 1 -- the caller holds it) before the request: notify.close takes the row
+  -- and then the request (http.abandon), and a settle that took the request first and the row last (notify.ack at
+  -- the end of its batch) could deadlock with the sweep. Nothing to lock while the channel is `legacy`.
+  PERFORM 1 FROM notify.queue WHERE channel = 'http' AND key = pRequest::text AND state = 1 FOR UPDATE;
+
   UPDATE http.request SET state = 3, error = pError WHERE id = pRequest AND state <= 1;
 
   RETURN FOUND;

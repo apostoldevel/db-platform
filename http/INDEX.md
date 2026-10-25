@@ -50,12 +50,16 @@ HTTP request/response queue with logging and callback mechanism. Provides an out
 | `http.create_request(pResource, pMethod, ..., pExpire, pMaxAttempts)` | `uuid` | Create outbound request (state=1) |
 | `http.request(pId)` | `SETOF http.request` | Get request by ID (read only; the sender reads through `http.take` since 1.2.32) |
 | `http.take(pId)` | `SETOF http.request` | The row to send, or none (gone, state 2/3, lifetime elapsed — closed to 3 without callback) |
-| `http.sweep(pAge, pLimit)` | `SETOF uuid` | Hand out rows under the resend contract older than `pAge` (attempts + 1, attempted = now()); close spent ones to 3 without callback |
+| `http.sweep(pAge, pLimit)` | `SETOF uuid` | Hand out rows under the resend contract older than `pAge` (attempts + 1, attempted = now()); close spent ones to 3 without callback. A row that has a delivery row in `notify.queue` (channel `http`, key = the request id, any state) is neither handed out nor closed — its repeat is notify's (since 1.2.39) |
 | `http.create_response(pRequest, pStatus, ...)` | `uuid` | Store response, compute runtime, call done() |
 | `http.done(pRequest)` | `void` | Set request state=2 (done) |
 | `http.fail(pRequest, pError)` | `void` | Set request state=3 (failed) |
 | `http.try_done(pRequest)` | `boolean` | Close an open request (state ≤ 1) as done; `true` — this call closed it, `false` — an outcome was written already, or no such row. Unlike `http.done`, never overwrites an outcome |
 | `http.try_fail(pRequest, pError)` | `boolean` | The same for state=3; the first error stays |
+| `http.try_create_response(pRequest, pStatus, pStatusText, pHeaders, pContent)` | `boolean` | *notify.sql, 1.2.39.* Close an open request as done FIRST (its row lock), then store the response; `false` — the row is not open, nothing stored. The sender of a row `notify` leads calls it in one query with the producer's done callback and `notify.ack`; `http.create_response` stays for the previous sender. apibot, daemon |
+| `http.retake(pId)` | `SETOF http.request` | *notify.sql.* The row of a REPEAT delivery (`notify.take` said `attempts` > 1). As `http.take`, but a lifetime that ended (counted from `datetime`) closes the row as `outcome unknown` and calls the producer's fail callback instead of closing it quietly. apibot, daemon |
+| `http.fail_unknown(pRequest, pMessage)` | `boolean` | *notify.sql.* `http.try_fail` + the fail callback (its own sub-transaction: a throwing callback leaves the row closed, the reason is appended to `error`). Owner only |
+| `http.abandon(pId, pKey, pPayload, pReason)` | `void` | *notify.sql.* `on_abandon` of the channel `http`. Reason `unsent:` / `unrouted:` / `nack: unsent:` / `nack: stopping:` → closed `not sent: …`, no callback; any other (`orphaned:`, `nack: …`) → `outcome unknown: …` and the fail callback. Owner only |
 
 ### Inbound HTTP API
 
@@ -84,7 +88,7 @@ Resend is **at-least-once**: a row sent whose response was not stored (the conne
 
 | Trigger | Table | Timing | Purpose |
 |---------|-------|--------|---------|
-| `t_request_after_insert` | `http.request` | AFTER INSERT | `pg_notify('http', NEW.id)` — signals C++ to execute request |
+| `t_request_after_insert` | `http.request` | AFTER INSERT | `notify.send('http', id, id, expire, max_attempts)` — `max_attempts` only with `expire`. While the channel is `legacy` that is `pg_notify('http', id)`, as before notify; since 1.2.39 it lives in `P00000038` too (`update.psql` never re-runs `table.sql`) |
 
 ## File Manifest
 
@@ -93,6 +97,18 @@ Resend is **at-least-once**: a row sent whose response was not stored (the conne
 | `schema.sql` | yes* | no | CREATE SCHEMA http, GRANT to administrator/daemon/apibot |
 | `table.sql` | yes | no | 3 tables + notify trigger |
 | `view.sql` | yes | yes | `http.fetch` joined view |
-| `routine.sql` | yes | yes | 13 functions (logging, CRUD, take/sweep, get/post, fetch) |
+| `routine.sql` | yes | yes | 20 functions (logging, CRUD, take/sweep, try_done/try_fail, get/post, fetch, masking) |
+| `notify.sql` | yes | yes | the channel `http` on notify: `try_create_response`, `retake`, `fail_unknown`, `abandon` and their privileges. Its own file so that patch `P00000038` can include it alone (`routine.sql` holds `http.get`/`http.post`, which a configuration overrides) |
 | `create.psql` | - | - | Includes all |
-| `update.psql` | - | - | Includes view, routine |
+| `update.psql` | - | - | Includes view, routine, notify |
+
+### The channel on notify (1.2.39, T1102)
+
+While the channel `http` of `notify.channel` is `legacy` a sender sees what it saw before: `notify.send` is `pg_notify`, it reads through `http.take` and resends through `http.sweep` (which hands out at most `pLimit` rows now — its batch is chosen once; the exclusion of rows with a delivery row changes nothing while there are none). The new functions are granted to the pools only. Once it is `single`, a request has a delivery row (`notify.queue`, key = the request id, `expire` and `max_attempts` of the request — `max_attempts` only with `expire`: a request outside the resend contract is never sent twice) and the sender works like this:
+
+1. `notify.take(row, subscriber)` → `payload` (the request id), `token`, `attempts`.
+2. `http.take(id)` when `attempts` = 1, `http.retake(id)` when it is more: no row means "do not send" (the row is closed, or its lifetime from `datetime` ended — see above), and the sender still `notify.ack`s its row.
+3. Settle in ONE query: `notify.ack(row, token)` FIRST, then `http.try_create_response` (or `http.try_fail`), then the producer's callback only for a `true`. A stale token raises `NT409` and takes everything with it. The order matters: `notify.close` locks the delivery row and then the request (`http.abandon`), so a settle that locks the request first and the delivery row last can deadlock with the sweep (SQLSTATE 40P01; both ends stay consistent, but the response is lost).
+4. A row nobody confirms ends in `notify.close` → `http.abandon` (the `on_abandon` of the channel): see its row in the table. `lease` is 2 minutes — more than the flight (the sender's timeout + 10 s + 20 s).
+
+`http.sweep` is for the rows of the legacy era only (no delivery row, any state of it); a request that a v1.23.3 sender left in flight at the switch is resent by it as before. A request that is still open while its delivery row is closed (`on_abandon` died after `notify.close` — a cancel, a deadlock) is not reconciled by anything: find it with `SELECT r.id FROM http.request r JOIN notify.queue q ON q.channel = 'http' AND q.key = r.id::text WHERE r.state <= 1 AND q.state = 3`.

@@ -96,15 +96,20 @@ CREATE INDEX ON http.request (datetime);
 --------------------------------------------------------------------------------
 
 /**
- * @brief Fire a NOTIFY event after a new HTTP request is inserted.
+ * @brief Hand a new HTTP request to the sender: notify.send of the channel http.
  * @return {trigger} - After-insert trigger return
  * @since 1.0.0
+ *
+ * max_attempts goes on only with a lifetime: a request without `expire` is outside the resend contract and is
+ * never sent twice (http.sweep has never touched it), so notify, which would otherwise take a repeat without
+ * a lifetime for an unlimited one, is told none.
  */
 CREATE OR REPLACE FUNCTION http.ft_request_after_insert()
 RETURNS     trigger
 AS $$
 BEGIN
-  PERFORM notify.send('http', NEW.id::text, NEW.id::text, NEW.expire, NEW.max_attempts);
+  PERFORM notify.send('http', NEW.id::text, NEW.id::text, NEW.expire,
+                      CASE WHEN NEW.expire IS NOT NULL THEN NEW.max_attempts ELSE 0 END);
   RETURN NULL;
 END;
 $$ LANGUAGE plpgsql

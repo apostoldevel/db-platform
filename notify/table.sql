@@ -165,6 +165,9 @@ COMMENT ON COLUMN notify.queue.dedupe IS 'Copied from the channel at insert: a r
 
 CREATE INDEX queue_pending ON notify.queue (channel, id) WHERE state < 2;
 CREATE INDEX queue_key ON notify.queue (channel, key, id) WHERE state < 2 AND key IS NOT NULL;
+-- every state: a producer that keeps its own record next to a delivery row (http.sweep asks "has this request a
+-- delivery row, closed or not") looks up by (channel, key); queue_key above holds the open rows only.
+CREATE INDEX queue_channel_key ON notify.queue (channel, key) WHERE key IS NOT NULL;
 CREATE INDEX queue_target ON notify.queue (target) WHERE state = 0;
 CREATE INDEX queue_owner ON notify.queue (owner) WHERE state = 1;
 CREATE INDEX queue_lease ON notify.queue (lease_until) WHERE state = 1;

@@ -37,7 +37,7 @@
 
 INSERT INTO notify.channel (code, description, mode, affinity, grace, lease, max_attempts, dedupe, retain_done, on_expire)
 VALUES
-  ('http',         'Outbound HTTP request (http.request). Meant: single/any -- one PGFetch does the call; a repeat is the producer''s decision, not the channel''s.', 'legacy', 'any', interval '3 seconds', interval '5 minutes', 0, false, interval '7 days', false),
+  ('http',         'Outbound HTTP request (http.request). Meant: single/any -- one PGFetch does the call; whether a repeat is allowed is the request''s (expire, max_attempts), not the channel''s. An unconfirmed row ends in http.abandon.', 'legacy', 'any', interval '3 seconds', interval '2 minutes', 0, false, interval '7 days', true),
   ('outbox',       'Outgoing message (db.notification). Meant: single/any -- one MessageServer sends the mail; an unknown outcome is not repeated.', 'legacy', 'any', interval '3 seconds', interval '5 minutes', 0, false, interval '7 days', false),
   ('report',       'Report to build (db.notification). Meant: single/any -- one ReportServer builds it.', 'legacy', 'any', interval '3 seconds', interval '10 minutes', 0, false, interval '7 days', false),
   ('job',          'Job that is due (job_due()). Meant: single/any with dedupe on (job id, planned time) -- one TaskScheduler runs it; one repeat after the executor died.', 'legacy', 'any', interval '3 seconds', interval '10 minutes', 1, true, interval '1 day', false),
@@ -58,6 +58,13 @@ VALUES
   ('mq_refused',   'Message transport: a confirmation was refused. To be inventoried.', 'legacy', 'any', interval '3 seconds', interval '1 minute', null, false, interval '7 days', false),
   ('mq_floor',     'Message transport: the floor of a stream moved. To be inventoried.', 'legacy', 'any', interval '3 seconds', interval '1 minute', null, false, interval '7 days', false)
 ON CONFLICT DO NOTHING;
+
+-- The channel http closes the request a row carries (http.abandon: a sent one is "outcome unknown" and
+-- its producer is called back, an unsent one is closed quietly). The module http is loaded before this one,
+-- so the function is there when the row names it; an installation that was patched has it from P00000038.
+-- A value an operator already set is not overwritten.
+UPDATE notify.channel SET on_abandon = 'http.abandon', on_expire = true
+ WHERE code = 'http' AND on_abandon IS NULL;
 
 -- API
 SELECT RegisterRoute('notify', AddEndpoint('SELECT * FROM rest.notify($1, $2);'));

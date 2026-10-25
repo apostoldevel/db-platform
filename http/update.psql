@@ -3,3 +3,6 @@
 
 \echo [M] call routine.sql
 \ir routine.sql
+
+\echo [M] call notify.sql
+\ir notify.sql
