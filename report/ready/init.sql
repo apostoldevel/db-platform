@@ -473,3 +473,22 @@ END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- The channel `report` of the module notify -----------------------------------
+--------------------------------------------------------------------------------
+
+-- The row is inserted by notify/init.sql (it loads earlier, as `legacy`). What a closed row of the channel does to
+-- its report is this module's (ReportReadyAbandon): the row names the function, and the function has to exist
+-- before it does. An existing base gets the same from patch P00000039. A value an operator already set is not
+-- overwritten.
+--
+-- Guarded: a patch of the early series (P00000017, P00000024, P00000044) includes this module's create.psql, and
+-- on a base that is older than the module notify there is no table to write to.
+DO $$
+BEGIN
+  IF to_regclass('notify.channel') IS NOT NULL THEN
+    UPDATE notify.channel SET on_abandon = 'ReportReadyAbandon'
+     WHERE code = 'report' AND on_abandon IS NULL;
+  END IF;
+END $$;

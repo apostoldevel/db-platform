@@ -347,6 +347,47 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 
 /**
+ * @brief The payload of a row that is over: without the credential it carried while it was open.
+ * @param {text} pChannel - Channel of the row
+ * @param {text} pPayload - Payload of the row
+ * @return {text} - The payload to keep. The channels `report` and `file` carry the session code of whoever asked
+ *         (db.ft_notification_after_insert, db.ft_file_notify): a full credential, which the executor needs to act
+ *         in that session and nobody needs afterwards. A row of the channel is kept for retain_done (confirmed) or
+ *         retain_closed (closed), up to 90 days; the key `session` is taken out of it when the row ends, so the
+ *         code lives in notify.queue as long as the delivery does. Only the key of the top level is taken: both
+ *         triggers write it there, and a payload of another shape would keep what it holds deeper. A payload that
+ *         is not JSON cannot be cleaned key by key and is dropped (NULL): nothing reads the payload of a row that
+ *         is over. Any other channel: unchanged.
+ * @since 1.2.39
+ *
+ * One place for the policy: notify.ack and notify.close call it, and a project that has another channel with a
+ * credential in its payload overrides this function (the way it overrides the rest of the platform), not them.
+ * The row is cleaned BEFORE on_abandon is called, so the callback does not see the code either.
+ */
+CREATE OR REPLACE FUNCTION notify.scrub (
+  pChannel      text,
+  pPayload      text
+) RETURNS       text
+AS $$
+BEGIN
+  IF pPayload IS NULL OR pChannel IS NULL OR pChannel NOT IN ('report', 'file') THEN
+    RETURN pPayload;
+  END IF;
+
+  BEGIN
+    RETURN (pPayload::jsonb - 'session')::text;
+  EXCEPTION
+  WHEN OTHERS THEN
+    RETURN NULL;
+  END;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+
+/**
  * @brief Close a row without a confirmation and call the channel's on_abandon.
  * @param {bigint} pId - Row
  * @param {text} pReason - Why; the prefix says which of the three closings it is
@@ -367,7 +408,8 @@ DECLARE
   c             notify.channel%ROWTYPE;
 BEGIN
   UPDATE notify.queue
-     SET state = 3, error = pReason, done = clock_timestamp(), lease_until = NULL
+     SET state = 3, error = pReason, done = clock_timestamp(), lease_until = NULL,
+         payload = notify.scrub(channel, payload)
    WHERE id = pId AND state < 2
   RETURNING * INTO q;
 
@@ -758,7 +800,8 @@ DECLARE
   r             record;
 BEGIN
   UPDATE notify.queue
-     SET state = 2, done = clock_timestamp(), error = NULL, lease_until = NULL
+     SET state = 2, done = clock_timestamp(), error = NULL, lease_until = NULL,
+         payload = notify.scrub(channel, payload)
    WHERE id = pId AND token = pToken AND state = 1
   RETURNING channel, key INTO r;
 
@@ -768,6 +811,45 @@ BEGIN
   END IF;
 
   PERFORM notify.wake_next(r.channel, r.key);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+
+/**
+ * @brief Take the lock on a row the subscriber holds, and change nothing. Call it FIRST in the batch that writes the
+ *        result, ahead of the action on the object; notify.ack stays last, as the transport appends it.
+ * @param {bigint} pId - Row
+ * @param {bigint} pToken - The token notify.take returned
+ * @return {void}
+ * @throws NT409 - The token is not current (the row was given out again, closed, or never taken under this token):
+ *         the result written beside it is rolled back, and nothing was written yet
+ * @since 1.2.39
+ *
+ * Why it exists. notify.close locks the row of the queue and its on_abandon then locks the object (OutboxAbandon,
+ * ReportReadyAbandon, JobAbandon). A sender that writes its result first (the action locks the object) and calls
+ * notify.ack last (the row) takes the two locks in the opposite order: measured, the sweep at the end of a lease and
+ * a settle deadlock, and when the settle is the quicker the callback of the SWEEP is the victim -- the row stays
+ * closed, the message stays `sending` for good. The transport appends notify.ack to the end of the batch itself, so the
+ * sender cannot put the ack first; this function takes the same lock at the head of the batch. The sweep takes
+ * the rows it works on with FOR UPDATE SKIP LOCKED, so a row held here is skipped, never waited for -- also while a
+ * report is being built under it. A sweep that was first has closed the row already: the hold finds it so and
+ * raises NT409 before any result is written.
+ */
+CREATE OR REPLACE FUNCTION notify.hold (
+  pId           bigint,
+  pToken        bigint
+) RETURNS       void
+AS $$
+BEGIN
+  PERFORM FROM notify.queue WHERE id = pId AND token = pToken AND state = 1 FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'ERR-40901: notify.hold: row % is not taken under token %', pId, pToken
+      USING ERRCODE = 'NT409';
+  END IF;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -1128,6 +1210,7 @@ GRANT EXECUTE ON FUNCTION
   notify.unsubscribe(integer),
   notify.take(bigint, integer),
   notify.ack(bigint, bigint),
+  notify.hold(bigint, bigint),
   notify.nack(bigint, bigint, text),
   notify.sweep(integer, integer),
   notify.sweep_channel(text, integer),

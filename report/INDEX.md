@@ -69,6 +69,7 @@ Report
 | `InitReport(pParent, pType, pTree, pCode, pName, pDescription)` | `uuid` | Create form + report + routine in one call |
 | `InitObjectReport(pParent, pTree, pForm, pBinding, pCode, pName, pDescription)` | `uuid` | Convenience for object-bound reports |
 | `BuildReport(pReport, pType, pForm)` | `uuid` | Create ReportReady output document |
+| `ReportReadyAbandon(pId, pKey, pPayload, pReason)` | `void` | `on_abandon` of the notify channel `report` (`ready/routine.sql`): `progress` → label "outcome unknown" ("not started" for `unsent:`) + `fail`, `canceled` → `abort`, anything else or a report with another open row untouched; system context; not open to `PUBLIC` |
 
 ### Data Retrieval (for form dropdowns)
 

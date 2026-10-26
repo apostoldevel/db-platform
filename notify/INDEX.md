@@ -16,7 +16,7 @@ Every channel is `legacy` after an install or the patch: `notify.send` of a `leg
 
 | Schema | Usage |
 |--------|-------|
-| `notify` | Own schema (AUTHORIZATION kernel). 3 tables, 1 sequence, 22 functions; the views `Notify*` are in the default (`kernel`) namespace, `api.notify_*` in `api`. `USAGE` for `administrator`, `daemon`, `apibot`; a configuration grants it to its own service roles (not done yet: T590 step 2). Functions: **no `PUBLIC` execute**; the interface is granted to `daemon` and `apibot` only, the internals to nobody |
+| `notify` | Own schema (AUTHORIZATION kernel). 3 tables, 1 sequence, 24 functions; the views `Notify*` are in the default (`kernel`) namespace, `api.notify_*` in `api`. `USAGE` for `administrator`, `daemon`, `apibot`; a configuration grants it to its own service roles (not done yet: T590 step 2). Functions: **no `PUBLIC` execute**; the interface is granted to `daemon` and `apibot` only, the internals to nobody |
 
 There is **no application group** `notify` on purpose: no function asks about a group; who may call is the `USAGE` on the schema, and the `/notify/...` routes are the administrator's.
 
@@ -52,6 +52,7 @@ All `SECURITY DEFINER`, `search_path = kernel, pg_temp`; they are **not** in `ke
 | `notify.drain(pId)` / `notify.unsubscribe(pId)` | `void` | Stop being chosen / leave (a number rows still refer to stays `draining` until the sweep) |
 | `notify.take(pId, pSubscriber)` | `(payload, key, token, attempts)` | The subscriber's reaction to a wake-up or a sweep; no row when the row is not its to work on. Takes a row in **any** mode |
 | `notify.ack(pId, pToken)` / `notify.nack(pId, pToken, pError)` | `void` | Confirm / refuse under the current token; SQLSTATE `NT409` when it is not current. Call in the SAME transaction that writes the result. A refusal whose reason starts with `unsent:` on the **first** delivery sends the row back whatever `max_attempts` and `resend_enabled` say (it never left: handing it out again is no repeat); the second delivery is judged by the usual rule (T1102) |
+| `notify.hold(pId, pToken)` | `void` | The lock on the row the sender holds, nothing else changes. First statement of the batch that writes the result, ahead of the action on the object; `ack` stays last (the transport appends it). `notify.close` locks the row and its `on_abandon` then the object; a sender that locks the object and asks for the row last deadlocks with the sweep (the message can stay `sending` for good). The sweep skips a held row (`FOR UPDATE SKIP LOCKED`), also while a report is built under it. NT409 when the token is not current — before anything is written |
 | `notify.sweep(pSubscriber, pLimit)` | `integer` | The look-over a subscriber makes on a timer and after a reconnect: `sweep_channel` of its channel |
 | `notify.sweep_channel(pChannel, pLimit)` | `integer` | The look-over itself, also for a channel nobody listens on (closes the expired / unrouted / orphaned and calls `on_abandon`) |
 | `api.sweep_notify_channel(pCode, pLimit)` | `integer` | The same, for a job |
@@ -62,7 +63,9 @@ Wake-ups go to **one named subscriber** and the sweep does not say a waiting row
 
 ### Internal
 
-`wake` (one subscriber; NULL wakes nobody), `is_alive`, `route_holder` (the raw answer of `target_fn`), `route_target` (the holder if it is alive), `pick_target`, `pick_next` (the next live subscriber after one in the ring of their numbers: whom the sweep offers a row to when its addressee stays silent), `can_repeat`, `wake_next`, `close`. A route holder silent longer than the channel's `alive` is "no holder".
+`wake` (one subscriber; NULL wakes nobody), `is_alive`, `route_holder` (the raw answer of `target_fn`), `route_target` (the holder if it is alive), `pick_target`, `pick_next` (the next live subscriber after one in the ring of their numbers: whom the sweep offers a row to when its addressee stays silent), `can_repeat`, `wake_next`, `close`, `scrub`. A route holder silent longer than the channel's `alive` is "no holder".
+
+`notify.scrub(pChannel, pPayload)` is called by `ack` and `close` when a row ends (state 2 / 3) and returns the payload to keep: the channels `report` and `file` lose the key `session` of the top level (the requester's session code, a credential the executor needs only while the row is open; the row is kept for `retain_done` / `retain_closed`, up to 90 days), a payload of those channels that is not JSON becomes NULL, every other channel is unchanged. `take` hands the executor the whole payload as before; `on_abandon` gets the cleaned one. The policy is in this one function: a configuration with another channel that carries a credential overrides it. The legacy `NOTIFY` of the channel still carries the code (the triggers of `db.notification` and `db.file` are unchanged: N−1).
 
 ### REST (administrator)
 
@@ -71,6 +74,8 @@ Wake-ups go to **one named subscriber** and the sweep does not say a waiting row
 ## Channels of the platform
 
 `init.sql` registers 20 channels, all `legacy` (the description says what each is meant to become): `http`, `outbox`, `report`, `job`, `file`, `replication`, `mq` (work — candidates for `single`); `log`, `geo`, `notify`, `inbox`, `notice`, `message`, `gateway`, `gateway_cmd` (broadcast to WebSocket servers / workers); `mq_cmd`, `mq_stalled`, `mq_dead`, `mq_refused`, `mq_floor` (to be inventoried). A configuration registers its own in its `notify/init.sql` and patch.
+
+`on_abandon` of the platform channels: `http` — `http.abandon` (`http/notify.sql`); `job` — `JobAbandon`; `outbox` — `OutboxAbandon` (`entity/object/document/message/outbox/routine.sql`): a `sending` message fails as "outcome unknown" ("not sent" when the sender refused the row with `unsent:`), a `prepared` one is sent again on a new row; a message with another open row is left alone; `report` — `ReportReadyAbandon` (`report/ready/routine.sql`): `progress` fails as "outcome unknown" ("not started" for `unsent:`), `canceled` is aborted; a report with another open row is left alone. The label is a fixed word, never the reason (the configuration reads labels); the reason goes to the event log. Neither callback is open to `PUBLIC`. The two registered by the owning module's `init.sql` (guarded by `to_regclass('notify.channel')`) and by patch `P00000039`. Each works in the system context, because the sweep comes from a pool with no session. Wiki: `docs/wiki/db/notify-e4-outbox-report.md` of the project.
 
 ## Delivery to existing bases
 

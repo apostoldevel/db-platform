@@ -427,3 +427,23 @@ END
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- The channel `outbox` of the module notify -----------------------------------
+--------------------------------------------------------------------------------
+
+-- The row is inserted by notify/init.sql (it loads earlier, as `legacy`). What a closed row of the channel does to
+-- its message is this module's (OutboxAbandon): the row names the function, and the function has to exist before
+-- it does. An existing base gets the same from patch P00000039. A value an operator already set is not
+-- overwritten. on_expire stays false: a row that was never handed out is not a case for it (nothing left, and the
+-- channel has no lifetime of its own).
+--
+-- Guarded: a patch of the early series (P00000017, P00000024, P00000044) includes this module's create.psql, and
+-- on a base that is older than the module notify there is no table to write to.
+DO $$
+BEGIN
+  IF to_regclass('notify.channel') IS NOT NULL THEN
+    UPDATE notify.channel SET on_abandon = 'OutboxAbandon'
+     WHERE code = 'outbox' AND on_abandon IS NULL;
+  END IF;
+END $$;
