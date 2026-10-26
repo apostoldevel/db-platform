@@ -1078,6 +1078,25 @@ BEGIN
          SELECT 1 FROM notify.queue r
           WHERE (r.state = 0 AND r.target = x.id) OR (r.state = 1 AND r.owner = x.id)
        );
+
+    -- the safety net (T1158): objects that stand in the delivery and hold no open row -- a callback that failed
+    -- (the row stays closed, the object stays `sending`), what the old path had when the channel was switched.
+    -- With the retention, once a minute per channel, and only while the channel is single: in legacy the poll of the
+    -- old path is the owner of such objects, and a row put in beside it would be a second sender. A failure of the
+    -- module's function is not the sweep's: what was closed above stays closed, the failure is a line in the log of
+    -- the server; the module's function writes its own failures to the event log, object by object.
+    -- (the field is read inside the protected block, and only for a single channel: a base that got update.psql but not
+    -- P00000040 has no such column, and the sweep of every other channel must not stop for it)
+    IF c.mode = 'single' THEN
+      BEGIN
+        IF c.on_release IS NOT NULL THEN
+          nCount := nCount + notify.release(c.code, false, pLimit);
+        END IF;
+      EXCEPTION
+      WHEN OTHERS THEN
+        RAISE WARNING 'notify.sweep_channel: on_release of "%" failed: %', c.code, SQLERRM;
+      END;
+    END IF;
   END IF;
 
   RETURN nCount;
@@ -1111,6 +1130,48 @@ BEGIN
   END IF;
 
   RETURN notify.sweep_channel(vChannel, pLimit);
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
+-- RELEASE ---------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+/**
+ * @brief Call the function the channel names in on_release: the owning module's look at the objects that stand in
+ *        the delivery of the channel and hold no open row of the queue (T1158, T1165). A channel with no such
+ *        function: nothing to do.
+ * @param {text} pChannel - Channel
+ * @param {boolean} pSwitch - The channel has just been switched to single (the trigger): the function may refuse
+ *        the switch with an exception. false: the sweep of a single channel
+ * @param {integer} pLimit - Objects per call; NULL for all (the switch hands every object over at once)
+ * @return {integer} - Objects the function acted on
+ * @since 1.2.39
+ *
+ * The name is text that runs under EXECUTE, as on_abandon does: it is checked where it is written
+ * (notify.ft_channel_check) and the function is closed to PUBLIC like the rest of the module.
+ */
+CREATE OR REPLACE FUNCTION notify.release (
+  pChannel      text,
+  pSwitch       boolean DEFAULT false,
+  pLimit        integer DEFAULT 100
+) RETURNS       integer
+AS $$
+DECLARE
+  vFn           text;
+  nCount        integer;
+BEGIN
+  SELECT on_release INTO vFn FROM notify.channel WHERE code = pChannel;
+
+  IF vFn IS NULL THEN
+    RETURN 0;
+  END IF;
+
+  EXECUTE format('SELECT %s($1, $2)', vFn) INTO nCount USING pSwitch, pLimit;
+
+  RETURN coalesce(nCount, 0);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

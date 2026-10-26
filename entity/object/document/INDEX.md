@@ -210,6 +210,8 @@ Standard 9 + `EventOutboxSubmit`, `EventOutboxSend`, `EventOutboxCancel`, `Event
 
 `OutboxAbandon(pId, pKey, pPayload, pReason)` — `on_abandon` of the notify channel `outbox`, called by `notify.close` when a delivery row ends without a confirmation. `sending` → fixed label "outcome unknown" ("not sent" for an `unsent:` reason) + `fail`, never sent again; `prepared` → a new row, at most 5 rows per stay in `prepared` (the fifth closed row fails the message with the label "not sent", T1157); any other state or class, or a message with another open row → untouched. The label is a fixed word, never the reason (the reason goes to the event log). System context; not open to `PUBLIC`. Registered by `outbox/init.sql` and patch `P00000039`.
 
+`ReleaseOutbox(pSwitch, pLimit)` — `on_release` of the same channel (T1158 + T1165): the messages that stand in the delivery and hold no open row of the queue, handed to `OutboxAbandon` (one body, no copy of its logic) — `prepared` older than the `grace` of the channel (3 s: the time the old path has to take it) goes to the queue, `sending` older than the `lease` fails as "outcome unknown"; younger ones are left for the next look. A failure of one message is a line of the event log (`workflow.outbox`, `release`); with `pSwitch` it refuses the switch of the channel to `single` with the number, the first three ids and the first reason. Taken `FOR UPDATE SKIP LOCKED`; no system context of its own (`OutboxAbandon` opens one per message); not open to `PUBLIC`. Registered by `outbox/init.sql` and patch `P00000040`.
+
 ### Type — `message.outbox`
 
 ---

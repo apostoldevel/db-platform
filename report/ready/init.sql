@@ -492,3 +492,17 @@ BEGIN
      WHERE code = 'report' AND on_abandon IS NULL;
   END IF;
 END $$;
+
+-- The look at the reports that hold no open row of the queue (ReleaseReportReady, T1158 / T1165): the safety net of a
+-- failed callback and the check at the switch of the channel to single (it refuses while the old path may be building a
+-- report). The column came with P00000040: a patch of the early series that includes this file runs on a base that may
+-- not have it yet. A value an operator set is kept.
+DO $$
+BEGIN
+  IF EXISTS (SELECT FROM information_schema.columns
+              WHERE table_schema = 'notify' AND table_name = 'channel' AND column_name = 'on_release')
+  THEN
+    UPDATE notify.channel SET on_release = 'ReleaseReportReady'
+     WHERE code = 'report' AND on_release IS NULL;
+  END IF;
+END $$;

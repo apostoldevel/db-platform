@@ -70,6 +70,7 @@ Report
 | `InitObjectReport(pParent, pTree, pForm, pBinding, pCode, pName, pDescription)` | `uuid` | Convenience for object-bound reports |
 | `BuildReport(pReport, pType, pForm)` | `uuid` | Create ReportReady output document |
 | `ReportReadyAbandon(pId, pKey, pPayload, pReason)` | `void` | `on_abandon` of the notify channel `report` (`ready/routine.sql`): `progress` → label "outcome unknown" ("not started" for `unsent:`) + `fail`, `canceled` → `abort`, anything else or a report with another open row untouched; system context; not open to `PUBLIC` |
+| `ReleaseReportReady(pSwitch, pLimit)` | `integer` | `on_release` of the notify channel `report` (`ready/routine.sql`, T1158 + T1165): a `progress` / `canceled` report with no open row of the queue and older than the `lease` of the channel goes through `ReportReadyAbandon` (`progress` → "outcome unknown" + `fail`, `canceled` → `abort`); it is never put in the queue (the session of the asker is not in SQL). With `pSwitch` (the switch of the channel to `single`) a younger one **refuses the switch** with their number and the age of the oldest. No system context of its own (the callback opens one per report); a report whose row was **confirmed** since it entered its state (an outside service builds it, a callback completes it later) is left alone; not open to `PUBLIC` |
 
 ### Data Retrieval (for form dropdowns)
 

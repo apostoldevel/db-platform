@@ -262,3 +262,138 @@ $$ LANGUAGE plpgsql
 
 -- Called by notify.close, which runs as the owner: nobody else has a reason to call it (it changes a report).
 REVOKE ALL ON FUNCTION ReportReadyAbandon(bigint, text, text, text) FROM PUBLIC;
+
+--------------------------------------------------------------------------------
+-- ReleaseReportReady ----------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief `on_release` of the notify channel `report` (T1158, T1165): close the reports that stand in a build and hold
+ *        no open row of the queue. The one procedure of the safety net of a failed callback and of the switch of the
+ *        channel from `legacy` to `single`.
+ *
+ * Who such a report is. In `single` a `progress` report has an open row (the trigger of db.notification puts it in in
+ * the transaction of `execute`) and one that is `canceled` is waiting for the ReportServer that holds the row to say
+ * `abort`. One without a row is
+ *  - `progress` whose row was closed and whose callback then failed (the row stays closed, the report stays `progress`);
+ *  - a report of the old path: `execute` makes it `progress` and sends the NOTIFY in the same transaction, and the old
+ *    path builds it in memory with no row at all -- or has not taken it yet, or never will (nobody listened).
+ * The database cannot tell the last two apart: both are `progress` and no row. The age of the state tells the dead
+ * from the living, as it does for a job (ReleaseJob): a report that is `progress` / `canceled` with no row and whose
+ * state is as old as the `lease` of the channel (10 minutes) is closed the way ReportReadyAbandon closes a report
+ * whose row was lost -- `progress` the label `outcome unknown` and `fail` (`failed` has the way back, `execute`),
+ * `canceled` `abort`. A younger one may be a build of the old path in progress and is left alone.
+ * A report whose row was CONFIRMED since it entered its state is not one of these either: a routine that hands the build
+ * to an outside service (rpc_* with a callback that completes it) leaves the report `progress` after the sender has said
+ * yes, and the callback may come later than the lease; failing it here would refuse the callback (`complete` from `failed`).
+ *
+ * A report is NOT put in the queue, as a message is. The row of the channel carries the session of whoever asked for
+ * the report (db.ft_notification_after_insert: `current_session()` at `execute`), the build runs in it, with
+ * the rights of that user. From SQL it cannot be restored; the session of the operator who switches the channel, or of
+ * the bot (what ReportServer takes when the payload has none), would build the report with rights that are not the
+ * asker's. The way back is `execute` by the asker, and a failed report offers it.
+ *
+ * With pSwitch (the trigger that follows a switch to single) the report that is left alone refuses the switch: if
+ * any report is `progress` / `canceled` with no row and younger than the lease, the old path may be building it, and
+ * a channel switched under it would leave it with nobody to say `abort` and with a build whose result the new
+ * path does not know -- the exception names how many there are and how old the oldest is, the mode does not change
+ * and nothing is lost in silence: the operator waits until they leave the state (a build of the old path ends) and
+ * switches again. Reports older than the lease do not hold the switch: they are closed here, before the count.
+ * A failure to close one is a line in the event log (`workflow.report`, `release`) and refuses the switch too.
+ *
+ * Every report goes through ReportReadyAbandon, the callback of the channel, which reads the state under the lock.
+ * The reports are taken `FOR UPDATE SKIP LOCKED`.
+ * @param {boolean} pSwitch - The channel has just been switched to single
+ * @param {integer} pLimit - Reports per call; NULL for all
+ * @return {integer} - Reports handed to ReportReadyAbandon
+ * @since 1.2.39
+ */
+CREATE OR REPLACE FUNCTION ReleaseReportReady (
+  pSwitch    boolean DEFAULT false,
+  pLimit     integer DEFAULT 100
+) RETURNS    integer
+AS $$
+DECLARE
+  r          record;
+  uEntity    uuid;
+  iLease     interval;
+  dOldest    timestamptz;
+  nCount     integer := 0;
+  nFailed    integer := 0;
+  nYoung     integer := 0;
+  vIds       text := '';
+  vError     text;
+BEGIN
+  uEntity := GetEntity('report_ready');
+
+  SELECT lease INTO iLease FROM notify.channel WHERE code = 'report';
+
+  IF uEntity IS NULL OR iLease IS NULL THEN
+    RETURN 0;
+  END IF;
+
+  -- No system context of its own (see ReleaseOutbox): ReportReadyAbandon opens one for every report it acts on.
+  -- A report whose row was CONFIRMED since it entered its state is not one of these: a routine that hands the build
+  -- to an outside service (rpc_* with a callback that completes it) leaves the report `progress` after the sender has
+  -- said yes, and the callback may come later than the lease.
+  FOR r IN
+    SELECT o.id, s.code AS state, st.since
+      FROM db.object o INNER JOIN db.state s ON s.id = o.state
+     CROSS JOIN LATERAL (SELECT max(os.validFromDate) AS since FROM db.object_state os WHERE os.object = o.id) st
+     WHERE s.class IN (SELECT t.id FROM db.class_tree t WHERE t.entity = uEntity) AND s.code IN ('progress', 'canceled')
+       AND NOT EXISTS (SELECT FROM notify.queue q WHERE q.channel = 'report' AND q.state < 2 AND position(o.id::text IN q.payload) > 0)
+       AND NOT EXISTS (SELECT FROM notify.queue q WHERE q.channel = 'report' AND q.state = 2 AND q.done >= coalesce(st.since, '-infinity') AND position(o.id::text IN q.payload) > 0)
+     ORDER BY o.pdate
+     LIMIT pLimit
+       FOR UPDATE OF o SKIP LOCKED
+  LOOP
+    -- younger than the lease: may be a build of the old path in progress
+    IF coalesce(r.since, '-infinity') > now() - iLease THEN
+      CONTINUE;
+    END IF;
+
+    BEGIN
+      PERFORM ReportReadyAbandon(0, NULL, jsonb_build_object('id', r.id)::text, 'orphaned: no open row of the channel');
+      nCount := nCount + 1;
+    EXCEPTION WHEN others THEN
+      nFailed := nFailed + 1;
+      vError := coalesce(vError, SQLERRM);
+
+      IF nFailed <= 3 THEN
+        vIds := vIds || ' ' || r.id::text;
+      END IF;
+
+      PERFORM WriteToEventLog('E', 2027, 'workflow.report', 'release', left('release failed: ' || SQLERRM, 400), r.id);
+    END;
+  END LOOP;
+
+  IF pSwitch THEN
+    -- the count that refuses the switch does not skip what another transaction holds: a report an action holds
+    -- is one the old path is working on
+    SELECT count(*), min(y.since) INTO nYoung, dOldest
+      FROM (SELECT st.since
+              FROM db.object o INNER JOIN db.state s ON s.id = o.state
+             CROSS JOIN LATERAL (SELECT max(os.validFromDate) AS since FROM db.object_state os WHERE os.object = o.id) st
+             WHERE s.class IN (SELECT t.id FROM db.class_tree t WHERE t.entity = uEntity) AND s.code IN ('progress', 'canceled')
+               AND NOT EXISTS (SELECT FROM notify.queue q WHERE q.channel = 'report' AND q.state < 2 AND position(o.id::text IN q.payload) > 0)
+               AND NOT EXISTS (SELECT FROM notify.queue q WHERE q.channel = 'report' AND q.state = 2 AND q.done >= coalesce(st.since, '-infinity') AND position(o.id::text IN q.payload) > 0)
+           ) y
+     WHERE coalesce(y.since, '-infinity') > now() - iLease;
+  END IF;
+
+  IF pSwitch AND nYoung > 0 THEN
+    RAISE EXCEPTION 'ERR-40000: Channel "report" is not switched to single: % report(s) stand in progress or canceled with no row of the queue and younger than the lease (%): the old path may be building them; the oldest began % ago. Wait until they leave the state and switch again.',
+      nYoung, iLease, date_trunc('second', now() - dOldest);
+  END IF;
+
+  IF pSwitch AND nFailed > 0 THEN
+    RAISE EXCEPTION 'ERR-40000: Channel "report" is not switched to single: % report(s) could not be closed (first:%), the first reason: %', nFailed, vIds, vError;
+  END IF;
+
+  RETURN nCount;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+-- Called by notify.release, which runs as the owner: nobody else has a reason to call it (it changes reports).
+REVOKE ALL ON FUNCTION ReleaseReportReady(boolean, integer) FROM PUBLIC;

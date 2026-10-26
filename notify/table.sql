@@ -64,6 +64,12 @@ CREATE TABLE notify.channel (
   classified      boolean NOT NULL DEFAULT true,
   first_seen      timestamptz NOT NULL DEFAULT clock_timestamp(),
   purged          timestamptz,
+  -- function (boolean, integer) RETURNING integer -- (switch, limit): the owning module's own look at the objects
+  -- that stand in the delivery of this channel and hold no open row of notify.queue (a callback that failed, an
+  -- object the old path had when the channel was switched). Called by notify.release: with switch = true by the
+  -- trigger that follows a change of the mode to single, with switch = false by the sweep of a single channel.
+  -- Last in the table on purpose: a base that got it by a patch has it last too.
+  on_release      text,
   CHECK (affinity <> 'route' OR target_fn IS NOT NULL),
   CHECK (NOT dedupe OR retain_done >= interval '1 hour')
 );
@@ -95,6 +101,14 @@ BEGIN
     RAISE EXCEPTION 'ERR-40000: Channel "%": on_abandon "%" is not a function (bigint, text, text, text).', NEW.code, NEW.on_abandon;
   END IF;
 
+  IF NEW.on_release IS NOT NULL THEN
+    rFn := to_regprocedure(NEW.on_release || '(boolean,integer)');
+
+    IF rFn IS NULL OR (SELECT prorettype FROM pg_proc WHERE oid = rFn) <> 'integer'::regtype THEN
+      RAISE EXCEPTION 'ERR-40000: Channel "%": on_release "%" is not a function (boolean, integer) RETURNING integer.', NEW.code, NEW.on_release;
+    END IF;
+  END IF;
+
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql
@@ -102,8 +116,32 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 CREATE TRIGGER t_channel_check
-  BEFORE INSERT OR UPDATE OF target_fn, on_abandon ON notify.channel
+  BEFORE INSERT OR UPDATE OF target_fn, on_abandon, on_release ON notify.channel
   FOR EACH ROW EXECUTE FUNCTION notify.ft_channel_check();
+
+-- A channel that is switched to single must not leave behind what the old path had in its hands: an object that
+-- stands in the delivery and has no row in notify.queue is taken by nobody once the poll of the old path is off
+-- (a poller reads the mode in the same statement). The module that owns the channel names the function that sees
+-- to it (on_release); it runs here, in the transaction of the switch, whoever made the switch (the REST route, the
+-- api function, a hand-made UPDATE). A refusal of that function (an exception) refuses the switch: the mode stays.
+-- AFTER the update, not before: notify.send reads the mode of the row, and a row put in on the way to single has
+-- to see single.
+CREATE OR REPLACE FUNCTION notify.ft_channel_switch()
+RETURNS trigger
+AS $$
+BEGIN
+  PERFORM notify.release(NEW.code, true, null);
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+CREATE TRIGGER t_channel_switch
+  AFTER UPDATE OF mode ON notify.channel
+  FOR EACH ROW
+  WHEN (NEW.mode = 'single' AND OLD.mode IS DISTINCT FROM NEW.mode)
+  EXECUTE FUNCTION notify.ft_channel_switch();
 
 COMMENT ON COLUMN notify.channel.mode IS 'broadcast: pg_notify; single: row + one addressee; legacy: as before the module (pg_notify) -- the rollout switch.';
 COMMENT ON COLUMN notify.channel.affinity IS 'any: least loaded live subscriber; key: highest hash(key, subscriber id); route: target_fn(key) at the moment of taking.';
@@ -113,6 +151,7 @@ COMMENT ON COLUMN notify.channel.lease IS 'How long a taken row may stay unconfi
 COMMENT ON COLUMN notify.channel.expire IS 'Default for a row that gave none: how long after `seen` the row may still be handed out. NULL -- no limit.';
 COMMENT ON COLUMN notify.channel.max_attempts IS 'Default number of REPEATS after the first delivery (0 -- none). A repeat is allowed while attempts <= max_attempts.';
 COMMENT ON COLUMN notify.channel.on_abandon IS 'Function (bigint, text, text, text) = (queue id, key, payload, reason) called when a row is closed without a confirmation.';
+COMMENT ON COLUMN notify.channel.on_release IS 'Function (boolean, integer) RETURNING integer = (switch, limit): the owning module''s look at the objects that stand in the delivery of this channel and hold no open row of the queue. Called by the trigger that follows a switch to single (switch = true: it may refuse the switch) and by the sweep of a single channel (switch = false).';
 COMMENT ON COLUMN notify.channel.on_expire IS 'Call on_abandon also for a row that was never handed out (expired, unrouted).';
 COMMENT ON COLUMN notify.channel.classified IS 'false: the channel was recorded on first sight, nobody assigned its mode.';
 

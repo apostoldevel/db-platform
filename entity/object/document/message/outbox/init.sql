@@ -447,3 +447,16 @@ BEGIN
      WHERE code = 'outbox' AND on_abandon IS NULL;
   END IF;
 END $$;
+
+-- The look at the messages that hold no open row of the queue (ReleaseOutbox, T1158 / T1165): the safety net of a failed
+-- callback and the hand-over at the switch of the channel to single. The column came with P00000040: a patch of the
+-- early series that includes this file runs on a base that may not have it yet. A value an operator set is kept.
+DO $$
+BEGIN
+  IF EXISTS (SELECT FROM information_schema.columns
+              WHERE table_schema = 'notify' AND table_name = 'channel' AND column_name = 'on_release')
+  THEN
+    UPDATE notify.channel SET on_release = 'ReleaseOutbox'
+     WHERE code = 'outbox' AND on_release IS NULL;
+  END IF;
+END $$;
