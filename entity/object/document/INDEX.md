@@ -208,7 +208,7 @@ Standard 9 + `EventOutboxSubmit`, `EventOutboxSend`, `EventOutboxCancel`, `Event
 
 ### Functions — 1 (`outbox/routine.sql`)
 
-`OutboxAbandon(pId, pKey, pPayload, pReason)` — `on_abandon` of the notify channel `outbox`, called by `notify.close` when a delivery row ends without a confirmation. `sending` → fixed label "outcome unknown" ("not sent" for an `unsent:` reason) + `fail`, never sent again; `prepared` → a new row; any other state or class, or a message with another open row → untouched. The label is a fixed word, never the reason (the reason goes to the event log). System context; not open to `PUBLIC`. Registered by `outbox/init.sql` and patch `P00000039`.
+`OutboxAbandon(pId, pKey, pPayload, pReason)` — `on_abandon` of the notify channel `outbox`, called by `notify.close` when a delivery row ends without a confirmation. `sending` → fixed label "outcome unknown" ("not sent" for an `unsent:` reason) + `fail`, never sent again; `prepared` → a new row, at most 5 rows per stay in `prepared` (the fifth closed row fails the message with the label "not sent", T1157); any other state or class, or a message with another open row → untouched. The label is a fixed word, never the reason (the reason goes to the event log). System context; not open to `PUBLIC`. Registered by `outbox/init.sql` and patch `P00000039`.
 
 ### Type — `message.outbox`
 

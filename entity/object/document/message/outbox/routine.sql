@@ -15,7 +15,12 @@
  *    "an unknown outcome is not repeated"; a person repeats it, the action `repeat`). A row the sender itself
  *    refused (the reason starts with `unsent:`: the message was never handed to the transport) says `not sent`;
  *  - `prepared`: `send` was never committed, nothing left, a repeat is safe: a new row on the channel
- *    (notify.send, the way the trigger of db.notification does it);
+ *    (notify.send, the way the trigger of db.notification does it) -- but not for ever (T1157): the new row is woken
+ *    at once, so a sender that keeps refusing the message, or keeps dying before `send`, sends the rows round with
+ *    no pause but the speed of its own take (measured: 200 deliveries, 101 rows, the message still `prepared`).
+ *    The rows that ended since the message entered `prepared` are counted (the one just closed is among them);
+ *    when they reach nMaxRows the message gets the label `not sent` and the action `fail` instead of one more row
+ *    (the action `repeat` is the way back; it enters `prepared` again and the count starts anew);
  *  - anything else (`created`, `submitted`, `failed`, `deleted`, a message of another class): the message has moved
  *    on, the closed row is about an earlier delivery, nothing is touched.
  * In both live states, if another row of the message is open, nothing is done: the message stands in THAT delivery
@@ -50,6 +55,10 @@ DECLARE
   vClass     text;
   vLabel     text;
   jContext   jsonb;
+  dSince     timestamptz;
+  nRows      integer := 0;
+  -- the rows one stay in `prepared` may use (a row is up to two deliveries: `unsent:` goes back once)
+  nMaxRows   constant integer := 5;
 BEGIN
   BEGIN
     uMessage := coalesce(pKey, pPayload)::uuid;
@@ -73,6 +82,17 @@ BEGIN
     RETURN;
   END IF;
 
+  IF vState = 'prepared' THEN
+    -- this stay in `prepared`: it began with the latest period of the history (an administrator's `repeat` opens a
+    -- new one). A row of the stay ended after it began, so `done` (indexed with the channel, for the rows that are
+    -- over) finds them without reading the retention of 90 days.
+    SELECT max(validFromDate) INTO dSince FROM db.object_state WHERE object = uMessage;
+
+    SELECT count(*) INTO nRows
+      FROM notify.queue
+     WHERE channel = 'outbox' AND state >= 2 AND done >= coalesce(dSince, '-infinity') AND payload = uMessage::text;
+  END IF;
+
   jContext := EnterSystemContext();
 
   BEGIN
@@ -81,6 +101,10 @@ BEGIN
 
       PERFORM WriteToEventLog('W', 2026, 'workflow.outbox', 'abandon', left(vLabel || ': ' || pReason, 400), uMessage);
       PERFORM SetObjectLabel(uMessage, vLabel);
+      PERFORM DoFail(uMessage);
+    ELSIF nRows >= nMaxRows THEN
+      PERFORM WriteToEventLog('W', 2026, 'workflow.outbox', 'abandon', left(format('not sent, given up after %s rows: ', nRows) || pReason, 400), uMessage);
+      PERFORM SetObjectLabel(uMessage, 'not sent');
       PERFORM DoFail(uMessage);
     ELSE
       PERFORM WriteToEventLog('W', 2026, 'workflow.outbox', 'abandon', left('not sent, sent again: ' || pReason, 400), uMessage);
