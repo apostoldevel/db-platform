@@ -73,5 +73,15 @@ BEGIN
   END IF;
 END $$;
 
+-- The channel http: a request without an `expire` of its own that no sender took within 10 minutes of the first
+-- look of a subscriber (notify.queue.seen) is closed "not sent" -- http.abandon, no callback to the producer
+-- (on_expire above). A request with an `expire` of its own (payment create, capture, cancel, refund) keeps it:
+-- notify.take and notify.sweep_channel read coalesce(q.expire, c.expire). In force only while the channel is
+-- `single`, and for a row a subscriber has looked at: a channel nobody listens on is looked over by the job of the
+-- configuration (api.sweep_notify_channel). A value an operator already set is not overwritten; NULL -- "no limit"
+-- on purpose -- cannot be told from "never set" and is filled (P00000041).
+UPDATE notify.channel SET expire = interval '10 minutes'
+ WHERE code = 'http' AND expire IS NULL;
+
 -- API
 SELECT RegisterRoute('notify', AddEndpoint('SELECT * FROM rest.notify($1, $2);'));
