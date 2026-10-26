@@ -7049,7 +7049,9 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * @brief Authenticates a session using its secret key. On success, refreshes the session
- *        with a new salt and returns a new authorization token. On failure, terminates the session.
+ *        with a new salt and returns a new authorization token. On failure (wrong secret, unknown code)
+ *        returns NULL with the reason in GetErrorMessage() and leaves the session untouched: a wrong
+ *        secret does not prove ownership, so it must not end the session.
  * @param {varchar} pSession - Session code
  * @param {text} pSecret - Session secret for verification
  * @param {text} pAgent - User-Agent string
@@ -7070,8 +7072,6 @@ DECLARE
 BEGIN
   IF ValidSecret(pSecret, pSession) THEN
     vCode := SessionIn(pSession, pAgent, pHost, gen_salt('bf'));
-  ELSE
-    PERFORM SessionOut(pSession, false, GetErrorMessage());
   END IF;
 
   RETURN vCode;
