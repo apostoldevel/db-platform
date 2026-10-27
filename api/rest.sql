@@ -241,6 +241,7 @@ $$ LANGUAGE plpgsql
  * @return {SETOF json} - JSON result rows
  * @throws RouteIsEmpty - When pPath is NULL or empty
  * @throws RouteNotFound - When no matching sign route exists
+ * @throws AccessDenied - /sign/out naming a session of another user, or an unknown code, unless the caller is an administrator
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION rest.sign (
@@ -302,6 +303,17 @@ BEGIN
 
     FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(session text, close_all boolean)
     LOOP
+      -- A session other than the caller's own: only an administrator, or the same
+      -- user (another device). An unknown code is refused alike, so the answer does
+      -- not tell a live code from a dead one. The check belongs to this route, not
+      -- to SignOut: service roles call api.signout directly, often from a pooled
+      -- connection that carries another user's session.
+      IF r.session IS NOT NULL AND r.session IS DISTINCT FROM current_session() AND NOT IsAdmin() THEN
+        IF NOT EXISTS (SELECT FROM db.session WHERE code = r.session AND userid = current_userid()) THEN
+          PERFORM AccessDenied();
+        END IF;
+      END IF;
+
       FOR e IN SELECT *, GetErrorMessage() AS message FROM api.signout(coalesce(r.session, current_session()), r.close_all) AS success
       LOOP
         RETURN NEXT row_to_json(e);
