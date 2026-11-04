@@ -325,7 +325,7 @@ pick the recipient's language at call time, not session locale.
 > | Criterion | inline jsonb | `i18n/` resource |
 > |-----------|--------------|------------------|
 > | Where it lives | in function bodies | `db.resource_data` rows |
-> | Edit without redeploy | no | yes, via `POST /api/v1/resource/set` |
+> | Edit without redeploy | no | yes, via `POST /api/v1/resource/set` (platform administrator only) |
 > | Audit / export | grep through sources | `POST /api/v1/resource/list` |
 > | Duplication of shared phrases | duplicated across files | one key, reused everywhere |
 > | Runtime check for missing locale | manual `IF NOT j ? lang` | built into `GetI18NResource` (falls back to `en`) |
@@ -503,7 +503,7 @@ at `CREATE FUNCTION` time. Therefore `configuration/<dbname>/i18n/` must load
 looks up the resource by `name` and upserts `(resource, locale)` via
 `SetResourceData`. Running `i18n/init.sql` on every `--update` ensures new keys
 are picked up, but **also overwrites any runtime edits made via the REST
-`/resource/set` endpoint**. Treat `init.sql` as the canonical source of truth;
+`/resource/set` endpoint** (a call reserved for the platform administrator). Treat `init.sql` as the canonical source of truth;
 REST edits are transient until the next deploy.
 
 ---

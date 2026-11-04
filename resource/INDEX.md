@@ -69,6 +69,10 @@ Hierarchical, locale-aware content/resource management. Stores tree-structured r
 | `api.count_resource(pSearch, pFilter)` | `SETOF bigint` | Count with search/filter |
 | `api.list_resource(pSearch, pFilter, pLimit, pOffSet, pOrderBy)` | `SETOF api.resource` | Dynamic list with search/filter/pagination |
 
+The four write wrappers (`create`, `update`, `set`, `delete`) are for a platform administrator and the kernel alone:
+each starts with `IF session_user <> 'kernel' AND NOT IsAdmin() THEN PERFORM AccessDenied()`, so a call without a
+session or from an ordinary user answers `ERR-400-001`. Reading (`get`, `count`, `list`) is unchanged.
+
 ## REST Routes — 5
 
 Dispatcher: `rest.resource(pPath text, pPayload jsonb)`.
@@ -76,9 +80,9 @@ Dispatcher: `rest.resource(pPath text, pPayload jsonb)`.
 | Path | Purpose |
 |------|---------|
 | `/resource/count` | Count with search/filter |
-| `/resource/set` | Create or update resource |
+| `/resource/set` | Create or update resource (administrator only) |
 | `/resource/get` | Get by ID (with field projection via `JsonbToFields`) |
-| `/resource/delete` | Delete by ID |
+| `/resource/delete` | Delete by ID (administrator only) |
 | `/resource/list` | List with search/filter/pagination/field projection |
 
 ## Triggers

@@ -39,6 +39,7 @@ GRANT SELECT ON api.resource_tree TO administrator;
  * @param {text} pLocaleCode - ISO locale code (e.g. 'en', 'ru')
  * @return {uuid} - ID of the newly created resource
  * @throws IncorrectLocaleCode - When pLocaleCode does not match any known locale
+ * @throws AccessDenied - When the caller is neither a platform administrator nor the kernel
  * @see CreateResource
  * @since 1.0.0
  */
@@ -58,6 +59,11 @@ AS $$
 DECLARE
   uLocale        uuid;
 BEGIN
+  -- Writing resources is the platform administrator's alone (see api.set_resource).
+  IF session_user <> 'kernel' AND NOT IsAdmin() THEN
+    PERFORM AccessDenied();
+  END IF;
+
   SELECT id INTO uLocale FROM db.locale WHERE code = pLocaleCode;
 
   IF NOT FOUND THEN
@@ -87,6 +93,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pLocaleCode - ISO locale code (e.g. 'en', 'ru')
  * @return {void}
  * @throws IncorrectLocaleCode - When pLocaleCode does not match any known locale
+ * @throws AccessDenied - When the caller is neither a platform administrator nor the kernel
  * @see UpdateResource
  * @since 1.0.0
  */
@@ -106,6 +113,11 @@ AS $$
 DECLARE
   uLocale       uuid;
 BEGIN
+  -- Writing resources is the platform administrator's alone (see api.set_resource).
+  IF session_user <> 'kernel' AND NOT IsAdmin() THEN
+    PERFORM AccessDenied();
+  END IF;
+
   SELECT id INTO uLocale FROM db.locale WHERE code = pLocaleCode;
 
   IF NOT FOUND THEN
@@ -135,6 +147,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pLocaleCode - ISO locale code (e.g. 'en', 'ru')
  * @return {SETOF api.resource} - The created or updated resource row
  * @throws IncorrectLocaleCode - When pLocaleCode does not match any known locale
+ * @throws AccessDenied - When the caller is neither a platform administrator nor the kernel
  * @see SetResource
  * @since 1.0.0
  */
@@ -155,6 +168,14 @@ DECLARE
   uLocale       uuid;
   uResource     uuid;
 BEGIN
+  -- The tree of resources is the platform's content: the texts every user reads
+  -- and the fallback text of exception messages. Writing it is the platform
+  -- administrator's alone; the kernel installs. The check comes first, before
+  -- the locale lookup and the kernel call, so a refusal never depends on them.
+  IF session_user <> 'kernel' AND NOT IsAdmin() THEN
+    PERFORM AccessDenied();
+  END IF;
+
   SELECT id INTO uLocale FROM db.locale WHERE code = pLocaleCode;
 
   IF NOT FOUND THEN
@@ -194,6 +215,7 @@ $$ LANGUAGE SQL
  * @brief Delete a resource node by ID.
  * @param {uuid} pId - Resource to delete
  * @return {void}
+ * @throws AccessDenied - When the caller is neither a platform administrator nor the kernel
  * @see DeleteResource
  * @since 1.0.0
  */
@@ -202,6 +224,11 @@ CREATE OR REPLACE FUNCTION api.delete_resource (
 ) RETURNS   void
 AS $$
 BEGIN
+  -- Writing resources is the platform administrator's alone (see api.set_resource).
+  IF session_user <> 'kernel' AND NOT IsAdmin() THEN
+    PERFORM AccessDenied();
+  END IF;
+
   PERFORM DeleteResource(pId);
 END;
 $$ LANGUAGE plpgsql
