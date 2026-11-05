@@ -45,7 +45,7 @@ GRANT SELECT ON DocumentAreaTreeId TO administrator;
 --
 -- The same verdict CheckFileAccess(id, B'100') gives, restated as one query
 -- over db.file instead of a call per row: the call costs ~85 µs of lookups
--- (IsAdmin, IsSystem, the owner's areas, IsMemberArea walking up the tree),
+-- (IsAdminOrBot, the owner's areas, IsMemberArea walking up the tree),
 -- which is 0.85 s on 10 000 files — the volume a fleet's attachments reach
 -- within a year. Set-based, the walk goes once: `_area` is every area the
 -- session (or a group of theirs) is a member of and everything below it —
@@ -99,13 +99,14 @@ AS
   -- Uncorrelated scalar subqueries on purpose: each becomes an InitPlan the
   -- executor evaluates once, where the bare call would run per row. The
   -- order is CheckFileAccess's: the kernel reads everything; no session reads
-  -- nothing; an administrator or the system group reads everything; then the
+  -- nothing; an administrator or the bot apibot reads everything (not the system
+  -- group); then the
   -- public root and the mask segment.
   SELECT f.id AS object
     FROM db.file f
    WHERE (SELECT session_user = 'kernel')
       OR (SELECT userid IS NOT NULL FROM _me)
-         AND ( (SELECT IsAdmin(userid) OR IsSystem(userid) FROM _me)
+         AND ( (SELECT IsAdminOrBot(userid) FROM _me)
             OR f.root IN (SELECT id FROM db.file WHERE parent IS NULL AND name = 'public')
             OR CASE
                WHEN f.owner = (SELECT userid FROM _me)       THEN SubString(f.mask FROM 1 FOR 1)

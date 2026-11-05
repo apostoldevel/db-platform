@@ -139,7 +139,7 @@ User management, authentication, authorization, sessions, and access control. Th
 
 ### ACL & Roles (~10)
 
-`acl`, `GetAccessControlListMask`, `CheckAccessControlList`, `chmod`, `SubstituteUser`, `IsUserRole`, `IsAdmin`, `is_admin`, `EnterSystemContext`, `LeaveSystemContext`.
+`acl`, `GetAccessControlListMask`, `CheckAccessControlList`, `chmod`, `SubstituteUser`, `IsUserRole`, `IsAdmin`, `IsAdminOrBot` (1.2.39), `is_admin`, `EnterSystemContext`, `LeaveSystemContext`.
 
 `EnterSystemContext` / `LeaveSystemContext` are a pair: server-side code that must
 act with more authority than its caller signs in as the system client, substitutes

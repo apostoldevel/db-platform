@@ -83,7 +83,7 @@ Hierarchical file system abstraction layer. Supports documents, directories, sym
 | `IsFileGroupMember(pArea, pMember, pLobby)` | `boolean` | `IsMemberArea` for the file group: the walk up passes through the areas in `pLobby` but membership in them does not count; empty `pLobby` — `IsMemberArea`'s answer (since 1.2.34) |
 | `GetFileMask(pId, pUserId)` | `bit(3)` | Mask segment for the user: owner / user at or above an owner's area (root, system, guest and declared lobbies excluded; the walk skips declared lobbies — `IsFileGroupMember`), or sees the area of an attached document of the same owner / other; mirror of `GetObjectMask` |
 | `DecodeFileAccess(pId, pUserId)` | `record (r, w, x)` | Effective access as booleans, bypasses included — the verdict without the bytes |
-| `CheckFileAccess(pId, pMask, pUserId)` | `boolean` | Permission check; bypass for `kernel`, administrators, `system` (bot sessions), read under the `public` root; mirror of `CheckObjectAccess` |
+| `CheckFileAccess(pId, pMask, pUserId)` | `boolean` | Permission check; bypass for `kernel`, administrators and the bot `apibot` (`IsAdminOrBot`, since 1.2.39), read under the `public` root; mirror of `CheckObjectAccess` |
 | `CheckFilePublish(pRoot, pParent, pName)` | `boolean` | May the session write an entry under the `public` root: the `w` bit of the directory it lands in (`CheckFileAccess`, bypasses included) — delegation goes by directories; creating or changing the root — bypasses only. Anything outside `/public` passes (since 1.2.24) |
 
 ### Query
@@ -107,7 +107,7 @@ S3 config read from registry: `CONFIG\S3` keys: `Region`, `Endpoint`, `AccessKey
 
 | Function | Returns | Purpose |
 |----------|---------|---------|
-| `api.set_file(pId, pType, pMask, ..., pPath, ...)` | `SETOF api.file` | Create/update file, handles path→root mapping, decodes base64 data; an existing file needs the `w` bit (`AccessDenied` otherwise, since 1.2.24); `pOwner` naming anyone but the session's user (new file) or the file's current owner (existing file) needs the kernel, an administrator or the `system` group (`AccessDenied` otherwise, since 1.2.36) |
+| `api.set_file(pId, pType, pMask, ..., pPath, ...)` | `SETOF api.file` | Create/update file, handles path→root mapping, decodes base64 data; an existing file needs the `w` bit (`AccessDenied` otherwise, since 1.2.24); `pOwner` naming anyone but the session's user (new file) or the file's current owner (existing file) needs the kernel, an administrator or the bot `apibot` (`IsAdminOrBot`, since 1.2.39) (`AccessDenied` otherwise, since 1.2.36) |
 | `api.get_file(pId)` | `SETOF api.file_data` | Get file with base64-encoded content; empty set when not readable by the current session (`CheckFileAccess`) |
 | `api.get_file_id(pName, pPath)` | `uuid` | Resolve file ID by name + path |
 | `api.decode_file_access(pId, pUserId)` | `record (r, w, x)` | Effective access verdict; contract for FileServer's disk-cache path (since 1.2.22) |
@@ -121,7 +121,7 @@ Dispatcher: `rest.file(pPath text, pPayload jsonb)`.
 
 | Path | Purpose |
 |------|---------|
-| `/file/set` | Create/update file (array/single). Since 1.2.36 `root`, `parent`, `done` and `fail` are taken here only from an administrator or the `system` group; from anyone else a non-null value is refused with `ERR-400-061` (`IncorrectJsonKey`, the keys the caller may send listed), a JSON null is no value — place a file by `path`. `api.set_file` called inside the database is not limited |
+| `/file/set` | Create/update file (array/single). Since 1.2.36 `root`, `parent`, `done` and `fail` are taken here only from an administrator or the bot `apibot` (`IsAdminOrBot`, since 1.2.39); from anyone else a non-null value is refused with `ERR-400-061` (`IncorrectJsonKey`, the keys the caller may send listed), a JSON null is no value — place a file by `path`. `api.set_file` called inside the database is not limited |
 | `/file/get` | Fetch file(s) by ID or path+name with field projection |
 | `/file/list` | List files (default orderby: `sortlist` for tree order) |
 | `/file/count` | Count matching files |

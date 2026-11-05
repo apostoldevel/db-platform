@@ -141,7 +141,7 @@ $$ LANGUAGE plpgsql
  *
  * The right to publish is the platform's own notion, not a special case: the
  * w bit of the DIRECTORY the entry lands in, as CheckFileAccess reads it —
- * the kernel, an administrator and the system group pass by its bypasses,
+ * the kernel, an administrator and the bot apibot pass by its bypasses,
  * everyone else by the directory's mask. Delegation goes by directories: an
  * administrator creates /public/<tenant>/ and hands it over (owner, or the
  * group bit for the tenant's branch), and that tenant publishes there and
@@ -173,7 +173,8 @@ BEGIN
       RETURN true;
     END IF;
 
-    RETURN session_user = 'kernel' OR IsAdmin() OR IsSystem();
+    -- An administrator or the bot apibot (IsAdminOrBot), not the group system.
+    RETURN session_user = 'kernel' OR IsAdminOrBot();
   END IF;
 
   uRoot := pRoot;
@@ -743,11 +744,11 @@ $$ LANGUAGE plpgsql STABLE
  * it cannot tell who is asking (see IsAdmin).
  *
  * Bypasses, each with a precedent in the platform: the kernel connection
- * (installation and DDL, as in chmodo); administrators and the system group
- * (the OAuth2 service accounts — the bot sessions of FileServer and PGFile
- * read files on behalf of the platform, not of a user); and read access to
- * anything under the "public" root, which PutFileToS3 already publishes with
- * a public-read ACL.
+ * (installation and DDL, as in chmodo); administrators and the bot apibot
+ * (IsAdminOrBot — the bot sessions of FileServer and PGFile read files on
+ * behalf of the platform, not of a user); and read access to anything
+ * under the "public" root, which PutFileToS3 already publishes with a
+ * public-read ACL.
  *
  * @param {uuid} pId - File identifier
  * @param {bit} pMask - Required permission bits (B'100' for read)
@@ -777,7 +778,7 @@ BEGIN
     RETURN false;
   END IF;
 
-  IF IsAdmin(pUserId) OR IsSystem(pUserId) THEN
+  IF IsAdminOrBot(pUserId) THEN
     RETURN true;
   END IF;
 

@@ -39,7 +39,8 @@ GRANT SELECT ON api.file_data TO administrator;
  * The owner of a file is the session's user, or what the file already has.
  * Naming anyone else writes under another's name, hands a file over, or — with
  * a group write bit — takes one over; since 1.2.36 only the kernel, an
- * administrator and the system group may (the bypasses of CheckFilePublish),
+ * administrator may, and since 1.2.39 the bot apibot (IsAdminOrBot), the
+ * bypasses of CheckFilePublish,
  * everyone else gets AccessDenied. NULL keeps the default: the session's user
  * on a new file, the current owner on an existing one.
  *
@@ -106,7 +107,7 @@ BEGIN
   -- anyone else is the privileged sessions' right alone. A file made over to
   -- the administrator by an ordinary user is that user's authorship forged,
   -- and one the user cannot read back.
-  IF pOwner IS NOT NULL AND session_user <> 'kernel' AND NOT IsAdmin() AND NOT IsSystem() THEN
+  IF pOwner IS NOT NULL AND session_user <> 'kernel' AND NOT IsAdminOrBot() THEN
     SELECT owner INTO uOwner FROM db.file WHERE id = pId;
     IF pOwner IS DISTINCT FROM coalesce(uOwner, current_userid()) THEN
       PERFORM AccessDenied();

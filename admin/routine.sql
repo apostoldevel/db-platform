@@ -3795,6 +3795,52 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- IsAdminOrBot ----------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Checks if the user is a platform administrator or the internal bot apibot.
+ *
+ * The gate for what the platform does on its own behalf — the bot sessions of
+ * FileServer and PGFile reading files, the kernel registry, the attachments of
+ * every document — instead of IsSystem(). The group system is not asked at all:
+ * an administrator, or the user named apibot.
+ *
+ * The member is the argument, not current_userid(): CheckFileAccess and the
+ * views ask about a user they were handed. The bot is told by the name of the
+ * user — a lookup that raises nothing, unlike GetUser(): a guard must refuse,
+ * not fail, when the user is missing.
+ *
+ * Not is_admin() below: that one compares current_userid() with apibot whatever
+ * the argument is, and is meant as a convenience, not a guard.
+ *
+ * Returns false — never NULL — when there is no user (see IsSystem).
+ *
+ * @param {uuid} pMember - User ID (default: current user)
+ * @return {boolean}
+ * @see IsAdmin, IsSystem
+ * @since 1.2.39
+ */
+CREATE OR REPLACE FUNCTION IsAdminOrBot (
+  pMember   uuid DEFAULT current_userid()
+) RETURNS   boolean
+AS $$
+BEGIN
+  IF pMember IS NULL THEN
+    RETURN false;
+  END IF;
+
+  IF IsAdmin(pMember) THEN
+    RETURN true;
+  END IF;
+
+  RETURN EXISTS (SELECT FROM db.user WHERE id = pMember AND type = 'U' AND lower(username) = 'apibot');
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   STABLE
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- is_admin --------------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
