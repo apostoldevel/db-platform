@@ -102,6 +102,7 @@ CREATE INDEX ON db.object_text USING GIN (searchable_ru);
  * @param {trigger} NEW - Incoming object row
  * @return {trigger} - Modified NEW row with resolved class, entity, scope, and timestamps
  * @throws AbstractError - When the resolved class is abstract
+ * @throws AccessDenied - When the session holds no create bit ('c') on the class, outside the kernel connection (1.2.39)
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION db.ft_object_before_insert()
@@ -118,6 +119,18 @@ BEGIN
 
   IF bAbstract THEN
     PERFORM AbstractError();
+  END IF;
+
+  -- The create bit of the class ACU ({acsud}, 'c'). Update and delete are held
+  -- per object by db.aou; creation has no object yet, so the class is the only
+  -- place to ask. Same exemption as ft_object_before_update: the kernel and
+  -- postgres connections are the installer and the patches, whatever session
+  -- they hold. An unknown type leaves NEW.class NULL: a NOT NULL violation
+  -- (entity/class) reports that, not this check.
+  IF NEW.class IS NOT NULL AND session_user NOT IN ('kernel', 'postgres') THEN
+    IF NOT CheckClassAccess(NEW.class, B'01000') THEN
+      PERFORM AccessDenied();
+    END IF;
   END IF;
 
   SELECT type INTO NEW.state_type FROM db.state WHERE id = NEW.state;
