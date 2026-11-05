@@ -462,6 +462,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * @brief Send an SMS to the current user's verified phone number.
+ *        A system caller's work is done as the user apibot and the session is put back afterwards
+ *        (as in api.send_mail).
  * @param {text} pProfile - SMS sender address / profile
  * @param {text} pMessage - SMS text content
  * @param {uuid} pUserId - Target user (defaults to current user)
@@ -494,7 +496,7 @@ BEGIN
 
   IF IsUserRole(GetGroup('system'), session_userid()) THEN
     SELECT secret INTO vOAuthSecret FROM oauth2.audience WHERE code = session_username();
-    PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
+    PERFORM SubstituteUser(GetUser('apibot'), vOAuthSecret);
   END IF;
 
   SELECT name, phone, phone_verified, locale INTO vName, vPhone, bVerified
@@ -511,6 +513,10 @@ BEGIN
 
   uMessageId := SendSMS(null, pProfile, pMessage, pUserId);
 
+  IF vOAuthSecret IS NOT NULL THEN
+    PERFORM SubstituteUser(session_userid(), vOAuthSecret);
+  END IF;
+
   RETURN QUERY SELECT * FROM api.message WHERE id = uMessageId;
 END
 $$ LANGUAGE plpgsql
@@ -522,6 +528,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * @brief Send a push notification to a user via FCM.
+ *        A system caller's work is done as the user apibot and the session is put back afterwards
+ *        (as in api.send_mail).
  * @param {uuid} pObject - Context object for event logging
  * @param {text} pTitle - Notification title
  * @param {text} pBody - Notification body text
@@ -556,10 +564,14 @@ BEGIN
 
   IF IsUserRole(GetGroup('system'), session_userid()) THEN
     SELECT secret INTO vOAuthSecret FROM oauth2.audience WHERE code = session_username();
-    PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
+    PERFORM SubstituteUser(GetUser('apibot'), vOAuthSecret);
   END IF;
 
   uMessageId := SendPush(pObject, pTitle, pBody, pUserId, pData, pAndroid, pApns);
+
+  IF vOAuthSecret IS NOT NULL THEN
+    PERFORM SubstituteUser(session_userid(), vOAuthSecret);
+  END IF;
 
   RETURN QUERY SELECT * FROM api.message WHERE id = uMessageId;
 END
@@ -572,6 +584,8 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * @brief Send a data-only push notification via FCM (no visible notification).
+ *        A system caller's work is done as the user apibot and the session is put back afterwards
+ *        (as in api.send_mail).
  * @param {uuid} pObject - Context object for event logging
  * @param {text} pSubject - Subject for logging
  * @param {json} pData - Data payload
@@ -604,10 +618,14 @@ BEGIN
 
   IF IsUserRole(GetGroup('system'), session_userid()) THEN
     SELECT secret INTO vOAuthSecret FROM oauth2.audience WHERE code = session_username();
-    PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
+    PERFORM SubstituteUser(GetUser('apibot'), vOAuthSecret);
   END IF;
 
   uMessageId := SendPushData(pObject, pSubject, pData, pUserId, pPriority, pCollapse);
+
+  IF vOAuthSecret IS NOT NULL THEN
+    PERFORM SubstituteUser(session_userid(), vOAuthSecret);
+  END IF;
 
   RETURN QUERY SELECT * FROM api.message WHERE id = uMessageId;
 END

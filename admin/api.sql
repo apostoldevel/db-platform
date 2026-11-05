@@ -191,9 +191,13 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * @brief Substitute user. Switches the current user in the active session to the specified user.
+ *        The administrator only; the substitute bit alone does not let a caller in. The subject is
+ *        the effective user (IsAdmin()): a session substituted to an administrator passes.
+ *        A kernel connection is not refused.
  * @param {text} pUserName - User name to substitute
  * @param {text} pPassword - Current user password
  * @return {void}
+ * @throws AccessDenied - When the caller is not an administrator
  * @see SubstituteUser
  * @since 1.0.0
  */
@@ -203,6 +207,10 @@ CREATE OR REPLACE FUNCTION api.su (
 ) RETURNS       void
 AS $$
 BEGIN
+  IF session_user <> 'kernel' AND NOT IsAdmin() THEN
+    PERFORM AccessDenied();
+  END IF;
+
   PERFORM SubstituteUser(pUserName, pPassword);
 END;
 $$ LANGUAGE plpgsql
@@ -930,7 +938,7 @@ BEGIN
     SELECT a.secret INTO vOAuthSecret FROM oauth2.audience a WHERE a.code = session_username();
 
     IF FOUND THEN
-      PERFORM SubstituteUser(GetUser('admin'), vOAuthSecret);
+      PERFORM SubstituteUser(GetUser('apibot'), vOAuthSecret);
       PERFORM SetPassword(uUserId, pPassword);
       PERFORM SubstituteUser(session_userid(), vOAuthSecret);
     ELSE

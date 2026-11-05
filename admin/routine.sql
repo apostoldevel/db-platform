@@ -3597,11 +3597,21 @@ $$ LANGUAGE plpgsql
 /**
  * @brief Substitutes the active user in the current session with another user.
  *        Requires the 'substitute user' ACL bit and the current user's password.
+ *
+ * A session issued to a public application (oauth2.application type W, web, or N,
+ * native), or a session of any audience that belongs to the user of such a client,
+ * may go only
+ * to the user apibot or back to its own owner (suid); the ACL bit and the password
+ * are checked as for any session. These are the two targets the guest routes use:
+ * the helper user and the way back.
+ *
+ * The check keys on session_user like the ACL check before it: the kernel is exempt.
+ *
  * @param {uuid} pUserId - Target user identifier to switch to
  * @param {text} pPassword - Current user's password for verification
  * @param {varchar} pSession - Session code (defaults to current session)
  * @return {void}
- * @throws ACCESS_DENIED if caller lacks substitute permission
+ * @throws ACCESS_DENIED if caller lacks substitute permission, or a public-application session names another target
  * @throws ERR-40300 if password verification fails
  * @since 1.0.0
  */
@@ -3615,6 +3625,26 @@ BEGIN
   IF session_user <> 'kernel' THEN
     IF NOT CheckAccessControlList(B'00010000000000000', session_userid(pSession)) THEN
       PERFORM AccessDenied();
+    END IF;
+
+    IF EXISTS (SELECT 1
+                 FROM db.session s
+                      INNER JOIN db.oauth2 o ON o.id = s.oauth2
+                      INNER JOIN oauth2.audience a ON a.id = o.audience
+                      INNER JOIN oauth2.application p ON p.id = a.application
+                WHERE s.code = pSession
+                  AND p.type IN ('W', 'N'))
+       OR EXISTS (SELECT 1
+                    FROM db.user u
+                         INNER JOIN oauth2.audience b ON b.code = u.username
+                         INNER JOIN oauth2.application q ON q.id = b.application
+                   WHERE u.id = session_userid(pSession)
+                     AND u.type = 'U'
+                     AND q.type IN ('W', 'N')) THEN
+      IF pUserId IS DISTINCT FROM session_userid(pSession)
+         AND NOT EXISTS (SELECT 1 FROM db.user WHERE id = pUserId AND type = 'U' AND lower(username) = 'apibot') THEN
+        PERFORM AccessDenied();
+      END IF;
     END IF;
   END IF;
 
