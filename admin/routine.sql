@@ -3592,15 +3592,64 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- FUNCTION IsPublicClientSession ----------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Tells a session of a public application from every other one.
+ *
+ * True for a session issued to a public application (oauth2.application type W, web,
+ * or N, native), and for a session of any audience whose owner (suid) is the user of
+ * such a client.
+ *
+ * It keys on the owner (suid) and on the audience (oauth2) of the session. SubstituteUser
+ * changes neither, so a public session stays public after it has stepped to another user,
+ * apibot included.
+ *
+ * What a public client may do is limited by this function in two places that must
+ * agree: SubstituteUser (the targets) and the gates of api.send_message / send_mail /
+ * send_sms / send_push / send_push_data (the sending).
+ *
+ * It answers false when nothing says the session is public: a NULL or an unknown session
+ * code included. Use it as a condition to deny, never as a condition to allow.
+ *
+ * @param {varchar} pSession - Session code (defaults to the current session)
+ * @return {boolean} - true for a session of a public application; false (never NULL) otherwise
+ * @see SubstituteUser
+ * @since 1.2.39
+ */
+CREATE OR REPLACE FUNCTION IsPublicClientSession (
+  pSession      varchar DEFAULT current_session()
+) RETURNS       boolean
+AS $$
+BEGIN
+  RETURN EXISTS (SELECT 1
+                   FROM db.session s
+                        INNER JOIN db.oauth2 o ON o.id = s.oauth2
+                        INNER JOIN oauth2.audience a ON a.id = o.audience
+                        INNER JOIN oauth2.application p ON p.id = a.application
+                  WHERE s.code = pSession
+                    AND p.type IN ('W', 'N'))
+      OR EXISTS (SELECT 1
+                   FROM db.user u
+                        INNER JOIN oauth2.audience b ON b.code = u.username
+                        INNER JOIN oauth2.application q ON q.id = b.application
+                  WHERE u.id = session_userid(pSession)
+                    AND u.type = 'U'
+                    AND q.type IN ('W', 'N'));
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- FUNCTION SubstituteUser -----------------------------------------------------
 --------------------------------------------------------------------------------
 /**
  * @brief Substitutes the active user in the current session with another user.
  *        Requires the 'substitute user' ACL bit and the current user's password.
  *
- * A session issued to a public application (oauth2.application type W, web, or N,
- * native), or a session of any audience that belongs to the user of such a client,
- * may go only
+ * A session of a public application (IsPublicClientSession: issued to a web or
+ * native client, or owned by the user of one) may go only
  * to the user apibot or back to its own owner (suid); the ACL bit and the password
  * are checked as for any session. These are the two targets the guest routes use:
  * the helper user and the way back.
@@ -3627,20 +3676,7 @@ BEGIN
       PERFORM AccessDenied();
     END IF;
 
-    IF EXISTS (SELECT 1
-                 FROM db.session s
-                      INNER JOIN db.oauth2 o ON o.id = s.oauth2
-                      INNER JOIN oauth2.audience a ON a.id = o.audience
-                      INNER JOIN oauth2.application p ON p.id = a.application
-                WHERE s.code = pSession
-                  AND p.type IN ('W', 'N'))
-       OR EXISTS (SELECT 1
-                    FROM db.user u
-                         INNER JOIN oauth2.audience b ON b.code = u.username
-                         INNER JOIN oauth2.application q ON q.id = b.application
-                   WHERE u.id = session_userid(pSession)
-                     AND u.type = 'U'
-                     AND q.type IN ('W', 'N')) THEN
+    IF IsPublicClientSession(pSession) THEN
       IF pUserId IS DISTINCT FROM session_userid(pSession)
          AND NOT EXISTS (SELECT 1 FROM db.user WHERE id = pUserId AND type = 'U' AND lower(username) = 'apibot') THEN
         PERFORM AccessDenied();

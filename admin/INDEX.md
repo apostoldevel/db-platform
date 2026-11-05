@@ -141,6 +141,8 @@ User management, authentication, authorization, sessions, and access control. Th
 
 `acl`, `GetAccessControlListMask`, `CheckAccessControlList`, `chmod`, `SubstituteUser`, `IsUserRole`, `IsAdmin`, `IsAdminOrBot` (1.2.39), `is_admin`, `EnterSystemContext`, `LeaveSystemContext`.
 
+`IsPublicClientSession(pSession)` (1.2.39) — true for a session issued to a public application (`oauth2.application` type `W` web or `N` native) and for a session of any audience whose owner is the user of such a client; false, never `NULL`, for every other one. Two places use the predicate and must agree: `SubstituteUser` (a session of a public client goes only to `apibot` or back to its own owner) and the gates of `api.send_message` / `send_mail` / `send_sms` / `send_push` / `send_push_data` (see [document](../entity/object/document/INDEX.md): such a session sends only as a member of group `message`).
+
 `EnterSystemContext` / `LeaveSystemContext` are a pair: server-side code that must
 act with more authority than its caller signs in as the system client, substitutes
 a user, and hands everything back. Restoring is the caller's job and belongs in an

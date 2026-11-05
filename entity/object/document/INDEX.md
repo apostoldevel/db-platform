@@ -147,6 +147,8 @@ Standard 9 + `EventJobExecute`, `EventJobComplete`, `EventJobDone` (reschedule),
 
 Standard CRUD + `api.send_message`, `api.send_mail`, `api.send_sms`, `api.send_push`, `api.send_push_data`, `api.send_push_to_role` (broadcast), `api.send_push_all`.
 
+**Gate of the five `send_*`** (`send_message`, `send_mail`, `send_sms`, `send_push`, `send_push_data`): a member of group `message` passes on any session (an administrator of a web interface holds a session of a public client, type `W`); a caller in group `system` passes only when its session is not a public-client session (`IsPublicClientSession()`, see [admin](../../../admin/INDEX.md)); `session_user = 'kernel'` skips the gate. Server-side callers (the service and system clients) send through `system`. A caller in group `system` has `send_mail`, `send_sms`, `send_push` and `send_push_data` done as `apibot` (the session steps to `apibot` and back to its owner afterwards); a member of `message` outside `system` sends as itself. `send_push_to_role` lets in only `message` (and `kernel`).
+
 ### REST Routes — 14+
 
 `/message/type`, `/method`, `/count`, `/set`, `/get`, `/list`, `/send`, `/send/mail`, `/send/sms`, `/send/push`, `/send/push/data`, `/send/push/to/role`, `/send/push/all` + dynamic methods.

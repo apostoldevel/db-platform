@@ -341,7 +341,8 @@ $$ LANGUAGE plpgsql
  * @param {text} pLabel - Display label
  * @param {text} pDescription - Description
  * @return {SETOF api.message} - The sent message record
- * @throws AccessDenied - When the caller is neither in the 'message' group nor a system caller
+ * @throws AccessDenied - When the caller is not in the 'message' group and is not a server-side system caller; a session of a public application (IsPublicClientSession) sends only as a member of 'message'
+ * @see IsPublicClientSession
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.send_message (
@@ -361,9 +362,12 @@ BEGIN
   -- T783: the REST route is open to any logged-in user (rest.message checks only
   -- the session); without this guard a self-registered driver relays arbitrary
   -- mail through the brand SMTP profile. Same idiom as api.send_push_to_role,
-  -- extended with the 'system' group for SubstituteUser-style callers.
+  -- extended with the 'system' group for the server-side callers (the service and
+  -- system clients). Not for a session of a public application (web, android):
+  -- it sends only as a member of 'message'.
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(GetGroup('message')) AND NOT IsUserRole(GetGroup('system'), session_userid()) THEN
+    IF NOT IsUserRole(GetGroup('message'))
+       AND (NOT IsUserRole(GetGroup('system'), session_userid()) OR IsPublicClientSession()) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -388,7 +392,8 @@ $$ LANGUAGE plpgsql
  * @return {SETOF api.message} - The sent email message record
  * @throws EmailAddressNotSet - When the user has no email
  * @throws EmailAddressNotVerified - When the email is not verified
- * @throws AccessDenied - When the caller is neither in the 'message' group nor a system caller
+ * @throws AccessDenied - When the caller is not in the 'message' group and is not a server-side system caller; a session of a public application (IsPublicClientSession) sends only as a member of 'message'
+ * @see IsPublicClientSession
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.send_mail (
@@ -413,9 +418,12 @@ DECLARE
 BEGIN
   -- T783: guard before the SubstituteUser branch below, while session_userid()
   -- is still the login user. Idiom of api.send_push_to_role, extended with the
-  -- 'system' group which this body's first branch serves.
+  -- 'system' group which this body's first branch serves — for the server-side
+  -- callers only: a session of a public application is not let in by that group
+  -- (see api.send_message).
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(GetGroup('message')) AND NOT IsUserRole(GetGroup('system'), session_userid()) THEN
+    IF NOT IsUserRole(GetGroup('message'))
+       AND (NOT IsUserRole(GetGroup('system'), session_userid()) OR IsPublicClientSession()) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -470,7 +478,8 @@ $$ LANGUAGE plpgsql
  * @return {SETOF api.message} - The sent SMS message record
  * @throws PhoneNumberNotSet - When the user has no phone number
  * @throws PhoneNumberNotVerified - When the phone is not verified
- * @throws AccessDenied - When the caller is neither in the 'message' group nor a system caller
+ * @throws AccessDenied - When the caller is not in the 'message' group and is not a server-side system caller; a session of a public application (IsPublicClientSession) sends only as a member of 'message'
+ * @see IsPublicClientSession
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.send_sms (
@@ -488,8 +497,10 @@ DECLARE
   vOAuthSecret  text;
 BEGIN
   -- T783: guard before the SubstituteUser branch below (see api.send_mail).
+  -- A session of a public application is not let in by group 'system'.
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(GetGroup('message')) AND NOT IsUserRole(GetGroup('system'), session_userid()) THEN
+    IF NOT IsUserRole(GetGroup('message'))
+       AND (NOT IsUserRole(GetGroup('system'), session_userid()) OR IsPublicClientSession()) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -538,7 +549,8 @@ $$ LANGUAGE plpgsql
  * @param {jsonb} pAndroid - Android-specific options
  * @param {jsonb} pApns - APNs-specific options
  * @return {SETOF api.message} - The sent push message record
- * @throws AccessDenied - When the caller is neither in the 'message' group nor a system caller
+ * @throws AccessDenied - When the caller is not in the 'message' group and is not a server-side system caller; a session of a public application (IsPublicClientSession) sends only as a member of 'message'
+ * @see IsPublicClientSession
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.send_push (
@@ -556,8 +568,10 @@ DECLARE
   vOAuthSecret  text;
 BEGIN
   -- T783: guard before the SubstituteUser branch below (see api.send_mail).
+  -- A session of a public application is not let in by group 'system'.
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(GetGroup('message')) AND NOT IsUserRole(GetGroup('system'), session_userid()) THEN
+    IF NOT IsUserRole(GetGroup('message'))
+       AND (NOT IsUserRole(GetGroup('system'), session_userid()) OR IsPublicClientSession()) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
@@ -593,7 +607,8 @@ $$ LANGUAGE plpgsql
  * @param {text} pPriority - Android priority ('normal' or 'high')
  * @param {text} pCollapse - Collapse key for grouping
  * @return {SETOF api.message} - The sent push message record
- * @throws AccessDenied - When the caller is neither in the 'message' group nor a system caller
+ * @throws AccessDenied - When the caller is not in the 'message' group and is not a server-side system caller; a session of a public application (IsPublicClientSession) sends only as a member of 'message'
+ * @see IsPublicClientSession
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.send_push_data (
@@ -610,8 +625,10 @@ DECLARE
   vOAuthSecret  text;
 BEGIN
   -- T783: guard before the SubstituteUser branch below (see api.send_mail).
+  -- A session of a public application is not let in by group 'system'.
   IF session_user <> 'kernel' THEN
-    IF NOT IsUserRole(GetGroup('message')) AND NOT IsUserRole(GetGroup('system'), session_userid()) THEN
+    IF NOT IsUserRole(GetGroup('message'))
+       AND (NOT IsUserRole(GetGroup('system'), session_userid()) OR IsPublicClientSession()) THEN
       PERFORM AccessDenied();
     END IF;
   END IF;
