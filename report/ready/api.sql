@@ -85,6 +85,12 @@ CREATE OR REPLACE FUNCTION api.add_report_ready (
 ) RETURNS       uuid
 AS $$
 BEGIN
+  -- Reports are written and built by the platform administrator alone. A kernel connection is not refused here
+  -- (as for program, job, scheduler); the data lock still applies to it.
+  IF session_user <> 'kernel' AND NOT IsAdmin() THEN
+    PERFORM AccessDenied();
+  END IF;
+
   RETURN CreateReportReady(pParent, coalesce(pType, GetType('sync.report_ready')), pReport, pForm, pLabel, pDescription);
 END;
 $$ LANGUAGE plpgsql
@@ -118,6 +124,12 @@ CREATE OR REPLACE FUNCTION api.update_report_ready (
 ) RETURNS       void
 AS $$
 BEGIN
+  -- Reports are written and built by the platform administrator alone. A kernel connection is not refused here
+  -- (as for program, job, scheduler); the data lock still applies to it.
+  IF session_user <> 'kernel' AND NOT IsAdmin() THEN
+    PERFORM AccessDenied();
+  END IF;
+
   PERFORM FROM db.report_ready c WHERE c.id = pId;
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('report ready', 'id', pId);
@@ -155,6 +167,12 @@ CREATE OR REPLACE FUNCTION api.set_report_ready (
 ) RETURNS       SETOF api.report_ready
 AS $$
 BEGIN
+  -- Reports are written and built by the platform administrator alone. A kernel connection is not refused here
+  -- (as for program, job, scheduler); the data lock still applies to it.
+  IF session_user <> 'kernel' AND NOT IsAdmin() THEN
+    PERFORM AccessDenied();
+  END IF;
+
   IF pId IS NULL THEN
     pId := api.add_report_ready(pParent, pType, pReport, pForm, pLabel, pDescription);
   ELSE
@@ -254,6 +272,12 @@ AS $$
 DECLARE
   uId       uuid;
 BEGIN
+  -- Reports are written and built by the platform administrator alone. A kernel connection is not refused here
+  -- (as for program, job, scheduler); the data lock still applies to it.
+  IF session_user <> 'kernel' AND NOT IsAdmin() THEN
+    PERFORM AccessDenied();
+  END IF;
+
   uId := BuildReport(pReport, GetType('sync.report_ready'), pForm);
   RETURN QUERY SELECT * FROM api.report_ready WHERE id = uId;
 END;
@@ -276,6 +300,14 @@ CREATE OR REPLACE FUNCTION api.execute_report_ready (
 ) RETURNS   void
 AS $$
 BEGIN
+  -- Reports are written and built by the platform administrator alone. A kernel connection is not refused here
+  -- (as for program, job, scheduler); the data lock still applies to it.
+  -- The executor calls this in the session that asked for the build (an administrator) and, on its poll fallback and
+  -- after a restart, in the bot session of apibot: IsAdmin() is false for the bot, so the bot is let through by name.
+  IF session_user <> 'kernel' AND NOT IsAdmin() AND current_userid() IS DISTINCT FROM GetUser('apibot') THEN
+    PERFORM AccessDenied();
+  END IF;
+
   PERFORM ExecuteReportReady(pId);
 END;
 $$ LANGUAGE plpgsql

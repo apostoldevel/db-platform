@@ -36,6 +36,12 @@ CREATE OR REPLACE FUNCTION api.add_report_form (
 ) RETURNS       uuid
 AS $$
 BEGIN
+  -- Reports are written and built by the platform administrator alone. A kernel connection is not refused here
+  -- (as for program, job, scheduler); the data lock still applies to it.
+  IF session_user <> 'kernel' AND NOT IsAdmin() THEN
+    PERFORM AccessDenied();
+  END IF;
+
   RETURN CreateReportForm(pParent, coalesce(pType, GetType('json.report_form')), pCode, pName, pDefinition, pDescription);
 END;
 $$ LANGUAGE plpgsql
@@ -69,6 +75,12 @@ CREATE OR REPLACE FUNCTION api.update_report_form (
 ) RETURNS       void
 AS $$
 BEGIN
+  -- Reports are written and built by the platform administrator alone. A kernel connection is not refused here
+  -- (as for program, job, scheduler); the data lock still applies to it.
+  IF session_user <> 'kernel' AND NOT IsAdmin() THEN
+    PERFORM AccessDenied();
+  END IF;
+
   PERFORM FROM db.report_form WHERE id = pId;
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('report form', 'id', pId);
@@ -106,6 +118,12 @@ CREATE OR REPLACE FUNCTION api.set_report_form (
 ) RETURNS       SETOF api.report_form
 AS $$
 BEGIN
+  -- Reports are written and built by the platform administrator alone. A kernel connection is not refused here
+  -- (as for program, job, scheduler); the data lock still applies to it.
+  IF session_user <> 'kernel' AND NOT IsAdmin() THEN
+    PERFORM AccessDenied();
+  END IF;
+
   pId := coalesce(pId, GetReportForm(pCode));
 
   IF pId IS NULL THEN
@@ -207,6 +225,11 @@ AS $$
 DECLARE
   uForm     uuid;
 BEGIN
+  -- Only the administrator asks for a form. A kernel connection is not refused here (as for program, job, scheduler).
+  IF session_user <> 'kernel' AND NOT IsAdmin() THEN
+    PERFORM AccessDenied();
+  END IF;
+
   SELECT id INTO uForm FROM db.report_form WHERE id = pId;
 
   IF NOT FOUND THEN

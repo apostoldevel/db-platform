@@ -68,6 +68,12 @@ CREATE OR REPLACE FUNCTION api.add_report (
 ) RETURNS       uuid
 AS $$
 BEGIN
+  -- Reports are written and built by the platform administrator alone. A kernel connection is not refused here
+  -- (as for program, job, scheduler); the data lock still applies to it.
+  IF session_user <> 'kernel' AND NOT IsAdmin() THEN
+    PERFORM AccessDenied();
+  END IF;
+
   RETURN CreateReport(pParent, coalesce(pType, GetType('report.report')), pTree, pForm, pBinding, pCode, pName, pDescription, pInfo);
 END;
 $$ LANGUAGE plpgsql
@@ -107,6 +113,12 @@ CREATE OR REPLACE FUNCTION api.update_report (
 ) RETURNS       void
 AS $$
 BEGIN
+  -- Reports are written and built by the platform administrator alone. A kernel connection is not refused here
+  -- (as for program, job, scheduler); the data lock still applies to it.
+  IF session_user <> 'kernel' AND NOT IsAdmin() THEN
+    PERFORM AccessDenied();
+  END IF;
+
   PERFORM FROM db.report WHERE id = pId;
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('report', 'id', pId);
@@ -150,6 +162,12 @@ CREATE OR REPLACE FUNCTION api.set_report (
 ) RETURNS       SETOF api.report
 AS $$
 BEGIN
+  -- Reports are written and built by the platform administrator alone. A kernel connection is not refused here
+  -- (as for program, job, scheduler); the data lock still applies to it.
+  IF session_user <> 'kernel' AND NOT IsAdmin() THEN
+    PERFORM AccessDenied();
+  END IF;
+
   pId := coalesce(pId, GetReport(pCode));
 
   IF pId IS NULL THEN

@@ -40,6 +40,12 @@ CREATE OR REPLACE FUNCTION api.add_report_tree (
 ) RETURNS       uuid
 AS $$
 BEGIN
+  -- Reports are written and built by the platform administrator alone. A kernel connection is not refused here
+  -- (as for program, job, scheduler); the data lock still applies to it.
+  IF session_user <> 'kernel' AND NOT IsAdmin() THEN
+    PERFORM AccessDenied();
+  END IF;
+
   RETURN CreateReportTree(pParent, coalesce(pType, GetType('report.report_tree')), pRoot, pNode, pCode, pName, pDescription, pSequence);
 END;
 $$ LANGUAGE plpgsql
@@ -77,6 +83,12 @@ CREATE OR REPLACE FUNCTION api.update_report_tree (
 ) RETURNS       void
 AS $$
 BEGIN
+  -- Reports are written and built by the platform administrator alone. A kernel connection is not refused here
+  -- (as for program, job, scheduler); the data lock still applies to it.
+  IF session_user <> 'kernel' AND NOT IsAdmin() THEN
+    PERFORM AccessDenied();
+  END IF;
+
   PERFORM FROM db.report_tree WHERE id = pId;
   IF NOT FOUND THEN
     PERFORM ObjectNotFound('report tree', 'id', pId);
@@ -118,6 +130,12 @@ CREATE OR REPLACE FUNCTION api.set_report_tree (
 ) RETURNS       SETOF api.report_tree
 AS $$
 BEGIN
+  -- Reports are written and built by the platform administrator alone. A kernel connection is not refused here
+  -- (as for program, job, scheduler); the data lock still applies to it.
+  IF session_user <> 'kernel' AND NOT IsAdmin() THEN
+    PERFORM AccessDenied();
+  END IF;
+
   pId := coalesce(pId, GetReportTree(pCode));
 
   IF pId IS NULL THEN
