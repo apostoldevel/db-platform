@@ -58,7 +58,7 @@ The entry points are `daemon.begin` / `daemon.call` / `daemon.end` (see `daemon/
 
 | Function | Returns | Purpose |
 |----------|---------|---------|
-| `GuardSession(pPath, pPayload, pMethod)` | `boolean` | Route guard: an open session that is **not** a member of `system` (the service audience is obtainable without a secret; a route `system` needs gets a guard of its own) |
+| `GuardSession(pPath, pPayload, pMethod)` | `boolean` | Route guard: an open session that is **not** a member of `system` (a system session reads what an administrator reads in several places — files, registry; a route `system` needs gets a guard of its own) |
 | `GuardAdministrator(…)` | `boolean` | Route guard: `IsAdmin()` — the `/api/v2` twin of the check at the top of `rest.admin` / `rest.workflow` / `rest.registry` |
 | `GuardRead(…)` | `boolean` | Route guard for a platform reference: `GET` → `GuardSession`, anything else → `GuardAdministrator` |
 | `RegisterRouteGuard(pPrefix, pGuard, pMethods[], pVersion = 'v2')` | `void` | Declares the guard of `/api/<version>/<prefix>` for exactly the methods given. The prefix is plain segments (`a-z0-9_-`): a guard decides for its **whole subtree** — `QueryPath` stops at the first segment it does not know, so `vessels/{id}/x` is judged by the guard of `vessels`. Re-runnable and declarative: one endpoint per (path, method), a repeat replaces its definition, a method left out loses its route. `RegisterRoute` is not re-runnable (a repeat adds a second row for the pair) |

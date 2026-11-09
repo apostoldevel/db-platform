@@ -4,11 +4,8 @@
 -- db.file.mask: the default no longer grants read to "other".
 --
 -- Until now nothing read the mask at all: api.get_file returned any file to
--- any valid session, and FileServer served it (a valid session of another
--- tenant reads the file; the same hole in the C++14 CFileServer and in every
--- project on this platform). update.psql of
--- this version brings the barrier — GetFileMask / CheckFileAccess in
--- file/routine.sql, wired into api.get_file — which reads the mask as
+-- any valid session. update.psql of this version brings the barrier —
+-- GetFileMask / CheckFileAccess in file/routine.sql, wired into api.get_file — which reads the mask as
 -- {owner:rwx}{group:rwx}{other:rwx}, "group" being the branch of the area
 -- tree (one tenant). With the old default B'111110100' the third segment
 -- grants read, and a valid session of another tenant would still pass. The

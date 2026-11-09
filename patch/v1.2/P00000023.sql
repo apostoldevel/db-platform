@@ -5,8 +5,8 @@
 --
 -- Until now a channel had one counter and one log, and mq.queue(peer, channel)
 -- handed a node everything this node had published on the lane after that
--- node's cursor. On a hub serving many edge nodes that is one ship's evidence
--- and accounts going to every other ship.
+-- node's cursor. On a hub serving many edge nodes that is one edge node's
+-- records going to every other node.
 -- Filtering at delivery is not a fix: the receiver's cursor moves over an
 -- unbroken run of serials, so the numbers filtered out become gaps it waits
 -- on for ever — and on an evidential lane no floor may step over them.

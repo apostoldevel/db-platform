@@ -1465,7 +1465,7 @@ BEGIN
     -- broke halfway does not -- and that is exactly the case the honest-looking
     -- claim would destroy: the batch [1,3,4,6..100] with 6..100 lost to a
     -- dropped link would move the cursor to 100 and those records would never
-    -- be asked for again. On this channel, records means the ship's log.
+    -- be asked for again.
     --
     -- "channel" cannot be checked that way -- the receiver owns nothing down
     -- there, that is the whole claim -- so it is honoured only when there is

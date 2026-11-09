@@ -133,9 +133,8 @@ $$ LANGUAGE plpgsql
  * @brief Route guard: any open session, except a member of system. Rows are
  *        decided further down, by Access<X> in the functions the route reaches.
  *
- *        system is kept out by default: the service audience is obtainable
- *        without a secret, and a system session reads what
- *        an administrator reads in several places (files, registry). A route a
+ *        system is kept out by default: a system session reads what an
+ *        administrator reads in several places (files, registry). A route a
  *        system session needs gets a guard of its own, by name.
  * @param {text} pPath - Path after /api/v2
  * @param {jsonb} pPayload - Request body

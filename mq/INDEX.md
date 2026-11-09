@@ -190,7 +190,7 @@ rare case:
 
 Drop the check and a batch of `[1,3,4,6…100]` that lost everything after 4 to a dropped link moves
 the cursor to 100: records 6…100 are never asked for again, `confirm` moves `sent` past them, and
-they are gone. On this channel "records" means the ship's log. Found on the second review pass,
+they are gone. Found on the second review pass,
 before the module was committed.
 
 **A session that never declares a floor fails, rather than merely showing up in a table.** It
