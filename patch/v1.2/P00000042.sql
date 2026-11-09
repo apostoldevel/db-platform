@@ -21,8 +21,8 @@
 --   * a user outside the group user (a guest, a role removed from user) no longer creates documents under its own
 --     session; a road that did so without the system substitution fails, and a caller that swallows the error
 --     fails silently.
--- A connection with no platform session (current_userid() NULL: the daemon, apibot, ocpp pools before a session is set) that
--- inserted an object failed on db.object.owner NOT NULL; it now gets ERR-400-001 first.
+-- A connection with no platform session (current_userid() NULL: the daemon and apibot pools before a session is set)
+-- that inserted an object failed on db.object.owner NOT NULL; it now gets ERR-400-001 first.
 --
 -- The trigger t_object_before_insert exists; only its function is replaced. The text is the text of
 -- entity/object/table.sql, byte for byte (update.psql does not reload table.sql -- hence this patch). Kernel phase, no
