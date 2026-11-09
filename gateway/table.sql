@@ -18,20 +18,20 @@ CREATE TABLE gateway.node (
     PRIMARY KEY (module, instance)
 );
 
-COMMENT ON TABLE gateway.node IS 'One row per registered /api/v2 module instance (track-a-gateway.md §5). Written only by the GatewayAPI worker holding the instance''s control socket, and only on a state transition — `seen` moves once per heartbeat interval, not per heartbeat. Rows are never deleted by the database: a dead instance is marked offline by the workers'' sweep.';
+COMMENT ON TABLE gateway.node IS 'One row per registered /api/v2 module instance. Written only by the GatewayAPI worker holding the instance''s control socket, and only on a state transition — `seen` moves once per heartbeat interval, not per heartbeat. Rows are never deleted by the database: a dead instance is marked offline by the workers'' sweep.';
 
-COMMENT ON COLUMN gateway.node.module     IS 'Module name from /register (contract К4).';
-COMMENT ON COLUMN gateway.node.instance   IS 'Instance name from /register; a second socket with the same (module, instance) replaces the first (contract К2, gateway.log reason = replaced).';
+COMMENT ON COLUMN gateway.node.module     IS 'Module name from /register.';
+COMMENT ON COLUMN gateway.node.instance   IS 'Instance name from /register; a second socket with the same (module, instance) replaces the first (gateway.log reason = replaced).';
 COMMENT ON COLUMN gateway.node.version    IS 'Module version string, informational.';
-COMMENT ON COLUMN gateway.node.address    IS 'host:port of the data plane the gateway forwards to (contract К7).';
+COMMENT ON COLUMN gateway.node.address    IS 'host:port of the data plane the gateway forwards to.';
 COMMENT ON COLUMN gateway.node.prefixes   IS 'Path prefixes under /api/v2 this instance serves.';
-COMMENT ON COLUMN gateway.node.state      IS 'ready | draining | suspect | offline | overloaded — contract К8; only ready is in rotation.';
+COMMENT ON COLUMN gateway.node.state      IS 'ready | draining | suspect | offline | overloaded; only ready is in rotation.';
 COMMENT ON COLUMN gateway.node.capacity   IS 'Declared concurrency, informational for the rotation.';
 COMMENT ON COLUMN gateway.node.worker     IS 'pid of the gateway worker holding the control socket.';
 COMMENT ON COLUMN gateway.node.registered IS 'When this (module, instance) was last (re)registered.';
 COMMENT ON COLUMN gateway.node.seen       IS 'Last heartbeat, one write per interval.';
 COMMENT ON COLUMN gateway.node.updated    IS 'Last state change.';
-COMMENT ON COLUMN gateway.node.node       IS 'Identity of the gateway process holding the control socket, unique across pods and containers (T592): a pid alone repeats between them. NULL — the row was inserted by a binary that does not know the column; such a binary re-registering a row leaves the previous holder''s value in place.';
+COMMENT ON COLUMN gateway.node.node       IS 'Identity of the gateway process holding the control socket, unique across pods and containers: a pid alone repeats between them. NULL — the row was inserted by a binary that does not know the column; such a binary re-registering a row leaves the previous holder''s value in place.';
 
 CREATE INDEX ON gateway.node (state);
 
@@ -51,9 +51,9 @@ CREATE TABLE gateway.log (
     node        text
 );
 
-COMMENT ON TABLE gateway.log IS 'Journal of instance state transitions (track-a-gateway.md §5): one row per transition, written by the trigger below from every INSERT / state UPDATE / DELETE on gateway.node. `reason` is what the worker put into the row (replaced, socket closed, heartbeat timeout, …).';
+COMMENT ON TABLE gateway.log IS 'Journal of instance state transitions: one row per transition, written by the trigger below from every INSERT / state UPDATE / DELETE on gateway.node. `reason` is what the worker put into the row (replaced, socket closed, heartbeat timeout, …).';
 
-COMMENT ON COLUMN gateway.log.node IS 'gateway.node.node of the row at the transition (T592) — the process holding the instance, like `worker` its pid; not necessarily the one that wrote it (a sweep by another worker keeps the holder). NULL when the row carried none (inserted by a binary that does not know the column).';
+COMMENT ON COLUMN gateway.log.node IS 'gateway.node.node of the row at the transition — the process holding the instance, like `worker` its pid; not necessarily the one that wrote it (a sweep by another worker keeps the holder). NULL when the row carried none (inserted by a binary that does not know the column).';
 
 CREATE INDEX ON gateway.log (module, instance, datetime);
 
@@ -64,7 +64,7 @@ CREATE INDEX ON gateway.log (module, instance, datetime);
  * @brief AFTER trigger on gateway.node: journals the transition into gateway.log
  *        and tells every listening gateway worker about it with
  *        pg_notify('gateway', …) — the ≤ 1 s half of "draining accepted → all
- *        workers stop routing" (contract К8; the 60 s re-read is the other half,
+ *        workers stop routing" (the 60 s re-read is the other half,
  *        for a lost NOTIFY). Fires on INSERT, DELETE and on an UPDATE that changes
  *        `state` — NOT on a heartbeat that only moves `seen`, so a fleet of
  *        modules cannot turn the channel into a metronome.
@@ -72,7 +72,7 @@ CREATE INDEX ON gateway.log (module, instance, datetime);
  * Payload (JSON): {"op": "INSERT|UPDATE|DELETE", "module", "instance",
  *                  "state", "state_from", "address", "prefixes", "worker",
  *                  "node", "updated"}.
- * `node` and `updated` (T592) are those of the row after the statement — of
+ * `node` and `updated` are those of the row after the statement — of
  * the deleted row on DELETE; `node` is null from a binary that does not write
  * it. The first eight keys are unchanged since P00000020.
  * NOTIFY is transactional: a listener sees the row committed.

@@ -1,8 +1,8 @@
 --------------------------------------------------------------------------------
 -- P00000031 -------------------------------------------------------------------
 --------------------------------------------------------------------------------
--- The gateway registration moves from update-time to install-time
--- (apostol-csms T757). gateway/update.psql no longer calls InitGateway() on
+-- The gateway registration moves from update-time to install-time:
+-- gateway/update.psql no longer calls InitGateway() on
 -- every script update; a fresh base registers its routes and allow-list
 -- functions from gateway/init.sql (gateway/create.psql). An existing base has
 -- the routes of the older shape only, so the new prefixes (jobs, messages,

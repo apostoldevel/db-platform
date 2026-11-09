@@ -270,7 +270,7 @@ AS $$
 BEGIN
   PERFORM WriteToEventLog('W', 2025, 'workflow.job', 'abort', 'Job aborted.', pObject);
 
-  -- `aborted` is runnable at once (SCH.DEV.07): a new planned run, so the channel
+  -- `aborted` is runnable at once: a new planned run, so the channel
   -- does not take it for the run that was aborted (see RearmJob)
   PERFORM RearmJob(pObject);
 END;

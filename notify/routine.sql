@@ -274,7 +274,7 @@ $$ LANGUAGE sql
  *        row is waiting again. The difference decides how an expired or unrouted row ends: "never sent"
  *        (quiet) or "outcome unknown" (the producer is told). A row sent back by notify.nack after its first
  *        delivery has attempts = 1 and an error that starts with `unsent:`, and nothing else gives a waiting
- *        row that pair (T1102).
+ *        row that pair.
  * @param {notify.queue} q - The row
  * @return {boolean}
  * @since 1.2.37
@@ -891,8 +891,8 @@ BEGIN
   -- A refusal that says the row was NOT sent ("unsent: ...") on its first delivery is no repeat: a row
   -- that never left may go back to the queue whatever max_attempts and resend_enabled say -- both
   -- are about sending again what was sent. Without this a channel with no repeats (max_attempts 0, the
-  -- HTTP request without an expiry) lost the request when its worker stopped before it was sent
-  -- (T1102). The second delivery is judged by the usual rule: a worker that keeps saying "not sent"
+  -- HTTP request without an expiry) lost the request when its worker stopped before it was sent.
+  -- The second delivery is judged by the usual rule: a worker that keeps saying "not sent"
   -- cannot keep the row going round.
   IF notify.can_repeat(q, c)
      OR (q.attempts = 1 AND left(coalesce(pError, ''), 7) = 'unsent:')
@@ -1079,7 +1079,7 @@ BEGIN
           WHERE (r.state = 0 AND r.target = x.id) OR (r.state = 1 AND r.owner = x.id)
        );
 
-    -- the safety net (T1158): objects that stand in the delivery and hold no open row -- a callback that failed
+    -- the safety net: objects that stand in the delivery and hold no open row -- a callback that failed
     -- (the row stays closed, the object stays `sending`), what the old path had when the channel was switched.
     -- With the retention, once a minute per channel, and only while the channel is single: in legacy the poll of the
     -- old path is the owner of such objects, and a row put in beside it would be a second sender. A failure of the
@@ -1141,7 +1141,7 @@ $$ LANGUAGE plpgsql
 
 /**
  * @brief Call the function the channel names in on_release: the owning module's look at the objects that stand in
- *        the delivery of the channel and hold no open row of the queue (T1158, T1165). A channel with no such
+ *        the delivery of the channel and hold no open row of the queue. A channel with no such
  *        function: nothing to do.
  * @param {text} pChannel - Channel
  * @param {boolean} pSwitch - The channel has just been switched to single (the trigger): the function may refuse
@@ -1251,7 +1251,7 @@ $$ LANGUAGE plpgsql
 -- pick_target, close): callable by a role, they are "run any SQL as kernel". So
 -- nothing is left to PUBLIC, and the interface alone is granted, to the pools that
 -- run subscribers: daemon (the workers) and apibot (the helpers). A role of a
--- configuration (the CSMS: ocpp) gets its own grant from the configuration. The
+-- configuration gets its own grant from the configuration. The
 -- producers need none: they run as kernel inside SECURITY DEFINER chains.
 DO $$
 DECLARE

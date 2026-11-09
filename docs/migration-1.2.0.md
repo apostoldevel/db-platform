@@ -203,7 +203,7 @@ After 1.2.0 each distinct runtime error must be registered once (6 locales) and 
 in a named `exception.sql` function. This lets the catalog describe it, the frontend
 render it in the user's locale, and future auditors find it via `error/list`.
 
-**Example from `configuration/copyfrog/entity/object/document/client/exception.sql`:**
+**Example from a configuration's `entity/object/document/client/exception.sql`:**
 
 ```sql
 --------------------------------------------------------------------------------
@@ -255,9 +255,9 @@ collide with existing project codes.
 Inline `RAISE EXCEPTION` in `patch/P*.sql` scripts can stay — those are one-shot
 migrations, not runtime code.
 
-**Reference implementation — apostol-csms.** The full wrapping pass against the
-ChargeMeCar configuration yielded this code layout (copyable as a starting point
-for other downstream projects):
+**Reference layout.** A full wrapping pass against a large configuration
+yielded this code layout (copyable as a starting point for downstream
+projects):
 
 | Range | Module | Examples |
 |-------|--------|----------|
@@ -283,7 +283,7 @@ callsites rewritten to `PERFORM <Function>(...)`.
 
 - **Cross-module helpers** (e.g. debit/credit account errors used by both
   `order/` and `payment/`) must live in the **earliest-loading** module along
-  the dependency chain. For apostol-csms that's `account/exception.sql`, which
+  the dependency chain — for example `account/exception.sql`, which
   loads before `order/` and `payment/` inside `entity/object/document/create.psql`.
 - **Trigger-function dependencies** (e.g. `tariff/table.sql` trigger calling
   `NetworksDoNotMatch()`) require the wrapper's `exception.sql` to be included
@@ -317,8 +317,7 @@ pick the recipient's language at call time, not session locale.
 >
 > Callsites then read `GetI18NResource('push.invoice.title', uLocale)` instead of
 > inline `jsonb->>vLang`. Registrations live in `i18n/init.sql` — one
-> `CreateI18NResource` per (key, locale). See `configuration/csms/i18n/` in the
-> apostol-csms tree for a working reference (~90 keys × 8 locales).
+> `CreateI18NResource` per (key, locale).
 >
 > Why resource-based beats inline jsonb:
 >

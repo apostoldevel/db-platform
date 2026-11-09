@@ -1,7 +1,7 @@
 --------------------------------------------------------------------------------
 -- P00000035 -------------------------------------------------------------------
 --------------------------------------------------------------------------------
--- The module `notify` and its producers (apostol-csms T1100, stage E1 of T996).
+-- The module `notify` and its producers.
 --
 -- What arrives: schema notify -- notify.channel (the delivery policy per
 -- channel), notify.queue (a row per unit of work of a channel that is switched
@@ -159,7 +159,7 @@ $$ LANGUAGE plpgsql
  * @brief AFTER trigger on gateway.node: journals the transition into gateway.log
  *        and tells every listening gateway worker about it with
  *        pg_notify('gateway', …) — the ≤ 1 s half of "draining accepted → all
- *        workers stop routing" (contract К8; the 60 s re-read is the other half,
+ *        workers stop routing" (the 60 s re-read is the other half,
  *        for a lost NOTIFY). Fires on INSERT, DELETE and on an UPDATE that changes
  *        `state` — NOT on a heartbeat that only moves `seen`, so a fleet of
  *        modules cannot turn the channel into a metronome.
@@ -167,7 +167,7 @@ $$ LANGUAGE plpgsql
  * Payload (JSON): {"op": "INSERT|UPDATE|DELETE", "module", "instance",
  *                  "state", "state_from", "address", "prefixes", "worker",
  *                  "node", "updated"}.
- * `node` and `updated` (T592) are those of the row after the statement — of
+ * `node` and `updated` are those of the row after the statement — of
  * the deleted row on DELETE; `node` is null from a binary that does not write
  * it. The first eight keys are unchanged since P00000020.
  * NOTIFY is transactional: a listener sees the row committed.

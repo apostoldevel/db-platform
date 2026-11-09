@@ -1,11 +1,11 @@
 --------------------------------------------------------------------------------
 -- api.search ------------------------------------------------------------------
 --------------------------------------------------------------------------------
--- Shape of search_en / search_ru (T306, 16.09.2026). The first version built
--- the user's whole access set first — aou(current_userid()), 664 k rows for an
--- administrator, 1.4 s — and drove the text search from it: 664 k index probes
--- into object_text, then a hash join over the entire api.object view. 6.7 s for
--- two hits. Now the GIN search runs first (ms), access is checked per hit with
+-- Shape of search_en / search_ru. The first version built
+-- the user's whole access set first — aou(current_userid()), hundreds of
+-- thousands of rows for an administrator — and drove the text search from it:
+-- an index probe into object_text per accessible object, then a hash join over
+-- the entire api.object view: seconds for two hits. Now the GIN search runs first (ms), access is checked per hit with
 -- aou(user, object) — the same predicate, applied to the hits instead of to the
 -- world — and api.object is entered through `id = ANY(array)`, which the planner
 -- turns into index probes instead of a full scan of the view's dozen-plus joins.

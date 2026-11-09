@@ -3,14 +3,14 @@
 --------------------------------------------------------------------------------
 -- Case-insensitive uniqueness for db.user.username, case-preserving storage.
 --
--- Decision of 2026-09-09 (DECISIONS.md, "Логин хранится как введён, а
--- сравнивается без учёта регистра"): the person's own spelling is theirs to
+-- The login is stored as typed and compared case-insensitively: the person's
+-- own spelling is theirs to
 -- choose — "userName" stays "userName" — and it must be impossible to create a
 -- second account as "UserName", "Username" or "username".
 --
 -- The old index enforced the storage rule instead of the identity rule:
--- UNIQUE (type, username) lets all four spellings coexist. Measured on the test
--- contour the same day, through the ordinary registration path and nothing
+-- UNIQUE (type, username) lets all four spellings coexist. Measured on a test
+-- base, through the ordinary registration path and nothing
 -- exotic:
 --
 --   signup('Ivan.Petrov') → created,  signup('ivan.petrov') → CREATED   (two rows)
@@ -33,8 +33,7 @@
 --   SELECT type, string_agg(quote_literal(username), ', ')
 --     FROM db.user GROUP BY type, lower(username) HAVING count(*) > 1;
 --
--- Empty on all four deployments as of 2026-09-09 (81 of 81 distinct on prod,
--- 922 of 922 on the test contour). The guard stays anyway: "it was empty when we
+-- The guard stays even where the query came back empty: "it was empty when we
 -- looked" is not the same as "it is empty now".
 
 DO $$

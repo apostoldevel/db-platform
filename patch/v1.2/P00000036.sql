@@ -1,7 +1,7 @@
 --------------------------------------------------------------------------------
 -- P00000036 -------------------------------------------------------------------
 --------------------------------------------------------------------------------
--- T1014 (apostol-csms): an index by age on the two HTTP tables.
+-- An index by age on the two HTTP tables.
 --
 -- http.request and http.log were never purged and have no index by datetime; a
 -- collector that removes what is older than a retention period would read the

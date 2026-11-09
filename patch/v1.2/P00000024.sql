@@ -3,13 +3,13 @@
 --------------------------------------------------------------------------------
 -- api.log_request gains a trailing parameter: pError text DEFAULT null — the
 -- catalogue code of a refused request, so that a 4xx line in db.api_log says
--- what was refused (go-platform T185 writes refusals since 1.2.23's pin; the
+-- what was refused (go-platform writes refusals since 1.2.23's pin; the
 -- code is what it could not record).
 --
 -- The old signature is DROPPED here: CREATE OR REPLACE with a new parameter
 -- list creates an overload, and a call that omits the defaults then fails as
 -- "function api.log_request(text, text, jsonb, integer, interval, uuid) is
--- not unique" (apostol-csms P00000040, P00000023 of this line). update.psql
+-- not unique" (as with P00000023 of this line). update.psql
 -- of this version creates the new one right after this patch. Re-runnable.
 --
 -- Everything else in 1.2.24 — the read barrier on api.list_file /
@@ -25,8 +25,8 @@
 --    lands in (CheckFilePublish), and the /public root itself is created by
 --    the kernel, an administrator or the system group only. A project whose
 --    users publish under a user session — media generated for the user
---    (copyfrog, talking-to-ai: NewFilePath('/public/') + SetFile as the
---    user), firmware uploaded by an operator to /public/firmware/ (csms) —
+--    (NewFilePath('/public/') + SetFile as the user), firmware uploaded by an
+--    operator to /public/firmware/ —
 --    creates the root and the directory in its own init.sql or patch (as
 --    kernel) and hands the directory over: chown to the account that writes
 --    there, or open its group/other w bit on purpose. Opening the root's

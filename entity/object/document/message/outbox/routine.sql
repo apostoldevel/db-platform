@@ -15,7 +15,7 @@
  *    "an unknown outcome is not repeated"; a person repeats it, the action `repeat`). A row the sender itself
  *    refused (the reason starts with `unsent:`: the message was never handed to the transport) says `not sent`;
  *  - `prepared`: `send` was never committed, nothing left, a repeat is safe: a new row on the channel
- *    (notify.send, the way the trigger of db.notification does it) -- but not for ever (T1157): the new row is woken
+ *    (notify.send, the way the trigger of db.notification does it) -- but not for ever: the new row is woken
  *    at once, so a sender that keeps refusing the message, or keeps dying before `send`, sends the rows round with
  *    no pause but the speed of its own take (measured: 200 deliveries, 101 rows, the message still `prepared`).
  *    The rows that ended since the message entered `prepared` are counted (the one just closed is among them);
@@ -28,7 +28,7 @@
  * The message is locked first (as an action locks it), the state is read under the lock.
  *
  * The label is a fixed word of the class of the reason, never the reason itself: a reason can carry text of a
- * transport, and the configuration reads the label of a failed message (EventOutboxFail of CSMS disables a device
+ * transport, and a configuration may act on the label of a failed message (for example, disable a device
  * whose label says `[404] NOT_FOUND`). The reason goes to the event log only.
  *
  * The sweep that closes the row comes from a connection with no session (the pool of MessageServer, role apibot);
@@ -128,7 +128,7 @@ REVOKE ALL ON FUNCTION OutboxAbandon(bigint, text, text, text) FROM PUBLIC;
 -- ReleaseOutbox ---------------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief `on_release` of the notify channel `outbox` (T1158, T1165): hand over the messages that stand in the delivery
+ * @brief `on_release` of the notify channel `outbox`: hand over the messages that stand in the delivery
  *        and hold no open row of the queue. The one procedure of the safety net of a failed callback and of the switch
  *        of the channel from `legacy` to `single`.
  *
@@ -153,8 +153,8 @@ REVOKE ALL ON FUNCTION OutboxAbandon(bigint, text, text, text) FROM PUBLIC;
  * `send` -- the database stalls with it; there is no state to tell such a message from one that waits.
  *
  * It does not decide anything itself: every message goes through OutboxAbandon, the callback of the channel, which
- * reads the state under the lock and does what a closed row would have done -- `prepared` a new row (with the bound of
- * T1157: the rows that ended since the message entered `prepared` are counted), `sending` the label `outcome unknown`
+ * reads the state under the lock and does what a closed row would have done -- `prepared` a new row (with a bound:
+ * the rows that ended since the message entered `prepared` are counted), `sending` the label `outcome unknown`
  * and `fail`. One body for the two ways in, and a message with an open row is never given a second one.
  *
  * A failure of one message is a line in the event log (`workflow.outbox`, `release`) and the next message goes on.

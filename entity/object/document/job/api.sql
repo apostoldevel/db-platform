@@ -31,7 +31,7 @@ GRANT SELECT ON api.service_job TO apibot;
  *
  * The TaskScheduler's feed: it runs each body as raw SQL under the system's
  * bot session. Only a job and a program both owned by a platform
- * administrator are handed out (T848) — the second line behind the gates of
+ * administrator are handed out — the second line behind the gates of
  * api.add_/update_job and api.add_/update_program, for an object put into the
  * base past them (CreateJob/CreateProgram called directly) by a non-admin.
  * It reads the owner only: it does not catch an object whose owner was
@@ -104,8 +104,8 @@ $$ LANGUAGE SQL
  *        TaskScheduler that runs on notify instead of polling api.job. Every
  *        instance calls it about once a second under each scope's session.
  *
- * Same filters as the feed api.job (SCH02.FR.01–02): the session's scope, a job and
- * a program both owned by an administrator (T848). Offered: a job that can be
+ * Same filters as the feed api.job: the session's scope, a job and
+ * a program both owned by an administrator. Offered: a job that can be
  * STARTED (`enabled`, `aborted`, `failed`) and is due (`dateRun` at or before now),
  * and an `executed` job whose run has no row at all (nobody holds it, nothing else
  * will find it: its api.job_claim hands the body out without a transition) AND whose
@@ -216,7 +216,7 @@ GRANT EXECUTE ON FUNCTION api.job_due() TO apibot;
  *        `notify.ack` — is one more transaction (the executor's).
  *
  * The job is found again by the filters of the feed (the session's scope, a job and
- * a program owned by an administrator, T848): the body is read here, never taken
+ * a program owned by an administrator): the body is read here, never taken
  * from the payload of the row. Nothing is returned (the executor acknowledges the
  * row and runs nothing) when the job is gone, is not in this scope, is not an
  * administrator's, has another planned time than the key (it was edited or moved
@@ -329,7 +329,7 @@ GRANT EXECUTE ON FUNCTION api.job_claim(uuid, text) TO apibot;
  * @param {text} pLabel - Display label
  * @param {text} pDescription - Job description
  * @return {uuid} - Identifier of the created job
- * @throws AccessDenied - When the caller is not a platform administrator (T848)
+ * @throws AccessDenied - When the caller is not a platform administrator
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.add_job (
@@ -344,7 +344,7 @@ CREATE OR REPLACE FUNCTION api.add_job (
 ) RETURNS           uuid
 AS $$
 BEGIN
-  -- T848: a job makes the TaskScheduler run a program body — raw SQL — as the
+  -- A job makes the TaskScheduler run a program body — raw SQL — as the
   -- system (role apibot, a bot session); its REST routes are open to any session. Writing one
   -- is the platform administrator's alone — not the system group: the OAuth2
   -- client accounts are members of it, and client_credentials with a public
@@ -375,7 +375,7 @@ $$ LANGUAGE plpgsql
  * @param {text} pDescription - New description (NULL keeps current)
  * @return {void}
  * @throws ObjectNotFound - When no job matches pId
- * @throws AccessDenied - When the caller is not a platform administrator (T848)
+ * @throws AccessDenied - When the caller is not a platform administrator
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.update_job (
@@ -391,7 +391,7 @@ CREATE OR REPLACE FUNCTION api.update_job (
 ) RETURNS           void
 AS $$
 BEGIN
-  -- T848: a job makes the TaskScheduler run a program body — raw SQL — as the
+  -- A job makes the TaskScheduler run a program body — raw SQL — as the
   -- system (role apibot, a bot session); its REST routes are open to any session. Writing one
   -- is the platform administrator's alone — not the system group: the OAuth2
   -- client accounts are members of it, and client_credentials with a public

@@ -2,7 +2,7 @@
 -- P00000027 -------------------------------------------------------------------
 --------------------------------------------------------------------------------
 -- ERR-400-093 AreaParentCycle: EditArea refuses a parent that is the area
--- itself or one of its descendants (ship-safety T315). A cycle among areas made
+-- itself or one of its descendants. A cycle among areas made
 -- every walk up the tree run forever.
 --
 -- init.sql is not re-run on a database in service, so the code is registered

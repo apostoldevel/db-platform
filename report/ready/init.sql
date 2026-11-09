@@ -493,7 +493,7 @@ BEGIN
   END IF;
 END $$;
 
--- The look at the reports that hold no open row of the queue (ReleaseReportReady, T1158 / T1165): the safety net of a
+-- The look at the reports that hold no open row of the queue (ReleaseReportReady): the safety net of a
 -- failed callback and the check at the switch of the channel to single (it refuses while the old path may be building a
 -- report). The column came with P00000040: a patch of the early series that includes this file runs on a base that may
 -- not have it yet. A value an operator set is kept.

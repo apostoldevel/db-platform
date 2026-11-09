@@ -1958,7 +1958,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- /api/v2 — daemon.begin / daemon.call / daemon.end ---------------------------
 --------------------------------------------------------------------------------
--- The road of the Go modules behind GatewayAPI (ship-safety T260 + T288). One
+-- The road of the Go modules behind GatewayAPI. One
 -- request is one transaction:
 --
 --   BEGIN

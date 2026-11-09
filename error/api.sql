@@ -32,8 +32,8 @@ DECLARE
   uId           uuid;
 BEGIN
   -- The catalogue is the platform's: every user reads its messages, and its
-  -- routes were open to any session (apostol-csms T870: a driver rewrote the
-  -- text of ERR-401-001). Writing it is the platform administrator's alone;
+  -- routes were open to any session. Writing it is the platform
+  -- administrator's alone;
   -- the kernel installs.
   IF session_user <> 'kernel' AND NOT IsAdmin() THEN
     PERFORM AccessDenied();
@@ -77,8 +77,8 @@ CREATE OR REPLACE FUNCTION api.update_error (
 AS $$
 BEGIN
   -- The catalogue is the platform's: every user reads its messages, and its
-  -- routes were open to any session (apostol-csms T870: a driver rewrote the
-  -- text of ERR-401-001). Writing it is the platform administrator's alone;
+  -- routes were open to any session. Writing it is the platform
+  -- administrator's alone;
   -- the kernel installs.
   IF session_user <> 'kernel' AND NOT IsAdmin() THEN
     PERFORM AccessDenied();
@@ -120,8 +120,8 @@ CREATE OR REPLACE FUNCTION api.set_error (
 AS $$
 BEGIN
   -- The catalogue is the platform's: every user reads its messages, and its
-  -- routes were open to any session (apostol-csms T870: a driver rewrote the
-  -- text of ERR-401-001). Writing it is the platform administrator's alone;
+  -- routes were open to any session. Writing it is the platform
+  -- administrator's alone;
   -- the kernel installs.
   IF session_user <> 'kernel' AND NOT IsAdmin() THEN
     PERFORM AccessDenied();

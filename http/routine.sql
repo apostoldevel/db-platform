@@ -407,7 +407,7 @@ $$ LANGUAGE plpgsql STRICT
  *   not touched, neither handed out nor closed: once the channel http is `single`, the repeat of such a
  *   row is notify's (lease, max_attempts, on_abandon), and a second mechanism would send it twice. While
  *   the channel is `legacy` there are no delivery rows, and the function is what it always was. Rows
- *   from before the switch have none and go on as before (T1102).
+ *   from before the switch have none and go on as before.
  * @see http.take
  * @see http.retake
  * @since 1.2.32

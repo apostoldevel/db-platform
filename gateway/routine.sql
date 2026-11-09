@@ -1,7 +1,7 @@
 --------------------------------------------------------------------------------
 -- GATEWAY ROUTINES ------------------------------------------------------------
 --------------------------------------------------------------------------------
--- The database side of the /api/v2 road (ship-safety T260 + T288): route
+-- The database side of the /api/v2 road: route
 -- guards, the allow list of daemon.call, and the session context a request
 -- carries between its calls. The entry points for the Go modules are
 -- daemon.begin / daemon.call / daemon.end (daemon/daemon.sql).
@@ -46,7 +46,7 @@ $$ LANGUAGE plpgsql
  *          txid_current_if_assigned() assigns none on any other road. On this
  *          road the caller is a person whatever role the connection logs in
  *          as: ExecuteMethod asks for the right on the method here even under
- *          apibot (apostol-csms T798).
+ *          apibot.
  * @return {boolean}
  * @since 1.2.34
  */
@@ -134,7 +134,7 @@ $$ LANGUAGE plpgsql
  *        decided further down, by Access<X> in the functions the route reaches.
  *
  *        system is kept out by default: the service audience is obtainable
- *        without a secret (ship-safety T289), and a system session reads what
+ *        without a secret, and a system session reads what
  *        an administrator reads in several places (files, registry). A route a
  *        system session needs gets a guard of its own, by name.
  * @param {text} pPath - Path after /api/v2
@@ -218,7 +218,7 @@ $$ LANGUAGE plpgsql STABLE
 /**
  * @brief The /api/v2 routes of the go-platform modules and their guards — one
  *        call per prefix, methods as the modules serve them (the route list of
- *        the Go binary, ship-safety docs/wiki/go/v2-routes.md, 26.09). A
+ *        the Go binary). A
  *        prefix of a configuration's own module is registered by the
  *        configuration. Every guard mirrors the check of the module's /api/v1
  *        dispatcher, and is stricter where that dispatcher had none: the whole
@@ -226,7 +226,7 @@ $$ LANGUAGE plpgsql STABLE
  *        administrator's. The entity document/reference prefixes (jobs,
  *        messages, references, agents, programs, schedulers, vendors,
  *        versions) are declared here as well — a document takes GuardSession,
- *        a reference GuardRead (csms T757). Re-runnable: called by init.sql
+ *        a reference GuardRead. Re-runnable: called by init.sql
  *        and at the end of update.psql.
  * @return {void}
  * @since 1.2.31
@@ -515,8 +515,7 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * @brief The functions of schema api the go-platform modules call, opened to
- *        daemon.call, with the level the Go code needs (ship-safety
- *        docs/wiki/go/gateway-levels.md, 26.09: which routes call each
+ *        daemon.call, with the level the Go code needs (by which routes call each
  *        function). Level session when a route under GuardSession or a GET
  *        under GuardRead calls it, or a configuration's module does;
  *        administrator when only routes under GuardAdministrator do. Of two
@@ -530,8 +529,7 @@ $$ LANGUAGE plpgsql
  *        family for the go-platform job module (its routes are GuardSession),
  *        and get_<x>(uuid) for the platform document/reference kinds — the
  *        integration test walks the journal and reads the get_<entity> of
- *        their top rows (csms T757; the remaining entity kinds are the second
- *        T751 seam, opened separately).
+ *        their top rows (the remaining entity kinds are a separate step).
  *        Re-runnable: called by init.sql and at the end of update.psql.
  * @return {void}
  * @since 1.2.31

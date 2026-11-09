@@ -660,7 +660,7 @@ If you pass only one array, it is now treated as **English** (was Russian).
 
 ## Configuration Layer: Current State
 
-A typical configuration project (e.g., ChargeMeCar) uses these patterns:
+A typical configuration project uses these patterns:
 
 1. **`AddEntity(code, 'Russian name')`** — Russian in all Add*() calls
 2. **`AddClass(parent, entity, code, 'Russian name', bool)`** — Russian

@@ -1,8 +1,7 @@
 --------------------------------------------------------------------------------
 -- P00000034 -------------------------------------------------------------------
 --------------------------------------------------------------------------------
--- db.recovery_ticket.type: a registration code is not a password reset
--- (ship-safety T330).
+-- db.recovery_ticket.type: a registration code is not a password reset.
 --
 -- Registration codes and recovery codes share one table, and nothing told
 -- them apart. api.registration_code_by_* issues the ticket to the caller when

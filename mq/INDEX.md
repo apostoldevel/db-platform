@@ -172,7 +172,7 @@ receiver a missing serial looks identical whether it was compacted away, expired
 was out of touch, or is still queued for the next window; only the sender can tell. Without the
 floor the cursor stops forever, `sent` therefore never moves, and `mq.queue` hands over the whole
 tail again **every session** — on a per-megabyte link that is a bill, not an inefficiency. Both
-halves of this were found on review of T078, before the module was committed.
+halves of this were found on review, before the module was committed.
 
 `pUpto` is what makes the answer honest: `mq.queue` hands over every deliverable serial in order,
 so once a batch ending there has gone, everything at or below it either travelled with the batch
@@ -190,8 +190,8 @@ rare case:
 
 Drop the check and a batch of `[1,3,4,6…100]` that lost everything after 4 to a dropped link moves
 the cursor to 100: records 6…100 are never asked for again, `confirm` moves `sent` past them, and
-they are gone. On this channel "records" means the ship's log. Found on the second review pass of
-T078, before the module was committed.
+they are gone. On this channel "records" means the ship's log. Found on the second review pass,
+before the module was committed.
 
 **A session that never declares a floor fails, rather than merely showing up in a table.** It
 cannot be caught inside `mq.advance` — that call is the one being skipped — but `mq.confirm` cannot

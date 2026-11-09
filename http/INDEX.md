@@ -102,7 +102,7 @@ Resend is **at-least-once**: a row sent whose response was not stored (the conne
 | `create.psql` | - | - | Includes all |
 | `update.psql` | - | - | Includes view, routine, notify |
 
-### The channel on notify (1.2.39, T1102)
+### The channel on notify (1.2.39)
 
 While the channel `http` of `notify.channel` is `legacy` a sender sees what it saw before: `notify.send` is `pg_notify`, it reads through `http.take` and resends through `http.sweep` (which hands out at most `pLimit` rows now — its batch is chosen once; the exclusion of rows with a delivery row changes nothing while there are none). The new functions are granted to the pools only. Once it is `single`, a request has a delivery row (`notify.queue`, key = the request id, `expire` and `max_attempts` of the request — `max_attempts` only with `expire`: a request outside the resend contract is never sent twice) and the sender works like this:
 

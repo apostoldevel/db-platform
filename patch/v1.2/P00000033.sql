@@ -1,17 +1,17 @@
 --------------------------------------------------------------------------------
 -- P00000033 -------------------------------------------------------------------
 --------------------------------------------------------------------------------
--- T783 (apostol-csms): api.send_push_all leaves the platform.
+-- api.send_push_all leaves the platform.
 --
--- The wrapper was the only platform function calling a CSMS-configuration
+-- The wrapper was the only platform function calling a configuration
 -- function (SendPushAll, broadcast campaigns): on a base without that
--- configuration the guarded call died with 42883, and even on a CSMS base the
+-- configuration the guarded call died with 42883, and even on a base with it the
 -- wrapper mis-declared the result — SendPushAll returns the campaign uuid
 -- while the wrapper promised integer, so an admin call crashed on the RETURN.
 --
--- The function now lives in the CSMS configuration layer
--- (configuration/csms/broadcast/api.sql), created by update.psql after this
--- patch. update.psql cannot replace it by itself: CREATE OR REPLACE refuses
+-- The function now lives in the configuration layer that implements
+-- SendPushAll, created by that layer's update.psql after this patch. The
+-- update cannot replace the old wrapper by itself: CREATE OR REPLACE refuses
 -- to change the return type of an existing function, so the old integer shape
 -- is dropped here, conditionally — a base that already lost the old shape
 -- (re-run of this patch, or a base where the drop was done by hand) keeps

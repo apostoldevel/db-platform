@@ -1,7 +1,7 @@
 --------------------------------------------------------------------------------
 -- P00000037 -------------------------------------------------------------------
 --------------------------------------------------------------------------------
--- T1104 (apostol-csms), stage E5 of T996: the notify channel `job` closes a row
+-- The notify channel `job` closes a row
 -- that nobody confirmed by calling JobAbandon, which moves the job off the key of
 -- the closed row (a closed row of a `dedupe` channel keeps its key, and a job that
 -- stayed on it would never be handed out again).

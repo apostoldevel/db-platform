@@ -209,19 +209,17 @@ BEGIN
       -- ~bit_or(deny) & B'100' = B'100'). The planner cannot cost a HAVING over an
       -- aggregate and estimates rows=1. Joined to it (INNER JOIN aou, the form before
       -- 1.2.34), that estimate makes aou the outer side of a Nested Loop and the view —
-      -- itself a join of several tables — is run once per accessible object: on the
-      -- apostol-csms dev base a tenant's owner listing payment providers (2 380
-      -- accessible objects) took 74.9 s, 27.1 s with the join alone (T879).
+      -- itself a join of several tables — is run once per accessible object: with a
+      -- few thousand accessible objects a single listing takes tens of seconds.
       -- MATERIALIZED alone did not cure it: the set is built once, but its size is
       -- still estimated as 1.
       --
       -- As a semi-join the plan is measured, not guaranteed: the estimate is still 1,
-      -- but on that base the view was scanned once against the hashed set. Measured
-      -- there (T879 p3) on 38 Object<X> views x 4 non-admin sessions, same rows in
-      -- every case: 14 calls over 40 s fell to 0.3-18 s, the total from 829 s to
-      -- 343 s. The price: where a session's set is empty or tiny, the old loop ended
-      -- in 7-22 ms and the semi-join scans the whole view, 0.4-1.0 s on that volume.
-      -- A view slow by itself (ObjectDocument, 37 s) is slow in both forms. The rows
+      -- but the view is scanned once against the hashed set, and the slow calls over
+      -- the Object<X> views drop several-fold with the same rows. The
+      -- price: where a session's set is empty or tiny, the old loop ended in
+      -- milliseconds and the semi-join scans the whole view. A view slow by itself
+      -- is slow in both forms. The rows
       -- are the same in both forms: every access set is unique on object, so the
       -- join never multiplied a row.
       --
@@ -229,7 +227,7 @@ BEGIN
       -- search and filter. A subquery in the FROM is a separate scope — the planner
       -- flattens it, and no condition of the caller can reach into it.
       -- Not enable_nestloop either: transaction-scoped, it stays off for every point
-      -- lookup later in the same call (the T037 dead end).
+      -- lookup later in the same call.
       vWith := format('WITH aou AS MATERIALIZED (SELECT object FROM %s.%s)', pScheme, vTable) || E'\n';
       vFrom := format('(SELECT * FROM %s.%s WHERE id IN (SELECT object FROM aou)) t', pScheme, pTable);
     END IF;
@@ -513,7 +511,7 @@ BEGIN
   -- api.run is the /api/v1 dispatcher: RegisterRoute files its routes under v1,
   -- and /api/v2 belongs to the gateway (daemon.begin admits only that). Without
   -- this rule QueryPath found a v2 route guard and its definition ran here as
-  -- an endpoint — a raw 500 instead of a refusal (ship-safety T302). Split the
+  -- an endpoint — a raw 500 instead of a refusal. Split the
   -- same way QueryPath splits, so '//' or a trailing '/' read the same; a root
   -- other than /api keeps its RouteNotFound.
   arPath := path_to_array(pPath);
@@ -544,7 +542,7 @@ BEGIN
   -- A /count carries no page: reclimit is pinned to 0 (api.sql then emits no
   -- LIMIT). For a batch — an array of requests — the key goes into EACH
   -- element: appended to the array it was a third element, and the batch
-  -- answered N + 1 rows (1.2.24, ship-safety T207).
+  -- answered N + 1 rows (1.2.24).
   IF arPath[nLength] = 'count' THEN
     IF jsonb_typeof(pPayload) = 'array' THEN
       SELECT coalesce(jsonb_agg(CASE WHEN jsonb_typeof(e) = 'object' THEN e || jsonb_build_object('reclimit', 0) ELSE e END), '[]'::jsonb)

@@ -359,9 +359,9 @@ AS $$
 DECLARE
   uMessageId    uuid;
 BEGIN
-  -- T783: the REST route is open to any logged-in user (rest.message checks only
-  -- the session); without this guard a self-registered driver relays arbitrary
-  -- mail through the brand SMTP profile. Same idiom as api.send_push_to_role,
+  -- The REST route is open to any logged-in user (rest.message checks only
+  -- the session), so the guard is here: only the senders below may send
+  -- mail through the configured SMTP profile. Same idiom as api.send_push_to_role,
   -- extended with the 'system' group for the server-side callers (the service and
   -- system clients). Not for a session of a public application (web, android):
   -- it sends only as a member of 'message'.
@@ -416,7 +416,7 @@ DECLARE
   bVerified     bool;
   vOAuthSecret  text;
 BEGIN
-  -- T783: guard before the SubstituteUser branch below, while session_userid()
+  -- Guard before the SubstituteUser branch below, while session_userid()
   -- is still the login user. Idiom of api.send_push_to_role, extended with the
   -- 'system' group which this body's first branch serves — for the server-side
   -- callers only: a session of a public application is not let in by that group
@@ -496,7 +496,7 @@ DECLARE
   bVerified     bool;
   vOAuthSecret  text;
 BEGIN
-  -- T783: guard before the SubstituteUser branch below (see api.send_mail).
+  -- Guard before the SubstituteUser branch below (see api.send_mail).
   -- A session of a public application is not let in by group 'system'.
   IF session_user <> 'kernel' THEN
     IF NOT IsUserRole(GetGroup('message'))
@@ -567,7 +567,7 @@ DECLARE
   uMessageId    uuid;
   vOAuthSecret  text;
 BEGIN
-  -- T783: guard before the SubstituteUser branch below (see api.send_mail).
+  -- Guard before the SubstituteUser branch below (see api.send_mail).
   -- A session of a public application is not let in by group 'system'.
   IF session_user <> 'kernel' THEN
     IF NOT IsUserRole(GetGroup('message'))
@@ -624,7 +624,7 @@ DECLARE
   uMessageId    uuid;
   vOAuthSecret  text;
 BEGIN
-  -- T783: guard before the SubstituteUser branch below (see api.send_mail).
+  -- Guard before the SubstituteUser branch below (see api.send_mail).
   -- A session of a public application is not let in by group 'system'.
   IF session_user <> 'kernel' THEN
     IF NOT IsUserRole(GetGroup('message'))
@@ -714,10 +714,10 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 -- api.send_push_all -----------------------------------------------------------
 --------------------------------------------------------------------------------
--- Moved to the CSMS configuration layer (configuration/csms/broadcast/api.sql):
--- the implementation is the configuration's SendPushAll (broadcast campaign),
+-- Moved to the configuration layer that implements it: the implementation is
+-- the configuration's SendPushAll (broadcast campaign),
 -- so the platform wrapper both depended on a configuration function and
 -- mis-declared its result (integer vs the campaign uuid). Existing bases lose
--- the old wrapper through platform patch v1.2/P00000033 (T783).
+-- the old wrapper through platform patch v1.2/P00000033.
 
 --------------------------------------------------------------------------------

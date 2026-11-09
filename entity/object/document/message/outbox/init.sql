@@ -448,7 +448,7 @@ BEGIN
   END IF;
 END $$;
 
--- The look at the messages that hold no open row of the queue (ReleaseOutbox, T1158 / T1165): the safety net of a failed
+-- The look at the messages that hold no open row of the queue (ReleaseOutbox): the safety net of a failed
 -- callback and the hand-over at the switch of the channel to single. The column came with P00000040: a patch of the
 -- early series that includes this file runs on a base that may not have it yet. A value an operator set is kept.
 DO $$

@@ -2,15 +2,14 @@
 --------------------------------------------------------------------------------
 -- P00000039 -------------------------------------------------------------------
 --------------------------------------------------------------------------------
--- The channels `outbox` and `report` on notify (apostol-csms T1147, the SQL half of
--- stage E4 of T996): what the database must have before MessageServer and ReportServer
--- take their channels to `single`.
+-- The channels `outbox` and `report` on notify: what the database must have
+-- before MessageServer and ReportServer take their channels to `single`.
 --
 -- What arrives:
 --   OutboxAbandon       `on_abandon` of the channel `outbox`: a closed row leaves the message it
 --                       carried either failed as "outcome unknown" / "not sent" (`sending`: the mail
 --                       may have left) or sent again (`prepared`: it never left; on five rows at most
---                       per stay in `prepared`, then "not sent", T1157)
+--                       per stay in `prepared`, then "not sent")
 --   ReportReadyAbandon  `on_abandon` of the channel `report`: `progress` -> `fail` as "outcome
 --                       unknown" / "not started", `canceled` -> `abort` (nobody is left to say it)
 --   notify.scrub        the payload of a row that is over, without the session code the channels
@@ -94,7 +93,7 @@ REVOKE ALL ON FUNCTION notify.scrub(text, text) FROM PUBLIC;
  *    "an unknown outcome is not repeated"; a person repeats it, the action `repeat`). A row the sender itself
  *    refused (the reason starts with `unsent:`: the message was never handed to the transport) says `not sent`;
  *  - `prepared`: `send` was never committed, nothing left, a repeat is safe: a new row on the channel
- *    (notify.send, the way the trigger of db.notification does it) -- but not for ever (T1157): the new row is woken
+ *    (notify.send, the way the trigger of db.notification does it) -- but not for ever: the new row is woken
  *    at once, so a sender that keeps refusing the message, or keeps dying before `send`, sends the rows round with
  *    no pause but the speed of its own take (measured: 200 deliveries, 101 rows, the message still `prepared`).
  *    The rows that ended since the message entered `prepared` are counted (the one just closed is among them);
@@ -107,7 +106,7 @@ REVOKE ALL ON FUNCTION notify.scrub(text, text) FROM PUBLIC;
  * The message is locked first (as an action locks it), the state is read under the lock.
  *
  * The label is a fixed word of the class of the reason, never the reason itself: a reason can carry text of a
- * transport, and the configuration reads the label of a failed message (EventOutboxFail of CSMS disables a device
+ * transport, and a configuration may act on the label of a failed message (for example, disable a device
  * whose label says `[404] NOT_FOUND`). The reason goes to the event log only.
  *
  * The sweep that closes the row comes from a connection with no session (the pool of MessageServer, role apibot);

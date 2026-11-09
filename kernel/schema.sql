@@ -23,6 +23,6 @@ GRANT USAGE ON SCHEMA rest TO apibot;
 ALTER DEFAULT PRIVILEGES FOR ROLE kernel IN SCHEMA api GRANT SELECT ON TABLES TO apibot;
 
 -- The same rule for administrator: every module grants each api.* view to it by
--- hand, one statement per view, and two views were missed (api.users, api.whoami — T307).
+-- hand, one statement per view, and two views were missed (api.users, api.whoami).
 -- Existing bases: patch/v1.2/P00000021.
 ALTER DEFAULT PRIVILEGES FOR ROLE kernel IN SCHEMA api GRANT SELECT ON TABLES TO administrator;

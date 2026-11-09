@@ -1,8 +1,8 @@
 --------------------------------------------------------------------------------
 -- P00000040 -------------------------------------------------------------------
 --------------------------------------------------------------------------------
--- The switch of a channel to `single` and the safety net of a callback that failed (apostol-csms T1165 and T1158,
--- E4 of T996): what the database must have before MessageServer and ReportServer take their channels to `single`.
+-- The switch of a channel to `single` and the safety net of a callback that
+-- failed: what the database must have before MessageServer and ReportServer take their channels to `single`.
 --
 -- What arrives:
 --   notify.channel.on_release  a function (boolean, integer) RETURNING integer that the module owning the channel
@@ -99,7 +99,7 @@ $$ LANGUAGE plpgsql
 
 /**
  * @brief Call the function the channel names in on_release: the owning module's look at the objects that stand in
- *        the delivery of the channel and hold no open row of the queue (T1158, T1165). A channel with no such
+ *        the delivery of the channel and hold no open row of the queue. A channel with no such
  *        function: nothing to do.
  * @param {text} pChannel - Channel
  * @param {boolean} pSwitch - The channel has just been switched to single (the trigger): the function may refuse
@@ -153,7 +153,7 @@ CREATE TRIGGER t_channel_switch
 --------------------------------------------------------------------------------
 
 /**
- * @brief `on_release` of the notify channel `outbox` (T1158, T1165): hand over the messages that stand in the delivery
+ * @brief `on_release` of the notify channel `outbox`: hand over the messages that stand in the delivery
  *        and hold no open row of the queue. The one procedure of the safety net of a failed callback and of the switch
  *        of the channel from `legacy` to `single`.
  *
@@ -178,8 +178,8 @@ CREATE TRIGGER t_channel_switch
  * `send` -- the database stalls with it; there is no state to tell such a message from one that waits.
  *
  * It does not decide anything itself: every message goes through OutboxAbandon, the callback of the channel, which
- * reads the state under the lock and does what a closed row would have done -- `prepared` a new row (with the bound of
- * T1157: the rows that ended since the message entered `prepared` are counted), `sending` the label `outcome unknown`
+ * reads the state under the lock and does what a closed row would have done -- `prepared` a new row (with a bound:
+ * the rows that ended since the message entered `prepared` are counted), `sending` the label `outcome unknown`
  * and `fail`. One body for the two ways in, and a message with an open row is never given a second one.
  *
  * A failure of one message is a line in the event log (`workflow.outbox`, `release`) and the next message goes on.
@@ -271,7 +271,7 @@ REVOKE ALL ON FUNCTION ReleaseOutbox(boolean, integer) FROM PUBLIC;
 --------------------------------------------------------------------------------
 
 /**
- * @brief `on_release` of the notify channel `report` (T1158, T1165): close the reports that stand in a build and hold
+ * @brief `on_release` of the notify channel `report`: close the reports that stand in a build and hold
  *        no open row of the queue. The one procedure of the safety net of a failed callback and of the switch of the
  *        channel from `legacy` to `single`.
  *

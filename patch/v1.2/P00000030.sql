@@ -1,7 +1,7 @@
 --------------------------------------------------------------------------------
 -- P00000030 -------------------------------------------------------------------
 --------------------------------------------------------------------------------
--- Resend of outbound requests (apostol-csms T577): a request whose NOTIFY the
+-- Resend of outbound requests: a request whose NOTIFY the
 -- sender (PGFetch) missed — created while its LISTEN was down: a restart of the
 -- process or of PostgreSQL — stayed in state 1 and was never sent.
 --

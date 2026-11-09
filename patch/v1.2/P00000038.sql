@@ -1,7 +1,7 @@
 --------------------------------------------------------------------------------
 -- P00000038 -------------------------------------------------------------------
 --------------------------------------------------------------------------------
--- The channel `http` on notify (apostol-csms T1102, stage E3 of T996): what the
+-- The channel `http` on notify: what the
 -- database must have before a sender can take the channel to `single`.
 --
 -- What arrives:

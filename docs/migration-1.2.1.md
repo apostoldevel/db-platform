@@ -29,7 +29,7 @@ If you pass only one array, it is now treated as **English** (was Russian).
 
 ## Configuration Layer: Current State
 
-A typical configuration project (e.g., ChargeMeCar) uses these patterns:
+A typical configuration project uses these patterns:
 
 1. **`AddEntity(code, 'Russian name')`** — Russian in all Add*() calls
 2. **`AddClass(parent, entity, code, 'Russian name', bool)`** — Russian
@@ -366,7 +366,7 @@ next auditor doesn't grep-and-replace it blindly.
 ## See Also
 
 - [Platform 1.2.0 Migration Guide](migration-1.2.0.md) -- error catalog, inline `RAISE EXCEPTION` wrapping, runtime string localization patterns (+ `i18n/` resource module as the final shape)
-- `platform/resource/` -- platform module that backs the configuration-level `i18n/` module (see `configuration/csms/i18n/` for a reference implementation)
+- `platform/resource/` -- platform module that backs the configuration-level `i18n/` module
 - `platform/workflow/routine.sql` -- `AddMethod`, `GetActionName`, `EditMethodText`
 - `platform/locale/routine.sql` -- `GetLocale`, `GetLocaleCode`
 - `platform/admin/routine.sql` -- `GetDefaultLocale`, `SetSessionLocale`, `current_locale`

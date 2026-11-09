@@ -33,8 +33,7 @@ CREATE OR REPLACE FUNCTION api.add_object (
 ) RETURNS       uuid
 AS $$
 BEGIN
-  -- The generic setters are closed (apostol-csms T1055, T1064; owner's word
-  -- DECISIONS.md:10195): they write an entity straight through Create/Edit<X>,
+  -- The generic setters are closed: they write an entity straight through Create/Edit<X>,
   -- without the class action, so no method, no event and no lifecycle runs.
   -- Only a kernel connection (install, patch, tests) goes through; an entity
   -- is created and edited by its own api.add_<entity> / api.update_<entity>.
@@ -73,9 +72,8 @@ CREATE OR REPLACE FUNCTION api.update_object (
 AS $$
 BEGIN
   -- See api.add_object. Before 1.2.36 a type or a parent written here was the
-  -- platform administrator's alone and the label stayed with the update bit
-  -- (apostol-csms T870: a commission invoice retyped by its payer dropped out of
-  -- the debt); now the whole road is kernel's, and the guard comes before the
+  -- platform administrator's alone and the label stayed with the update bit;
+  -- now the whole road is kernel's, and the guard comes before the
   -- lookup so that a refused caller learns nothing about the object.
   IF session_user <> 'kernel' THEN
     PERFORM AccessDenied();
@@ -284,8 +282,7 @@ DECLARE
 BEGIN
   -- The state is written past the class: no method, no event, no right on a
   -- method — only the update bit on the object. Every rule a class keeps in its
-  -- delete event is skipped (apostol-csms T868: a tenant's owner took its own
-  -- commission invoice out of the debt this way). Force is the platform
+  -- delete event is skipped. Force is the platform
   -- administrator's alone.
   IF session_user <> 'kernel' AND NOT IsAdmin() THEN
     PERFORM AccessDenied();
@@ -1000,8 +997,7 @@ $$ LANGUAGE plpgsql
 -- Files of the objects the session sees: the aou bits (AccessObject) AND the
 -- area of a document (CheckObjectArea) — class-level masks put an aou row of
 -- every role group on every object of the class, so the bits alone showed a
--- tenant the attachments of another by the object's id (1.2.24, ship-safety
--- T192/T177). Per row the check is a key read and the session's area tree;
+-- tenant the attachments of another by the object's id (1.2.24). Per row the check is a key read and the session's area tree;
 -- callers narrow by object first.
 
 CREATE OR REPLACE VIEW api.object_file
@@ -1376,9 +1372,8 @@ CREATE OR REPLACE FUNCTION api.set_object_data (
 AS $$
 DECLARE
   -- The domain of db.object_data.type — the same four values as its CHECK
-  -- constraint. Until T308 this list was collected by scanning the whole
-  -- table for the values already in use, which both cost a full scan per call
-  -- and rejected any format nobody had stored yet.
+  -- constraint, not the values already in use: collecting those cost a full
+  -- scan per call and rejected any format nobody had stored yet.
   arTypes       text[] := ARRAY['text', 'json', 'xml', 'base64'];
 BEGIN
   IF NOT (CheckObjectAccess(pId, B'010') AND CheckObjectArea(pId)) THEN

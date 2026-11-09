@@ -185,12 +185,12 @@ continue to work unchanged.
 
 ### Configuration layer projects
 
-Projects (Campus CORS, ChargeMeCar, etc.) have their own exception.sql files.
+Configuration projects have their own exception.sql files.
 Their migration is separate — happens when each project updates to platform 1.2.0.
 
-**Known project state:**
-- Campus CORS: 91% already use CreateExceptionResource (low risk)
-- ChargeMeCar: 81% hardcoded Russian (high risk, needs dedicated migration)
+**Known project state:** it varies from almost all exceptions already on
+CreateExceptionResource (low risk) to most of them hardcoded (high risk, needs a
+dedicated migration).
 
 **Platform provides:**
 - `docs/migration-1.2.0.md` — migration guide for projects

@@ -879,7 +879,7 @@ $$ LANGUAGE plpgsql
  * @out param {bool} result - TRUE if the answer is correct
  * @out param {text} message - Error or status message
  * @return {record}
- * @note Accepts a recovery (R) ticket only; a registration (V) ticket answers as a missing one (T330).
+ * @note Accepts a recovery (R) ticket only; a registration (V) ticket answers as a missing one.
  * @see CheckRecoveryTicket
  * @since 1.0.0
  */
@@ -913,7 +913,7 @@ $$ LANGUAGE plpgsql
  * @out param {bool} result - TRUE on success
  * @out param {text} message - Error or status message
  * @return {record}
- * @note Accepts a recovery (R) ticket only; a registration (V) ticket answers as a missing one (T330).
+ * @note Accepts a recovery (R) ticket only; a registration (V) ticket answers as a missing one.
  * @see CheckRecoveryTicket, SetPassword
  * @since 1.0.0
  */
@@ -981,7 +981,7 @@ BEGIN
     uTicket := RegistrationCodeByEmail(pEmail);
   END IF;
 
-  -- A registration code, not a password reset (T330). Set here rather than in
+  -- A registration code, not a password reset. Set here rather than in
   -- RegistrationCodeByEmail, which projects override: whatever issued it, a
   -- ticket handed out by this door is V.
   UPDATE db.recovery_ticket SET type = 'V' WHERE ticket = uTicket;
@@ -1104,7 +1104,7 @@ $$ LANGUAGE plpgsql
  * @out param {bool} result - TRUE if the code is correct
  * @out param {text} message - Error or status message
  * @return {record}
- * @note Accepts a registration (V) ticket only (T330).
+ * @note Accepts a registration (V) ticket only.
  * @see CheckRecoveryTicket, AddVerificationCode
  * @since 1.0.0
  */

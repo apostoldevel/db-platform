@@ -6,7 +6,7 @@
 -- Until now a channel had one counter and one log, and mq.queue(peer, channel)
 -- handed a node everything this node had published on the lane after that
 -- node's cursor. On a hub serving many edge nodes that is one ship's evidence
--- and accounts going to every other ship (ship-safety T163, ИН-09 §2.6, ОБ-14).
+-- and accounts going to every other ship.
 -- Filtering at delivery is not a fix: the receiver's cursor moves over an
 -- unbroken run of serials, so the numbers filtered out become gaps it waits
 -- on for ever — and on an evidential lane no floor may step over them.
@@ -25,7 +25,7 @@
 -- and mq.dead points at mq.message's. The functions that gained a trailing
 -- parameter are DROPPED by their old signature — CREATE OR REPLACE with a new
 -- parameter list creates an overload, and a call with defaults omitted then
--- fails as "not unique" (apostol-csms P00000040, T196). update.psql of this
+-- fails as "not unique". update.psql of this
 -- version creates the new ones right after this patch.
 --
 -- Re-runnable from top to bottom (IF EXISTS / IF NOT EXISTS, constraints

@@ -371,7 +371,7 @@ $$ LANGUAGE plpgsql
  *        and nothing will find it -- an administrator pressed `execute`, the key was
  *        edited under a run, `on_abandon` failed, the binary was switched with a job
  *        running. The poller this replaces cancelled and aborted such a job on its
- *        next pass (TSK02.FR.02, SCH02.FR.04); api.job_due calls this for it.
+ *        next pass; api.job_due calls this for it.
  *
  *   `canceled`                          -> `abort` (the event re-arms it, so it starts again);
  *   `executed`, its run has a CLOSED row -> `fail` (the row keeps the key, so it cannot be

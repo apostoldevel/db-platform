@@ -325,8 +325,8 @@ $$ LANGUAGE plpgsql
  * @brief Validates a ticket of the given type against a security answer.
  *        Returns the user id on success, NULL on failure. Sets an error message.
  *
- *        The type is what keeps a registration code from resetting a password
- *        (T330): a registration ticket is issued to whoever asked for it -- the
+ *        The type is what keeps a registration code from resetting a password:
+ *        a registration ticket is issued to whoever asked for it -- the
  *        caller's own account when the caller is signed in -- so a consumer that
  *        acts on the owner's account (reset the password, sign in) asks for R.
  *        A ticket of another type answers exactly like a missing one and costs
@@ -2060,7 +2060,7 @@ BEGIN
 
   -- An OAuth2 client-user accumulates tokens of different audiences on its
   -- sessions (anyone can log it in via another client); the reuse branch must
-  -- return a token of the requested audience, not any active one (T763).
+  -- return a token of the requested audience, not any active one.
   SELECT t.token INTO vToken
     FROM db.token_header h
          INNER JOIN db.oauth2 o ON h.oauth2 = o.id
@@ -4115,15 +4115,13 @@ BEGIN
     END IF;
   END IF;
 
-  -- Renaming has to ask the same question creating does, and until T229 it asked
-  -- nothing at all: UpdateUser had no occupancy check of any kind, and the only
-  -- thing standing between a rename and a duplicate was the unique index. With
-  -- the index now case-insensitive, "Ivan.Petrov" → "ivan.petrov" stops being a
-  -- silent second account and becomes a refusal — but without this check the
+  -- Renaming has to ask the same question creating does: without an occupancy
+  -- check the only thing standing between a rename and a duplicate is the unique
+  -- index. With the index case-insensitive, "Ivan.Petrov" → "ivan.petrov" is a
+  -- refusal rather than a silent second account — but without this check the
   -- refusal arrives as a bare 23505 from the index, which the transport turns
-  -- into an empty 500 (see the note in configuration/csms/api/api.sql on why a
-  -- raw exception cannot be shown). The catalogue answer already exists; this is
-  -- what makes it reachable.
+  -- into an empty 500 (a raw exception cannot be shown to the caller). The
+  -- catalogue answer already exists; this is what makes it reachable.
   --
   -- Two doors lead here and both are outside-facing: /user/set through
   -- api.update_user, and /client/set /tenant/set through EditClient, whose
@@ -4138,13 +4136,13 @@ BEGIN
   -- An empty string is the only "clear this" a caller can say. Both doors
   -- (rest.* through jsonb_to_record, /api/v2 through a Go *string) turn an
   -- absent key and a JSON null into the same NULL, and NULL keeps the stored
-  -- value. Until T332 '' was folded into NULL as well, so a form that emptied
-  -- the phone got 200 with the old number in the answer. Now '' clears phone
+  -- value. Were '' folded into NULL as well, a form that emptied the phone
+  -- would get 200 with the old number in the answer. So '' clears phone
   -- (as it always did description); name and email are what the login and the
   -- notifications stand on, so a value they hold is refused rather than
   -- dropped — and '' for an email that is already empty is the no-op it asks
-  -- for (23 of 80 users on the dev base have none; a form that sends every
-  -- field must stay usable).
+  -- for (a user may have no email at all; a form that sends every field must
+  -- stay usable).
   IF pName = '' THEN
     PERFORM ClearFieldError('name');
   END IF;
@@ -4689,8 +4687,7 @@ $$ LANGUAGE plpgsql STABLE
  * @brief Refuses a change of a group's members that would raise someone above
  *        the caller. The ACL bits of AddMemberToGroup and the two exclusions
  *        say only that the caller may change memberships at all, not of which
- *        group — so a company owner holding the bit could include himself into
- *        administrator (ship-safety T288).
+ *        group — so this check decides which groups the caller may change.
  *
  *        The kernel role and an administrator pass. A protected group
  *        (db.protected_group) is refused to everyone else. Then, for a user

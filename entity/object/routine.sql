@@ -497,9 +497,9 @@ CREATE OR REPLACE FUNCTION AddObjectState (
   pState        uuid,
   -- Now(), not oper_date(): a session sets its oper_date itself
   -- (/session/set/oper_date), and a change dated at the start of a period
-  -- overwrites that row of the history — a tenant's owner erased a suspension
-  -- this way and walked past every rule that reads the history (apostol-csms
-  -- T868). Without an oper_date (every session in production) oper_date() was
+  -- overwrites that row of the history — and every rule that reads a state held
+  -- at a date would read the rewritten one.
+  -- Without an oper_date (every session in production) oper_date() was
   -- Now() already, so nothing changes there. As before, two changes in one
   -- transaction share Now() and the second overwrites the first.
   -- oper_date stays the "as of" date of reading.
@@ -794,7 +794,7 @@ BEGIN
   -- providers in the payer's session) and is not asked for the right on the
   -- method. A request of /api/v2 is a person's whatever role the pool logs in
   -- as (IsGatewayRequest, gateway module): there the right is asked as on any
-  -- other road (apostol-csms T798).
+  -- other road.
   IF (CASE WHEN session_user <> 'apibot' THEN true ELSE IsGatewayRequest() END) THEN
     IF NOT CheckObjectMethodAccess(pObject, pMethod, B'100') THEN
       SELECT label INTO sLabel FROM db.method_text WHERE method = pMethod AND locale = current_locale();
@@ -1722,7 +1722,7 @@ BEGIN
   -- the path — binds it to the object, and api.get_object_file then serves it
   -- by the OBJECT's rights. So the session must be able to read the file
   -- itself first, or any private file of anyone could be read through an
-  -- object of one's own (1.2.24, ship-safety T193). A file created here is
+  -- object of one's own (1.2.24). A file created here is
   -- the caller's own and needs no such check.
   bExists := pFile IS NOT NULL;
 

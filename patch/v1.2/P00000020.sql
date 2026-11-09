@@ -8,11 +8,11 @@
 -- api.log_request, api.parse_message) are functions and come with update.psql
 -- (gateway/update.psql) right after this patch.
 --
--- Moved into the platform from the apostol-csms configuration (T301,
--- 16.09.2026). Two kinds of installed bases meet this patch:
+-- Moved into the platform from a configuration. Two kinds of installed bases
+-- meet this patch:
 --
 --   * a base that already carries the schema from the project's own patch
---     (csms P00000044, v1.13.0): every statement here is IF NOT EXISTS / OR
+--     (a configuration patch): every statement here is IF NOT EXISTS / OR
 --     REPLACE / a repeated GRANT — the only visible change is the grant to the
 --     `administrator` group, where the project version granted the `admin`
 --     login directly (left in place; admin is a member of administrator);
@@ -31,8 +31,8 @@ GRANT USAGE ON SCHEMA gateway TO administrator;
 GRANT USAGE ON SCHEMA gateway TO daemon;
 GRANT USAGE ON SCHEMA gateway TO apibot;
 
--- csms P00000044 carried no schema comment; fresh installs have it — converge.
-COMMENT ON SCHEMA gateway IS 'GatewayAPI, track A (track-a-gateway.md §5): the database mirror of the gateway''s module registry — which /api/v2 module instances exist, where they listen and in what state. Written by the GatewayAPI worker that owns the instance''s control socket, read by other applications through gateway.route.';
+-- The project patch carried no schema comment; fresh installs have it — converge.
+COMMENT ON SCHEMA gateway IS 'GatewayAPI, track A: the database mirror of the gateway''s module registry — which /api/v2 module instances exist, where they listen and in what state. Written by the GatewayAPI worker that owns the instance''s control socket, read by other applications through gateway.route.';
 
 --------------------------------------------------------------------------------
 -- gateway.node ----------------------------------------------------------------
@@ -53,14 +53,14 @@ CREATE TABLE IF NOT EXISTS gateway.node (
     PRIMARY KEY (module, instance)
 );
 
-COMMENT ON TABLE gateway.node IS 'One row per registered /api/v2 module instance (track-a-gateway.md §5). Written only by the GatewayAPI worker holding the instance''s control socket, and only on a state transition — `seen` moves once per heartbeat interval, not per heartbeat. Rows are never deleted by the database: a dead instance is marked offline by the workers'' sweep.';
+COMMENT ON TABLE gateway.node IS 'One row per registered /api/v2 module instance. Written only by the GatewayAPI worker holding the instance''s control socket, and only on a state transition — `seen` moves once per heartbeat interval, not per heartbeat. Rows are never deleted by the database: a dead instance is marked offline by the workers'' sweep.';
 
-COMMENT ON COLUMN gateway.node.module     IS 'Module name from /register (contract К4).';
-COMMENT ON COLUMN gateway.node.instance   IS 'Instance name from /register; a second socket with the same (module, instance) replaces the first (contract К2, gateway.log reason = replaced).';
+COMMENT ON COLUMN gateway.node.module     IS 'Module name from /register.';
+COMMENT ON COLUMN gateway.node.instance   IS 'Instance name from /register; a second socket with the same (module, instance) replaces the first (gateway.log reason = replaced).';
 COMMENT ON COLUMN gateway.node.version    IS 'Module version string, informational.';
-COMMENT ON COLUMN gateway.node.address    IS 'host:port of the data plane the gateway forwards to (contract К7).';
+COMMENT ON COLUMN gateway.node.address    IS 'host:port of the data plane the gateway forwards to.';
 COMMENT ON COLUMN gateway.node.prefixes   IS 'Path prefixes under /api/v2 this instance serves.';
-COMMENT ON COLUMN gateway.node.state      IS 'ready | draining | suspect | offline | overloaded — contract К8; only ready is in rotation.';
+COMMENT ON COLUMN gateway.node.state      IS 'ready | draining | suspect | offline | overloaded; only ready is in rotation.';
 COMMENT ON COLUMN gateway.node.capacity   IS 'Declared concurrency, informational for the rotation.';
 COMMENT ON COLUMN gateway.node.worker     IS 'pid of the gateway worker holding the control socket.';
 COMMENT ON COLUMN gateway.node.registered IS 'When this (module, instance) was last (re)registered.';
@@ -84,7 +84,7 @@ CREATE TABLE IF NOT EXISTS gateway.log (
     reason      text
 );
 
-COMMENT ON TABLE gateway.log IS 'Journal of instance state transitions (track-a-gateway.md §5): one row per transition, written by the trigger below from every INSERT / state UPDATE / DELETE on gateway.node. `reason` is what the worker put into the row (replaced, socket closed, heartbeat timeout, …).';
+COMMENT ON TABLE gateway.log IS 'Journal of instance state transitions: one row per transition, written by the trigger below from every INSERT / state UPDATE / DELETE on gateway.node. `reason` is what the worker put into the row (replaced, socket closed, heartbeat timeout, …).';
 
 CREATE INDEX IF NOT EXISTS log_module_instance_datetime_idx ON gateway.log (module, instance, datetime);
 
@@ -95,7 +95,7 @@ CREATE INDEX IF NOT EXISTS log_module_instance_datetime_idx ON gateway.log (modu
  * @brief AFTER trigger on gateway.node: journals the transition into gateway.log
  *        and tells every listening gateway worker about it with
  *        pg_notify('gateway', …) — the ≤ 1 s half of "draining accepted → all
- *        workers stop routing" (contract К8; the 60 s re-read is the other half,
+ *        workers stop routing" (the 60 s re-read is the other half,
  *        for a lost NOTIFY). Fires on INSERT, DELETE and on an UPDATE that changes
  *        `state` — NOT on a heartbeat that only moves `seen`, so a fleet of
  *        modules cannot turn the channel into a metronome.
@@ -174,9 +174,9 @@ GRANT SELECT ON gateway.node, gateway.log TO administrator;
 --------------------------------------------------------------------------------
 /**
  * @brief Prefix → module → how many instances are in rotation. What another
- *        application (and GET /gateway/list) reads instead of gateway.node
- *        (track-a-gateway.md §5). Only `ready` counts: suspect, draining,
- *        overloaded and offline are outside rotation by contract К8.
+ *        application (and GET /gateway/list) reads instead of gateway.node.
+ *        Only `ready` counts: suspect, draining, overloaded and offline are
+ *        outside rotation.
  */
 CREATE OR REPLACE VIEW gateway.route
 AS
@@ -187,6 +187,6 @@ AS
    CROSS JOIN LATERAL unnest(n.prefixes) AS p(prefix)
    GROUP BY p.prefix, n.module;
 
-COMMENT ON VIEW gateway.route IS 'Routing table as the gateway sees it: one row per (prefix, module) with the number of ready instances. Zero ready with total > 0 is the 503 no-instance case of contract К7.';
+COMMENT ON VIEW gateway.route IS 'Routing table as the gateway sees it: one row per (prefix, module) with the number of ready instances. Zero ready with total > 0 is the 503 no-instance case.';
 
 GRANT SELECT ON gateway.route TO daemon, apibot, administrator;

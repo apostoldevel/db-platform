@@ -42,7 +42,7 @@ SELECT RegisterError('ERR-400-200', 400, 'E', 'validation', 'ru', 'Моя оши
 > renews its service token on it (`service_token_sql.cpp`), so a refusal under
 > that number would look like one. `SubstituteUser` still raises the legacy form
 > `ERR-40300`, which `ParseMessage` reads as `ERR-403-000`, a code no catalogue
-> holds; and projects register their own, such as ship-safety's `ERR-403-120`
+> holds; and projects register their own, such as `ERR-403-120`
 > for a licence limit. A project adding a code there should pick a free number.
 
 ## Forbidden (ERR-403-xxx)

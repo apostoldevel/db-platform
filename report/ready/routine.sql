@@ -267,7 +267,7 @@ REVOKE ALL ON FUNCTION ReportReadyAbandon(bigint, text, text, text) FROM PUBLIC;
 -- ReleaseReportReady ----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief `on_release` of the notify channel `report` (T1158, T1165): close the reports that stand in a build and hold
+ * @brief `on_release` of the notify channel `report`: close the reports that stand in a build and hold
  *        no open row of the queue. The one procedure of the safety net of a failed callback and of the switch of the
  *        channel from `legacy` to `single`.
  *

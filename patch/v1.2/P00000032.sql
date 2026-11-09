@@ -1,8 +1,7 @@
 --------------------------------------------------------------------------------
 -- P00000032 -------------------------------------------------------------------
 --------------------------------------------------------------------------------
--- The identity of a gateway worker beyond its pid (apostol-csms T592, stage 1;
--- owner's decision Р2). `worker integer` is a pid, and two pods — or two
+-- The identity of a gateway worker beyond its pid. `worker integer` is a pid, and two pods — or two
 -- containers on one database — hand the same pid to two workers: each then
 -- takes the other's row in gateway.node for its own (closes it, or re-claims
 -- it with its own clock). The worker will write its node identity (libapostol
@@ -28,16 +27,16 @@
 -- directory where a relative \ir does not resolve. The trigger itself is
 -- unchanged (P00000020): only its function is replaced.
 --
--- ORDER. migrate.sh runs platform patches before configuration ones, and
--- apostol-csms configuration P00000044 carries gateway.ft_node_notify with the
--- body of P00000020. In the apostol-csms release that carries T592 it creates
--- the function (and its trigger) only while gateway.node has no `node` column, so
--- on any base the body below stands — also where migrate applies P00000044
--- after this patch (a csms base whose db.patch_log lacks P00000044: one older
--- than csms v1.13.0, or a source-clone install followed by `install.sh
--- --migrate` without `--baseline`). A csms base that runs a P00000044 without
--- that condition (a checkout from before T592) after this patch still reverts
--- the function: the columns stay, the payload and the journal lose `node`,
+-- ORDER. migrate.sh runs platform patches before configuration ones, and a
+-- configuration that carried the schema before the platform did may carry
+-- gateway.ft_node_notify with the body of P00000020 in a patch of its own. Such
+-- a patch must create the function (and its trigger) only while gateway.node has
+-- no `node` column, so on any base the body below stands — also where migrate
+-- applies that patch after this one (a base whose db.patch_log lacks it, for
+-- example a source-clone install followed by `install.sh --migrate` without
+-- `--baseline`). A configuration patch without that condition, applied after
+-- this patch, still reverts the function: the columns stay, the payload and
+-- the journal lose `node`,
 -- migrate ends with rc 0 — such a base needs this file once more after its
 -- migrate.
 --
@@ -52,8 +51,8 @@ ALTER TABLE gateway.log ADD COLUMN IF NOT EXISTS node text;
 
 RESET lock_timeout;
 
-COMMENT ON COLUMN gateway.node.node       IS 'Identity of the gateway process holding the control socket, unique across pods and containers (T592): a pid alone repeats between them. NULL — the row was inserted by a binary that does not know the column; such a binary re-registering a row leaves the previous holder''s value in place.';
-COMMENT ON COLUMN gateway.log.node IS 'gateway.node.node of the row at the transition (T592) — the process holding the instance, like `worker` its pid; not necessarily the one that wrote it (a sweep by another worker keeps the holder). NULL when the row carried none (inserted by a binary that does not know the column).';
+COMMENT ON COLUMN gateway.node.node       IS 'Identity of the gateway process holding the control socket, unique across pods and containers: a pid alone repeats between them. NULL — the row was inserted by a binary that does not know the column; such a binary re-registering a row leaves the previous holder''s value in place.';
+COMMENT ON COLUMN gateway.log.node IS 'gateway.node.node of the row at the transition — the process holding the instance, like `worker` its pid; not necessarily the one that wrote it (a sweep by another worker keeps the holder). NULL when the row carried none (inserted by a binary that does not know the column).';
 
 --------------------------------------------------------------------------------
 -- gateway.ft_node_notify ------------------------------------------------------
@@ -62,7 +61,7 @@ COMMENT ON COLUMN gateway.log.node IS 'gateway.node.node of the row at the trans
  * @brief AFTER trigger on gateway.node: journals the transition into gateway.log
  *        and tells every listening gateway worker about it with
  *        pg_notify('gateway', …) — the ≤ 1 s half of "draining accepted → all
- *        workers stop routing" (contract К8; the 60 s re-read is the other half,
+ *        workers stop routing" (the 60 s re-read is the other half,
  *        for a lost NOTIFY). Fires on INSERT, DELETE and on an UPDATE that changes
  *        `state` — NOT on a heartbeat that only moves `seen`, so a fleet of
  *        modules cannot turn the channel into a metronome.
@@ -70,7 +69,7 @@ COMMENT ON COLUMN gateway.log.node IS 'gateway.node.node of the row at the trans
  * Payload (JSON): {"op": "INSERT|UPDATE|DELETE", "module", "instance",
  *                  "state", "state_from", "address", "prefixes", "worker",
  *                  "node", "updated"}.
- * `node` and `updated` (T592) are those of the row after the statement — of
+ * `node` and `updated` are those of the row after the statement — of
  * the deleted row on DELETE; `node` is null from a binary that does not write
  * it. The first eight keys are unchanged since P00000020.
  * NOTIFY is transactional: a listener sees the row committed.

@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- The channel `http` on notify (T1102, stage E3 of T996) ----------------------
+-- The channel `http` on notify ------------------------------------------------
 --------------------------------------------------------------------------------
 -- What a sender needs once the channel is switched to `single`: the answer stored
 -- only for an open row, the closing of a request whose outcome is not known, the
@@ -82,7 +82,7 @@ $$ LANGUAGE plpgsql
  *
  * "Outcome unknown": the request was, or may have been, sent, and no answer was stored — the sender died, the lease
  * ran out, the lifetime ended before a repeat. A producer that pays learns it from the callback and asks the other
- * side (T492). The row is closed first, by http.try_fail: of two callers only one calls the callback.
+ * side. The row is closed first, by http.try_fail: of two callers only one calls the callback.
  *
  * The callback is made inside its own sub-transaction. One that throws takes only itself down: the row stays
  * closed, the reason is appended to http.request.error (the same line PGFetch writes), and the function returns
@@ -173,7 +173,7 @@ $$ LANGUAGE plpgsql
  *  - `unsent:` (the lifetime ended before any sender looked), `unrouted:`, and a refusal of a sender that did not
  *    send it (`nack: unsent:` — the sender stops; `nack: stopping:` — the stop began as it took the row) when it
  *    is the FIRST delivery of the row (notify.queue.attempts <= 1): the request is closed with `not sent: <reason>`
- *    and its producer is NOT called back — nothing happened to it (the plan's closing 1, T996 plan § 5);
+ *    and its producer is NOT called back — nothing happened to it;
  *  - everything else (`orphaned:` — the lease ran out and no repeat is allowed, or the lifetime ended between two
  *    deliveries; `nack:` with any other text, or an `unsent:` refusal of a repeat delivery): the request may have
  *    reached the other side. It is closed with
@@ -267,7 +267,7 @@ $$ LANGUAGE plpgsql STRICT
    SET search_path = http, pg_temp;
 
 --------------------------------------------------------------------------------
--- PRIVILEGES OF THE FUNCTIONS OF NOTIFY SINGLE (T1102) ------------------------
+-- PRIVILEGES OF THE FUNCTIONS OF NOTIFY SINGLE -------------------------------
 --------------------------------------------------------------------------------
 
 -- http.fail_unknown and http.abandon run a function named by a request row, as kernel, and

@@ -7,8 +7,8 @@
 -- (the REST routes are the administrator's), so a group `notify` would decide
 -- nothing and suggest that membership grants access. Who may call the functions is
 -- the USAGE on the schema (schema.sql): the roles daemon and apibot, the group
--- administrator, and whatever role a configuration grants it to (the CSMS: ocpp, by its
--- own grant -- T590 step 2, not made yet). EXECUTE on the functions is granted in routine.sql.
+-- administrator, and whatever role a configuration grants it to (a service role of
+-- its own, by its own grant). EXECUTE on the functions is granted in routine.sql.
 
 --------------------------------------------------------------------------------
 -- Channels of the platform ----------------------------------------------------
@@ -17,14 +17,14 @@
 -- EVERY channel is legacy: notify.send is a plain pg_notify, so a binary that
 -- does not know this module and a binary that does can share a database. The
 -- description says what the channel is meant to become; the switch to single is
--- made per installation, by the owner's word, when every instance listening on
+-- made per installation, by the operator, when every instance listening on
 -- the channel is new (notify.channel is edited through /notify/channel/set).
 --
 -- The values besides mode are the policy the channel will have when it is
 -- switched: they are not in force while the mode is legacy, except for rows
 -- already in notify.queue (take, ack, nack and the sweep bring those to their
 -- end whatever the mode is). The other exception belongs to the executor, not
--- to this module: a TaskScheduler that has T1104 (an earlier one sets no limit)
+-- to this module: a TaskScheduler that reads the job lease (an earlier one sets no limit)
 -- reads the lease of the channel `job` on every poll (1 s by default), in every
 -- mode, and sets statement_timeout for each statement of a job body at 8/10 of
 -- the lease and, where the server has transaction_timeout (PostgreSQL 17 and

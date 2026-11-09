@@ -135,8 +135,7 @@ BEGIN
   -- A type is the key every rule of a class reads (GetType, typecode). The
   -- doors in front of this function admit the administrator only — the head of
   -- rest.workflow, the administrator level of daemon.call — but a project may
-  -- route to it from its own dispatcher (apostol-csms T870: /connector/type/set
-  -- renamed any type of the platform for any signed-in user). The rule lives
+  -- route to it from its own dispatcher. The rule lives
   -- here: writing a type is the platform administrator's alone; the kernel
   -- installs.
   IF session_user <> 'kernel' AND NOT IsAdmin() THEN
@@ -175,8 +174,7 @@ BEGIN
   -- A type is the key every rule of a class reads (GetType, typecode). The
   -- doors in front of this function admit the administrator only — the head of
   -- rest.workflow, the administrator level of daemon.call — but a project may
-  -- route to it from its own dispatcher (apostol-csms T870: /connector/type/set
-  -- renamed any type of the platform for any signed-in user). The rule lives
+  -- route to it from its own dispatcher. The rule lives
   -- here: writing a type is the platform administrator's alone; the kernel
   -- installs.
   IF session_user <> 'kernel' AND NOT IsAdmin() THEN
@@ -241,8 +239,7 @@ BEGIN
   -- A type is the key every rule of a class reads (GetType, typecode). The
   -- doors in front of this function admit the administrator only — the head of
   -- rest.workflow, the administrator level of daemon.call — but a project may
-  -- route to it from its own dispatcher (apostol-csms T870: /connector/type/set
-  -- renamed any type of the platform for any signed-in user). The rule lives
+  -- route to it from its own dispatcher. The rule lives
   -- here: writing a type is the platform administrator's alone; the kernel
   -- installs.
   IF session_user <> 'kernel' AND NOT IsAdmin() THEN

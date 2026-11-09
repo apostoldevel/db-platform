@@ -10,8 +10,8 @@
  * by the next SessionIn (skill, "Context and session"). That is right for the
  * C++ workers, which own a connection per request, and wrong for a Go module
  * behind pgx / pgbouncer in transaction mode: the next transaction on the same
- * backend would inherit the previous caller's identity. track-a-graftio.md §4
- * asks for SessionIn(pLocal); until SessionIn carries that parameter this
+ * backend would inherit the previous caller's identity. A transaction-local
+ * SessionIn(pLocal) is what this needs; until SessionIn carries that parameter this
  * wrapper gives the same guarantee from the outside: it authorises through
  * Authorize, then moves every context GUC it set from the session level to the
  * transaction level — session value cleared to '' (GetVar reads '' as NULL),
@@ -19,7 +19,7 @@
  * carries no identity. The pool's RESET ALL on return is the second layer, not
  * the first.
  *
- * Contract К7: `sub` of the JWT is the session code; agent = User-Agent,
+ * `sub` of the JWT is the session code; agent = User-Agent,
  * host = X-Forwarded-For. authorized = false → 401 with `message`.
  *
  * @param {varchar} pSession - Session code (JWT sub)
@@ -41,7 +41,7 @@ DECLARE
   vName             text;
   vValue            text;
 BEGIN
-  PERFORM SetClientHost(pHost);  -- a client request (К7: X-Forwarded-For): see CheckIPTable
+  PERFORM SetClientHost(pHost);  -- a client request (X-Forwarded-For): see CheckIPTable
   authorized := Authorize(pSession, pAgent, pHost);
   userid := current_userid();
   message := GetErrorMessage();
@@ -66,19 +66,19 @@ GRANT EXECUTE ON FUNCTION api.authorize_local(varchar, text, inet) TO apibot;
 --------------------------------------------------------------------------------
 /**
  * @brief Journals one /api/v2 request into db.api_log the way api.run journals
- *        /api/v1 (track-a-graftio.md §4): AddApiLog — which a configuration may
+ *        /api/v1: AddApiLog — which a configuration may
  *        override with its own redaction list — plus the server-side runtime and
  *        the HTTP status, so a v2 line reads like a v1 line in the same table.
  *
  *        Call it at the END of the request, inside the same transaction as the
  *        work (the identity comes from the transaction-local context set by
  *        api.authorize_local): pRuntime is what the module measured, pStatus
- *        what it is about to answer. The request id (contract К7,
- *        X-Request-Id) and the method travel in `json` under "_request", next
+ *        what it is about to answer. The request id
+ *        (X-Request-Id) and the method travel in `json` under "_request", next
  *        to the payload, because db.api_log has no column for either and a
  *        column is a platform change.
  *
- *        A refusal is a line too (1.2.24, go-platform T185): the module rolls
+ *        A refusal is a line too (1.2.24): the module rolls
  *        the work back to a savepoint and calls this in the same transaction,
  *        or — when the refusal aborted the transaction before any savepoint —
  *        in a fresh one, with no session context at all. Nothing here needs a
@@ -130,13 +130,13 @@ GRANT EXECUTE ON FUNCTION api.log_request(text, text, jsonb, integer, interval, 
 -- api.parse_message -----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**
- * @brief ParseMessage for the helper-pool role. track-a-graftio.md §4 asks for
- *        EXECUTE on kernel.ParseMessage for apibot; that grant would be dead —
+ * @brief ParseMessage for the helper-pool role. An EXECUTE grant on
+ *        kernel.ParseMessage for apibot would be dead —
  *        apibot has no USAGE on schema kernel, so the function is reached
  *        through api.*, like everything else the
  *        background roles call. Same OUT columns: code (ERR-GGG-CCC → HTTP-ish
  *        group), message, error (the code text) — what problem+json needs
- *        (contract К7: type = urn:apostol:error:<code>, status from GGG).
+ *        (type = urn:apostol:error:<code>, status from GGG).
  *
  * @param {text} pMessage - SQLERRM as raised ("ERR-400-032: …")
  * @return {record} code, message, error

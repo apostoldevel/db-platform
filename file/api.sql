@@ -11,7 +11,7 @@
 -- wrong for a scan (~85 µs a row). Lists and counts therefore do not go
 -- through this view: api.list_file / api.count_file take the set-based pair
 -- FileObject / FileAccess through api.sql('kernel', …), as every Object<X>
--- does (1.2.24, ОБ-14).
+-- does (1.2.24).
 
 CREATE OR REPLACE VIEW api.file
 AS

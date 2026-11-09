@@ -1,7 +1,7 @@
 --------------------------------------------------------------------------------
 -- P00000026 -------------------------------------------------------------------
 --------------------------------------------------------------------------------
--- The /api/v2 road through the database (ship-safety T260 + T288):
+-- The /api/v2 road through the database:
 --
 -- - gateway.request: the verified identity of one open /api/v2 request, what
 --   daemon.call restores the session context from (UNLOGGED: a request lives

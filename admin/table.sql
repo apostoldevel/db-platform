@@ -188,8 +188,7 @@ COMMENT ON COLUMN db.user.passwordchange IS 'Force password change on next login
 COMMENT ON COLUMN db.user.passwordnotchange IS 'Prohibit the user from changing their own password.';
 COMMENT ON COLUMN db.user.readonly IS 'Read-only flag; prevents modification of system accounts.';
 
--- Case-insensitive uniqueness, case-preserving storage (T229, decision of
--- 2026-09-09). The login is stored exactly as the person typed it — "userName"
+-- Case-insensitive uniqueness, case-preserving storage. The login is stored exactly as the person typed it — "userName"
 -- stays "userName" — and no second account may be created as "UserName",
 -- "Username" or "username". A plain unique index on (type, username) enforces
 -- the storage rule and not the identity rule: it let those four coexist, and
