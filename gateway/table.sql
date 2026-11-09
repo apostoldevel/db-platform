@@ -189,7 +189,7 @@ CREATE TABLE gateway.function (
     level       text NOT NULL DEFAULT 'session' CHECK (level IN ('session', 'administrator'))
 );
 
-COMMENT ON TABLE gateway.function IS 'The functions of schema api that daemon.call may reach — closed by default. Filled by RegisterGatewayFunction, re-run on every update.';
+COMMENT ON TABLE gateway.function IS 'The functions of schema api that daemon.call may reach — closed by default. Filled by RegisterGatewayFunction from InitGateway at install; an existing base takes a change through a patch.';
 
 COMMENT ON COLUMN gateway.function.signature IS 'Function signature as regprocedure prints it, without the schema: name(type, …).';
 COMMENT ON COLUMN gateway.function.name      IS 'Function name, what daemon.call is given.';

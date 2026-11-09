@@ -225,8 +225,10 @@ $$ LANGUAGE plpgsql STABLE
  *        administrator's. The entity document/reference prefixes (jobs,
  *        messages, references, agents, programs, schedulers, vendors,
  *        versions) are declared here as well — a document takes GuardSession,
- *        a reference GuardRead. Re-runnable: called by init.sql
- *        and at the end of update.psql.
+ *        a reference GuardRead; so do the platform's own references (errors,
+ *        resources, addresses, locales). Re-runnable: called by init.sql. Not
+ *        re-run by update.psql (since P00000031): an existing base takes a
+ *        changed row only through a patch.
  * @return {void}
  * @since 1.2.31
  */
@@ -249,7 +251,7 @@ BEGIN
   PERFORM RegisterRouteGuard('interfaces', 'GuardAdministrator', ARRAY['DELETE', 'GET', 'PATCH', 'POST']);
   PERFORM RegisterRouteGuard('jobs', 'GuardSession', ARRAY['GET', 'PATCH', 'POST']);
   PERFORM RegisterRouteGuard('kladr', 'GuardRead', ARRAY['GET']);
-  PERFORM RegisterRouteGuard('locales', 'GuardAdministrator', ARRAY['GET']);
+  PERFORM RegisterRouteGuard('locales', 'GuardRead', ARRAY['GET']);
   PERFORM RegisterRouteGuard('me', 'GuardSession', ARRAY['GET', 'PATCH']);
   PERFORM RegisterRouteGuard('me/event-log', 'GuardSession', ARRAY['GET']);
   PERFORM RegisterRouteGuard('messages', 'GuardSession', ARRAY['GET', 'PATCH', 'POST']);
@@ -529,7 +531,8 @@ $$ LANGUAGE plpgsql
  *        and get_<x>(uuid) for the platform document/reference kinds — the
  *        integration test walks the journal and reads the get_<entity> of
  *        their top rows (the remaining entity kinds are a separate step).
- *        Re-runnable: called by init.sql and at the end of update.psql.
+ *        Re-runnable: called by init.sql. Not re-run by update.psql (since
+ *        P00000031): an existing base takes a changed row only through a patch.
  * @return {void}
  * @since 1.2.31
  */
@@ -617,7 +620,6 @@ BEGIN
       ('list_event_log(jsonb,jsonb,integer,integer,jsonb)', 'administrator'),
       ('list_group(jsonb,jsonb,integer,integer,jsonb)', 'administrator'),
       ('list_interface(jsonb,jsonb,integer,integer,jsonb)', 'administrator'),
-      ('list_locale(jsonb, jsonb, integer, integer, jsonb)', 'administrator'),
       ('list_log(jsonb,jsonb,integer,integer,jsonb)', 'administrator'),
       ('list_method(jsonb,jsonb,integer,integer,jsonb)', 'administrator'),
       ('list_priority(jsonb,jsonb,integer,integer,jsonb)', 'administrator'),
@@ -717,6 +719,7 @@ BEGIN
       ('list_address_tree(jsonb,jsonb,integer,integer,jsonb)', 'session'),
       ('list_error(jsonb,jsonb,integer,integer,jsonb)', 'session'),
       ('list_job(jsonb,jsonb,integer,integer,jsonb)', 'session'),
+      ('list_locale(jsonb, jsonb, integer, integer, jsonb)', 'session'),
       ('list_my_listener()', 'session'),
       ('my_notification(timestamp with time zone)', 'session'),
       ('get_my_notification(uuid)', 'session'),

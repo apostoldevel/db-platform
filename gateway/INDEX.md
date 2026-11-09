@@ -68,7 +68,7 @@ The entry points are `daemon.begin` / `daemon.call` / `daemon.end` (see `daemon/
 | `GatewayContext()` / `SetGatewayContext(jsonb)` | `jsonb` / `void` | The nine `current.*` context GUCs as an object; put back at the **transaction** level only (session level cleared) |
 | `IsGatewayRequest()` | `boolean` | Whether this transaction serves an `/api/v2` request: a `gateway.request` row for (`pg_backend_pid()`, `txid_current_if_assigned()`), written only by `kernel` in `daemon.begin`. `ExecuteMethod` asks for the right on the method under `apibot` when it is true (1.2.34) |
 | `ResetGatewayVars()` | `void` | Clears every GUC the platform takes identity or intent from — the nine `current.*`, `current.key`, `object.id`, `context.*` — at both levels. First line of `daemon.begin` (a value set before the request is never taken as verified), and before the context is put back in `call`/`end` |
-| `InitGatewayRoutes()` / `InitGatewayFunctions()` / `InitGateway()` | `void` | The platform's own `/api/v2` routes (31 prefixes of the go-platform modules) and allow list (levels as the Go code needs them). Re-runnable. Called at install by `init.sql` (`create.psql`) and once, for a base installed before the change, by `patch/v1.2/P00000031.sql`; `update.psql` does not call it. A configuration registers its own prefixes and functions the same way |
+| `InitGatewayRoutes()` / `InitGatewayFunctions()` / `InitGateway()` | `void` | The platform's own `/api/v2` routes (31 prefixes of the go-platform modules) and allow list (levels as the Go code needs them). Re-runnable. Called at install by `init.sql` (`create.psql`) and once, for a base installed before the change, by `patch/v1.2/P00000031.sql`; `update.psql` does not call it, so a changed row ships with a patch (`P00000043`). A configuration registers its own prefixes and functions the same way |
 
 ### `api.*` wrappers for the pool role (`apibot`)
 
@@ -91,7 +91,8 @@ The entry points are `daemon.begin` / `daemon.call` / `daemon.end` (see `daemon/
 
 `create.psql` ends with `init.sql` (`InitGateway()`) — gateway is the last module, so every function of
 schema `api` exists by then. `update.psql` registers nothing: routes and allow list are written
-at install and by a patch (`P00000031` for the bases installed earlier), not on every update.
+at install and by a patch (`P00000031` for the bases installed earlier), not on every update. A changed
+row of `InitGatewayRoutes`/`InitGatewayFunctions` reaches an existing base only through a patch of its own (`P00000043`).
 
 ## Patches
 
@@ -101,6 +102,7 @@ at install and by a patch (`P00000031` for the bases installed earlier), not on 
 | `patch/v1.2/P00000026.sql` | 1.2.31: `gateway.request`, `gateway.function`, `PATCH` in `db.route.method`, `db.protected_group`, error group 403. Routes and the allow list were then written by `InitGateway()` at the end of `update.psql`; since `P00000031` at install and by that patch |
 | `patch/v1.2/P00000031.sql` | The registration moves from update to install — loads `routine.sql` and calls `InitGateway()` once, so a base installed earlier gets the new `/api/v2` prefixes and allow-list functions. Re-runnable (the registrars are upserts) |
 | `patch/v1.2/P00000032.sql` | `node text` in `gateway.node` and `gateway.log` (`ADD COLUMN IF NOT EXISTS`, under `lock_timeout`), comments, and `ft_node_notify` — a snapshot of the body in `table.sql` (journal `node`; payload `node`, `updated`). `worker` keeps its type. Re-runnable |
+| `patch/v1.2/P00000043.sql` | `/api/v2/locales` takes `GuardRead` (was `GuardAdministrator`) and `api.list_locale` the level `session` — only where the route and the level still hold the earlier platform declaration; restates the comment of `gateway.function`. One `DO` block, re-runnable |
 
 ## Traps
 
