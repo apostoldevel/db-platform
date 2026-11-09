@@ -1765,9 +1765,9 @@ BEGIN
   -- that needs the whole log from zero. The local node is excluded: our own
   -- cursor says nothing about what anybody else received.
   --
-  -- How long a silent node may hold the log is NOT decided here. It is the
-  -- owner's call ("how long may a ship stay quiet before we forget its tail"),
-  -- and until it is made, retention alone never deletes an unconfirmed message.
+  -- How long a silent node may hold the log is NOT decided here: it is a
+  -- decision of the installation, and until it is made, retention alone never
+  -- deletes an unconfirmed message.
 
   -- A message addressed to one node is answered for by that node alone: its
   -- own cursor on its own stream. The stream to everyone waits for everyone,

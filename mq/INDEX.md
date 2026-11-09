@@ -343,8 +343,8 @@ adjusting an interval must not be one.
 - **A refusal always leaves a row.** Silence plus an optimistic cursor is unrecoverable loss.
 - **`mq.purge` never deletes what a live node has not confirmed**, retention or not — and it counts
   nodes that have never synchronised at all, which have no cursor row yet. Those are precisely the
-  nodes that need the log from zero. How long a silent node may hold the log is the owner's call
-  and is deliberately not decided here.
+  nodes that need the log from zero. How long a silent node may hold the log is a decision of the
+  installation and is deliberately not decided here.
 - **Whether a lane travels is decided in exactly one place** — `mq.link.threshold`. A schedule row
   governs how, never whether.
 - **The interval of an evidential lane sets the window of undetectable truncation.** It is not a

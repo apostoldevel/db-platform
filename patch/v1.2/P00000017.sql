@@ -80,8 +80,8 @@ COMMENT ON COLUMN mq.link.updated IS 'When it was last changed.';
 -- is exactly the free-form configuration this module exists to get away from.
 --
 -- peer IS NULL is the default for every node; a row naming a peer overrides it.
--- The override is not an extra: tariffs differ per vessel, so "this setting is
--- per ship, not per fleet" was the first thing said about it.
+-- The override is not an extra: the cost of a link differs from node to node,
+-- so the setting is made per node, not once for all of them.
 --
 -- There is no cap on the backoff, because the schedule already is one: the
 -- backoff grows until it reaches the period, and waiting longer than the
