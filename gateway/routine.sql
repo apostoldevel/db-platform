@@ -297,8 +297,12 @@ $$ LANGUAGE plpgsql
  *        AddEndPoint: `SELECT <guard>($1, $2, $3);`.
  * @param {text} pPrefix - Prefix under the version, without slashes at the ends: 'users', 'me/event-log'
  * @param {text} pGuard - Guard function name; it must take (text, jsonb, text) and return boolean
- * @param {text[]} pMethods - Methods the prefix serves: GET, POST, PUT, PATCH, DELETE
- * @param {text} pVersion - API version segment
+ * @param {text[]} pMethods - Methods the prefix serves: GET, POST, PUT, PATCH, DELETE;
+ *        an empty array removes every route of the prefix, the endpoints no
+ *        route uses any more and every node of the prefix left with neither
+ *        routes nor children, up to the version node; the guard is then not
+ *        checked (NULL is refused)
+ * @param {text} pVersion - API version segment `v<n>`; never v1 (api.run's)
  * @return {void}
  * @since 1.2.31
  */
@@ -316,27 +320,49 @@ DECLARE
   vDefinition   text;
   vMethod       text;
   arMethods     text[];
+  arDropped     uuid[];
+  uNode         uuid;
+  uVersion      uuid;
 BEGIN
-  IF to_regprocedure(pGuard || '(text, jsonb, text)') IS NULL
-     OR (SELECT prorettype FROM pg_proc WHERE oid = to_regprocedure(pGuard || '(text, jsonb, text)')) <> 'boolean'::regtype THEN
-    RAISE EXCEPTION 'RegisterRouteGuard: % is not a guard: (text, jsonb, text) -> boolean', pGuard;
+  -- An empty array is a declaration too: the prefix serves nothing, every
+  -- route goes (array_agg of no rows is NULL, hence the coalesce); NULL
+  -- itself is a mistake, and so is a NULL prefix or version.
+  IF pPrefix IS NULL OR pVersion IS NULL OR pMethods IS NULL THEN
+    RAISE EXCEPTION 'RegisterRouteGuard: prefix, methods and version are required — pass ARRAY[]::text[] to remove the routes of a prefix';
+  END IF;
+
+  -- v1 is api.run's: a guard filed there would be taken for an endpoint
+  IF NOT regexp_like(pVersion, '^v[0-9]+$') OR pVersion = 'v1' THEN
+    RAISE EXCEPTION 'RegisterRouteGuard: version % is not a version segment other than v1 (v1 belongs to api.run, a guard is never filed there)', pVersion;
   END IF;
 
   IF NOT regexp_like(pPrefix, '^[a-z0-9_-]+(/[a-z0-9_-]+)*$') THEN
     RAISE EXCEPTION 'RegisterRouteGuard: prefix % must be plain path segments (a-z, 0-9, _ and -): a guard decides for its whole subtree', pPrefix;
   END IF;
 
-  SELECT array_agg(DISTINCT upper(m)) INTO arMethods FROM unnest(pMethods) AS m;
+  SELECT coalesce(array_agg(DISTINCT upper(m)), '{}') INTO arMethods FROM unnest(pMethods) AS m;
 
-  vPath := '/api/' || pVersion || '/' || trim(both '/' from pPrefix);
+  -- Removal never runs the guard, so a guard dropped since is no obstacle.
+  IF cardinality(arMethods) > 0 AND (
+     to_regprocedure(pGuard || '(text, jsonb, text)') IS NULL
+     OR (SELECT prorettype FROM pg_proc WHERE oid = to_regprocedure(pGuard || '(text, jsonb, text)')) <> 'boolean'::regtype) THEN
+    RAISE EXCEPTION 'RegisterRouteGuard: % is not a guard: (text, jsonb, text) -> boolean', pGuard;
+  END IF;
+
+  vPath := '/api/' || pVersion || '/' || pPrefix;
   vDefinition := format('SELECT %s($1, $2, $3);', pGuard);
 
   uPath := FindPath(vPath);
   IF uPath IS NULL THEN
+    IF cardinality(arMethods) = 0 THEN
+      RETURN;
+    END IF;
     uPath := RegisterPath(vPath);
   END IF;
 
-  DELETE FROM db.route WHERE path = uPath AND NOT method = ANY (arMethods);
+  WITH d AS (
+    DELETE FROM db.route WHERE path = uPath AND NOT method = ANY (arMethods) RETURNING endpoint
+  ) SELECT array_agg(endpoint) INTO arDropped FROM d;
 
   FOREACH vMethod IN ARRAY arMethods
   LOOP
@@ -346,9 +372,34 @@ BEGIN
       INSERT INTO db.route (method, path, endpoint) VALUES (vMethod, uPath, AddEndPoint(vDefinition));
     ELSE
       UPDATE db.endpoint SET definition = vDefinition WHERE id = uEndpoint AND definition IS DISTINCT FROM vDefinition;
-      DELETE FROM db.route WHERE method = vMethod AND path = uPath AND endpoint <> uEndpoint;
+      WITH d AS (
+        DELETE FROM db.route WHERE method = vMethod AND path = uPath AND endpoint <> uEndpoint RETURNING endpoint
+      ) SELECT arDropped || array_agg(endpoint) INTO arDropped FROM d;
     END IF;
   END LOOP;
+
+  -- What the declaration took away goes entirely: endpoints no route uses any
+  -- more, and every node of the prefix left with neither routes nor children,
+  -- up to the version node. A left node would stop the deepest-prefix lookup
+  -- short of the parent's guard, so one declaration would judge differently on
+  -- an updated base and a fresh one, and differently by the order of the calls.
+  IF arDropped IS NOT NULL THEN
+    DELETE FROM db.endpoint e WHERE e.id = ANY (arDropped) AND NOT EXISTS (SELECT FROM db.route r WHERE r.endpoint = e.id);
+  END IF;
+
+  IF cardinality(arMethods) = 0 THEN
+    uVersion := FindPath('/api/' || pVersion);
+    uNode := uPath;
+
+    WHILE uNode IS NOT NULL AND uNode IS DISTINCT FROM uVersion
+      AND NOT EXISTS (SELECT FROM db.route WHERE path = uNode)
+      AND NOT EXISTS (SELECT FROM db.path WHERE parent = uNode)
+    LOOP
+      uPath := uNode;
+      SELECT parent INTO uNode FROM db.path WHERE id = uPath;
+      PERFORM DeletePath(uPath);
+    END LOOP;
+  END IF;
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
