@@ -345,15 +345,17 @@ GRANT SELECT ON api.object_access TO administrator;
  * @brief List users/groups and their access permissions for a given object.
  * @param {uuid} pId - Object identifier
  * @return {SETOF api.object_access} - Access entries with user details
- * @note An administrator reads any row; anyone else a row of an object he may
- *       read (CheckObjectAccess, CheckObjectArea).
+ * @note An administrator reads any row; anyone else the rows of an object he may
+ *       edit (CheckObjectAccess B'010', CheckObjectArea) since 1.2.40 -- reading
+ *       the object is not enough; without the bit the list is empty. Changing
+ *       the list (chmodo) stays with administrators.
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.object_access (
   pId       uuid
 ) RETURNS   SETOF api.object_access
 AS $$
-  SELECT * FROM api.object_access WHERE object = pId AND ((SELECT IsAdmin()) OR (CheckObjectAccess(pId, B'100') AND CheckObjectArea(pId)));
+  SELECT * FROM api.object_access WHERE object = pId AND ((SELECT IsAdmin()) OR (SELECT CheckObjectAccess(pId, B'010') AND CheckObjectArea(pId)));
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;

@@ -205,7 +205,7 @@ There is no `/object/set` (nor `/document/set`, `/reference/set`) since 1.2.36: 
 
 | Group | Routes | Operations |
 |-------|--------|------------|
-| Metadata | 7 | class, type, state, method, access, access/set, access/decode |
+| Metadata | 7 | class, type, state, method, access, access/set, access/decode; `access` (`api.object_access`) gives a caller who is not an administrator the list only for an object he may edit — update bit and area — and an empty list otherwise (1.2.40) |
 | CRUD | 4 | count, get, list, delete/force |
 | State History | 3 | state/history/get, list, count |
 | Method/Action | 5 | method/execute, action/execute, method/history/get, list, count |

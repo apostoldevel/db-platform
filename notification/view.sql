@@ -30,7 +30,16 @@ GRANT SELECT ON Notification TO administrator;
 --------------------------------------------------------------------------------
 -- VIEW ObjectMethodHistory ----------------------------------------------------
 --------------------------------------------------------------------------------
-
+/**
+ * @brief Method journal of objects with the user who ran each method.
+ * @note Since 1.2.40 the contacts of that user (username, phone, email, their
+ *       verification flags, picture) are given to an administrator and to the
+ *       user himself; for anyone else they are NULL. The user id and the name
+ *       stay. The check sits in the select list, so a read bounded by object or
+ *       date keeps its plan; a read that filters, searches or sorts on a contact
+ *       column compares the masked value and scans the journal.
+ * @since 1.0.0
+ */
 CREATE OR REPLACE VIEW ObjectMethodHistory (Id, Object, DateTime,
   UserId, UserName, FullName, LastName, FirstName, MiddleName,
   Phone, Email, EmailVerified, PhoneVerified, Picture,
@@ -40,8 +49,14 @@ CREATE OR REPLACE VIEW ObjectMethodHistory (Id, Object, DateTime,
 )
 AS
   SELECT n.id, n.object, n.datetime,
-         n.userid, u.username, u.name, p.family_name, p.given_name, p.patronymic_name,
-         u.phone, u.email, p.email_verified, p.phone_verified, p.picture,
+         n.userid,
+         CASE WHEN (SELECT IsAdmin()) OR n.userid = (SELECT current_userid()) THEN u.username END,
+         u.name, p.family_name, p.given_name, p.patronymic_name,
+         CASE WHEN (SELECT IsAdmin()) OR n.userid = (SELECT current_userid()) THEN u.phone END,
+         CASE WHEN (SELECT IsAdmin()) OR n.userid = (SELECT current_userid()) THEN u.email END,
+         CASE WHEN (SELECT IsAdmin()) OR n.userid = (SELECT current_userid()) THEN p.email_verified END,
+         CASE WHEN (SELECT IsAdmin()) OR n.userid = (SELECT current_userid()) THEN p.phone_verified END,
+         CASE WHEN (SELECT IsAdmin()) OR n.userid = (SELECT current_userid()) THEN p.picture END,
          n.method, m.code, mt.label, n.action, a.code, at.name, at.description,
          os.type, ot.code, ott.name, n.state_old, os.code, ost.label,
          ns.type, nt.code, ntt.name, n.state_new, ns.code, nst.label

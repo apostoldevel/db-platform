@@ -44,7 +44,7 @@ All FK columns have `ON DELETE CASCADE`.
 | View | Description |
 |------|-------------|
 | `Notification` | Full notification with entity/class/action/method names, old/new state details |
-| `ObjectMethodHistory` | Detailed audit trail with user profile (name, phone, email, picture), method/action/state labels |
+| `ObjectMethodHistory` | Detailed audit trail with user profile (name, phone, email, picture), method/action/state labels; the contacts (username, phone, email, verification flags, picture) are NULL unless the reader is an administrator or the user of the row (1.2.40) |
 | `api.notification` | Passthrough from `Notification` |
 | `api.object_method_history` | Passthrough from `ObjectMethodHistory` |
 

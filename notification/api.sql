@@ -271,7 +271,9 @@ GRANT SELECT ON api.object_method_history TO administrator;
  * @param {uuid} pId - Object identifier
  * @return {SETOF api.object_method_history} - History rows for the object
  * @note An administrator reads any row; anyone else a row of an object he may
- *       read (CheckObjectAccess, CheckObjectArea).
+ *       read (CheckObjectAccess, CheckObjectArea). The contacts of the user who
+ *       ran the method are NULL unless the reader is an administrator or that
+ *       user (ObjectMethodHistory, since 1.2.40).
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_object_method_history (
@@ -329,7 +331,9 @@ $$ LANGUAGE plpgsql
  * @param {jsonb} pOrderBy - Array of column names to sort by
  * @return {SETOF api.object_method_history} - Matching history rows
  * @note An administrator reads every row; anyone else the rows of the objects
- *       he names and may read (ObjectReadBound); none when he names none.
+ *       he names and may read (ObjectReadBound); none when he names none. The
+ *       contacts of the user who ran the method are NULL unless the reader is
+ *       an administrator or that user (ObjectMethodHistory, since 1.2.40).
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_object_method_history (
