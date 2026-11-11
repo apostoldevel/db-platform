@@ -204,6 +204,79 @@ $$ LANGUAGE plpgsql STABLE
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- ObjectReadBound -------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief The filter that bounds a journal read to the objects the caller names
+ *        and may read.
+ *
+ * The journals (api.notification, api.object_method_history,
+ * api.object_state_history) hold rows of every object. A caller who is not an
+ * administrator reads the rows of the objects he names — in the filter
+ * ("object": a uuid or an array) or, when the filter names none, in the search
+ * (field "object", compare EQL or IN) — of which he may read: CheckObjectAccess
+ * (B'100') and CheckObjectArea. The result is the caller's filter with
+ * "object" set to that set; api.sql applies the filter as a bound to the whole
+ * search (WHERE (<search>) AND <filter>), so no OR of the search widens it.
+ * An empty set is NULL, not an empty array: the caller returns no row itself,
+ * because a configuration may redefine api.sql, and a redefinition may read an
+ * empty array as no condition at all.
+ *
+ * The check runs once per distinct named object, not once per row: a condition
+ * on every row of a journal of millions of rows costs minutes and keeps the
+ * planner off the datetime index.
+ *
+ * @param {jsonb} pSearch - The caller's search array
+ * @param {jsonb} pFilter - The caller's filter object
+ * @return {jsonb} - The bounded filter; NULL when no named object may be read
+ * @see CheckObjectAccess, CheckObjectArea, api.sql
+ * @since 1.2.40
+ */
+CREATE OR REPLACE FUNCTION ObjectReadBound (
+  pSearch    jsonb,
+  pFilter    jsonb
+) RETURNS    jsonb
+AS $$
+DECLARE
+  jObject    jsonb;
+  arNamed    uuid[];
+  arObjects  uuid[];
+BEGIN
+  jObject := pFilter->'object';
+
+  IF jsonb_typeof(jObject) = 'array' THEN
+    arNamed := ARRAY(SELECT v::uuid FROM jsonb_array_elements_text(jObject) v WHERE nullif(v, '') IS NOT NULL);
+  ELSIF jsonb_typeof(jObject) = 'string' THEN
+    arNamed := ARRAY(SELECT v::uuid FROM nullif(jObject #>> '{}', '') v WHERE v IS NOT NULL);
+  ELSIF jObject IS NULL AND jsonb_typeof(pSearch) = 'array' THEN
+    arNamed := ARRAY(
+      SELECT x.v::uuid
+        FROM jsonb_array_elements(pSearch) e,
+             LATERAL (SELECT e->>'value' AS v WHERE jsonb_typeof(e->'value') = 'string'
+                      UNION ALL
+                      SELECT jsonb_array_elements_text(e->'valarr') WHERE jsonb_typeof(e->'valarr') = 'array') x
+       WHERE jsonb_typeof(e) = 'object'
+         AND lower(e->>'field') = 'object'
+         AND upper(coalesce(e->>'compare', 'EQL')) IN ('EQL', 'IN')
+         AND nullif(x.v, '') IS NOT NULL
+    );
+  END IF;
+
+  SELECT array_agg(u.o) INTO arObjects
+    FROM (SELECT DISTINCT unnest(arNamed) AS o) u
+   WHERE CheckObjectAccess(u.o, B'100') AND CheckObjectArea(u.o);
+
+  IF arObjects IS NULL THEN
+    RETURN null;
+  END IF;
+
+  RETURN coalesce(pFilter, '{}'::jsonb) || jsonb_build_object('object', to_jsonb(arObjects));
+END;
+$$ LANGUAGE plpgsql STABLE
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- DecodeObjectAccess ----------------------------------------------------------
 --------------------------------------------------------------------------------
 /**

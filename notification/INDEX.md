@@ -62,13 +62,13 @@ All FK columns have `ON DELETE CASCADE`.
 | Function | Returns | Purpose |
 |----------|---------|---------|
 | `api.notification(pDateFrom, pUserId)` | `SETOF api.notification` | Wrapper for `Notification()` |
-| `api.get_notification(pId)` | `SETOF api.notification` | Get by ID |
-| `api.count_notification(pSearch, pFilter)` | `SETOF bigint` | Count notifications with search/filter |
-| `api.list_notification(pSearch, pFilter, pLimit, pOffSet, pOrderBy)` | `SETOF api.notification` | List with search/filter/pagination |
+| `api.get_notification(pId)` | `SETOF api.notification` | Get by ID; a caller who is not an administrator — only a row of an object he may read (1.2.40) |
+| `api.count_notification(pSearch, pFilter)` | `SETOF bigint` | Count notifications with search/filter; a caller who is not an administrator — the objects he names and may read (`ObjectReadBound`, 1.2.40) |
+| `api.list_notification(pSearch, pFilter, pLimit, pOffSet, pOrderBy)` | `SETOF api.notification` | List with search/filter/pagination; a caller who is not an administrator — objects he may read (1.2.40) |
 | `api.my_notification` (view) / `api.my_notification(pDateFrom)` / `api.get_my_notification(pId)` / `api.count_my_notification(…)` / `api.list_my_notification(…)` | `SETOF api.my_notification` | The current user's notifications: all for an administrator, otherwise those about objects `CheckObjectAccess` lets him read (a configuration's barrier applies). No user argument — for `/api/v2` (1.2.31) |
-| `api.get_object_method_history(pId)` | `SETOF api.object_method_history` | Get history for object |
-| `api.count_object_method_history(pSearch, pFilter)` | `SETOF bigint` | Count method history with search/filter |
-| `api.list_object_method_history(pSearch, pFilter, pLimit, pOffSet, pOrderBy)` | `SETOF api.object_method_history` | List history |
+| `api.get_object_method_history(pId)` | `SETOF api.object_method_history` | Get history for object; a caller who is not an administrator — objects he may read (1.2.40) |
+| `api.count_object_method_history(pSearch, pFilter)` | `SETOF bigint` | Count method history with search/filter; a caller who is not an administrator — objects he may read (1.2.40) |
+| `api.list_object_method_history(pSearch, pFilter, pLimit, pOffSet, pOrderBy)` | `SETOF api.object_method_history` | List history; a caller who is not an administrator — objects he may read (1.2.40) |
 
 ## REST Routes — 5
 

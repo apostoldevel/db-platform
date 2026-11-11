@@ -40,13 +40,15 @@ $$ LANGUAGE SQL
  * @brief Retrieve a single notification by identifier.
  * @param {uuid} pId - Notification identifier
  * @return {SETOF api.notification} - Matching notification row
+ * @note An administrator reads any row; anyone else a row of an object he may
+ *       read (CheckObjectAccess, CheckObjectArea).
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_notification (
   pId       uuid
 ) RETURNS   SETOF api.notification
 AS $$
-  SELECT * FROM api.notification WHERE id = pId;
+  SELECT * FROM api.notification WHERE id = pId AND ((SELECT IsAdmin()) OR (CheckObjectAccess(object, B'100') AND CheckObjectArea(object)));
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -59,6 +61,8 @@ $$ LANGUAGE SQL
  * @param {jsonb} pSearch - Search conditions array
  * @param {jsonb} pFilter - Exact-match filter object
  * @return {SETOF bigint} - Record count
+ * @note An administrator reads every row; anyone else the rows of the objects
+ *       he names and may read (ObjectReadBound); none when he names none.
  * @since 1.2.1
  */
 CREATE OR REPLACE FUNCTION api.count_notification (
@@ -66,8 +70,18 @@ CREATE OR REPLACE FUNCTION api.count_notification (
   pFilter    jsonb default null
 ) RETURNS    SETOF bigint
 AS $$
+DECLARE
+  jFilter    jsonb := pFilter;
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'notification', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
+  IF NOT IsAdmin() THEN
+    jFilter := ObjectReadBound(pSearch, pFilter);
+    IF jFilter IS NULL THEN
+      RETURN NEXT 0;
+      RETURN;
+    END IF;
+  END IF;
+
+  RETURN QUERY EXECUTE api.sql('api', 'notification', pSearch, jFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -84,6 +98,8 @@ $$ LANGUAGE plpgsql
  * @param {integer} pOffSet - Number of rows to skip
  * @param {jsonb} pOrderBy - Array of column names to sort by
  * @return {SETOF api.notification} - Matching notification rows
+ * @note An administrator reads every row; anyone else the rows of the objects
+ *       he names and may read (ObjectReadBound); none when he names none.
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_notification (
@@ -94,8 +110,17 @@ CREATE OR REPLACE FUNCTION api.list_notification (
   pOrderBy       jsonb DEFAULT null
 ) RETURNS        SETOF api.notification
 AS $$
+DECLARE
+  jFilter    jsonb := pFilter;
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'notification', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+  IF NOT IsAdmin() THEN
+    jFilter := ObjectReadBound(pSearch, pFilter);
+    IF jFilter IS NULL THEN
+      RETURN;
+    END IF;
+  END IF;
+
+  RETURN QUERY EXECUTE api.sql('api', 'notification', pSearch, jFilter, pLimit, pOffSet, pOrderBy);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -245,13 +270,15 @@ GRANT SELECT ON api.object_method_history TO administrator;
  * @brief Retrieve the method execution history for a specific object.
  * @param {uuid} pId - Object identifier
  * @return {SETOF api.object_method_history} - History rows for the object
+ * @note An administrator reads any row; anyone else a row of an object he may
+ *       read (CheckObjectAccess, CheckObjectArea).
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.get_object_method_history (
   pId       uuid
 ) RETURNS   SETOF api.object_method_history
 AS $$
-  SELECT * FROM api.object_method_history WHERE id = pId;
+  SELECT * FROM api.object_method_history WHERE id = pId AND ((SELECT IsAdmin()) OR (CheckObjectAccess(object, B'100') AND CheckObjectArea(object)));
 $$ LANGUAGE SQL
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
@@ -264,6 +291,8 @@ $$ LANGUAGE SQL
  * @param {jsonb} pSearch - Search conditions array
  * @param {jsonb} pFilter - Exact-match filter object
  * @return {SETOF bigint} - Record count
+ * @note An administrator reads every row; anyone else the rows of the objects
+ *       he names and may read (ObjectReadBound); none when he names none.
  * @since 1.2.1
  */
 CREATE OR REPLACE FUNCTION api.count_object_method_history (
@@ -271,8 +300,18 @@ CREATE OR REPLACE FUNCTION api.count_object_method_history (
   pFilter    jsonb default null
 ) RETURNS    SETOF bigint
 AS $$
+DECLARE
+  jFilter    jsonb := pFilter;
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'object_method_history', pSearch, pFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
+  IF NOT IsAdmin() THEN
+    jFilter := ObjectReadBound(pSearch, pFilter);
+    IF jFilter IS NULL THEN
+      RETURN NEXT 0;
+      RETURN;
+    END IF;
+  END IF;
+
+  RETURN QUERY EXECUTE api.sql('api', 'object_method_history', pSearch, jFilter, 0, null, '{}'::jsonb, '["count(id)"]'::jsonb);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER
@@ -289,6 +328,8 @@ $$ LANGUAGE plpgsql
  * @param {integer} pOffSet - Number of rows to skip
  * @param {jsonb} pOrderBy - Array of column names to sort by
  * @return {SETOF api.object_method_history} - Matching history rows
+ * @note An administrator reads every row; anyone else the rows of the objects
+ *       he names and may read (ObjectReadBound); none when he names none.
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.list_object_method_history (
@@ -299,8 +340,17 @@ CREATE OR REPLACE FUNCTION api.list_object_method_history (
   pOrderBy  jsonb DEFAULT null
 ) RETURNS   SETOF api.object_method_history
 AS $$
+DECLARE
+  jFilter    jsonb := pFilter;
 BEGIN
-  RETURN QUERY EXECUTE api.sql('api', 'object_method_history', pSearch, pFilter, pLimit, pOffSet, pOrderBy);
+  IF NOT IsAdmin() THEN
+    jFilter := ObjectReadBound(pSearch, pFilter);
+    IF jFilter IS NULL THEN
+      RETURN;
+    END IF;
+  END IF;
+
+  RETURN QUERY EXECUTE api.sql('api', 'object_method_history', pSearch, jFilter, pLimit, pOffSet, pOrderBy);
 END;
 $$ LANGUAGE plpgsql
    SECURITY DEFINER

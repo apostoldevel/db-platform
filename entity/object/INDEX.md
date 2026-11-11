@@ -112,6 +112,7 @@ table.sql → security.sql → view.sql → routine.sql → api.sql → rest.sql
 | `GetObjectAccessMask(pObject, pUserId)` | `bit` | Computed mask from aou |
 | `CheckObjectAccess(pObject, pMask, pUserId)` | `boolean` | Test permission (falls back to aom) |
 | `CheckObjectArea(pObject)` | `boolean` | The other half of visibility: true unless the object is a document outside the session's `DocumentAreaTree` (plpgsql — the document module loads later). Gates `api.object_file` / `api.object_data` and their `api.*` functions (since 1.2.24) |
+| `ObjectReadBound(pSearch, pFilter)` | `jsonb` | The filter that bounds a journal read for a caller who is not an administrator: the objects named in the filter or search (`object`, EQL/IN) that pass `CheckObjectAccess` and `CheckObjectArea`, set as `object` of the filter; NULL when none (the caller then returns no row — a configuration may redefine `api.sql`). Used by the `count`/`list` functions of `api.notification`, `api.object_method_history`, `api.object_state_history` (since 1.2.40) |
 | `DecodeObjectAccess(pObject, pUserId)` | `record(s,u,d)` | Boolean select/update/delete |
 | `chmodo(pObject, pMask, pUserId)` | `void` | Set AOU from 6-bit mask (admin only) |
 | `AccessObjectUser(pEntity, pUserId, pScope)` | `TABLE(object)` | All accessible objects in scope |
