@@ -186,9 +186,15 @@ BEGIN
        AND IsAdmin(o.owner)
        AND IsAdmin(po.owner)
        AND ((j.daterun <= Now() AND s.code IN ('enabled', 'aborted', 'failed'))
-         OR (s.code = 'executed'
-             AND NOT EXISTS (SELECT FROM notify.queue q WHERE q.channel = 'job' AND q.key = JobRunKey(j.id, j.daterun))
-             AND JobStateStart(j.id) <= Now() - iLease))
+         -- CASE, not AND: written as (s.code = 'executed' AND NOT EXISTS ... AND JobStateStart ...),
+         -- the planner derives from the OR a filter on db.job alone, (j.daterun <= Now() OR (NOT
+         -- EXISTS ... AND JobStateStart ...)), and runs the queue lookup and JobStateStart for every
+         -- job that is not due yet, before its state is known. Under CASE they run for `executed` only.
+         OR CASE WHEN s.code = 'executed'
+                 THEN NOT EXISTS (SELECT FROM notify.queue q WHERE q.channel = 'job' AND q.key = JobRunKey(j.id, j.daterun))
+                  AND JobStateStart(j.id) <= Now() - iLease
+                 ELSE false
+             END)
      ORDER BY j.daterun, j.id
        FOR UPDATE OF j SKIP LOCKED
   LOOP

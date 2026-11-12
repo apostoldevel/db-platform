@@ -205,6 +205,9 @@ $$ LANGUAGE plpgsql
  *        `done` and `fail` move `dateRun` (RescheduleJob), so the next run has
  *        another key; while it is the same run the key is the same and the channel
  *        (`dedupe`) hands it out once.
+ *        STABLE: the planner may then use `q.key = JobRunKey(j.id, j.daterun)` as a
+ *        condition of the index queue_channel_key (channel, key). A VOLATILE function
+ *        cannot be an index condition: it is a filter called on every row of the channel.
  * @param {uuid} pJob - Job identifier
  * @param {timestamptz} pDateRun - Planned time of the run
  * @return {text} - '<job>:<YYYYMMDD"T"HH24MISS.US>'
@@ -216,7 +219,7 @@ CREATE OR REPLACE FUNCTION JobRunKey (
 ) RETURNS    text
 AS $$
   SELECT pJob::text || ':' || to_char(pDateRun AT TIME ZONE 'UTC', 'YYYYMMDD"T"HH24MISS.US');
-$$ LANGUAGE sql
+$$ LANGUAGE sql STABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
 
@@ -230,6 +233,9 @@ $$ LANGUAGE sql
  *        previous row with the writer's Now(), so a transaction that began before
  *        another one committed an `execute` still sees the closed row -- hours old --
  *        as valid, and would take a run that began a moment ago for a forgotten one.
+ *        The object is found first: max() over the history of one object is read
+ *        backwards on the index (object, validFromDate, ...); joined with db.job it
+ *        aggregates the whole history of the job.
  * @param {uuid} pJob - Job identifier
  * @return {timestamptz} - Start of the latest state; NULL when the job is not there
  * @since 1.2.38
@@ -238,7 +244,7 @@ CREATE OR REPLACE FUNCTION JobStateStart (
   pJob       uuid
 ) RETURNS    timestamptz
 AS $$
-  SELECT max(os.validfromdate) FROM db.object_state os INNER JOIN db.job j ON j.document = os.object WHERE j.id = pJob;
+  SELECT max(os.validfromdate) FROM db.object_state os WHERE os.object = (SELECT j.document FROM db.job j WHERE j.id = pJob);
 $$ LANGUAGE sql STABLE
    SECURITY DEFINER
    SET search_path = kernel, pg_temp;
