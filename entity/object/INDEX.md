@@ -75,7 +75,7 @@ table.sql → security.sql → view.sql → routine.sql → api.sql → rest.sql
 |---------|-------|---------|
 | `ft_object_before_insert` | `db.object` | Generate UUID, validate class/type, check the create bit `c` of the class ACU outside the kernel connection (1.2.39, patch P00000042), set ownership |
 | `ft_object_after_insert` | `db.object` | Add AOM/AOU records, message-specific permissions |
-| `ft_object_before_update` | `db.object` | Access checks, entity validation, state transitions |
+| `ft_object_before_update` | `db.object` | Access checks, entity validation, the create bit `c` of the new class ACU on a class change outside the kernel connection (1.2.43, patch P00000044), state transitions |
 | `ft_object_before_delete` | `db.object` | Access checks, cleanup AOM/AOU |
 | `ft_object_state_change` | `db.object_state` | Validate temporal date ranges |
 | `t_aou_before` | `db.aou` | Compute mask = allow & ~deny |

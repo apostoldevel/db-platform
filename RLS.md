@@ -222,6 +222,8 @@ RETURN coalesce(
 IF NOT CheckObjectAccess(NEW.id, B'010') THEN  -- update
   PERFORM AccessDenied();
 END IF;
+-- ...and, when the type moves the object into another class, the create bit
+-- of the new class (CheckClassAccess(NEW.class, B'01000')), as on insert.
 
 -- ft_object_before_delete:
 IF NOT CheckObjectAccess(OLD.id, B'001') THEN  -- delete

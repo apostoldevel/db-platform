@@ -218,7 +218,7 @@ CREATE TRIGGER t_object_after_insert
  * @brief Validate access, recalculate class/state/owner ACL before updating an object.
  * @param {trigger} NEW - Updated object row
  * @return {trigger} - Modified NEW row
- * @throws AccessDenied - When the current user lacks update permission
+ * @throws AccessDenied - When the current user lacks update permission, or, when the class changes, the create bit ('c') on the new class, outside the kernel connection (1.2.43)
  * @throws IncorrectEntity - When a type change would alter the entity
  * @since 1.0.0
  */
@@ -243,6 +243,16 @@ BEGIN
   END IF;
 
   IF OLD.class IS DISTINCT FROM NEW.class THEN
+    -- An object that moves into another class is created in that class as
+    -- far as its access is concerned: the create bit of the new class ACU
+    -- ({acsud}, 'c') is asked, as ft_object_before_insert asks it. The same
+    -- kernel and postgres exemption.
+    IF NEW.class IS NOT NULL AND session_user NOT IN ('kernel', 'postgres') THEN
+      IF NOT CheckClassAccess(NEW.class, B'01000') THEN
+        PERFORM AccessDenied();
+      END IF;
+    END IF;
+
     NEW.state := GetState(NEW.class, OLD.state_type);
 
     IF OLD.state IS DISTINCT FROM NEW.state THEN
