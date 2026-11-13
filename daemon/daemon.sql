@@ -1406,7 +1406,9 @@ $$ LANGUAGE plpgsql
  *        the access tokens issued from the same grant (§2.1 SHOULD). A token
  *        not found — unknown, expired,
  *        rotated longer ago than the reuse window, or a code — changes nothing
- *        and is no error (§2.2): {"revoked": false}.
+ *        and is no error (§2.2): {"revoked": false}. A live token whose session
+ *        SessionClose does not close is a failure, answered as an error
+ *        object (§2.2.1) — never {"revoked": true} with the token alive.
  *
  *        The right to revoke is holding the token; the client is not
  *        authenticated here, and the logout ACL bit does not gate this door:
@@ -1473,11 +1475,17 @@ BEGIN
     RETURN;
   END IF;
 
-  PERFORM FROM db.session WHERE code = vSession;
+  IF NOT SessionClose(vSession, false, 'Token revoked (RFC 7009).') THEN
+    PERFORM FROM db.session WHERE code = vSession;
 
-  IF FOUND THEN
-    PERFORM SessionClose(vSession, false, 'Token revoked (RFC 7009).');
-  ELSE
+    -- SessionClose closes nothing when the session does not validate, and the
+    -- token stays live; answering "revoked" then would tell the client the
+    -- token is dead while it still works. A failure is reported (§2.2.1) with
+    -- the reason the session check gave.
+    IF FOUND THEN
+      RAISE EXCEPTION 'The token is not revoked: %', GetErrorMessage();
+    END IF;
+
     -- a header whose session is already gone: its tokens die with it
     DELETE FROM db.token_header WHERE id = nHeader;
   END IF;
