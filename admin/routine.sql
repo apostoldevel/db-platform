@@ -3592,6 +3592,30 @@ $$ LANGUAGE plpgsql
    SET search_path = kernel, pg_temp;
 
 --------------------------------------------------------------------------------
+-- IsPhoneVerified -------------------------------------------------------------
+--------------------------------------------------------------------------------
+/**
+ * @brief Tell whether the user's phone number is verified in the current scope.
+ * @param {uuid} pUserId - User identifier
+ * @return {bool} - TRUE only when the user has a phone number and the profile of the current scope marks it verified;
+ *                  a user without a profile in that scope is not verified
+ * @since 1.2.43
+ */
+CREATE OR REPLACE FUNCTION IsPhoneVerified (
+  pUserId         uuid
+) RETURNS         bool
+AS $$
+  SELECT coalesce((
+    SELECT p.phone_verified
+      FROM db.user u INNER JOIN db.profile p ON p.userid = u.id AND p.scope = current_scope()
+     WHERE u.id = pUserId
+       AND u.phone IS NOT NULL
+  ), false);
+$$ LANGUAGE sql STABLE
+   SECURITY DEFINER
+   SET search_path = kernel, pg_temp;
+
+--------------------------------------------------------------------------------
 -- FUNCTION IsPublicClientSession ----------------------------------------------
 --------------------------------------------------------------------------------
 /**

@@ -141,7 +141,7 @@ Standard 9 + `EventJobExecute`, `EventJobComplete`, `EventJobDone` (reschedule),
 
 **Send functions:** `SendMessage`, `SendMail`, `SendM2M`, `SendFCM`, `SendSMS` (MTS API), `SendPush` (Firebase), `SendPushData`.
 
-**Recovery/Registration:** `RecoveryPasswordByEmail`, `RecoveryPasswordByPhone`, `RegistrationCodeByPhone`, `RegistrationCodeByEmail`.
+**Recovery/Registration:** `RecoveryPasswordByEmail`, `RecoveryPasswordByPhone` (verified phone only, `IsPhoneVerified`), `RegistrationCodeByPhone`, `RegistrationCodeByEmail`, `IsPhoneVerified`.
 
 ### API — 17 functions
 

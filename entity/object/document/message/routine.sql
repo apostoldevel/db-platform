@@ -773,10 +773,14 @@ $$ LANGUAGE plpgsql
 --------------------------------------------------------------------------------
 /**
  * @brief Initiate password recovery by sending a code via SMS to the user's phone.
+ *        The code goes only to a verified phone number (see IsPhoneVerified).
  * @param {uuid} pUserId - User identifier
  * @param {text} pInitiator - Initiator identifier for the recovery ticket
  * @param {text} pHashCode - Optional hash code appended to the SMS
- * @return {uuid} - Recovery ticket identifier, or NULL on failure
+ * @return {uuid} - Recovery ticket identifier, or NULL when the SMS was not queued
+ * @throws PhoneNumberNotSet - When the user has no phone number
+ * @throws PhoneNumberNotVerified - When the phone number is not verified in the current scope
+ * @see IsPhoneVerified
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION RecoveryPasswordByPhone (
@@ -788,11 +792,22 @@ AS $$
 DECLARE
   uTicket         uuid;
   uMessageId      uuid;
+  vPhone          text;
   vProfile        text;
   vSecurityAnswer text;
   vText           text;
   vMessage        text;
 BEGIN
+  SELECT phone INTO vPhone FROM db.user WHERE id = pUserId;
+
+  IF vPhone IS NULL THEN
+    PERFORM PhoneNumberNotSet();
+  END IF;
+
+  IF NOT IsPhoneVerified(pUserId) THEN
+    PERFORM PhoneNumberNotVerified(vPhone);
+  END IF;
+
   vProfile := RegGetValueString('CURRENT_CONFIG', 'CONFIG\CurrentProject\SMS', 'Address', pUserId);
   vSecurityAnswer := random_between(100000, 999999)::text;
 

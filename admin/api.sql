@@ -806,7 +806,8 @@ $$ LANGUAGE plpgsql
  * @param {text} pIdentifier - User identifier (username, email, or phone)
  * @param {text} pHashCode - HashCash proof-of-work code
  * @return {uuid} - Recovery ticket (returns a random UUID if user not found, to prevent enumeration)
- * @see RecoveryPasswordByEmail, RecoveryPasswordByPhone
+ * @note By phone, a number that is not verified is answered as an unknown one: a random UUID, no ticket, no SMS.
+ * @see RecoveryPasswordByEmail, RecoveryPasswordByPhone, IsPhoneVerified
  * @since 1.0.0
  */
 CREATE OR REPLACE FUNCTION api.recovery_password (
@@ -838,8 +839,11 @@ BEGIN
     END IF;
   ELSE
     SELECT id INTO uUserId FROM db.user WHERE phone = TrimPhone(pIdentifier) AND type = 'U';
-  
-    IF FOUND THEN
+
+    -- A number that is not verified is answered as an unknown one: no ticket, no SMS.
+    -- Checked before the user substitution below, so both answers cost the same; the
+    -- substitution keeps the scope (GetDefaultArea reads current_scope()).
+    IF FOUND AND IsPhoneVerified(uUserId) THEN
       vInitiator := encode(digest(pIdentifier, 'sha1'), 'hex');
     
       PERFORM
