@@ -1778,7 +1778,9 @@ $$ LANGUAGE sql IMMUTABLE;
 --------------------------------------------------------------------------------
 /**
  * @brief Exchanges an authorization code or refresh token for a new token set.
- *        Marks single-use tokens (code, refresh) as used.
+ *        Marks single-use tokens (code, refresh) as used. A code presented
+ *        again, or a refresh token presented again after the reuse window,
+ *        revokes the session and tokens of its grant (event 4001).
  * @param {integer} pAudience - OAuth 2.0 audience identifier
  * @param {text} pToken - Token string to exchange
  * @param {interval} pInterval - Validity duration for new tokens (defaults to '1 hour')
@@ -1833,14 +1835,16 @@ BEGIN
   -- §4.1.2 asks for never happened on the commonest path. A code leaks through a
   -- redirect, a Referer or a proxy log and is presented later, not in a race.
   --
-  -- A refresh token rotated within the reuse window is found too: its range is
-  -- already closed by the rotation, and the branch below decides what it gets.
+  -- A rotated refresh token is found too, however long ago it was rotated: its
+  -- range is already closed by the rotation, and the branch below decides what
+  -- it gets -- the current pair within the reuse window, the revocation of its
+  -- grant after it. Rotated rows live as long as their header does.
   SELECT h.id, t.id, a.audience INTO nHeader, nToken, nAudience
     FROM db.token t INNER JOIN db.token_header h ON h.id = t.header AND t.type = pType
                     INNER JOIN db.oauth2 a ON a.id = h.oauth2
    WHERE t.hash = vHash
      AND t.validFromDate <= Now()
-     AND (t.validtoDate > Now() OR (pType = 'R' AND t.used > Now() - cReuseWindow));
+     AND (t.validtoDate > Now() OR (pType = 'R' AND t.used IS NOT NULL));
 
   IF NOT FOUND THEN
     RETURN jMalformed;
@@ -1914,10 +1918,11 @@ BEGIN
     -- loser out instead. So the loser waits for the winner and receives the
     -- header's current pair; both clients end up holding the same live tokens.
     --
-    -- Outside the window a spent refresh token is refused as before. The lock is
-    -- the header's, not the token's, because the rotation writes new rows; NewToken
-    -- takes the same lock again. Under READ COMMITTED the loser re-reads below; a
-    -- stricter isolation level would fail it with a serialization error instead.
+    -- Outside the window a spent refresh token is refused and its grant revoked
+    -- (below). The lock is the header's, not the token's, because the rotation
+    -- writes new rows; NewToken takes the same lock again. Under READ COMMITTED
+    -- the loser re-reads below; a stricter isolation level would fail it with a
+    -- serialization error instead.
     PERFORM FROM db.token_header WHERE id = nHeader FOR UPDATE;
 
     IF NOT FOUND THEN
@@ -1939,7 +1944,29 @@ BEGIN
         IF jToken IS NOT NULL THEN
           RETURN jToken;
         END IF;
+
+        RETURN jMalformed;
       END IF;
+
+      -- RFC 9700 §4.14.2: a refresh token presented again after its rotation
+      -- means that two parties hold it, and the server cannot tell which one is
+      -- the legitimate client. The whole grant is revoked: whoever rotated
+      -- first -- the client or someone else -- loses the session, and both have
+      -- to authenticate again. Only the session this grant belongs to is
+      -- revoked, with every token header it holds (deleting a session deletes
+      -- its headers), never the user's other sessions. A replay within the
+      -- window is the concurrent refresh handled above and revokes nothing.
+      --
+      -- The order is the one of the authorization code replay above: sessions
+      -- first, then the header, which cascades to its tokens.
+      DELETE FROM db.session
+       WHERE token IN (SELECT id FROM db.token WHERE header = nHeader)
+          OR code IN (SELECT session FROM db.token_header WHERE id = nHeader);
+
+      DELETE FROM db.token_header WHERE id = nHeader;
+
+      PERFORM WriteToEventLog('E', 4001, 'auth', 'error',
+        format('Refresh token presented again after its rotation; the session and tokens issued with it were revoked (header %s).', nHeader));
 
       RETURN jMalformed;
     END IF;
