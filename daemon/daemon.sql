@@ -2160,7 +2160,9 @@ $$ LANGUAGE plpgsql
  *        parameters without a default are all given. Keys are the parameter
  *        names without the leading p. A key left out takes the default, a
  *        JSON null passes NULL. Values: json/jsonb as the JSON value, an array
- *        from a JSON array, anything else from its text. Only names and types
+ *        from a JSON array, anything else from its text; each is cast to the
+ *        parameter's type without a length (bit and character are not cut to
+ *        one), a domain keeps its own. Only names and types
  *        from the catalogue enter the query text; values go as a parameter.
  *        A form registered at the administrator level is refused to others.
  *        A call that leaves another session or user in place than the
@@ -2243,14 +2245,19 @@ BEGIN
              CASE
              -- a JSON null is SQL NULL here too: $1->key gives 'null'::jsonb, which
              -- a function reads as a value (a filter "null" is not "no filter")
-             WHEN a.type IN ('json'::regtype::oid, 'jsonb'::regtype::oid) THEN format('nullif($1->%L, ''null''::jsonb)::%s', a.key, format_type(a.type, null))
-             WHEN t.typcategory = 'A' THEN format('(CASE WHEN jsonb_typeof($1->%L) = ''array'' THEN ARRAY(SELECT e FROM jsonb_array_elements_text($1->%L) WITH ORDINALITY AS x(e, o) ORDER BY o) END)::%s', a.key, a.key, format_type(a.type, null))
-             WHEN a.type = 'bpchar'::regtype::oid THEN format('($1->>%L)::bpchar', a.key)
-             ELSE format('($1->>%L)::%s', a.key, format_type(a.type, null))
+             WHEN a.type IN ('json'::regtype::oid, 'jsonb'::regtype::oid) THEN format('nullif($1->%L, ''null''::jsonb)::%s', a.key, n.cast_to)
+             WHEN t.typcategory = 'A' THEN format('(CASE WHEN jsonb_typeof($1->%L) = ''array'' THEN ARRAY(SELECT e FROM jsonb_array_elements_text($1->%L) WITH ORDINALITY AS x(e, o) ORDER BY o) END)::%s', a.key, a.key, n.cast_to)
+             ELSE format('($1->>%L)::%s', a.key, n.cast_to)
              END), ', ' ORDER BY a.ord)
     INTO vArgs
     FROM GatewayFunctionArgs(uOid) a
     JOIN pg_type t ON t.oid = a.type
+    -- the type is named with typmod -1: without it bit and character (and their
+    -- arrays) are named "bit" and "character", which a cast reads as bit(1) and
+    -- character(1) and cuts a longer value to without an error; with it they are
+    -- named "bit" (quoted) and bpchar, types without a length. Every other type
+    -- is named the same either way
+    CROSS JOIN LATERAL (SELECT format_type(a.type, -1) AS cast_to) n
    WHERE a.key = ANY (arGiven);
 
   -- called by name with every argument cast to the chosen form's exact type:
