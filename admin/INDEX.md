@@ -113,9 +113,9 @@ User management, authentication, authorization, sessions, and access control. Th
 
 `CreateUser`, `UpdateUser`, `DeleteUser`, `GetUser`, `GetUsername`, `GetUserFullName`, `CreateGroup`, `UpdateGroup`, `DeleteGroup`, `GetGroup`, `GetGroupUsername`, `GetGroupName`, `AddMemberToGroup`, `DeleteGroupForMember`, `DeleteMemberFromGroup` (all three pass `CheckGroupChange` since 1.2.31), `CheckGroupChange` (the target must be a group — a user in its place is refused; kernel and administrator pass; a protected group → `ERR-403-014`; for any caller but `apibot` (the sign-up flows), a group whose ACL grants a bit the caller lacks → `ERR-403-015`; only `db.acl` is compared — a group whose membership means more must be registered protected), `RegisterProtectedGroup(code)`, `IsProtectedGroup(uuid)` (table `db.protected_group`: administrator, system, message, replication, mq; a configuration adds its own), `UserLock`, `UserUnLock`.
 
-### Profile (~3)
+### Profile (~4)
 
-`CreateProfile`, `UpdateProfile`, `CheckUserProfile`.
+`CreateProfile`, `UpdateProfile`, `CheckUserProfile`, `IsPhoneVerified(uuid)` (1.2.43; true only when the user has a phone and the profile of the current scope marks it verified — a missing profile is not verified; used by `RecoveryPasswordByPhone` and `api.recovery_password`).
 
 ### Authentication & Login (~10)
 

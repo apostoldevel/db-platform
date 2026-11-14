@@ -99,7 +99,7 @@ Combined: `WHERE scope = 'ocpp.status' AND code = 4022 AND category = 'connector
 
 | Code | Event | Description |
 |------|-------|-------------|
-| 4001 | connect | External system connected |
+| 4001 | connect | External system connected. Also written by `ExchangeToken` (type `E`, scope `auth`, event `error`) when an authorization code (1.2.42) or a rotated refresh token after its reuse window (1.2.43) is presented again and the grant is revoked |
 | 4002 | disconnect | External system disconnected |
 | 4010 | heartbeat | Heartbeat received |
 | 4020–4027 | available–reserved | Status change (OCPP connector states) |
